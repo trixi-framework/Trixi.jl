@@ -61,7 +61,7 @@ function main()
 
   # Plot to file
   # plot2file(dg, mesh, "initialconditions.pdf")
-  println(dg.dhat)
+  println(dg.lhat)
 end
 
 

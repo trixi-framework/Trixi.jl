@@ -21,6 +21,7 @@ struct Dg{SysEqn <: SysEqnMod.AbstractSysEqn{nvars_} where nvars_, N, Np1}
   nodes::SVector{Np1}
   weights::SVector{Np1}
   dhat::SMatrix{Np1, Np1}
+  lhat::SMatrix{Np1, 2}
 end
 
 
@@ -35,8 +36,11 @@ function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   ut = zeros(Float64, nvars_, N + 1, ncells)
   nodes, weights = legendre(N + 1, both)
   dhat = calcdhat(nodes, weights)
+  lhat = zeros(N + 1, 2)
+  lhat[:, 1] = calclhat(-1.0, nodes, weights)
+  lhat[:, 2] = calclhat( 1.0, nodes, weights)
   dg = Dg{typeof(s), N, N + 1}(s, u, ut, ncells, Array{Float64,1}(undef, ncells),
-                        Array{Float64,2}(undef, N + 1, ncells), nodes, weights, dhat)
+                        Array{Float64,2}(undef, N + 1, ncells), nodes, weights, dhat, lhat)
 
   for c in 1:ncells
     dx = mesh.length[c]
@@ -91,6 +95,44 @@ function barycentricweights(nodes)
   end
 
   return weights
+end
+
+
+function calclhat(x::Float64, nodes, weights)
+  nnodes = length(nodes)
+  wbary = barycentricweights(nodes)
+
+  lhat = lagrangeinterpolatingpolynomials(x, nodes, wbary)
+
+  for i = 1:nnodes
+    lhat[i] /= weights[i]
+  end
+
+  return lhat
+end
+
+
+function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
+  nnodes = length(nodes)
+  polynomials = zeros(nnodes)
+
+  for i = 1:nnodes
+    if isapprox(x, nodes[i], rtol=eps(x))
+      polynomials[i] = 1
+      return polynomials
+    end
+  end
+
+  for i = 1:nnodes
+    polynomials[j] = wBary[j] / (x - nodes[j])
+  end
+  total = sum(polynomials)
+
+  for i = 1:nnodes
+    polynomials[j] /= total
+  end
+
+  return polynomials
 end
 
 
