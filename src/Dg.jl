@@ -11,11 +11,13 @@ export nvars
 export syseqn
 export polydeg
 export rhs!
+export calcdt
 
 struct Dg{SysEqn <: SysEqnMod.AbstractSysEqn{nvars_} where nvars_, N, Np1}
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
+  urk::Array{Float64, 3}
   ncells::Int
   invjacobian::Array{Float64, 1}
   nodecoordinate::Array{Float64, 2}
@@ -42,6 +44,7 @@ function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   ncells = mesh.ncells
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
+  urk = zeros(Float64, nvars_, N + 1, ncells)
 
   nsurfaces = ncells
   usurf = zeros(Float64, 2, nvars_, nsurfaces)
@@ -74,7 +77,7 @@ function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   lhat[:, 1] = calclhat(-1.0, nodes, weights)
   lhat[:, 2] = calclhat( 1.0, nodes, weights)
 
-  dg = Dg{typeof(s), N, N + 1}(s, u, ut, ncells, Array{Float64,1}(undef, ncells),
+  dg = Dg{typeof(s), N, N + 1}(s, u, ut, urk, ncells, Array{Float64,1}(undef, ncells),
                         Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf, neighbors,
                         nsurfaces, nodes, weights, dhat, lhat)
 
@@ -277,6 +280,20 @@ function applyjacobian!(dg)
       end
     end
   end
+end
+
+
+function calcdt(dg, cfl)
+  N = polydeg(dg)
+  nnodes = N + 1
+
+  mindt = Inf
+  for c = 1:dg.ncells
+    dt = maxdt(syseqn(dg), dg.u, c, nnodes, dg.invjacobian[c], cfl)
+    mindt = min(mindt, dt)
+  end
+
+  return mindt
 end
 
 

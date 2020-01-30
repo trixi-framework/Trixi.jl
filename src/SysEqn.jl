@@ -10,6 +10,7 @@ export AbstractSysEqn
 export exactfunc
 export calcflux
 export riemann!
+export maxdt
 
 abstract type AbstractSysEqn{nvars_} end
 nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
@@ -53,6 +54,10 @@ end
 function riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
   a = ss.advectionvelocity
   fsurf = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
+end
+
+function maxdt(s::LinearScalarAdvection, u, c, nnodes, invjacobian, cfl)
+  return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (nnodes - 1) + 1)
 end
 
 end

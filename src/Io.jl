@@ -6,8 +6,8 @@ using Plots
 
 export plot2file
 
-function plot2file(dg, mesh, filename)
-  x = mesh.x[:]
+function plot2file(dg, filename)
+  x = dg.nodecoordinate[:]
   y = zeros(length(x), nvars(dg))
   nnodes = polydeg(dg) + 1
   for v = 1:nvars(dg)

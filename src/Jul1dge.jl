@@ -8,6 +8,7 @@ include("Mesh.jl")
 include("Common.jl")
 include("Dg.jl")
 include("Io.jl")
+include("TimeDisc.jl")
 
 using Reexport
 @reexport using .SysEqnMod
@@ -15,5 +16,6 @@ using Reexport
 @reexport using .CommonMod
 @reexport using .DgMod
 @reexport using .IoMod
+@reexport using .TimeDiscMod
 
 end
