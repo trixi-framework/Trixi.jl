@@ -175,15 +175,15 @@ function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
 end
 
 
-function setinitialconditions(dg, t)
+function setinitialconditions(dg, t, name::String)
   for c = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, c] .= exactfunc(syseqn(dg), dg.nodecoordinate[i, c], t)
+      dg.u[:, i, c] .= exactfunc(syseqn(dg), dg.nodecoordinate[i, c], t, name)
     end
   end
 end
 
-function rhs!(dg, mesh, t)
+function rhs!(dg)
   # Reset ut
   dg.ut .= 0.0
 

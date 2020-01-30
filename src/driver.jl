@@ -27,7 +27,10 @@ defaults = Dict(
 "nstepsmax" => 10000,
 
 # Advection velocity
-"advectionvelocity" => 1.0
+"advectionvelocity" => 1.0,
+
+# Initial conditions
+"initialconditions" => "constant"
 )
 
 function main()
@@ -38,11 +41,12 @@ function main()
   N = args["N"]
   ncells = args["ncells"]
   cfl = args["cfl"]
+  nstepsmax = args["nstepsmax"]
+  initialconditions = args["initialconditions"]
   x_start = defaults["x_start"]
   x_end = defaults["x_end"]
   t_start = defaults["t_start"]
   t_end = defaults["t_end"]
-  nstepsmax = defaults["nstepsmax"]
 
   # Create mesh
   print("Creating mesh... ")
@@ -62,7 +66,8 @@ function main()
   # Apply initial condition
   print("Applying initial conditions... ")
   t = t_start
-  setinitialconditions(dg, t)
+  setinitialconditions(dg, t, initialconditions)
+  plot2file(dg, "initialconditions.pdf")
   println("done")
 
   # Set up main loop
@@ -70,13 +75,11 @@ function main()
   dt = calcdt(dg, cfl)
   println("done")
 
-  plot2file(dg, "initialconditions.pdf")
-
   # Main loop
   println("Running main loop... ")
   step = 0
   finalstep = false
-  while step < nstepsmax && !finalstep
+  while !finalstep
     if t + dt > t_end
       dt = t_end - t
       finalstep = true
@@ -86,12 +89,16 @@ function main()
     step += 1
     t += dt
 
+    if step == nstepsmax
+      finalstep = true
+    end
+
     if step % 10 == 0 || finalstep
       println("Step: #$step, t=$t")
     end
   end
   println("done")
-  plot2file(dg, "finalsolution.pdf")
+  plot2file(dg, "solution.pdf")
 end
 
 
@@ -106,6 +113,14 @@ function parse_arguments()
       help = "Number of cells"
       arg_type = Int
       default = defaults["ncells"]
+    "--nstepsmax"
+      help = "Maximum number of time steps"
+      arg_type = Int
+      default = defaults["nstepsmax"]
+    "--initialconditions"
+      help = "Initial conditions to be applied"
+      arg_type = String
+      default = defaults["initialconditions"]
     "--cfl"
       help = "CFL number of time step calculation"
       arg_type = Float64

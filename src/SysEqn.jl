@@ -36,8 +36,14 @@ struct LinearScalarAdvection <: AbstractSysEqn{1}
   advectionvelocity::Float64
 end
 
-function exactfunc(s::LinearScalarAdvection, x, t)
-  return exp(-(x - s.advectionvelocity * t)^2)
+function exactfunc(s::LinearScalarAdvection, x, t, name)
+  if name == "gauss"
+    return exp(-(x - s.advectionvelocity * t)^2)
+  elseif name == "constant"
+    return 2.0
+  else
+    die("Unknown initial condition '$name'")
+  end
 end
 
 function calcflux(s::LinearScalarAdvection, u, c, nnodes)
@@ -53,7 +59,7 @@ end
 
 function riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
   a = ss.advectionvelocity
-  fsurf = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
+  fsurf[1, s] = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
 end
 
 function maxdt(s::LinearScalarAdvection, u, c, nnodes, invjacobian, cfl)
