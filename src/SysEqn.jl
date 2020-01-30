@@ -9,6 +9,7 @@ export nvars
 export AbstractSysEqn
 export exactfunc
 export calcflux
+export riemann!
 
 abstract type AbstractSysEqn{nvars_} end
 nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
@@ -31,22 +32,27 @@ end
 ####################################################################################################
 struct LinearScalarAdvection <: AbstractSysEqn{1}
   name::String
-  advectionvelocity::SVector{ndim}
+  advectionvelocity::Float64
 end
 
 function exactfunc(s::LinearScalarAdvection, x, t)
-  return exp(-(x - s.advectionvelocity[1])^2)
+  return exp(-(x - s.advectionvelocity * t)^2)
 end
 
 function calcflux(s::LinearScalarAdvection, u, c, nnodes)
   f = zeros(MMatrix{1, nnodes})
-  a = s.advectionvelocity[1]
+  a = s.advectionvelocity
 
   for i = 1:nnodes
     f[1, i]  = u[1, i, c] * a
   end
 
   return f
+end
+
+function riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
+  a = ss.advectionvelocity
+  fsurf = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
 end
 
 end

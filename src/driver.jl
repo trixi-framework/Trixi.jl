@@ -24,7 +24,7 @@ defaults = Dict(
 "cfl" => 1.0,
 
 # Advection velocity
-"advectionvelocity" => (1.0,)
+"advectionvelocity" => 1.0
 )
 
 function main()

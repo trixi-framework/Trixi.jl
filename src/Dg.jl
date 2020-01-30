@@ -188,6 +188,16 @@ function rhs!(dg, mesh, t)
   volint!(dg)
 
   # Prolong solution to surfaces
+  prolong2surfaces!(dg)
+
+  # Calculate surface fluxes
+  surfflux!(dg)
+
+  # Calculate surface integrals
+  surfint!(dg)
+
+  # Apply Jacobian from mapping to reference element
+  applyjacobian!(dg)
 end
 
 
@@ -208,5 +218,66 @@ function volint!(dg)
     end
   end
 end
+
+
+function prolong2surfaces!(dg)
+  N = polydeg(dg)
+  nnodes = N + 1
+  s = syseqn(dg)
+  nvars_ = nvars(dg)
+
+  for s = 1:dg.nsurfaces
+    left = dg.neighbors[1, s]
+    right = dg.neighbors[2, s]
+    for v = 1:nvars_
+      dg.usurf[1, v, s] = dg.u[v, nnodes, left]
+      dg.usurf[2, v, s] = dg.u[v, 1, right]
+    end
+  end
+end
+
+
+function surfflux!(dg)
+  N = polydeg(dg)
+  nnodes = N + 1
+  s = syseqn(dg)
+
+  for s = 1:dg.nsurfaces
+    riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
+  end
+end
+
+
+function surfint!(dg)
+  N = polydeg(dg)
+  nnodes = N + 1
+  nvars_ = nvars(dg)
+
+  for c = 1:dg.ncells
+    left = dg.surfaces[1, c]
+    right = dg.surfaces[2, c]
+
+    for v = 1:nvars_
+      dg.ut[v, 1,      c] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
+      dg.ut[v, nnodes, c] += dg.fsurf[v, right] * dg.lhat[nnodes, 2]
+    end
+  end
+end
+
+
+function applyjacobian!(dg)
+  N = polydeg(dg)
+  nnodes = N + 1
+  nvars_ = nvars(dg)
+
+  for c = 1:dg.ncells
+    for i = 1:nnodes
+      for v = 1:nvars_
+        dg.ut[v, i, c] *= -dg.invjacobian[c]
+      end
+    end
+  end
+end
+
 
 end
