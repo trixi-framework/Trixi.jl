@@ -60,9 +60,9 @@ function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   # 1 --- 2
   # Order of adjacent cells:
   # 1  |  2
-  for c = 1:ncells
-    surfaces[1, c] = c
-    surfaces[2, c] = c + 1
+  for cell_id = 1:ncells
+    surfaces[1, cell_id] = cell_id
+    surfaces[2, cell_id] = cell_id + 1
   end
   surfaces[2, ncells] = 1
   for s = 1:nsurfaces
@@ -81,10 +81,10 @@ function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
                         Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf, neighbors,
                         nsurfaces, nodes, weights, dhat, lhat)
 
-  for c in 1:ncells
-    dx = mesh.length[c]
-    dg.invjacobian[c] = 2/dx
-    dg.nodecoordinate[:, c] = @. mesh.coordinate[c] + dx/2 * nodes[:]
+  for cell_id in 1:ncells
+    dx = mesh.length[cell_id]
+    dg.invjacobian[cell_id] = 2/dx
+    dg.nodecoordinate[:, cell_id] = @. mesh.coordinate[cell_id] + dx/2 * nodes[:]
   end
 
   return dg
@@ -176,9 +176,9 @@ end
 
 
 function setinitialconditions(dg, t, name::String)
-  for c = 1:dg.ncells
+  for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, c] .= exactfunc(syseqn(dg), dg.nodecoordinate[i, c], t, name)
+      dg.u[:, i, cell_id] .= exactfunc(syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
     end
   end
 end
@@ -210,12 +210,12 @@ function volint!(dg)
   s = syseqn(dg)
   nvars_ = nvars(dg)
 
-  for c = 1:dg.ncells
-    f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, c, nnodes)
+  for cell_id = 1:dg.ncells
+    f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, cell_id, nnodes)
     for i = 1:nnodes
       for v = 1:nvars_
         for j = 1:nnodes
-          dg.ut[v, i, c] += dg.dhat[i, j] * f[v, j]
+          dg.ut[v, i, cell_id] += dg.dhat[i, j] * f[v, j]
         end
       end
     end
@@ -256,13 +256,13 @@ function surfint!(dg)
   nnodes = N + 1
   nvars_ = nvars(dg)
 
-  for c = 1:dg.ncells
-    left = dg.surfaces[1, c]
-    right = dg.surfaces[2, c]
+  for cell_id = 1:dg.ncells
+    left = dg.surfaces[1, cell_id]
+    right = dg.surfaces[2, cell_id]
 
     for v = 1:nvars_
-      dg.ut[v, 1,      c] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
-      dg.ut[v, nnodes, c] += dg.fsurf[v, right] * dg.lhat[nnodes, 2]
+      dg.ut[v, 1,      cell_id] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
+      dg.ut[v, nnodes, cell_id] += dg.fsurf[v, right] * dg.lhat[nnodes, 2]
     end
   end
 end
@@ -273,10 +273,10 @@ function applyjacobian!(dg)
   nnodes = N + 1
   nvars_ = nvars(dg)
 
-  for c = 1:dg.ncells
+  for cell_id = 1:dg.ncells
     for i = 1:nnodes
       for v = 1:nvars_
-        dg.ut[v, i, c] *= -dg.invjacobian[c]
+        dg.ut[v, i, cell_id] *= -dg.invjacobian[cell_id]
       end
     end
   end
@@ -288,8 +288,8 @@ function calcdt(dg, cfl)
   nnodes = N + 1
 
   mindt = Inf
-  for c = 1:dg.ncells
-    dt = maxdt(syseqn(dg), dg.u, c, nnodes, dg.invjacobian[c], cfl)
+  for cell_id = 1:dg.ncells
+    dt = maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
     mindt = min(mindt, dt)
   end
 

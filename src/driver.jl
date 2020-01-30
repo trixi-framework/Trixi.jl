@@ -55,7 +55,8 @@ function main()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  syseqn = getsyseqn("linearscalaradvection", defaults["advectionvelocity"])
+  # syseqn = getsyseqn("linearscalaradvection", defaults["advectionvelocity"])
+  syseqn = getsyseqn("euler")
   println("done")
 
   # Initialize solver
