@@ -61,6 +61,7 @@ function main()
 
   # Plot to file
   # plot2file(dg, mesh, "initialconditions.pdf")
+  rhs!(dg, mesh, t)
   println(dg.lhat)
 end
 

@@ -8,6 +8,7 @@ export getsyseqn
 export nvars
 export AbstractSysEqn
 export exactfunc
+export calcflux
 
 abstract type AbstractSysEqn{nvars_} end
 nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
@@ -35,6 +36,17 @@ end
 
 function exactfunc(s::LinearScalarAdvection, x, t)
   return exp(-(x - s.advectionvelocity[1])^2)
+end
+
+function calcflux(s::LinearScalarAdvection, u, c, nnodes)
+  f = zeros(MMatrix{1, nnodes})
+  a = s.advectionvelocity[1]
+
+  for i = 1:nnodes
+    f[1, i]  = u[1, i, c] * a
+  end
+
+  return f
 end
 
 end
