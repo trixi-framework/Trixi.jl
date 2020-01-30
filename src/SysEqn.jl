@@ -19,12 +19,11 @@ function Base.show(io::IO, s::AbstractSysEqn{nvars_}) where nvars_
   print("name = $(s.name), nvars = $nvars_, advectionvelocity = $(s.advectionvelocity)")
 end
 
-function getsyseqn(name::String, args...)
+function getsyseqn(name::String)
   if name == "linearscalaradvection"
-    return LinearScalarAdvection(name, args...)
+    return LinearScalarAdvection()
   elseif name == "euler"
-    gamma = 1.4
-    return Euler(name, gamma, args...)
+    return Euler()
   else
     die("'$name' does not name a valid system of equations")
   end
@@ -36,7 +35,14 @@ end
 ####################################################################################################
 struct LinearScalarAdvection <: AbstractSysEqn{1}
   name::String
+  varnames::SVector{1, String}
   advectionvelocity::Float64
+
+  function LinearScalarAdvection(a)
+    name = "linearscalaradvection"
+    varnames = ["scalar"]
+    new(name, varnames, a)
+  end
 end
 
 function exactfunc(s::LinearScalarAdvection, x, t, name)
@@ -76,12 +82,20 @@ end
 ####################################################################################################
 struct Euler <: AbstractSysEqn{3}
   name::String
+  varnames::SVector{3, String}
   gamma::Float64
+
+  function Euler()
+    name = "euler"
+    varnames = ["rho", "rho_u", "rho_e"]
+    gamma = 1.4
+    new(name, varnames, gamma)
+  end
 end
 
 function exactfunc(s::Euler, x, t, name)
   if name == "gauss"
-    return [1.0, 0.0, 1 + exp(-x^2)/5] 
+    return [1.0, 0.0, 1 + exp(-x^2)/2] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
   else

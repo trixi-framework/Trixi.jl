@@ -4,11 +4,12 @@ include("Jul1dge.jl")
 using .Jul1dge
 
 using ArgParse
+using Printf
 
 defaults = Dict(
 # Computational domain
-"x_start" => -10,
-"x_end" => 10,
+"x_start" => -5,
+"x_end" => 5,
 
 # Number of cells
 "ncells" => 40,
@@ -18,7 +19,7 @@ defaults = Dict(
 
 # Start and end time
 "t_start" => 0.0,
-"t_end" => 1.0,
+"t_end" => 30.0,
 
 # CFL number
 "cfl" => 1.0,
@@ -68,12 +69,7 @@ function main()
   print("Applying initial conditions... ")
   t = t_start
   setinitialconditions(dg, t, initialconditions)
-  plot2file(dg, "initialconditions.pdf")
-  println("done")
-
-  # Set up main loop
-  print("Setting up main loop... ")
-  dt = calcdt(dg, cfl)
+  #plot2file(dg, "initialconditions.pdf")
   println("done")
 
   # Main loop
@@ -81,6 +77,8 @@ function main()
   step = 0
   finalstep = false
   while !finalstep
+    dt = calcdt(dg, cfl)
+
     if t + dt > t_end
       dt = t_end - t
       finalstep = true
@@ -97,9 +95,11 @@ function main()
     if step % 10 == 0 || finalstep
       println("Step: #$step, t=$t")
     end
+
+    plot2file(dg, @sprintf("solution_%04d.png", step))
   end
   println("done")
-  plot2file(dg, "solution.pdf")
+  # plot2file(dg, "solution.pdf")
 end
 
 
