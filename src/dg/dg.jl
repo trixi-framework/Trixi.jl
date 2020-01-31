@@ -178,7 +178,7 @@ end
 function setinitialconditions(dg, t, name::String)
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, cell_id] .= exactfunc(syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
+      dg.u[:, i, cell_id] .= Equation.exactfunc(syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
     end
   end
 end
@@ -208,10 +208,10 @@ function volint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
   s = syseqn(dg)
-  nvars_ = nvars(dg)
+  nvars_ = Equation.nvars(dg)
 
   for cell_id = 1:dg.ncells
-    f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, cell_id, nnodes)
+    f::MMatrix{nvars_, nnodes} = Equation.calcflux(s, dg.u, cell_id, nnodes)
     for i = 1:nnodes
       for v = 1:nvars_
         for j = 1:nnodes
@@ -227,7 +227,7 @@ function prolong2surfaces!(dg)
   N = polydeg(dg)
   nnodes = N + 1
   s = syseqn(dg)
-  nvars_ = nvars(dg)
+  nvars_ = Equation.nvars(dg)
 
   for s = 1:dg.nsurfaces
     left = dg.neighbors[1, s]
@@ -246,7 +246,7 @@ function surfflux!(dg)
   s = syseqn(dg)
 
   for s = 1:dg.nsurfaces
-    riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
+    Equation.riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
   end
 end
 
@@ -254,7 +254,7 @@ end
 function surfint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  nvars_ = nvars(dg)
+  nvars_ = Equation.nvars(dg)
 
   for cell_id = 1:dg.ncells
     left = dg.surfaces[1, cell_id]
@@ -271,7 +271,7 @@ end
 function applyjacobian!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  nvars_ = nvars(dg)
+  nvars_ = Equation.nvars(dg)
 
   for cell_id = 1:dg.ncells
     for i = 1:nnodes
@@ -289,7 +289,7 @@ function calcdt(dg, cfl)
 
   mindt = Inf
   for cell_id = 1:dg.ncells
-    dt = maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
+    dt = Equation.maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
     mindt = min(mindt, dt)
   end
 

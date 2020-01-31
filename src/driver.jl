@@ -2,6 +2,10 @@
 
 include("Jul1dge.jl")
 using .Jul1dge
+using .Jul1dge.MeshMod
+using .Jul1dge.Equation
+using .Jul1dge.DgMod
+using .Jul1dge.TimeDisc
 
 using ArgParse
 using Printf
