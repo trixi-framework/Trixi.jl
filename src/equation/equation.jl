@@ -19,11 +19,11 @@ function Base.show(io::IO, s::AbstractSysEqn{nvars_}) where nvars_
   print("name = $(s.name), nvars = $nvars_, advectionvelocity = $(s.advectionvelocity)")
 end
 
-function getsyseqn(name::String)
+function getsyseqn(name::String, initialconditions::String, args...)
   if name == "linearscalaradvection"
-    return LinearScalarAdvection()
+    return LinearScalarAdvection(initialconditions, args...)
   elseif name == "euler"
-    return Euler()
+    return Euler(initialconditions, args...)
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -35,21 +35,23 @@ end
 ####################################################################################################
 struct LinearScalarAdvection <: AbstractSysEqn{1}
   name::String
+  initialconditions::String
   varnames::SVector{1, String}
   advectionvelocity::Float64
 
-  function LinearScalarAdvection(a)
+  function LinearScalarAdvection(initialconditions, a)
     name = "linearscalaradvection"
     varnames = ["scalar"]
-    new(name, varnames, a)
+    new(name, initialconditions, varnames, a)
   end
 end
 
-function initialcondition(s::LinearScalarAdvection, x, t, name)
+function initialcondition(s::LinearScalarAdvection, x, t)
+  name = s.initialconditions
   if name == "gauss"
-    return exp(-(x - s.advectionvelocity * t)^2)
+    return [exp(-(x - s.advectionvelocity * t)^2)]
   elseif name == "constant"
-    return 2.0
+    return [2.0]
   else
     error("Unknown initial condition '$name'")
   end
@@ -82,18 +84,20 @@ end
 ####################################################################################################
 struct Euler <: AbstractSysEqn{3}
   name::String
+  initialconditions::String
   varnames::SVector{3, String}
   gamma::Float64
 
-  function Euler()
+  function Euler(initialconditions)
     name = "euler"
     varnames = ["rho", "rho_u", "rho_e"]
     gamma = 1.4
-    new(name, varnames, gamma)
+    new(name, initialconditions, varnames, gamma)
   end
 end
 
-function initialcondition(s::Euler, x, t, name)
+function initialcondition(s::Euler, x, t)
+  name = s.initialconditions
   if name == "gauss"
     return [1.0, 0.0, 1 + exp(-x^2)/2] 
   elseif name == "constant"

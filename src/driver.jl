@@ -16,14 +16,14 @@ defaults = Dict(
 "x_end" => 10,
 
 # Number of cells
-"ncells" => 80,
+"ncells" => 10,
 
 # Polynomial degree
 "N" => 3,
 
 # Start and end time
 "t_start" => 0.0,
-"t_end" => 30.0,
+"t_end" => 1.0,
 
 # CFL number
 "cfl" => 1.0,
@@ -60,8 +60,8 @@ function main()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  # syseqn = getsyseqn("linearscalaradvection", defaults["advectionvelocity"])
-  syseqn = getsyseqn("euler")
+  syseqn = getsyseqn("linearscalaradvection", initialconditions, defaults["advectionvelocity"])
+  # syseqn = getsyseqn("euler", initialconditions)
   println("done")
 
   # Initialize solver
@@ -72,13 +72,36 @@ function main()
   # Apply initial condition
   print("Applying initial conditions... ")
   t = t_start
-  setinitialconditions(dg, t, initialconditions)
+  setinitialconditions(dg, t)
   # plot2file(dg, "initialconditions.pdf")
   println("done")
 
+  # Print setup information
+  println()
+  s = """| Simulation setup
+         | ----------------
+         | N:                 $N
+         | t_start:           $t_start
+         | t_end:             $t_end
+         | CFL:               $cfl
+         | nstepsmax:         $nstepsmax
+         | initialconditions: $initialconditions
+         | ncells:            $ncells
+         | #DOFs:             $(ncells * (N + 1)^ndim)
+         """
+  println(s)
+
   # Main loop
-  println("Running main loop... ")
+  println("Starting main loop... ")
   step = 0
+
+  println("Step: #$step, t=$t")
+  l2_error, linf_error = calc_error_norms(dg, t)
+  println("--- variable:   $(syseqn.varnames)")
+  println("--- L2 error:   $(l2_error)")
+  println("--- Linf error: $(linf_error)")
+  println()
+
   finalstep = false
   while !finalstep
     dt = calcdt(dg, cfl)
@@ -98,6 +121,11 @@ function main()
 
     if step % 10 == 0 || finalstep
       println("Step: #$step, t=$t")
+      l2_error, linf_error = calc_error_norms(dg, t)
+      println("--- variable:   $(syseqn.varnames)")
+      println("--- L2 error:   $(l2_error)")
+      println("--- Linf error: $(linf_error)")
+      println()
     end
 
     # plot2file(dg, @sprintf("solution_%04d.png", step))

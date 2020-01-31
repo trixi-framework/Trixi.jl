@@ -12,8 +12,9 @@ export syseqn
 export polydeg
 export rhs!
 export calcdt
+export calc_error_norms
 
-struct Dg{SysEqn <: Equation.AbstractSysEqn{nvars_} where nvars_, N, Np1}
+struct Dg{SysEqn <: Equation.AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
@@ -32,6 +33,12 @@ struct Dg{SysEqn <: Equation.AbstractSysEqn{nvars_} where nvars_, N, Np1}
   weights::SVector{Np1}
   dhat::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
+
+  analysis_nodes::SVector{NAnap1}
+  analysis_weights::SVector{NAnap1}
+  analysis_weights_volume::SVector{NAnap1}
+  analysis_vandermonde::SMatrix{NAnap1, Np1}
+  analysis_total_volume::Float64
 end
 
 
@@ -40,7 +47,7 @@ syseqn(dg::Dg{SysEqn, N}) where {SysEqn, N} = dg.syseqn
 Equation.nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = Equation.nvars(syseqn(dg))
 
 
-function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N) where nvars_
+function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
   ncells = mesh.ncells
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
@@ -77,9 +84,18 @@ function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   lhat[:, 1] = calclhat(-1.0, nodes, weights)
   lhat[:, 2] = calclhat( 1.0, nodes, weights)
 
-  dg = Dg{typeof(s), N, N + 1}(s, u, ut, urk, ncells, Array{Float64,1}(undef, ncells),
-                        Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf, neighbors,
-                        nsurfaces, nodes, weights, dhat, lhat)
+  NAna = 2 * (N + 1) - 1
+  analysis_nodes, analysis_weights = legendre(NAna + 1, both)
+  analysis_weights_volume = analysis_weights
+  analysis_vandermonde = polynomialinterpolationmatrix(nodes, analysis_nodes)
+  analysis_total_volume = sum(mesh.length.^ndim)
+
+  dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
+      s, u, ut, urk, ncells, Array{Float64,1}(undef, ncells),
+      Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf,
+      neighbors, nsurfaces, nodes, weights, dhat, lhat, analysis_nodes,
+      analysis_weights, analysis_weights_volume, analysis_vandermonde,
+      analysis_total_volume)
 
   for cell_id in 1:ncells
     dx = mesh.length[cell_id]
@@ -88,6 +104,52 @@ function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   end
 
   return dg
+end
+
+
+function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
+  s = syseqn(dg)
+  nvars_ = Equation.nvars(s)
+  nnodes_analysis = length(dg.analysis_nodes)
+
+  l2_error = zeros(nvars_)
+  linf_error = zeros(nvars_)
+  u_exact = zeros(nvars_)
+
+  for cell_id = 1:dg.ncells
+    u = interpolate_nodes(dg.u[:, :, cell_id], dg.analysis_vandermonde, nvars_)
+    x = interpolate_nodes(reshape(dg.nodecoordinate[:, cell_id], 1, :), dg.analysis_vandermonde, 1)
+    jacobian = (1 / dg.invjacobian[cell_id])^ndim
+    for i = 1:nnodes_analysis
+      u_exact = Equation.initialcondition(s, x[i], t)
+      diff = similar(u_exact)
+      @. diff = u_exact - u[:, i]
+      @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
+      @. linf_error = max(linf_error, abs(diff))
+    end
+  end
+
+  @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
+
+  return l2_error, linf_error
+end
+
+
+function interpolate_nodes(data_in::AbstractArray{T, 2},
+                           vandermonde::AbstractArray{T, 2}, nvars_::Integer) where T
+  nnodes_out = size(vandermonde, 1)
+  nnodes_in = size(vandermonde, 2)
+  data_out = zeros(eltype(data_in), nvars_, nnodes_out)
+
+  for i = 1:nnodes_out
+    for j = 1:nnodes_in
+      for v = 1:nvars_
+        data_out[v, i] += vandermonde[i, j] * data_in[v, j]
+      end
+    end
+  end
+
+  return data_out
 end
 
 
@@ -117,6 +179,38 @@ function polynomialderivativematrix(nodes)
   end
 
   return d
+end
+
+
+function polynomialinterpolationmatrix(nodes_in, nodes_out)
+  nnodes_in = length(nodes_in)
+  nnodes_out = length(nodes_out)
+  wbary_in = barycentricweights(nodes_in)
+  vdm = zeros(nnodes_out, nnodes_in)
+
+  for k = 1:nnodes_out
+    match = false
+    for j = 1:nnodes_in
+      if isapprox(nodes_out[k], nodes_in[j], rtol=eps())
+        match = true
+        vdm[k, j] = 1
+      end
+    end
+
+    if match == false
+      s = 0.0
+      for j = 1:nnodes_in
+        t = wbary_in[j] / (nodes_out[k] - nodes_in[j])
+        vdm[k, j] = t
+        s += t
+      end
+      for j = 1:nnodes_in
+        vdm[k, j] = vdm[k, j] / s
+      end
+    end
+  end
+
+  return vdm
 end
 
 
@@ -163,23 +257,24 @@ function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
   end
 
   for i = 1:nnodes
-    polynomials[j] = wBary[j] / (x - nodes[j])
+    polynomials[i] = wbary[i] / (x - nodes[i])
   end
   total = sum(polynomials)
 
   for i = 1:nnodes
-    polynomials[j] /= total
+    polynomials[i] /= total
   end
 
   return polynomials
 end
 
 
-function setinitialconditions(dg, t, name::String)
+function setinitialconditions(dg, t)
+  s = syseqn(dg)
+
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, cell_id] .= Equation.initialcondition(
-          syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
+      dg.u[:, i, cell_id] .= Equation.initialcondition(s, dg.nodecoordinate[i, cell_id], t)
     end
   end
 end
