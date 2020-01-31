@@ -4,7 +4,7 @@ using Reexport
 const ndim = 1
 export ndim
 
-include("SysEqn.jl")
+include("equation/equation.jl")
 include("mesh/mesh.jl")
 include("dg/dg.jl")
 include("io/io.jl")
