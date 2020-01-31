@@ -5,9 +5,9 @@ const ndim = 1
 export ndim
 
 include("SysEqn.jl")
-include("Mesh.jl")
-include("Dg.jl")
-include("Io.jl")
+include("mesh/mesh.jl")
+include("dg/dg.jl")
+include("io/io.jl")
 include("timedisc/timedisc.jl")
 
 @reexport using .SysEqnMod
