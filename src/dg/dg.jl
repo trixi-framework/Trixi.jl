@@ -1,7 +1,7 @@
 module DgMod
 
 using ..Jul1dge
-import ..SysEqnMod
+import ..Equation
 using StaticArrays
 using GaussQuadrature
 
@@ -13,7 +13,7 @@ export polydeg
 export rhs!
 export calcdt
 
-struct Dg{SysEqn <: SysEqnMod.AbstractSysEqn{nvars_} where nvars_, N, Np1}
+struct Dg{SysEqn <: Equation.AbstractSysEqn{nvars_} where nvars_, N, Np1}
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
@@ -37,10 +37,10 @@ end
 
 polydeg(dg::Dg{SysEqn, N}) where {SysEqn, N} = N
 syseqn(dg::Dg{SysEqn, N}) where {SysEqn, N} = dg.syseqn
-SysEqnMod.nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = SysEqnMod.nvars(syseqn(dg))
+Equation.nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = Equation.nvars(syseqn(dg))
 
 
-function Dg(s::SysEqnMod.AbstractSysEqn{nvars_}, mesh, N) where nvars_
+function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N) where nvars_
   ncells = mesh.ncells
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)

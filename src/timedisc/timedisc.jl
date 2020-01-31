@@ -1,4 +1,4 @@
-@reexport module TimeDisc
+module TimeDisc
 
 using ..Jul1dge
 using StaticArrays

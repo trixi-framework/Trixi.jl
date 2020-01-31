@@ -1,4 +1,4 @@
-@reexport module SysEqnMod
+module Equation
 
 using ..Jul1dge
 using StaticArrays
