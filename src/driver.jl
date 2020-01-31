@@ -69,7 +69,7 @@ function main()
   print("Applying initial conditions... ")
   t = t_start
   setinitialconditions(dg, t, initialconditions)
-  #plot2file(dg, "initialconditions.pdf")
+  # plot2file(dg, "initialconditions.pdf")
   println("done")
 
   # Main loop
@@ -96,7 +96,7 @@ function main()
       println("Step: #$step, t=$t")
     end
 
-    plot2file(dg, @sprintf("solution_%04d.png", step))
+    # plot2file(dg, @sprintf("solution_%04d.png", step))
   end
   println("done")
   # plot2file(dg, "solution.pdf")
