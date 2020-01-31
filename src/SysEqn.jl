@@ -1,4 +1,4 @@
-module SysEqnMod
+@reexport module SysEqnMod
 
 using ..Jul1dge
 using StaticArrays
@@ -25,7 +25,7 @@ function getsyseqn(name::String)
   elseif name == "euler"
     return Euler()
   else
-    die("'$name' does not name a valid system of equations")
+    error("'$name' does not name a valid system of equations")
   end
 end
 
@@ -51,7 +51,7 @@ function exactfunc(s::LinearScalarAdvection, x, t, name)
   elseif name == "constant"
     return 2.0
   else
-    die("Unknown initial condition '$name'")
+    error("Unknown initial condition '$name'")
   end
 end
 
@@ -105,7 +105,7 @@ function exactfunc(s::Euler, x, t, name)
       return [0.125, 0.0, 0.25]
     end
   else
-    die("Unknown initial condition '$name'")
+    error("Unknown initial condition '$name'")
   end
 end
 
