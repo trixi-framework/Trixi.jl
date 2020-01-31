@@ -7,7 +7,7 @@ import Base.show
 export getsyseqn
 export nvars
 export AbstractSysEqn
-export exactfunc
+export initialcondition
 export calcflux
 export riemann!
 export maxdt
@@ -45,7 +45,7 @@ struct LinearScalarAdvection <: AbstractSysEqn{1}
   end
 end
 
-function exactfunc(s::LinearScalarAdvection, x, t, name)
+function initialcondition(s::LinearScalarAdvection, x, t, name)
   if name == "gauss"
     return exp(-(x - s.advectionvelocity * t)^2)
   elseif name == "constant"
@@ -93,7 +93,7 @@ struct Euler <: AbstractSysEqn{3}
   end
 end
 
-function exactfunc(s::Euler, x, t, name)
+function initialcondition(s::Euler, x, t, name)
   if name == "gauss"
     return [1.0, 0.0, 1 + exp(-x^2)/2] 
   elseif name == "constant"

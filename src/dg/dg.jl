@@ -178,7 +178,8 @@ end
 function setinitialconditions(dg, t, name::String)
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, cell_id] .= Equation.exactfunc(syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
+      dg.u[:, i, cell_id] .= Equation.initialcondition(
+          syseqn(dg), dg.nodecoordinate[i, cell_id], t, name)
     end
   end
 end
