@@ -132,6 +132,19 @@ function parse_arguments()
 end
 
 
+function interruptable_main()
+  # Allow handling of interrupts by the user
+  ccall(:jl_exit_on_sigint, Cvoid, (Cint,), 0)
+
+  try
+    main()
+  catch e
+    isa(e, InterruptException) || rethrow(e)
+    println(stderr, "\nExecution interrupted by user (Ctrl-c)")
+  end
+end
+
+
 if abspath(PROGRAM_FILE) == @__FILE__
-  main()
+  interruptable_main()
 end
