@@ -20,7 +20,7 @@ function plot2file(dg, filename)
         y[(c - 1) * nnodes + i, v] = dg.u[v, i, c]
       end
     end
-    plot(x, y, label=s.varnames[:], xlims=(-5.5, 5.5), ylims=(-1, 2),
+    plot(x, y, label=s.varnames[:], xlims=(-10.5, 10.5), ylims=(-1, 2),
          size=(1600,1200), thickness_scaling=3)
   end
   savefig(filename)

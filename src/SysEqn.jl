@@ -98,6 +98,12 @@ function exactfunc(s::Euler, x, t, name)
     return [1.0, 0.0, 1 + exp(-x^2)/2] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
+  elseif name == "sod"
+    if x < 0.0
+      return [1.0, 0.0, 2.5]
+    else
+      return [0.125, 0.0, 0.25]
+    end
   else
     die("Unknown initial condition '$name'")
   end

@@ -8,11 +8,11 @@ using Printf
 
 defaults = Dict(
 # Computational domain
-"x_start" => -5,
-"x_end" => 5,
+"x_start" => -10,
+"x_end" => 10,
 
 # Number of cells
-"ncells" => 40,
+"ncells" => 80,
 
 # Polynomial degree
 "N" => 3,
