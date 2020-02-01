@@ -121,7 +121,7 @@ function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
     x = interpolate_nodes(reshape(dg.nodecoordinate[:, cell_id], 1, :), dg.analysis_vandermonde, 1)
     jacobian = (1 / dg.invjacobian[cell_id])^ndim
     for i = 1:nnodes_analysis
-      u_exact = Equation.initialcondition(s, x[i], t)
+      u_exact = Equation.initialconditions(s, x[i], t)
       diff = similar(u_exact)
       @. diff = u_exact - u[:, i]
       @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
@@ -274,12 +274,12 @@ function setinitialconditions(dg, t)
 
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, cell_id] .= Equation.initialcondition(s, dg.nodecoordinate[i, cell_id], t)
+      dg.u[:, i, cell_id] .= Equation.initialconditions(s, dg.nodecoordinate[i, cell_id], t)
     end
   end
 end
 
-function rhs!(dg)
+function rhs!(dg, t_stage)
   # Reset ut
   dg.ut .= 0.0
 
@@ -297,6 +297,9 @@ function rhs!(dg)
 
   # Apply Jacobian from mapping to reference element
   applyjacobian!(dg)
+
+  # Calculate source terms
+  calcsources!(dg, t_stage)
 end
 
 
@@ -375,6 +378,22 @@ function applyjacobian!(dg)
         dg.ut[v, i, cell_id] *= -dg.invjacobian[cell_id]
       end
     end
+  end
+end
+
+
+function calcsources!(dg, t)
+  s = syseqn(dg)
+  if s.sources == "none"
+    return
+  end
+
+  N = polydeg(dg)
+  nnodes = N + 1
+  nvars_ = Equation.nvars(dg)
+
+  for cell_id = 1:dg.ncells
+    Equation.sources(syseqn(dg), dg.ut, dg.nodecoordinate, cell_id, t, nnodes)
   end
 end
 

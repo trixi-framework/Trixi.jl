@@ -34,8 +34,14 @@ defaults = Dict(
 # Advection velocity
 "advectionvelocity" => 1.0,
 
+# System of equations
+"syseqn" => "linearscalaradvection",
+
 # Initial conditions
-"initialconditions" => "constant"
+"initialconditions" => "constant",
+
+# Source terms
+"sources" => "none"
 )
 
 function main()
@@ -47,7 +53,9 @@ function main()
   ncells = args["ncells"]
   cfl = args["cfl"]
   nstepsmax = args["nstepsmax"]
+  equations = args["syseqn"]
   initialconditions = args["initialconditions"]
+  sources = args["sources"]
   x_start = defaults["x_start"]
   x_end = defaults["x_end"]
   t_start = defaults["t_start"]
@@ -60,8 +68,14 @@ function main()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  syseqn = getsyseqn("linearscalaradvection", initialconditions, defaults["advectionvelocity"])
-  # syseqn = getsyseqn("euler", initialconditions)
+  if equations == "linearscalaradvection"
+    syseqn = getsyseqn("linearscalaradvection", initialconditions, sources,
+                       defaults["advectionvelocity"])
+  elseif equations == "euler"
+    syseqn = getsyseqn("euler", initialconditions, sources)
+  else
+    error("unknown system of equations '$equations'")
+  end
   println("done")
 
   # Initialize solver
@@ -111,7 +125,7 @@ function main()
       finalstep = true
     end
 
-    timestep!(dg, dt)
+    timestep!(dg, t, dt)
     step += 1
     t += dt
 
@@ -150,10 +164,18 @@ function parse_arguments()
       help = "Maximum number of time steps"
       arg_type = Int
       default = defaults["nstepsmax"]
+    "--syseqn"
+      help = "System of equations"
+      arg_type = String
+      default = defaults["syseqn"]
     "--initialconditions"
       help = "Initial conditions to be applied"
       arg_type = String
       default = defaults["initialconditions"]
+    "--sources"
+      help = "Source terms"
+      arg_type = String
+      default = defaults["sources"]
     "--cfl"
       help = "CFL number of time step calculation"
       arg_type = Float64
