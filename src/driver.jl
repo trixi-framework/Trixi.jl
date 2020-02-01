@@ -13,56 +13,26 @@ using ArgParse
 using Printf
 using TimerOutputs
 
-defaults = Dict(
-# Computational domain
-"x_start" => -10,
-"x_end" => 10,
-
-# Number of cells
-"ncells" => 10,
-
-# Polynomial degree
-"N" => 3,
-
-# Start and end time
-"t_start" => 0.0,
-"t_end" => 1.0,
-
-# CFL number
-"cfl" => 1.0,
-
-# Maximum number of timesteps
-"nstepsmax" => 10000,
-
-# Advection velocity
-"advectionvelocity" => 1.0,
-
-# System of equations
-"syseqn" => "linearscalaradvection",
-
-# Initial conditions
-"initialconditions" => "constant",
-
-# Source terms
-"sources" => "none"
-)
 
 function main()
   # Parse command line arguments
   args = parse_arguments()
 
+  # Parse parameters file
+  parse_parameters_file(args["parameters-file"])
+
   # Store repeatedly used values
-  N = args["N"]
-  ncells = args["ncells"]
-  cfl = args["cfl"]
-  nstepsmax = args["nstepsmax"]
-  equations = args["syseqn"]
-  initialconditions = args["initialconditions"]
-  sources = args["sources"]
-  x_start = defaults["x_start"]
-  x_end = defaults["x_end"]
-  t_start = defaults["t_start"]
-  t_end = defaults["t_end"]
+  N = parameter("N")
+  ncells = parameter("ncells")
+  cfl = parameter("cfl")
+  nstepsmax = parameter("nstepsmax")
+  equations = parameter("syseqn")
+  initialconditions = parameter("initialconditions")
+  sources = parameter("sources", "none")
+  x_start = parameter("x_start")
+  x_end = parameter("x_end")
+  t_start = parameter("t_start")
+  t_end = parameter("t_end")
 
   # Create mesh
   print("Creating mesh... ")
@@ -72,8 +42,9 @@ function main()
   # Initialize system of equations
   print("Initializing system of equations... ")
   if equations == "linearscalaradvection"
+    advectionvelocity = parameter("advectionvelocity")
     syseqn = getsyseqn("linearscalaradvection", initialconditions, sources,
-                       defaults["advectionvelocity"])
+                       advectionvelocity)
   elseif equations == "euler"
     syseqn = getsyseqn("euler", initialconditions, sources)
   else
@@ -102,7 +73,9 @@ function main()
          | t_end:             $t_end
          | CFL:               $cfl
          | nstepsmax:         $nstepsmax
+         | equation:          $equations
          | initialconditions: $initialconditions
+         | sources:           $sources
          | ncells:            $ncells
          | #DOFs:             $(ncells * (N + 1)^ndim)
          """
@@ -158,34 +131,10 @@ end
 function parse_arguments()
   s = ArgParseSettings()
   @add_arg_table s begin
-    "-N"
-      help = "Polynomial degree"
-      arg_type = Int
-      default = defaults["N"]
-    "--ncells"
-      help = "Number of cells"
-      arg_type = Int
-      default = defaults["ncells"]
-    "--nstepsmax"
-      help = "Maximum number of time steps"
-      arg_type = Int
-      default = defaults["nstepsmax"]
-    "--syseqn"
-      help = "System of equations"
+    "--parameters-file", "-p"
+      help = "Name of file with runtime parameters"
       arg_type = String
-      default = defaults["syseqn"]
-    "--initialconditions"
-      help = "Initial conditions to be applied"
-      arg_type = String
-      default = defaults["initialconditions"]
-    "--sources"
-      help = "Source terms"
-      arg_type = String
-      default = defaults["sources"]
-    "--cfl"
-      help = "CFL number of time step calculation"
-      arg_type = Float64
-      default = defaults["cfl"]
+      default = "parameters.toml"
   end
 
   return parse_args(s)

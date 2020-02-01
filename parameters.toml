@@ -1,0 +1,19 @@
+# Problem setup
+syseqn = "euler"
+initialconditions = "convtest"
+# sources = 
+advectionvelocity = 1.0
+t_start = 0.0
+t_end   = 1.0
+
+# Numerical method
+N = 3
+
+# Time discretization
+cfl = 1.0
+nstepsmax = 10000
+
+# Mesh
+ncells = 20
+x_start = -10
+x_end   =  10
