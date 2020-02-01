@@ -7,6 +7,7 @@ using .Jul1dge.Equation
 using .Jul1dge.DgMod
 using .Jul1dge.TimeDisc
 using .Jul1dge.Auxiliary
+# using .Jul1dge.Io
 
 using ArgParse
 using Printf
@@ -149,7 +150,8 @@ function main()
   println("done")
   # plot2file(dg, "solution.pdf")
 
-  print_timer(to, title="jul1dge", allocations=false, linechars=:ascii, compact=true)
+  print_timer(to, title="jul1dge", allocations=true, linechars=:ascii, compact=false)
+  println()
 end
 
 

@@ -118,15 +118,14 @@ function initialconditions(s::Euler, x, t)
     c = 1.0
     A = 0.5
     a = 0.3
-    L = 10
+    L = 2 
     f = 1/L
     omega = 2 * pi * f
     u = a
     p = 1.0
-    rho = c + A * sin(omega * (x - a *t))
+    rho = c + A * sin(omega * (x - a * t))
     rho_u = rho * u
-    rho_e = p/(s.gamma - 1) - 1/2 * rho * u^2
-
+    rho_e = p/(s.gamma - 1) + 1/2 * rho * u^2
     return [rho, rho_u, rho_e]
   elseif name == "sod"
     if x < 0.0
@@ -142,28 +141,7 @@ end
 
 function sources(s::Euler, ut, u, x, cell_id, t, nnodes)
   name = s.sources
-  if name == "convtest"
-    c = 1
-    A = 0.5
-    a = 0.3
-    L = 10
-    f = 1/L
-    omega = 2 * pi * f
-    u = a
-    p = 1.0
-    for i = 1:nnodes
-      xx = x[i, cell_id]
-      rho = c + A * sin(omega * (xx - a * t))
-      ut[1, i, cell_id] += 0
-      ut[2, i, cell_id] += -(a + 1) * a^2 * omega * A * cos(omega * (xx - a * t))
-      ut[3, i, cell_id] += 0
-      # ut[1, i, cell_id] += -A*a*omega*cos(-(a*t - xx)*omega) + A*omega*u*cos(-(a*t - xx)*omega)
-      # ut[2, i, cell_id] += -A*a*omega*u*cos(-(a*t - xx)*omega) + A*omega*u^2*cos(-(a*t - xx)*omega)
-      # ut[3, i, cell_id] += 1/2*A*a*omega*u^2*cos(-(a*t - xx)*omega) - 1/2*A*omega*u^3*cos(-(a*t - xx)*omega)
-    end
-  else
-    error("Unknown initial condition '$name'")
-  end
+  error("Unknown initial condition '$name'")
 end
 
 
@@ -182,7 +160,7 @@ end
 function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
   f = zeros(MVector{3})
   v = rho_v/rho
-  p = rho_e * (s.gamma - 1) + 1/2 * rho * v^2
+  p = (s.gamma - 1) * (rho_e - 1/2 * rho * v^2)
 
   f[1]  = rho_v
   f[2]  = rho_v * v + p
@@ -203,10 +181,10 @@ function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
   rho_e_rr = u_rr[3]
 
   v_ll = rho_v_ll / rho_ll
-  p_ll = rho_e_ll * (ss.gamma - 1) + 1/2 * rho_ll * v_ll^2
+  p_ll = (ss.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
   c_ll = sqrt(ss.gamma * p_ll / rho_ll)
   v_rr = rho_v_rr / rho_rr
-  p_rr = rho_e_rr * (ss.gamma - 1) + 1/2 * rho_rr * v_rr^2
+  p_rr = (ss.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
   c_rr = sqrt(ss.gamma * p_rr / rho_rr)
 
   f_ll = calcflux(ss, rho_ll, rho_v_ll, rho_e_ll)
@@ -224,7 +202,7 @@ function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
     v = rho_v/rho
-    p = rho_e * (s.gamma - 1) + 1/2 * rho * v^2
+    p = (s.gamma - 1) * (rho_e - 1/2 * rho * v^2)
     c = sqrt(s.gamma * p / rho)
     λ_max = max(λ_max, abs(v) + c)
   end
