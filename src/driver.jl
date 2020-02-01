@@ -6,9 +6,11 @@ using .Jul1dge.MeshMod
 using .Jul1dge.Equation
 using .Jul1dge.DgMod
 using .Jul1dge.TimeDisc
+using .Jul1dge.Auxiliary
 
 using ArgParse
 using Printf
+using TimerOutputs
 
 defaults = Dict(
 # Computational domain
@@ -117,8 +119,8 @@ function main()
   println()
 
   finalstep = false
-  while !finalstep
-    dt = calcdt(dg, cfl)
+  @timeit to "main loop" while !finalstep
+    @timeit to "calcdt" dt = calcdt(dg, cfl)
 
     if t + dt > t_end
       dt = t_end - t
@@ -146,6 +148,8 @@ function main()
   end
   println("done")
   # plot2file(dg, "solution.pdf")
+
+  print_timer(to, title="jul1dge", allocations=false, linechars=:ascii, compact=true)
 end
 
 

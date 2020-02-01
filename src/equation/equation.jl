@@ -61,7 +61,7 @@ function initialconditions(s::LinearScalarAdvection, x, t)
 end
 
 
-function sources(s::LinearScalarAdvection, ut, x, cell_id, t, nnodes)
+function sources(s::LinearScalarAdvection, ut, u, x, cell_id, t, nnodes)
   name = s.sources
   error("Unknown source terms '$name'")
 end
@@ -114,6 +114,20 @@ function initialconditions(s::Euler, x, t)
     return [1.0, 0.0, 1 + exp(-x^2)/2] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
+  elseif name == "convtest"
+    c = 1.0
+    A = 0.5
+    a = 0.3
+    L = 10
+    f = 1/L
+    omega = 2 * pi * f
+    u = a
+    p = 1.0
+    rho = c + A * sin(omega * (x - a *t))
+    rho_u = rho * u
+    rho_e = p/(s.gamma - 1) - 1/2 * rho * u^2
+
+    return [rho, rho_u, rho_e]
   elseif name == "sod"
     if x < 0.0
       return [1.0, 0.0, 2.5]
@@ -126,13 +140,26 @@ function initialconditions(s::Euler, x, t)
 end
 
 
-function sources(s::Euler, ut, x, cell_id, t, nnodes)
+function sources(s::Euler, ut, u, x, cell_id, t, nnodes)
   name = s.sources
   if name == "convtest"
+    c = 1
+    A = 0.5
+    a = 0.3
+    L = 10
+    f = 1/L
+    omega = 2 * pi * f
+    u = a
+    p = 1.0
     for i = 1:nnodes
-      ut[1, i, cell_id] += 0.0
-      ut[2, i, cell_id] += 0.0
-      ut[3, i, cell_id] += 0.0
+      xx = x[i, cell_id]
+      rho = c + A * sin(omega * (xx - a * t))
+      ut[1, i, cell_id] += 0
+      ut[2, i, cell_id] += -(a + 1) * a^2 * omega * A * cos(omega * (xx - a * t))
+      ut[3, i, cell_id] += 0
+      # ut[1, i, cell_id] += -A*a*omega*cos(-(a*t - xx)*omega) + A*omega*u*cos(-(a*t - xx)*omega)
+      # ut[2, i, cell_id] += -A*a*omega*u*cos(-(a*t - xx)*omega) + A*omega*u^2*cos(-(a*t - xx)*omega)
+      # ut[3, i, cell_id] += 1/2*A*a*omega*u^2*cos(-(a*t - xx)*omega) - 1/2*A*omega*u^3*cos(-(a*t - xx)*omega)
     end
   else
     error("Unknown initial condition '$name'")

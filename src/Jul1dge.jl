@@ -3,6 +3,7 @@ module Jul1dge
 const ndim = 1
 export ndim
 
+include("auxiliary/auxiliary.jl")
 include("equation/equation.jl")
 include("mesh/mesh.jl")
 include("dg/dg.jl")

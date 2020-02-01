@@ -2,7 +2,9 @@ module TimeDisc
 
 using ..Jul1dge
 import ..DgMod
+using ..Auxiliary
 using StaticArrays
+using TimerOutputs
 
 export timestep!
 
@@ -18,9 +20,11 @@ function timestep!(dg, t, dt)
 
   for stage = 1:5
     t_stage = t + dt * c[stage]
-    DgMod.rhs!(dg, t_stage)
-    @. dg.urk = dg.ut - dg.urk * a[stage]
-    @. dg.u += dg.urk * b[stage] * dt
+    @timeit to "rhs" DgMod.rhs!(dg, t_stage)
+    @timeit to "RK" begin
+      @. dg.urk = dg.ut - dg.urk * a[stage]
+      @. dg.u += dg.urk * b[stage] * dt
+    end
   end
 end
 

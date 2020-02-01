@@ -2,8 +2,10 @@ module DgMod
 
 using ..Jul1dge
 import ..Equation
+using ..Auxiliary
 using StaticArrays
 using GaussQuadrature
+using TimerOutputs
 
 export Dg
 export setinitialconditions
@@ -281,25 +283,25 @@ end
 
 function rhs!(dg, t_stage)
   # Reset ut
-  dg.ut .= 0.0
+  @timeit to "reset ut" dg.ut .= 0.0
 
   # Calculate volume integral
-  volint!(dg)
+  @timeit to "volint" volint!(dg)
 
   # Prolong solution to surfaces
-  prolong2surfaces!(dg)
+  @timeit to "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  surfflux!(dg)
+  @timeit to "surfflux!" surfflux!(dg)
 
   # Calculate surface integrals
-  surfint!(dg)
+  @timeit to "surfint!" surfint!(dg)
 
   # Apply Jacobian from mapping to reference element
-  applyjacobian!(dg)
+  @timeit to "applyjacobian" applyjacobian!(dg)
 
   # Calculate source terms
-  calcsources!(dg, t_stage)
+  @timeit to "calcsources" calcsources!(dg, t_stage)
 end
 
 
@@ -393,7 +395,7 @@ function calcsources!(dg, t)
   nvars_ = Equation.nvars(dg)
 
   for cell_id = 1:dg.ncells
-    Equation.sources(syseqn(dg), dg.ut, dg.nodecoordinate, cell_id, t, nnodes)
+    Equation.sources(syseqn(dg), dg.ut, dg.u, dg.nodecoordinate, cell_id, t, nnodes)
   end
 end
 
