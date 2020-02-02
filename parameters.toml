@@ -1,4 +1,4 @@
-# Problem setup
+# Simulation setup
 syseqn = "euler"
 initialconditions = "convtest"
 # sources = 
@@ -6,10 +6,8 @@ advectionvelocity = 1.0
 t_start = 0.0
 t_end   = 1.0
 
-# Numerical method
+# Numerical settings
 N = 3
-
-# Time discretization
 cfl = 1.0
 nstepsmax = 10000
 
@@ -17,3 +15,6 @@ nstepsmax = 10000
 ncells = 20
 x_start = -10
 x_end   =  10
+
+# I/O
+solution_interval = 10

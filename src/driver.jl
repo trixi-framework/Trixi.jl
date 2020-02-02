@@ -7,7 +7,7 @@ using .Jul1dge.Equation
 using .Jul1dge.DgMod
 using .Jul1dge.TimeDisc
 using .Jul1dge.Auxiliary
-# using .Jul1dge.Io
+using .Jul1dge.Io
 
 using ArgParse
 using Printf
@@ -61,7 +61,6 @@ function main()
   print("Applying initial conditions... ")
   t = t_start
   setinitialconditions(dg, t)
-  # plot2file(dg, "initialconditions.pdf")
   println("done")
 
   # Print setup information
@@ -81,9 +80,15 @@ function main()
          """
   println(s)
 
-  # Main loop
-  println("Starting main loop... ")
+  # Set up main loop
   step = 0
+  finalstep = false
+  solution_interval = parameter("solution_interval", 0)
+
+  # Save initial conditions if desired
+  if parameter("save_initial_solutions", true)
+    save_solution_file(dg, step)
+  end
 
   println("Step: #$step, t=$t")
   l2_error, linf_error = calc_error_norms(dg, t)
@@ -92,7 +97,8 @@ function main()
   println("--- Linf error: $(linf_error)")
   println()
 
-  finalstep = false
+  # Start main loop
+  println("Starting main loop... ")
   @timeit to "main loop" while !finalstep
     @timeit to "calcdt" dt = calcdt(dg, cfl)
 
@@ -118,10 +124,13 @@ function main()
       println()
     end
 
-    # plot2file(dg, @sprintf("solution_%04d.png", step))
+    # Write solution file
+    if solution_interval > 0 && (
+        step % solution_interval == 0 || (finalstep && parameter("save_final_solution", true)))
+      save_solution_file(dg, step)
+    end
   end
   println("done")
-  # plot2file(dg, "solution.pdf")
 
   print_timer(to, title="jul1dge", allocations=true, linechars=:ascii, compact=false)
   println()
