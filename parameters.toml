@@ -1,6 +1,6 @@
 # Simulation setup
 syseqn = "euler"
-initialconditions = "convtest"
+initialconditions = "convergence_test"
 # sources = 
 advectionvelocity = 1.0
 t_start = 0.0
