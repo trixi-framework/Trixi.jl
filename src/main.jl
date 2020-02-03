@@ -128,7 +128,7 @@ function run()
     # Write solution file
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
-      @timeit "I/O" save_solution_file(dg, step)
+      @timeit timer() "I/O" save_solution_file(dg, step)
     end
   end
   println("done")
