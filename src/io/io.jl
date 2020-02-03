@@ -1,12 +1,12 @@
 module Io
 
 using ..Jul1dge
-using ..DgMod
-import ..Equation
-using ..Auxiliary
+using ..DgMod: polydeg, syseqn
+using ..Equation: nvars
+using ..Auxiliary: parameter
 
-using HDF5
-using Printf
+using HDF5: h5open, attrs
+using Printf: @sprintf
 
 export save_solution_file
 
@@ -38,7 +38,7 @@ function save_solution_file(::Val{:hdf5}, dg, filename::String)
   h5open(filename * ".h5", "w") do file
     s = syseqn(dg)
     N = polydeg(dg)
-    nvars_ = Equation.nvars(dg)
+    nvars_ = nvars(dg)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
@@ -75,7 +75,7 @@ function save_solution_file(::Val{:text}, dg, filename::String)
     s = syseqn(dg)
     N = polydeg(dg)
     nnodes = N + 1
-    nvars_ = Equation.nvars(dg)
+    nvars_ = nvars(dg)
 
     # Write column names, put in quotation marks to account for whitespace in names
     columns = Vector{String}()
@@ -114,10 +114,10 @@ end
 #   gr()
 #   GR.inline("png")
 #   x = dg.nodecoordinate[:]
-#   y = zeros(length(x), Equation.nvars(dg))
+#   y = zeros(length(x), nvars(dg))
 #   s = syseqn(dg)
 #   nnodes = polydeg(dg) + 1
-#   for v = 1:Equation.nvars(dg)
+#   for v = 1:nvars(dg)
 #     for c in 1:dg.ncells
 #       for i = 1:nnodes
 #         y[(c - 1) * nnodes + i, v] = dg.u[v, i, c]

@@ -1,11 +1,12 @@
 module DgMod
 
 using ..Jul1dge
-import ..Equation
-using ..Auxiliary
-using StaticArrays
-using GaussQuadrature
-using TimerOutputs
+using ..Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
+import ..Equation: nvars # Import to allow method extension
+using ..Auxiliary: timer
+using StaticArrays: SVector, SMatrix, MMatrix
+using GaussQuadrature: legendre, both
+using TimerOutputs: @timeit
 
 export Dg
 export setinitialconditions
@@ -16,7 +17,7 @@ export rhs!
 export calcdt
 export calc_error_norms
 
-struct Dg{SysEqn <: Equation.AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
+struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
@@ -46,10 +47,10 @@ end
 
 polydeg(dg::Dg{SysEqn, N}) where {SysEqn, N} = N
 syseqn(dg::Dg{SysEqn, N}) where {SysEqn, N} = dg.syseqn
-Equation.nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = Equation.nvars(syseqn(dg))
+nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = nvars(syseqn(dg))
 
 
-function Dg(s::Equation.AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
+function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
   ncells = mesh.ncells
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
@@ -111,7 +112,7 @@ end
 
 function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
   s = syseqn(dg)
-  nvars_ = Equation.nvars(s)
+  nvars_ = nvars(s)
   nnodes_analysis = length(dg.analysis_nodes)
 
   l2_error = zeros(nvars_)
@@ -123,7 +124,7 @@ function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
     x = interpolate_nodes(reshape(dg.nodecoordinate[:, cell_id], 1, :), dg.analysis_vandermonde, 1)
     jacobian = (1 / dg.invjacobian[cell_id])^ndim
     for i = 1:nnodes_analysis
-      u_exact = Equation.initialconditions(s, x[i], t)
+      u_exact = initialconditions(s, x[i], t)
       diff = similar(u_exact)
       @. diff = u_exact - u[:, i]
       @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
@@ -276,7 +277,7 @@ function setinitialconditions(dg, t)
 
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, cell_id] .= Equation.initialconditions(s, dg.nodecoordinate[i, cell_id], t)
+      dg.u[:, i, cell_id] .= initialconditions(s, dg.nodecoordinate[i, cell_id], t)
     end
   end
 end
@@ -309,10 +310,10 @@ function volint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
   s = syseqn(dg)
-  nvars_ = Equation.nvars(dg)
+  nvars_ = nvars(dg)
 
   for cell_id = 1:dg.ncells
-    f::MMatrix{nvars_, nnodes} = Equation.calcflux(s, dg.u, cell_id, nnodes)
+    f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, cell_id, nnodes)
     for i = 1:nnodes
       for v = 1:nvars_
         for j = 1:nnodes
@@ -328,7 +329,7 @@ function prolong2surfaces!(dg)
   N = polydeg(dg)
   nnodes = N + 1
   s = syseqn(dg)
-  nvars_ = Equation.nvars(dg)
+  nvars_ = nvars(dg)
 
   for s = 1:dg.nsurfaces
     left = dg.neighbors[1, s]
@@ -347,7 +348,7 @@ function surfflux!(dg)
   s = syseqn(dg)
 
   for s = 1:dg.nsurfaces
-    Equation.riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
+    riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
   end
 end
 
@@ -355,7 +356,7 @@ end
 function surfint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  nvars_ = Equation.nvars(dg)
+  nvars_ = nvars(dg)
 
   for cell_id = 1:dg.ncells
     left = dg.surfaces[1, cell_id]
@@ -372,7 +373,7 @@ end
 function applyjacobian!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  nvars_ = Equation.nvars(dg)
+  nvars_ = nvars(dg)
 
   for cell_id = 1:dg.ncells
     for i = 1:nnodes
@@ -392,10 +393,10 @@ function calcsources!(dg, t)
 
   N = polydeg(dg)
   nnodes = N + 1
-  nvars_ = Equation.nvars(dg)
+  nvars_ = nvars(dg)
 
   for cell_id = 1:dg.ncells
-    Equation.sources(syseqn(dg), dg.ut, dg.u, dg.nodecoordinate, cell_id, t, nnodes)
+    sources(syseqn(dg), dg.ut, dg.u, dg.nodecoordinate, cell_id, t, nnodes)
   end
 end
 
@@ -406,7 +407,7 @@ function calcdt(dg, cfl)
 
   mindt = Inf
   for cell_id = 1:dg.ncells
-    dt = Equation.maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
+    dt = maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
     mindt = min(mindt, dt)
   end
 

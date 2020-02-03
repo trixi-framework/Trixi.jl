@@ -1,7 +1,7 @@
 module Equation
 
 using ..Jul1dge
-using StaticArrays
+using StaticArrays: SVector, MVector, MMatrix
 import Base.show
 
 export getsyseqn

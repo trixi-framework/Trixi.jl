@@ -1,9 +1,8 @@
 module Auxiliary
 
-using ArgParse
-using TimerOutputs
-import Pkg
-using Pkg.TOML
+using ArgParse: ArgParseSettings, @add_arg_table, parse_args
+using TimerOutputs: TimerOutput
+using Pkg.TOML: parsefile
 
 export timer
 export parse_parameters_file
@@ -11,14 +10,17 @@ export parameter
 export parse_commandline_arguments
 export interruptable
 
+# Store main timer for global timing of functions
 const main_timer = TimerOutput()
+
+# Always call timer() to hide implementation details
+timer() = main_timer
 
 const parameters = Dict()
 
-timer() = main_timer
 
 function parse_parameters_file(filename::AbstractString)
-  parameters["default"] = Pkg.TOML.parsefile(filename)
+  parameters["default"] = parsefile(filename)
 end
 
 function parameter(name::String, default=nothing; valid=nothing)
