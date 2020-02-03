@@ -59,8 +59,11 @@ function main()
     @timeit "create plot" plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
 
     # Determine output file name
-    base, _ = splitext(datafile)
+    base, _ = splitext(splitdir(datafile)[2])
     output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
+
+    # Create output directory if it does not exist
+    mkpath(args["output-directory"])
 
     # Save file
     @timeit "save plot" savefig(output_filename)

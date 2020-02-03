@@ -17,7 +17,7 @@ end
 function initialconditions(s::Euler, x, t)
   name = s.initialconditions
   if name == "gauss"
-    return [1.0, 0.0, 1 + exp(-x^2)/2] 
+    return [1.0 + exp(-x^2)/2, 1.0, 1.0] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
   elseif name == "convergence_test"
@@ -47,7 +47,7 @@ end
 
 function sources(s::Euler, ut, u, x, cell_id, t, nnodes)
   name = s.sources
-  error("Unknown initial condition '$name'")
+  error("Unknown source term '$name'")
 end
 
 
