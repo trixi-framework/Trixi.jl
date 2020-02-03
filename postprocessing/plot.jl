@@ -17,46 +17,57 @@ function main()
   # Parse command line arguments
   args = parse_commandline_arguments()
 
-  # Determine input and output file formats
-  input_format = get_input_format(args["datafile"])
-  output_format = get_output_format(args["output"])
+  # Determine output file format
+  output_format = get_output_format(args["format"])
 
-  # Read data from file
-  print("Reading data... ")
-  @timeit "read data" labels, x_raw, y_raw, nnodes = read_datafile(Val(input_format), args["datafile"])
-  println("done")
+  # Iterate over input files
+  for f = 1:length(args["datafile"])
+    # User info
+    datafile = args["datafile"][f]
+    print("Processing '$datafile'... ")
 
-  # Interpolate DG data to visualization nodes
-  nvisnodes = (args["nvisnodes"] == nothing ? 4 * nnodes : args["nvisnodes"])
-  println("Interpolating data... ")
-  @timeit "interpolate data" begin
-    if nvisnodes == 0
-      x = x_raw
-      y = y_raw
-    else
-      x = interpolate_data(x_raw, nnodes, nvisnodes)
-      y = interpolate_data(y_raw, nnodes, nvisnodes)
+    # Determine input file format
+    input_format = get_input_format(datafile)
+
+    # Read data from file
+    @timeit "read data" labels, x_raw, y_raw, nnodes = read_datafile(
+        Val(input_format), datafile)
+
+    # Interpolate DG data to visualization nodes
+    nvisnodes = (args["nvisnodes"] == nothing ? 4 * nnodes : args["nvisnodes"])
+    @timeit "interpolate data" begin
+      if nvisnodes == 0
+        x = x_raw
+        y = y_raw
+      else
+        x = interpolate_data(x_raw, nnodes, nvisnodes)
+        y = interpolate_data(y_raw, nnodes, nvisnodes)
+      end
     end
-  end
-  println("done")
 
-  # Set up plotting
-  gr()
-  if output_format == :pdf
-    GR.inline("pdf")
-  elseif output_format == :png
-    GR.inline("png")
-  else
-    error("unknown output format '$output_format'")
-  end
+    # Set up plotting
+    gr()
+    if output_format == :pdf
+      GR.inline("pdf")
+    elseif output_format == :png
+      GR.inline("png")
+    else
+      error("unknown output format '$output_format'")
+    end
 
-  # Create plot
-  print("Creating plot... ")
-  @timeit "create plot" plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
-  println("done")
-  print("Saving plot... ")
-  @timeit "save plot" savefig(args["output"])
-  println("done")
+    # Create plot
+    @timeit "create plot" plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
+
+    # Determine output file name
+    base, _ = splitext(datafile)
+    output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
+
+    # Save file
+    @timeit "save plot" savefig(output_filename)
+
+    # User info
+    println("done")
+  end
 
   print_timer()
   println()
@@ -141,14 +152,13 @@ function get_input_format(filename::String)
 end
 
 
-function get_output_format(filename::String)
-  _, ext = splitext(filename)
-  if ext == ".png"
+function get_output_format(format::String)
+  if format == "png"
     return :png
-  elseif ext == ".pdf"
+  elseif format == "pdf"
     return :pdf
   else
-    error("unrecognized output file extension '$ext' (must be '.png' or '.pdf')")
+    error("unrecognized output file format '$format' (must be 'png' or 'pdf')")
   end
 end
 
@@ -160,10 +170,15 @@ function parse_commandline_arguments()
       help = "Name of Jul1dge data file to plot (allowed extensions: .h5, .dat)"
       arg_type = String
       required = true
-    "--output", "-o"
-      help = "Name of output file (allowed extensions: .png, .pdf)"
+      nargs = '+'
+    "--format", "-f"
+      help = "Output file format (allowed: png, pdf)"
       arg_type = String
-      required = true
+      default = "pdf"
+    "--output-directory", "-o"
+      help = "Output directory where generated images are stored (default: \".\")"
+      arg_type = String
+      default = "."
     "--resolution", "-r"
       help = "Resolution of output file in pixels. Two values expected, x and y."
       nargs = 2
