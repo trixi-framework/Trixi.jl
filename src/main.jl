@@ -1,15 +1,15 @@
 include("Jul1dge.jl")
 
 using .Jul1dge
-using .Jul1dge.MeshMod
-using .Jul1dge.Equation
-using .Jul1dge.DgMod
-using .Jul1dge.TimeDisc
-using .Jul1dge.Auxiliary
-using .Jul1dge.Io
+using .Jul1dge.MeshMod: Mesh
+using .Jul1dge.Equation: getsyseqn
+using .Jul1dge.DgMod: Dg, setinitialconditions, calc_error_norms, calcdt
+using .Jul1dge.TimeDisc: timestep!
+using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
+using .Jul1dge.Io: save_solution_file
 
-using Printf
-using TimerOutputs
+using Printf: println
+using TimerOutputs: @timeit, print_timer
 
 
 function run()
@@ -19,7 +19,7 @@ function run()
   # Parse parameters file
   parse_parameters_file(args["parameters-file"])
 
-  # Store repeatedly used values
+  # Retrieve repeatedly used parameters
   N = parameter("N")
   ncells = parameter("ncells")
   cfl = parameter("cfl")
@@ -27,14 +27,12 @@ function run()
   equations = parameter("syseqn")
   initialconditions = parameter("initialconditions")
   sources = parameter("sources", "none")
-  x_start = parameter("x_start")
-  x_end = parameter("x_end")
   t_start = parameter("t_start")
   t_end = parameter("t_end")
 
   # Create mesh
   print("Creating mesh... ")
-  mesh = Mesh(x_start, x_end, ncells)
+  mesh = Mesh(parameter("x_start"), parameter("x_end"), ncells)
   println("done")
 
   # Initialize system of equations
@@ -97,8 +95,8 @@ function run()
 
   # Start main loop
   println("Starting main loop... ")
-  @timeit to "main loop" while !finalstep
-    @timeit to "calcdt" dt = calcdt(dg, cfl)
+  @timeit timer() "main loop" while !finalstep
+    @timeit timer() "calcdt" dt = calcdt(dg, cfl)
 
     if t + dt > t_end
       dt = t_end - t
@@ -130,7 +128,7 @@ function run()
   end
   println("done")
 
-  print_timer(to, title="jul1dge", allocations=true, linechars=:ascii, compact=false)
+  print_timer(timer(), title="jul1dge", allocations=true, linechars=:ascii, compact=false)
   println()
 end
 

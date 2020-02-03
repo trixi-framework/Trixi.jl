@@ -4,4 +4,4 @@
 include("../src/main.jl")
 
 # Run jul1dge but handle user interrupts gracefully (Ctrl-c)
-@Auxiliary.interruptable run()
+@Jul1dge.Auxiliary.interruptable run()

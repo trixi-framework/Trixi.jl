@@ -20,8 +20,8 @@ function timestep!(dg, t, dt)
 
   for stage = 1:5
     t_stage = t + dt * c[stage]
-    @timeit to "rhs" DgMod.rhs!(dg, t_stage)
-    @timeit to "RK" begin
+    @timeit timer() "rhs" DgMod.rhs!(dg, t_stage)
+    @timeit timer() "RK" begin
       @. dg.urk = dg.ut - dg.urk * a[stage]
       @. dg.u += dg.urk * b[stage] * dt
     end

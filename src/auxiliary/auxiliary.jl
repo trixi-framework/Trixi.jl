@@ -5,15 +5,17 @@ using TimerOutputs
 import Pkg
 using Pkg.TOML
 
-export to
+export timer
 export parse_parameters_file
 export parameter
 export parse_commandline_arguments
 export interruptable
 
-const to = TimerOutput()
+const main_timer = TimerOutput()
 
 const parameters = Dict()
+
+timer() = main_timer
 
 function parse_parameters_file(filename::AbstractString)
   parameters["default"] = Pkg.TOML.parsefile(filename)
@@ -38,6 +40,7 @@ function parameter(name::String, default=nothing; valid=nothing)
 
   return value
 end
+
 
 function parse_commandline_arguments()
   s = ArgParseSettings()
