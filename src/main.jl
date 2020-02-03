@@ -80,6 +80,8 @@ function run()
   step = 0
   finalstep = false
   solution_interval = parameter("solution_interval", 0)
+  save_final_solution = parameter("save_final_solution", true)
+  analysis_interval = parameter("analysis_interval", 0)
 
   # Save initial conditions if desired
   if parameter("save_initial_solutions", true)
@@ -111,19 +113,22 @@ function run()
       finalstep = true
     end
 
-    if step % 10 == 0 || finalstep
-      println("Step: #$step, t=$t")
-      l2_error, linf_error = calc_error_norms(dg, t)
-      println("--- variable:   $(syseqn.varnames)")
-      println("--- L2 error:   $(l2_error)")
-      println("--- Linf error: $(linf_error)")
-      println()
+    # Analyse errors
+    if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
+      @timeit timer() "error analysis" begin
+        println("Step: #$step, t=$t")
+        l2_error, linf_error = calc_error_norms(dg, t)
+        println("--- variable:   $(syseqn.varnames)")
+        println("--- L2 error:   $(l2_error)")
+        println("--- Linf error: $(linf_error)")
+        println()
+      end
     end
 
     # Write solution file
     if solution_interval > 0 && (
-        step % solution_interval == 0 || (finalstep && parameter("save_final_solution", true)))
-      save_solution_file(dg, step)
+        step % solution_interval == 0 || (finalstep && save_final_solution))
+      @timeit "I/O" save_solution_file(dg, step)
     end
   end
   println("done")

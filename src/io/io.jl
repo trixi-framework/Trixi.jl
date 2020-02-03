@@ -18,10 +18,14 @@ Save current DG solution by forming a timestep-based filename and then
 dispatching on the 'output_format' parameter.
 """
 function save_solution_file(dg, timestep::Integer)
-  # Filename without extension based on current time step
-  filename = @sprintf("solution_%06d", timestep) 
+  # Create output directory (if it does not exist)
+  output_directory = parameter("output_directory", "out")
+  mkpath(output_directory)
 
-  # Dispatch on property
+  # Filename without extension based on current time step
+  filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
+
+  # Dispatch on format property
   output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
   save_solution_file(Val(Symbol(output_format)), dg, filename::String)
 end

@@ -4,17 +4,18 @@ initialconditions = "convergence_test"
 # sources = 
 advectionvelocity = 1.0
 t_start = 0.0
-t_end   = 1.0
+t_end   = 10.0
 
 # Numerical settings
 N = 3
 cfl = 1.0
 nstepsmax = 10000
+analysis_interval = 10
 
 # Mesh
-ncells = 20
+ncells = 80
 x_start = -10
 x_end   =  10
 
 # I/O
-solution_interval = 10
+solution_interval = 5
