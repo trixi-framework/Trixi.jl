@@ -4,19 +4,34 @@
 include("../src/auxiliary/auxiliary.jl")
 
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
-using HDF5: h5open
+using HDF5: h5open, attrs
+using Plots: plot, gr, savefig
+import GR
 
 function main()
   # Parse command line arguments
   args = parse_commandline_arguments()
 
+  # Determine input and output file formats
   input_format = get_input_format(args["datafile"])
   output_format = get_output_format(args["output"])
 
-  labels, data = read_datafile(Val(input_format), args["datafile"])
+  # Read data from file
+  labels, x, y = read_datafile(Val(input_format), args["datafile"])
 
-  println(labels)
-  println(data)
+  # Set up plotting
+  gr()
+  if output_format == :pdf
+    GR.inline("pdf")
+  elseif output_format == :png
+    GR.inline("png")
+  else
+    error("unknown output format '$output_format'")
+  end
+
+  # Create plot
+  plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
+  savefig(args["output"])
 end
 
 
@@ -24,26 +39,30 @@ function read_datafile(::Val{:hdf5}, filename)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
-    N = attrs(file)["polydeg"]
-    ncells = attrs(file)["ncells"]
-    nvars = attrs(file)["nvars"]
+    N = read(attrs(file)["polydeg"])
+    ncells = read(attrs(file)["ncells"])
+    nvars = read(attrs(file)["nvars"])
 
     # Extract labels for legend
-    labels = Vector{String}[]
+    labels = Array{String}(undef, 1, nvars)
     for v = 1:nvars
-      push!(labels, attrs(file["variables_$v"])["name"])
+      labels[1, v] = read(attrs(file["variables_$v"])["name"])
     end
 
-    # Extract data arrays
+    # Extract coordinates
     nnodes = N + 1
     num_datapoints = nnodes * ncells
-    data = Array{Float64}(undef, nnodes, nvars)
-    for v = 1:nvars
-      data[:, v] .= file["variables_$v"]
-    end
-  end
+    coordinates = Array{Float64}(undef, num_datapoints)
+    coordinates .= read(file["coordinates_1"])
 
-  return labels, data
+    # Extract data arrays
+    data = Array{Float64}(undef, num_datapoints, nvars)
+    for v = 1:nvars
+      data[:, v] .= read(file["variables_$v"])
+    end
+
+    return labels, coordinates, data
+  end
 end
 
 
@@ -91,32 +110,3 @@ function parse_commandline_arguments()
 end
 
 @Auxiliary.interruptable main()
-
-
-####################################################################################################
-# Original version with direct solution-to-image output
-#
-# using Plots
-# import GR
-# 
-# export plot2file
-# 
-# function plot2file(dg, filename)
-#   gr()
-#   GR.inline("png")
-#   x = dg.nodecoordinate[:]
-#   y = zeros(length(x), nvars(dg))
-#   s = syseqn(dg)
-#   nnodes = polydeg(dg) + 1
-#   for v = 1:nvars(dg)
-#     for c in 1:dg.ncells
-#       for i = 1:nnodes
-#         y[(c - 1) * nnodes + i, v] = dg.u[v, i, c]
-#       end
-#     end
-#     plot(x, y, label=s.varnames[:], xlims=(-10.5, 10.5), ylims=(-1, 2),
-#          size=(1600,1200), thickness_scaling=3)
-#   end
-#   savefig(filename)
-# end
-####################################################################################################

@@ -48,7 +48,7 @@ function save_solution_file(::Val{:hdf5}, dg, filename::String)
     attrs(file)["ncells"] = dg.ncells
 
     # Add coordinates as 1D arrays
-    file["coordinates_0"] = dg.nodecoordinate[:]
+    file["coordinates_1"] = dg.nodecoordinate[:]
 
     # Store each variable of the solution
     for v = 1:nvars_
