@@ -12,6 +12,7 @@ export sources
 export calcflux
 export riemann!
 export maxdt
+export cons2prim
 
 
 abstract type AbstractSysEqn{nvars_} end

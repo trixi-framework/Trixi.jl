@@ -2,13 +2,15 @@ struct LinearScalarAdvection <: AbstractSysEqn{1}
   name::String
   initialconditions::String
   sources::String
-  varnames::SVector{1, String}
+  varnames_cons::SVector{1, String}
+  varnames_prim::SVector{1, String}
   advectionvelocity::Float64
 
   function LinearScalarAdvection(initialconditions, sources, a)
     name = "linearscalaradvection"
-    varnames = ["scalar"]
-    new(name, initialconditions, sources, varnames, a)
+    varnames_cons = ["scalar"]
+    varnames_prim = ["scalar"]
+    new(name, initialconditions, sources, varnames_cons, varnames_prim, a)
   end
 end
 
@@ -54,3 +56,7 @@ function maxdt(s::LinearScalarAdvection, u::Array{Float64, 3}, cell_id::Int, nno
   return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (nnodes - 1) + 1)
 end
 
+
+function cons2prim(s::LinearScalarAdvection, cons::Array{Float64, 3})
+  return cons
+end

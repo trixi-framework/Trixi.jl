@@ -2,7 +2,7 @@ module Io
 
 using ..Jul1dge
 using ..DgMod: polydeg, syseqn
-using ..Equation: nvars
+using ..Equation: nvars, cons2prim
 using ..Auxiliary: parameter
 
 using HDF5: h5open, attrs
@@ -54,14 +54,25 @@ function save_solution_file(::Val{:hdf5}, dg, filename::String)
     # Add coordinates as 1D arrays
     file["coordinates_1"] = dg.nodecoordinate[:]
 
+    # Convert to primitive variables if requested
+    solution_variables = parameter("solution_variables", "conservative",
+                                   valid=["conservative", "primitive"])
+    if solution_variables == "conservative"
+      data = dg.u
+      varnames = s.varnames_cons
+    else
+      data = cons2prim(s, dg.u)
+      varnames = s.varnames_prim
+    end
+
     # Store each variable of the solution
     for v = 1:nvars_
       # Convert to 1D array
-      file["variables_$v"] = dg.u[v, :, :][:]
+      file["variables_$v"] = data[v, :, :][:]
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attrs(var)["name"] = s.varnames[v]
+      attrs(var)["name"] = varnames[v]
     end
   end
 end
@@ -81,13 +92,25 @@ function save_solution_file(::Val{:text}, dg, filename::String)
     nnodes = N + 1
     nvars_ = nvars(dg)
 
+    # Convert to primitive variables if requested
+    ouput_variables = parameter("output_variables",
+                                "conservative",
+                                valid=["conservative", "primitive"])
+    if output_variables == "conservative"
+      data = dg.u
+      varnames = s.varnames_cons
+    else
+      data = cons2prim(s, dg.u)
+      varnames = s.varnames_prim
+    end
+
     # Write column names, put in quotation marks to account for whitespace in names
     columns = Vector{String}()
     for d = 1:ndim
       push!(columns, "\"coordinates_$d\"")
     end
     for v = 1:nvars_
-      push!(columns, "\"$(s.varnames[v])\"")
+      push!(columns, "\"$(varnames[v])\"")
     end
     println(file, join(columns, " "))
 
@@ -96,7 +119,7 @@ function save_solution_file(::Val{:text}, dg, filename::String)
       data = Vector{String}()
       push!(data, @sprintf("% 10.8e", dg.nodecoordinate[i, cell_id]))
       for v = 1:nvars_
-        push!(data, @sprintf("% 10.8e", dg.u[v, i, cell_id]))
+        push!(data, @sprintf("% 10.8e", data[v, i, cell_id]))
       end
       println(file, join(data, " "))
     end

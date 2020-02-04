@@ -2,22 +2,46 @@ struct Euler <: AbstractSysEqn{3}
   name::String
   initialconditions::String
   sources::String
-  varnames::SVector{3, String}
+  varnames_cons::SVector{3, String}
+  varnames_prim::SVector{3, String}
   gamma::Float64
 
   function Euler(initialconditions, sources)
     name = "euler"
-    varnames = ["rho", "rho_u", "rho_e"]
+    varnames_cons = ["rho", "rho_u", "rho_e"]
+    varnames_prim = ["rho", "u", "p"]
     gamma = 1.4
-    new(name, initialconditions, sources, varnames, gamma)
+    new(name, initialconditions, sources, varnames_cons, varnames_prim, gamma)
   end
 end
 
 
 function initialconditions(s::Euler, x, t)
   name = s.initialconditions
-  if name == "gauss"
-    return [1.0 + exp(-x^2)/2, 1.0, 1.0] 
+  if name == "density_pulse"
+    rho = 1 + exp(-x^2)/2
+    v = 1
+    rho_v = rho * v
+    p = 1
+    # p = 1 + exp(-x^2)/2
+    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    return [rho, rho_v, rho_e] 
+  elseif name == "pressure_pulse"
+    rho = 1
+    v = 1
+    rho_v = rho * v
+    p = 1 + exp(-x^2)/2
+    # p = 1 + exp(-x^2)/2
+    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    return [rho, rho_v, rho_e] 
+    # return [1.0 + exp(-x^2)/2, 1.0, 1.0] 
+  elseif name == "density_pressure_pulse"
+    rho = 1 + exp(-x^2)/2
+    v = 1
+    rho_v = rho * v
+    p = 1 + exp(-x^2)/2
+    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    return [rho, rho_v, rho_e] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
   elseif name == "convergence_test"
@@ -121,3 +145,11 @@ function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
   return dt
 end
 
+
+function cons2prim(s::Euler, cons::Array{Float64, 3})
+  prim = similar(cons)
+  @. prim[1, :, :] = cons[1, :, :]
+  @. prim[2, :, :] = cons[2, :, :] / cons[1, :, :]
+  @. prim[3, :, :] = (s.gamma - 1) * (cons[3, :, :] - 1/2 * cons[2, :, :] * prim[2, :, :])
+  return prim
+end
