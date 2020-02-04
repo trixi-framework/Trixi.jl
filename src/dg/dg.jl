@@ -26,6 +26,7 @@ struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
   urk::Array{Float64, 3}
+  flux::Array{Float64, 3}
   ncells::Int
   invjacobian::Array{Float64, 1}
   nodecoordinate::Array{Float64, 2}
@@ -59,6 +60,7 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
   urk = zeros(Float64, nvars_, N + 1, ncells)
+  flux = zeros(Float64, nvars_, N + 1, ncells)
 
   nsurfaces = ncells
   usurf = zeros(Float64, 2, nvars_, nsurfaces)
@@ -98,7 +100,7 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
   analysis_total_volume = sum(mesh.length.^ndim)
 
   dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
-      s, u, ut, urk, ncells, Array{Float64,1}(undef, ncells),
+      s, u, ut, urk, flux, ncells, Array{Float64,1}(undef, ncells),
       Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf,
       neighbors, nsurfaces, nodes, weights, dhat, lhat, analysis_nodes,
       analysis_weights, analysis_weights_volume, analysis_vandermonde,
@@ -157,6 +159,9 @@ function rhs!(dg, t_stage)
   # Reset ut
   @timeit timer() "reset ut" dg.ut .= 0.0
 
+  # Calculate volume flux
+  @timeit timer() "volflux" volflux!(dg)
+
   # Calculate volume integral
   @timeit timer() "volint" volint!(dg)
 
@@ -177,18 +182,27 @@ function rhs!(dg, t_stage)
 end
 
 
-function volint!(dg)
+function volflux!(dg)
   N = polydeg(dg)
   nnodes = N + 1
   s = syseqn(dg)
+
+  @inbounds Threads.@threads for cell_id = 1:dg.ncells
+    dg.flux[:, :, cell_id] = calcflux(s, dg.u, cell_id, nnodes)
+  end
+end
+
+
+function volint!(dg)
+  N = polydeg(dg)
+  nnodes = N + 1
   nvars_ = nvars(dg)
 
-  Threads.@threads for cell_id = 1:dg.ncells
-    f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, cell_id, nnodes)
+  @inbounds Threads.@threads for cell_id = 1:dg.ncells
     for i = 1:nnodes
       for v = 1:nvars_
         for j = 1:nnodes
-          dg.ut[v, i, cell_id] += dg.dhat[i, j] * f[v, j]
+          dg.ut[v, i, cell_id] += dg.dhat[i, j] * dg.flux[v, j, cell_id]
         end
       end
     end
