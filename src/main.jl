@@ -73,6 +73,7 @@ function run()
          | sources:           $sources
          | ncells:            $ncells
          | #DOFs:             $(ncells * (N + 1)^ndim)
+         | #parallel threads: $(Threads.nthreads())
          """
   println(s)
 

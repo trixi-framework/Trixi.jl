@@ -183,7 +183,7 @@ function volint!(dg)
   s = syseqn(dg)
   nvars_ = nvars(dg)
 
-  for cell_id = 1:dg.ncells
+  Threads.@threads for cell_id = 1:dg.ncells
     f::MMatrix{nvars_, nnodes} = calcflux(s, dg.u, cell_id, nnodes)
     for i = 1:nnodes
       for v = 1:nvars_
