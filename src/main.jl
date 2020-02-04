@@ -88,18 +88,22 @@ function run()
     save_solution_file(dg, step)
   end
 
-  println("Step: #$step, t=$t")
-  l2_error, linf_error = calc_error_norms(dg, t)
-  println("--- variable:   $(syseqn.varnames)")
-  println("--- L2 error:   $(l2_error)")
-  println("--- Linf error: $(linf_error)")
-  println()
+  # Print initial solution analysis
+  if analysis_interval > 0
+    println("Step: #$step, t=$t")
+    l2_error, linf_error = calc_error_norms(dg, t)
+    println("--- variable:   $(syseqn.varnames)")
+    println("--- L2 error:   $(l2_error)")
+    println("--- Linf error: $(linf_error)")
+    println()
+  end
 
-  # Start main loop
+  # Start main loop (loop until final time step is reached)
   println("Starting main loop... ")
   @timeit timer() "main loop" while !finalstep
     @timeit timer() "calcdt" dt = calcdt(dg, cfl)
 
+    # If the next iteration would push the simulation beyond the end time, set dt accordingly
     if t + dt > t_end
       dt = t_end - t
       finalstep = true
