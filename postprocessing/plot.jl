@@ -196,4 +196,7 @@ function parse_commandline_arguments()
   return parse_args(s)
 end
 
-@Auxiliary.interruptable main()
+
+if abspath(PROGRAM_FILE) == @__FILE__
+  @Auxiliary.interruptable main()
+end
