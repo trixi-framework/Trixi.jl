@@ -20,6 +20,7 @@ export rhs!
 export calcdt
 export calc_error_norms
 
+
 struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
   syseqn::SysEqn
   u::Array{Float64, 3}
@@ -150,6 +151,7 @@ function setinitialconditions(dg, t)
     end
   end
 end
+
 
 function rhs!(dg, t_stage)
   # Reset ut

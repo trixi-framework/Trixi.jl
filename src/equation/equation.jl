@@ -13,12 +13,14 @@ export calcflux
 export riemann!
 export maxdt
 
+
 abstract type AbstractSysEqn{nvars_} end
 nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
 name(s::AbstractSysEqn{nvars_}) where nvars_ = s.name
 function Base.show(io::IO, s::AbstractSysEqn{nvars_}) where nvars_
   print("name = $(s.name), nvars = $nvars_, advectionvelocity = $(s.advectionvelocity)")
 end
+
 
 function getsyseqn(name::String, initialconditions::String, sources::String, args...)
   if name == "linearscalaradvection"
@@ -29,6 +31,7 @@ function getsyseqn(name::String, initialconditions::String, sources::String, arg
     error("'$name' does not name a valid system of equations")
   end
 end
+
 
 include("linearscalaradvection.jl")
 include("euler.jl")

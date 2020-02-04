@@ -42,10 +42,12 @@ function calcflux(s::LinearScalarAdvection, u, cell_id, nnodes)
   return f
 end
 
+
 function riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
   a = ss.advectionvelocity
   fsurf[1, s] = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
 end
+
 
 function maxdt(s::LinearScalarAdvection, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
                invjacobian::Float64, cfl::Float64)

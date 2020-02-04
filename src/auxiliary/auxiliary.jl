@@ -10,6 +10,7 @@ export parameter
 export parse_commandline_arguments
 export interruptable
 
+
 # Store main timer for global timing of functions
 const main_timer = TimerOutput()
 
@@ -22,6 +23,7 @@ const parameters = Dict()
 function parse_parameters_file(filename::AbstractString)
   parameters["default"] = parsefile(filename)
 end
+
 
 function parameter(name::String, default=nothing; valid=nothing)
   if haskey(parameters["default"], name)

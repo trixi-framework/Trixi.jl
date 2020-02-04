@@ -63,6 +63,7 @@ function calcflux(s::Euler, u, cell_id::Int, nnodes::Int)
   return f
 end
 
+
 function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
   f = zeros(MVector{3})
   v = rho_v/rho
@@ -74,6 +75,7 @@ function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
 
   return f
 end
+
 
 function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
   u_ll     = usurf[1, :, s]
@@ -99,6 +101,7 @@ function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
 
   @. fsurf[:, s] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
 end
+
 
 function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
                invjacobian::Float64, cfl::Float64)
