@@ -100,7 +100,6 @@ function run()
   end
 
   # Start main loop (loop until final time step is reached)
-  println("Starting main loop... ")
   @timeit timer() "main loop" while !finalstep
     @timeit timer() "calcdt" dt = calcdt(dg, cfl)
 
@@ -136,7 +135,6 @@ function run()
       @timeit timer() "I/O" save_solution_file(dg, step)
     end
   end
-  println("done")
 
   print_timer(timer(), title="jul1dge", allocations=true, linechars=:ascii, compact=false)
   println()
