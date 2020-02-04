@@ -232,7 +232,7 @@ function surfflux!(dg)
   nnodes = N + 1
   s = syseqn(dg)
 
-  for s = 1:dg.nsurfaces
+  @inbounds Threads.@threads for s = 1:dg.nsurfaces
     riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
   end
 end

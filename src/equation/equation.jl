@@ -1,6 +1,7 @@
 module Equation
 
 using ..Jul1dge
+using ..Auxiliary: parameter
 using StaticArrays: SVector, MVector, MMatrix
 import Base.show
 

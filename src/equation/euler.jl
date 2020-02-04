@@ -5,13 +5,15 @@ struct Euler <: AbstractSysEqn{3}
   varnames_cons::SVector{3, String}
   varnames_prim::SVector{3, String}
   gamma::Float64
+  riemann_solver::String
 
   function Euler(initialconditions, sources)
     name = "euler"
     varnames_cons = ["rho", "rho_u", "rho_e"]
     varnames_prim = ["rho", "u", "p"]
     gamma = 1.4
-    new(name, initialconditions, sources, varnames_cons, varnames_prim, gamma)
+    riemann_solver = parameter("riemann_solver", "hllc", valid=["hllc", "laxfriedrichs"])
+    new(name, initialconditions, sources, varnames_cons, varnames_prim, gamma, riemann_solver)
   end
 end
 
@@ -77,7 +79,7 @@ end
 
 function calcflux(s::Euler, u, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{3, nnodes})
-  for i = 1:nnodes
+  @inbounds for i = 1:nnodes
     rho   = u[1, i, cell_id]
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
@@ -121,9 +123,42 @@ function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
 
   f_ll = calcflux(ss, rho_ll, rho_v_ll, rho_e_ll)
   f_rr = calcflux(ss, rho_rr, rho_v_rr, rho_e_rr)
-  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 
-  @. fsurf[:, s] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+  if ss.riemann_solver == "laxfriedrichs"
+    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+
+    @. fsurf[:, s] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+  elseif ss.riemann_solver == "hllc"
+    v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
+    h_ll = (rho_e_ll + p_ll) / rho_ll
+    h_rr = (rho_e_rr + p_rr) / rho_rr
+    h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
+    c_tilde = sqrt((ss.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
+    s_ll = v_tilde - c_tilde
+    s_rr = v_tilde + c_tilde
+
+    if s_ll > 0
+      @. fsurf[:, s] = f_ll
+    elseif s_rr < 0
+      @. fsurf[:, s] = f_rr
+    else
+      s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
+                / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
+      if s_ll <= 0 && 0 <= s_star
+        u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
+            [1, s_star,
+             rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
+        @. fsurf[:, s] = f_ll + s_ll * (u_star_ll - u_ll)
+      else
+        u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
+            [1, s_star,
+             rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
+        @. fsurf[:, s] = f_rr + s_rr * (u_star_rr - u_rr)
+      end
+    end
+  else
+    error("unknown Riemann solver '$(s.riemann_solver)'")
+  end
 end
 
 
