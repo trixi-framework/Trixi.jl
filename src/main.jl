@@ -133,7 +133,8 @@ function run()
                           (n_analysis_timesteps * n_dofs_total))
 
       # Analyze solution
-      analyze_solution(dg, time, dt, step, runtime_absolute, runtime_relative)
+      @timeit timer() "analyze solution" analyze_solution(
+          dg, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
