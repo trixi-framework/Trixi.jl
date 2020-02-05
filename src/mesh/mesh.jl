@@ -1,6 +1,9 @@
 module MeshMod
 
+include("trees.jl")
+
 using ..Jul1dge
+using .Trees: Tree
 
 export Mesh
 
