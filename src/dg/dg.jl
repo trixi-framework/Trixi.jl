@@ -10,6 +10,7 @@ using .Interpolation: interpolate_nodes, calcdhat,
                       polynomialinterpolationmatrix, calclhat, gausslobatto
 using StaticArrays: SVector, SMatrix, MMatrix
 using TimerOutputs: @timeit
+using Printf: @sprintf, @printf
 
 export Dg
 export setinitialconditions
@@ -19,6 +20,7 @@ export polydeg
 export rhs!
 export calcdt
 export calc_error_norms
+export analyze_solution
 
 
 struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
@@ -141,6 +143,40 @@ function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
   @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
+end
+
+
+function analyze_solution(dg::Dg{SysEqn, N}, t::Real, dt::Real,
+                          step::Integer, runtime_absolute::Real,
+                          runtime_relative::Real) where {SysEqn, N}
+  s = syseqn(dg)
+  nvars_ = nvars(s)
+
+  l2_error, linf_error = calc_error_norms(dg, t)
+
+  println("-"^80)
+  println(" Simulation running '$(s.name)' with N = $N")
+  println("-"^80)
+  println(" #timesteps:    $step")
+  println(" dt:            " * @sprintf("%10.8e", dt))
+  println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
+  println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
+  print(" Variable:    ")
+  for v in 1:nvars_
+    @printf("  %-14s", s.varnames_cons[v])
+  end
+  println()
+  print(" L2 error:    ")
+  for v in 1:nvars_
+    @printf("  %10.8e", l2_error[v])
+  end
+  println()
+  print(" Linf error:  ")
+  for v in 1:nvars_
+    @printf("  %10.8e", linf_error[v])
+  end
+  println()
+  println()
 end
 
 

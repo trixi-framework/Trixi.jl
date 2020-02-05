@@ -10,7 +10,7 @@ t_end   = 10.0
 N = 3
 cfl = 1.0
 nstepsmax = 10000
-analysis_interval = 10
+analysis_interval = 100
 
 # Mesh
 ncells = 80

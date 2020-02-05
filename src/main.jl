@@ -3,7 +3,7 @@ include("Jul1dge.jl")
 using .Jul1dge
 using .Jul1dge.MeshMod: Mesh
 using .Jul1dge.Equation: getsyseqn
-using .Jul1dge.DgMod: Dg, setinitialconditions, calc_error_norms, calcdt
+using .Jul1dge.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
@@ -61,6 +61,7 @@ function run()
 
   # Print setup information
   println()
+  n_dofs_total = ncells * (N + 1)^ndim
   s = """| Simulation setup
          | ----------------
          | N:                 $N
@@ -72,7 +73,7 @@ function run()
          | initialconditions: $initialconditions
          | sources:           $sources
          | ncells:            $ncells
-         | #DOFs:             $(ncells * (N + 1)^ndim)
+         | #DOFs:             $n_dofs_total
          | #parallel threads: $(Threads.nthreads())
          """
   println(s)
@@ -89,15 +90,14 @@ function run()
     save_solution_file(dg, step)
   end
 
-  # Print initial solution analysis
+  # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    println("Step: #$step, t=$t")
-    l2_error, linf_error = calc_error_norms(dg, t)
-    println("--- variable:   $(syseqn.varnames_cons)")
-    println("--- L2 error:   $(l2_error)")
-    println("--- Linf error: $(linf_error)")
-    println()
+    analyze_solution(dg, t, 0, step, 0, 0)
   end
+  loop_start_time = time_ns()
+  analysis_start_time = time_ns()
+  output_time = 0.0
+  n_analysis_timesteps = 0
 
   # Start main loop (loop until final time step is reached)
   @timeit timer() "main loop" while !finalstep
@@ -109,33 +109,43 @@ function run()
       finalstep = true
     end
 
+    # Evolve solution by one time step
     timestep!(dg, t, dt)
     step += 1
     t += dt
+    n_analysis_timesteps += 1
 
+    # Check if we reached the maximum number of time steps
     if step == nstepsmax
       finalstep = true
     end
 
-    # Analyse errors
+    # Analyze solution errors
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
-      @timeit timer() "error analysis" begin
-        println("Step: #$step, t=$t")
-        l2_error, linf_error = calc_error_norms(dg, t)
-        println("--- variable:   $(syseqn.varnames_cons)")
-        println("--- L2 error:   $(l2_error)")
-        println("--- Linf error: $(linf_error)")
-        println()
-      end
+      # Calculate absolute and relative runtime
+      runtime_absolute = (time_ns() - loop_start_time) / 10^9
+      runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /
+                          (n_analysis_timesteps * n_dofs_total))
+
+      # Analyze solution
+      analyze_solution(dg, t, dt, step, runtime_absolute, runtime_relative)
+
+      # Reset time and counters
+      analysis_start_time = time_ns()
+      output_time = 0.0
+      n_analysis_timesteps = 0.0
     end
 
     # Write solution file
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
+      output_start_time = time_ns()
       @timeit timer() "I/O" save_solution_file(dg, step)
+      output_time += time_ns() - output_start_time
     end
   end
 
+  # Print timer information
   print_timer(timer(), title="jul1dge", allocations=true, linechars=:ascii, compact=false)
   println()
 end
