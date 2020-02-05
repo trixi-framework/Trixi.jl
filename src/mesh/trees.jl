@@ -77,7 +77,7 @@ invalidate!(t::Tree) = invalidate!(t, 1, t.capacity + 1)
 
 
 # Delete connectivity with parents/children/neighbors before nodes are erased
-function delete_connectivity(t::Tree, first::Int, last::Int)
+function delete_connectivity!(t::Tree, first::Int, last::Int)
   @assert first > 0
   @assert first <= last
   @assert last <= t.capacity + 1
@@ -113,7 +113,7 @@ end
 
 
 # Move connectivity with parents/children/neighbors after nodes have been moved
-function move_connectivity(t::Tree, first::Int, last::Int, destination::Int)
+function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
   @assert first > 0
   @assert first <= last
   @assert last <= t.capacity + 1
@@ -183,6 +183,77 @@ end
 
 
 # Raw copy operation for ranges of cells
-# function raw_copy(
+function raw_copy!(t::Tree, source::Tree, first::Int, last::Int, destination::Int)
+  copy_data!(t.parent_ids, source.parent_ids, first, last, destination)
+  copy_data!(t.child_ids, source.child_ids, first, last, destination, n_children_per_node(t))
+  copy_data!(t.neighbor_ids, source.neighbor_ids, first, last, destination, n_neighbors_per_node(t))
+  copy_data!(t.levels, source.levels, first, last, destination)
+  copy_data!(t.coordinates, source.coordinates, first, last, destination)
+end
+
+# Auxiliary copy function
+function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
+                    first::Int, last::Int, destination::Int, block_size::Int=1) where {T, N}
+  # Determine block size for each index
+  block_size = 1
+  for d in 1:(ndims(target) - 1)
+    block_size *= size(target, d)
+  end
+
+  if destination <= first || destination > last
+    # In this case it is safe to copy forward (left-to-right) without overwriting data
+    for i in first:last, j in 1:block_size
+      target[block_size*(i-1) + j] = source[block_size*(i-1) + j]
+    end
+  else
+    # In this case we need to copy backward (right-to-left) to prevent overwriting data
+    for i in reverse(first:last), j in 1:block_size
+      target[block_size*(i-1) + j] = source[block_size*(i-1) + j]
+    end
+  end
+end
+
+
+####################################################################################################
+# Here follow the implementations for a generic container
+capacity(c::AbstractContainer) = c.capacity
+size(c::AbstractContainer) = c.size
+
+function append!(c::AbstractContainer, count::Int)
+end
+append!(c::AbstractContainer) = append(c, 1)
+function shrink!(c::AbstractContainer, count::Int)
+end
+shrink!(c::AbstractContainer) = shrink(c, 1)
+
+function copy!(target::AbstractContainer, source::AbstractContainer,
+               first::Int, last::Int, destination::Int)
+end
+function copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+  copy!(target, source, from, from + 1, destination)
+end
+function copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+  copy!(c, c, first, last, destination)
+end
+function copy!(c::AbstractContainer, from::Int, destination::Int)
+  copy!(c, from, from + 1, destination)
+end
+
+function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+end
+move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from + 1, destination)
+
+function insert!(c::AbstractContainer, position::Int, count::Int)
+end
+insert!(c) = insert!(c, position, 1)
+
+function erase!(c::AbstractContainer, first::Int, last::Int)
+end
+erase!(c::AbstractContainer, id::Int) = erase!(c, id, id + 1)
+
+function remove_shift(c::AbstractContainer, first::Int, last::Int)
+end
+function remove_fill(c::AbstractContainer, first::Int, last::Int)
+end
 
 end
