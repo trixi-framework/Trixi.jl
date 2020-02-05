@@ -154,10 +154,11 @@ function analyze_solution(dg::Dg{SysEqn, N}, t::Real, dt::Real,
 
   l2_error, linf_error = calc_error_norms(dg, t)
 
+  println()
   println("-"^80)
   println(" Simulation running '$(s.name)' with N = $N")
   println("-"^80)
-  println(" #timesteps:    $step")
+  println(" #timesteps:    " * @sprintf("% 6d", step))
   println(" dt:            " * @sprintf("%10.8e", dt))
   println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
   println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))

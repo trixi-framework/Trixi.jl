@@ -8,7 +8,7 @@ using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
 
-using Printf: println
+using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
 
 
@@ -55,8 +55,8 @@ function run()
 
   # Apply initial condition
   print("Applying initial conditions... ")
-  t = t_start
-  setinitialconditions(dg, t)
+  time = t_start
+  setinitialconditions(dg, time)
   println("done")
 
   # Print setup information
@@ -84,6 +84,11 @@ function run()
   solution_interval = parameter("solution_interval", 0)
   save_final_solution = parameter("save_final_solution", true)
   analysis_interval = parameter("analysis_interval", 0)
+  if analysis_interval > 0
+    alive_interval = parameter("alive_interval", div(analysis_interval, 10))
+  else
+    alive_interval = 0
+  end
 
   # Save initial conditions if desired
   if parameter("save_initial_solutions", true)
@@ -92,7 +97,7 @@ function run()
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(dg, t, 0, step, 0, 0)
+    analyze_solution(dg, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -104,15 +109,15 @@ function run()
     @timeit timer() "calcdt" dt = calcdt(dg, cfl)
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
-    if t + dt > t_end
-      dt = t_end - t
+    if time + dt > t_end
+      dt = t_end - time
       finalstep = true
     end
 
     # Evolve solution by one time step
-    timestep!(dg, t, dt)
+    timestep!(dg, time, dt)
     step += 1
-    t += dt
+    time += dt
     n_analysis_timesteps += 1
 
     # Check if we reached the maximum number of time steps
@@ -128,12 +133,22 @@ function run()
                           (n_analysis_timesteps * n_dofs_total))
 
       # Analyze solution
-      analyze_solution(dg, t, dt, step, runtime_absolute, runtime_relative)
+      analyze_solution(dg, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
       output_time = 0.0
       n_analysis_timesteps = 0.0
+      if finalstep
+        println("-"^80)
+        println("Jul1dge simulation run finished.    Final time: $time    Time steps: $step")
+        println("-"^80)
+        println()
+      end
+    elseif alive_interval > 0 && step % alive_interval == 0
+      runtime_absolute = (time_ns() - loop_start_time) / 10^9
+      @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
+              step, dt, time, runtime_absolute)
     end
 
     # Write solution file
