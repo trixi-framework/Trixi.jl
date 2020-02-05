@@ -11,12 +11,8 @@ using Printf: @sprintf
 export save_solution_file
 
 
-"""
-    save_solution_file(dg, timestep::Integer)
-
-Save current DG solution by forming a timestep-based filename and then
-dispatching on the 'output_format' parameter.
-"""
+# Save current DG solution by forming a timestep-based filename and then
+# dispatching on the 'output_format' parameter.
 function save_solution_file(dg, timestep::Integer)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
@@ -31,12 +27,8 @@ function save_solution_file(dg, timestep::Integer)
 end
 
 
-"""
-    save_solution_file(::Val{:hdf5}, dg, filename::String)
-
-Save current DG solution with some context information as a HDF5 file for
-postprocessing.
-"""
+# Save current DG solution with some context information as a HDF5 file for
+# postprocessing.
 function save_solution_file(::Val{:hdf5}, dg, filename::String)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
@@ -47,12 +39,12 @@ function save_solution_file(::Val{:hdf5}, dg, filename::String)
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
     attrs(file)["syseqn"] = s.name
-    attrs(file)["polydeg"] = N
+    attrs(file)["N"] = N
     attrs(file)["nvars"] = nvars_
     attrs(file)["ncells"] = dg.ncells
 
     # Add coordinates as 1D arrays
-    file["coordinates_1"] = dg.nodecoordinate[:]
+    file["x"] = dg.nodecoordinate[:]
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "conservative",
@@ -78,12 +70,8 @@ function save_solution_file(::Val{:hdf5}, dg, filename::String)
 end
 
 
-"""
-    save_solution_file(::Val{:text}, dg, filename::String)
-
-Save current DG solution as a plain text file with fixed-width space-separated
-values, with the first line containing the column names.
-"""
+# Save current DG solution as a plain text file with fixed-width space-separated
+# values, with the first line containing the column names.
 function save_solution_file(::Val{:text}, dg, filename::String)
   # Open file (clobber existing content)
   open(filename * ".dat", "w") do file
@@ -93,7 +81,7 @@ function save_solution_file(::Val{:text}, dg, filename::String)
     nvars_ = nvars(dg)
 
     # Convert to primitive variables if requested
-    ouput_variables = parameter("output_variables",
+    output_variables = parameter("output_variables",
                                 "conservative",
                                 valid=["conservative", "primitive"])
     if output_variables == "conservative"
@@ -104,24 +92,29 @@ function save_solution_file(::Val{:text}, dg, filename::String)
       varnames = s.varnames_prim
     end
 
+    # Add context information as comments in the first lines of the file
+    println(file, "# ndim = $ndim")
+    println(file, "# syseqn = \"$(s.name)\"")
+    println(file, "# N = $N")
+    println(file, "# nvars = $nvars_")
+    println(file, "# ncells = $(dg.ncells)")
+
     # Write column names, put in quotation marks to account for whitespace in names
-    columns = Vector{String}()
-    for d = 1:ndim
-      push!(columns, "\"coordinates_$d\"")
-    end
+    columns = Vector{String}(undef, ndim + nvars_)
+    columns[1] = @sprintf("%-15s", "\"x\"")
     for v = 1:nvars_
-      push!(columns, "\"$(varnames[v])\"")
+      columns[v+1] = @sprintf("%-15s", "\"$(varnames[v])\"")
     end
-    println(file, join(columns, " "))
+    println(file, strip(join(columns, " ")))
 
     # Write data
     for cell_id = 1:dg.ncells, i = 1:nnodes
-      data = Vector{String}()
-      push!(data, @sprintf("% 10.8e", dg.nodecoordinate[i, cell_id]))
+      data_out = Vector{String}(undef, ndim + nvars_)
+      data_out[1] = @sprintf("%+10.8e", dg.nodecoordinate[i, cell_id])
       for v = 1:nvars_
-        push!(data, @sprintf("% 10.8e", data[v, i, cell_id]))
+        data_out[v+1] = @sprintf("%+10.8e", data[v, i, cell_id])
       end
-      println(file, join(data, " "))
+      println(file, join(data_out, " "))
     end
   end
 end

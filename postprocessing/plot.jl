@@ -9,6 +9,8 @@ using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
 using Plots: plot, gr, savefig
 using TimerOutputs
+using Pkg.TOML: parse
+using DelimitedFiles: readdlm
 import GR
 
 function main()
@@ -111,7 +113,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
-    N = read(attrs(file)["polydeg"])
+    N = read(attrs(file)["N"])
     ncells = read(attrs(file)["ncells"])
     nvars = read(attrs(file)["nvars"])
 
@@ -125,7 +127,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
     nnodes = N + 1
     num_datapoints = nnodes * ncells
     coordinates = Array{Float64}(undef, num_datapoints)
-    coordinates .= read(file["coordinates_1"])
+    coordinates .= read(file["x"])
 
     # Extract data arrays
     data = Array{Float64}(undef, num_datapoints, nvars)
@@ -139,7 +141,49 @@ end
 
 
 function read_datafile(::Val{:text}, filename::String)
-  error("not implemented")
+  # Open file for reading
+  open(filename, "r") do file
+    # We assume that the input file has the following structure:
+    # - zero or more lines starting with hashtag '#', marking comments with context information
+    # - one line with the column names (quoted in '"')
+    # - the data, columnwise, separated by one or more space characters
+
+    context_raw = ""
+    labels_raw = Vector{String}()
+
+    # First, read file line by line
+    while true
+      line = readline(file)
+      if !startswith(line, "#")
+        # If a line does not start with a hashtag, the line must contain the column headers
+        for m in eachmatch(r"\"([^\"]+)\"", line)
+          push!(labels_raw, m.captures[1])
+        end
+        break
+      else
+        # Otherwise, save line to process later
+        context_raw *= strip(lstrip(line, '#')) * "\n"
+      end
+    end
+
+    # Extract basic information
+    context = parse(context_raw)
+    N = context["N"]
+    nnodes = N + 1
+
+    # Create data structure for labels (the "-1" since we omit the coordinate)
+    labels = Array{String}(undef, 1, length(labels_raw) - 1)
+    labels[1, :] .= labels_raw[2:end]
+
+    # Read all data
+    data_in = readdlm(file, ' ', Float64)
+
+    # Extract coordinates and data
+    coordinates = data_in[:, 1]
+    data = data_in[:, 2:end]
+
+    return labels, coordinates, data, nnodes
+  end
 end
 
 

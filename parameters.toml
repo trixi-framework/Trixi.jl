@@ -2,7 +2,7 @@
 syseqn = "euler"
 initialconditions = "convergence_test"
 # sources = 
-advectionvelocity = 1.0
+# advectionvelocity = 1.0
 t_start = 0.0
 t_end   = 10.0
 
@@ -18,4 +18,5 @@ x_start = -10
 x_end   =  10
 
 # I/O
-solution_interval = 5
+solution_interval = 100
+output_format = "hdf5"
