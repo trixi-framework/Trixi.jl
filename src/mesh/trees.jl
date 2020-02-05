@@ -183,6 +183,6 @@ end
 
 
 # Raw copy operation for ranges of cells
-function raw_copy(
+# function raw_copy(
 
 end
