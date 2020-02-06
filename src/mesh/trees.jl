@@ -55,9 +55,10 @@ has_child(t::Tree, node_id::Int, child_id::Int) = t.parent_ids[child_id, node_id
 has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
 n_children(t::Tree, node_id::Int) = count(x -> (x > 0), @view t.child_ids[:, node_id])
 has_neighbor(t::Tree, node_id::Int, direction::Int) = t.neighbor_ids[direction, node_id] > 0
-has_any_neighbor(t::Tree, node_id::Int, direction::Int) = (
-   has_neighbor(t, node_id, direction) ||
-   (has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)))
+function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
+  return (has_neighbor(t, node_id, direction) ||
+         (has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)))
+end
 
 n_children_per_node(::Tree{D}) where D = 2^D
 n_neighbors_per_node(::Tree{D}) where D = 2 * D
@@ -75,7 +76,8 @@ function invalidate!(t::Tree, first::Int, last::Int)
   b.levels[first:last] = -1
   b.coordinates[:, first:last] = NaN
 end
-invalidate!(t::Tree) = invalidate!(t, 1, t.capacity + 1)
+invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
+invalidate!(t::Tree) = invalidate!(t, 1, size(t))
 
 
 # Delete connectivity with parents/children/neighbors before nodes are erased
@@ -185,12 +187,24 @@ end
 
 
 # Raw copy operation for ranges of cells
-function raw_copy!(t::Tree, source::Tree, first::Int, last::Int, destination::Int)
-  copy_data!(t.parent_ids, source.parent_ids, first, last, destination)
-  copy_data!(t.child_ids, source.child_ids, first, last, destination, n_children_per_node(t))
-  copy_data!(t.neighbor_ids, source.neighbor_ids, first, last, destination, n_neighbors_per_node(t))
-  copy_data!(t.levels, source.levels, first, last, destination)
-  copy_data!(t.coordinates, source.coordinates, first, last, destination)
+function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destination::Int)
+  copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
+  copy_data!(target.child_ids, source.child_ids, first, last, destination,
+             n_children_per_node(target))
+  copy_data!(target.neighbor_ids, source.neighbor_ids, first, last,
+             destination, n_neighbors_per_node(target))
+  copy_data!(target.levels, source.levels, first, last, destination)
+  copy_data!(target.coordinates, source.coordinates, first, last, destination)
+end
+function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+  raw_copy!(c, c, first, last, destination)
+end
+function raw_copy!(target::AbstractContainer, source::AbstractContainer,
+                   from::Int, destination::Int)
+  raw_copy!(target, source, from, from, destination)
+end
+function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
+  raw_copy!(c, c, from, from, destination)
 end
 
 
@@ -253,6 +267,17 @@ shrink!(c::AbstractContainer) = shrink(c, 1)
 
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
+  @assert 0 <= first <= size(source) "First node out of range"
+  @assert 0 <= last <= size(source) "Last node out of range"
+  @assert 0 <= destination <= size(target) "Destination out of range"
+  @assert destination + (last - first) <= size(target) "Target range out of bounds"
+
+  # Return if copy would be a no-op
+  if last < first || (source === target && first == destination)
+    return
+  end
+
+  raw_copy!(target, source, first, last, destination)
 end
 function copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
   copy!(target, source, from, from, destination)
@@ -261,25 +286,144 @@ function copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   copy!(c, c, first, last, destination)
 end
 function copy!(c::AbstractContainer, from::Int, destination::Int)
-  copy!(c, from, from, destination)
+  copy!(c, c, from, from, destination)
 end
 
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+  @assert 0 <= first <= size(c) "First node out of range"
+  @assert 0 <= last <= size(c) "Last node out of range"
+  @assert 0 <= destination <= size(c) "Destination out of range"
+  @assert destination + (last - first) <= size(c) "Target range out of bounds"
+
+  # Return if move would be a no-op
+  if last < first || first == destination
+    return
+  end
+
+  # Copy nodes to new location
+  raw_copy!(c, c, first, last, destination)
+
+  # Move connectivity
+  move_connectivity!(c, first, last, destination)
+
+  # Invalidate original node locations
+  invalidate!(c, first, last)
 end
 move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
 
+
+function swap!(c::AbstractContainer, a::Int, b::Int)
+  @assert 0 <= a <= size(c) "a out of range"
+  @assert 0 <= b <= size(c) "b out of range"
+
+  # Return if swap would be a no-op
+  if a == b
+    return
+  end
+
+  # Move a to dummy location
+  raw_copy!(c, a, c.dummy)
+  move_connectivity(c, a, c.dummy)
+
+  # Move b to a
+  raw_copy!(c, b, a)
+  move_connectivity(c, b, a)
+
+  # Move from dummy location to b
+  raw_copy!(c, c.dummy, b)
+  move_connectivity(c, c.dummy, b)
+
+  # Invalidate dummy to be sure
+  invalidate(c, c.dummy)
+end
+
+
 function insert!(c::AbstractContainer, position::Int, count::Int)
+  @assert 0 <= position <= size(c) + 1 "Insert position out of range"
+  @assert count >= 0 "Count must be non-negative"
+  @assert count + size(c) <= capacity(c) "New size would exceed capacity"
+
+  # Return if insertation would be a no-op
+  if count == 0
+    return
+  end
+
+  # Increase size
+  c.size += count
+
+  # Move original nodes that currently occupy the insertion region
+  move(c, position, size(c) - count, position + count)
 end
 insert!(c) = insert!(c, position, 1)
 
+
 function erase!(c::AbstractContainer, first::Int, last::Int)
+  @assert 0 <= first <= size(c) "First node out of range"
+  @assert 0 <= last <= size(c) "Last node out of range"
+
+  # Return if eraseure would be a no-op
+  if last < first
+    return
+  end
+
+  # Delete connectivity and invalidate nodes
+  delete_connectivity!(c, first, last)
+  invalidate!(c, first, last)
 end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
+
+# Remove nodes and shift existing nodes forward
 function remove_shift(c::AbstractContainer, first::Int, last::Int)
+  @assert 0 <= first <= size(c) "First node out of range"
+  @assert 0 <= last <= size(c) "Last node out of range"
+
+  # Return if removal would be a no-op
+  if last < first
+    return
+  end
+
+  # Delete connectivity of nodes to be removed
+  delete_connectivity!(c, first, last)
+
+  if last == size
+    # If everything up to the last node is removed, no shifting is required
+    invalidate!(c, first, last)
+  else
+    # Otherwise, the corresponding nodes are moved forward
+    move!(c, last + 1, size(c), first)
+  end
+
+  # Reduce size
+  count = last - first + 1
+  c.size -= count
 end
+
+
+# Remove nodes and fill gap with nodes from the end of the container (to reduce copy operations)
 function remove_fill(c::AbstractContainer, first::Int, last::Int)
+  @assert 0 <= first <= size(c) "First node out of range"
+  @assert 0 <= last <= size(c) "Last node out of range"
+
+  # Return if removal would be a no-op
+  if last < first
+    return
+  end
+
+  # Delete connectivity of nodes to be removed and then invalidate them
+  delete_connectivity!(c, first, last)
+  invalidate!(c, first, last)
+
+  # Copy cells from end (unless last is already the last cell)
+  count = last - first + 1
+  if last < size(c)
+    move(c, max(size(c) - count, last + 1), size(c), first)
+  end
+
+  # Reduce size
+  c.size -= count
 end
+
 
 function reset!(c::AbstractContainer, capacity::Int)
   @assert capacity >=0
@@ -290,4 +434,8 @@ function reset!(c::AbstractContainer, capacity::Int)
   reset_data_structures!(c::AbstractContainer)
 end
 
+
+function clear!(c::AbstractContainer)
+  invalidate!(c)
+  c.size = 0
 end
