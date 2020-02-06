@@ -7,7 +7,7 @@ include("../src/dg/interpolation.jl")
 using .Interpolation: gausslobatto, polynomialinterpolationmatrix, interpolate_nodes
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using Plots: plot, gr, savefig
+using Plots: plot, gr, savefig, scatter!
 using TimerOutputs
 using Pkg.TOML: parse
 using DelimitedFiles: readdlm
@@ -60,6 +60,14 @@ function main()
     # Create plot
     @timeit "create plot" plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
 
+    # Add mesh unless disabled
+    if !args["no-mesh"]
+      x_mesh = vcat(x_raw[1:nnodes:end], x_raw[end])
+      y_mesh = zeros(size(x_mesh))
+      @timeit "create plot" scatter!(x_mesh, y_mesh, label="mesh", markershape = :vline, 
+                                     markerstrokewidth=3, markersize=8)
+    end
+
     # Determine output file name
     base, _ = splitext(splitdir(datafile)[2])
     output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
@@ -96,7 +104,7 @@ function interpolate_data(data_in::AbstractArray, nnodes_in::Integer, nnodes_out
   # Interpolate each variable separately
   for v = 1:nvars
     # Reshape data to fit expected format for interpolation function
-    # FIXME: this reshape here, reshape later funny business should be implemented properly
+    # FIXME: this "reshape here, reshape later" funny business should be implemented properly
     reshaped = reshape(data_in[:, v], 1, nnodes_in, ncells)
 
     # Interpolate data for each cell
@@ -226,15 +234,15 @@ function parse_commandline_arguments()
       help = "Output directory where generated images are stored (default: \".\")"
       arg_type = String
       default = "."
-    "--resolution", "-r"
-      help = "Resolution of output file in pixels. Two values expected, x and y."
-      nargs = 2
     "--nvisnodes"
       help = ("Number of visualization nodes per cell "
               * "(default: four times the number of DG nodes). "
               * "A value of zero prevents any interpolation of data.")
       arg_type = Int
       default = nothing
+    "--no-mesh"
+      help =  ("Do not plot mesh in addition to solution data.")
+      action = :store_true
   end
 
   return parse_args(s)
