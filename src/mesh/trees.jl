@@ -4,10 +4,30 @@ using StaticArrays: MVector
 
 
 abstract type AbstractContainer end
-abstract type AbstractTree{D<:Integer} <: AbstractContainer end
 
 
-mutable struct Tree{D} <: AbstractTree{D}
+# Composite type that represents a D-dimensional tree.
+#
+# Implements everything required for AbstractContainer.
+#
+# Note: The way the data structures are set up and the way most algorithms
+# work, it is *always* assumed that 
+#   a) we have a balanced tree (= at most one level difference between
+#                                 neighboring nodes, or 2:1 rule)
+#   b) we may not have all children (= some children may not exist)
+#   c) the tree is stored depth-first
+#
+# However, the way the refinement/coarsening algorithms are currently
+# implemented, we only have fully refined nodes. That is, a node either has 2^D children or
+# no children at all (= leaf node). This restriction is also assumed at
+# multiple positions in the refinement/coarsening algorithms.
+#
+# An exception to the 2:1 rule exists for the low-level
+# `refine_unbalanced!` and `coarsen_unbalanced!` functions, which is required
+# for implementing level-wise refinement/coarsening in a sane way. Also,
+# depth-first ordering *might* not by guaranteed during refinement/coarsening
+# operations.
+mutable struct Tree{D} <: AbstractContainer
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
   neighbor_ids::Matrix{Int}
@@ -18,8 +38,8 @@ mutable struct Tree{D} <: AbstractTree{D}
   size::Int
   dummy::Int
 
-  center::MVector{D, Float64}
-  length::Float64
+  center_level_0::MVector{D, Float64}
+  length_level_0::Float64
 
   function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Float64) where D
     # Create instance
@@ -37,32 +57,117 @@ mutable struct Tree{D} <: AbstractTree{D}
     b.size = 0
     b.dummy = capacity + 1
 
-    b.center = center
-    b.length = length
+    b.center_level_0 = center
+    b.length_level_0 = length
 
     # Create initial node
     b.size += 1
     b.levels[1] = 0
-    b.coordinates[:, 1] = b.center
+    b.coordinates[:, 1] = b.center_level_0
   end
 end
 
+
+# Constructo for passing the dimension as an argument 
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
 
 
+# Auxiliary methods to allow semantic queries on the tree
 has_parent(t::Tree, node_id::Int) = t.parent_ids[node_id] > 0
 has_child(t::Tree, node_id::Int, child_id::Int) = t.parent_ids[child_id, node_id] > 0
 has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
+is_leaf(t::Tree, node_id::Int) = has_children(t, node_id)
 n_children(t::Tree, node_id::Int) = count(x -> (x > 0), @view t.child_ids[:, node_id])
 has_neighbor(t::Tree, node_id::Int, direction::Int) = t.neighbor_ids[direction, node_id] > 0
-function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
-  return (has_neighbor(t, node_id, direction) ||
-         (has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)))
+function has_coarse_neighbor(t::Tree, node_id::Int, direction::Int)
+  return has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)
 end
+function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
+  return has_neighbor(t, node_id, direction) || has_coarse_neighbor(t, node_id, direction)
+end
+length_at_level(t::Tree, level::Int) = t.length_level_0 / 2^level
+max_level(t::Tree) = max(t.levels)
 
+
+# Auxiliary methods for often-required calculations
 n_children_per_node(::Tree{D}) where D = 2^D
 n_neighbors_per_node(::Tree{D}) where D = 2 * D
 opposite_neighbor(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
+
+# Essentially calculates the following
+#         dim=1 dim=2 dim=3
+# child     x     y     z  
+#   1       -     -     -
+#   2       +     -     -
+#   3       -     +     -
+#   4       +     +     -
+#   5       -     -     +
+#   6       +     -     +
+#   7       -     +     +
+#   8       +     +     +
+child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(direction - 1) - 1, 2^(direction-1)) % 2)
+
+
+# Return an array with the ids of all leaf nodes
+function leaf_nodes(t::Tree)
+  leaves = Vector{Int}(size(t))
+  count = 0
+  for node_id = 1:size(t)
+    if is_leaf(t, node_id)
+      count += 1
+      leaves[count] = node_id
+    end
+  end
+
+  return leaves[1:count]
+end
+
+
+# Refine entire tree by one level
+function refine!(t::Tree)
+  refine!(t, leaf_nodes(t))
+end
+
+
+function refine!(t::Tree, node_ids)
+  refine_unbalanced!(t, node_ids)
+end
+
+
+function refine_unbalanced!(t::Tree, node_ids)
+  # Loop over all nodes that are to be refined
+  for node_id in node_ids
+    @assert !has_children(t, node_id)
+
+    # Insert new nodes
+    n_children = n_children_per_node(t)
+    insert!(t, node_id + 1, n_children)
+
+    # Initialize child nodes
+    for child in 1:n_children
+      child_id = node_id + child
+      t.parent_ids[child_id] = node_id
+      t.child_ids[child, node_id] = child_id
+      t.levels[child_id] = t.levels[node_id] + 1
+      t.coordinates[:, child_id] .= child_coordinates(
+          t, t.coordinates[:, node_id], length_at_level(t.levels[node_id]), child)
+
+      for neighbor in 1:n_neighbors_per_node(t)
+      end
+    end
+  end
+end
+
+
+function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
+  child_length = parent_length / 2
+  child_coordinates = MVector{D, Float64}
+  for d in 1:D
+    child_coordinates[d] = parent_coordinates + child_sign(child, d) * child_length
+  end
+
+  return child_coordinates
+end
 
 
 function invalidate!(t::Tree, first::Int, last::Int)
@@ -86,7 +191,7 @@ function delete_connectivity!(t::Tree, first::Int, last::Int)
   @assert first <= last
   @assert last <= t.capacity + 1
 
-  # Iterate over all cells
+  # Iterate over all nodes
   for node_id in first:last
     # Delete connectivity from parent node
     if has_parent(t, node_id)
@@ -186,7 +291,7 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
 end
 
 
-# Raw copy operation for ranges of cells
+# Raw copy operation for ranges of nodes
 function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
@@ -414,7 +519,7 @@ function remove_fill(c::AbstractContainer, first::Int, last::Int)
   delete_connectivity!(c, first, last)
   invalidate!(c, first, last)
 
-  # Copy cells from end (unless last is already the last cell)
+  # Copy nodes from end (unless last is already the last node)
   count = last - first + 1
   if last < size(c)
     move(c, max(size(c) - count, last + 1), size(c), first)
@@ -438,4 +543,6 @@ end
 function clear!(c::AbstractContainer)
   invalidate!(c)
   c.size = 0
+end
+
 end
