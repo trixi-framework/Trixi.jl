@@ -41,17 +41,17 @@ mutable struct Tree{D} <: AbstractContainer
   center_level_0::MVector{D, Float64}
   length_level_0::Float64
 
-  function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Float64) where D
+  function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Real) where D
     # Create instance
     b = new()
 
     # Initialize fields with defaults
     # Note: size as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-    b.parent_ids = Vector{Int}(0, capacity + 1)
-    b.child_ids = Matrix{Int}(0, 2^D, capacity + 1)
-    b.neighbor_ids = Matrix{Int}(0, 2*D, capacity + 1)
-    b.levels = Vector{Int}(-1, capacity + 1)
-    b.coordinates = Matrix{Float64}(NaN, D, capacity + 1)
+    b.parent_ids = zeros(Int, capacity + 1)
+    b.child_ids = zeros(Int, 2^D, capacity + 1)
+    b.neighbor_ids = zeros(Int, 2*D, capacity + 1)
+    b.levels = fill(-1, capacity + 1)
+    b.coordinates = fill(NaN, D, capacity + 1)
 
     b.capacity = capacity
     b.size = 0
@@ -63,7 +63,9 @@ mutable struct Tree{D} <: AbstractContainer
     # Create initial node
     b.size += 1
     b.levels[1] = 0
-    b.coordinates[:, 1] = b.center_level_0
+    b.coordinates[:, 1] .= b.center_level_0
+
+    return b
   end
 end
 
@@ -74,9 +76,9 @@ Tree(::Val{D}, args...) where D = Tree{D}(args...)
 
 # Auxiliary methods to allow semantic queries on the tree
 has_parent(t::Tree, node_id::Int) = t.parent_ids[node_id] > 0
-has_child(t::Tree, node_id::Int, child_id::Int) = t.parent_ids[child_id, node_id] > 0
+has_child(t::Tree, node_id::Int, child_id::Int) = t.child_ids[child_id, node_id] > 0
 has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
-is_leaf(t::Tree, node_id::Int) = has_children(t, node_id)
+is_leaf(t::Tree, node_id::Int) = !has_children(t, node_id)
 n_children(t::Tree, node_id::Int) = count(x -> (x > 0), @view t.child_ids[:, node_id])
 has_neighbor(t::Tree, node_id::Int, direction::Int) = t.neighbor_ids[direction, node_id] > 0
 function has_coarse_neighbor(t::Tree, node_id::Int, direction::Int)
@@ -86,6 +88,7 @@ function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
   return has_neighbor(t, node_id, direction) || has_coarse_neighbor(t, node_id, direction)
 end
 length_at_level(t::Tree, level::Int) = t.length_level_0 / 2^level
+length_at_node(t::Tree, node_id::Int) = length_at_level(t, t.levels[node_id])
 max_level(t::Tree) = max(t.levels)
 
 
@@ -105,7 +108,7 @@ opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 #   6       +     -     +
 #   7       -     +     +
 #   8       +     +     +
-child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(direction - 1) - 1, 2^(direction-1)) % 2)
+child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
 
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
@@ -122,9 +125,9 @@ adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
 
 # Return an array with the ids of all leaf nodes
 function leaf_nodes(t::Tree)
-  leaves = Vector{Int}(size(t))
+  leaves = Vector{Int}(undef, size(t))
   count = 0
-  for node_id = 1:size(t)
+  for node_id in 1:size(t)
     if is_leaf(t, node_id)
       count += 1
       leaves[count] = node_id
@@ -164,7 +167,7 @@ end
 #         refinement step, the tree was balanced.
 function rebalance!(t::Tree, refined_node_ids)
   # Create buffer for newly refined cells
-  to_refine = Vector{Float64}(0, n_directions(t) * length(refined_node_ids))
+  to_refine = zeros(n_directions(t) * length(refined_node_ids))
   count = 0
 
   # Iterate over node ids that have previously been refined
@@ -218,7 +221,7 @@ function refine_unbalanced!(t::Tree, node_ids)
       t.child_ids[child, node_id] = child_id
       t.levels[child_id] = t.levels[node_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, node_id], length_at_level(t.levels[node_id]), child)
+          t, t.coordinates[:, node_id], length_at_node(t, node_id), child)
 
       # For determining neighbors, use neighbor connections of parent node
       for direction in 1:n_directions(t)
@@ -251,9 +254,9 @@ end
 # Return coordinates of a child node based on its relative position to the parent.
 function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
   child_length = parent_length / 2
-  child_coordinates = MVector{D, Float64}
+  child_coordinates = MVector{D, Float64}(undef)
   for d in 1:D
-    child_coordinates[d] = parent_coordinates + child_sign(child, d) * child_length
+    child_coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
   end
 
   return child_coordinates
@@ -265,11 +268,11 @@ function invalidate!(t::Tree, first::Int, last::Int)
   @assert first <= last
   @assert last <= t.capacity + 1
 
-  b.parent_ids[first:last] = 0
-  b.child_ids[:, first:last] = 0
-  b.neighbor_ids[:, first:last] = 0
-  b.levels[first:last] = -1
-  b.coordinates[:, first:last] = NaN
+  t.parent_ids[first:last] .= 0
+  t.child_ids[:, first:last] .= 0
+  t.neighbor_ids[:, first:last] .= 0
+  t.levels[first:last] .= -1
+  t.coordinates[:, first:last] .= NaN
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::Tree) = invalidate!(t, 1, size(t))
@@ -419,7 +422,7 @@ function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
   # Determine block size for each index
   block_size = 1
   for d in 1:(ndims(target) - 1)
-    block_size *= size(target, d)
+    block_size *= Base.size(target, d)
   end
 
   if destination <= first || destination > last
@@ -462,9 +465,9 @@ shrink!(c::AbstractContainer) = shrink(c, 1)
 
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
-  @assert 0 <= first <= size(source) "First node out of range"
-  @assert 0 <= last <= size(source) "Last node out of range"
-  @assert 0 <= destination <= size(target) "Destination out of range"
+  @assert 1 <= first <= size(source) "First node out of range"
+  @assert 1 <= last <= size(source) "Last node out of range"
+  @assert 1 <= destination <= size(target) "Destination out of range"
   @assert destination + (last - first) <= size(target) "Target range out of bounds"
 
   # Return if copy would be a no-op
@@ -485,9 +488,9 @@ function copy!(c::AbstractContainer, from::Int, destination::Int)
 end
 
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  @assert 0 <= first <= size(c) "First node out of range"
-  @assert 0 <= last <= size(c) "Last node out of range"
-  @assert 0 <= destination <= size(c) "Destination out of range"
+  @assert 1 <= first <= size(c) "First node $first out of range"
+  @assert 1 <= last <= size(c) "Last node $last out of range"
+  @assert 1 <= destination <= size(c) "Destination $destination out of range"
   @assert destination + (last - first) <= size(c) "Target range out of bounds"
 
   # Return if move would be a no-op
@@ -508,8 +511,8 @@ move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, 
 
 
 function swap!(c::AbstractContainer, a::Int, b::Int)
-  @assert 0 <= a <= size(c) "a out of range"
-  @assert 0 <= b <= size(c) "b out of range"
+  @assert 1 <= a <= size(c) "a out of range"
+  @assert 1 <= b <= size(c) "b out of range"
 
   # Return if swap would be a no-op
   if a == b
@@ -534,7 +537,7 @@ end
 
 
 function insert!(c::AbstractContainer, position::Int, count::Int)
-  @assert 0 <= position <= size(c) + 1 "Insert position out of range"
+  @assert 1 <= position <= size(c) + 1 "Insert position out of range"
   @assert count >= 0 "Count must be non-negative"
   @assert count + size(c) <= capacity(c) "New size would exceed capacity"
 
@@ -546,15 +549,18 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   # Increase size
   c.size += count
 
-  # Move original nodes that currently occupy the insertion region
-  move(c, position, size(c) - count, position + count)
+  # Move original nodes that currently occupy the insertion region, unless
+  # insert position is one beyond previous size
+  if position <= size(c) - count
+    move!(c, position, size(c) - count, position + count)
+  end
 end
 insert!(c) = insert!(c, position, 1)
 
 
 function erase!(c::AbstractContainer, first::Int, last::Int)
-  @assert 0 <= first <= size(c) "First node out of range"
-  @assert 0 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First node out of range"
+  @assert 1 <= last <= size(c) "Last node out of range"
 
   # Return if eraseure would be a no-op
   if last < first
@@ -570,8 +576,8 @@ erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
 # Remove nodes and shift existing nodes forward
 function remove_shift(c::AbstractContainer, first::Int, last::Int)
-  @assert 0 <= first <= size(c) "First node out of range"
-  @assert 0 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First node out of range"
+  @assert 1 <= last <= size(c) "Last node out of range"
 
   # Return if removal would be a no-op
   if last < first
@@ -597,8 +603,8 @@ end
 
 # Remove nodes and fill gap with nodes from the end of the container (to reduce copy operations)
 function remove_fill(c::AbstractContainer, first::Int, last::Int)
-  @assert 0 <= first <= size(c) "First node out of range"
-  @assert 0 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First node out of range"
+  @assert 1 <= last <= size(c) "Last node out of range"
 
   # Return if removal would be a no-op
   if last < first
