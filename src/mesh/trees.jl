@@ -16,6 +16,7 @@ mutable struct Tree{D} <: AbstractTree{D}
 
   capacity::Int
   size::Int
+  dummy::Int
 
   center::MVector{D, Float64}
   length::Float64
@@ -34,6 +35,7 @@ mutable struct Tree{D} <: AbstractTree{D}
 
     b.capacity = capacity
     b.size = 0
+    b.dummy = capacity + 1
 
     b.center = center
     b.length = length
@@ -191,6 +193,17 @@ function raw_copy!(t::Tree, source::Tree, first::Int, last::Int, destination::In
   copy_data!(t.coordinates, source.coordinates, first, last, destination)
 end
 
+
+# Reset data structures
+function reset_data_structures!(t::Tree{D}) where D
+  t.parent_ids = Vector{Int}(0, t.capacity + 1)
+  t.child_ids = Matrix{Int}(0, 2^D, t.capacity + 1)
+  t.neighbor_ids = Matrix{Int}(0, 2*D, t.capacity + 1)
+  t.levels = Vector{Int}(-1, t.capacity + 1)
+  t.coordinates = Matrix{Float64}(NaN, D, t.capacity + 1)
+end
+
+
 # Auxiliary copy function
 function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
                     first::Int, last::Int, destination::Int, block_size::Int=1) where {T, N}
@@ -215,14 +228,26 @@ end
 
 
 ####################################################################################################
-# Here follow the implementations for a generic container
+# Here follows the implementation for a generic container
+####################################################################################################
+
+# Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
 size(c::AbstractContainer) = c.size
 
+# Methods for extending or shrinking the size at the end of the container
 function append!(c::AbstractContainer, count::Int)
+  @assert count >= 0
+  size(c) + count <= capacity(c) || error("new size exceeds container capacity of $(capacity(c))")
+
+  invalidate(c, size(c) + 1, size(c) + count)
 end
 append!(c::AbstractContainer) = append(c, 1)
 function shrink!(c::AbstractContainer, count::Int)
+  @assert count >= 0
+  @assert size(c) >= count
+
+  remove_shift(c, size(c) + 1 - count, size())
 end
 shrink!(c::AbstractContainer) = shrink(c, 1)
 
@@ -230,18 +255,18 @@ function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
 end
 function copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
-  copy!(target, source, from, from + 1, destination)
+  copy!(target, source, from, from, destination)
 end
 function copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   copy!(c, c, first, last, destination)
 end
 function copy!(c::AbstractContainer, from::Int, destination::Int)
-  copy!(c, from, from + 1, destination)
+  copy!(c, from, from, destination)
 end
 
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 end
-move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from + 1, destination)
+move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
 
 function insert!(c::AbstractContainer, position::Int, count::Int)
 end
@@ -249,11 +274,20 @@ insert!(c) = insert!(c, position, 1)
 
 function erase!(c::AbstractContainer, first::Int, last::Int)
 end
-erase!(c::AbstractContainer, id::Int) = erase!(c, id, id + 1)
+erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
 function remove_shift(c::AbstractContainer, first::Int, last::Int)
 end
 function remove_fill(c::AbstractContainer, first::Int, last::Int)
+end
+
+function reset!(c::AbstractContainer, capacity::Int)
+  @assure capacity >=0
+
+  c.capacity = capacity
+  c.size = 0
+  c.dummy = capacity + 1
+  reset_data_structures!(c::AbstractContainer)
 end
 
 end
