@@ -282,7 +282,7 @@ function remove_fill(c::AbstractContainer, first::Int, last::Int)
 end
 
 function reset!(c::AbstractContainer, capacity::Int)
-  @assure capacity >=0
+  @assert capacity >=0
 
   c.capacity = capacity
   c.size = 0
