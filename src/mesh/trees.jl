@@ -91,8 +91,8 @@ max_level(t::Tree) = max(t.levels)
 
 # Auxiliary methods for often-required calculations
 n_children_per_node(::Tree{D}) where D = 2^D
-n_neighbors_per_node(::Tree{D}) where D = 2 * D
-opposite_neighbor(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
+n_directions(::Tree{D}) where D = 2 * D
+opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 
 # Essentially calculates the following
 #         dim=1 dim=2 dim=3
@@ -106,6 +106,18 @@ opposite_neighbor(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 #   7       -     +     +
 #   8       +     +     +
 child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(direction - 1) - 1, 2^(direction-1)) % 2)
+
+
+# For each child position (1 to 8) and a given direction (from 1 to 6), return
+# neighboring child position.
+adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
+                                              1 1 4 4 6 6;
+                                              4 4 1 1 7 7;
+                                              3 3 2 2 8 8;
+                                              6 6 7 7 1 1;
+                                              5 5 8 8 2 2;
+                                              8 8 5 5 3 3;
+                                              7 7 6 6 4 4][child, direction]
 
 
 # Return an array with the ids of all leaf nodes
@@ -129,22 +141,78 @@ function refine!(t::Tree)
 end
 
 
+# Refine given nodes and rebalance tree.
+#
+# Note 1: Rebalancing is iterative, i.e., neighboring nodes are refined if
+#         otherwise the 2:1 rule would be violated, which can cause more
+#         refinements.
+# Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
 function refine!(t::Tree, node_ids)
   refine_unbalanced!(t, node_ids)
+  refined = rebalance!(t, node_ids)
+  while length(refined) > 0
+    refined = rebalance!(t, node_ids)
+  end
 end
 
 
+# For the given node ids, check if neighbors need to be refined to restore a rebalanced tree.
+#
+# Note 1: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
+# Note 2: The current algorithm assumes that a previous refinement step has
+#         created level differences of at most 2. That is, before the previous
+#         refinement step, the tree was balanced.
+function rebalance!(t::Tree, refined_node_ids)
+  # Create buffer for newly refined cells
+  to_refine = Vector{Float64}(0, n_directions(t) * length(refined_node_ids))
+  count = 0
+
+  # Iterate over node ids that have previously been refined
+  for node_id in refined_node_ids
+    # Loop over all possible directions
+    for direction in n_directions(t)
+      # Check if a neighbor exists. If yes, there is nothing else to do, since
+      # our current node is at most one level further refined
+      if has_neighbor(t, node_id, direction)
+        continue
+      end
+
+      # If also no coarse neighbor exists, there is nothing to do in this direction
+      if !has_coarse_neighbor(t, node_id, direction)
+        continue
+      end
+
+      # Otherwise, the coarse neighbor exists and is not refined, thus it must
+      # be marked for refinement
+      coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[node_id]]
+      count += 1
+      to_refine[count] = coarse_neighbor_id
+    end
+  end
+
+  # Finally, refine all marked cells...
+  refine_unbalanced!(t, @view to_refine[1:count])
+
+  # ...and return list of refined cells
+  return to_refine[1:count]
+end
+
+
+# Refine given nodes without rebalancing tree.
+#
+# That is, after a call to this method the tree may be unbalanced!
 function refine_unbalanced!(t::Tree, node_ids)
   # Loop over all nodes that are to be refined
   for node_id in node_ids
     @assert !has_children(t, node_id)
 
-    # Insert new nodes
+    # Insert new nodes directly behind parent (depth-first)
     n_children = n_children_per_node(t)
     insert!(t, node_id + 1, n_children)
 
     # Initialize child nodes
     for child in 1:n_children
+      # Set child information based on parent
       child_id = node_id + child
       t.parent_ids[child_id] = node_id
       t.child_ids[child, node_id] = child_id
@@ -152,13 +220,35 @@ function refine_unbalanced!(t::Tree, node_ids)
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, node_id], length_at_level(t.levels[node_id]), child)
 
-      for neighbor in 1:n_neighbors_per_node(t)
+      # For determining neighbors, use neighbor connections of parent node
+      for direction in 1:n_directions(t)
+        # Skip if original node does have no neighbor in direction
+        if !has_neighbor(t, node_id, direction)
+          continue
+        end
+
+        # Otherwise, check if neighbor has children - if not, skip again
+        neighbor_id = t.neighbor_ids[direction, node_id]
+        if !has_children(t, neighbor_id)
+          continue
+        end
+
+        # Check if neighbor has corresponding child and if yes, establish connectivity
+        adjacent = adjacent_child(child, direction)
+        if has_child(t, neighbor_id, adjacent)
+          neighbor_child_id = t.child_ids[adjacent, neighbor_id]
+          opposite = opposite_direction(direction)
+
+          t.neighbor_ids[direction, child_id] = neighbor_child_id
+          t.neighbor_ids[opposite, neighbor_child_id] = child_id
+        end
       end
     end
   end
 end
 
 
+# Return coordinates of a child node based on its relative position to the parent.
 function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
   child_length = parent_length / 2
   child_coordinates = MVector{D, Float64}
@@ -212,9 +302,9 @@ function delete_connectivity!(t::Tree, first::Int, last::Int)
     end
 
     # Delete connectivity from neighboring nodes
-    for neighbor in 1:n_neighbors_per_node(t)
-      if has_neighbor(t, node_id, neighbor)
-        t.neighbor_ids[opposite_neighbor(neighbor), t.neighbor_ids[neighbor, node_id]] = 0
+    for direction in 1:n_directions(t)
+      if has_neighbor(t, node_id, direction)
+        t.neighbor_ids[opposite_direction(direction), t.neighbor_ids[direction, node_id]] = 0
       end
     end
   end
@@ -274,16 +364,16 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
     end
 
     # Update neighbors
-    for neighbor in 1:n_neighbors_per_node(t)
-      if has_neighbor(t, target, neighbor)
+    for direction in 1:n_directions(t)
+      if has_neighbor(t, target, direction)
         # Get neighbor node
-        neighbor_id = t.neighbor_ids[neighbor, target]
+        neighbor_id = t.neighbor_ids[direction, target]
         if has_moved(neighbor_id)
           # If neighbor itself was moved, just update neighbor id accordingly
-          t.neighbor_ids[neighbor, target] += offset
+          t.neighbor_ids[direction, target] += offset
         else
           # If neighbor was not moved, update its opposing neighbor id
-          t.neighbor_ids[opposite_neighbor(neighbor), neighbor_id] = source
+          t.neighbor_ids[opposite_direction(direction), neighbor_id] = source
         end
       end
     end
@@ -297,7 +387,7 @@ function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destinatio
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
              n_children_per_node(target))
   copy_data!(target.neighbor_ids, source.neighbor_ids, first, last,
-             destination, n_neighbors_per_node(target))
+             destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination)
 end
