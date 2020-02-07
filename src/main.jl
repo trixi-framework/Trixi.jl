@@ -2,6 +2,7 @@ include("Jul1dge.jl")
 
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
+using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
 using .Jul1dge.Equation: getsyseqn
 using .Jul1dge.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
@@ -61,6 +62,10 @@ function run()
   # Print setup information
   println()
   n_dofs_total = dg.ncells * (N + 1)^ndim
+  n_nodes = size(mesh)
+  n_leaf_nodes = count_leaf_nodes(mesh)
+  min_level = minimum_level(mesh)
+  max_level = maximum_level(mesh)
   s = """| Simulation setup
          | ----------------
          | N:                 $N
@@ -74,6 +79,12 @@ function run()
          | ncells:            $(dg.ncells)
          | #DOFs:             $n_dofs_total
          | #parallel threads: $(Threads.nthreads())
+         |
+         | Mesh
+         | | #nodes:          $n_nodes
+         | | #leaf nodes:     $n_leaf_nodes
+         | | minimum level:   $min_level
+         | | maximum level:   $max_level
          """
   println(s)
 

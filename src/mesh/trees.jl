@@ -118,7 +118,8 @@ function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
 end
 length_at_level(t::Tree, level::Int) = t.length_level_0 / 2^level
 length_at_node(t::Tree, node_id::Int) = length_at_level(t, t.levels[node_id])
-max_level(t::Tree) = max(t.levels)
+minimum_level(t::Tree) = minimum(t.levels[leaf_nodes(t)])
+maximum_level(t::Tree) = maximum(t.levels[leaf_nodes(t)])
 
 
 # Auxiliary methods for often-required calculations
@@ -182,7 +183,7 @@ leaf_nodes(t::Tree) = filter_leaf_nodes((node_id)->true, t)
 
 
 # Count the number of leaf nodes.
-count_leaf_nodes(t::Tree) = length(leaf_nodes(T))
+count_leaf_nodes(t::Tree) = length(leaf_nodes(t))
 
 
 # Refine entire tree by one level
