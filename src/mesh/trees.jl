@@ -182,7 +182,7 @@ function refine!(t::Tree, node_ids)
   refine_unbalanced!(t, node_ids)
   refined = rebalance!(t, node_ids)
   while length(refined) > 0
-    refined = rebalance!(t, node_ids)
+    refined = rebalance!(t, refined)
   end
 end
 
@@ -195,13 +195,13 @@ end
 #         refinement step, the tree was balanced.
 function rebalance!(t::Tree, refined_node_ids)
   # Create buffer for newly refined nodes
-  to_refine = zeros(n_directions(t) * length(refined_node_ids))
+  to_refine = zeros(Int, n_directions(t) * length(refined_node_ids))
   count = 0
 
   # Iterate over node ids that have previously been refined
   for node_id in refined_node_ids
     # Loop over all possible directions
-    for direction in n_directions(t)
+    for direction in 1:n_directions(t)
       # Check if a neighbor exists. If yes, there is nothing else to do, since
       # our current node is at most one level further refined
       if has_neighbor(t, node_id, direction)
@@ -222,6 +222,7 @@ function rebalance!(t::Tree, refined_node_ids)
   end
 
   # Finally, refine all marked nodes...
+  @show to_refine[1:count]
   refine_unbalanced!(t, @view to_refine[1:count])
 
   # ...and return list of refined nodes
@@ -291,6 +292,9 @@ function refine_unbalanced!(t::Tree, node_ids)
     end
   end
 end
+
+# Wrap single-node refinements such that `sort(...)` does not complain
+refine_unbalanced!(t::Tree, node_id::Int) = refine_unbalanced!(t, [node_id])
 
 
 # Return coordinates of a child node based on its relative position to the parent.
