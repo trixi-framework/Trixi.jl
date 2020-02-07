@@ -2,7 +2,7 @@
 
 include("../src/mesh/trees.jl")
 
-using .Trees: Tree, refine!, size, capacity, leaf_nodes
+using .Trees: Tree, refine!, size, capacity, leaf_nodes, refine_box!
 using TimerOutputs
 using Profile
 
@@ -38,9 +38,21 @@ end
   println(t)
 end
 
+# Refine one level further
+@timeit to "refine!" refine!(t)
+println("After refining everything once more:")
+println(t)
+
+left_nodes = refine_box!(t, -16, 0)
+right_nodes = refine_box!(t, 0, 16)
+center_nodes = refine_box!(t, -8, 8)
+
 # Print tree information
 @show leaf_nodes(t)
 @show t.coordinates[:, leaf_nodes(t)]
+@show left_nodes
+@show right_nodes
+@show center_nodes
 
 print_timer(to)
 println()

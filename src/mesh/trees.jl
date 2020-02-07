@@ -43,6 +43,9 @@ mutable struct Tree{D} <: AbstractContainer
   length_level_0::Float64
 
   function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Real) where D
+    # Verify that D is an integer
+    @assert D isa Integer
+
     # Create instance
     b = new()
 
@@ -151,24 +154,52 @@ function has_sibling(child::Int, direction::Int)
 end
 
 
-# Return an array with the ids of all leaf nodes
-function leaf_nodes(t::Tree)
-  leaves = Vector{Int}(undef, size(t))
+# Obtain leaf nodes that fulfill a given criterion.
+#
+# The function `f` is passed the node id of each leaf node
+# as an argument.
+function filter_leaf_nodes(f, t::Tree)
+  filtered = Vector{Int}(undef, size(t))
   count = 0
   for node_id in 1:size(t)
-    if is_leaf(t, node_id)
+    if is_leaf(t, node_id) && f(node_id)
       count += 1
-      leaves[count] = node_id
+      filtered[count] = node_id
     end
   end
 
-  return leaves[1:count]
+  return filtered[1:count]
 end
+
+
+# Return an array with the ids of all leaf nodes
+leaf_nodes(t::Tree) = filter_leaf_nodes((node_id)->true, t)
 
 
 # Refine entire tree by one level
 function refine!(t::Tree)
   refine!(t, leaf_nodes(t))
+end
+
+
+# Refine all leaf cells with coordinates in a given rectangular box
+function refine_box!(t::Tree{D}, min_vertex::AbstractArray{Float64},
+                     max_vertex::AbstractArray{Float64}) where D
+  for dim in 1:D
+    @assert min_vertex[dim] < max_vertex[dim] "Minimum vertex is not actually the minimum."
+  end
+
+  # Find all leaf nodes within box
+  nodes = filter_leaf_nodes(t) do node_id
+    all(min_vertex .< t.coordinates[:, node_id]) && all(max_vertex .> t.coordinates[:, node_id])
+  end
+
+  return nodes
+end
+
+# Convenience method for 1D
+function refine_box!(t::Tree{1}, min_vertex::Real, max_vertex::Real)
+  return refine_box!(t, [convert(Float64, min_vertex)], [convert(Float64, max_vertex)])
 end
 
 
