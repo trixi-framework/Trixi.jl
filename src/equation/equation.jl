@@ -16,11 +16,13 @@ export maxdt
 export cons2prim
 
 
-abstract type AbstractSysEqn{nvars_} end
-nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
-name(s::AbstractSysEqn{nvars_}) where nvars_ = s.name
-function Base.show(io::IO, s::AbstractSysEqn{nvars_}) where nvars_
-  print("name = $(s.name), nvars = $nvars_")
+abstract type AbstractSysEqn{V} end
+nvars(::Type{AbstractSysEqn{V}}) where V = V
+nvars(::AbstractSysEqn{V}) where V = V
+name(s::AbstractSysEqn) = s.name
+
+function Base.show(io::IO, s::AbstractSysEqn)
+  print("name = $(s.name), nvars = $(nvars(s))")
 end
 
 

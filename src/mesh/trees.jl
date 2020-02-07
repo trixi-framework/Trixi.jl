@@ -195,7 +195,7 @@ function refine!(t::Tree)
 end
 
 
-# Refine all leaf cells with coordinates in a given rectangular box
+# Refine all leaf nodes with coordinates in a given rectangular box
 function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
                      coordinates_max::AbstractArray{Float64}) where D
   for dim in 1:D
@@ -225,8 +225,7 @@ end
 #         refinements.
 # Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
 function refine!(t::Tree, node_ids)
-  refine_unbalanced!(t, node_ids)
-  refined = rebalance!(t, node_ids)
+  refined = refine_unbalanced!(t, node_ids)
   while length(refined) > 0
     refined = rebalance!(t, refined)
   end
@@ -268,25 +267,30 @@ function rebalance!(t::Tree, refined_node_ids)
   end
 
   # Finally, refine all marked nodes...
-  refine_unbalanced!(t, @view to_refine[1:count])
+  refined = refine_unbalanced!(t, @view to_refine[1:count])
 
   # ...and return list of refined nodes
-  return to_refine[1:count]
+  return refined
 end
 
 
 # Refine given nodes without rebalancing tree.
 #
-# That is, after a call to this method the tree may be unbalanced!
+# Note: After a call to this method the tree may be unbalanced!
 function refine_unbalanced!(t::Tree, node_ids)
+  # Store actual ids refined nodes (shifted due to previous insertions)
+  refined = zeros(Int, length(node_ids))
+
   # Loop over all nodes that are to be refined
-  # Note: Loop in reverse order such that insertion of nodes does not shift
-  #       nodes that will be refined later
-  for node_id in sort(node_ids, rev=true)
-    @assert !has_children(t, node_id)
+  for (count, original_node_id) in enumerate(node_ids)
+    # Determine actual node id, taking into account previously inserted nodes
+    n_children = n_children_per_node(t)
+    node_id = original_node_id + (count - 1) * n_children
+    refined[count] = node_id
+
+    @assert !has_children(t, node_id) "Non-leaf cells cannot be refined"
 
     # Insert new nodes directly behind parent (depth-first)
-    n_children = n_children_per_node(t)
     insert!(t, node_id + 1, n_children)
 
     # Initialize child nodes
@@ -336,6 +340,8 @@ function refine_unbalanced!(t::Tree, node_ids)
       end
     end
   end
+
+  return refined
 end
 
 # Wrap single-node refinements such that `sort(...)` does not complain
