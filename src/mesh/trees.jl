@@ -3,6 +3,8 @@ module Trees
 import Base.show
 using StaticArrays: MVector
 
+export Tree
+
 
 abstract type AbstractContainer end
 
@@ -79,6 +81,9 @@ end
 
 # Constructor for passing the dimension as an argument
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
+
+# Constructor accepting a single number as center (as opposed to an array) for 1D
+Tree(::Val{1}, cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float64, center)], len)
 
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D
@@ -187,15 +192,16 @@ end
 
 
 # Refine all leaf cells with coordinates in a given rectangular box
-function refine_box!(t::Tree{D}, min_vertex::AbstractArray{Float64},
-                     max_vertex::AbstractArray{Float64}) where D
+function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
+                     coordinates_max::AbstractArray{Float64}) where D
   for dim in 1:D
-    @assert min_vertex[dim] < max_vertex[dim] "Minimum vertex is not actually the minimum."
+    @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates is not actually the minimum."
   end
 
   # Find all leaf nodes within box
   nodes = filter_leaf_nodes(t) do node_id
-    all(min_vertex .< t.coordinates[:, node_id]) && all(max_vertex .> t.coordinates[:, node_id])
+    return (all(coordinates_min .< t.coordinates[:, node_id]) &&
+            all(coordinates_max .> t.coordinates[:, node_id]))
   end
 
   # Refine nodes
@@ -203,8 +209,8 @@ function refine_box!(t::Tree{D}, min_vertex::AbstractArray{Float64},
 end
 
 # Convenience method for 1D
-function refine_box!(t::Tree{1}, min_vertex::Real, max_vertex::Real)
-  return refine_box!(t, [convert(Float64, min_vertex)], [convert(Float64, max_vertex)])
+function refine_box!(t::Tree{1}, coordinates_min::Real, coordinates_max::Real)
+  return refine_box!(t, [convert(Float64, coordinates_min)], [convert(Float64, coordinates_max)])
 end
 
 
