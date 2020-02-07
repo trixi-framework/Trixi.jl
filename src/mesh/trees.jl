@@ -176,6 +176,10 @@ end
 leaf_nodes(t::Tree) = filter_leaf_nodes((node_id)->true, t)
 
 
+# Count the number of leaf nodes.
+count_leaf_nodes(t::Tree) = length(leaf_nodes(T))
+
+
 # Refine entire tree by one level
 function refine!(t::Tree)
   refine!(t, leaf_nodes(t))
@@ -194,7 +198,8 @@ function refine_box!(t::Tree{D}, min_vertex::AbstractArray{Float64},
     all(min_vertex .< t.coordinates[:, node_id]) && all(max_vertex .> t.coordinates[:, node_id])
   end
 
-  return nodes
+  # Refine nodes
+  refine!(t, nodes)
 end
 
 # Convenience method for 1D

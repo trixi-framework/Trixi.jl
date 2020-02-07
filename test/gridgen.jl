@@ -43,16 +43,13 @@ end
 println("After refining everything once more:")
 println(t)
 
-left_nodes = refine_box!(t, -16, 0)
-right_nodes = refine_box!(t, 0, 16)
-center_nodes = refine_box!(t, -8, 8)
+refine_box!(t, -8, 8)
+println("After refining center nodes:")
+println(t)
 
 # Print tree information
 @show leaf_nodes(t)
 @show t.coordinates[:, leaf_nodes(t)]
-@show left_nodes
-@show right_nodes
-@show center_nodes
 
 print_timer(to)
 println()
