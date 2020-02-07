@@ -1,5 +1,6 @@
 module Trees
 
+import Base.show
 using StaticArrays: MVector
 
 
@@ -47,10 +48,10 @@ mutable struct Tree{D} <: AbstractContainer
 
     # Initialize fields with defaults
     # Note: size as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-    b.parent_ids = zeros(Int, capacity + 1)
-    b.child_ids = zeros(Int, 2^D, capacity + 1)
-    b.neighbor_ids = zeros(Int, 2*D, capacity + 1)
-    b.levels = fill(-1, capacity + 1)
+    b.parent_ids = fill(typemin(Int), capacity + 1)
+    b.child_ids = fill(typemin(Int), 2^D, capacity + 1)
+    b.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
+    b.levels = fill(typemin(Int), capacity + 1)
     b.coordinates = fill(NaN, D, capacity + 1)
 
     b.capacity = capacity
@@ -63,15 +64,35 @@ mutable struct Tree{D} <: AbstractContainer
     # Create initial node
     b.size += 1
     b.levels[1] = 0
+    b.parent_ids[1] = 0
+    b.child_ids[:, 1] .= 0
+    b.neighbor_ids[:, 1] .= 0
+    b.levels[1] = 0
     b.coordinates[:, 1] .= b.center_level_0
 
     return b
   end
 end
 
-
-# Constructo for passing the dimension as an argument 
+# Constructor for passing the dimension as an argument
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
+
+# Convenience output for debugging
+function Base.show(io::IO, t::Tree{D}) where D
+  s = t.size
+  println('*'^20)
+  @show t.parent_ids[1:s]
+  @show transpose(t.child_ids[:, 1:s])
+  @show transpose(t.neighbor_ids[:, 1:s])
+  @show t.levels[1:s]
+  @show transpose(t.coordinates[:, 1:s])
+  @show t.capacity
+  @show t.size
+  @show t.dummy
+  @show t.center_level_0
+  @show t.length_level_0
+  println('*'^20)
+end
 
 
 # Auxiliary methods to allow semantic queries on the tree
@@ -123,6 +144,13 @@ adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
                                               7 7 6 6 4 4][child, direction]
 
 
+# For each child position (1 to 8) and a given direction (from 1 to 6), return
+# if neighbor is a sibling
+function has_sibling(child::Int, direction::Int)
+  return (child_sign(child, div(direction + 1, 2)) * (-1)^(direction - 1)) > 0
+end
+
+
 # Return an array with the ids of all leaf nodes
 function leaf_nodes(t::Tree)
   leaves = Vector{Int}(undef, size(t))
@@ -166,7 +194,7 @@ end
 #         created level differences of at most 2. That is, before the previous
 #         refinement step, the tree was balanced.
 function rebalance!(t::Tree, refined_node_ids)
-  # Create buffer for newly refined cells
+  # Create buffer for newly refined nodes
   to_refine = zeros(n_directions(t) * length(refined_node_ids))
   count = 0
 
@@ -193,10 +221,10 @@ function rebalance!(t::Tree, refined_node_ids)
     end
   end
 
-  # Finally, refine all marked cells...
+  # Finally, refine all marked nodes...
   refine_unbalanced!(t, @view to_refine[1:count])
 
-  # ...and return list of refined cells
+  # ...and return list of refined nodes
   return to_refine[1:count]
 end
 
@@ -206,7 +234,9 @@ end
 # That is, after a call to this method the tree may be unbalanced!
 function refine_unbalanced!(t::Tree, node_ids)
   # Loop over all nodes that are to be refined
-  for node_id in node_ids
+  # Note: Loop in reverse order such that insertion of nodes does not shift
+  #       nodes that will be refined later
+  for node_id in sort(node_ids, rev=true)
     @assert !has_children(t, node_id)
 
     # Insert new nodes directly behind parent (depth-first)
@@ -219,12 +249,24 @@ function refine_unbalanced!(t::Tree, node_ids)
       child_id = node_id + child
       t.parent_ids[child_id] = node_id
       t.child_ids[child, node_id] = child_id
+      t.neighbor_ids[:, child_id] .= 0
+      t.child_ids[:, child_id] .= 0
       t.levels[child_id] = t.levels[node_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, node_id], length_at_node(t, node_id), child)
 
       # For determining neighbors, use neighbor connections of parent node
       for direction in 1:n_directions(t)
+        # If neighbor is a sibling, establish one-sided connectivity
+        # Note: two-sided is not necessary, as each sibling will do this
+        if has_sibling(child, direction)
+          adjacent = adjacent_child(child, direction)
+          neighbor_id = node_id + adjacent
+
+          t.neighbor_ids[direction, child_id] = neighbor_id
+          continue
+        end
+
         # Skip if original node does have no neighbor in direction
         if !has_neighbor(t, node_id, direction)
           continue
@@ -268,10 +310,10 @@ function invalidate!(t::Tree, first::Int, last::Int)
   @assert first <= last
   @assert last <= t.capacity + 1
 
-  t.parent_ids[first:last] .= 0
-  t.child_ids[:, first:last] .= 0
-  t.neighbor_ids[:, first:last] .= 0
-  t.levels[first:last] .= -1
+  t.parent_ids[first:last] .= typemin(Int)
+  t.child_ids[:, first:last] .= typemin(Int)
+  t.neighbor_ids[:, first:last] .= typemin(Int)
+  t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
@@ -358,7 +400,7 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
         child_id = t.child_ids[child, target]
         if has_moved(child_id)
           # If child itself was moved, just update child id accordingly
-          t.child_ids[child_id, target] += offset
+          t.child_ids[child, target] += offset
         else
           # If child was not moved, update its parent id
           t.parent_ids[child_id] = target
@@ -376,7 +418,7 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
           t.neighbor_ids[direction, target] += offset
         else
           # If neighbor was not moved, update its opposing neighbor id
-          t.neighbor_ids[opposite_direction(direction), neighbor_id] = source
+          t.neighbor_ids[opposite_direction(direction), neighbor_id] = target
         end
       end
     end
@@ -419,21 +461,17 @@ end
 # Auxiliary copy function
 function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
                     first::Int, last::Int, destination::Int, block_size::Int=1) where {T, N}
-  # Determine block size for each index
-  block_size = 1
-  for d in 1:(ndims(target) - 1)
-    block_size *= Base.size(target, d)
-  end
 
+  count = last - first + 1
   if destination <= first || destination > last
     # In this case it is safe to copy forward (left-to-right) without overwriting data
-    for i in first:last, j in 1:block_size
-      target[block_size*(i-1) + j] = source[block_size*(i-1) + j]
+    for i in 0:(count-1), j in 1:block_size
+      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
     end
   else
     # In this case we need to copy backward (right-to-left) to prevent overwriting data
-    for i in reverse(first:last), j in 1:block_size
-      target[block_size*(i-1) + j] = source[block_size*(i-1) + j]
+    for i in reverse(0:(count-1)), j in 1:block_size
+      target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
     end
   end
 end
@@ -449,10 +487,11 @@ size(c::AbstractContainer) = c.size
 
 # Methods for extending or shrinking the size at the end of the container
 function append!(c::AbstractContainer, count::Int)
-  @assert count >= 0
-  size(c) + count <= capacity(c) || error("new size exceeds container capacity of $(capacity(c))")
+  @assert count >= 0 "Count must be non-negative"
+  @assert count + size(c) <= capacity(c) "New size would exceed capacity"
 
-  invalidate(c, size(c) + 1, size(c) + count)
+  invalidate!(c, size(c) + 1, size(c) + count)
+  c.size += count
 end
 append!(c::AbstractContainer) = append(c, 1)
 function shrink!(c::AbstractContainer, count::Int)
@@ -499,13 +538,18 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   end
 
   # Copy nodes to new location
-  raw_copy!(c, c, first, last, destination)
+  raw_copy!(c, first, last, destination)
 
   # Move connectivity
   move_connectivity!(c, first, last, destination)
 
-  # Invalidate original node locations
-  invalidate!(c, first, last)
+  # Invalidate original node locations (unless they already contain new data due to overlap)
+  count = last - first + 1
+  # If end of desination range is within original range, shift first_invalid to the right
+  first_invalid = (first <= destination + count - 1 <= last) ? destination + count : first
+  # If beginning of destination range is within original range, shift last_invalid to the left
+  last_invalid = (first <= destination <= last) ? destination - 1 : last
+  invalidate!(c, first_invalid, last_invalid)
 end
 move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
 
@@ -543,6 +587,12 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
 
   # Return if insertation would be a no-op
   if count == 0
+    return
+  end
+
+  # Append and return if insertion is beyond last current element
+  if position == size(c) + 1
+    append!(c, count)
     return
   end
 
