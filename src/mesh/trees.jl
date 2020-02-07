@@ -1,6 +1,5 @@
 module Trees
 
-import Base.show
 using StaticArrays: MVector
 
 export Tree
@@ -102,6 +101,10 @@ function Base.show(io::IO, t::Tree{D}) where D
   println('*'^20)
 end
 
+# Type traits to obtain dimension
+ndims(t::Type{Tree{D}}) where D = D
+ndims(t::Tree) = ndims(typeof(t))
+
 
 # Auxiliary methods to allow semantic queries on the tree
 has_parent(t::Tree, node_id::Int) = t.parent_ids[node_id] > 0
@@ -196,7 +199,7 @@ end
 function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
                      coordinates_max::AbstractArray{Float64}) where D
   for dim in 1:D
-    @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates is not actually the minimum."
+    @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
 
   # Find all leaf nodes within box

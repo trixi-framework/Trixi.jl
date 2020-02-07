@@ -32,7 +32,7 @@ function run()
 
   # Create mesh
   print("Creating mesh... ")
-  mesh = generate_mesh()
+  @timeit timer() "mesh generation" mesh = generate_mesh()
   println("done")
 
   # Initialize system of equations
@@ -66,6 +66,10 @@ function run()
   n_leaf_nodes = count_leaf_nodes(mesh)
   min_level = minimum_level(mesh)
   max_level = maximum_level(mesh)
+  domain_center = mesh.center_level_0
+  domain_length = mesh.length_level_0
+  min_dx = domain_length / 2^max_level
+  max_dx = domain_length / 2^min_level
   s = """| Simulation setup
          | ----------------
          | N:                 $N
@@ -85,6 +89,10 @@ function run()
          | | #leaf nodes:     $n_leaf_nodes
          | | minimum level:   $min_level
          | | maximum level:   $max_level
+         | | domain center:   $(join(domain_center, ", "))
+         | | domain length:   $domain_length
+         | | minimum dx:      $min_dx
+         | | maximum dx:      $max_dx
          """
   println(s)
 

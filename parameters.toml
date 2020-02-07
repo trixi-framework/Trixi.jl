@@ -4,7 +4,7 @@ initialconditions = "convergence_test"
 # sources = 
 # advectionvelocity = 1.0
 t_start = 0.0
-t_end   = 10.0
+t_end   = 1.0
 
 # Numerical settings
 N = 3
@@ -13,10 +13,13 @@ nstepsmax = 10000
 analysis_interval = 100
 
 # Mesh
-nnodesmax = 1000
+nnodesmax = 10000
 coordinates_min = -16
 coordinates_max =  16
-initial_refinement_level = 5
+initial_refinement_level = 4
+refinement_patches = [
+  {type = "box", coordinates_min = 0, coordinates_max = 16},
+]
 
 # I/O
 solution_interval = 20
