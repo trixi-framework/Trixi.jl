@@ -20,7 +20,7 @@ abstract type AbstractSysEqn{nvars_} end
 nvars(s::AbstractSysEqn{nvars_}) where nvars_ = nvars_
 name(s::AbstractSysEqn{nvars_}) where nvars_ = s.name
 function Base.show(io::IO, s::AbstractSysEqn{nvars_}) where nvars_
-  print("name = $(s.name), nvars = $nvars_, advectionvelocity = $(s.advectionvelocity)")
+  print("name = $(s.name), nvars = $nvars_")
 end
 
 

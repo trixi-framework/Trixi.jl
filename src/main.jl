@@ -1,7 +1,7 @@
 include("Jul1dge.jl")
 
 using .Jul1dge
-using .Jul1dge.MeshMod: Mesh
+using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Equation: getsyseqn
 using .Jul1dge.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
@@ -21,7 +21,6 @@ function run()
 
   # Retrieve repeatedly used parameters
   N = parameter("N")
-  ncells = parameter("ncells")
   cfl = parameter("cfl")
   nstepsmax = parameter("nstepsmax")
   equations = parameter("syseqn")
@@ -32,7 +31,7 @@ function run()
 
   # Create mesh
   print("Creating mesh... ")
-  mesh = Mesh(parameter("x_start"), parameter("x_end"), ncells)
+  mesh = generate_mesh()
   println("done")
 
   # Initialize system of equations
@@ -61,7 +60,7 @@ function run()
 
   # Print setup information
   println()
-  n_dofs_total = ncells * (N + 1)^ndim
+  n_dofs_total = dg.ncells * (N + 1)^ndim
   s = """| Simulation setup
          | ----------------
          | N:                 $N
@@ -72,7 +71,7 @@ function run()
          | equation:          $equations
          | initialconditions: $initialconditions
          | sources:           $sources
-         | ncells:            $ncells
+         | ncells:            $(dg.ncells)
          | #DOFs:             $n_dofs_total
          | #parallel threads: $(Threads.nthreads())
          """

@@ -13,9 +13,10 @@ nstepsmax = 10000
 analysis_interval = 100
 
 # Mesh
-ncells = 20
-x_start = -10
-x_end   =  10
+nnodesmax = 1000
+coordinates_min = -16
+coordinates_max =  16
+initial_refinement_level = 5
 
 # I/O
 solution_interval = 20

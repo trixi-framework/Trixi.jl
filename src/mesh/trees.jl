@@ -264,7 +264,6 @@ function rebalance!(t::Tree, refined_node_ids)
   end
 
   # Finally, refine all marked nodes...
-  @show to_refine[1:count]
   refine_unbalanced!(t, @view to_refine[1:count])
 
   # ...and return list of refined nodes

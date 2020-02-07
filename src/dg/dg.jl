@@ -6,6 +6,7 @@ using ..Jul1dge
 using ..Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
 import ..Equation: nvars # Import to allow method extension
 using ..Auxiliary: timer
+using ..Mesh.Trees: Tree, leaf_nodes, length_at_node
 using .Interpolation: interpolate_nodes, calcdhat,
                       polynomialinterpolationmatrix, calclhat, gausslobatto
 using StaticArrays: SVector, SMatrix, MMatrix
@@ -57,8 +58,9 @@ syseqn(dg::Dg{SysEqn, N}) where {SysEqn, N} = dg.syseqn
 nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = nvars(syseqn(dg))
 
 
-function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
-  ncells = mesh.ncells
+function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
+  leaf_node_ids = leaf_nodes(mesh)
+  ncells = length(leaf_node_ids)
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
   urk = zeros(Float64, nvars_, N + 1, ncells)
@@ -99,7 +101,7 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
   analysis_nodes, analysis_weights = gausslobatto(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomialinterpolationmatrix(nodes, analysis_nodes)
-  analysis_total_volume = sum(mesh.length.^ndim)
+  analysis_total_volume = sum(mesh.length_level_0.^ndim)
 
   dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
       s, u, ut, urk, flux, ncells, Array{Float64,1}(undef, ncells),
@@ -109,9 +111,10 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh, N::Int) where nvars_
       analysis_total_volume)
 
   for cell_id in 1:ncells
-    dx = mesh.length[cell_id]
+    node_id = leaf_node_ids[cell_id]
+    dx = length_at_node(mesh, node_id)
     dg.invjacobian[cell_id] = 2/dx
-    dg.nodecoordinate[:, cell_id] = @. mesh.coordinate[cell_id] + dx/2 * nodes[:]
+    dg.nodecoordinate[:, cell_id] = @. mesh.coordinates[1, node_id] + dx/2 * nodes[:]
   end
 
   return dg
