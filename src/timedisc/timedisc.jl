@@ -8,7 +8,9 @@ using TimerOutputs: @timeit
 export timestep!
 
 
+# Integrate solution by repeatedly calling the rhs! method on the DG solution.
 function timestep!(dg, t, dt)
+  # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
   b = [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,

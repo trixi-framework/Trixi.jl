@@ -24,6 +24,7 @@ export calc_error_norms
 export analyze_solution
 
 
+# Main DG data structure that contains all relevant data for the DG solver
 struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
   syseqn::SysEqn
   u::Array{Float64, 3}
@@ -53,14 +54,25 @@ struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
 end
 
 
-polydeg(dg::Dg{SysEqn, N}) where {SysEqn, N} = N
-syseqn(dg::Dg{SysEqn, N}) where {SysEqn, N} = dg.syseqn
-nvars(dg::Dg{SysEqn, N}) where {SysEqn, N} = nvars(syseqn(dg))
+# Return polynomial degree for a DG solver
+polydeg(::Dg{SysEqn, N}) where {SysEqn, N} = N
 
 
+# Return system of equations instance for a DG solver
+syseqn(dg::Dg) = dg.syseqn
+
+
+# Return number of variables for the system of equations in use.
+nvars(dg::Dg) = nvars(syseqn(dg))
+
+
+# Convenience constructor to create DG solver instance.
 function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
+  # Determine number of cells
   leaf_node_ids = leaf_nodes(mesh)
   ncells = length(leaf_node_ids)
+
+  # Initialize data structures
   u = zeros(Float64, nvars_, N + 1, ncells)
   ut = zeros(Float64, nvars_, N + 1, ncells)
   urk = zeros(Float64, nvars_, N + 1, ncells)
@@ -72,6 +84,8 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
 
   surfaces = zeros(Int, 2, ncells)
   neighbors = zeros(Int, 2, nsurfaces)
+
+  # Create surfaces between elements
   # Order of cells, surfaces:
   # |---|---|---|
   # s c s c s c s
@@ -91,18 +105,23 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
   end
   neighbors[1, 1] = ncells
 
+
+  # Initialize interpolation data structures
   nodes, weights = gausslobatto(N + 1)
   dhat = calcdhat(nodes, weights)
   lhat = zeros(N + 1, 2)
   lhat[:, 1] = calclhat(-1.0, nodes, weights)
   lhat[:, 2] = calclhat( 1.0, nodes, weights)
 
+  # Initialize data structures for error analysis (by default, we use twice the
+  # number of analysis nodes as the normal solution).
   NAna = 2 * (N + 1) - 1
   analysis_nodes, analysis_weights = gausslobatto(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomialinterpolationmatrix(nodes, analysis_nodes)
   analysis_total_volume = sum(mesh.length_level_0.^ndim)
 
+  # Create actual DG solver instance.
   dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
       s, u, ut, urk, flux, ncells, Array{Float64,1}(undef, ncells),
       Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf,
@@ -110,6 +129,7 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
       analysis_weights, analysis_weights_volume, analysis_vandermonde,
       analysis_total_volume)
 
+  # Calculate inverse Jacobian and node coordinates
   for cell_id in 1:ncells
     node_id = leaf_node_ids[cell_id]
     dx = length_at_node(mesh, node_id)
@@ -121,18 +141,25 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
 end
 
 
-function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
+# Calculate L2/Linf error norms based on "exact solution"
+function calc_error_norms(dg::Dg, t::Float64)
+  # Gather necessary information
   s = syseqn(dg)
   nvars_ = nvars(s)
   nnodes_analysis = length(dg.analysis_nodes)
 
+  # Set up data structures
   l2_error = zeros(nvars_)
   linf_error = zeros(nvars_)
   u_exact = zeros(nvars_)
 
+  # Iterate over all cells for error calculations
   for cell_id = 1:dg.ncells
+    # Interpolate solution and node locations to analysis nodes
     u = interpolate_nodes(dg.u[:, :, cell_id], dg.analysis_vandermonde, nvars_)
     x = interpolate_nodes(reshape(dg.nodecoordinate[:, cell_id], 1, :), dg.analysis_vandermonde, 1)
+
+    # Calculate errors at each analysis node
     jacobian = (1 / dg.invjacobian[cell_id])^ndim
     for i = 1:nnodes_analysis
       u_exact = initialconditions(s, x[i], t)
@@ -143,12 +170,14 @@ function calc_error_norms(dg::Dg{SysEqn, N}, t::Float64) where {SysEqn, N}
     end
   end
 
+  # For L2 error, divide by total volume
   @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
 end
 
 
+# Calculate error norms and print information for user
 function analyze_solution(dg::Dg{SysEqn, N}, t::Real, dt::Real,
                           step::Integer, runtime_absolute::Real,
                           runtime_relative::Real) where {SysEqn, N}
@@ -184,6 +213,7 @@ function analyze_solution(dg::Dg{SysEqn, N}, t::Real, dt::Real,
 end
 
 
+# Call equation-specific initial conditions functions and apply to all cells
 function setinitialconditions(dg, t)
   s = syseqn(dg)
 

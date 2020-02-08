@@ -12,6 +12,7 @@ export lagrangeinterpolatingpolynomials
 export gausslobatto
 
 
+# Interpolate data using the given Vandermonde matrix and return interpolated values.
 function interpolate_nodes(data_in::AbstractArray{T, 2},
                            vandermonde::AbstractArray{T, 2}, nvars_::Integer) where T
   nnodes_out = size(vandermonde, 1)
@@ -30,6 +31,7 @@ function interpolate_nodes(data_in::AbstractArray{T, 2},
 end
 
 
+# Calculate the Dhat matrix
 function calcdhat(nodes, weights)
   nnodes = length(nodes)
   dhat = polynomialderivativematrix(nodes)
@@ -43,6 +45,7 @@ function calcdhat(nodes, weights)
 end
 
 
+# Calculate the polynomial derivative matrix D
 function polynomialderivativematrix(nodes)
   nnodes = length(nodes)
   d = zeros(nnodes, nnodes)
@@ -59,6 +62,7 @@ function polynomialderivativematrix(nodes)
 end
 
 
+# Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
 function polynomialinterpolationmatrix(nodes_in, nodes_out)
   nnodes_in = length(nodes_in)
   nnodes_out = length(nodes_out)
@@ -91,6 +95,7 @@ function polynomialinterpolationmatrix(nodes_in, nodes_out)
 end
 
 
+# Calculate the barycentric weights for a given node distribution.
 function barycentricweights(nodes)
   nnodes = length(nodes)
   weights = ones(nnodes)
@@ -108,6 +113,7 @@ function barycentricweights(nodes)
 end
 
 
+# Calculate Lhat.
 function calclhat(x::Float64, nodes, weights)
   nnodes = length(nodes)
   wbary = barycentricweights(nodes)
@@ -122,6 +128,7 @@ function calclhat(x::Float64, nodes, weights)
 end
 
 
+# Calculate Lagrange polynomials for a given node distribution.
 function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
   nnodes = length(nodes)
   polynomials = zeros(nnodes)
@@ -146,6 +153,7 @@ function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
 end
 
 
+# Calculate nodes and weights for Legendre-Gauss-Lobatto quadratue.
 function gausslobatto(nnodes::Integer)
   return legendre(nnodes, both)
 end

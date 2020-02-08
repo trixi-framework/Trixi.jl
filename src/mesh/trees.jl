@@ -560,8 +560,16 @@ function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
 end
 
 
-# Reset data structures (just invalidates everything)
-reset_data_structures!(t::Tree) = invalidate!(t, 1, t.capacity + 1)
+# Reset data structures by recreating all internal storage containers and invalidating all elements
+function reset_data_structures!(t::Tree{D}) where D
+  t.parent_ids = Vector{Int}(undef, t.capacity + 1)
+  t.child_ids = Matrix{Int}(undef, 2^D, t.capacity + 1)
+  t.neighbor_ids = Matrix{Int}(undef, 2*D, t.capacity + 1)
+  t.levels = Vector{Int}(undef, t.capacity + 1)
+  t.coordinates = Matrix{Float64}(undef, D, t.capacity + 1)
+
+  invalidate!(t, 1, capacity(t) + 1)
+end
 
 
 ####################################################################################################
@@ -587,12 +595,13 @@ function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
   end
 end
 
+
 # Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
 size(c::AbstractContainer) = c.size
 Base.length(c::AbstractContainer) = size(c)
 
-# Methods for extending or shrinking the size at the end of the container
+
 # Increase container size by `count` elements
 function append!(c::AbstractContainer, count::Int)
   @assert count >= 0 "Count must be non-negative"
@@ -606,15 +615,22 @@ function append!(c::AbstractContainer, count::Int)
 end
 append!(c::AbstractContainer) = append(c, 1)
 
+
 # Decrease container size by `count` elements
 function shrink!(c::AbstractContainer, count::Int)
   @assert count >= 0
   @assert size(c) >= count
 
-  remove_shift(c, size(c) - count + 1, size())
+  # Rely on remove&shift to do The Right Thing
+  remove_shift!(c, size(c) - count + 1, size())
 end
 shrink!(c::AbstractContainer) = shrink(c, 1)
 
+
+# Copy data range from source to target container.
+#
+# Calls `raw_copy` internally, which must be implemented for each concrete type
+# inheriting from AbstractContainer.
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
   @assert 1 <= first <= size(source) "First node out of range"
@@ -629,16 +645,27 @@ function copy!(target::AbstractContainer, source::AbstractContainer,
 
   raw_copy!(target, source, first, last, destination)
 end
+
+
+# Convenience method to copy a single element
 function copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
   copy!(target, source, from, from, destination)
 end
+
+
+# Convenience method for copies within a single container
 function copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   copy!(c, c, first, last, destination)
 end
+
+
+# Convenience method for copying a single element within a single container
 function copy!(c::AbstractContainer, from::Int, destination::Int)
   copy!(c, c, from, from, destination)
 end
 
+
+# Move elements in a way that preserves connectivity.
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   @assert 1 <= first <= size(c) "First node $first out of range"
   @assert 1 <= last <= size(c) "Last node $last out of range"
@@ -656,17 +683,20 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   # Move connectivity
   move_connectivity!(c, first, last, destination)
 
+
   # Invalidate original node locations (unless they already contain new data due to overlap)
+  # 1) If end of desination range is within original range, shift first_invalid to the right
   count = last - first + 1
-  # If end of desination range is within original range, shift first_invalid to the right
   first_invalid = (first <= destination + count - 1 <= last) ? destination + count : first
-  # If beginning of destination range is within original range, shift last_invalid to the left
+  # 2) If beginning of destination range is within original range, shift last_invalid to the left
   last_invalid = (first <= destination <= last) ? destination - 1 : last
+  # 3) Invalidate range
   invalidate!(c, first_invalid, last_invalid)
 end
 move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
 
 
+# Swap two elements in a container while preserving element connectivity.
 function swap!(c::AbstractContainer, a::Int, b::Int)
   @assert 1 <= a <= size(c) "a out of range"
   @assert 1 <= b <= size(c) "b out of range"
@@ -693,6 +723,9 @@ function swap!(c::AbstractContainer, a::Int, b::Int)
 end
 
 
+# Insert blank elements in container, shifting the following elements back.
+#
+# After a call to insert!, the range `position:position + count - 1` will be available for use.
 function insert!(c::AbstractContainer, position::Int, count::Int)
   @assert 1 <= position <= size(c) + 1 "Insert position out of range"
   @assert count >= 0 "Count must be non-negative"
@@ -721,6 +754,7 @@ end
 insert!(c) = insert!(c, position, 1)
 
 
+# Erase elements from container, deleting their connectivity and then invalidating their data.
 function erase!(c::AbstractContainer, first::Int, last::Int)
   @assert 1 <= first <= size(c) "First node out of range"
   @assert 1 <= last <= size(c) "Last node out of range"
@@ -737,8 +771,8 @@ end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
 
-# Remove nodes and shift existing nodes forward
-function remove_shift(c::AbstractContainer, first::Int, last::Int)
+# Remove nodes and shift existing nodes forward to close the gap
+function remove_shift!(c::AbstractContainer, first::Int, last::Int)
   @assert 1 <= first <= size(c) "First node out of range"
   @assert 1 <= last <= size(c) "Last node out of range"
 
@@ -762,10 +796,11 @@ function remove_shift(c::AbstractContainer, first::Int, last::Int)
   count = last - first + 1
   c.size -= count
 end
+remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
 
 # Remove nodes and fill gap with nodes from the end of the container (to reduce copy operations)
-function remove_fill(c::AbstractContainer, first::Int, last::Int)
+function remove_fill!(c::AbstractContainer, first::Int, last::Int)
   @assert 1 <= first <= size(c) "First node out of range"
   @assert 1 <= last <= size(c) "Last node out of range"
 
@@ -789,6 +824,7 @@ function remove_fill(c::AbstractContainer, first::Int, last::Int)
 end
 
 
+# Reset container to zero-size and with a new capacity
 function reset!(c::AbstractContainer, capacity::Int)
   @assert capacity >=0
 
@@ -799,6 +835,7 @@ function reset!(c::AbstractContainer, capacity::Int)
 end
 
 
+# Invalidate all elements and set size to zero.
 function clear!(c::AbstractContainer)
   invalidate!(c)
   c.size = 0
