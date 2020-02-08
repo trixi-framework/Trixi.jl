@@ -70,7 +70,7 @@ mutable struct Tree{D} <: AbstractContainer
     b.levels[1] = 0
     b.parent_ids[1] = 0
     b.child_ids[:, 1] .= 0
-    b.neighbor_ids[:, 1] .= 0
+    b.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 node is its own neighbor
     b.levels[1] = 0
     b.coordinates[:, 1] .= b.center_level_0
 
@@ -87,18 +87,18 @@ Tree(::Val{1}, cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float6
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D
   s = t.size
-  println('*'^20)
-  @show t.parent_ids[1:s]
-  @show transpose(t.child_ids[:, 1:s])
-  @show transpose(t.neighbor_ids[:, 1:s])
-  @show t.levels[1:s]
-  @show transpose(t.coordinates[:, 1:s])
-  @show t.capacity
-  @show t.size
-  @show t.dummy
-  @show t.center_level_0
-  @show t.length_level_0
-  println('*'^20)
+  println(io, '*'^20)
+  println(io, "t.parent_ids[1:s] = $(t.parent_ids[1:s])")
+  println(io, "transpose(t.child_ids[:, 1:s]) = $(transpose(t.child_ids[:, 1:s]))")
+  println(io, "transpose(t.neighbor_ids[:, 1:s]) = $(transpose(t.neighbor_ids[:, 1:s]))")
+  println(io, "t.levels[1:s] = $(t.levels[1:s])")
+  println(io, "transpose(t.coordinates[:, 1:s]) = $(transpose(t.coordinates[:, 1:s]))")
+  println(io, "t.capacity = $(t.capacity)")
+  println(io, "t.size = $(t.size)")
+  println(io, "t.dummy = $(t.dummy)")
+  println(io, "t.center_level_0 = $(t.center_level_0)")
+  println(io, "t.length_level_0 = $(t.length_level_0)")
+  println(io, '*'^20)
 end
 
 # Type traits to obtain dimension
@@ -195,6 +195,20 @@ function refine!(t::Tree)
 end
 
 
+# Refine given nodes and rebalance tree.
+#
+# Note 1: Rebalancing is iterative, i.e., neighboring nodes are refined if
+#         otherwise the 2:1 rule would be violated, which can cause more
+#         refinements.
+# Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
+function refine!(t::Tree, node_ids)
+  refined = refine_unbalanced!(t, node_ids)
+  while length(refined) > 0
+    refined = rebalance!(t, refined)
+  end
+end
+
+
 # Refine all leaf nodes with coordinates in a given rectangular box
 function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
                      coordinates_max::AbstractArray{Float64}) where D
@@ -215,20 +229,6 @@ end
 # Convenience method for 1D
 function refine_box!(t::Tree{1}, coordinates_min::Real, coordinates_max::Real)
   return refine_box!(t, [convert(Float64, coordinates_min)], [convert(Float64, coordinates_max)])
-end
-
-
-# Refine given nodes and rebalance tree.
-#
-# Note 1: Rebalancing is iterative, i.e., neighboring nodes are refined if
-#         otherwise the 2:1 rule would be violated, which can cause more
-#         refinements.
-# Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
-function refine!(t::Tree, node_ids)
-  refined = refine_unbalanced!(t, node_ids)
-  while length(refined) > 0
-    refined = rebalance!(t, refined)
-  end
 end
 
 
@@ -282,13 +282,13 @@ function refine_unbalanced!(t::Tree, node_ids)
   refined = zeros(Int, length(node_ids))
 
   # Loop over all nodes that are to be refined
-  for (count, original_node_id) in enumerate(node_ids)
+  for (count, original_node_id) in enumerate(sort(node_ids))
     # Determine actual node id, taking into account previously inserted nodes
     n_children = n_children_per_node(t)
     node_id = original_node_id + (count - 1) * n_children
     refined[count] = node_id
 
-    @assert !has_children(t, node_id) "Non-leaf cells cannot be refined"
+    @assert !has_children(t, node_id) "Non-leaf node $node_id cannot be refined"
 
     # Insert new nodes directly behind parent (depth-first)
     insert!(t, node_id + 1, n_children)
