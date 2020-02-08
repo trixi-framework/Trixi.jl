@@ -17,18 +17,27 @@ const main_timer = TimerOutput()
 # Always call timer() to hide implementation details
 timer() = main_timer
 
+# Initialize top-level parameters structure for program-wide parameters
 const parameters = Dict()
 
 
+# Parse parameters file into global dict
 function parse_parameters_file(filename::AbstractString)
   parameters["default"] = parsefile(filename)
 end
 
 
+# Return parameter by name, optionally taking a default value and a range of valid values.
+#
+# If no default value is specified, the parameter is required and the program
+# stops if the parameter was not found. The range of valid parameters is used
+# to restrict parameters to sane values.
 function parameter(name::String, default=nothing; valid=nothing)
   if haskey(parameters["default"], name)
+    # If parameter exists, use its value
     value = parameters["default"][name]
   else
+    # Otherwise check whether a default is given and abort if not
     if default == nothing
       error("requested paramter '$name' does not exist and no default value was provided")
     else
@@ -36,21 +45,26 @@ function parameter(name::String, default=nothing; valid=nothing)
     end
   end
 
+  # If a range of valid values has been specified, check parameter value against it
   if valid != nothing
     if !(value in valid)
-      error("'$value' is not a valid value for parameter '$name'")
+      error("'$value' is not a valid value for parameter '$name' (valid: $valid)")
     end
   end
 
   return value
 end
 
+# Return true if parameter exists.
+parameter_exists(name::String) = haskey(parameters["default"], name)
 
+
+# Parse command line arguments and return as dict
 function parse_commandline_arguments()
   s = ArgParseSettings()
   @add_arg_table s begin
     "--parameters-file", "-p"
-      help = "Name of file with runtime parameters"
+      help = "Name of file with runtime parameters."
       arg_type = String
       default = "parameters.toml"
   end
@@ -59,12 +73,10 @@ function parse_commandline_arguments()
 end
 
 
-"""
-    interruptable(ex)
-
-On Unix-like operating systems, gracefully handle user interrupts (SIGINT), also known as
-Ctrl-c, while evaluation expression `ex`.
-"""
+# Allow an expression to be terminated gracefully by Ctrl-c.
+#
+# On Unix-like operating systems, gracefully handle user interrupts (SIGINT), also known as
+# Ctrl-c, while evaluation expression `ex`.
 macro interruptable(ex)
   @static Sys.isunix() && quote
     ccall(:jl_exit_on_sigint, Cvoid, (Cint,), 0)

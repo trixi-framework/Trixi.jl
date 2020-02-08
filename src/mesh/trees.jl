@@ -1,6 +1,7 @@
 module Trees
 
 using StaticArrays: MVector
+import Base
 
 export Tree
 
@@ -107,29 +108,76 @@ ndims(t::Tree) = ndims(typeof(t))
 
 
 # Auxiliary methods to allow semantic queries on the tree
+# Check whether node has parent node
 has_parent(t::Tree, node_id::Int) = t.parent_ids[node_id] > 0
+
+# Check whether node has any child node
 has_child(t::Tree, node_id::Int, child_id::Int) = t.child_ids[child_id, node_id] > 0
-has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
+
+# Check whether node is leaf node
 is_leaf(t::Tree, node_id::Int) = !has_children(t, node_id)
+
+# Check whether node has specific child node
+has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
+
+# Count number of children for a given node
 n_children(t::Tree, node_id::Int) = count(x -> (x > 0), @view t.child_ids[:, node_id])
+
+# Check if node has a neighbor at the same refinement level in the given direction
 has_neighbor(t::Tree, node_id::Int, direction::Int) = t.neighbor_ids[direction, node_id] > 0
+
+# Check if node has a coarse neighbor, i.e., with one refinement level lower
 function has_coarse_neighbor(t::Tree, node_id::Int, direction::Int)
   return has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)
 end
+
+# Check if node has any neighbor (same-level or lower-level)
 function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
   return has_neighbor(t, node_id, direction) || has_coarse_neighbor(t, node_id, direction)
 end
+
+# Return node length for a given level
 length_at_level(t::Tree, level::Int) = t.length_level_0 / 2^level
+
+# Return node length for a given node
 length_at_node(t::Tree, node_id::Int) = length_at_level(t, t.levels[node_id])
+
+# Return minimum level of any leaf cell
 minimum_level(t::Tree) = minimum(t.levels[leaf_nodes(t)])
+
+# Return maximum level of any leaf cell
 maximum_level(t::Tree) = maximum(t.levels[leaf_nodes(t)])
 
 
 # Auxiliary methods for often-required calculations
+# Number of potential child nodes
 n_children_per_node(::Tree{D}) where D = 2^D
+
+# Number of directions
+#
+# Directions are indicated by numbers from 1 to 2*ndims:
+# 1 -> -x
+# 2 -> +x
+# 3 -> -y
+# 4 -> +y
+# 5 -> -z
+# 6 -> +z
 n_directions(::Tree{D}) where D = 2 * D
+
+# For a given direction, return its opposite direction
+#
+# dir -> opp
+#  1  ->  2
+#  2  ->  1
+#  3  ->  4
+#  4  ->  3
+#  5  ->  6
+#  6  ->  5
 opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 
+# For a given child position (from 1 to 8) and dimension (from 1 to 3),
+# calculate a child node's position relative to its parent node.
+#
 # Essentially calculates the following
 #         dim=1 dim=2 dim=3
 # child     x     y     z  
@@ -350,8 +398,11 @@ refine_unbalanced!(t::Tree, node_id::Int) = refine_unbalanced!(t, [node_id])
 
 # Return coordinates of a child node based on its relative position to the parent.
 function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
+  # Calculate length of child nodes and set up data structure
   child_length = parent_length / 2
   child_coordinates = MVector{D, Float64}(undef)
+
+  # For each dimension, calculate coordinate as parent coordinate + relative position x length/2 
   for d in 1:D
     child_coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
   end
@@ -360,11 +411,15 @@ function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number,
 end
 
 
+# Reset range of nodes to values that are prone to cause errors as soon as they are used.
+#
+# Rationale: If an invalid node is accidentally used, we want to know it as soon as possible.
 function invalidate!(t::Tree, first::Int, last::Int)
   @assert first > 0
   @assert first <= last
   @assert last <= t.capacity + 1
 
+  # Integer values are set to smallest negative value, floating point values to NaN
   t.parent_ids[first:last] .= typemin(Int)
   t.child_ids[:, first:last] .= typemin(Int)
   t.neighbor_ids[:, first:last] .= typemin(Int)
@@ -481,7 +536,9 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
 end
 
 
-# Raw copy operation for ranges of nodes
+# Raw copy operation for ranges of nodes.
+#
+# This method is used by the higher-level copy operations for AbstractContainer
 function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
@@ -503,17 +560,16 @@ function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
 end
 
 
-# Reset data structures
-function reset_data_structures!(t::Tree{D}) where D
-  t.parent_ids = Vector{Int}(0, t.capacity + 1)
-  t.child_ids = Matrix{Int}(0, 2^D, t.capacity + 1)
-  t.neighbor_ids = Matrix{Int}(0, 2*D, t.capacity + 1)
-  t.levels = Vector{Int}(-1, t.capacity + 1)
-  t.coordinates = Matrix{Float64}(NaN, D, t.capacity + 1)
-end
+# Reset data structures (just invalidates everything)
+reset_data_structures!(t::Tree) = invalidate!(t, 1, t.capacity + 1)
 
 
-# Auxiliary copy function
+####################################################################################################
+# Here follows the implementation for a generic container
+####################################################################################################
+
+
+# Auxiliary copy function to copy data between containers
 function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
                     first::Int, last::Int, destination::Int, block_size::Int=1) where {T, N}
 
@@ -531,29 +587,31 @@ function copy_data!(target::AbstractArray{T, N}, source::AbstractArray{T, N},
   end
 end
 
-
-####################################################################################################
-# Here follows the implementation for a generic container
-####################################################################################################
-
 # Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
 size(c::AbstractContainer) = c.size
+Base.length(c::AbstractContainer) = size(c)
 
 # Methods for extending or shrinking the size at the end of the container
+# Increase container size by `count` elements
 function append!(c::AbstractContainer, count::Int)
   @assert count >= 0 "Count must be non-negative"
   @assert count + size(c) <= capacity(c) "New size would exceed capacity"
 
+  # First, invalidate range (to be sure that no sensible values are accidentally left there)
   invalidate!(c, size(c) + 1, size(c) + count)
+
+  # Then, increase container size
   c.size += count
 end
 append!(c::AbstractContainer) = append(c, 1)
+
+# Decrease container size by `count` elements
 function shrink!(c::AbstractContainer, count::Int)
   @assert count >= 0
   @assert size(c) >= count
 
-  remove_shift(c, size(c) + 1 - count, size())
+  remove_shift(c, size(c) - count + 1, size())
 end
 shrink!(c::AbstractContainer) = shrink(c, 1)
 
