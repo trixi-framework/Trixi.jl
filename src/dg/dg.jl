@@ -62,11 +62,11 @@ polydeg(::Dg{SysEqn, N}) where {SysEqn, N} = N
 syseqn(dg::Dg) = dg.syseqn
 
 
-# Return number of variables for the system of equations in use.
+# Return number of variables for the system of equations in use
 nvars(dg::Dg) = nvars(syseqn(dg))
 
 
-# Convenience constructor to create DG solver instance.
+# Convenience constructor to create DG solver instance
 function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
   # Determine number of cells
   leaf_node_ids = leaf_nodes(mesh)
@@ -114,14 +114,14 @@ function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
   lhat[:, 2] = calclhat( 1.0, nodes, weights)
 
   # Initialize data structures for error analysis (by default, we use twice the
-  # number of analysis nodes as the normal solution).
+  # number of analysis nodes as the normal solution)
   NAna = 2 * (N + 1) - 1
   analysis_nodes, analysis_weights = gausslobatto(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomialinterpolationmatrix(nodes, analysis_nodes)
   analysis_total_volume = sum(mesh.length_level_0.^ndim)
 
-  # Create actual DG solver instance.
+  # Create actual DG solver instance
   dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
       s, u, ut, urk, flux, ncells, Array{Float64,1}(undef, ncells),
       Array{Float64,2}(undef, N + 1, ncells), surfaces, usurf, fsurf,
@@ -225,6 +225,7 @@ function setinitialconditions(dg, t)
 end
 
 
+# Calculate time derivative
 function rhs!(dg, t_stage)
   # Reset ut
   @timeit timer() "reset ut" dg.ut .= 0.0
@@ -252,6 +253,7 @@ function rhs!(dg, t_stage)
 end
 
 
+# Calculate and store volume fluxes
 function volflux!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -263,6 +265,7 @@ function volflux!(dg)
 end
 
 
+# Calculate volume integral and update u_t
 function volint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -280,6 +283,7 @@ function volint!(dg)
 end
 
 
+# Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -297,6 +301,7 @@ function prolong2surfaces!(dg)
 end
 
 
+# Calculate and store fluxes across surfaces
 function surfflux!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -308,6 +313,7 @@ function surfflux!(dg)
 end
 
 
+# Calculate surface integrals and update u_t
 function surfint!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -325,6 +331,7 @@ function surfint!(dg)
 end
 
 
+# Apply Jacobian from mapping to reference element
 function applyjacobian!(dg)
   N = polydeg(dg)
   nnodes = N + 1
@@ -340,6 +347,7 @@ function applyjacobian!(dg)
 end
 
 
+# Calculate source terms and apply them to u_t
 function calcsources!(dg, t)
   s = syseqn(dg)
   if s.sources == "none"
@@ -356,6 +364,7 @@ function calcsources!(dg, t)
 end
 
 
+# Calculate stable time step size
 function calcdt(dg, cfl)
   N = polydeg(dg)
   nnodes = N + 1
