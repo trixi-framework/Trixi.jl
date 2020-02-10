@@ -33,7 +33,8 @@ function run()
 
   # Initialize solver
   print("Initializing solver... ")
-  solver = make_solver("dg", equations, mesh)
+  solver_name = parameter("solver", valid=["dg"])
+  solver = make_solver(solver_name, equations, mesh)
   println("done")
 
   # Apply initial condition
@@ -46,8 +47,8 @@ function run()
 
   # Print setup information
   println()
-  N = parameter("N")
-  nstepsmax = parameter("nstepsmax")
+  N = parameter("N") # FIXME: This is currently the only DG-specific code in here
+  n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
   initialconditions = parameter("initialconditions")
   sources = parameter("sources", "none")
@@ -66,7 +67,7 @@ function run()
          | t_start:           $t_start
          | t_end:             $t_end
          | CFL:               $cfl
-         | nstepsmax:         $nstepsmax
+         | n_steps_max:       $n_steps_max
          | equations:         $equations_name
          | | #variables:      $(nvars(equations))
          | | variable names:  $(join(equations.varnames_cons, ", "))
@@ -131,7 +132,7 @@ function run()
     n_analysis_timesteps += 1
 
     # Check if we reached the maximum number of time steps
-    if step == nstepsmax
+    if step == n_steps_max
       finalstep = true
     end
 

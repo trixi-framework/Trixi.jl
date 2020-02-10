@@ -1,4 +1,5 @@
-# Simulation setup
+####################################################################################################
+# Simulation
 equations = "euler"
 initialconditions = "convergence_test"
 # sources = 
@@ -6,12 +7,17 @@ initialconditions = "convergence_test"
 t_start = 0.0
 t_end   = 1.0
 
-# Numerical settings
+
+####################################################################################################
+# Solver
+solver = "dg"
 N = 3
 cfl = 1.0
-nstepsmax = 10000
+n_steps_max = 10000
 analysis_interval = 100
 
+
+####################################################################################################
 # Mesh
 nnodesmax = 10000
 coordinates_min = -16
@@ -21,6 +27,8 @@ refinement_patches = [
   {type = "box", coordinates_min = 0, coordinates_max = 16},
 ]
 
+
+####################################################################################################
 # I/O
 solution_interval = 20
 solution_variables = "conservative"
