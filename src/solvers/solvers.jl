@@ -8,7 +8,7 @@ export AbstractSolver
 export make_solver
 export set_initial_conditions
 export analyze_solution
-export calcdt
+export calc_dt
 export equations
 export rhs!
 export ndofs
@@ -34,7 +34,7 @@ end
 # First, add generic functions for which the submodules can create own methods
 function set_initial_conditions end
 function analyze_solution end
-function calcdt end
+function calc_dt end
 function equations end
 function rhs! end
 function ndofs end

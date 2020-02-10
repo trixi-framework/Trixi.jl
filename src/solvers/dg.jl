@@ -20,7 +20,7 @@ export nvariables
 export equations
 export polydeg
 export rhs!
-export calcdt
+export calc_dt
 export calc_error_norms
 export analyze_solution
 
@@ -349,7 +349,7 @@ end
 
 
 # Calculate stable time step size
-function Solvers.calcdt(dg::Dg, cfl)
+function Solvers.calc_dt(dg::Dg, cfl)
   mindt = Inf
   for element_id = 1:dg.n_elements
     dt = maxdt(equations(dg), dg.u, element_id, nnodes(dg), dg.invjacobian[element_id], cfl)

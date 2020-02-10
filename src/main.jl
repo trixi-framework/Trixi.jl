@@ -4,7 +4,7 @@ using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvariables
-using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calcdt, ndofs
+using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
@@ -118,7 +118,7 @@ function run()
 
   # Start main loop (loop until final time step is reached)
   @timeit timer() "main loop" while !finalstep
-    @timeit timer() "calcdt" dt = calcdt(solver, cfl)
+    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
     if time + dt > t_end
