@@ -33,12 +33,12 @@ end
 function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
-    s = equations(dg)
+    equation = equations(dg)
     N = polydeg(dg)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
-    attrs(file)["equations"] = s.name
+    attrs(file)["equations"] = equation.name
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
@@ -51,10 +51,10 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
                                    valid=["conservative", "primitive"])
     if solution_variables == "conservative"
       data = dg.u
-      varnames = s.varnames_cons
+      varnames = equation.varnames_cons
     else
-      data = cons2prim(s, dg.u)
-      varnames = s.varnames_prim
+      data = cons2prim(equation, dg.u)
+      varnames = equation.varnames_prim
     end
 
     # Store each variable of the solution
@@ -75,7 +75,7 @@ end
 function save_solution_file(::Val{:text}, dg::Dg, filename::String)
   # Open file (clobber existing content)
   open(filename * ".dat", "w") do file
-    s = equations(dg)
+    equation = equations(dg)
     N = polydeg(dg)
     n_nodes = N + 1
 
@@ -85,15 +85,15 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
                                 valid=["conservative", "primitive"])
     if output_variables == "conservative"
       data = dg.u
-      varnames = s.varnames_cons
+      varnames = equation.varnames_cons
     else
-      data = cons2prim(s, dg.u)
-      varnames = s.varnames_prim
+      data = cons2prim(equation, dg.u)
+      varnames = equation.varnames_prim
     end
 
     # Add context information as comments in the first lines of the file
     println(file, "# ndim = $ndim")
-    println(file, "# equations = \"$(s.name)\"")
+    println(file, "# equations = \"$(equation.name)\"")
     println(file, "# N = $N")
     println(file, "# n_vars = $(nvariables(dg))")
     println(file, "# n_elements = $(dg.n_elements)")

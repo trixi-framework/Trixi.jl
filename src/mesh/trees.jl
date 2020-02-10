@@ -87,13 +87,13 @@ Tree(::Val{1}, cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float6
 
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D
-  s = t.length
+  l = t.length
   println(io, '*'^20)
-  println(io, "t.parent_ids[1:s] = $(t.parent_ids[1:s])")
-  println(io, "transpose(t.child_ids[:, 1:s]) = $(transpose(t.child_ids[:, 1:s]))")
-  println(io, "transpose(t.neighbor_ids[:, 1:s]) = $(transpose(t.neighbor_ids[:, 1:s]))")
-  println(io, "t.levels[1:s] = $(t.levels[1:s])")
-  println(io, "transpose(t.coordinates[:, 1:s]) = $(transpose(t.coordinates[:, 1:s]))")
+  println(io, "t.parent_ids[1:l] = $(t.parent_ids[1:l])")
+  println(io, "transpose(t.child_ids[:, 1:l]) = $(transpose(t.child_ids[:, 1:l]))")
+  println(io, "transpose(t.neighbor_ids[:, 1:l]) = $(transpose(t.neighbor_ids[:, 1:l]))")
+  println(io, "t.levels[1:l] = $(t.levels[1:l])")
+  println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")

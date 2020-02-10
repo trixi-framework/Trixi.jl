@@ -37,10 +37,10 @@ end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initial_conditions(s::LinearScalarAdvection, x, t)
-  name = s.initial_conditions
+function Equations.initial_conditions(equation::LinearScalarAdvection, x, t)
+  name = equation.initial_conditions
   if name == "gauss"
-    return [exp(-(x - s.advectionvelocity * t)^2)]
+    return [exp(-(x - equation.advectionvelocity * t)^2)]
   elseif name == "convergence_test"
     c = 1.0
     A = 0.5
@@ -61,17 +61,17 @@ end
 
 
 # Apply source terms
-function Equations.sources(s::LinearScalarAdvection, ut, u, x, cell_id, t, n_nodes)
-  name = s.sources
+function Equations.sources(equation::LinearScalarAdvection, ut, u, x, cell_id, t, n_nodes)
+  name = equation.sources
   error("Unknown source terms '$name'")
 end
 
 
 # Calculate flux at a given cell id
-function Equations.calcflux(s::LinearScalarAdvection, u::Array{Float64, 3},
+function Equations.calcflux(equation::LinearScalarAdvection, u::Array{Float64, 3},
                             cell_id::Int, n_nodes::Int)
   f = zeros(MMatrix{1, n_nodes})
-  a = s.advectionvelocity
+  a = equation.advectionvelocity
 
   for i = 1:n_nodes
     f[1, i]  = u[1, i, cell_id] * a
@@ -82,22 +82,23 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, n_nodes)
+function Equations.riemann!(fsurf, usurf, surface_id, ss::LinearScalarAdvection, n_nodes)
   a = ss.advectionvelocity
-  fsurf[1, s] = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
+  fsurf[1, surface_id] = 1/2 * (
+      (a + abs(a)) * usurf[1, 1, surface_id] + (a - abs(a)) * usurf[2, 1, surface_id])
 end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.maxdt(s::LinearScalarAdvection, u::Array{Float64, 3},
+function Equations.maxdt(equation::LinearScalarAdvection, u::Array{Float64, 3},
                          cell_id::Int, n_nodes::Int, invjacobian::Float64,
   cfl::Float64)
-  return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (n_nodes - 1) + 1)
+  return cfl * 2 / (invjacobian * equation.advectionvelocity) / (2 * (n_nodes - 1) + 1)
 end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(s::LinearScalarAdvection, cons::Array{Float64, 3})
+function Equations.cons2prim(equation::LinearScalarAdvection, cons::Array{Float64, 3})
   return cons
 end
 

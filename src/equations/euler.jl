@@ -39,15 +39,15 @@ end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initial_conditions(s::Euler, x, t)
-  name = s.initial_conditions
+function Equations.initial_conditions(equation::Euler, x, t)
+  name = equation.initial_conditions
   if name == "density_pulse"
     rho = 1 + exp(-x^2)/2
     v = 1
     rho_v = rho * v
     p = 1
     # p = 1 + exp(-x^2)/2
-    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    rho_e = p/(equation.gamma - 1) + 1/2 * rho * v^2
     return [rho, rho_v, rho_e] 
   elseif name == "pressure_pulse"
     rho = 1
@@ -55,7 +55,7 @@ function Equations.initial_conditions(s::Euler, x, t)
     rho_v = rho * v
     p = 1 + exp(-x^2)/2
     # p = 1 + exp(-x^2)/2
-    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    rho_e = p/(equation.gamma - 1) + 1/2 * rho * v^2
     return [rho, rho_v, rho_e] 
     # return [1.0 + exp(-x^2)/2, 1.0, 1.0] 
   elseif name == "density_pressure_pulse"
@@ -63,7 +63,7 @@ function Equations.initial_conditions(s::Euler, x, t)
     v = 1
     rho_v = rho * v
     p = 1 + exp(-x^2)/2
-    rho_e = p/(s.gamma - 1) + 1/2 * rho * v^2
+    rho_e = p/(equation.gamma - 1) + 1/2 * rho * v^2
     return [rho, rho_v, rho_e] 
   elseif name == "constant"
     return [1.0, 0.0, 1.0]
@@ -78,7 +78,7 @@ function Equations.initial_conditions(s::Euler, x, t)
     p = 1.0
     rho = c + A * sin(omega * (x - a * t))
     rho_u = rho * u
-    rho_e = p/(s.gamma - 1) + 1/2 * rho * u^2
+    rho_e = p/(equation.gamma - 1) + 1/2 * rho * u^2
     return [rho, rho_u, rho_e]
   elseif name == "sod"
     if x < 0.0
@@ -93,30 +93,30 @@ end
 
 
 # Apply source terms
-function Equations.sources(s::Euler, ut, u, x, cell_id, t, n_nodes)
-  name = s.sources
+function Equations.sources(equation::Euler, ut, u, x, cell_id, t, n_nodes)
+  name = equation.sources
   error("Unknown source term '$name'")
 end
 
 
 # Calculate flux at a given cell id
-function Equations.calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
+function Equations.calcflux(equation::Euler, u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
   f = zeros(MMatrix{3, n_nodes})
   @inbounds for i = 1:n_nodes
     rho   = u[1, i, cell_id]
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
-    f[:, i] .= calcflux(s, rho, rho_v, rho_e)
+    f[:, i] .= calcflux(equation, rho, rho_v, rho_e)
   end
 
   return f
 end
 
 # Calculate flux for a give state
-function Equations.calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
+function Equations.calcflux(equation::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
   f = zeros(MVector{3})
   v = rho_v/rho
-  p = (s.gamma - 1) * (rho_e - 1/2 * rho * v^2)
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v^2)
 
   f[1]  = rho_v
   f[2]  = rho_v * v + p
@@ -127,9 +127,9 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, n_nodes)
-  u_ll     = usurf[1, :, s]
-  u_rr     = usurf[2, :, s]
+function Equations.riemann!(fsurf, usurf, surface_id::Int, ss::Euler, n_nodes)
+  u_ll     = usurf[1, :, surface_id]
+  u_rr     = usurf[2, :, surface_id]
 
   rho_ll   = u_ll[1]
   rho_v_ll = u_ll[2]
@@ -151,7 +151,7 @@ function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, n_nodes)
   if ss.riemann_solver == "laxfriedrichs"
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 
-    @. fsurf[:, s] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+    @. fsurf[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
   elseif ss.riemann_solver == "hllc"
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
@@ -162,9 +162,9 @@ function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, n_nodes)
     s_rr = v_tilde + c_tilde
 
     if s_ll > 0
-      @. fsurf[:, s] = f_ll
+      @. fsurf[:, surface_id] = f_ll
     elseif s_rr < 0
-      @. fsurf[:, s] = f_rr
+      @. fsurf[:, surface_id] = f_rr
     else
       s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
                 / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
@@ -172,22 +172,22 @@ function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, n_nodes)
         u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
             [1, s_star,
              rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
-        @. fsurf[:, s] = f_ll + s_ll * (u_star_ll - u_ll)
+        @. fsurf[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
       else
         u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
             [1, s_star,
              rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
-        @. fsurf[:, s] = f_rr + s_rr * (u_star_rr - u_rr)
+        @. fsurf[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
       end
     end
   else
-    error("unknown Riemann solver '$(s.riemann_solver)'")
+    error("unknown Riemann solver '$(equation.riemann_solver)'")
   end
 end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int,
+function Equations.maxdt(equation::Euler, u::Array{Float64, 3}, cell_id::Int,
                          n_nodes::Int, invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
   for i = 1:n_nodes
@@ -195,8 +195,8 @@ function Equations.maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int,
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
     v = rho_v/rho
-    p = (s.gamma - 1) * (rho_e - 1/2 * rho * v^2)
-    c = sqrt(s.gamma * p / rho)
+    p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v^2)
+    c = sqrt(equation.gamma * p / rho)
     λ_max = max(λ_max, abs(v) + c)
   end
 
@@ -207,11 +207,11 @@ end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(s::Euler, cons::Array{Float64, 3})
+function Equations.cons2prim(equation::Euler, cons::Array{Float64, 3})
   prim = similar(cons)
   @. prim[1, :, :] = cons[1, :, :]
   @. prim[2, :, :] = cons[2, :, :] / cons[1, :, :]
-  @. prim[3, :, :] = (s.gamma - 1) * (cons[3, :, :] - 1/2 * cons[2, :, :] * prim[2, :, :])
+  @. prim[3, :, :] = (equation.gamma - 1) * (cons[3, :, :] - 1/2 * cons[2, :, :] * prim[2, :, :])
   return prim
 end
 

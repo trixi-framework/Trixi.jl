@@ -40,7 +40,7 @@ struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractS
   usurf::Array{Float64, 3}
   fsurf::Array{Float64, 2}
   neighbors::Array{Int, 2}
-  nsurfaces::Int
+  n_surfaces::Int
 
   nodes::SVector{Np1}
   weights::SVector{Np1}
@@ -76,7 +76,7 @@ Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
 
 
 # Convenience constructor to create DG solver instance
-function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
+function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
   # Determine number of elements
   leaf_cell_ids = leaf_cells(mesh)
   n_elements = length(leaf_cell_ids)
@@ -87,12 +87,12 @@ function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
   urk = zeros(Float64, V, N + 1, n_elements)
   flux = zeros(Float64, V, N + 1, n_elements)
 
-  nsurfaces = n_elements
-  usurf = zeros(Float64, 2, V, nsurfaces)
-  fsurf = zeros(Float64, V, nsurfaces)
+  n_surfaces = n_elements
+  usurf = zeros(Float64, 2, V, n_surfaces)
+  fsurf = zeros(Float64, V, n_surfaces)
 
   surfaces = zeros(Int, 2, n_elements)
-  neighbors = zeros(Int, 2, nsurfaces)
+  neighbors = zeros(Int, 2, n_surfaces)
 
   # Create surfaces between elements
   # Order of elements, surfaces:
@@ -108,7 +108,7 @@ function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
     surfaces[2, element_id] = element_id + 1
   end
   surfaces[2, n_elements] = 1
-  for s = 1:nsurfaces
+  for s = 1:n_surfaces
     neighbors[1, s] = s - 1
     neighbors[2, s] = s
   end
@@ -131,10 +131,10 @@ function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
   analysis_total_volume = sum(mesh.length_level_0.^ndim)
 
   # Create actual DG solver instance
-  dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
-      s, u, ut, urk, flux, n_elements, Array{Float64,1}(undef, n_elements),
+  dg = Dg{typeof(equation), N, N + 1, NAna, NAna + 1}(
+      equation, u, ut, urk, flux, n_elements, Array{Float64,1}(undef, n_elements),
       Array{Float64,2}(undef, N + 1, n_elements), surfaces, usurf, fsurf,
-      neighbors, nsurfaces, nodes, weights, dhat, lhat, analysis_nodes,
+      neighbors, n_surfaces, nodes, weights, dhat, lhat, analysis_nodes,
       analysis_weights, analysis_weights_volume, analysis_vandermonde,
       analysis_total_volume)
 
@@ -153,25 +153,25 @@ end
 # Calculate L2/Linf error norms based on "exact solution"
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
-  s = equations(dg)
+  equation = equations(dg)
   n_nodes_analysis = length(dg.analysis_nodes)
 
   # Set up data structures
-  l2_error = zeros(nvariables(s))
-  linf_error = zeros(nvariables(s))
-  u_exact = zeros(nvariables(s))
+  l2_error = zeros(nvariables(equation))
+  linf_error = zeros(nvariables(equation))
+  u_exact = zeros(nvariables(equation))
 
   # Iterate over all elements for error calculations
   for element_id = 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvariables(s))
+    u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvariables(equation))
     x = interpolate_nodes(reshape(dg.node_coordinates[:, element_id], 1, :),
                           dg.analysis_vandermonde, 1)
 
     # Calculate errors at each analysis node
     jacobian = (1 / dg.invjacobian[element_id])^ndim
     for i = 1:n_nodes_analysis
-      u_exact = initial_conditions(s, x[i], t)
+      u_exact = initial_conditions(equation, x[i], t)
       diff = similar(u_exact)
       @. diff = u_exact - u[:, i]
       @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
@@ -190,30 +190,30 @@ end
 function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
                                   step::Integer, runtime_absolute::Real,
   runtime_relative::Real) where {Eqn, N}
-  s = equations(dg)
+  equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, t)
 
   println()
   println("-"^80)
-  println(" Simulation running '$(s.name)' with N = $N")
+  println(" Simulation running '$(equation.name)' with N = $N")
   println("-"^80)
   println(" #timesteps:    " * @sprintf("% 14d", step))
   println(" dt:            " * @sprintf("%10.8e", dt))
   println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
   println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
   print(" Variable:    ")
-  for v in 1:nvariables(s)
-    @printf("  %-14s", s.varnames_cons[v])
+  for v in 1:nvariables(equation)
+    @printf("  %-14s", equation.varnames_cons[v])
   end
   println()
   print(" L2 error:    ")
-  for v in 1:nvariables(s)
+  for v in 1:nvariables(equation)
     @printf("  %10.8e", l2_error[v])
   end
   println()
   print(" Linf error:  ")
-  for v in 1:nvariables(s)
+  for v in 1:nvariables(equation)
     @printf("  %10.8e", linf_error[v])
   end
   println()
@@ -223,11 +223,11 @@ end
 
 # Call equation-specific initial conditions functions and apply to all elements
 function Solvers.set_initial_conditions(dg::Dg, t)
-  s = equations(dg)
+  equation = equations(dg)
 
   for element_id = 1:dg.n_elements
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, element_id] .= initial_conditions(s, dg.node_coordinates[i, element_id], t)
+      dg.u[:, i, element_id] .= initial_conditions(equation, dg.node_coordinates[i, element_id], t)
     end
   end
 end
@@ -265,10 +265,10 @@ end
 function volflux!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
-  s = equations(dg)
+  equation = equations(dg)
 
   @inbounds Threads.@threads for element_id = 1:dg.n_elements
-    dg.flux[:, :, element_id] = calcflux(s, dg.u, element_id, n_nodes)
+    dg.flux[:, :, element_id] = calcflux(equation, dg.u, element_id, n_nodes)
   end
 end
 
@@ -291,9 +291,9 @@ end
 function prolong2surfaces!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
-  s = equations(dg)
+  equation = equations(dg)
 
-  for s = 1:dg.nsurfaces
+  for s = 1:dg.n_surfaces
     left = dg.neighbors[1, s]
     right = dg.neighbors[2, s]
     for v = 1:nvariables(dg)
@@ -308,9 +308,8 @@ end
 function surfflux!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
-  s = equations(dg)
 
-  @inbounds Threads.@threads for s = 1:dg.nsurfaces
+  @inbounds Threads.@threads for s = 1:dg.n_surfaces
     riemann!(dg.fsurf, dg.usurf, s, equations(dg), n_nodes)
   end
 end
@@ -350,8 +349,8 @@ end
 
 # Calculate source terms and apply them to u_t
 function calcsources!(dg::Dg, t)
-  s = equations(dg)
-  if s.sources == "none"
+  equation = equations(dg)
+  if equation.sources == "none"
     return
   end
 

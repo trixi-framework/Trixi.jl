@@ -25,12 +25,12 @@ nvariables(::AbstractEquation{V}) where V = V
 
 
 # Retrieve name of system of equations
-name(s::AbstractEquation) = s.name
+name(equation::AbstractEquation) = equation.name
 
 
 # Add method to show some information on system of equations
-function Base.show(io::IO, s::AbstractEquation)
-  print("name = $(s.name), n_vars = $(nvariables(s))")
+function Base.show(io::IO, equation::AbstractEquation)
+  print("name = $(equation.name), n_vars = $(nvariables(equation))")
 end
 
 
