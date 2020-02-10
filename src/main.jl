@@ -7,7 +7,7 @@ using .Jul1dge.Equations: make_equations, nvariables
 using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
-using .Jul1dge.Io: save_solution_file, save_mesh_file
+using .Jul1dge.Io: save_restart_file, save_solution_file, save_mesh_file
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
@@ -47,7 +47,9 @@ function run()
   println("done")
 
   # Print setup information
-  println()
+  step = 0
+  solution_interval = parameter("solution_interval", 0)
+  restart_interval = parameter("restart_interval", 0)
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
@@ -69,6 +71,8 @@ function run()
          | sources:            $sources
          | t_start:            $t_start
          | t_end:              $t_end
+         | restart interval:   $restart_interval
+         | solution interval:  $solution_interval
          | #parallel threads:  $(Threads.nthreads())
          |
          | Solver
@@ -89,13 +93,12 @@ function run()
          | | minimum dx:       $min_dx
          | | maximum dx:       $max_dx
          """
+  println()
   println(s)
 
   # Set up main loop
-  step = 0
-  finalstep = false
-  solution_interval = parameter("solution_interval", 0)
   save_final_solution = parameter("save_final_solution", true)
+  save_final_restart = parameter("save_final_restart", true)
   analysis_interval = parameter("analysis_interval", 0)
   if analysis_interval > 0
     alive_interval = parameter("alive_interval", div(analysis_interval, 10))
@@ -104,8 +107,8 @@ function run()
   end
 
   # Save initial conditions if desired
-  if parameter("save_initial_solutions", true)
-    save_solution_file(solver, step)
+  if parameter("save_initial_solution", true)
+    save_solution_file(solver, mesh, time, 0, step)
   end
 
   # Print initial solution analysis and initialize solution analysis
@@ -118,6 +121,7 @@ function run()
   n_analysis_timesteps = 0
 
   # Start main loop (loop until final time step is reached)
+  finalstep = false
   @timeit timer() "main loop" while !finalstep
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
@@ -169,7 +173,15 @@ function run()
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
-      @timeit timer() "I/O" save_solution_file(solver, step)
+      @timeit timer() "I/O" save_solution_file(solver, mesh, time, dt, step)
+      output_time += time_ns() - output_start_time
+    end
+
+    # Write restart file
+    if restart_interval > 0 && (
+        step % restart_interval == 0 || (finalstep && save_final_restart))
+      output_start_time = time_ns()
+      @timeit timer() "I/O" save_restart_file(solver, mesh, time, dt, step)
       output_time += time_ns() - output_start_time
     end
   end

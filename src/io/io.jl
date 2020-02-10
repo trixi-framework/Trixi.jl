@@ -12,29 +12,35 @@ using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
 using HDF5: h5open, attrs
 using Printf: @sprintf
 
+export save_restart_file
 export save_solution_file
 export save_mesh_file
 
 
-# Save current solution by forming a timestep-based filename and then
-# dispatching on the 'output_format' parameter.
-function save_solution_file(solver::AbstractSolver, timestep::Integer)
+# Save file capable for restarting the solver.
+function save_restart_file(solver::AbstractSolver, mesh::TreeMesh,
+                           time::Real, dt::Real, timestep::Integer)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
 
   # Filename without extension based on current time step
-  filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
+  filename = joinpath(output_directory, @sprintf("restart_%06d", timestep))
 
-  # Dispatch on format property
-  output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
-  save_solution_file(Val(Symbol(output_format)), solver, filename::String)
+  # Check output format - restart files are always written in HDF5, as loading
+  # from a text file is not supported
+  if parameter("output_format", "hdf5") != "hdf5"
+    error("parameter 'output_format' must be set to 'hdf5' to write restart files")
+  end
+
+  save_restart_file(filename, solver, mesh, convert(Float64, time), convert(Float64, dt), timestep)
 end
 
 
 # Save current DG solution with some context information as a HDF5 file for
-# postprocessing.
-function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
+# restarting.
+function save_restart_file(filename::String, dg::Dg, mesh::TreeMesh,
+                           time::Float64, dt::Float64, timestep::Integer)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
     equation = equations(dg)
@@ -46,6 +52,66 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
+    attrs(file)["mesh_file"] = mesh.current_filename
+    attrs(file)["time"] = time
+    attrs(file)["dt"] = dt
+    attrs(file)["timestep"] = timestep
+
+    # Restart files always store conservative variables
+    data = dg.u
+    varnames = equation.varnames_cons
+
+    # Store each variable of the solution
+    for v = 1:nvariables(dg)
+      # Convert to 1D array
+      file["variables_$v"] = data[v, :, :][:]
+
+      # Add variable name as attribute
+      var = file["variables_$v"]
+      attrs(var)["name"] = varnames[v]
+    end
+  end
+end
+
+
+# Save current solution by forming a timestep-based filename and then
+# dispatching on the 'output_format' parameter.
+function save_solution_file(solver::AbstractSolver, mesh::TreeMesh,
+                            time::Real, dt::Real, timestep::Integer)
+  # Create output directory (if it does not exist)
+  output_directory = parameter("output_directory", "out")
+  mkpath(output_directory)
+
+  # Filename without extension based on current time step
+  filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
+
+  # Dispatch on format property
+  output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
+  save_solution_file(Val(Symbol(output_format)), filename, solver, mesh,
+                     convert(Float64, time), convert(Float64, dt), timestep)
+end
+
+
+# Save current DG solution with some context information as a HDF5 file for
+# postprocessing.
+function save_solution_file(::Val{:hdf5}, filename::String, dg::Dg,
+                            mesh::TreeMesh, time::Float64, dt::Float64,
+                            timestep::Integer)
+  # Open file (clobber existing content)
+  h5open(filename * ".h5", "w") do file
+    equation = equations(dg)
+    N = polydeg(dg)
+
+    # Add context information as attributes
+    attrs(file)["ndim"] = ndim
+    attrs(file)["equations"] = equation.name
+    attrs(file)["N"] = N
+    attrs(file)["n_vars"] = nvariables(dg)
+    attrs(file)["n_elements"] = dg.n_elements
+    attrs(file)["mesh_file"] = mesh.current_filename
+    attrs(file)["time"] = time
+    attrs(file)["dt"] = dt
+    attrs(file)["timestep"] = timestep
 
     # Add coordinates as 1D arrays
     file["x"] = dg.node_coordinates[:]
@@ -76,7 +142,8 @@ end
 
 # Save current DG solution as a plain text file with fixed-width space-separated
 # values, with the first line containing the column names.
-function save_solution_file(::Val{:text}, dg::Dg, filename::String)
+function save_solution_file(::Val{:text}, filename::String, dg::Dg, mesh::TreeMesh,
+                            time::Float64, dt::Float64, timestep::Integer)
   # Open file (clobber existing content)
   open(filename * ".dat", "w") do file
     equation = equations(dg)
@@ -101,6 +168,10 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, "# N = $N")
     println(file, "# n_vars = $(nvariables(dg))")
     println(file, "# n_elements = $(dg.n_elements)")
+    println(file, "# mesh_file = \"$(mesh.current_filename)\"")
+    println(file, "# time = $(time)")
+    println(file, "# dt = $(dt)")
+    println(file, "# timestep = $(timestep)")
 
     # Write column names, put in quotation marks to account for whitespace in names
     columns = Vector{String}(undef, ndim + nvariables(dg))
@@ -138,14 +209,14 @@ function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
 
   # Dispatch on format property
   output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
-  filename = save_mesh_file(Val(Symbol(output_format)), mesh, filename::String)
+  filename = save_mesh_file(Val(Symbol(output_format)), filename, mesh)
 
   return filename
 end
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(::Val{:hdf5}, mesh::TreeMesh, filename::String)
+function save_mesh_file(::Val{:hdf5}, filename::String, mesh::TreeMesh)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
     # Add context information as attributes
@@ -171,7 +242,7 @@ end
 
 
 # Save current mesh with some context information as a text file.
-function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
+function save_mesh_file(::Val{:text}, filename::String, mesh::TreeMesh)
   # Open file (clobber existing content)
   open(filename * ".dat", "w") do file
     # Add context information as comments in the first lines of the file

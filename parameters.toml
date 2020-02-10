@@ -34,4 +34,5 @@ refinement_patches = [
 # I/O
 solution_interval = 20
 solution_variables = "conservative"
+restart_interval = 100
 output_format = "hdf5"
