@@ -1,5 +1,22 @@
+module EulerEquations
+
+using ...Jul1dge
+using ..Equations # Use everything to allow method extension via "function Equations.<method>"
+using ...Auxiliary: parameter
+using StaticArrays: SVector, MVector, MMatrix
+
+# Export all symbols that should be available from Equations
+export Euler
+export initialconditions
+export sources
+export calcflux
+export riemann!
+export maxdt
+export cons2prim
+
+
 # Main data structure for system of equations "Euler"
-struct Euler <: AbstractSysEqn{3}
+struct Euler <: AbstractEquation{3}
   name::String
   initialconditions::String
   sources::String
@@ -22,7 +39,7 @@ end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initialconditions(s::Euler, x, t)
+function Equations.initialconditions(s::Euler, x, t)
   name = s.initialconditions
   if name == "density_pulse"
     rho = 1 + exp(-x^2)/2
@@ -76,14 +93,14 @@ end
 
 
 # Apply source terms
-function sources(s::Euler, ut, u, x, cell_id, t, nnodes)
+function Equations.sources(s::Euler, ut, u, x, cell_id, t, nnodes)
   name = s.sources
   error("Unknown source term '$name'")
 end
 
 
 # Calculate flux at a given cell id
-function calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
+function Equations.calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{3, nnodes})
   @inbounds for i = 1:nnodes
     rho   = u[1, i, cell_id]
@@ -96,7 +113,7 @@ function calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
 end
 
 # Calculate flux for a give state
-function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
+function Equations.calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
   f = zeros(MVector{3})
   v = rho_v/rho
   p = (s.gamma - 1) * (rho_e - 1/2 * rho * v^2)
@@ -110,7 +127,7 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function riemann!(fsurf, usurf, s::Int, ss::Euler, nnodes)
+function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, nnodes)
   u_ll     = usurf[1, :, s]
   u_rr     = usurf[2, :, s]
 
@@ -170,8 +187,8 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
-               invjacobian::Float64, cfl::Float64)
+function Equations.maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int,
+                         nnodes::Int, invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
   for i = 1:nnodes
     rho   = u[1, i, cell_id]
@@ -190,10 +207,12 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(s::Euler, cons::Array{Float64, 3})
+function Equations.cons2prim(s::Euler, cons::Array{Float64, 3})
   prim = similar(cons)
   @. prim[1, :, :] = cons[1, :, :]
   @. prim[2, :, :] = cons[2, :, :] / cons[1, :, :]
   @. prim[3, :, :] = (s.gamma - 1) * (cons[3, :, :] - 1/2 * cons[2, :, :] * prim[2, :, :])
   return prim
 end
+
+end # module

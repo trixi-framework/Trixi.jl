@@ -4,7 +4,7 @@ include("interpolation.jl")
 
 using ...Jul1dge
 using ..Solvers: AbstractSolver
-using ...Equations: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
+using ...Equations: AbstractEquation, initialconditions, calcflux, riemann!, sources, maxdt
 import ...Equations: nvars # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh.Trees: Tree, leaf_nodes, length_at_node
@@ -26,7 +26,7 @@ export analyze_solution
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
+struct Dg{SysEqn <: AbstractEquation{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
@@ -68,7 +68,7 @@ nvars(dg::Dg) = nvars(syseqn(dg))
 
 
 # Convenience constructor to create DG solver instance
-function Dg(s::AbstractSysEqn{nvars_}, mesh::Tree, N::Int) where nvars_
+function Dg(s::AbstractEquation{nvars_}, mesh::Tree, N::Int) where nvars_
   # Determine number of cells
   leaf_node_ids = leaf_nodes(mesh)
   ncells = length(leaf_node_ids)
