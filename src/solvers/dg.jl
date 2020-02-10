@@ -5,7 +5,7 @@ include("interpolation.jl")
 using ...Jul1dge
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, maxdt
-import ...Equations: nvars # Import to allow method extension
+import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh.Trees: Tree, leaf_cells, length_at_cell
 using .Interpolation: interpolate_nodes, calcdhat,
@@ -16,7 +16,7 @@ using Printf: @sprintf, @printf
 
 export Dg
 export set_initial_conditions
-export nvars
+export nvariables
 export equations
 export polydeg
 export rhs!
@@ -26,7 +26,7 @@ export analyze_solution
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{Eqn <: AbstractEquation{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
+struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
@@ -59,12 +59,16 @@ end
 polydeg(::Dg{Eqn, N}) where {Eqn, N} = N
 
 
+# Return number of nodes in one direction
+nnodes(::Dg{Eqn, N}) where {Eqn, N} = N + 1
+
+
 # Return system of equations instance for a DG solver
 Solvers.equations(dg::Dg) = dg.equations
 
 
 # Return number of variables for the system of equations in use
-nvars(dg::Dg) = nvars(equations(dg))
+nvariables(dg::Dg) = nvariables(equations(dg))
 
 
 # Return number of degrees of freedom
@@ -72,20 +76,20 @@ Solvers.ndofs(dg::Dg) = dg.nelements * (polydeg(dg) + 1)^ndim
 
 
 # Convenience constructor to create DG solver instance
-function Dg(s::AbstractEquation{nvars_}, mesh::Tree, N::Int) where nvars_
+function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
   # Determine number of elements
   leaf_cell_ids = leaf_cells(mesh)
   nelements = length(leaf_cell_ids)
 
   # Initialize data structures
-  u = zeros(Float64, nvars_, N + 1, nelements)
-  ut = zeros(Float64, nvars_, N + 1, nelements)
-  urk = zeros(Float64, nvars_, N + 1, nelements)
-  flux = zeros(Float64, nvars_, N + 1, nelements)
+  u = zeros(Float64, V, N + 1, nelements)
+  ut = zeros(Float64, V, N + 1, nelements)
+  urk = zeros(Float64, V, N + 1, nelements)
+  flux = zeros(Float64, V, N + 1, nelements)
 
   nsurfaces = nelements
-  usurf = zeros(Float64, 2, nvars_, nsurfaces)
-  fsurf = zeros(Float64, nvars_, nsurfaces)
+  usurf = zeros(Float64, 2, V, nsurfaces)
+  fsurf = zeros(Float64, V, nsurfaces)
 
   surfaces = zeros(Int, 2, nelements)
   neighbors = zeros(Int, 2, nsurfaces)
@@ -150,18 +154,17 @@ end
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
   s = equations(dg)
-  nvars_ = nvars(s)
   n_nodes_analysis = length(dg.analysis_nodes)
 
   # Set up data structures
-  l2_error = zeros(nvars_)
-  linf_error = zeros(nvars_)
-  u_exact = zeros(nvars_)
+  l2_error = zeros(nvariables(s))
+  linf_error = zeros(nvariables(s))
+  u_exact = zeros(nvariables(s))
 
   # Iterate over all elements for error calculations
   for element_id = 1:dg.nelements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvars_)
+    u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvariables(s))
     x = interpolate_nodes(reshape(dg.node_coordinates[:, element_id], 1, :),
                           dg.analysis_vandermonde, 1)
 
@@ -188,7 +191,6 @@ function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
                                   step::Integer, runtime_absolute::Real,
   runtime_relative::Real) where {Eqn, N}
   s = equations(dg)
-  nvars_ = nvars(s)
 
   l2_error, linf_error = calc_error_norms(dg, t)
 
@@ -201,17 +203,17 @@ function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
   println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
   println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
   print(" Variable:    ")
-  for v in 1:nvars_
+  for v in 1:nvariables(s)
     @printf("  %-14s", s.varnames_cons[v])
   end
   println()
   print(" L2 error:    ")
-  for v in 1:nvars_
+  for v in 1:nvariables(s)
     @printf("  %10.8e", l2_error[v])
   end
   println()
   print(" Linf error:  ")
-  for v in 1:nvars_
+  for v in 1:nvariables(s)
     @printf("  %10.8e", linf_error[v])
   end
   println()
@@ -273,14 +275,10 @@ end
 
 # Calculate volume integral and update u_t
 function volint!(dg)
-  N = polydeg(dg)
-  n_nodes = N + 1
-  nvars_ = nvars(dg)
-
   @inbounds Threads.@threads for element_id = 1:dg.nelements
-    for i = 1:n_nodes
-      for v = 1:nvars_
-        for j = 1:n_nodes
+    for i = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        for j = 1:nnodes(dg)
           dg.ut[v, i, element_id] += dg.dhat[i, j] * dg.flux[v, j, element_id]
         end
       end
@@ -294,12 +292,11 @@ function prolong2surfaces!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
   s = equations(dg)
-  nvars_ = nvars(dg)
 
   for s = 1:dg.nsurfaces
     left = dg.neighbors[1, s]
     right = dg.neighbors[2, s]
-    for v = 1:nvars_
+    for v = 1:nvariables(dg)
       dg.usurf[1, v, s] = dg.u[v, n_nodes, left]
       dg.usurf[2, v, s] = dg.u[v, 1, right]
     end
@@ -323,13 +320,12 @@ end
 function surfint!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
-  nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
     left = dg.surfaces[1, element_id]
     right = dg.surfaces[2, element_id]
 
-    for v = 1:nvars_
+    for v = 1:nvariables(dg)
       dg.ut[v, 1,      element_id] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
       dg.ut[v, n_nodes, element_id] += dg.fsurf[v, right] * dg.lhat[n_nodes, 2]
     end
@@ -341,11 +337,10 @@ end
 function applyjacobian!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
-  nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
     for i = 1:n_nodes
-      for v = 1:nvars_
+      for v = 1:nvariables(dg)
         dg.ut[v, i, element_id] *= -dg.invjacobian[element_id]
       end
     end
@@ -362,7 +357,6 @@ function calcsources!(dg::Dg, t)
 
   N = polydeg(dg)
   n_nodes = N + 1
-  nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
     sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, n_nodes)

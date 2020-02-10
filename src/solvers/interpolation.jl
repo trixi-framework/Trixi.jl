@@ -14,14 +14,14 @@ export gausslobatto
 
 # Interpolate data using the given Vandermonde matrix and return interpolated values.
 function interpolate_nodes(data_in::AbstractArray{T, 2},
-                           vandermonde::AbstractArray{T, 2}, nvars_::Integer) where T
+                           vandermonde::AbstractArray{T, 2}, n_vars::Integer) where T
   n_nodes_out = size(vandermonde, 1)
   n_nodes_in = size(vandermonde, 2)
-  data_out = zeros(eltype(data_in), nvars_, n_nodes_out)
+  data_out = zeros(eltype(data_in), n_vars, n_nodes_out)
 
   for i = 1:n_nodes_out
     for j = 1:n_nodes_in
-      for v = 1:nvars_
+      for v = 1:n_vars
         data_out[v, i] += vandermonde[i, j] * data_in[v, j]
       end
     end

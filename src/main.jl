@@ -3,7 +3,7 @@ include("Jul1dge.jl")
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_cells, minimum_level, maximum_level
-using .Jul1dge.Equations: make_equations, nvars
+using .Jul1dge.Equations: make_equations, nvariables
 using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calcdt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
@@ -68,7 +68,7 @@ function run()
          | CFL:                $cfl
          | n_steps_max:        $n_steps_max
          | equations:          $equations_name
-         | | #variables:       $(nvars(equations))
+         | | #variables:       $(nvariables(equations))
          | | variable names:   $(join(equations.varnames_cons, ", "))
          | initial_conditions: $initial_conditions
          | sources:            $sources

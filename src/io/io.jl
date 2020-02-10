@@ -3,7 +3,7 @@ module Io
 using ..Jul1dge
 using ..Solvers: AbstractSolver, polydeg, equations, Dg
 using ..Solvers.DgSolver: polydeg
-using ..Equations: nvars, cons2prim
+using ..Equations: nvariables, cons2prim
 using ..Auxiliary: parameter
 
 using HDF5: h5open, attrs
@@ -35,13 +35,12 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
   h5open(filename * ".h5", "w") do file
     s = equations(dg)
     N = polydeg(dg)
-    nvars_ = nvars(dg)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
     attrs(file)["equations"] = s.name
     attrs(file)["N"] = N
-    attrs(file)["nvars"] = nvars_
+    attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["nelements"] = dg.nelements
 
     # Add coordinates as 1D arrays
@@ -59,7 +58,7 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
     end
 
     # Store each variable of the solution
-    for v = 1:nvars_
+    for v = 1:nvariables(dg)
       # Convert to 1D array
       file["variables_$v"] = data[v, :, :][:]
 
@@ -79,7 +78,6 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     s = equations(dg)
     N = polydeg(dg)
     n_nodes = N + 1
-    nvars_ = nvars(dg)
 
     # Convert to primitive variables if requested
     output_variables = parameter("output_variables",
@@ -97,22 +95,22 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, "# ndim = $ndim")
     println(file, "# equations = \"$(s.name)\"")
     println(file, "# N = $N")
-    println(file, "# nvars = $nvars_")
+    println(file, "# n_vars = $(nvariables(dg))")
     println(file, "# nelements = $(dg.nelements)")
 
     # Write column names, put in quotation marks to account for whitespace in names
-    columns = Vector{String}(undef, ndim + nvars_)
+    columns = Vector{String}(undef, ndim + nvariables(dg))
     columns[1] = @sprintf("%-15s", "\"x\"")
-    for v = 1:nvars_
+    for v = 1:nvariables(dg)
       columns[v+1] = @sprintf("%-15s", "\"$(varnames[v])\"")
     end
     println(file, strip(join(columns, " ")))
 
     # Write data
     for cell_id = 1:dg.nelements, i = 1:n_nodes
-      data_out = Vector{String}(undef, ndim + nvars_)
+      data_out = Vector{String}(undef, ndim + nvariables(dg))
       data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, cell_id])
-      for v = 1:nvars_
+      for v = 1:nvariables(dg)
         data_out[v+1] = @sprintf("%+10.8e", data[v, i, cell_id])
       end
       println(file, join(data_out, " "))

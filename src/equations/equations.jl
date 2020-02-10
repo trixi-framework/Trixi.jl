@@ -3,7 +3,7 @@ module Equations
 using ..Jul1dge
 
 export make_equations
-export nvars
+export nvariables
 export AbstractEquation
 export initial_conditions
 export sources
@@ -18,10 +18,10 @@ abstract type AbstractEquation{V} end
 
 
 # Retrieve number of variables from equation type
-nvars(::Type{AbstractEquation{V}}) where V = V
+nvariables(::Type{AbstractEquation{V}}) where V = V
 
 # Retrieve number of variables from equation instance
-nvars(::AbstractEquation{V}) where V = V
+nvariables(::AbstractEquation{V}) where V = V
 
 
 # Retrieve name of system of equations
@@ -30,7 +30,7 @@ name(s::AbstractEquation) = s.name
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, s::AbstractEquation)
-  print("name = $(s.name), nvars = $(nvars(s))")
+  print("name = $(s.name), n_vars = $(nvariables(s))")
 end
 
 

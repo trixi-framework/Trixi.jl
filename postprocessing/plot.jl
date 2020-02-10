@@ -98,11 +98,11 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
 
   # Create output data structure
   nelements = div(size(data_in, 1), n_nodes_in)
-  nvars = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, n_nodes_out, nelements, nvars)
+  n_variables = size(data_in, 2)
+  data_out = Array{eltype(data_in)}(undef, n_nodes_out, nelements, n_variables)
 
   # Interpolate each variable separately
-  for v = 1:nvars
+  for v = 1:n_variables
     # Reshape data to fit expected format for interpolation function
     # FIXME: this "reshape here, reshape later" funny business should be implemented properly
     reshaped = reshape(data_in[:, v], 1, n_nodes_in, nelements)
@@ -113,7 +113,7 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
     end
   end
 
-  return reshape(data_out, n_nodes_out * nelements, nvars)
+  return reshape(data_out, n_nodes_out * nelements, n_variables)
 end
 
 
@@ -123,11 +123,11 @@ function read_datafile(::Val{:hdf5}, filename::String)
     # Extract basic information
     N = read(attrs(file)["N"])
     nelements = read(attrs(file)["nelements"])
-    nvars = read(attrs(file)["nvars"])
+    n_variables = read(attrs(file)["n_vars"])
 
     # Extract labels for legend
-    labels = Array{String}(undef, 1, nvars)
-    for v = 1:nvars
+    labels = Array{String}(undef, 1, n_variables)
+    for v = 1:n_variables
       labels[1, v] = read(attrs(file["variables_$v"])["name"])
     end
 
@@ -138,8 +138,8 @@ function read_datafile(::Val{:hdf5}, filename::String)
     coordinates .= read(file["x"])
 
     # Extract data arrays
-    data = Array{Float64}(undef, num_datapoints, nvars)
-    for v = 1:nvars
+    data = Array{Float64}(undef, num_datapoints, n_variables)
+    for v = 1:n_variables
       data[:, v] .= read(file["variables_$v"])
     end
 
