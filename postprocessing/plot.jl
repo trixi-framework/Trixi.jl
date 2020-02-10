@@ -2,7 +2,7 @@
 
 # Get useful bits and pieces from jul1dge
 include("../src/auxiliary/auxiliary.jl")
-include("../src/dg/interpolation.jl")
+include("../src/solvers/interpolation.jl")
 
 using .Interpolation: gausslobatto, polynomialinterpolationmatrix, interpolate_nodes
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
