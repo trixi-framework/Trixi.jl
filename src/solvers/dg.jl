@@ -35,11 +35,11 @@ struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractS
   n_elements::Int
   inverse_jacobian::Array{Float64, 1}
   node_coordinates::Array{Float64, 2}
-  surfaces::Array{Int, 2}
+  surface_ids::Array{Int, 2}
 
   u_surfaces::Array{Float64, 3}
   flux_surfaces::Array{Float64, 2}
-  neighbors::Array{Int, 2}
+  neighbor_ids::Array{Int, 2}
   n_surfaces::Int
 
   nodes::SVector{Np1}
@@ -52,6 +52,81 @@ struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_weights_volume::SVector{NAnap1}
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
+end
+
+
+# Convenience constructor to create DG solver instance
+function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
+  # Determine number of elements
+  leaf_cell_ids = leaf_cells(mesh)
+  n_elements = length(leaf_cell_ids)
+
+  # Initialize data structures
+  u = zeros(Float64, V, N + 1, n_elements)
+  u_t = zeros(Float64, V, N + 1, n_elements)
+  u_rungekutta = zeros(Float64, V, N + 1, n_elements)
+  flux = zeros(Float64, V, N + 1, n_elements)
+
+  n_surfaces = n_elements
+  u_surfaces = zeros(Float64, 2, V, n_surfaces)
+  flux_surfaces = zeros(Float64, V, n_surfaces)
+
+  surface_ids = zeros(Int, 2, n_elements)
+  neighbor_ids = zeros(Int, 2, n_surfaces)
+
+  # Create surfaces between elements
+  # Order of elements, surfaces:
+  # |---|---|---|
+  # s c s c s c s
+  # 1 1 2 2 3 3 1
+  # Order of adjacent surfaces:
+  # 1 --- 2
+  # Order of adjacent elements:
+  # 1  |  2
+  for element_id = 1:n_elements
+    surface_ids[1, element_id] = element_id
+    surface_ids[2, element_id] = element_id + 1
+  end
+  surface_ids[2, n_elements] = 1
+  for s = 1:n_surfaces
+    neighbor_ids[1, s] = s - 1
+    neighbor_ids[2, s] = s
+  end
+  neighbor_ids[1, 1] = n_elements
+
+
+  # Initialize interpolation data structures
+  nodes, weights = gauss_lobatto_nodes_weights(N + 1)
+  dhat = calc_dhat(nodes, weights)
+  lhat = zeros(N + 1, 2)
+  lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
+  lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
+
+  # Initialize data structures for error analysis (by default, we use twice the
+  # number of analysis nodes as the normal solution)
+  NAna = 2 * (N + 1) - 1
+  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
+  analysis_weights_volume = analysis_weights
+  analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
+  analysis_total_volume = sum(mesh.length_level_0.^ndim)
+
+  # Create actual DG solver instance
+  dg = Dg{typeof(equation), N, N + 1, NAna, NAna + 1}(
+      equation, u, u_t, u_rungekutta, flux, n_elements, Array{Float64,1}(undef, n_elements),
+      Array{Float64,2}(undef, N + 1, n_elements), surface_ids, u_surfaces, flux_surfaces,
+      neighbor_ids, n_surfaces, nodes, weights, dhat, lhat, analysis_nodes,
+      analysis_weights, analysis_weights_volume, analysis_vandermonde,
+      analysis_total_volume)
+
+  # Calculate inverse Jacobian and node coordinates
+  for element_id in 1:n_elements
+    cell_id = leaf_cell_ids[element_id]
+    dx = length_at_cell(mesh, cell_id)
+    dg.inverse_jacobian[element_id] = 2/dx
+    dg.node_coordinates[:, element_id] = @. mesh.coordinates[1, cell_id] + dx/2 * nodes[:]
+  end
+
+  return dg
 end
 
 
@@ -73,81 +148,6 @@ nvariables(dg::Dg) = nvariables(equations(dg))
 
 # Return number of degrees of freedom
 Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
-
-
-# Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
-  # Determine number of elements
-  leaf_cell_ids = leaf_cells(mesh)
-  n_elements = length(leaf_cell_ids)
-
-  # Initialize data structures
-  u = zeros(Float64, V, N + 1, n_elements)
-  u_t = zeros(Float64, V, N + 1, n_elements)
-  u_rungekutta = zeros(Float64, V, N + 1, n_elements)
-  flux = zeros(Float64, V, N + 1, n_elements)
-
-  n_surfaces = n_elements
-  u_surfaces = zeros(Float64, 2, V, n_surfaces)
-  flux_surfaces = zeros(Float64, V, n_surfaces)
-
-  surfaces = zeros(Int, 2, n_elements)
-  neighbors = zeros(Int, 2, n_surfaces)
-
-  # Create surfaces between elements
-  # Order of elements, surfaces:
-  # |---|---|---|
-  # s c s c s c s
-  # 1 1 2 2 3 3 1
-  # Order of adjacent surfaces:
-  # 1 --- 2
-  # Order of adjacent elements:
-  # 1  |  2
-  for element_id = 1:n_elements
-    surfaces[1, element_id] = element_id
-    surfaces[2, element_id] = element_id + 1
-  end
-  surfaces[2, n_elements] = 1
-  for s = 1:n_surfaces
-    neighbors[1, s] = s - 1
-    neighbors[2, s] = s
-  end
-  neighbors[1, 1] = n_elements
-
-
-  # Initialize interpolation data structures
-  nodes, weights = gauss_lobatto_nodes_weights(N + 1)
-  dhat = calc_dhat(nodes, weights)
-  lhat = zeros(N + 1, 2)
-  lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
-  lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
-
-  # Initialize data structures for error analysis (by default, we use twice the
-  # number of analysis nodes as the normal solution)
-  NAna = 2 * (N + 1) - 1
-  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
-  analysis_weights_volume = analysis_weights
-  analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = sum(mesh.length_level_0.^ndim)
-
-  # Create actual DG solver instance
-  dg = Dg{typeof(equation), N, N + 1, NAna, NAna + 1}(
-      equation, u, u_t, u_rungekutta, flux, n_elements, Array{Float64,1}(undef, n_elements),
-      Array{Float64,2}(undef, N + 1, n_elements), surfaces, u_surfaces, flux_surfaces,
-      neighbors, n_surfaces, nodes, weights, dhat, lhat, analysis_nodes,
-      analysis_weights, analysis_weights_volume, analysis_vandermonde,
-      analysis_total_volume)
-
-  # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:n_elements
-    cell_id = leaf_cell_ids[element_id]
-    dx = length_at_cell(mesh, cell_id)
-    dg.inverse_jacobian[element_id] = 2/dx
-    dg.node_coordinates[:, element_id] = @. mesh.coordinates[1, cell_id] + dx/2 * nodes[:]
-  end
-
-  return dg
-end
 
 
 # Calculate L2/Linf error norms based on "exact solution"
@@ -291,8 +291,8 @@ function prolong2surfaces!(dg)
   equation = equations(dg)
 
   for s = 1:dg.n_surfaces
-    left = dg.neighbors[1, s]
-    right = dg.neighbors[2, s]
+    left = dg.neighbor_ids[1, s]
+    right = dg.neighbor_ids[2, s]
     for v = 1:nvariables(dg)
       dg.u_surfaces[1, v, s] = dg.u[v, nnodes(dg), left]
       dg.u_surfaces[2, v, s] = dg.u[v, 1, right]
@@ -312,8 +312,8 @@ end
 # Calculate surface integrals and update u_t
 function calc_surface_integral!(dg)
   for element_id = 1:dg.n_elements
-    left = dg.surfaces[1, element_id]
-    right = dg.surfaces[2, element_id]
+    left = dg.surface_ids[1, element_id]
+    right = dg.surface_ids[2, element_id]
 
     for v = 1:nvariables(dg)
       dg.u_t[v, 1,          element_id] -= dg.flux_surfaces[v, left ] * dg.lhat[1,          1]
