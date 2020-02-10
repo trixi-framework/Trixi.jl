@@ -93,16 +93,16 @@ end
 
 
 # Apply source terms
-function Equations.sources(s::Euler, ut, u, x, cell_id, t, nnodes)
+function Equations.sources(s::Euler, ut, u, x, cell_id, t, n_nodes)
   name = s.sources
   error("Unknown source term '$name'")
 end
 
 
 # Calculate flux at a given cell id
-function Equations.calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
-  f = zeros(MMatrix{3, nnodes})
-  @inbounds for i = 1:nnodes
+function Equations.calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
+  f = zeros(MMatrix{3, n_nodes})
+  @inbounds for i = 1:n_nodes
     rho   = u[1, i, cell_id]
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
@@ -127,7 +127,7 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, nnodes)
+function Equations.riemann!(fsurf, usurf, s::Int, ss::Euler, n_nodes)
   u_ll     = usurf[1, :, s]
   u_rr     = usurf[2, :, s]
 
@@ -188,9 +188,9 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function Equations.maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int,
-                         nnodes::Int, invjacobian::Float64, cfl::Float64)
+                         n_nodes::Int, invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
-  for i = 1:nnodes
+  for i = 1:n_nodes
     rho   = u[1, i, cell_id]
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
@@ -200,7 +200,7 @@ function Equations.maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int,
     λ_max = max(λ_max, abs(v) + c)
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / (2 * (nnodes - 1) + 1)
+  dt = cfl * 2 / (invjacobian * λ_max) / (2 * (n_nodes - 1) + 1)
 
   return dt
 end

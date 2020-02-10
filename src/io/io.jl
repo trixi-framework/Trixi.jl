@@ -78,7 +78,7 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
   open(filename * ".dat", "w") do file
     s = equations(dg)
     N = polydeg(dg)
-    nnodes = N + 1
+    n_nodes = N + 1
     nvars_ = nvars(dg)
 
     # Convert to primitive variables if requested
@@ -109,7 +109,7 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, strip(join(columns, " ")))
 
     # Write data
-    for cell_id = 1:dg.nelements, i = 1:nnodes
+    for cell_id = 1:dg.nelements, i = 1:n_nodes
       data_out = Vector{String}(undef, ndim + nvars_)
       data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, cell_id])
       for v = 1:nvars_

@@ -61,7 +61,7 @@ end
 
 
 # Apply source terms
-function Equations.sources(s::LinearScalarAdvection, ut, u, x, cell_id, t, nnodes)
+function Equations.sources(s::LinearScalarAdvection, ut, u, x, cell_id, t, n_nodes)
   name = s.sources
   error("Unknown source terms '$name'")
 end
@@ -69,11 +69,11 @@ end
 
 # Calculate flux at a given cell id
 function Equations.calcflux(s::LinearScalarAdvection, u::Array{Float64, 3},
-                            cell_id::Int, nnodes::Int)
-  f = zeros(MMatrix{1, nnodes})
+                            cell_id::Int, n_nodes::Int)
+  f = zeros(MMatrix{1, n_nodes})
   a = s.advectionvelocity
 
-  for i = 1:nnodes
+  for i = 1:n_nodes
     f[1, i]  = u[1, i, cell_id] * a
   end
 
@@ -82,7 +82,7 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
+function Equations.riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, n_nodes)
   a = ss.advectionvelocity
   fsurf[1, s] = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
 end
@@ -90,9 +90,9 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function Equations.maxdt(s::LinearScalarAdvection, u::Array{Float64, 3},
-                         cell_id::Int, nnodes::Int, invjacobian::Float64,
+                         cell_id::Int, n_nodes::Int, invjacobian::Float64,
   cfl::Float64)
-  return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (nnodes - 1) + 1)
+  return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (n_nodes - 1) + 1)
 end
 
 

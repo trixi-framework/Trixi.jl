@@ -15,12 +15,12 @@ export gausslobatto
 # Interpolate data using the given Vandermonde matrix and return interpolated values.
 function interpolate_nodes(data_in::AbstractArray{T, 2},
                            vandermonde::AbstractArray{T, 2}, nvars_::Integer) where T
-  nnodes_out = size(vandermonde, 1)
-  nnodes_in = size(vandermonde, 2)
-  data_out = zeros(eltype(data_in), nvars_, nnodes_out)
+  n_nodes_out = size(vandermonde, 1)
+  n_nodes_in = size(vandermonde, 2)
+  data_out = zeros(eltype(data_in), nvars_, n_nodes_out)
 
-  for i = 1:nnodes_out
-    for j = 1:nnodes_in
+  for i = 1:n_nodes_out
+    for j = 1:n_nodes_in
       for v = 1:nvars_
         data_out[v, i] += vandermonde[i, j] * data_in[v, j]
       end
@@ -33,11 +33,11 @@ end
 
 # Calculate the Dhat matrix
 function calcdhat(nodes, weights)
-  nnodes = length(nodes)
+  n_nodes = length(nodes)
   dhat = polynomialderivativematrix(nodes)
   dhat = transpose(dhat)
 
-  for n = 1:nnodes, j = 1:nnodes
+  for n = 1:n_nodes, j = 1:n_nodes
     dhat[j, n] *= -weights[n] / weights[j]
   end
 
@@ -47,11 +47,11 @@ end
 
 # Calculate the polynomial derivative matrix D
 function polynomialderivativematrix(nodes)
-  nnodes = length(nodes)
-  d = zeros(nnodes, nnodes)
+  n_nodes = length(nodes)
+  d = zeros(n_nodes, n_nodes)
   wbary = barycentricweights(nodes)
 
-  for i = 1:nnodes, j = 1:nnodes
+  for i = 1:n_nodes, j = 1:n_nodes
     if j != i
       d[i, j] = wbary[j] / wbary[i] * 1 / (nodes[i] - nodes[j])
       d[i, i] -= d[i, j]
@@ -64,14 +64,14 @@ end
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
 function polynomialinterpolationmatrix(nodes_in, nodes_out)
-  nnodes_in = length(nodes_in)
-  nnodes_out = length(nodes_out)
+  n_nodes_in = length(nodes_in)
+  n_nodes_out = length(nodes_out)
   wbary_in = barycentricweights(nodes_in)
-  vdm = zeros(nnodes_out, nnodes_in)
+  vdm = zeros(n_nodes_out, n_nodes_in)
 
-  for k = 1:nnodes_out
+  for k = 1:n_nodes_out
     match = false
-    for j = 1:nnodes_in
+    for j = 1:n_nodes_in
       if isapprox(nodes_out[k], nodes_in[j], rtol=eps())
         match = true
         vdm[k, j] = 1
@@ -80,12 +80,12 @@ function polynomialinterpolationmatrix(nodes_in, nodes_out)
 
     if match == false
       s = 0.0
-      for j = 1:nnodes_in
+      for j = 1:n_nodes_in
         t = wbary_in[j] / (nodes_out[k] - nodes_in[j])
         vdm[k, j] = t
         s += t
       end
-      for j = 1:nnodes_in
+      for j = 1:n_nodes_in
         vdm[k, j] = vdm[k, j] / s
       end
     end
@@ -97,15 +97,15 @@ end
 
 # Calculate the barycentric weights for a given node distribution.
 function barycentricweights(nodes)
-  nnodes = length(nodes)
-  weights = ones(nnodes)
+  n_nodes = length(nodes)
+  weights = ones(n_nodes)
 
-  for j = 2:nnodes, k = 1:(j-1)
+  for j = 2:n_nodes, k = 1:(j-1)
     weights[k] *= nodes[k] - nodes[j]
     weights[j] *= nodes[j] - nodes[k]
   end
 
-  for j = 1:nnodes
+  for j = 1:n_nodes
     weights[j] = 1 / weights[j]
   end
 
@@ -115,12 +115,12 @@ end
 
 # Calculate Lhat.
 function calclhat(x::Float64, nodes, weights)
-  nnodes = length(nodes)
+  n_nodes = length(nodes)
   wbary = barycentricweights(nodes)
 
   lhat = lagrangeinterpolatingpolynomials(x, nodes, wbary)
 
-  for i = 1:nnodes
+  for i = 1:n_nodes
     lhat[i] /= weights[i]
   end
 
@@ -130,22 +130,22 @@ end
 
 # Calculate Lagrange polynomials for a given node distribution.
 function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
-  nnodes = length(nodes)
-  polynomials = zeros(nnodes)
+  n_nodes = length(nodes)
+  polynomials = zeros(n_nodes)
 
-  for i = 1:nnodes
+  for i = 1:n_nodes
     if isapprox(x, nodes[i], rtol=eps(x))
       polynomials[i] = 1
       return polynomials
     end
   end
 
-  for i = 1:nnodes
+  for i = 1:n_nodes
     polynomials[i] = wbary[i] / (x - nodes[i])
   end
   total = sum(polynomials)
 
-  for i = 1:nnodes
+  for i = 1:n_nodes
     polynomials[i] /= total
   end
 
@@ -154,8 +154,8 @@ end
 
 
 # Calculate nodes and weights for Legendre-Gauss-Lobatto quadratue.
-function gausslobatto(nnodes::Integer)
-  return legendre(nnodes, both)
+function gausslobatto(n_nodes::Integer)
+  return legendre(n_nodes, both)
 end
 
 

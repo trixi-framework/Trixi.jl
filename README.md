@@ -7,9 +7,6 @@ The following lists a few conventions that have been used so far:
 
 *   Modules, types, structs with `CamelCase`
 *   Functions, variables with lowercase `snake_case`  
-    *Note:* Commonly used `N` (for polynomial degree), `nnodes` (number of
-    nodes in 1D, i.e., N + 1), and `nvars` (number of variables in a given
-    system of equations) are named differently for brevity.
 *   Indentation with 2 spaces (never tabs!), line continuations indented with 4
     spaces
 *   Maximum line length (strictly): **100**

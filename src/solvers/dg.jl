@@ -151,7 +151,7 @@ function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
   s = equations(dg)
   nvars_ = nvars(s)
-  nnodes_analysis = length(dg.analysis_nodes)
+  n_nodes_analysis = length(dg.analysis_nodes)
 
   # Set up data structures
   l2_error = zeros(nvars_)
@@ -167,7 +167,7 @@ function calc_error_norms(dg::Dg, t::Float64)
 
     # Calculate errors at each analysis node
     jacobian = (1 / dg.invjacobian[element_id])^ndim
-    for i = 1:nnodes_analysis
+    for i = 1:n_nodes_analysis
       u_exact = initial_conditions(s, x[i], t)
       diff = similar(u_exact)
       @. diff = u_exact - u[:, i]
@@ -262,11 +262,11 @@ end
 # Calculate and store volume fluxes
 function volflux!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   s = equations(dg)
 
   @inbounds Threads.@threads for element_id = 1:dg.nelements
-    dg.flux[:, :, element_id] = calcflux(s, dg.u, element_id, nnodes)
+    dg.flux[:, :, element_id] = calcflux(s, dg.u, element_id, n_nodes)
   end
 end
 
@@ -274,13 +274,13 @@ end
 # Calculate volume integral and update u_t
 function volint!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   nvars_ = nvars(dg)
 
   @inbounds Threads.@threads for element_id = 1:dg.nelements
-    for i = 1:nnodes
+    for i = 1:n_nodes
       for v = 1:nvars_
-        for j = 1:nnodes
+        for j = 1:n_nodes
           dg.ut[v, i, element_id] += dg.dhat[i, j] * dg.flux[v, j, element_id]
         end
       end
@@ -292,7 +292,7 @@ end
 # Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   s = equations(dg)
   nvars_ = nvars(dg)
 
@@ -300,7 +300,7 @@ function prolong2surfaces!(dg)
     left = dg.neighbors[1, s]
     right = dg.neighbors[2, s]
     for v = 1:nvars_
-      dg.usurf[1, v, s] = dg.u[v, nnodes, left]
+      dg.usurf[1, v, s] = dg.u[v, n_nodes, left]
       dg.usurf[2, v, s] = dg.u[v, 1, right]
     end
   end
@@ -310,11 +310,11 @@ end
 # Calculate and store fluxes across surfaces
 function surfflux!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   s = equations(dg)
 
   @inbounds Threads.@threads for s = 1:dg.nsurfaces
-    riemann!(dg.fsurf, dg.usurf, s, equations(dg), nnodes)
+    riemann!(dg.fsurf, dg.usurf, s, equations(dg), n_nodes)
   end
 end
 
@@ -322,7 +322,7 @@ end
 # Calculate surface integrals and update u_t
 function surfint!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
@@ -331,7 +331,7 @@ function surfint!(dg)
 
     for v = 1:nvars_
       dg.ut[v, 1,      element_id] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
-      dg.ut[v, nnodes, element_id] += dg.fsurf[v, right] * dg.lhat[nnodes, 2]
+      dg.ut[v, n_nodes, element_id] += dg.fsurf[v, right] * dg.lhat[n_nodes, 2]
     end
   end
 end
@@ -340,11 +340,11 @@ end
 # Apply Jacobian from mapping to reference element
 function applyjacobian!(dg)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
-    for i = 1:nnodes
+    for i = 1:n_nodes
       for v = 1:nvars_
         dg.ut[v, i, element_id] *= -dg.invjacobian[element_id]
       end
@@ -361,11 +361,11 @@ function calcsources!(dg::Dg, t)
   end
 
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
   nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
-    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, nnodes)
+    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, n_nodes)
   end
 end
 
@@ -373,11 +373,11 @@ end
 # Calculate stable time step size
 function Solvers.calcdt(dg::Dg, cfl)
   N = polydeg(dg)
-  nnodes = N + 1
+  n_nodes = N + 1
 
   mindt = Inf
   for element_id = 1:dg.nelements
-    dt = maxdt(equations(dg), dg.u, element_id, nnodes, dg.invjacobian[element_id], cfl)
+    dt = maxdt(equations(dg), dg.u, element_id, n_nodes, dg.invjacobian[element_id], cfl)
     mindt = min(mindt, dt)
   end
 

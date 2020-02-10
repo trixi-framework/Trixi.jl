@@ -32,18 +32,18 @@ function main()
     input_format = get_input_format(datafile)
 
     # Read data from file
-    @timeit "read data" labels, x_raw, y_raw, nnodes = read_datafile(
+    @timeit "read data" labels, x_raw, y_raw, n_nodes = read_datafile(
         Val(input_format), datafile)
 
     # Interpolate DG data to visualization nodes
-    nvisnodes = (args["nvisnodes"] == nothing ? 4 * nnodes : args["nvisnodes"])
+    nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
     @timeit "interpolate data" begin
       if nvisnodes == 0
         x = x_raw
         y = y_raw
       else
-        x = interpolate_data(x_raw, nnodes, nvisnodes)
-        y = interpolate_data(y_raw, nnodes, nvisnodes)
+        x = interpolate_data(x_raw, n_nodes, nvisnodes)
+        y = interpolate_data(y_raw, n_nodes, nvisnodes)
       end
     end
 
@@ -62,7 +62,7 @@ function main()
 
     # Add mesh unless disabled
     if !args["no-mesh"]
-      x_mesh = vcat(x_raw[1:nnodes:end], x_raw[end])
+      x_mesh = vcat(x_raw[1:n_nodes:end], x_raw[end])
       y_mesh = zeros(size(x_mesh))
       @timeit "create plot" scatter!(x_mesh, y_mesh, label="mesh", markershape = :vline, 
                                      markerstrokewidth=3, markersize=8)
@@ -87,25 +87,25 @@ function main()
 end
 
 
-function interpolate_data(data_in::AbstractArray, nnodes_in::Integer, nnodes_out::Integer)
+function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
   # Get node coordinates for input and output locations on reference element
-  nodes_in, _ = gausslobatto(nnodes_in)
-  dx = 2/nnodes_out
-  nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=nnodes_out))
+  nodes_in, _ = gausslobatto(n_nodes_in)
+  dx = 2/n_nodes_out
+  nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
 
   # Get interpolation matrix
   vandermonde = polynomialinterpolationmatrix(nodes_in, nodes_out)
 
   # Create output data structure
-  nelements = div(size(data_in, 1), nnodes_in)
+  nelements = div(size(data_in, 1), n_nodes_in)
   nvars = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, nnodes_out, nelements, nvars)
+  data_out = Array{eltype(data_in)}(undef, n_nodes_out, nelements, nvars)
 
   # Interpolate each variable separately
   for v = 1:nvars
     # Reshape data to fit expected format for interpolation function
     # FIXME: this "reshape here, reshape later" funny business should be implemented properly
-    reshaped = reshape(data_in[:, v], 1, nnodes_in, nelements)
+    reshaped = reshape(data_in[:, v], 1, n_nodes_in, nelements)
 
     # Interpolate data for each cell
     for cell_id = 1:nelements
@@ -113,7 +113,7 @@ function interpolate_data(data_in::AbstractArray, nnodes_in::Integer, nnodes_out
     end
   end
 
-  return reshape(data_out, nnodes_out * nelements, nvars)
+  return reshape(data_out, n_nodes_out * nelements, nvars)
 end
 
 
@@ -132,8 +132,8 @@ function read_datafile(::Val{:hdf5}, filename::String)
     end
 
     # Extract coordinates
-    nnodes = N + 1
-    num_datapoints = nnodes * nelements
+    n_nodes = N + 1
+    num_datapoints = n_nodes * nelements
     coordinates = Array{Float64}(undef, num_datapoints)
     coordinates .= read(file["x"])
 
@@ -143,7 +143,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
       data[:, v] .= read(file["variables_$v"])
     end
 
-    return labels, coordinates, data, nnodes
+    return labels, coordinates, data, n_nodes
   end
 end
 
@@ -177,7 +177,7 @@ function read_datafile(::Val{:text}, filename::String)
     # Extract basic information
     context = parse(context_raw)
     N = context["N"]
-    nnodes = N + 1
+    n_nodes = N + 1
 
     # Create data structure for labels (the "-1" since we omit the coordinate)
     labels = Array{String}(undef, 1, length(labels_raw) - 1)
@@ -190,7 +190,7 @@ function read_datafile(::Val{:text}, filename::String)
     coordinates = data_in[:, 1]
     data = data_in[:, 2:end]
 
-    return labels, coordinates, data, nnodes
+    return labels, coordinates, data, n_nodes
   end
 end
 
