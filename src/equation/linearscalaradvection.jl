@@ -21,6 +21,17 @@ function initialconditions(s::LinearScalarAdvection, x, t)
   name = s.initialconditions
   if name == "gauss"
     return [exp(-(x - s.advectionvelocity * t)^2)]
+  elseif name == "convergence_test"
+    c = 1.0
+    A = 0.5
+    a = 0.3
+    L = 2 
+    f = 1/L
+    omega = 2 * pi * f
+    u = a
+    p = 1.0
+    scalar = c + A * sin(omega * (x - a * t))
+    return [scalar]
   elseif name == "constant"
     return [2.0]
   else
@@ -37,7 +48,7 @@ end
 
 
 # Calculate flux at a given cell id
-function calcflux(s::LinearScalarAdvection, u, cell_id::Int, nnodes::Int)
+function calcflux(s::LinearScalarAdvection, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{1, nnodes})
   a = s.advectionvelocity
 

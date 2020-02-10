@@ -81,7 +81,7 @@ end
 
 
 # Calculate flux at a given cell id
-function calcflux(s::Euler, u, cell_id::Int, nnodes::Int)
+function calcflux(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{3, nnodes})
   @inbounds for i = 1:nnodes
     rho   = u[1, i, cell_id]

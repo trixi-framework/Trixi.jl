@@ -3,6 +3,7 @@ module DgMod
 include("interpolation.jl")
 
 using ...Jul1dge
+using ..Solvers: AbstractSolver
 using ...Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
 import ...Equation: nvars # Import to allow method extension
 using ...Auxiliary: timer
@@ -25,7 +26,7 @@ export analyze_solution
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1}
+struct Dg{SysEqn <: AbstractSysEqn{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
   syseqn::SysEqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
