@@ -9,7 +9,7 @@ export ndim
 include("auxiliary/auxiliary.jl")
 include("equation/equation.jl")
 include("mesh/mesh.jl")
-include("dg/dg.jl")
+include("solvers/solvers.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 

@@ -4,7 +4,7 @@ using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
 using .Jul1dge.Equation: getsyseqn, nvars
-using .Jul1dge.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
+using .Jul1dge.Solvers.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file

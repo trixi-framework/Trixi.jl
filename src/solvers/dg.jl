@@ -2,11 +2,11 @@ module DgMod
 
 include("interpolation.jl")
 
-using ..Jul1dge
-using ..Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
-import ..Equation: nvars # Import to allow method extension
-using ..Auxiliary: timer
-using ..Mesh.Trees: Tree, leaf_nodes, length_at_node
+using ...Jul1dge
+using ...Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
+import ...Equation: nvars # Import to allow method extension
+using ...Auxiliary: timer
+using ...Mesh.Trees: Tree, leaf_nodes, length_at_node
 using .Interpolation: interpolate_nodes, calcdhat,
                       polynomialinterpolationmatrix, calclhat, gausslobatto
 using StaticArrays: SVector, SMatrix, MMatrix

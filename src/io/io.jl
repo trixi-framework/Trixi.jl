@@ -1,7 +1,7 @@
 module Io
 
 using ..Jul1dge
-using ..DgMod: polydeg, syseqn
+using ..Solvers.DgMod: polydeg, syseqn
 using ..Equation: nvars, cons2prim
 using ..Auxiliary: parameter
 
