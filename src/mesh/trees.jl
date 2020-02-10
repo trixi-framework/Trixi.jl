@@ -83,7 +83,7 @@ end
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-Tree(::Val{1}, cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float64, center)], len)
+Tree{1}(cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float64, center)], len)
 
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D

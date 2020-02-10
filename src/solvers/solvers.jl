@@ -1,6 +1,6 @@
 module Solvers
 
-using ..Jul1dge.Mesh.Trees: Tree
+using ..Jul1dge.Mesh: TreeMesh
 using ..Jul1dge.Equations: AbstractEquation
 using ..Jul1dge.Auxiliary: parameter
 
@@ -18,7 +18,7 @@ abstract type AbstractSolver end
 
 
 # Create an instance of a solver based on a given name
-function make_solver(name::String, equations::AbstractEquation, mesh::Tree)
+function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh)
   if name == "dg"
     N = parameter("N")
     return Dg(equations, mesh, N)

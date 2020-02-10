@@ -5,14 +5,17 @@ using ..Solvers: AbstractSolver, polydeg, equations, Dg
 using ..Solvers.DgSolver: polydeg
 using ..Equations: nvariables, cons2prim
 using ..Auxiliary: parameter
+using ..Mesh: TreeMesh
+using ..Mesh.Trees: Tree, leaf_cells, length_at_cell
 
 using HDF5: h5open, attrs
 using Printf: @sprintf
 
 export save_solution_file
+export save_mesh_file
 
 
-# Save current DG solution by forming a timestep-based filename and then
+# Save current solution by forming a timestep-based filename and then
 # dispatching on the 'output_format' parameter.
 function save_solution_file(solver::AbstractSolver, timestep::Integer)
   # Create output directory (if it does not exist)
@@ -118,4 +121,24 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
   end
 end
 
+
+# Save mesh file
+function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
+  # Create output directory (if it does not exist)
+  output_directory = parameter("output_directory", "out")
+  mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep >= 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d", timestep))
+  else
+    filename = joinpath(output_directory, "mesh")
+  end
+
+  # Dispatch on format property
+  output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
+  save_solution_file(Val(Symbol(output_format)), mesh, filename::String)
 end
+
+
+end # module

@@ -7,7 +7,8 @@ using ..Solvers # Use everything to allow method extension via "function <parent
 using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, calc_max_dt
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
-using ...Mesh.Trees: Tree, leaf_cells, length_at_cell
+using ...Mesh: TreeMesh
+using ...Mesh.Trees: leaf_cells, length_at_cell
 using .Interpolation: interpolate_nodes, calc_dhat,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
 using StaticArrays: SVector, SMatrix, MMatrix
@@ -56,9 +57,9 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
+function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Determine number of elements
-  leaf_cell_ids = leaf_cells(mesh)
+  leaf_cell_ids = leaf_cells(mesh.tree)
   n_elements = length(leaf_cell_ids)
 
   # Initialize data structures
@@ -108,7 +109,7 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = sum(mesh.length_level_0.^ndim)
+  analysis_total_volume = sum(mesh.tree.length_level_0.^ndim)
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), N, N + 1, NAna, NAna + 1}(
@@ -121,9 +122,9 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
     cell_id = leaf_cell_ids[element_id]
-    dx = length_at_cell(mesh, cell_id)
+    dx = length_at_cell(mesh.tree, cell_id)
     dg.inverse_jacobian[element_id] = 2/dx
-    dg.node_coordinates[:, element_id] = @. mesh.coordinates[1, cell_id] + dx/2 * nodes[:]
+    dg.node_coordinates[:, element_id] = @. mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[:]
   end
 
   return dg

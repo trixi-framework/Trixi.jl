@@ -52,11 +52,11 @@ function run()
   cfl = parameter("cfl")
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  n_leaf_cells = count_leaf_cells(mesh)
-  min_level = minimum_level(mesh)
-  max_level = maximum_level(mesh)
-  domain_center = mesh.center_level_0
-  domain_length = mesh.length_level_0
+  n_leaf_cells = count_leaf_cells(mesh.tree)
+  min_level = minimum_level(mesh.tree)
+  max_level = maximum_level(mesh.tree)
+  domain_center = mesh.tree.center_level_0
+  domain_length = mesh.tree.length_level_0
   min_dx = domain_length / 2^max_level
   max_dx = domain_length / 2^min_level
   s = """| Simulation setup
@@ -79,7 +79,7 @@ function run()
          | | #DOFs:            $(ndofs(solver))
          |
          | Mesh
-         | | #cells:           $(length(mesh))
+         | | #cells:           $(length(mesh.tree))
          | | #leaf cells:      $n_leaf_cells
          | | minimum level:    $min_level
          | | maximum level:    $max_level
