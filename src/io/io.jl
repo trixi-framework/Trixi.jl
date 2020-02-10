@@ -194,12 +194,12 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
 
     # Parent ids
     offset = 0
-    columns[offset + 1] = @sprintf("%-16s", "\"parent_ids\"")
+    columns[offset + 1] = @sprintf("%-12s", "\"parent_ids\"")
     offset += 1
 
     # Child ids
     for i in 1:n_children_per_cell(mesh.tree)
-      columns[offset + i] = @sprintf("%-16s", "\"child_ids_$i\"")
+      columns[offset + i] = @sprintf("%-13s", "\"child_ids_$i\"")
     end
     offset += n_children_per_cell(mesh.tree)
 
@@ -210,12 +210,12 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
     offset += n_directions(mesh.tree)
 
     # Levels
-    columns[offset + 1] = @sprintf("%-16s", "\"levels\"")
+    columns[offset + 1] = @sprintf("%-8s", "\"levels\"")
     offset += 1
 
     # Coordinates
     for i = 1:ndim
-      columns[offset + i] = @sprintf("%-16s", "\"coordinates_$i\"")
+      columns[offset + i] = @sprintf("%-15s", "\"coordinates_$i\"")
     end
     offset += ndim
 
@@ -228,12 +228,12 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
 
       # Parent ids
       offset = 0
-      data_out[offset + 1] = @sprintf("%16d", mesh.tree.parent_ids[cell_id])
+      data_out[offset + 1] = @sprintf("%12d", mesh.tree.parent_ids[cell_id])
       offset += 1
 
       # Child ids
       for i = 1:n_children_per_cell(mesh.tree)
-        data_out[offset + i] = @sprintf("%16d", mesh.tree.child_ids[i, cell_id])
+        data_out[offset + i] = @sprintf("%13d", mesh.tree.child_ids[i, cell_id])
       end
       offset += n_children_per_cell(mesh.tree)
 
@@ -244,7 +244,7 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
       offset += n_directions(mesh.tree)
 
       # Levels
-      data_out[offset + 1] = @sprintf("%16d", mesh.tree.levels[cell_id])
+      data_out[offset + 1] = @sprintf("%8d", mesh.tree.levels[cell_id])
       offset += 1
 
       # Coordinates
