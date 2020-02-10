@@ -264,11 +264,10 @@ end
 # Calculate and store volume fluxes
 function volflux!(dg)
   N = polydeg(dg)
-  n_nodes = N + 1
   equation = equations(dg)
 
   @inbounds Threads.@threads for element_id = 1:dg.n_elements
-    dg.flux[:, :, element_id] = calcflux(equation, dg.u, element_id, n_nodes)
+    dg.flux[:, :, element_id] = calcflux(equation, dg.u, element_id, nnodes(dg))
   end
 end
 
@@ -289,15 +288,13 @@ end
 
 # Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
-  N = polydeg(dg)
-  n_nodes = N + 1
   equation = equations(dg)
 
   for s = 1:dg.n_surfaces
     left = dg.neighbors[1, s]
     right = dg.neighbors[2, s]
     for v = 1:nvariables(dg)
-      dg.usurf[1, v, s] = dg.u[v, n_nodes, left]
+      dg.usurf[1, v, s] = dg.u[v, nnodes(dg), left]
       dg.usurf[2, v, s] = dg.u[v, 1, right]
     end
   end
@@ -306,27 +303,21 @@ end
 
 # Calculate and store fluxes across surfaces
 function surfflux!(dg)
-  N = polydeg(dg)
-  n_nodes = N + 1
-
   @inbounds Threads.@threads for s = 1:dg.n_surfaces
-    riemann!(dg.fsurf, dg.usurf, s, equations(dg), n_nodes)
+    riemann!(dg.fsurf, dg.usurf, s, equations(dg), nnodes(dg))
   end
 end
 
 
 # Calculate surface integrals and update u_t
 function surfint!(dg)
-  N = polydeg(dg)
-  n_nodes = N + 1
-
   for element_id = 1:dg.n_elements
     left = dg.surfaces[1, element_id]
     right = dg.surfaces[2, element_id]
 
     for v = 1:nvariables(dg)
-      dg.ut[v, 1,      element_id] -= dg.fsurf[v, left ] * dg.lhat[1,      1]
-      dg.ut[v, n_nodes, element_id] += dg.fsurf[v, right] * dg.lhat[n_nodes, 2]
+      dg.ut[v, 1,          element_id] -= dg.fsurf[v, left ] * dg.lhat[1,          1]
+      dg.ut[v, nnodes(dg), element_id] += dg.fsurf[v, right] * dg.lhat[nnodes(dg), 2]
     end
   end
 end
@@ -334,11 +325,8 @@ end
 
 # Apply Jacobian from mapping to reference element
 function applyjacobian!(dg)
-  N = polydeg(dg)
-  n_nodes = N + 1
-
   for element_id = 1:dg.n_elements
-    for i = 1:n_nodes
+    for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         dg.ut[v, i, element_id] *= -dg.invjacobian[element_id]
       end
@@ -354,23 +342,17 @@ function calcsources!(dg::Dg, t)
     return
   end
 
-  N = polydeg(dg)
-  n_nodes = N + 1
-
   for element_id = 1:dg.n_elements
-    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, n_nodes)
+    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, nnodes(dg))
   end
 end
 
 
 # Calculate stable time step size
 function Solvers.calcdt(dg::Dg, cfl)
-  N = polydeg(dg)
-  n_nodes = N + 1
-
   mindt = Inf
   for element_id = 1:dg.n_elements
-    dt = maxdt(equations(dg), dg.u, element_id, n_nodes, dg.invjacobian[element_id], cfl)
+    dt = maxdt(equations(dg), dg.u, element_id, nnodes(dg), dg.invjacobian[element_id], cfl)
     mindt = min(mindt, dt)
   end
 
