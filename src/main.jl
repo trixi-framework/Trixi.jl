@@ -52,7 +52,6 @@ function run()
   cfl = parameter("cfl")
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  ncells = size(mesh)
   n_leaf_cells = count_leaf_cells(mesh)
   min_level = minimum_level(mesh)
   max_level = maximum_level(mesh)
@@ -77,7 +76,7 @@ function run()
          | #parallel threads:  $(Threads.nthreads())
          |
          | Mesh
-         | | #cells:           $ncells
+         | | #cells:           $(size(mesh))
          | | #leaf cells:      $n_leaf_cells
          | | minimum level:    $min_level
          | | maximum level:    $max_level
