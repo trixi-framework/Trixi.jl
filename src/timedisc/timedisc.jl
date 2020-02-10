@@ -22,7 +22,7 @@ function timestep!(dg, t, dt)
   for stage = 1:5
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(dg, t_stage)
-    @timeit timer() "RK" begin
+    @timeit timer() "Runge-Kutta step" begin
       @. dg.urk = dg.ut - dg.urk * a[stage]
       @. dg.u += dg.urk * b[stage] * dt
     end

@@ -11,7 +11,7 @@ export initial_conditions
 export sources
 export calcflux
 export riemann!
-export maxdt
+export calc_max_dt
 export cons2prim
 
 
@@ -187,8 +187,9 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.maxdt(equation::Euler, u::Array{Float64, 3}, cell_id::Int,
-                         n_nodes::Int, invjacobian::Float64, cfl::Float64)
+function Equations.calc_max_dt(equation::Euler, u::Array{Float64, 3},
+                               cell_id::Int, n_nodes::Int,
+                               invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
   for i = 1:n_nodes
     rho   = u[1, i, cell_id]

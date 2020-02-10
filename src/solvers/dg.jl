@@ -4,12 +4,12 @@ include("interpolation.jl")
 
 using ...Jul1dge
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
-using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, maxdt
+using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, calc_max_dt
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh.Trees: Tree, leaf_cells, length_at_cell
-using .Interpolation: interpolate_nodes, calcdhat,
-                      polynomialinterpolationmatrix, calclhat, gausslobatto
+using .Interpolation: interpolate_nodes, calc_dhat,
+                      polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
 using StaticArrays: SVector, SMatrix, MMatrix
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -116,18 +116,18 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
 
 
   # Initialize interpolation data structures
-  nodes, weights = gausslobatto(N + 1)
-  dhat = calcdhat(nodes, weights)
+  nodes, weights = gauss_lobatto_nodes_weights(N + 1)
+  dhat = calc_dhat(nodes, weights)
   lhat = zeros(N + 1, 2)
-  lhat[:, 1] = calclhat(-1.0, nodes, weights)
-  lhat[:, 2] = calclhat( 1.0, nodes, weights)
+  lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
+  lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
   NAna = 2 * (N + 1) - 1
-  analysis_nodes, analysis_weights = gausslobatto(NAna + 1)
+  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
-  analysis_vandermonde = polynomialinterpolationmatrix(nodes, analysis_nodes)
+  analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = sum(mesh.length_level_0.^ndim)
 
   # Create actual DG solver instance
@@ -236,33 +236,33 @@ end
 # Calculate time derivative
 function Solvers.rhs!(dg::Dg, t_stage)
   # Reset ut
-  @timeit timer() "reset ut" dg.ut .= 0.0
+  @timeit timer() "reset ∂u/∂t" dg.ut .= 0.0
 
   # Calculate volume flux
-  @timeit timer() "volflux" volflux!(dg)
+  @timeit timer() "volume flux" calc_volume_flux!(dg)
 
   # Calculate volume integral
-  @timeit timer() "volint" volint!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(dg)
 
   # Prolong solution to surfaces
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surfflux!" surfflux!(dg)
+  @timeit timer() "surface flux" calc_surfaces_flux!(dg)
 
   # Calculate surface integrals
-  @timeit timer() "surfint!" surfint!(dg)
+  @timeit timer() "surface integral" calc_surface_integral!(dg)
 
   # Apply Jacobian from mapping to reference element
-  @timeit timer() "applyjacobian" applyjacobian!(dg)
+  @timeit timer() "Jacobian" apply_jacobian!(dg)
 
   # Calculate source terms
-  @timeit timer() "calcsources" calcsources!(dg, t_stage)
+  @timeit timer() "source terms" calc_sources!(dg, t_stage)
 end
 
 
 # Calculate and store volume fluxes
-function volflux!(dg)
+function calc_volume_flux!(dg)
   N = polydeg(dg)
   equation = equations(dg)
 
@@ -273,7 +273,7 @@ end
 
 
 # Calculate volume integral and update u_t
-function volint!(dg)
+function calc_volume_integral!(dg)
   @inbounds Threads.@threads for element_id = 1:dg.n_elements
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
@@ -302,7 +302,7 @@ end
 
 
 # Calculate and store fluxes across surfaces
-function surfflux!(dg)
+function calc_surfaces_flux!(dg)
   @inbounds Threads.@threads for s = 1:dg.n_surfaces
     riemann!(dg.fsurf, dg.usurf, s, equations(dg), nnodes(dg))
   end
@@ -310,7 +310,7 @@ end
 
 
 # Calculate surface integrals and update u_t
-function surfint!(dg)
+function calc_surface_integral!(dg)
   for element_id = 1:dg.n_elements
     left = dg.surfaces[1, element_id]
     right = dg.surfaces[2, element_id]
@@ -324,7 +324,7 @@ end
 
 
 # Apply Jacobian from mapping to reference element
-function applyjacobian!(dg)
+function apply_jacobian!(dg)
   for element_id = 1:dg.n_elements
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
@@ -336,7 +336,7 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calcsources!(dg::Dg, t)
+function calc_sources!(dg::Dg, t)
   equation = equations(dg)
   if equation.sources == "none"
     return
@@ -350,13 +350,13 @@ end
 
 # Calculate stable time step size
 function Solvers.calc_dt(dg::Dg, cfl)
-  mindt = Inf
+  min_dt = Inf
   for element_id = 1:dg.n_elements
-    dt = maxdt(equations(dg), dg.u, element_id, nnodes(dg), dg.invjacobian[element_id], cfl)
-    mindt = min(mindt, dt)
+    dt = calc_max_dt(equations(dg), dg.u, element_id, nnodes(dg), dg.invjacobian[element_id], cfl)
+    min_dt = min(min_dt, dt)
   end
 
-  return mindt
+  return min_dt
 end
 
 end # module

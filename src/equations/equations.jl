@@ -9,7 +9,7 @@ export initial_conditions
 export sources
 export calcflux
 export riemann!
-export maxdt
+export calc_max_dt
 export cons2prim
 
 
@@ -54,7 +54,7 @@ function initial_conditions end
 function sources end
 function calcflux end
 function riemann! end
-function maxdt end
+function calc_max_dt end
 function cons2prim end
 
 # Next, include module files and make symbols available. Here we employ an

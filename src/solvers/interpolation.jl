@@ -3,13 +3,13 @@ module Interpolation
 using GaussQuadrature: legendre, both
 
 export interpolate_nodes
-export calcdhat
-export polynomialderivativematrix
-export polynomialinterpolationmatrix
-export barycentricweights
-export calclhat
-export lagrangeinterpolatingpolynomials
-export gausslobatto
+export calc_dhat
+export polynomial_derivative_matrix
+export polynomial_interpolation_matrix
+export barycentric_weights
+export calc_lhat
+export lagrange_interpolating_polynomials
+export gauss_lobatto_nodes_weights
 
 
 # Interpolate data using the given Vandermonde matrix and return interpolated values.
@@ -32,9 +32,9 @@ end
 
 
 # Calculate the Dhat matrix
-function calcdhat(nodes, weights)
+function calc_dhat(nodes, weights)
   n_nodes = length(nodes)
-  dhat = polynomialderivativematrix(nodes)
+  dhat = polynomial_derivative_matrix(nodes)
   dhat = transpose(dhat)
 
   for n = 1:n_nodes, j = 1:n_nodes
@@ -46,10 +46,10 @@ end
 
 
 # Calculate the polynomial derivative matrix D
-function polynomialderivativematrix(nodes)
+function polynomial_derivative_matrix(nodes)
   n_nodes = length(nodes)
   d = zeros(n_nodes, n_nodes)
-  wbary = barycentricweights(nodes)
+  wbary = barycentric_weights(nodes)
 
   for i = 1:n_nodes, j = 1:n_nodes
     if j != i
@@ -63,10 +63,10 @@ end
 
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
-function polynomialinterpolationmatrix(nodes_in, nodes_out)
+function polynomial_interpolation_matrix(nodes_in, nodes_out)
   n_nodes_in = length(nodes_in)
   n_nodes_out = length(nodes_out)
-  wbary_in = barycentricweights(nodes_in)
+  wbary_in = barycentric_weights(nodes_in)
   vdm = zeros(n_nodes_out, n_nodes_in)
 
   for k = 1:n_nodes_out
@@ -96,7 +96,7 @@ end
 
 
 # Calculate the barycentric weights for a given node distribution.
-function barycentricweights(nodes)
+function barycentric_weights(nodes)
   n_nodes = length(nodes)
   weights = ones(n_nodes)
 
@@ -114,11 +114,11 @@ end
 
 
 # Calculate Lhat.
-function calclhat(x::Float64, nodes, weights)
+function calc_lhat(x::Float64, nodes, weights)
   n_nodes = length(nodes)
-  wbary = barycentricweights(nodes)
+  wbary = barycentric_weights(nodes)
 
-  lhat = lagrangeinterpolatingpolynomials(x, nodes, wbary)
+  lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
 
   for i = 1:n_nodes
     lhat[i] /= weights[i]
@@ -129,7 +129,7 @@ end
 
 
 # Calculate Lagrange polynomials for a given node distribution.
-function lagrangeinterpolatingpolynomials(x::Float64, nodes, wbary)
+function lagrange_interpolating_polynomials(x::Float64, nodes, wbary)
   n_nodes = length(nodes)
   polynomials = zeros(n_nodes)
 
@@ -154,7 +154,7 @@ end
 
 
 # Calculate nodes and weights for Legendre-Gauss-Lobatto quadratue.
-function gausslobatto(n_nodes::Integer)
+function gauss_lobatto_nodes_weights(n_nodes::Integer)
   return legendre(n_nodes, both)
 end
 

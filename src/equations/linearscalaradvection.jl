@@ -11,7 +11,7 @@ export initial_conditions
 export sources
 export calcflux
 export riemann!
-export maxdt
+export calc_max_dt
 export cons2prim
 
 
@@ -90,8 +90,9 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.maxdt(equation::LinearScalarAdvection, u::Array{Float64, 3},
-                         cell_id::Int, n_nodes::Int, invjacobian::Float64,
+function Equations.calc_max_dt(equation::LinearScalarAdvection,
+                               u::Array{Float64, 3}, cell_id::Int,
+                               n_nodes::Int, invjacobian::Float64,
   cfl::Float64)
   return cfl * 2 / (invjacobian * equation.advectionvelocity) / (2 * (n_nodes - 1) + 1)
 end
