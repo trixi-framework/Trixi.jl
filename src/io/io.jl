@@ -194,33 +194,33 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
 
     # Parent ids
     offset = 0
-    columns[offset + 1] = @sprintf("%-12s", "\"parent_ids\"")
+    columns[offset + 1] = @sprintf("%-10s", "parent_ids")
     offset += 1
 
     # Child ids
     for i in 1:n_children_per_cell(mesh.tree)
-      columns[offset + i] = @sprintf("%-13s", "\"child_ids_$i\"")
+      columns[offset + i] = @sprintf("%-11s", "child_ids_$i")
     end
     offset += n_children_per_cell(mesh.tree)
 
     # Neighbor ids
     for i in 1:n_directions(mesh.tree)
-      columns[offset + i] = @sprintf("%-16s", "\"neighbor_ids_$i\"")
+      columns[offset + i] = @sprintf("%-14s", "neighbor_ids_$i")
     end
     offset += n_directions(mesh.tree)
 
     # Levels
-    columns[offset + 1] = @sprintf("%-8s", "\"levels\"")
+    columns[offset + 1] = @sprintf("%-6s", "levels")
     offset += 1
 
     # Coordinates
     for i = 1:ndim
-      columns[offset + i] = @sprintf("%-15s", "\"coordinates_$i\"")
+      columns[offset + i] = @sprintf("%-15s", "coordinates_$i")
     end
     offset += ndim
 
     # Print to file
-    println(file, strip(join(columns, " ")))
+    println(file, strip(join(columns, "  ")))
 
     # Write data
     for cell_id = 1:n_cells
@@ -228,23 +228,23 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
 
       # Parent ids
       offset = 0
-      data_out[offset + 1] = @sprintf("%12d", mesh.tree.parent_ids[cell_id])
+      data_out[offset + 1] = @sprintf("%10d", mesh.tree.parent_ids[cell_id])
       offset += 1
 
       # Child ids
       for i = 1:n_children_per_cell(mesh.tree)
-        data_out[offset + i] = @sprintf("%13d", mesh.tree.child_ids[i, cell_id])
+        data_out[offset + i] = @sprintf("%11d", mesh.tree.child_ids[i, cell_id])
       end
       offset += n_children_per_cell(mesh.tree)
 
       # Neighbor ids
       for i = 1:n_directions(mesh.tree)
-        data_out[offset + i] = @sprintf("%16d", mesh.tree.neighbor_ids[i, cell_id])
+        data_out[offset + i] = @sprintf("%14d", mesh.tree.neighbor_ids[i, cell_id])
       end
       offset += n_directions(mesh.tree)
 
       # Levels
-      data_out[offset + 1] = @sprintf("%8d", mesh.tree.levels[cell_id])
+      data_out[offset + 1] = @sprintf("%6d", mesh.tree.levels[cell_id])
       offset += 1
 
       # Coordinates
@@ -254,7 +254,7 @@ function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
       offset += ndim
 
       # Print to file
-      println(file, join(data_out, " "))
+      println(file, join(data_out, "  "))
     end
   end
 
