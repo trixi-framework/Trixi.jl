@@ -3,8 +3,8 @@ include("Jul1dge.jl")
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
-using .Jul1dge.Equations: getsyseqn, nvars
-using .Jul1dge.Solvers.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
+using .Jul1dge.Equations: make_equations, nvars
+using .Jul1dge.Solvers: make_solver, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
@@ -27,14 +27,13 @@ function run()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations = parameter("syseqn", valid=["linearscalaradvection", "euler"])
-  syseqn = getsyseqn(equations)
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations = make_equations(equations_name)
   println("done")
 
   # Initialize solver
   print("Initializing solver... ")
-  N = parameter("N")
-  dg = Dg(syseqn, mesh, N)
+  solver = make_solver("dg", equations, mesh)
   println("done")
 
   # Apply initial condition
@@ -42,16 +41,17 @@ function run()
   t_start = parameter("t_start")
   t_end = parameter("t_end")
   time = t_start
-  setinitialconditions(dg, time)
+  setinitialconditions(solver, time)
   println("done")
 
   # Print setup information
   println()
+  N = parameter("N")
   nstepsmax = parameter("nstepsmax")
   cfl = parameter("cfl")
   initialconditions = parameter("initialconditions")
   sources = parameter("sources", "none")
-  n_dofs_total = dg.ncells * (N + 1)^ndim
+  n_dofs_total = solver.ncells * (N + 1)^ndim
   nnodes = size(mesh)
   n_leaf_nodes = count_leaf_nodes(mesh)
   min_level = minimum_level(mesh)
@@ -67,12 +67,12 @@ function run()
          | t_end:             $t_end
          | CFL:               $cfl
          | nstepsmax:         $nstepsmax
-         | equation:          $equations
-         | | #variables:      $(nvars(syseqn))
-         | | variable names:  $(join(syseqn.varnames_cons, ", "))
+         | equations:         $equations_name
+         | | #variables:      $(nvars(equations))
+         | | variable names:  $(join(equations.varnames_cons, ", "))
          | initialconditions: $initialconditions
          | sources:           $sources
-         | ncells:            $(dg.ncells)
+         | ncells:            $(solver.ncells)
          | #DOFs:             $n_dofs_total
          | #parallel threads: $(Threads.nthreads())
          |
@@ -102,12 +102,12 @@ function run()
 
   # Save initial conditions if desired
   if parameter("save_initial_solutions", true)
-    save_solution_file(dg, step)
+    save_solution_file(solver, step)
   end
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(dg, time, 0, step, 0, 0)
+    analyze_solution(solver, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -116,7 +116,7 @@ function run()
 
   # Start main loop (loop until final time step is reached)
   @timeit timer() "main loop" while !finalstep
-    @timeit timer() "calcdt" dt = calcdt(dg, cfl)
+    @timeit timer() "calcdt" dt = calcdt(solver, cfl)
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
     if time + dt > t_end
@@ -125,7 +125,7 @@ function run()
     end
 
     # Evolve solution by one time step
-    timestep!(dg, time, dt)
+    timestep!(solver, time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1
@@ -144,7 +144,7 @@ function run()
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(
-          dg, time, dt, step, runtime_absolute, runtime_relative)
+          solver, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
@@ -166,7 +166,7 @@ function run()
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
-      @timeit timer() "I/O" save_solution_file(dg, step)
+      @timeit timer() "I/O" save_solution_file(solver, step)
       output_time += time_ns() - output_start_time
     end
   end

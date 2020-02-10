@@ -2,7 +2,7 @@ module Equations
 
 using ..Jul1dge
 
-export getsyseqn
+export make_equations
 export nvars
 export AbstractEquation
 export initialconditions
@@ -35,7 +35,7 @@ end
 
 
 # Create an instance of a system of equation type based on a given name
-function getsyseqn(name::String)
+function make_equations(name::String)
   if name == "linearscalaradvection"
     return LinearScalarAdvection()
   elseif name == "euler"
@@ -49,7 +49,7 @@ end
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
-# First, add generic functions for which the different systems of equations can create own methods
+# First, add generic functions for which the submodules can create own methods
 function initialconditions end
 function sources end
 function calcflux end

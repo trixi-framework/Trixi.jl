@@ -1,9 +1,9 @@
-module DgMod
+module DgSolver
 
 include("interpolation.jl")
 
 using ...Jul1dge
-using ..Solvers: AbstractSolver
+using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initialconditions, calcflux, riemann!, sources, maxdt
 import ...Equations: nvars # Import to allow method extension
 using ...Auxiliary: timer
@@ -17,7 +17,7 @@ using Printf: @sprintf, @printf
 export Dg
 export setinitialconditions
 export nvars
-export syseqn
+export equations
 export polydeg
 export rhs!
 export calcdt
@@ -26,8 +26,8 @@ export analyze_solution
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{SysEqn <: AbstractEquation{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
-  syseqn::SysEqn
+struct Dg{Eqn <: AbstractEquation{nvars_} where nvars_, N, Np1, NAna, NAnap1} <: AbstractSolver
+  equations::Eqn
   u::Array{Float64, 3}
   ut::Array{Float64, 3}
   urk::Array{Float64, 3}
@@ -56,15 +56,15 @@ end
 
 
 # Return polynomial degree for a DG solver
-polydeg(::Dg{SysEqn, N}) where {SysEqn, N} = N
+polydeg(::Dg{Eqn, N}) where {Eqn, N} = N
 
 
 # Return system of equations instance for a DG solver
-syseqn(dg::Dg) = dg.syseqn
+Solvers.equations(dg::Dg) = dg.equations
 
 
 # Return number of variables for the system of equations in use
-nvars(dg::Dg) = nvars(syseqn(dg))
+nvars(dg::Dg) = nvars(equations(dg))
 
 
 # Convenience constructor to create DG solver instance
@@ -145,7 +145,7 @@ end
 # Calculate L2/Linf error norms based on "exact solution"
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
-  s = syseqn(dg)
+  s = equations(dg)
   nvars_ = nvars(s)
   nnodes_analysis = length(dg.analysis_nodes)
 
@@ -179,10 +179,10 @@ end
 
 
 # Calculate error norms and print information for user
-function analyze_solution(dg::Dg{SysEqn, N}, t::Real, dt::Real,
-                          step::Integer, runtime_absolute::Real,
-                          runtime_relative::Real) where {SysEqn, N}
-  s = syseqn(dg)
+function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
+                                  step::Integer, runtime_absolute::Real,
+  runtime_relative::Real) where {Eqn, N}
+  s = equations(dg)
   nvars_ = nvars(s)
 
   l2_error, linf_error = calc_error_norms(dg, t)
@@ -215,8 +215,8 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all cells
-function setinitialconditions(dg, t)
-  s = syseqn(dg)
+function Solvers.setinitialconditions(dg::Dg, t)
+  s = equations(dg)
 
   for cell_id = 1:dg.ncells
     for i = 1:(polydeg(dg) + 1)
@@ -227,7 +227,7 @@ end
 
 
 # Calculate time derivative
-function rhs!(dg, t_stage)
+function Solvers.rhs!(dg::Dg, t_stage)
   # Reset ut
   @timeit timer() "reset ut" dg.ut .= 0.0
 
@@ -258,7 +258,7 @@ end
 function volflux!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  s = syseqn(dg)
+  s = equations(dg)
 
   @inbounds Threads.@threads for cell_id = 1:dg.ncells
     dg.flux[:, :, cell_id] = calcflux(s, dg.u, cell_id, nnodes)
@@ -288,7 +288,7 @@ end
 function prolong2surfaces!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  s = syseqn(dg)
+  s = equations(dg)
   nvars_ = nvars(dg)
 
   for s = 1:dg.nsurfaces
@@ -306,10 +306,10 @@ end
 function surfflux!(dg)
   N = polydeg(dg)
   nnodes = N + 1
-  s = syseqn(dg)
+  s = equations(dg)
 
   @inbounds Threads.@threads for s = 1:dg.nsurfaces
-    riemann!(dg.fsurf, dg.usurf, s, syseqn(dg), nnodes)
+    riemann!(dg.fsurf, dg.usurf, s, equations(dg), nnodes)
   end
 end
 
@@ -349,8 +349,8 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calcsources!(dg, t)
-  s = syseqn(dg)
+function calcsources!(dg::Dg, t)
+  s = equations(dg)
   if s.sources == "none"
     return
   end
@@ -360,24 +360,23 @@ function calcsources!(dg, t)
   nvars_ = nvars(dg)
 
   for cell_id = 1:dg.ncells
-    sources(syseqn(dg), dg.ut, dg.u, dg.nodecoordinate, cell_id, t, nnodes)
+    sources(equations(dg), dg.ut, dg.u, dg.nodecoordinate, cell_id, t, nnodes)
   end
 end
 
 
 # Calculate stable time step size
-function calcdt(dg, cfl)
+function Solvers.calcdt(dg::Dg, cfl)
   N = polydeg(dg)
   nnodes = N + 1
 
   mindt = Inf
   for cell_id = 1:dg.ncells
-    dt = maxdt(syseqn(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
+    dt = maxdt(equations(dg), dg.u, cell_id, nnodes, dg.invjacobian[cell_id], cfl)
     mindt = min(mindt, dt)
   end
 
   return mindt
 end
 
-
-end
+end # module

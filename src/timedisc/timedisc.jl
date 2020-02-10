@@ -1,7 +1,7 @@
 module TimeDisc
 
 using ..Jul1dge
-using ..Solvers.DgMod: rhs!
+using ..Solvers: rhs!
 using ..Auxiliary: timer
 using TimerOutputs: @timeit
 

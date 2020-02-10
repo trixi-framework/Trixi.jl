@@ -1,5 +1,5 @@
 # Simulation setup
-syseqn = "euler"
+equations = "euler"
 initialconditions = "convergence_test"
 # sources = 
 # advectionvelocity = 1.0

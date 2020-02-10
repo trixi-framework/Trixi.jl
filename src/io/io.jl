@@ -1,7 +1,8 @@
 module Io
 
 using ..Jul1dge
-using ..Solvers.DgMod: polydeg, syseqn
+using ..Solvers: AbstractSolver, polydeg, equations, Dg
+using ..Solvers.DgSolver: polydeg
 using ..Equations: nvars, cons2prim
 using ..Auxiliary: parameter
 
@@ -13,7 +14,7 @@ export save_solution_file
 
 # Save current DG solution by forming a timestep-based filename and then
 # dispatching on the 'output_format' parameter.
-function save_solution_file(dg, timestep::Integer)
+function save_solution_file(solver::AbstractSolver, timestep::Integer)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -23,22 +24,22 @@ function save_solution_file(dg, timestep::Integer)
 
   # Dispatch on format property
   output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
-  save_solution_file(Val(Symbol(output_format)), dg, filename::String)
+  save_solution_file(Val(Symbol(output_format)), solver, filename::String)
 end
 
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(::Val{:hdf5}, dg, filename::String)
+function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
-    s = syseqn(dg)
+    s = equations(dg)
     N = polydeg(dg)
     nvars_ = nvars(dg)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
-    attrs(file)["syseqn"] = s.name
+    attrs(file)["equations"] = s.name
     attrs(file)["N"] = N
     attrs(file)["nvars"] = nvars_
     attrs(file)["ncells"] = dg.ncells
@@ -72,10 +73,10 @@ end
 
 # Save current DG solution as a plain text file with fixed-width space-separated
 # values, with the first line containing the column names.
-function save_solution_file(::Val{:text}, dg, filename::String)
+function save_solution_file(::Val{:text}, dg::Dg, filename::String)
   # Open file (clobber existing content)
   open(filename * ".dat", "w") do file
-    s = syseqn(dg)
+    s = equations(dg)
     N = polydeg(dg)
     nnodes = N + 1
     nvars_ = nvars(dg)
@@ -94,7 +95,7 @@ function save_solution_file(::Val{:text}, dg, filename::String)
 
     # Add context information as comments in the first lines of the file
     println(file, "# ndim = $ndim")
-    println(file, "# syseqn = \"$(s.name)\"")
+    println(file, "# equations = \"$(s.name)\"")
     println(file, "# N = $N")
     println(file, "# nvars = $nvars_")
     println(file, "# ncells = $(dg.ncells)")
