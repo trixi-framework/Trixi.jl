@@ -7,7 +7,7 @@ using .Jul1dge.Equations: make_equations, nvariables
 using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
-using .Jul1dge.Io: save_solution_file
+using .Jul1dge.Io: save_solution_file, save_mesh_file
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
@@ -23,6 +23,7 @@ function run()
   # Create mesh
   print("Creating mesh... ")
   @timeit timer() "mesh generation" mesh = generate_mesh()
+  mesh.current_filename = save_mesh_file(mesh)
   println("done")
 
   # Initialize system of equations

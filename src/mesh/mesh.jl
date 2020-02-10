@@ -31,7 +31,7 @@ mutable struct TreeMesh{D}
 
     # Create mesh
     m = new()
-    m.tree =  Tree{D}(parameter("n_cells_max"), domain_center, domain_length)
+    m.tree = Tree{D}(parameter("n_cells_max"), domain_center, domain_length)
     m.current_filename = ""
 
     return m
@@ -42,6 +42,7 @@ end
 TreeMesh(::Val{D}) where D = TreeMesh{D}()
 
 
+# Generate initial mesh
 function generate_mesh()
   # Create mesh
   @timeit timer() "creation" mesh = TreeMesh(Val{ndim}())

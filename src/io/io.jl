@@ -6,7 +6,8 @@ using ..Solvers.DgSolver: polydeg
 using ..Equations: nvariables, cons2prim
 using ..Auxiliary: parameter
 using ..Mesh: TreeMesh
-using ..Mesh.Trees: Tree, leaf_cells, length_at_cell
+using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
+                    n_children_per_cell, n_directions
 
 using HDF5: h5open, attrs
 using Printf: @sprintf
@@ -110,11 +111,11 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, strip(join(columns, " ")))
 
     # Write data
-    for cell_id = 1:dg.n_elements, i = 1:n_nodes
+    for element_id = 1:dg.n_elements, i = 1:n_nodes
       data_out = Vector{String}(undef, ndim + nvariables(dg))
-      data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, cell_id])
+      data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, element_id])
       for v = 1:nvariables(dg)
-        data_out[v+1] = @sprintf("%+10.8e", data[v, i, cell_id])
+        data_out[v+1] = @sprintf("%+10.8e", data[v, i, element_id])
       end
       println(file, join(data_out, " "))
     end
@@ -137,7 +138,127 @@ function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
 
   # Dispatch on format property
   output_format = parameter("output_format", "hdf5", valid=["hdf5", "text"])
-  save_solution_file(Val(Symbol(output_format)), mesh, filename::String)
+  filename = save_mesh_file(Val(Symbol(output_format)), mesh, filename::String)
+
+  return filename
+end
+
+
+# Save current mesh with some context information as an HDF5 file.
+function save_mesh_file(::Val{:hdf5}, mesh::TreeMesh, filename::String)
+  # Open file (clobber existing content)
+  h5open(filename * ".h5", "w") do file
+    # Add context information as attributes
+    n_cells = length(mesh.tree)
+    attrs(file)["ndim"] = ndim
+    attrs(file)["n_cells"] = n_cells
+    attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
+    attrs(file)["minimum_level"] = minimum_level(mesh.tree)
+    attrs(file)["maximum_level"] = maximum_level(mesh.tree)
+    attrs(file)["center_level_0"] = mesh.tree.center_level_0
+    attrs(file)["length_level_0"] = mesh.tree.length_level_0
+
+    # Add tree data
+    file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
+    file["child_ids"] = @view mesh.tree.child_ids[:, 1:n_cells]
+    file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
+    file["levels"] = @view mesh.tree.levels[1:n_cells]
+    file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+  end
+
+  return filename * ".h5"
+end
+
+
+# Save current mesh with some context information as a text file.
+function save_mesh_file(::Val{:text}, mesh::TreeMesh, filename::String)
+  # Open file (clobber existing content)
+  open(filename * ".dat", "w") do file
+    # Add context information as comments in the first lines of the file
+    n_cells = length(mesh.tree)
+    println(file, "# ndim = $(ndim)")
+    println(file, "# n_cells = $(n_cells)")
+    println(file, "# n_leaf_cells = $(count_leaf_cells(mesh.tree))")
+    println(file, "# minimum_level = $(minimum_level(mesh.tree))")
+    println(file, "# maximum_level = $(maximum_level(mesh.tree))")
+    println(file, "# center_level_0 = $(mesh.tree.center_level_0)")
+    println(file, "# length_level_0 = $(mesh.tree.length_level_0)")
+
+    # Write column names, put in quotation marks to account for whitespace in names
+    n_columns = (1                                # parent ids
+                 + n_children_per_cell(mesh.tree) # child ids
+                 + n_directions(mesh.tree)        # neighbor ids
+                 + 1                              # levels
+                 + ndim)                          # coordinates
+    columns = Vector{String}(undef, n_columns)
+
+    # Parent ids
+    offset = 0
+    columns[offset + 1] = @sprintf("%-16s", "\"parent_ids\"")
+    offset += 1
+
+    # Child ids
+    for i in 1:n_children_per_cell(mesh.tree)
+      columns[offset + i] = @sprintf("%-16s", "\"child_ids_$i\"")
+    end
+    offset += n_children_per_cell(mesh.tree)
+
+    # Neighbor ids
+    for i in 1:n_directions(mesh.tree)
+      columns[offset + i] = @sprintf("%-16s", "\"neighbor_ids_$i\"")
+    end
+    offset += n_directions(mesh.tree)
+
+    # Levels
+    columns[offset + 1] = @sprintf("%-16s", "\"levels\"")
+    offset += 1
+
+    # Coordinates
+    for i = 1:ndim
+      columns[offset + i] = @sprintf("%-16s", "\"coordinates_$i\"")
+    end
+    offset += ndim
+
+    # Print to file
+    println(file, strip(join(columns, " ")))
+
+    # Write data
+    for cell_id = 1:n_cells
+      data_out = Vector{String}(undef, n_columns)
+
+      # Parent ids
+      offset = 0
+      data_out[offset + 1] = @sprintf("%16d", mesh.tree.parent_ids[cell_id])
+      offset += 1
+
+      # Child ids
+      for i = 1:n_children_per_cell(mesh.tree)
+        data_out[offset + i] = @sprintf("%16d", mesh.tree.child_ids[i, cell_id])
+      end
+      offset += n_children_per_cell(mesh.tree)
+
+      # Neighbor ids
+      for i = 1:n_directions(mesh.tree)
+        data_out[offset + i] = @sprintf("%16d", mesh.tree.neighbor_ids[i, cell_id])
+      end
+      offset += n_directions(mesh.tree)
+
+      # Levels
+      data_out[offset + 1] = @sprintf("%16d", mesh.tree.levels[cell_id])
+      offset += 1
+
+      # Coordinates
+      for i = 1:ndim
+        data_out[offset + i] = @sprintf("%+10.8e", mesh.tree.coordinates[i, cell_id])
+      end
+      offset += ndim
+
+      # Print to file
+      println(file, join(data_out, " "))
+    end
+  end
+
+  return filename * ".dat"
 end
 
 
