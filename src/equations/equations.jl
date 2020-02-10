@@ -1,4 +1,4 @@
-module Equation
+module Equations
 
 using ..Jul1dge
 using ..Auxiliary: parameter
@@ -38,11 +38,11 @@ end
 
 
 # Create an instance of a system of equation type based on a given name
-function getsyseqn(name::String, initialconditions::String, sources::String, args...)
+function getsyseqn(name::String)
   if name == "linearscalaradvection"
-    return LinearScalarAdvection(initialconditions, sources, args...)
+    return LinearScalarAdvection()
   elseif name == "euler"
-    return Euler(initialconditions, sources, args...)
+    return Euler()
   else
     error("'$name' does not name a valid system of equations")
   end

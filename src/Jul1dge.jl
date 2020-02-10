@@ -7,7 +7,7 @@ export ndim
 
 # Include all top-level submodule files
 include("auxiliary/auxiliary.jl")
-include("equation/equation.jl")
+include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
 include("io/io.jl")

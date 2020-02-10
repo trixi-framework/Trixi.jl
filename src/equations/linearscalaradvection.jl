@@ -7,10 +7,13 @@ struct LinearScalarAdvection <: AbstractSysEqn{1}
   varnames_prim::SVector{1, String}
   advectionvelocity::Float64
 
-  function LinearScalarAdvection(initialconditions, sources, a)
+  function LinearScalarAdvection()
     name = "linearscalaradvection"
+    initialconditions = parameter("initialconditions")
+    sources = parameter("sources", "none")
     varnames_cons = ["scalar"]
     varnames_prim = ["scalar"]
+    a = parameter("advectionvelocity")
     new(name, initialconditions, sources, varnames_cons, varnames_prim, a)
   end
 end

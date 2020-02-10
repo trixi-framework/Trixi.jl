@@ -3,7 +3,7 @@ include("Jul1dge.jl")
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
-using .Jul1dge.Equation: getsyseqn, nvars
+using .Jul1dge.Equations: getsyseqn, nvars
 using .Jul1dge.Solvers.DgMod: Dg, setinitialconditions, analyze_solution, calcdt
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
@@ -20,16 +20,6 @@ function run()
   # Parse parameters file
   parse_parameters_file(args["parameters-file"])
 
-  # Retrieve repeatedly used parameters
-  N = parameter("N")
-  cfl = parameter("cfl")
-  nstepsmax = parameter("nstepsmax")
-  equations = parameter("syseqn")
-  initialconditions = parameter("initialconditions")
-  sources = parameter("sources", "none")
-  t_start = parameter("t_start")
-  t_end = parameter("t_end")
-
   # Create mesh
   print("Creating mesh... ")
   @timeit timer() "mesh generation" mesh = generate_mesh()
@@ -37,32 +27,32 @@ function run()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  if equations == "linearscalaradvection"
-    advectionvelocity = parameter("advectionvelocity")
-    syseqn = getsyseqn("linearscalaradvection", initialconditions, sources,
-                       advectionvelocity)
-  elseif equations == "euler"
-    syseqn = getsyseqn("euler", initialconditions, sources)
-  else
-    error("unknown system of equations '$equations'")
-  end
+  equations = parameter("syseqn", valid=["linearscalaradvection", "euler"])
+  syseqn = getsyseqn(equations)
   println("done")
 
   # Initialize solver
   print("Initializing solver... ")
+  N = parameter("N")
   dg = Dg(syseqn, mesh, N)
   println("done")
 
   # Apply initial condition
   print("Applying initial conditions... ")
+  t_start = parameter("t_start")
+  t_end = parameter("t_end")
   time = t_start
   setinitialconditions(dg, time)
   println("done")
 
   # Print setup information
   println()
+  nstepsmax = parameter("nstepsmax")
+  cfl = parameter("cfl")
+  initialconditions = parameter("initialconditions")
+  sources = parameter("sources", "none")
   n_dofs_total = dg.ncells * (N + 1)^ndim
-  n_nodes = size(mesh)
+  nnodes = size(mesh)
   n_leaf_nodes = count_leaf_nodes(mesh)
   min_level = minimum_level(mesh)
   max_level = maximum_level(mesh)
@@ -87,7 +77,7 @@ function run()
          | #parallel threads: $(Threads.nthreads())
          |
          | Mesh
-         | | #nodes:          $n_nodes
+         | | #nodes:          $nnodes
          | | #leaf nodes:     $n_leaf_nodes
          | | minimum level:   $min_level
          | | maximum level:   $max_level

@@ -4,8 +4,8 @@ include("interpolation.jl")
 
 using ...Jul1dge
 using ..Solvers: AbstractSolver
-using ...Equation: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
-import ...Equation: nvars # Import to allow method extension
+using ...Equations: AbstractSysEqn, initialconditions, calcflux, riemann!, sources, maxdt
+import ...Equations: nvars # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh.Trees: Tree, leaf_nodes, length_at_node
 using .Interpolation: interpolate_nodes, calcdhat,

@@ -2,7 +2,7 @@ module Io
 
 using ..Jul1dge
 using ..Solvers.DgMod: polydeg, syseqn
-using ..Equation: nvars, cons2prim
+using ..Equations: nvars, cons2prim
 using ..Auxiliary: parameter
 
 using HDF5: h5open, attrs

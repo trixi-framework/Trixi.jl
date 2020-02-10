@@ -8,8 +8,10 @@ struct Euler <: AbstractSysEqn{3}
   gamma::Float64
   riemann_solver::String
 
-  function Euler(initialconditions, sources)
+  function Euler()
     name = "euler"
+    initialconditions = parameter("initialconditions")
+    sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_u", "rho_e"]
     varnames_prim = ["rho", "u", "p"]
     gamma = 1.4
