@@ -4,7 +4,8 @@
 include("../src/auxiliary/auxiliary.jl")
 include("../src/solvers/interpolation.jl")
 
-using .Interpolation: gausslobatto, polynomialinterpolationmatrix, interpolate_nodes
+using .Interpolation: gauss_lobatto_nodes_weights,
+                      polynomial_interpolation_matrix, interpolate_nodes
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
 using Plots: plot, gr, savefig, scatter!
