@@ -32,7 +32,7 @@ struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractS
   ut::Array{Float64, 3}
   urk::Array{Float64, 3}
   flux::Array{Float64, 3}
-  nelements::Int
+  n_elements::Int
   invjacobian::Array{Float64, 1}
   node_coordinates::Array{Float64, 2}
   surfaces::Array{Int, 2}
@@ -72,26 +72,26 @@ nvariables(dg::Dg) = nvariables(equations(dg))
 
 
 # Return number of degrees of freedom
-Solvers.ndofs(dg::Dg) = dg.nelements * (polydeg(dg) + 1)^ndim
+Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
 
 
 # Convenience constructor to create DG solver instance
 function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
   # Determine number of elements
   leaf_cell_ids = leaf_cells(mesh)
-  nelements = length(leaf_cell_ids)
+  n_elements = length(leaf_cell_ids)
 
   # Initialize data structures
-  u = zeros(Float64, V, N + 1, nelements)
-  ut = zeros(Float64, V, N + 1, nelements)
-  urk = zeros(Float64, V, N + 1, nelements)
-  flux = zeros(Float64, V, N + 1, nelements)
+  u = zeros(Float64, V, N + 1, n_elements)
+  ut = zeros(Float64, V, N + 1, n_elements)
+  urk = zeros(Float64, V, N + 1, n_elements)
+  flux = zeros(Float64, V, N + 1, n_elements)
 
-  nsurfaces = nelements
+  nsurfaces = n_elements
   usurf = zeros(Float64, 2, V, nsurfaces)
   fsurf = zeros(Float64, V, nsurfaces)
 
-  surfaces = zeros(Int, 2, nelements)
+  surfaces = zeros(Int, 2, n_elements)
   neighbors = zeros(Int, 2, nsurfaces)
 
   # Create surfaces between elements
@@ -103,16 +103,16 @@ function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
   # 1 --- 2
   # Order of adjacent elements:
   # 1  |  2
-  for element_id = 1:nelements
+  for element_id = 1:n_elements
     surfaces[1, element_id] = element_id
     surfaces[2, element_id] = element_id + 1
   end
-  surfaces[2, nelements] = 1
+  surfaces[2, n_elements] = 1
   for s = 1:nsurfaces
     neighbors[1, s] = s - 1
     neighbors[2, s] = s
   end
-  neighbors[1, 1] = nelements
+  neighbors[1, 1] = n_elements
 
 
   # Initialize interpolation data structures
@@ -132,14 +132,14 @@ function Dg(s::AbstractEquation{V}, mesh::Tree, N::Int) where V
 
   # Create actual DG solver instance
   dg = Dg{typeof(s), N, N + 1, NAna, NAna + 1}(
-      s, u, ut, urk, flux, nelements, Array{Float64,1}(undef, nelements),
-      Array{Float64,2}(undef, N + 1, nelements), surfaces, usurf, fsurf,
+      s, u, ut, urk, flux, n_elements, Array{Float64,1}(undef, n_elements),
+      Array{Float64,2}(undef, N + 1, n_elements), surfaces, usurf, fsurf,
       neighbors, nsurfaces, nodes, weights, dhat, lhat, analysis_nodes,
       analysis_weights, analysis_weights_volume, analysis_vandermonde,
       analysis_total_volume)
 
   # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:nelements
+  for element_id in 1:n_elements
     cell_id = leaf_cell_ids[element_id]
     dx = length_at_cell(mesh, cell_id)
     dg.invjacobian[element_id] = 2/dx
@@ -162,7 +162,7 @@ function calc_error_norms(dg::Dg, t::Float64)
   u_exact = zeros(nvariables(s))
 
   # Iterate over all elements for error calculations
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
     u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvariables(s))
     x = interpolate_nodes(reshape(dg.node_coordinates[:, element_id], 1, :),
@@ -225,7 +225,7 @@ end
 function Solvers.set_initial_conditions(dg::Dg, t)
   s = equations(dg)
 
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     for i = 1:(polydeg(dg) + 1)
       dg.u[:, i, element_id] .= initial_conditions(s, dg.node_coordinates[i, element_id], t)
     end
@@ -267,7 +267,7 @@ function volflux!(dg)
   n_nodes = N + 1
   s = equations(dg)
 
-  @inbounds Threads.@threads for element_id = 1:dg.nelements
+  @inbounds Threads.@threads for element_id = 1:dg.n_elements
     dg.flux[:, :, element_id] = calcflux(s, dg.u, element_id, n_nodes)
   end
 end
@@ -275,7 +275,7 @@ end
 
 # Calculate volume integral and update u_t
 function volint!(dg)
-  @inbounds Threads.@threads for element_id = 1:dg.nelements
+  @inbounds Threads.@threads for element_id = 1:dg.n_elements
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         for j = 1:nnodes(dg)
@@ -321,7 +321,7 @@ function surfint!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
 
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     left = dg.surfaces[1, element_id]
     right = dg.surfaces[2, element_id]
 
@@ -338,7 +338,7 @@ function applyjacobian!(dg)
   N = polydeg(dg)
   n_nodes = N + 1
 
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     for i = 1:n_nodes
       for v = 1:nvariables(dg)
         dg.ut[v, i, element_id] *= -dg.invjacobian[element_id]
@@ -358,7 +358,7 @@ function calcsources!(dg::Dg, t)
   N = polydeg(dg)
   n_nodes = N + 1
 
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, n_nodes)
   end
 end
@@ -370,7 +370,7 @@ function Solvers.calcdt(dg::Dg, cfl)
   n_nodes = N + 1
 
   mindt = Inf
-  for element_id = 1:dg.nelements
+  for element_id = 1:dg.n_elements
     dt = maxdt(equations(dg), dg.u, element_id, n_nodes, dg.invjacobian[element_id], cfl)
     mindt = min(mindt, dt)
   end

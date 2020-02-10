@@ -61,19 +61,22 @@ function run()
   max_dx = domain_length / 2^min_level
   s = """| Simulation setup
          | ----------------
-         | N:                  $N
-         | t_start:            $t_start
-         | t_end:              $t_end
-         | CFL:                $cfl
-         | n_steps_max:        $n_steps_max
          | equations:          $equations_name
          | | #variables:       $(nvariables(equations))
          | | variable names:   $(join(equations.varnames_cons, ", "))
          | initial_conditions: $initial_conditions
          | sources:            $sources
-         | nelements:          $(solver.nelements)
-         | #DOFs:              $(ndofs(solver))
+         | t_start:            $t_start
+         | t_end:              $t_end
          | #parallel threads:  $(Threads.nthreads())
+         |
+         | Solver
+         | | solver:           $solver_name
+         | | N:                $N
+         | | CFL:              $cfl
+         | | n_steps_max:      $n_steps_max
+         | | #elements:        $(solver.n_elements)
+         | | #DOFs:            $(ndofs(solver))
          |
          | Mesh
          | | #cells:           $(size(mesh))
