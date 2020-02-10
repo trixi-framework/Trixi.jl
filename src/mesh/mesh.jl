@@ -21,7 +21,7 @@ function generate_mesh()
   domain_length = max(coordinates_max .- coordinates_min)
 
   # Create mesh
-  @timeit timer() "creation" mesh = Tree(Val{ndim}(), parameter("nnodesmax"),
+  @timeit timer() "creation" mesh = Tree(Val{ndim}(), parameter("n_cells_max"),
                                          domain_center, domain_length)
 
   # Create initial refinement

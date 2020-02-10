@@ -2,7 +2,7 @@ include("Jul1dge.jl")
 
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
-using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
+using .Jul1dge.Mesh.Trees: size, count_leaf_cells, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvars
 using .Jul1dge.Solvers: make_solver, setinitialconditions, analyze_solution, calcdt, ndofs
 using .Jul1dge.TimeDisc: timestep!
@@ -52,8 +52,8 @@ function run()
   cfl = parameter("cfl")
   initialconditions = parameter("initialconditions")
   sources = parameter("sources", "none")
-  nnodes = size(mesh)
-  n_leaf_nodes = count_leaf_nodes(mesh)
+  ncells = size(mesh)
+  n_leaf_cells = count_leaf_cells(mesh)
   min_level = minimum_level(mesh)
   max_level = maximum_level(mesh)
   domain_center = mesh.center_level_0
@@ -77,8 +77,8 @@ function run()
          | #parallel threads: $(Threads.nthreads())
          |
          | Mesh
-         | | #nodes:          $nnodes
-         | | #leaf nodes:     $n_leaf_nodes
+         | | #cells:          $ncells
+         | | #leaf cells:     $n_leaf_cells
          | | minimum level:   $min_level
          | | maximum level:   $max_level
          | | domain center:   $(join(domain_center, ", "))

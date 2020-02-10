@@ -7,7 +7,7 @@ using ..Solvers # Use everything to allow method extension via "function <parent
 using ...Equations: AbstractEquation, initialconditions, calcflux, riemann!, sources, maxdt
 import ...Equations: nvars # Import to allow method extension
 using ...Auxiliary: timer
-using ...Mesh.Trees: Tree, leaf_nodes, length_at_node
+using ...Mesh.Trees: Tree, leaf_cells, length_at_cell
 using .Interpolation: interpolate_nodes, calcdhat,
                       polynomialinterpolationmatrix, calclhat, gausslobatto
 using StaticArrays: SVector, SMatrix, MMatrix
@@ -34,7 +34,7 @@ struct Dg{Eqn <: AbstractEquation{nvars_} where nvars_, N, Np1, NAna, NAnap1} <:
   flux::Array{Float64, 3}
   nelements::Int
   invjacobian::Array{Float64, 1}
-  nodecoordinate::Array{Float64, 2}
+  node_coordinates::Array{Float64, 2}
   surfaces::Array{Int, 2}
 
   usurf::Array{Float64, 3}
@@ -74,8 +74,8 @@ Solvers.ndofs(dg::Dg) = dg.nelements * (polydeg(dg) + 1)^ndim
 # Convenience constructor to create DG solver instance
 function Dg(s::AbstractEquation{nvars_}, mesh::Tree, N::Int) where nvars_
   # Determine number of elements
-  leaf_node_ids = leaf_nodes(mesh)
-  nelements = length(leaf_node_ids)
+  leaf_cell_ids = leaf_cells(mesh)
+  nelements = length(leaf_cell_ids)
 
   # Initialize data structures
   u = zeros(Float64, nvars_, N + 1, nelements)
@@ -136,10 +136,10 @@ function Dg(s::AbstractEquation{nvars_}, mesh::Tree, N::Int) where nvars_
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:nelements
-    node_id = leaf_node_ids[element_id]
-    dx = length_at_node(mesh, node_id)
+    cell_id = leaf_cell_ids[element_id]
+    dx = length_at_cell(mesh, cell_id)
     dg.invjacobian[element_id] = 2/dx
-    dg.nodecoordinate[:, element_id] = @. mesh.coordinates[1, node_id] + dx/2 * nodes[:]
+    dg.node_coordinates[:, element_id] = @. mesh.coordinates[1, cell_id] + dx/2 * nodes[:]
   end
 
   return dg
@@ -162,7 +162,7 @@ function calc_error_norms(dg::Dg, t::Float64)
   for element_id = 1:dg.nelements
     # Interpolate solution and node locations to analysis nodes
     u = interpolate_nodes(dg.u[:, :, element_id], dg.analysis_vandermonde, nvars_)
-    x = interpolate_nodes(reshape(dg.nodecoordinate[:, element_id], 1, :),
+    x = interpolate_nodes(reshape(dg.node_coordinates[:, element_id], 1, :),
                           dg.analysis_vandermonde, 1)
 
     # Calculate errors at each analysis node
@@ -225,7 +225,7 @@ function Solvers.setinitialconditions(dg::Dg, t)
 
   for element_id = 1:dg.nelements
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, element_id] .= initialconditions(s, dg.nodecoordinate[i, element_id], t)
+      dg.u[:, i, element_id] .= initialconditions(s, dg.node_coordinates[i, element_id], t)
     end
   end
 end
@@ -365,7 +365,7 @@ function calcsources!(dg::Dg, t)
   nvars_ = nvars(dg)
 
   for element_id = 1:dg.nelements
-    sources(equations(dg), dg.ut, dg.u, dg.nodecoordinate, element_id, t, nnodes)
+    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, nnodes)
   end
 end
 

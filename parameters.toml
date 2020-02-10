@@ -21,7 +21,7 @@ analysis_interval = 100
 
 ####################################################################################################
 # Mesh
-nnodesmax = 10000
+n_cells_max = 10000
 coordinates_min = -16
 coordinates_max =  16
 initial_refinement_level = 4

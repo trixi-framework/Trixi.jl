@@ -45,7 +45,7 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
     attrs(file)["nelements"] = dg.nelements
 
     # Add coordinates as 1D arrays
-    file["x"] = dg.nodecoordinate[:]
+    file["x"] = dg.node_coordinates[:]
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "conservative",
@@ -111,7 +111,7 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     # Write data
     for cell_id = 1:dg.nelements, i = 1:nnodes
       data_out = Vector{String}(undef, ndim + nvars_)
-      data_out[1] = @sprintf("%+10.8e", dg.nodecoordinate[i, cell_id])
+      data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, cell_id])
       for v = 1:nvars_
         data_out[v+1] = @sprintf("%+10.8e", data[v, i, cell_id])
       end

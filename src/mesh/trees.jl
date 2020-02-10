@@ -16,13 +16,13 @@ abstract type AbstractContainer end
 # Note: The way the data structures are set up and the way most algorithms
 # work, it is *always* assumed that 
 #   a) we have a balanced tree (= at most one level difference between
-#                                 neighboring nodes, or 2:1 rule)
+#                                 neighboring cells, or 2:1 rule)
 #   b) we may not have all children (= some children may not exist)
 #   c) the tree is stored depth-first
 #
 # However, the way the refinement/coarsening algorithms are currently
-# implemented, we only have fully refined nodes. That is, a node either has 2^D children or
-# no children at all (= leaf node). This restriction is also assumed at
+# implemented, we only have fully refined cells. That is, a cell either has 2^D children or
+# no children at all (= leaf cell). This restriction is also assumed at
 # multiple positions in the refinement/coarsening algorithms.
 #
 # An exception to the 2:1 rule exists for the low-level
@@ -66,12 +66,12 @@ mutable struct Tree{D} <: AbstractContainer
     b.center_level_0 = center
     b.length_level_0 = length
 
-    # Create initial node
+    # Create initial cell
     b.size += 1
     b.levels[1] = 0
     b.parent_ids[1] = 0
     b.child_ids[:, 1] .= 0
-    b.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 node is its own neighbor
+    b.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
     b.levels[1] = 0
     b.coordinates[:, 1] .= b.center_level_0
 
@@ -108,50 +108,50 @@ ndims(t::Tree) = ndims(typeof(t))
 
 
 # Auxiliary methods to allow semantic queries on the tree
-# Check whether node has parent node
-has_parent(t::Tree, node_id::Int) = t.parent_ids[node_id] > 0
+# Check whether cell has parent cell
+has_parent(t::Tree, cell_id::Int) = t.parent_ids[cell_id] > 0
 
-# Check whether node has any child node
-has_child(t::Tree, node_id::Int, child_id::Int) = t.child_ids[child_id, node_id] > 0
+# Check whether cell has any child cell
+has_child(t::Tree, cell_id::Int, child_id::Int) = t.child_ids[child_id, cell_id] > 0
 
-# Check whether node is leaf node
-is_leaf(t::Tree, node_id::Int) = !has_children(t, node_id)
+# Check whether cell is leaf cell
+is_leaf(t::Tree, cell_id::Int) = !has_children(t, cell_id)
 
-# Check whether node has specific child node
-has_children(t::Tree, node_id::Int) = n_children(t, node_id) > 0
+# Check whether cell has specific child cell
+has_children(t::Tree, cell_id::Int) = n_children(t, cell_id) > 0
 
-# Count number of children for a given node
-n_children(t::Tree, node_id::Int) = count(x -> (x > 0), @view t.child_ids[:, node_id])
+# Count number of children for a given cell
+n_children(t::Tree, cell_id::Int) = count(x -> (x > 0), @view t.child_ids[:, cell_id])
 
-# Check if node has a neighbor at the same refinement level in the given direction
-has_neighbor(t::Tree, node_id::Int, direction::Int) = t.neighbor_ids[direction, node_id] > 0
+# Check if cell has a neighbor at the same refinement level in the given direction
+has_neighbor(t::Tree, cell_id::Int, direction::Int) = t.neighbor_ids[direction, cell_id] > 0
 
-# Check if node has a coarse neighbor, i.e., with one refinement level lower
-function has_coarse_neighbor(t::Tree, node_id::Int, direction::Int)
-  return has_parent(t, node_id) && has_neighbor(t, t.parent_ids[node_id], direction)
+# Check if cell has a coarse neighbor, i.e., with one refinement level lower
+function has_coarse_neighbor(t::Tree, cell_id::Int, direction::Int)
+  return has_parent(t, cell_id) && has_neighbor(t, t.parent_ids[cell_id], direction)
 end
 
-# Check if node has any neighbor (same-level or lower-level)
-function has_any_neighbor(t::Tree, node_id::Int, direction::Int)
-  return has_neighbor(t, node_id, direction) || has_coarse_neighbor(t, node_id, direction)
+# Check if cell has any neighbor (same-level or lower-level)
+function has_any_neighbor(t::Tree, cell_id::Int, direction::Int)
+  return has_neighbor(t, cell_id, direction) || has_coarse_neighbor(t, cell_id, direction)
 end
 
-# Return node length for a given level
+# Return cell length for a given level
 length_at_level(t::Tree, level::Int) = t.length_level_0 / 2^level
 
-# Return node length for a given node
-length_at_node(t::Tree, node_id::Int) = length_at_level(t, t.levels[node_id])
+# Return cell length for a given cell
+length_at_cell(t::Tree, cell_id::Int) = length_at_level(t, t.levels[cell_id])
 
 # Return minimum level of any leaf cell
-minimum_level(t::Tree) = minimum(t.levels[leaf_nodes(t)])
+minimum_level(t::Tree) = minimum(t.levels[leaf_cells(t)])
 
 # Return maximum level of any leaf cell
-maximum_level(t::Tree) = maximum(t.levels[leaf_nodes(t)])
+maximum_level(t::Tree) = maximum(t.levels[leaf_cells(t)])
 
 
 # Auxiliary methods for often-required calculations
-# Number of potential child nodes
-n_children_per_node(::Tree{D}) where D = 2^D
+# Number of potential child cells
+n_children_per_cell(::Tree{D}) where D = 2^D
 
 # Number of directions
 #
@@ -176,7 +176,7 @@ n_directions(::Tree{D}) where D = 2 * D
 opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 
 # For a given child position (from 1 to 8) and dimension (from 1 to 3),
-# calculate a child node's position relative to its parent node.
+# calculate a child cell's position relative to its parent cell.
 #
 # Essentially calculates the following
 #         dim=1 dim=2 dim=3
@@ -211,17 +211,17 @@ function has_sibling(child::Int, direction::Int)
 end
 
 
-# Obtain leaf nodes that fulfill a given criterion.
+# Obtain leaf cells that fulfill a given criterion.
 #
-# The function `f` is passed the node id of each leaf node
+# The function `f` is passed the cell id of each leaf cell
 # as an argument.
-function filter_leaf_nodes(f, t::Tree)
+function filter_leaf_cells(f, t::Tree)
   filtered = Vector{Int}(undef, size(t))
   count = 0
-  for node_id in 1:size(t)
-    if is_leaf(t, node_id) && f(node_id)
+  for cell_id in 1:size(t)
+    if is_leaf(t, cell_id) && f(cell_id)
       count += 1
-      filtered[count] = node_id
+      filtered[count] = cell_id
     end
   end
 
@@ -229,49 +229,49 @@ function filter_leaf_nodes(f, t::Tree)
 end
 
 
-# Return an array with the ids of all leaf nodes
-leaf_nodes(t::Tree) = filter_leaf_nodes((node_id)->true, t)
+# Return an array with the ids of all leaf cells
+leaf_cells(t::Tree) = filter_leaf_cells((cell_id)->true, t)
 
 
-# Count the number of leaf nodes.
-count_leaf_nodes(t::Tree) = length(leaf_nodes(t))
+# Count the number of leaf cells.
+count_leaf_cells(t::Tree) = length(leaf_cells(t))
 
 
 # Refine entire tree by one level
 function refine!(t::Tree)
-  refine!(t, leaf_nodes(t))
+  refine!(t, leaf_cells(t))
 end
 
 
-# Refine given nodes and rebalance tree.
+# Refine given cells and rebalance tree.
 #
-# Note 1: Rebalancing is iterative, i.e., neighboring nodes are refined if
+# Note 1: Rebalancing is iterative, i.e., neighboring cells are refined if
 #         otherwise the 2:1 rule would be violated, which can cause more
 #         refinements.
 # Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
-function refine!(t::Tree, node_ids)
-  refined = refine_unbalanced!(t, node_ids)
+function refine!(t::Tree, cell_ids)
+  refined = refine_unbalanced!(t, cell_ids)
   while length(refined) > 0
     refined = rebalance!(t, refined)
   end
 end
 
 
-# Refine all leaf nodes with coordinates in a given rectangular box
+# Refine all leaf cells with coordinates in a given rectangular box
 function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
                      coordinates_max::AbstractArray{Float64}) where D
   for dim in 1:D
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
 
-  # Find all leaf nodes within box
-  nodes = filter_leaf_nodes(t) do node_id
-    return (all(coordinates_min .< t.coordinates[:, node_id]) &&
-            all(coordinates_max .> t.coordinates[:, node_id]))
+  # Find all leaf cells within box
+  cells = filter_leaf_cells(t) do cell_id
+    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
+            all(coordinates_max .> t.coordinates[:, cell_id]))
   end
 
-  # Refine nodes
-  refine!(t, nodes)
+  # Refine cells
+  refine!(t, cells)
 end
 
 # Convenience method for 1D
@@ -280,98 +280,98 @@ function refine_box!(t::Tree{1}, coordinates_min::Real, coordinates_max::Real)
 end
 
 
-# For the given node ids, check if neighbors need to be refined to restore a rebalanced tree.
+# For the given cell ids, check if neighbors need to be refined to restore a rebalanced tree.
 #
 # Note 1: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
 # Note 2: The current algorithm assumes that a previous refinement step has
 #         created level differences of at most 2. That is, before the previous
 #         refinement step, the tree was balanced.
-function rebalance!(t::Tree, refined_node_ids)
-  # Create buffer for newly refined nodes
-  to_refine = zeros(Int, n_directions(t) * length(refined_node_ids))
+function rebalance!(t::Tree, refined_cell_ids)
+  # Create buffer for newly refined cells
+  to_refine = zeros(Int, n_directions(t) * length(refined_cell_ids))
   count = 0
 
-  # Iterate over node ids that have previously been refined
-  for node_id in refined_node_ids
+  # Iterate over cell ids that have previously been refined
+  for cell_id in refined_cell_ids
     # Loop over all possible directions
     for direction in 1:n_directions(t)
       # Check if a neighbor exists. If yes, there is nothing else to do, since
-      # our current node is at most one level further refined
-      if has_neighbor(t, node_id, direction)
+      # our current cell is at most one level further refined
+      if has_neighbor(t, cell_id, direction)
         continue
       end
 
       # If also no coarse neighbor exists, there is nothing to do in this direction
-      if !has_coarse_neighbor(t, node_id, direction)
+      if !has_coarse_neighbor(t, cell_id, direction)
         continue
       end
 
       # Otherwise, the coarse neighbor exists and is not refined, thus it must
       # be marked for refinement
-      coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[node_id]]
+      coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
       count += 1
       to_refine[count] = coarse_neighbor_id
     end
   end
 
-  # Finally, refine all marked nodes...
+  # Finally, refine all marked cells...
   refined = refine_unbalanced!(t, @view to_refine[1:count])
 
-  # ...and return list of refined nodes
+  # ...and return list of refined cells
   return refined
 end
 
 
-# Refine given nodes without rebalancing tree.
+# Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::Tree, node_ids)
-  # Store actual ids refined nodes (shifted due to previous insertions)
-  refined = zeros(Int, length(node_ids))
+function refine_unbalanced!(t::Tree, cell_ids)
+  # Store actual ids refined cells (shifted due to previous insertions)
+  refined = zeros(Int, length(cell_ids))
 
-  # Loop over all nodes that are to be refined
-  for (count, original_node_id) in enumerate(sort(node_ids))
-    # Determine actual node id, taking into account previously inserted nodes
-    n_children = n_children_per_node(t)
-    node_id = original_node_id + (count - 1) * n_children
-    refined[count] = node_id
+  # Loop over all cells that are to be refined
+  for (count, original_cell_id) in enumerate(sort(cell_ids))
+    # Determine actual cell id, taking into account previously inserted cells
+    n_children = n_children_per_cell(t)
+    cell_id = original_cell_id + (count - 1) * n_children
+    refined[count] = cell_id
 
-    @assert !has_children(t, node_id) "Non-leaf node $node_id cannot be refined"
+    @assert !has_children(t, cell_id) "Non-leaf cell $cell_id cannot be refined"
 
-    # Insert new nodes directly behind parent (depth-first)
-    insert!(t, node_id + 1, n_children)
+    # Insert new cells directly behind parent (depth-first)
+    insert!(t, cell_id + 1, n_children)
 
-    # Initialize child nodes
+    # Initialize child cells
     for child in 1:n_children
       # Set child information based on parent
-      child_id = node_id + child
-      t.parent_ids[child_id] = node_id
-      t.child_ids[child, node_id] = child_id
+      child_id = cell_id + child
+      t.parent_ids[child_id] = cell_id
+      t.child_ids[child, cell_id] = child_id
       t.neighbor_ids[:, child_id] .= 0
       t.child_ids[:, child_id] .= 0
-      t.levels[child_id] = t.levels[node_id] + 1
+      t.levels[child_id] = t.levels[cell_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, node_id], length_at_node(t, node_id), child)
+          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
 
-      # For determining neighbors, use neighbor connections of parent node
+      # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
         # If neighbor is a sibling, establish one-sided connectivity
         # Note: two-sided is not necessary, as each sibling will do this
         if has_sibling(child, direction)
           adjacent = adjacent_child(child, direction)
-          neighbor_id = node_id + adjacent
+          neighbor_id = cell_id + adjacent
 
           t.neighbor_ids[direction, child_id] = neighbor_id
           continue
         end
 
-        # Skip if original node does have no neighbor in direction
-        if !has_neighbor(t, node_id, direction)
+        # Skip if original cell does have no neighbor in direction
+        if !has_neighbor(t, cell_id, direction)
           continue
         end
 
         # Otherwise, check if neighbor has children - if not, skip again
-        neighbor_id = t.neighbor_ids[direction, node_id]
+        neighbor_id = t.neighbor_ids[direction, cell_id]
         if !has_children(t, neighbor_id)
           continue
         end
@@ -392,13 +392,13 @@ function refine_unbalanced!(t::Tree, node_ids)
   return refined
 end
 
-# Wrap single-node refinements such that `sort(...)` does not complain
-refine_unbalanced!(t::Tree, node_id::Int) = refine_unbalanced!(t, [node_id])
+# Wrap single-cell refinements such that `sort(...)` does not complain
+refine_unbalanced!(t::Tree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
 
 
-# Return coordinates of a child node based on its relative position to the parent.
+# Return coordinates of a child cell based on its relative position to the parent.
 function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
-  # Calculate length of child nodes and set up data structure
+  # Calculate length of child cells and set up data structure
   child_length = parent_length / 2
   child_coordinates = MVector{D, Float64}(undef)
 
@@ -411,9 +411,9 @@ function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number,
 end
 
 
-# Reset range of nodes to values that are prone to cause errors as soon as they are used.
+# Reset range of cells to values that are prone to cause errors as soon as they are used.
 #
-# Rationale: If an invalid node is accidentally used, we want to know it as soon as possible.
+# Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
 function invalidate!(t::Tree, first::Int, last::Int)
   @assert first > 0
   @assert first <= last
@@ -430,43 +430,43 @@ invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::Tree) = invalidate!(t, 1, size(t))
 
 
-# Delete connectivity with parents/children/neighbors before nodes are erased
+# Delete connectivity with parents/children/neighbors before cells are erased
 function delete_connectivity!(t::Tree, first::Int, last::Int)
   @assert first > 0
   @assert first <= last
   @assert last <= t.capacity + 1
 
-  # Iterate over all nodes
-  for node_id in first:last
-    # Delete connectivity from parent node
-    if has_parent(t, node_id)
-      parent_id = t.parent_ids[node_id]
-      for child in 1:n_children_per_node(t)
-        if t.child_ids[child, parent_id] == node_id
+  # Iterate over all cells
+  for cell_id in first:last
+    # Delete connectivity from parent cell
+    if has_parent(t, cell_id)
+      parent_id = t.parent_ids[cell_id]
+      for child in 1:n_children_per_cell(t)
+        if t.child_ids[child, parent_id] == cell_id
           t.child_ids[child, parent_id] = 0
           break
         end
       end
     end
 
-    # Delete connectivity from child nodes
-    for child in 1:n_children_per_node(t)
-      if has_child(t, node_id, child)
-        t.parent_ids[t._child_ids[child, node_id]] = 0
+    # Delete connectivity from child cells
+    for child in 1:n_children_per_cell(t)
+      if has_child(t, cell_id, child)
+        t.parent_ids[t._child_ids[child, cell_id]] = 0
       end
     end
 
-    # Delete connectivity from neighboring nodes
+    # Delete connectivity from neighboring cells
     for direction in 1:n_directions(t)
-      if has_neighbor(t, node_id, direction)
-        t.neighbor_ids[opposite_direction(direction), t.neighbor_ids[direction, node_id]] = 0
+      if has_neighbor(t, cell_id, direction)
+        t.neighbor_ids[opposite_direction(direction), t.neighbor_ids[direction, cell_id]] = 0
       end
     end
   end
 end
 
 
-# Move connectivity with parents/children/neighbors after nodes have been moved
+# Move connectivity with parents/children/neighbors after cells have been moved
 function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
   @assert first > 0
   @assert first <= last
@@ -475,10 +475,10 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
   @assert destination <= t.capacity + 1
 
   # Strategy
-  # 1) Loop over moved nodes (at target location)
-  # 2) Check if parent/children/neighbors connections are to a node that was moved
-  #    a) if node was moved: apply offset to current node
-  #    b) if node was not moved: go to connected node and update connectivity there
+  # 1) Loop over moved cells (at target location)
+  # 2) Check if parent/children/neighbors connections are to a cell that was moved
+  #    a) if cell was moved: apply offset to current cell
+  #    b) if cell was not moved: go to connected cell and update connectivity there
 
   offset = destination - first
   has_moved(n) = (first <= n <= last)
@@ -488,14 +488,14 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
 
     # Update parent
     if has_parent(t, target)
-      # Get parent node
+      # Get parent cell
       parent_id = t.parent_ids[target]
       if has_moved(parent_id)
         # If parent itself was moved, just update parent id accordingly
         t.parent_ids[target] += offset
       else
         # If parent was not moved, update its corresponding child id
-        for child in 1:n_children_per_node(t)
+        for child in 1:n_children_per_cell(t)
           if t.child_ids[child, parent_id] == source
             t.child_ids[child, parent_id] = target
           end
@@ -504,9 +504,9 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
     end
 
     # Update children
-    for child in 1:n_children_per_node(t)
+    for child in 1:n_children_per_cell(t)
       if has_child(t, target, child)
-        # Get child node
+        # Get child cell
         child_id = t.child_ids[child, target]
         if has_moved(child_id)
           # If child itself was moved, just update child id accordingly
@@ -521,7 +521,7 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
     # Update neighbors
     for direction in 1:n_directions(t)
       if has_neighbor(t, target, direction)
-        # Get neighbor node
+        # Get neighbor cell
         neighbor_id = t.neighbor_ids[direction, target]
         if has_moved(neighbor_id)
           # If neighbor itself was moved, just update neighbor id accordingly
@@ -536,13 +536,13 @@ function move_connectivity!(t::Tree, first::Int, last::Int, destination::Int)
 end
 
 
-# Raw copy operation for ranges of nodes.
+# Raw copy operation for ranges of cells.
 #
 # This method is used by the higher-level copy operations for AbstractContainer
 function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
-             n_children_per_node(target))
+             n_children_per_cell(target))
   copy_data!(target.neighbor_ids, source.neighbor_ids, first, last,
              destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
@@ -633,8 +633,8 @@ shrink!(c::AbstractContainer) = shrink(c, 1)
 # inheriting from AbstractContainer.
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= size(source) "First node out of range"
-  @assert 1 <= last <= size(source) "Last node out of range"
+  @assert 1 <= first <= size(source) "First cell out of range"
+  @assert 1 <= last <= size(source) "Last cell out of range"
   @assert 1 <= destination <= size(target) "Destination out of range"
   @assert destination + (last - first) <= size(target) "Target range out of bounds"
 
@@ -667,8 +667,8 @@ end
 
 # Move elements in a way that preserves connectivity.
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= size(c) "First node $first out of range"
-  @assert 1 <= last <= size(c) "Last node $last out of range"
+  @assert 1 <= first <= size(c) "First cell $first out of range"
+  @assert 1 <= last <= size(c) "Last cell $last out of range"
   @assert 1 <= destination <= size(c) "Destination $destination out of range"
   @assert destination + (last - first) <= size(c) "Target range out of bounds"
 
@@ -677,14 +677,14 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
     return
   end
 
-  # Copy nodes to new location
+  # Copy cells to new location
   raw_copy!(c, first, last, destination)
 
   # Move connectivity
   move_connectivity!(c, first, last, destination)
 
 
-  # Invalidate original node locations (unless they already contain new data due to overlap)
+  # Invalidate original cell locations (unless they already contain new data due to overlap)
   # 1) If end of desination range is within original range, shift first_invalid to the right
   count = last - first + 1
   first_invalid = (first <= destination + count - 1 <= last) ? destination + count : first
@@ -745,7 +745,7 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   # Increase size
   c.size += count
 
-  # Move original nodes that currently occupy the insertion region, unless
+  # Move original cells that currently occupy the insertion region, unless
   # insert position is one beyond previous size
   if position <= size(c) - count
     move!(c, position, size(c) - count, position + count)
@@ -756,39 +756,39 @@ insert!(c) = insert!(c, position, 1)
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
 function erase!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First node out of range"
-  @assert 1 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First cell out of range"
+  @assert 1 <= last <= size(c) "Last cell out of range"
 
   # Return if eraseure would be a no-op
   if last < first
     return
   end
 
-  # Delete connectivity and invalidate nodes
+  # Delete connectivity and invalidate cells
   delete_connectivity!(c, first, last)
   invalidate!(c, first, last)
 end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
 
-# Remove nodes and shift existing nodes forward to close the gap
+# Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First node out of range"
-  @assert 1 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First cell out of range"
+  @assert 1 <= last <= size(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
     return
   end
 
-  # Delete connectivity of nodes to be removed
+  # Delete connectivity of cells to be removed
   delete_connectivity!(c, first, last)
 
   if last == size
-    # If everything up to the last node is removed, no shifting is required
+    # If everything up to the last cell is removed, no shifting is required
     invalidate!(c, first, last)
   else
-    # Otherwise, the corresponding nodes are moved forward
+    # Otherwise, the corresponding cells are moved forward
     move!(c, last + 1, size(c), first)
   end
 
@@ -799,21 +799,21 @@ end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
 
-# Remove nodes and fill gap with nodes from the end of the container (to reduce copy operations)
+# Remove cells and fill gap with cells from the end of the container (to reduce copy operations)
 function remove_fill!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First node out of range"
-  @assert 1 <= last <= size(c) "Last node out of range"
+  @assert 1 <= first <= size(c) "First cell out of range"
+  @assert 1 <= last <= size(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
     return
   end
 
-  # Delete connectivity of nodes to be removed and then invalidate them
+  # Delete connectivity of cells to be removed and then invalidate them
   delete_connectivity!(c, first, last)
   invalidate!(c, first, last)
 
-  # Copy nodes from end (unless last is already the last node)
+  # Copy cells from end (unless last is already the last cell)
   count = last - first + 1
   if last < size(c)
     move(c, max(size(c) - count, last + 1), size(c), first)
