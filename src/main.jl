@@ -4,7 +4,7 @@ using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_nodes, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvars
-using .Jul1dge.Solvers: make_solver, setinitialconditions, analyze_solution, calcdt
+using .Jul1dge.Solvers: make_solver, setinitialconditions, analyze_solution, calcdt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
@@ -52,7 +52,6 @@ function run()
   cfl = parameter("cfl")
   initialconditions = parameter("initialconditions")
   sources = parameter("sources", "none")
-  n_dofs_total = solver.ncells * (N + 1)^ndim
   nnodes = size(mesh)
   n_leaf_nodes = count_leaf_nodes(mesh)
   min_level = minimum_level(mesh)
@@ -73,8 +72,8 @@ function run()
          | | variable names:  $(join(equations.varnames_cons, ", "))
          | initialconditions: $initialconditions
          | sources:           $sources
-         | ncells:            $(solver.ncells)
-         | #DOFs:             $n_dofs_total
+         | nelements:         $(solver.nelements)
+         | #DOFs:             $(ndofs(solver))
          | #parallel threads: $(Threads.nthreads())
          |
          | Mesh
@@ -141,7 +140,7 @@ function run()
       # Calculate absolute and relative runtime
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /
-                          (n_analysis_timesteps * n_dofs_total))
+                          (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(

@@ -11,6 +11,7 @@ export analyze_solution
 export calcdt
 export equations
 export rhs!
+export ndofs
 
 # Base type from which all solvers inherit from
 abstract type AbstractSolver end
@@ -36,6 +37,7 @@ function analyze_solution end
 function calcdt end
 function equations end
 function rhs! end
+function ndofs end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.

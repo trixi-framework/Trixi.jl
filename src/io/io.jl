@@ -42,7 +42,7 @@ function save_solution_file(::Val{:hdf5}, dg::Dg, filename::String)
     attrs(file)["equations"] = s.name
     attrs(file)["N"] = N
     attrs(file)["nvars"] = nvars_
-    attrs(file)["ncells"] = dg.ncells
+    attrs(file)["nelements"] = dg.nelements
 
     # Add coordinates as 1D arrays
     file["x"] = dg.nodecoordinate[:]
@@ -98,7 +98,7 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, "# equations = \"$(s.name)\"")
     println(file, "# N = $N")
     println(file, "# nvars = $nvars_")
-    println(file, "# ncells = $(dg.ncells)")
+    println(file, "# nelements = $(dg.nelements)")
 
     # Write column names, put in quotation marks to account for whitespace in names
     columns = Vector{String}(undef, ndim + nvars_)
@@ -109,7 +109,7 @@ function save_solution_file(::Val{:text}, dg::Dg, filename::String)
     println(file, strip(join(columns, " ")))
 
     # Write data
-    for cell_id = 1:dg.ncells, i = 1:nnodes
+    for cell_id = 1:dg.nelements, i = 1:nnodes
       data_out = Vector{String}(undef, ndim + nvars_)
       data_out[1] = @sprintf("%+10.8e", dg.nodecoordinate[i, cell_id])
       for v = 1:nvars_

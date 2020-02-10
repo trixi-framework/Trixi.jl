@@ -97,23 +97,23 @@ function interpolate_data(data_in::AbstractArray, nnodes_in::Integer, nnodes_out
   vandermonde = polynomialinterpolationmatrix(nodes_in, nodes_out)
 
   # Create output data structure
-  ncells = div(size(data_in, 1), nnodes_in)
+  nelements = div(size(data_in, 1), nnodes_in)
   nvars = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, nnodes_out, ncells, nvars)
+  data_out = Array{eltype(data_in)}(undef, nnodes_out, nelements, nvars)
 
   # Interpolate each variable separately
   for v = 1:nvars
     # Reshape data to fit expected format for interpolation function
     # FIXME: this "reshape here, reshape later" funny business should be implemented properly
-    reshaped = reshape(data_in[:, v], 1, nnodes_in, ncells)
+    reshaped = reshape(data_in[:, v], 1, nnodes_in, nelements)
 
     # Interpolate data for each cell
-    for cell_id = 1:ncells
+    for cell_id = 1:nelements
       data_out[:, cell_id, v] = interpolate_nodes(reshaped[:, :, cell_id], vandermonde, 1)
     end
   end
 
-  return reshape(data_out, nnodes_out * ncells, nvars)
+  return reshape(data_out, nnodes_out * nelements, nvars)
 end
 
 
@@ -122,7 +122,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
   h5open(filename, "r") do file
     # Extract basic information
     N = read(attrs(file)["N"])
-    ncells = read(attrs(file)["ncells"])
+    nelements = read(attrs(file)["nelements"])
     nvars = read(attrs(file)["nvars"])
 
     # Extract labels for legend
@@ -133,7 +133,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
 
     # Extract coordinates
     nnodes = N + 1
-    num_datapoints = nnodes * ncells
+    num_datapoints = nnodes * nelements
     coordinates = Array{Float64}(undef, num_datapoints)
     coordinates .= read(file["x"])
 
