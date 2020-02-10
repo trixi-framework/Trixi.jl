@@ -5,7 +5,7 @@ using ..Jul1dge
 export make_equations
 export nvars
 export AbstractEquation
-export initialconditions
+export initial_conditions
 export sources
 export calcflux
 export riemann!
@@ -50,7 +50,7 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # First, add generic functions for which the submodules can create own methods
-function initialconditions end
+function initial_conditions end
 function sources end
 function calcflux end
 function riemann! end

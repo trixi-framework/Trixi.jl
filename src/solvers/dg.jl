@@ -4,7 +4,7 @@ include("interpolation.jl")
 
 using ...Jul1dge
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
-using ...Equations: AbstractEquation, initialconditions, calcflux, riemann!, sources, maxdt
+using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, maxdt
 import ...Equations: nvars # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh.Trees: Tree, leaf_cells, length_at_cell
@@ -15,7 +15,7 @@ using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
 
 export Dg
-export setinitialconditions
+export set_initial_conditions
 export nvars
 export equations
 export polydeg
@@ -168,7 +168,7 @@ function calc_error_norms(dg::Dg, t::Float64)
     # Calculate errors at each analysis node
     jacobian = (1 / dg.invjacobian[element_id])^ndim
     for i = 1:nnodes_analysis
-      u_exact = initialconditions(s, x[i], t)
+      u_exact = initial_conditions(s, x[i], t)
       diff = similar(u_exact)
       @. diff = u_exact - u[:, i]
       @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
@@ -220,12 +220,12 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function Solvers.setinitialconditions(dg::Dg, t)
+function Solvers.set_initial_conditions(dg::Dg, t)
   s = equations(dg)
 
   for element_id = 1:dg.nelements
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, element_id] .= initialconditions(s, dg.node_coordinates[i, element_id], t)
+      dg.u[:, i, element_id] .= initial_conditions(s, dg.node_coordinates[i, element_id], t)
     end
   end
 end

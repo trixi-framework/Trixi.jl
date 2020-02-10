@@ -7,7 +7,7 @@ using StaticArrays: SVector, MVector, MMatrix
 
 # Export all symbols that should be available from Equations
 export Euler
-export initialconditions
+export initial_conditions
 export sources
 export calcflux
 export riemann!
@@ -18,7 +18,7 @@ export cons2prim
 # Main data structure for system of equations "Euler"
 struct Euler <: AbstractEquation{3}
   name::String
-  initialconditions::String
+  initial_conditions::String
   sources::String
   varnames_cons::SVector{3, String}
   varnames_prim::SVector{3, String}
@@ -27,20 +27,20 @@ struct Euler <: AbstractEquation{3}
 
   function Euler()
     name = "euler"
-    initialconditions = parameter("initialconditions")
+    initial_conditions = parameter("initial_conditions")
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_u", "rho_e"]
     varnames_prim = ["rho", "u", "p"]
     gamma = 1.4
     riemann_solver = parameter("riemann_solver", "hllc", valid=["hllc", "laxfriedrichs"])
-    new(name, initialconditions, sources, varnames_cons, varnames_prim, gamma, riemann_solver)
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, riemann_solver)
   end
 end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initialconditions(s::Euler, x, t)
-  name = s.initialconditions
+function Equations.initial_conditions(s::Euler, x, t)
+  name = s.initial_conditions
   if name == "density_pulse"
     rho = 1 + exp(-x^2)/2
     v = 1

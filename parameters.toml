@@ -4,7 +4,7 @@ equations = "euler"
 # equations = "linearscalaradvection"
 # advectionvelocity = 1.0 # Need only for linarscalaradvection
 
-initialconditions = "convergence_test"
+initial_conditions = "convergence_test"
 # sources = 
 t_start = 0.0
 t_end   = 1.0

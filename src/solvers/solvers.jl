@@ -6,7 +6,7 @@ using ..Jul1dge.Auxiliary: parameter
 
 export AbstractSolver
 export make_solver
-export setinitialconditions
+export set_initial_conditions
 export analyze_solution
 export calcdt
 export equations
@@ -32,7 +32,7 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # First, add generic functions for which the submodules can create own methods
-function setinitialconditions end
+function set_initial_conditions end
 function analyze_solution end
 function calcdt end
 function equations end

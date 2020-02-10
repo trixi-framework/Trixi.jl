@@ -4,7 +4,7 @@ using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
 using .Jul1dge.Mesh.Trees: size, count_leaf_cells, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvars
-using .Jul1dge.Solvers: make_solver, setinitialconditions, analyze_solution, calcdt, ndofs
+using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calcdt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
 using .Jul1dge.Io: save_solution_file
@@ -42,7 +42,7 @@ function run()
   t_start = parameter("t_start")
   t_end = parameter("t_end")
   time = t_start
-  setinitialconditions(solver, time)
+  set_initial_conditions(solver, time)
   println("done")
 
   # Print setup information
@@ -50,7 +50,7 @@ function run()
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
-  initialconditions = parameter("initialconditions")
+  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   ncells = size(mesh)
   n_leaf_cells = count_leaf_cells(mesh)
@@ -62,29 +62,29 @@ function run()
   max_dx = domain_length / 2^min_level
   s = """| Simulation setup
          | ----------------
-         | N:                 $N
-         | t_start:           $t_start
-         | t_end:             $t_end
-         | CFL:               $cfl
-         | n_steps_max:       $n_steps_max
-         | equations:         $equations_name
-         | | #variables:      $(nvars(equations))
-         | | variable names:  $(join(equations.varnames_cons, ", "))
-         | initialconditions: $initialconditions
-         | sources:           $sources
-         | nelements:         $(solver.nelements)
-         | #DOFs:             $(ndofs(solver))
-         | #parallel threads: $(Threads.nthreads())
+         | N:                  $N
+         | t_start:            $t_start
+         | t_end:              $t_end
+         | CFL:                $cfl
+         | n_steps_max:        $n_steps_max
+         | equations:          $equations_name
+         | | #variables:       $(nvars(equations))
+         | | variable names:   $(join(equations.varnames_cons, ", "))
+         | initial_conditions: $initial_conditions
+         | sources:            $sources
+         | nelements:          $(solver.nelements)
+         | #DOFs:              $(ndofs(solver))
+         | #parallel threads:  $(Threads.nthreads())
          |
          | Mesh
-         | | #cells:          $ncells
-         | | #leaf cells:     $n_leaf_cells
-         | | minimum level:   $min_level
-         | | maximum level:   $max_level
-         | | domain center:   $(join(domain_center, ", "))
-         | | domain length:   $domain_length
-         | | minimum dx:      $min_dx
-         | | maximum dx:      $max_dx
+         | | #cells:           $ncells
+         | | #leaf cells:      $n_leaf_cells
+         | | minimum level:    $min_level
+         | | maximum level:    $max_level
+         | | domain center:    $(join(domain_center, ", "))
+         | | domain length:    $domain_length
+         | | minimum dx:       $min_dx
+         | | maximum dx:       $max_dx
          """
   println(s)
 

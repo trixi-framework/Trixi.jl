@@ -7,7 +7,7 @@ using StaticArrays: SVector, MVector, MMatrix
 
 # Export all symbols that should be available from Equations
 export LinearScalarAdvection
-export initialconditions
+export initial_conditions
 export sources
 export calcflux
 export riemann!
@@ -18,7 +18,7 @@ export cons2prim
 # Main data structure for system of equations "linear scalar advection"
 struct LinearScalarAdvection <: AbstractEquation{1}
   name::String
-  initialconditions::String
+  initial_conditions::String
   sources::String
   varnames_cons::SVector{1, String}
   varnames_prim::SVector{1, String}
@@ -26,19 +26,19 @@ struct LinearScalarAdvection <: AbstractEquation{1}
 
   function LinearScalarAdvection()
     name = "linearscalaradvection"
-    initialconditions = parameter("initialconditions")
+    initial_conditions = parameter("initial_conditions")
     sources = parameter("sources", "none")
     varnames_cons = ["scalar"]
     varnames_prim = ["scalar"]
     a = parameter("advectionvelocity")
-    new(name, initialconditions, sources, varnames_cons, varnames_prim, a)
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a)
   end
 end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initialconditions(s::LinearScalarAdvection, x, t)
-  name = s.initialconditions
+function Equations.initial_conditions(s::LinearScalarAdvection, x, t)
+  name = s.initial_conditions
   if name == "gauss"
     return [exp(-(x - s.advectionvelocity * t)^2)]
   elseif name == "convergence_test"
