@@ -29,16 +29,16 @@ export analyze_solution
 struct Dg{Eqn <: AbstractEquation{V} where V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   u::Array{Float64, 3}
-  ut::Array{Float64, 3}
-  urk::Array{Float64, 3}
+  u_t::Array{Float64, 3}
+  u_rungekutta::Array{Float64, 3}
   flux::Array{Float64, 3}
   n_elements::Int
-  invjacobian::Array{Float64, 1}
+  inverse_jacobian::Array{Float64, 1}
   node_coordinates::Array{Float64, 2}
   surfaces::Array{Int, 2}
 
-  usurf::Array{Float64, 3}
-  fsurf::Array{Float64, 2}
+  u_surfaces::Array{Float64, 3}
+  flux_surfaces::Array{Float64, 2}
   neighbors::Array{Int, 2}
   n_surfaces::Int
 
@@ -83,13 +83,13 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
 
   # Initialize data structures
   u = zeros(Float64, V, N + 1, n_elements)
-  ut = zeros(Float64, V, N + 1, n_elements)
-  urk = zeros(Float64, V, N + 1, n_elements)
+  u_t = zeros(Float64, V, N + 1, n_elements)
+  u_rungekutta = zeros(Float64, V, N + 1, n_elements)
   flux = zeros(Float64, V, N + 1, n_elements)
 
   n_surfaces = n_elements
-  usurf = zeros(Float64, 2, V, n_surfaces)
-  fsurf = zeros(Float64, V, n_surfaces)
+  u_surfaces = zeros(Float64, 2, V, n_surfaces)
+  flux_surfaces = zeros(Float64, V, n_surfaces)
 
   surfaces = zeros(Int, 2, n_elements)
   neighbors = zeros(Int, 2, n_surfaces)
@@ -132,8 +132,8 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), N, N + 1, NAna, NAna + 1}(
-      equation, u, ut, urk, flux, n_elements, Array{Float64,1}(undef, n_elements),
-      Array{Float64,2}(undef, N + 1, n_elements), surfaces, usurf, fsurf,
+      equation, u, u_t, u_rungekutta, flux, n_elements, Array{Float64,1}(undef, n_elements),
+      Array{Float64,2}(undef, N + 1, n_elements), surfaces, u_surfaces, flux_surfaces,
       neighbors, n_surfaces, nodes, weights, dhat, lhat, analysis_nodes,
       analysis_weights, analysis_weights_volume, analysis_vandermonde,
       analysis_total_volume)
@@ -142,7 +142,7 @@ function Dg(equation::AbstractEquation{V}, mesh::Tree, N::Int) where V
   for element_id in 1:n_elements
     cell_id = leaf_cell_ids[element_id]
     dx = length_at_cell(mesh, cell_id)
-    dg.invjacobian[element_id] = 2/dx
+    dg.inverse_jacobian[element_id] = 2/dx
     dg.node_coordinates[:, element_id] = @. mesh.coordinates[1, cell_id] + dx/2 * nodes[:]
   end
 
@@ -169,7 +169,7 @@ function calc_error_norms(dg::Dg, t::Float64)
                           dg.analysis_vandermonde, 1)
 
     # Calculate errors at each analysis node
-    jacobian = (1 / dg.invjacobian[element_id])^ndim
+    jacobian = (1 / dg.inverse_jacobian[element_id])^ndim
     for i = 1:n_nodes_analysis
       u_exact = initial_conditions(equation, x[i], t)
       diff = similar(u_exact)
@@ -235,8 +235,8 @@ end
 
 # Calculate time derivative
 function Solvers.rhs!(dg::Dg, t_stage)
-  # Reset ut
-  @timeit timer() "reset ∂u/∂t" dg.ut .= 0.0
+  # Reset u_t
+  @timeit timer() "reset ∂u/∂t" dg.u_t .= 0.0
 
   # Calculate volume flux
   @timeit timer() "volume flux" calc_volume_flux!(dg)
@@ -278,7 +278,7 @@ function calc_volume_integral!(dg)
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         for j = 1:nnodes(dg)
-          dg.ut[v, i, element_id] += dg.dhat[i, j] * dg.flux[v, j, element_id]
+          dg.u_t[v, i, element_id] += dg.dhat[i, j] * dg.flux[v, j, element_id]
         end
       end
     end
@@ -294,8 +294,8 @@ function prolong2surfaces!(dg)
     left = dg.neighbors[1, s]
     right = dg.neighbors[2, s]
     for v = 1:nvariables(dg)
-      dg.usurf[1, v, s] = dg.u[v, nnodes(dg), left]
-      dg.usurf[2, v, s] = dg.u[v, 1, right]
+      dg.u_surfaces[1, v, s] = dg.u[v, nnodes(dg), left]
+      dg.u_surfaces[2, v, s] = dg.u[v, 1, right]
     end
   end
 end
@@ -304,7 +304,7 @@ end
 # Calculate and store fluxes across surfaces
 function calc_surfaces_flux!(dg)
   @inbounds Threads.@threads for s = 1:dg.n_surfaces
-    riemann!(dg.fsurf, dg.usurf, s, equations(dg), nnodes(dg))
+    riemann!(dg.flux_surfaces, dg.u_surfaces, s, equations(dg), nnodes(dg))
   end
 end
 
@@ -316,8 +316,8 @@ function calc_surface_integral!(dg)
     right = dg.surfaces[2, element_id]
 
     for v = 1:nvariables(dg)
-      dg.ut[v, 1,          element_id] -= dg.fsurf[v, left ] * dg.lhat[1,          1]
-      dg.ut[v, nnodes(dg), element_id] += dg.fsurf[v, right] * dg.lhat[nnodes(dg), 2]
+      dg.u_t[v, 1,          element_id] -= dg.flux_surfaces[v, left ] * dg.lhat[1,          1]
+      dg.u_t[v, nnodes(dg), element_id] += dg.flux_surfaces[v, right] * dg.lhat[nnodes(dg), 2]
     end
   end
 end
@@ -328,7 +328,7 @@ function apply_jacobian!(dg)
   for element_id = 1:dg.n_elements
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
-        dg.ut[v, i, element_id] *= -dg.invjacobian[element_id]
+        dg.u_t[v, i, element_id] *= -dg.inverse_jacobian[element_id]
       end
     end
   end
@@ -343,7 +343,7 @@ function calc_sources!(dg::Dg, t)
   end
 
   for element_id = 1:dg.n_elements
-    sources(equations(dg), dg.ut, dg.u, dg.node_coordinates, element_id, t, nnodes(dg))
+    sources(equations(dg), dg.u_t, dg.u, dg.node_coordinates, element_id, t, nnodes(dg))
   end
 end
 
@@ -352,7 +352,8 @@ end
 function Solvers.calc_dt(dg::Dg, cfl)
   min_dt = Inf
   for element_id = 1:dg.n_elements
-    dt = calc_max_dt(equations(dg), dg.u, element_id, nnodes(dg), dg.invjacobian[element_id], cfl)
+    dt = calc_max_dt(equations(dg), dg.u, element_id, nnodes(dg),
+                     dg.inverse_jacobian[element_id], cfl)
     min_dt = min(min_dt, dt)
   end
 

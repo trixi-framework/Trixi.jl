@@ -127,9 +127,9 @@ end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(fsurf, usurf, surface_id::Int, ss::Euler, n_nodes)
-  u_ll     = usurf[1, :, surface_id]
-  u_rr     = usurf[2, :, surface_id]
+function Equations.riemann!(flux_surfaces, u_surfaces, surface_id::Int, ss::Euler, n_nodes)
+  u_ll     = u_surfaces[1, :, surface_id]
+  u_rr     = u_surfaces[2, :, surface_id]
 
   rho_ll   = u_ll[1]
   rho_v_ll = u_ll[2]
@@ -151,7 +151,7 @@ function Equations.riemann!(fsurf, usurf, surface_id::Int, ss::Euler, n_nodes)
   if ss.riemann_solver == "laxfriedrichs"
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 
-    @. fsurf[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+    @. flux_surfaces[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
   elseif ss.riemann_solver == "hllc"
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
@@ -162,9 +162,9 @@ function Equations.riemann!(fsurf, usurf, surface_id::Int, ss::Euler, n_nodes)
     s_rr = v_tilde + c_tilde
 
     if s_ll > 0
-      @. fsurf[:, surface_id] = f_ll
+      @. flux_surfaces[:, surface_id] = f_ll
     elseif s_rr < 0
-      @. fsurf[:, surface_id] = f_rr
+      @. flux_surfaces[:, surface_id] = f_rr
     else
       s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
                 / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
@@ -172,12 +172,12 @@ function Equations.riemann!(fsurf, usurf, surface_id::Int, ss::Euler, n_nodes)
         u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
             [1, s_star,
              rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
-        @. fsurf[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
+        @. flux_surfaces[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
       else
         u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
             [1, s_star,
              rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
-        @. fsurf[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
+        @. flux_surfaces[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
       end
     end
   else

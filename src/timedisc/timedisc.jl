@@ -1,15 +1,15 @@
 module TimeDisc
 
 using ..Jul1dge
-using ..Solvers: rhs!
+using ..Solvers: AbstractSolver, rhs!
 using ..Auxiliary: timer
 using TimerOutputs: @timeit
 
 export timestep!
 
 
-# Integrate solution by repeatedly calling the rhs! method on the DG solution.
-function timestep!(dg, t, dt)
+# Integrate solution by repeatedly calling the rhs! method on the solver solution.
+function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
@@ -21,10 +21,10 @@ function timestep!(dg, t, dt)
 
   for stage = 1:5
     t_stage = t + dt * c[stage]
-    @timeit timer() "rhs" rhs!(dg, t_stage)
+    @timeit timer() "rhs" rhs!(solver, t_stage)
     @timeit timer() "Runge-Kutta step" begin
-      @. dg.urk = dg.ut - dg.urk * a[stage]
-      @. dg.u += dg.urk * b[stage] * dt
+      @. solver.u_rungekutta = solver.u_t - solver.u_rungekutta * a[stage]
+      @. solver.u += solver.u_rungekutta * b[stage] * dt
     end
   end
 end
