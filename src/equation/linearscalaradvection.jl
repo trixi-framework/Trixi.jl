@@ -1,3 +1,4 @@
+# Main data structure for system of equations "linear scalar advection"
 struct LinearScalarAdvection <: AbstractSysEqn{1}
   name::String
   initialconditions::String
@@ -15,6 +16,7 @@ struct LinearScalarAdvection <: AbstractSysEqn{1}
 end
 
 
+# Set initial conditions at physical location `x` for time `t`
 function initialconditions(s::LinearScalarAdvection, x, t)
   name = s.initialconditions
   if name == "gauss"
@@ -27,13 +29,15 @@ function initialconditions(s::LinearScalarAdvection, x, t)
 end
 
 
+# Apply source terms
 function sources(s::LinearScalarAdvection, ut, u, x, cell_id, t, nnodes)
   name = s.sources
   error("Unknown source terms '$name'")
 end
 
 
-function calcflux(s::LinearScalarAdvection, u, cell_id, nnodes)
+# Calculate flux at a given cell id
+function calcflux(s::LinearScalarAdvection, u, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{1, nnodes})
   a = s.advectionvelocity
 
@@ -45,18 +49,21 @@ function calcflux(s::LinearScalarAdvection, u, cell_id, nnodes)
 end
 
 
+# Calculate flux across interface with different states on both sides (Riemann problem)
 function riemann!(fsurf, usurf, s, ss::LinearScalarAdvection, nnodes)
   a = ss.advectionvelocity
   fsurf[1, s] = 1/2 * ((a + abs(a)) * usurf[1, 1, s] + (a - abs(a)) * usurf[2, 1, s])
 end
 
 
+# Determine maximum stable time step based on polynomial degree and CFL number
 function maxdt(s::LinearScalarAdvection, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
                invjacobian::Float64, cfl::Float64)
   return cfl * 2 / (invjacobian * s.advectionvelocity) / (2 * (nnodes - 1) + 1)
 end
 
 
+# Convert conservative variables to primitive
 function cons2prim(s::LinearScalarAdvection, cons::Array{Float64, 3})
   return cons
 end

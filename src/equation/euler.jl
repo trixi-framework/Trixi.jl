@@ -1,3 +1,4 @@
+# Main data structure for system of equations "Euler"
 struct Euler <: AbstractSysEqn{3}
   name::String
   initialconditions::String
@@ -18,6 +19,7 @@ struct Euler <: AbstractSysEqn{3}
 end
 
 
+# Set initial conditions at physical location `x` for time `t`
 function initialconditions(s::Euler, x, t)
   name = s.initialconditions
   if name == "density_pulse"
@@ -71,12 +73,14 @@ function initialconditions(s::Euler, x, t)
 end
 
 
+# Apply source terms
 function sources(s::Euler, ut, u, x, cell_id, t, nnodes)
   name = s.sources
   error("Unknown source term '$name'")
 end
 
 
+# Calculate flux at a given cell id
 function calcflux(s::Euler, u, cell_id::Int, nnodes::Int)
   f = zeros(MMatrix{3, nnodes})
   @inbounds for i = 1:nnodes
@@ -89,7 +93,7 @@ function calcflux(s::Euler, u, cell_id::Int, nnodes::Int)
   return f
 end
 
-
+# Calculate flux for a give state
 function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
   f = zeros(MVector{3})
   v = rho_v/rho
@@ -103,7 +107,8 @@ function calcflux(s::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
 end
 
 
-function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
+# Calculate flux across interface with different states on both sides (Riemann problem)
+function riemann!(fsurf, usurf, s::Int, ss::Euler, nnodes)
   u_ll     = usurf[1, :, s]
   u_rr     = usurf[2, :, s]
 
@@ -162,6 +167,7 @@ function riemann!(fsurf, usurf, s, ss::Euler, nnodes)
 end
 
 
+# Determine maximum stable time step based on polynomial degree and CFL number
 function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
                invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
@@ -181,6 +187,7 @@ function maxdt(s::Euler, u::Array{Float64, 3}, cell_id::Int, nnodes::Int,
 end
 
 
+# Convert conservative variables to primitive
 function cons2prim(s::Euler, cons::Array{Float64, 3})
   prim = similar(cons)
   @. prim[1, :, :] = cons[1, :, :]
