@@ -2,7 +2,7 @@ include("Jul1dge.jl")
 
 using .Jul1dge
 using .Jul1dge.Mesh: generate_mesh
-using .Jul1dge.Mesh.Trees: size, count_leaf_cells, minimum_level, maximum_level
+using .Jul1dge.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvariables
 using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calcdt, ndofs
 using .Jul1dge.TimeDisc: timestep!
@@ -79,7 +79,7 @@ function run()
          | | #DOFs:            $(ndofs(solver))
          |
          | Mesh
-         | | #cells:           $(size(mesh))
+         | | #cells:           $(length(mesh))
          | | #leaf cells:      $n_leaf_cells
          | | minimum level:    $min_level
          | | maximum level:    $max_level

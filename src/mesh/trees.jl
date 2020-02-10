@@ -38,7 +38,7 @@ mutable struct Tree{D} <: AbstractContainer
   coordinates::Matrix{Float64}
 
   capacity::Int
-  size::Int
+  length::Int
   dummy::Int
 
   center_level_0::MVector{D, Float64}
@@ -52,7 +52,7 @@ mutable struct Tree{D} <: AbstractContainer
     b = new()
 
     # Initialize fields with defaults
-    # Note: size as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
+    # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
     b.parent_ids = fill(typemin(Int), capacity + 1)
     b.child_ids = fill(typemin(Int), 2^D, capacity + 1)
     b.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
@@ -60,14 +60,14 @@ mutable struct Tree{D} <: AbstractContainer
     b.coordinates = fill(NaN, D, capacity + 1)
 
     b.capacity = capacity
-    b.size = 0
+    b.length = 0
     b.dummy = capacity + 1
 
     b.center_level_0 = center
     b.length_level_0 = length
 
     # Create initial cell
-    b.size += 1
+    b.length += 1
     b.levels[1] = 0
     b.parent_ids[1] = 0
     b.child_ids[:, 1] .= 0
@@ -87,7 +87,7 @@ Tree(::Val{1}, cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float6
 
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D
-  s = t.size
+  s = t.length
   println(io, '*'^20)
   println(io, "t.parent_ids[1:s] = $(t.parent_ids[1:s])")
   println(io, "transpose(t.child_ids[:, 1:s]) = $(transpose(t.child_ids[:, 1:s]))")
@@ -95,7 +95,7 @@ function Base.show(io::IO, t::Tree{D}) where D
   println(io, "t.levels[1:s] = $(t.levels[1:s])")
   println(io, "transpose(t.coordinates[:, 1:s]) = $(transpose(t.coordinates[:, 1:s]))")
   println(io, "t.capacity = $(t.capacity)")
-  println(io, "t.size = $(t.size)")
+  println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
   println(io, "t.center_level_0 = $(t.center_level_0)")
   println(io, "t.length_level_0 = $(t.length_level_0)")
@@ -216,9 +216,9 @@ end
 # The function `f` is passed the cell id of each leaf cell
 # as an argument.
 function filter_leaf_cells(f, t::Tree)
-  filtered = Vector{Int}(undef, size(t))
+  filtered = Vector{Int}(undef, length(t))
   count = 0
-  for cell_id in 1:size(t)
+  for cell_id in 1:length(t)
     if is_leaf(t, cell_id) && f(cell_id)
       count += 1
       filtered[count] = cell_id
@@ -427,7 +427,7 @@ function invalidate!(t::Tree, first::Int, last::Int)
   t.coordinates[:, first:last] .= NaN
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
-invalidate!(t::Tree) = invalidate!(t, 1, size(t))
+invalidate!(t::Tree) = invalidate!(t, 1, length(t))
 
 
 # Delete connectivity with parents/children/neighbors before cells are erased
@@ -598,31 +598,31 @@ end
 
 # Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
-size(c::AbstractContainer) = c.size
-Base.length(c::AbstractContainer) = size(c)
+Base.length(c::AbstractContainer) = c.length
+size(c::AbstractContainer) = (length(c),)
 
 
-# Increase container size by `count` elements
+# Increase container length by `count` elements
 function append!(c::AbstractContainer, count::Int)
   @assert count >= 0 "Count must be non-negative"
-  @assert count + size(c) <= capacity(c) "New size would exceed capacity"
+  @assert count + length(c) <= capacity(c) "New length would exceed capacity"
 
   # First, invalidate range (to be sure that no sensible values are accidentally left there)
-  invalidate!(c, size(c) + 1, size(c) + count)
+  invalidate!(c, length(c) + 1, length(c) + count)
 
-  # Then, increase container size
-  c.size += count
+  # Then, increase container length
+  c.length += count
 end
 append!(c::AbstractContainer) = append(c, 1)
 
 
-# Decrease container size by `count` elements
+# Decrease container length by `count` elements
 function shrink!(c::AbstractContainer, count::Int)
   @assert count >= 0
-  @assert size(c) >= count
+  @assert length(c) >= count
 
   # Rely on remove&shift to do The Right Thing
-  remove_shift!(c, size(c) - count + 1, size())
+  remove_shift!(c, length(c) - count + 1, length())
 end
 shrink!(c::AbstractContainer) = shrink(c, 1)
 
@@ -633,10 +633,10 @@ shrink!(c::AbstractContainer) = shrink(c, 1)
 # inheriting from AbstractContainer.
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= size(source) "First cell out of range"
-  @assert 1 <= last <= size(source) "Last cell out of range"
-  @assert 1 <= destination <= size(target) "Destination out of range"
-  @assert destination + (last - first) <= size(target) "Target range out of bounds"
+  @assert 1 <= first <= length(source) "First cell out of range"
+  @assert 1 <= last <= length(source) "Last cell out of range"
+  @assert 1 <= destination <= length(target) "Destination out of range"
+  @assert destination + (last - first) <= length(target) "Target range out of bounds"
 
   # Return if copy would be a no-op
   if last < first || (source === target && first == destination)
@@ -667,10 +667,10 @@ end
 
 # Move elements in a way that preserves connectivity.
 function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  @assert 1 <= first <= size(c) "First cell $first out of range"
-  @assert 1 <= last <= size(c) "Last cell $last out of range"
-  @assert 1 <= destination <= size(c) "Destination $destination out of range"
-  @assert destination + (last - first) <= size(c) "Target range out of bounds"
+  @assert 1 <= first <= length(c) "First cell $first out of range"
+  @assert 1 <= last <= length(c) "Last cell $last out of range"
+  @assert 1 <= destination <= length(c) "Destination $destination out of range"
+  @assert destination + (last - first) <= length(c) "Target range out of bounds"
 
   # Return if move would be a no-op
   if last < first || first == destination
@@ -698,8 +698,8 @@ move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, 
 
 # Swap two elements in a container while preserving element connectivity.
 function swap!(c::AbstractContainer, a::Int, b::Int)
-  @assert 1 <= a <= size(c) "a out of range"
-  @assert 1 <= b <= size(c) "b out of range"
+  @assert 1 <= a <= length(c) "a out of range"
+  @assert 1 <= b <= length(c) "b out of range"
 
   # Return if swap would be a no-op
   if a == b
@@ -727,9 +727,9 @@ end
 #
 # After a call to insert!, the range `position:position + count - 1` will be available for use.
 function insert!(c::AbstractContainer, position::Int, count::Int)
-  @assert 1 <= position <= size(c) + 1 "Insert position out of range"
+  @assert 1 <= position <= length(c) + 1 "Insert position out of range"
   @assert count >= 0 "Count must be non-negative"
-  @assert count + size(c) <= capacity(c) "New size would exceed capacity"
+  @assert count + length(c) <= capacity(c) "New length would exceed capacity"
 
   # Return if insertation would be a no-op
   if count == 0
@@ -737,18 +737,18 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   end
 
   # Append and return if insertion is beyond last current element
-  if position == size(c) + 1
+  if position == length(c) + 1
     append!(c, count)
     return
   end
 
-  # Increase size
-  c.size += count
+  # Increase length
+  c.length += count
 
   # Move original cells that currently occupy the insertion region, unless
-  # insert position is one beyond previous size
-  if position <= size(c) - count
-    move!(c, position, size(c) - count, position + count)
+  # insert position is one beyond previous length
+  if position <= length(c) - count
+    move!(c, position, length(c) - count, position + count)
   end
 end
 insert!(c) = insert!(c, position, 1)
@@ -756,8 +756,8 @@ insert!(c) = insert!(c, position, 1)
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
 function erase!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First cell out of range"
-  @assert 1 <= last <= size(c) "Last cell out of range"
+  @assert 1 <= first <= length(c) "First cell out of range"
+  @assert 1 <= last <= length(c) "Last cell out of range"
 
   # Return if eraseure would be a no-op
   if last < first
@@ -773,8 +773,8 @@ erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
 # Remove cells and shift existing cells forward to close the gap
 function remove_shift!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First cell out of range"
-  @assert 1 <= last <= size(c) "Last cell out of range"
+  @assert 1 <= first <= length(c) "First cell out of range"
+  @assert 1 <= last <= length(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
@@ -784,25 +784,25 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
   # Delete connectivity of cells to be removed
   delete_connectivity!(c, first, last)
 
-  if last == size
+  if last == length(c)
     # If everything up to the last cell is removed, no shifting is required
     invalidate!(c, first, last)
   else
     # Otherwise, the corresponding cells are moved forward
-    move!(c, last + 1, size(c), first)
+    move!(c, last + 1, length(c), first)
   end
 
-  # Reduce size
+  # Reduce length
   count = last - first + 1
-  c.size -= count
+  c.length -= count
 end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
 
 # Remove cells and fill gap with cells from the end of the container (to reduce copy operations)
 function remove_fill!(c::AbstractContainer, first::Int, last::Int)
-  @assert 1 <= first <= size(c) "First cell out of range"
-  @assert 1 <= last <= size(c) "Last cell out of range"
+  @assert 1 <= first <= length(c) "First cell out of range"
+  @assert 1 <= last <= length(c) "Last cell out of range"
 
   # Return if removal would be a no-op
   if last < first
@@ -815,30 +815,30 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
 
   # Copy cells from end (unless last is already the last cell)
   count = last - first + 1
-  if last < size(c)
-    move(c, max(size(c) - count, last + 1), size(c), first)
+  if last < length(c)
+    move(c, max(length(c) - count, last + 1), length(c), first)
   end
 
-  # Reduce size
-  c.size -= count
+  # Reduce length
+  c.length -= count
 end
 
 
-# Reset container to zero-size and with a new capacity
+# Reset container to zero-length and with a new capacity
 function reset!(c::AbstractContainer, capacity::Int)
   @assert capacity >=0
 
   c.capacity = capacity
-  c.size = 0
+  c.length = 0
   c.dummy = capacity + 1
   reset_data_structures!(c::AbstractContainer)
 end
 
 
-# Invalidate all elements and set size to zero.
+# Invalidate all elements and set length to zero.
 function clear!(c::AbstractContainer)
   invalidate!(c)
-  c.size = 0
+  c.length = 0
 end
 
 end
