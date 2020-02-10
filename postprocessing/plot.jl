@@ -90,12 +90,12 @@ end
 
 function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
   # Get node coordinates for input and output locations on reference element
-  nodes_in, _ = gausslobatto(n_nodes_in)
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
   dx = 2/n_nodes_out
   nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
 
   # Get interpolation matrix
-  vandermonde = polynomialinterpolationmatrix(nodes_in, nodes_out)
+  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Create output data structure
   n_elements = div(size(data_in, 1), n_nodes_in)
