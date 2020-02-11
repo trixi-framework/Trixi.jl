@@ -423,14 +423,14 @@ refine_unbalanced!(t::Tree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
 function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
   # Calculate length of child cells and set up data structure
   child_length = parent_length / 2
-  child_coordinates = MVector{D, Float64}(undef)
+  coordinates = MVector{D, Float64}(undef)
 
   # For each dimension, calculate coordinate as parent coordinate + relative position x length/2 
   for d in 1:D
-    child_coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
+    coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
   end
 
-  return child_coordinates
+  return coordinates
 end
 
 
@@ -568,7 +568,7 @@ function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destinatio
   copy_data!(target.neighbor_ids, source.neighbor_ids, first, last,
              destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
-  copy_data!(target.coordinates, source.coordinates, first, last, destination)
+  copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
 end
 function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   raw_copy!(c, c, first, last, destination)
