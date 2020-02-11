@@ -1,5 +1,37 @@
-Julia-based 1D DGSEM Extreme
-============================
+Jul1dge: Julia-based 1D DGSEM Extreme
+=====================================
+
+## Installation
+Strictly speaking, no installation is necessary to run Jul1dge. However, the
+simulation program and the postprocessing tools rely on a number of Julia
+packages, which need to be available on the respective machine. This can most
+easily be achieved by performing the following steps:
+
+1.  Clone the repository:
+    ```bash
+    git clone git@gitlab.mi.uni-koeln.de:numsim/code/Jul1dge.jl.git
+    ```
+2.  Enter the cloned directory and run the Julia command-line tool:
+    ```bash
+    cd Jul1dge.jl
+    julia
+    ```
+3.  Switch to the package manager with pressing `]`, activate the current
+    directory and then instatiate it:
+    ```julia
+    julia> ]
+    (v1.3) pkg> activate .
+    Activating environment at `~/path/to/Jul1dge.jl/Project.toml`
+    
+    (Jul1dge) pkg> instantiate
+    ```
+
+## Usage
+Enter the root directory `Jul1dge.jl` and run
+```bash
+bin/jul1dge.jl
+```
+To change the simulation setup, edit `parameters.toml`.
 
 
 ## Style guide
