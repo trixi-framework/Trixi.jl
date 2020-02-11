@@ -12,9 +12,58 @@ using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
 using HDF5: h5open, attrs
 using Printf: @sprintf
 
+export load_restart_file!
 export save_restart_file
 export save_solution_file
 export save_mesh_file
+
+
+# Load restart file and store solution in solver
+function load_restart_file!(dg::Dg, restart_filename::String)
+  # Create variables to be returned later
+  time = NaN
+  step = -1
+
+  # Open file
+  h5open(restart_filename, "r") do file
+    equation = equations(dg)
+    N = polydeg(dg)
+
+    # Read attributes to perform some sanity checks
+    if read(attrs(file)["ndim"]) != ndim
+      error("restart mismatch: ndim in solver differs from value in restart file")
+    end
+    if read(attrs(file)["equations"]) != equation.name
+      error("restart mismatch: equations in solver differs from value in restart file")
+    end
+    if read(attrs(file)["N"]) != N
+      error("restart mismatch: polynomial degree in solver differs from value in restart file")
+    end
+    if read(attrs(file)["n_elements"]) != dg.n_elements
+      error("restart mismatch: polynomial degree in solver differs from value in restart file")
+    end
+
+    # Read time and time step
+    time = read(attrs(file)["time"])
+    step = read(attrs(file)["timestep"])
+
+    # Read data
+    varnames = equation.varnames_cons
+    for v = 1:nvariables(dg)
+      # Check if variable name matches
+      var = file["variables_$v"]
+      if (name = read(attrs(var)["name"])) != varnames[v]
+        error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
+      end
+
+      # Read variable
+      println("Reading variables_$v ($name)...")
+      dg.u[v, :, :] = read(file["variables_$v"])
+    end
+  end
+
+  return time, step
+end
 
 
 # Save file capable for restarting the solver.
@@ -52,7 +101,7 @@ function save_restart_file(filename::String, dg::Dg, mesh::TreeMesh,
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
-    attrs(file)["mesh_file"] = mesh.current_filename
+    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attrs(file)["time"] = time
     attrs(file)["dt"] = dt
     attrs(file)["timestep"] = timestep
@@ -108,7 +157,7 @@ function save_solution_file(::Val{:hdf5}, filename::String, dg::Dg,
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
-    attrs(file)["mesh_file"] = mesh.current_filename
+    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attrs(file)["time"] = time
     attrs(file)["dt"] = dt
     attrs(file)["timestep"] = timestep

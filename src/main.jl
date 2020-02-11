@@ -1,13 +1,13 @@
 include("Jul1dge.jl")
 
 using .Jul1dge
-using .Jul1dge.Mesh: generate_mesh
+using .Jul1dge.Mesh: generate_mesh, load_mesh
 using .Jul1dge.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Jul1dge.Equations: make_equations, nvariables
 using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
 using .Jul1dge.TimeDisc: timestep!
 using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
-using .Jul1dge.Io: save_restart_file, save_solution_file, save_mesh_file
+using .Jul1dge.Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
@@ -20,11 +20,23 @@ function run()
   # Parse parameters file
   parse_parameters_file(args["parameters-file"])
 
-  # Create mesh
-  print("Creating mesh... ")
-  @timeit timer() "mesh generation" mesh = generate_mesh()
-  mesh.current_filename = save_mesh_file(mesh)
-  println("done")
+  # Check if this is a restart from a previous result or a new simulation
+  restart = parameter("restart", false)
+  if restart
+    restart_filename = parameter("restart_filename")
+  end
+
+  # Initialize mesh
+  if restart
+    print("Loading mesh... ")
+    @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
+    println("done")
+  else
+    print("Creating mesh... ")
+    @timeit timer() "mesh creation" mesh = generate_mesh()
+    mesh.current_filename = save_mesh_file(mesh)
+    println("done")
+  end
 
   # Initialize system of equations
   print("Initializing system of equations... ")
@@ -38,16 +50,22 @@ function run()
   solver = make_solver(solver_name, equations, mesh)
   println("done")
 
-  # Apply initial condition
-  print("Applying initial conditions... ")
-  t_start = parameter("t_start")
+  # Initialize solution
+  if restart
+    print("Loading restart file...")
+    time, step = load_restart_file!(solver, restart_filename)
+    println("done")
+  else
+    print("Applying initial conditions... ")
+    t_start = parameter("t_start")
+    time = t_start
+    step = 0
+    set_initial_conditions(solver, time)
+    println("done")
+  end
   t_end = parameter("t_end")
-  time = t_start
-  set_initial_conditions(solver, time)
-  println("done")
 
   # Print setup information
-  step = 0
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
@@ -62,37 +80,45 @@ function run()
   domain_length = mesh.tree.length_level_0
   min_dx = domain_length / 2^max_level
   max_dx = domain_length / 2^min_level
-  s = """| Simulation setup
-         | ----------------
-         | equations:          $equations_name
-         | | #variables:       $(nvariables(equations))
-         | | variable names:   $(join(equations.varnames_cons, ", "))
-         | initial_conditions: $initial_conditions
-         | sources:            $sources
-         | t_start:            $t_start
-         | t_end:              $t_end
-         | restart interval:   $restart_interval
-         | solution interval:  $solution_interval
-         | #parallel threads:  $(Threads.nthreads())
-         |
-         | Solver
-         | | solver:           $solver_name
-         | | N:                $N
-         | | CFL:              $cfl
-         | | n_steps_max:      $n_steps_max
-         | | #elements:        $(solver.n_elements)
-         | | #DOFs:            $(ndofs(solver))
-         |
-         | Mesh
-         | | #cells:           $(length(mesh.tree))
-         | | #leaf cells:      $n_leaf_cells
-         | | minimum level:    $min_level
-         | | maximum level:    $max_level
-         | | domain center:    $(join(domain_center, ", "))
-         | | domain length:    $domain_length
-         | | minimum dx:       $min_dx
-         | | maximum dx:       $max_dx
-         """
+  s = ""
+  s *= """| Simulation setup
+          | ----------------
+          | equations:          $equations_name
+          | | #variables:       $(nvariables(equations))
+          | | variable names:   $(join(equations.varnames_cons, ", "))
+          | sources:            $sources
+          | restart:            $(restart ? "yes" : "no")
+          """
+  if restart
+    s *= "| | restart timestep: $step\n"
+    s *= "| | restart time:     $time\n"
+  else
+    s *= "| initial conditions: $initial_conditions\n"
+    s *= "| t_start:            $t_start\n"
+  end
+  s *= """| t_end:              $t_end
+          | n_steps_max:        $n_steps_max
+          | restart interval:   $restart_interval
+          | solution interval:  $solution_interval
+          | #parallel threads:  $(Threads.nthreads())
+          |
+          | Solver
+          | | solver:           $solver_name
+          | | N:                $N
+          | | CFL:              $cfl
+          | | #elements:        $(solver.n_elements)
+          | | #DOFs:            $(ndofs(solver))
+          |
+          | Mesh
+          | | #cells:           $(length(mesh.tree))
+          | | #leaf cells:      $n_leaf_cells
+          | | minimum level:    $min_level
+          | | maximum level:    $max_level
+          | | domain center:    $(join(domain_center, ", "))
+          | | domain length:    $domain_length
+          | | minimum dx:       $min_dx
+          | | maximum dx:       $max_dx
+          """
   println()
   println(s)
 
@@ -107,7 +133,7 @@ function run()
   end
 
   # Save initial conditions if desired
-  if parameter("save_initial_solution", true)
+  if !restart && parameter("save_initial_solution", true)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -123,7 +149,13 @@ function run()
   # Start main loop (loop until final time step is reached)
   finalstep = false
   @timeit timer() "main loop" while !finalstep
+    # Calculate time step size
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
+
+    # Abort if time step size is NaN
+    if isnan(dt)
+      error("time step size `dt` is NaN")
+    end
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
     if time + dt > t_end

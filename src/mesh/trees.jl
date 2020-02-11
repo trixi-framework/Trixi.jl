@@ -1,6 +1,6 @@
 module Trees
 
-using StaticArrays: MVector
+using StaticArrays: MVector, @MVector
 import Base
 
 export Tree
@@ -44,46 +44,69 @@ mutable struct Tree{D} <: AbstractContainer
   center_level_0::MVector{D, Float64}
   length_level_0::Float64
 
-  function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Real) where D
+  function Tree{D}(capacity::Integer) where D
     # Verify that D is an integer
     @assert D isa Integer
 
     # Create instance
-    b = new()
+    t = new()
 
     # Initialize fields with defaults
     # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
-    b.parent_ids = fill(typemin(Int), capacity + 1)
-    b.child_ids = fill(typemin(Int), 2^D, capacity + 1)
-    b.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
-    b.levels = fill(typemin(Int), capacity + 1)
-    b.coordinates = fill(NaN, D, capacity + 1)
+    t.parent_ids = fill(typemin(Int), capacity + 1)
+    t.child_ids = fill(typemin(Int), 2^D, capacity + 1)
+    t.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
+    t.levels = fill(typemin(Int), capacity + 1)
+    t.coordinates = fill(NaN, D, capacity + 1)
 
-    b.capacity = capacity
-    b.length = 0
-    b.dummy = capacity + 1
+    t.capacity = capacity
+    t.length = 0
+    t.dummy = capacity + 1
 
-    b.center_level_0 = center
-    b.length_level_0 = length
+    t.center_level_0 = @MVector fill(NaN, D)
+    t.length_level_0 = NaN
 
-    # Create initial cell
-    b.length += 1
-    b.levels[1] = 0
-    b.parent_ids[1] = 0
-    b.child_ids[:, 1] .= 0
-    b.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
-    b.levels[1] = 0
-    b.coordinates[:, 1] .= b.center_level_0
-
-    return b
+    return t
   end
 end
+
 
 # Constructor for passing the dimension as an argument
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
 
+# Create and initialize tree
+function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Real) where D
+  # Create instance
+  t = Tree{D}(capacity)
+
+  # Initialize root cell
+  init!(t, center, length)
+
+  return t
+end
+
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 Tree{1}(cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float64, center)], len)
+
+
+# Clear tree with deleting data structures, store center and length, and create root cell
+function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
+  clear!(t)
+
+  # Set domain information
+  t.center_level_0 = center
+  t.length_level_0 = length
+
+  # Create root cell
+  t.length += 1
+  t.levels[1] = 0
+  t.parent_ids[1] = 0
+  t.child_ids[:, 1] .= 0
+  t.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
+  t.levels[1] = 0
+  t.coordinates[:, 1] .= t.center_level_0
+end
+
 
 # Convenience output for debugging
 function Base.show(io::IO, t::Tree{D}) where D
@@ -416,7 +439,6 @@ end
 # Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
 function invalidate!(t::Tree, first::Int, last::Int)
   @assert first > 0
-  @assert first <= last
   @assert last <= t.capacity + 1
 
   # Integer values are set to smallest negative value, floating point values to NaN

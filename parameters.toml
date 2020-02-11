@@ -9,6 +9,9 @@ initial_conditions = "convergence_test"
 t_start = 0.0
 t_end   = 1.0
 
+# restart = true
+# restart_filename = "out/restart_000010.h5"
+
 
 ####################################################################################################
 # Solver
@@ -34,5 +37,5 @@ refinement_patches = [
 # I/O
 solution_interval = 20
 solution_variables = "conservative"
-restart_interval = 100
+restart_interval = 10
 output_format = "hdf5"
