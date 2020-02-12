@@ -2,22 +2,52 @@
 
 include("../src/mesh/trees.jl")
 
-using .Trees: Tree, refine!, size, capacity, leaf_nodes, refine_box!
+using .Trees: Tree, refine!, length, capacity, leaf_cells, refine_box!,
+              minimum_level, maximum_level, count_leaf_cells
 using TimerOutputs
 using Profile
+using HDF5: h5open, attrs
+
+const ndim = 2
+
+what 
+# Save current mesh with some context information as an HDF5 file.
+function save_mesh_file(filename::String, tree::Tree)
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    n_cells = length(tree)
+    attrs(file)["ndim"] = ndim
+    attrs(file)["n_cells"] = n_cells
+    attrs(file)["n_leaf_cells"] = count_leaf_cells(tree)
+    attrs(file)["minimum_level"] = minimum_level(tree)
+    attrs(file)["maximum_level"] = maximum_level(tree)
+    attrs(file)["center_level_0"] = tree.center_level_0
+    attrs(file)["length_level_0"] = tree.length_level_0
+
+    # Add tree data
+    file["parent_ids"] = @view tree.parent_ids[1:n_cells]
+    file["child_ids"] = @view tree.child_ids[:, 1:n_cells]
+    file["neighbor_ids"] = @view tree.neighbor_ids[:, 1:n_cells]
+    file["levels"] = @view tree.levels[1:n_cells]
+    file["coordinates"] = @view tree.coordinates[:, 1:n_cells]
+  end
+
+  return filename * ".h5"
+end
 
 to = TimerOutput()
 
-x_start = -16
-x_end = 16
+coordinates_min = [-16, -16]
+coordinates_max = [ 16,  16]
 capacity_ = 1000
 initial_refinement_level = 2
 
-domain_center = (x_start + x_end) / 2
-domain_length = x_end - x_start
+domain_center = (coordinates_min + coordinates_max) / 2
+domain_length = maximum(coordinates_max - coordinates_min)
 
 # Create tree object
-@timeit to "create tree" t = Tree(Val{1}(), capacity_, [domain_center], domain_length)
+@timeit to "create tree" t = Tree(Val{2}(), capacity_, domain_center, domain_length)
 println("Initial tree:")
 println(t)
 
@@ -27,6 +57,8 @@ println(t)
   println("After uniform refinement to level $l:")
   println(t)
 end
+save_mesh_file("mesh.h5", t)
+exit(0)
 
 # Create non-uniform refinement
 @timeit to "local refinement" begin
