@@ -175,6 +175,7 @@ maximum_level(t::Tree) = maximum(t.levels[leaf_cells(t)])
 # Auxiliary methods for often-required calculations
 # Number of potential child cells
 n_children_per_cell(::Tree{D}) where D = 2^D
+n_children_per_cell(dims::Integer) = 2^dims
 
 # Number of directions
 #

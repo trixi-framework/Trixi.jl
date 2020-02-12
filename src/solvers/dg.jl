@@ -188,12 +188,12 @@ end
 
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
+function Solvers.analyze_solution(dg::Dg{Eqn, N}, time::Real, dt::Real,
                                   step::Integer, runtime_absolute::Real,
   runtime_relative::Real) where {Eqn, N}
   equation = equations(dg)
 
-  l2_error, linf_error = calc_error_norms(dg, t)
+  l2_error, linf_error = calc_error_norms(dg, time)
 
   println()
   println("-"^80)
@@ -201,6 +201,7 @@ function Solvers.analyze_solution(dg::Dg{Eqn, N}, t::Real, dt::Real,
   println("-"^80)
   println(" #timesteps:    " * @sprintf("% 14d", step))
   println(" dt:            " * @sprintf("%10.8e", dt))
+  println(" sim. time:     " * @sprintf("%10.8e", time))
   println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
   println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
   print(" Variable:    ")
@@ -223,12 +224,13 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function Solvers.set_initial_conditions(dg::Dg, t)
+function Solvers.set_initial_conditions(dg::Dg, time::Float64)
   equation = equations(dg)
 
   for element_id = 1:dg.n_elements
     for i = 1:(polydeg(dg) + 1)
-      dg.u[:, i, element_id] .= initial_conditions(equation, dg.node_coordinates[i, element_id], t)
+      dg.u[:, i, element_id] .= initial_conditions(equation, dg.node_coordinates[i, element_id],
+                                                   time)
     end
   end
 end
