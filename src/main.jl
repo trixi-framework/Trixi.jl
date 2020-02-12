@@ -11,6 +11,7 @@ using .Jul1dge.Io: save_restart_file, save_solution_file, save_mesh_file, load_r
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
+using Profile: clear_malloc_data
 
 
 function run()
@@ -148,6 +149,7 @@ function run()
 
   # Start main loop (loop until final time step is reached)
   finalstep = false
+  first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
@@ -215,6 +217,14 @@ function run()
       output_start_time = time_ns()
       @timeit timer() "I/O" save_restart_file(solver, mesh, time, dt, step)
       output_time += time_ns() - output_start_time
+    end
+
+    # The following call ensures that when doing memory allocation
+    # measurements, the memory allocations for JIT compilation are discarded
+    # (since virtually all relevant methods have already been called by now)
+    if first_loop_iteration
+      clear_malloc_data()
+      first_loop_iteration = false
     end
   end
 
