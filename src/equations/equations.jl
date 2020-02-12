@@ -7,7 +7,7 @@ export nvariables
 export AbstractEquation
 export initial_conditions
 export sources
-export calcflux
+export calcflux!
 export riemann!
 export calc_max_dt
 export cons2prim
@@ -52,7 +52,7 @@ end
 # First, add generic functions for which the submodules can create own methods
 function initial_conditions end
 function sources end
-function calcflux end
+function calcflux! end
 function riemann! end
 function calc_max_dt end
 function cons2prim end

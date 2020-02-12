@@ -4,7 +4,7 @@ include("interpolation.jl")
 
 using ...Jul1dge
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
-using ...Equations: AbstractEquation, initial_conditions, calcflux, riemann!, sources, calc_max_dt
+using ...Equations: AbstractEquation, initial_conditions, calcflux!, riemann!, sources, calc_max_dt
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh: TreeMesh
@@ -245,16 +245,17 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "volume flux" calc_volume_flux!(dg)
 
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(dg, dg.u_t, dg.dhat, dg.flux)
 
   # Prolong solution to surfaces
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surfaces_flux!(dg)
+  @timeit timer() "surface flux" calc_surfaces_flux!(dg.flux_surfaces, dg.u_surfaces, dg)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg)
+  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.u_t, dg.flux_surfaces, dg.lhat,
+                                                            dg.surface_ids)
 
   # Apply Jacobian from mapping to reference element
   @timeit timer() "Jacobian" apply_jacobian!(dg)
@@ -270,18 +271,18 @@ function calc_volume_flux!(dg)
   equation = equations(dg)
 
   @inbounds Threads.@threads for element_id = 1:dg.n_elements
-    dg.flux[:, :, element_id] = calcflux(equation, dg.u, element_id, nnodes(dg))
+     @views calcflux!(dg.flux[:, :, element_id], equation, dg.u, element_id, nnodes(dg))
   end
 end
 
 
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg)
+function calc_volume_integral!(dg, u_t::Array{Float64, 3}, dhat::SMatrix, flux::Array{Float64, 3})
   @inbounds Threads.@threads for element_id = 1:dg.n_elements
     for i = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         for j = 1:nnodes(dg)
-          dg.u_t[v, i, element_id] += dg.dhat[i, j] * dg.flux[v, j, element_id]
+          u_t[v, i, element_id] += dhat[i, j] * flux[v, j, element_id]
         end
       end
     end
@@ -305,22 +306,23 @@ end
 
 
 # Calculate and store fluxes across surfaces
-function calc_surfaces_flux!(dg)
-  @inbounds Threads.@threads for s = 1:dg.n_surfaces
-    riemann!(dg.flux_surfaces, dg.u_surfaces, s, equations(dg), nnodes(dg))
+function calc_surfaces_flux!(flux_surfaces::Array{Float64, 2}, u_surfaces::Array{Float64, 3}, dg)
+  @inbounds Threads.@threads for surface_id = 1:dg.n_surfaces
+    riemann!(dg.flux_surfaces, dg.u_surfaces, surface_id, equations(dg), nnodes(dg))
   end
 end
 
 
 # Calculate surface integrals and update u_t
-function calc_surface_integral!(dg)
+function calc_surface_integral!(dg, u_t::Array{Float64, 3}, flux_surfaces::Array{Float64, 2},
+                                lhat::SMatrix, surface_ids::Array{Int, 2})
   for element_id = 1:dg.n_elements
-    left = dg.surface_ids[1, element_id]
-    right = dg.surface_ids[2, element_id]
+    left = surface_ids[1, element_id]
+    right = surface_ids[2, element_id]
 
     for v = 1:nvariables(dg)
-      dg.u_t[v, 1,          element_id] -= dg.flux_surfaces[v, left ] * dg.lhat[1,          1]
-      dg.u_t[v, nnodes(dg), element_id] += dg.flux_surfaces[v, right] * dg.lhat[nnodes(dg), 2]
+      u_t[v, 1,          element_id] -= flux_surfaces[v, left ] * lhat[1,          1]
+      u_t[v, nnodes(dg), element_id] += flux_surfaces[v, right] * lhat[nnodes(dg), 2]
     end
   end
 end

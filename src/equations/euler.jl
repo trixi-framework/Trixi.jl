@@ -9,7 +9,7 @@ using StaticArrays: SVector, MVector, MMatrix
 export Euler
 export initial_conditions
 export sources
-export calcflux
+export calcflux!
 export riemann!
 export calc_max_dt
 export cons2prim
@@ -100,34 +100,32 @@ end
 
 
 # Calculate flux at a given cell id
-function Equations.calcflux(equation::Euler, u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
-  f = zeros(MMatrix{3, n_nodes})
+@inline function Equations.calcflux!(f::AbstractArray{Float64}, equation::Euler,
+                                     u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
   @inbounds for i = 1:n_nodes
     rho   = u[1, i, cell_id]
     rho_v = u[2, i, cell_id]
     rho_e = u[3, i, cell_id]
-    f[:, i] .= calcflux(equation, rho, rho_v, rho_e)
+    @views calcflux!(f[:, i], equation, rho, rho_v, rho_e)
   end
-
-  return f
 end
 
 # Calculate flux for a give state
-function Equations.calcflux(equation::Euler, rho::Float64, rho_v::Float64, rho_e::Float64)
-  f = zeros(MVector{3})
+@inline function Equations.calcflux!(f::AbstractArray{Float64}, equation::Euler, rho::Float64,
+                                     rho_v::Float64, rho_e::Float64)
   v = rho_v/rho
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v^2)
 
   f[1]  = rho_v
   f[2]  = rho_v * v + p
   f[3]  = (rho_e + p) * v
-
-  return f
 end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(flux_surfaces, u_surfaces, surface_id::Int, ss::Euler, n_nodes)
+function Equations.riemann!(flux_surfaces::Array{Float64, 2},
+                            u_surfaces::Array{Float64, 3}, surface_id::Int,
+                            ss::Euler, n_nodes::Int)
   u_ll     = u_surfaces[1, :, surface_id]
   u_rr     = u_surfaces[2, :, surface_id]
 
@@ -145,8 +143,10 @@ function Equations.riemann!(flux_surfaces, u_surfaces, surface_id::Int, ss::Eule
   p_rr = (ss.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
   c_rr = sqrt(ss.gamma * p_rr / rho_rr)
 
-  f_ll = calcflux(ss, rho_ll, rho_v_ll, rho_e_ll)
-  f_rr = calcflux(ss, rho_rr, rho_v_rr, rho_e_rr)
+  f_ll = zeros(MVector{3})
+  f_rr = zeros(MVector{3})
+  calcflux!(f_ll, ss, rho_ll, rho_v_ll, rho_e_ll)
+  calcflux!(f_rr, ss, rho_rr, rho_v_rr, rho_e_rr)
 
   if ss.riemann_solver == "laxfriedrichs"
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)

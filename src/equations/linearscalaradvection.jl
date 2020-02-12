@@ -9,7 +9,7 @@ using StaticArrays: SVector, MVector, MMatrix
 export LinearScalarAdvection
 export initial_conditions
 export sources
-export calcflux
+export calcflux!
 export riemann!
 export calc_max_dt
 export cons2prim
@@ -68,22 +68,20 @@ end
 
 
 # Calculate flux at a given cell id
-function Equations.calcflux(equation::LinearScalarAdvection, u::Array{Float64, 3},
-                            cell_id::Int, n_nodes::Int)
-  f = zeros(MMatrix{1, n_nodes})
+@inline function Equations.calcflux!(f::AbstractArray{Float64}, equation::LinearScalarAdvection,
+                             u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
   a = equation.advectionvelocity
 
   for i = 1:n_nodes
     f[1, i]  = u[1, i, cell_id] * a
   end
-
-  return f
 end
 
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(flux_surfaces, u_surfaces, surface_id,
-                            ss::LinearScalarAdvection, n_nodes)
+function Equations.riemann!(flux_surfaces::Array{Float64, 2},
+                            u_surfaces::Array{Float64, 3}, surface_id::Int,
+                            ss::LinearScalarAdvection, n_nodes::Int)
   a = ss.advectionvelocity
   flux_surfaces[1, surface_id] = 1/2 * (
       (a + abs(a)) * u_surfaces[1, 1, surface_id] + (a - abs(a)) * u_surfaces[2, 1, surface_id])
