@@ -132,23 +132,23 @@ end
 
 
 # Return polynomial degree for a DG solver
-polydeg(::Dg{Eqn, N}) where {Eqn, N} = N
+@inline polydeg(::Dg{Eqn, N}) where {Eqn, N} = N
 
 
 # Return number of nodes in one direction
-nnodes(::Dg{Eqn, N}) where {Eqn, N} = N + 1
+@inline nnodes(::Dg{Eqn, N}) where {Eqn, N} = N + 1
 
 
 # Return system of equations instance for a DG solver
-Solvers.equations(dg::Dg) = dg.equations
+@inline Solvers.equations(dg::Dg) = dg.equations
 
 
 # Return number of variables for the system of equations in use
-nvariables(dg::Dg) = nvariables(equations(dg))
+@inline nvariables(dg::Dg) = nvariables(equations(dg))
 
 
 # Return number of degrees of freedom
-Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
+@inline Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
 
 
 # Calculate L2/Linf error norms based on "exact solution"
