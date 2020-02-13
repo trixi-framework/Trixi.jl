@@ -126,16 +126,16 @@ end
 function Equations.riemann!(flux_surfaces::Array{Float64, 2},
                             u_surfaces::Array{Float64, 3}, surface_id::Int,
                             equation::Euler, n_nodes::Int)
-  u_ll     = u_surfaces[1, :, surface_id]
-  u_rr     = u_surfaces[2, :, surface_id]
 
-  rho_ll   = u_ll[1]
-  rho_v_ll = u_ll[2]
-  rho_e_ll = u_ll[3]
-  rho_rr   = u_rr[1]
-  rho_v_rr = u_rr[2]
-  rho_e_rr = u_rr[3]
+  # Store for convenience
+  rho_ll   = u_surfaces[1, 1, surface_id]
+  rho_v_ll = u_surfaces[1, 2, surface_id]
+  rho_e_ll = u_surfaces[1, 3, surface_id]
+  rho_rr   = u_surfaces[2, 1, surface_id]
+  rho_v_rr = u_surfaces[2, 2, surface_id]
+  rho_e_rr = u_surfaces[2, 3, surface_id]
 
+  # Calculate primitive variables and speed of sound
   v_ll = rho_v_ll / rho_ll
   p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
   c_ll = sqrt(equation.gamma * p_ll / rho_ll)
@@ -143,6 +143,7 @@ function Equations.riemann!(flux_surfaces::Array{Float64, 2},
   p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
 
+  # Obtain left and right fluxes
   f_ll = zeros(MVector{3})
   f_rr = zeros(MVector{3})
   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
@@ -151,7 +152,9 @@ function Equations.riemann!(flux_surfaces::Array{Float64, 2},
   if equation.riemann_solver == "laxfriedrichs"
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 
-    @. flux_surfaces[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+    flux_surfaces[1, surface_id] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr - rho_ll)
+    flux_surfaces[2, surface_id] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v_rr - rho_v_ll)
+    flux_surfaces[3, surface_id] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_e_rr - rho_e_ll)
   elseif equation.riemann_solver == "hllc"
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
@@ -162,28 +165,103 @@ function Equations.riemann!(flux_surfaces::Array{Float64, 2},
     s_rr = v_tilde + c_tilde
 
     if s_ll > 0
-      @. flux_surfaces[:, surface_id] = f_ll
+      flux_surfaces[1, surface_id] = f_ll[1]
+      flux_surfaces[2, surface_id] = f_ll[2]
+      flux_surfaces[3, surface_id] = f_ll[3]
     elseif s_rr < 0
-      @. flux_surfaces[:, surface_id] = f_rr
+      flux_surfaces[1, surface_id] = f_rr[1]
+      flux_surfaces[2, surface_id] = f_rr[2]
+      flux_surfaces[3, surface_id] = f_rr[3]
     else
       s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
                 / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
       if s_ll <= 0 && 0 <= s_star
-        u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
-            [1, s_star,
-             rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
-        @. flux_surfaces[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
+        flux_surfaces[1, surface_id] = (f_ll[1] + s_ll *
+            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) - rho_ll))
+        flux_surfaces[2, surface_id] = (f_ll[2] + s_ll *
+            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) * s_star - rho_v_ll))
+        flux_surfaces[3, surface_id] = (f_ll[3] + s_ll *
+            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) *
+            (rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll))))
+            - rho_e_ll))
       else
-        u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
-            [1, s_star,
-             rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
-        @. flux_surfaces[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
+        flux_surfaces[1, surface_id] = (f_rr[1] + s_rr *
+            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) - rho_rr))
+        flux_surfaces[2, surface_id] = (f_rr[2] + s_rr *
+            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) * s_star - rho_v_rr))
+        flux_surfaces[3, surface_id] = (f_rr[3] + s_rr *
+            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) *
+            (rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr))))
+            - rho_e_rr))
       end
     end
   else
     error("unknown Riemann solver '$(equation.riemann_solver)'")
   end
 end
+
+# Original riemann! implementation, non-optimized but easier to understand
+# function Equations.riemann!(flux_surfaces::Array{Float64, 2},
+#                             u_surfaces::Array{Float64, 3}, surface_id::Int,
+#                             equation::Euler, n_nodes::Int)
+#   u_ll     = u_surfaces[1, :, surface_id]
+#   u_rr     = u_surfaces[2, :, surface_id]
+# 
+#   rho_ll   = u_ll[1]
+#   rho_v_ll = u_ll[2]
+#   rho_e_ll = u_ll[3]
+#   rho_rr   = u_rr[1]
+#   rho_v_rr = u_rr[2]
+#   rho_e_rr = u_rr[3]
+# 
+#   v_ll = rho_v_ll / rho_ll
+#   p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
+#   c_ll = sqrt(equation.gamma * p_ll / rho_ll)
+#   v_rr = rho_v_rr / rho_rr
+#   p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
+#   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
+# 
+#   f_ll = zeros(MVector{3})
+#   f_rr = zeros(MVector{3})
+#   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
+#   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
+# 
+#   if equation.riemann_solver == "laxfriedrichs"
+#     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+# 
+#     @. flux_surfaces[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
+#   elseif equation.riemann_solver == "hllc"
+#     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
+#     h_ll = (rho_e_ll + p_ll) / rho_ll
+#     h_rr = (rho_e_rr + p_rr) / rho_rr
+#     h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
+#     c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
+#     s_ll = v_tilde - c_tilde
+#     s_rr = v_tilde + c_tilde
+# 
+#     if s_ll > 0
+#       @. flux_surfaces[:, surface_id] = f_ll
+#     elseif s_rr < 0
+#       @. flux_surfaces[:, surface_id] = f_rr
+#     else
+#       s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
+#                 / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
+#       if s_ll <= 0 && 0 <= s_star
+#         u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
+#             [1, s_star,
+#              rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
+#         @. flux_surfaces[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
+#       else
+#         u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
+#             [1, s_star,
+#              rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
+#         @. flux_surfaces[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
+#       end
+#     end
+#   else
+#     error("unknown Riemann solver '$(equation.riemann_solver)'")
+#   end
+# end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
