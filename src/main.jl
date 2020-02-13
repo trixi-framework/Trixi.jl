@@ -190,7 +190,7 @@ function run()
       # Reset time and counters
       analysis_start_time = time_ns()
       output_time = 0.0
-      n_analysis_timesteps = 0.0
+      n_analysis_timesteps = 0
       if finalstep
         println("-"^80)
         println("Jul1dge simulation run finished.    Final time: $time    Time steps: $step")
