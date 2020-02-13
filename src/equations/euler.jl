@@ -125,7 +125,7 @@ end
 # Calculate flux across interface with different states on both sides (Riemann problem)
 function Equations.riemann!(flux_surfaces::Array{Float64, 2},
                             u_surfaces::Array{Float64, 3}, surface_id::Int,
-                            ss::Euler, n_nodes::Int)
+                            equation::Euler, n_nodes::Int)
   u_ll     = u_surfaces[1, :, surface_id]
   u_rr     = u_surfaces[2, :, surface_id]
 
@@ -137,27 +137,27 @@ function Equations.riemann!(flux_surfaces::Array{Float64, 2},
   rho_e_rr = u_rr[3]
 
   v_ll = rho_v_ll / rho_ll
-  p_ll = (ss.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
-  c_ll = sqrt(ss.gamma * p_ll / rho_ll)
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
+  c_ll = sqrt(equation.gamma * p_ll / rho_ll)
   v_rr = rho_v_rr / rho_rr
-  p_rr = (ss.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
-  c_rr = sqrt(ss.gamma * p_rr / rho_rr)
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
+  c_rr = sqrt(equation.gamma * p_rr / rho_rr)
 
   f_ll = zeros(MVector{3})
   f_rr = zeros(MVector{3})
-  calcflux!(f_ll, ss, rho_ll, rho_v_ll, rho_e_ll)
-  calcflux!(f_rr, ss, rho_rr, rho_v_rr, rho_e_rr)
+  calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
+  calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 
-  if ss.riemann_solver == "laxfriedrichs"
+  if equation.riemann_solver == "laxfriedrichs"
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 
     @. flux_surfaces[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
-  elseif ss.riemann_solver == "hllc"
+  elseif equation.riemann_solver == "hllc"
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
     h_rr = (rho_e_rr + p_rr) / rho_rr
     h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-    c_tilde = sqrt((ss.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
+    c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
     s_ll = v_tilde - c_tilde
     s_rr = v_tilde + c_tilde
 

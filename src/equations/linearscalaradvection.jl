@@ -81,8 +81,8 @@ end
 # Calculate flux across interface with different states on both sides (Riemann problem)
 function Equations.riemann!(flux_surfaces::Array{Float64, 2},
                             u_surfaces::Array{Float64, 3}, surface_id::Int,
-                            ss::LinearScalarAdvection, n_nodes::Int)
-  a = ss.advectionvelocity
+                            equation::LinearScalarAdvection, n_nodes::Int)
+  a = equation.advectionvelocity
   flux_surfaces[1, surface_id] = 1/2 * (
       (a + abs(a)) * u_surfaces[1, 1, surface_id] + (a - abs(a)) * u_surfaces[2, 1, surface_id])
 end
