@@ -500,7 +500,7 @@ function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
       # without creating an unbalanced tree.
       for direction in 1:n_directions(t)
         # Continue if neighbor would be a sibling
-        if has_sibling(child_id, direction)
+        if has_sibling(child, direction)
           continue
         end
 
@@ -510,28 +510,16 @@ function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
         end
         neighbor_id = t.neighbor_ids[direction, child_id]
 
-        # If neighbor is not a sibling, is existing, and has children, do not coarsen
-        if has_children(t, neighbor_id)
-          skip = true
-          break
+        if !has_children(t, neighbor_id)
+          continue
         end
+
+        # If neighbor is not a sibling, is existing, and has children, do not coarsen
+        skip = true
+        break
       end
     end
-    
-    #=for direction in 1:n_directions(t)=#
-    #=  # Skip if coarse cell has no neighbor in that direction=#
-    #=  if !has_neighbor(t, coarse_cell_id, direction)=#
-    #=    continue=#
-    #=  end=#
-    #=  neighbor_id = t.neighbor_ids[direction, coarse_cell_id]=#
-
-    #=  # Check all child cells of neighbor that =#
-    #=  for child in 1:n_children_per_cell(t)=#
-    #=    if has_child(t, neighbor_id, child) && has_children(t, t.child_ids[child, neighbor_id])=#
-    #=      skip = true=#
-    #=    end=#
-    #=  end=#
-    #=end=#
+    # Skip if a neighboring cell prevents coarsening
     if skip
       continue
     end
