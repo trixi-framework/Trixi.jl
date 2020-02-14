@@ -10,7 +10,6 @@ using HDF5: h5open, attrs
 
 const ndim = 2
 
-what 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(filename::String, tree::Tree)
   # Open file (clobber existing content)
@@ -57,7 +56,21 @@ println(t)
   println("After uniform refinement to level $l:")
   println(t)
 end
-save_mesh_file("mesh.h5", t)
+
+# Add patches
+patches = [
+           [[0.0, -16.0], [16.0, 0.0]],
+           [[0.0, -16.0], [16.0,  0.0]],
+           [[0.0, -16.0], [16.0, -8.0]],
+           #=[[8.0, -16.0], [16.0, -8.0]],=#
+          ]
+for (coordinates_min, coordinates_max) in patches
+  refine_box!(t, coordinates_min, coordinates_max)
+  println("After refinement patch $coordinates_min, $coordinates_max:")
+  println(t)
+end
+
+save_mesh_file("mesh_test.h5", t)
 exit(0)
 
 # Create non-uniform refinement
