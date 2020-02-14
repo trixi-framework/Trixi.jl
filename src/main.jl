@@ -41,7 +41,7 @@ function run()
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler","shallowwater"])
   equations = make_equations(equations_name)
   println("done")
 
