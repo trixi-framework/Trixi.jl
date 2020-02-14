@@ -72,14 +72,15 @@ function Equations.sources(equation::ShallowWater, ut, u, x, cell_id, t, n_nodes
     L = 2 # domain length
     f = 1/L # periodicity frequency
     omega = 2 * pi * f
-    h = c + sin(omega*(x-t))
-    h_u = h*1.0
-    h_x = omega*cos(omega*(x-t))
-    # source term computation
-    # first source term is zero
-    s1 = 0.0
-    # second source term is h_t*v + h_x*v^2 + g*h*h_x = g*h*h_x because of the specific choice
-    s2 = equation.gravityacc*h*h_c
+    for i = 1:n_nodes
+      x_loc = x[i,cell_id]
+      h = c + sin(omega*(x_loc-t))
+      h_x = omega*cos(omega*(x_loc-t))
+      # source term computation
+      # first source term is zero
+      # second source term is h_t*v + h_x*v^2 + g*h*h_x = g*h*h_x because of the specific choice
+      ut[2,i,cell_id] += equation.gravityacc*h*h_x
+    end
   else
     error("Unknown source term '$name'")
   end
