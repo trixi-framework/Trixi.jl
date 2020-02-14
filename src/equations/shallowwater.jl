@@ -102,8 +102,8 @@ end
   u = h_u/h
   p = 0.5*equation.gravityacc*h*h
 
-  f[1]  = rho_v
-  f[2]  = rho_v * v + p
+  f[1]  = h_u
+  f[2]  = h_u * u + p
 end
 
 
