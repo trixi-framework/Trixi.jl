@@ -5,12 +5,14 @@ include("../src/auxiliary/auxiliary.jl")
 include("../src/solvers/interpolation.jl")
 include("../src/mesh/trees.jl")
 
+const ndim = 2
+
 using .Interpolation: gauss_lobatto_nodes_weights,
                       polynomial_interpolation_matrix, interpolate_nodes
 using .Trees: n_children_per_cell
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using Plots: plot, gr, savefig, scatter!
+using Plots: plot, plot!, gr, savefig, scatter!, text
 using TimerOutputs
 using Pkg.TOML: parse
 using DelimitedFiles: readdlm
@@ -18,13 +20,52 @@ import GR
 
 function main()
   reset_timer!()
-  what
 
   # Parse command line arguments
   args = parse_commandline_arguments()
 
   # Determine output file format
   output_format = get_output_format(args["format"])
+
+  meshfile = args["datafile"][1]
+
+  center_level_0, length_level_0, leaf_cells, coordinates, levels =
+     read_meshfile(Val(:hdf5), meshfile)
+
+  # Set up plotting
+  gr()
+  if output_format == :pdf
+    GR.inline("pdf")
+  elseif output_format == :png
+    GR.inline("png")
+  else
+    error("unknown output format '$output_format'")
+  end
+
+  # Create plot
+  @timeit "create plot" plot(size=(1600,1200), thickness_scaling=3, aspectratio=:equal, legend=:none)
+
+  # Add cells
+  @timeit "add cells" for i in 1:length(levels)
+    length = length_level_0 / 2^levels[i]
+    vertices = cell_vertices(coordinates[:, i], length)
+    plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]], linecolor=:black,
+          annotate=(coordinates[1, i], coordinates[2, i], text("$(leaf_cells[i])", 6)), grid=false)
+  end
+
+  # Determine output file name
+  base, _ = splitext(splitdir(meshfile)[2])
+  output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
+
+  # Create output directory if it does not exist
+  mkpath(args["output-directory"])
+
+  # Save file
+  @timeit "save plot" savefig(output_filename)
+
+  print_timer()
+  println()
+  exit()
 
   # Iterate over input files
   for f = 1:length(args["datafile"])
@@ -121,6 +162,22 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
 end
 
 
+function cell_vertices(coordinates::AbstractArray{Float64, 1}, length::Float64)
+  @assert ndim == 2 "Algorithm currently only works in 2D"
+  vertices = zeros(ndim, 2^ndim)
+  vertices[1, 1] = coordinates[1] - 1/2 * length
+  vertices[2, 1] = coordinates[2] - 1/2 * length
+  vertices[1, 2] = coordinates[1] + 1/2 * length
+  vertices[2, 2] = coordinates[2] - 1/2 * length
+  vertices[1, 3] = coordinates[1] + 1/2 * length
+  vertices[2, 3] = coordinates[2] + 1/2 * length
+  vertices[1, 4] = coordinates[1] - 1/2 * length
+  vertices[2, 4] = coordinates[2] + 1/2 * length
+
+  return vertices
+end
+
+
 function read_meshfile(::Val{:hdf5}, filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -138,9 +195,24 @@ function read_meshfile(::Val{:hdf5}, filename::String)
     levels .= read(file["levels"])
     child_ids = Array{Int}(undef, n_children_per_cell(ndim), n_cells)
     child_ids .= read(file["child_ids"])
-    leaf_cells = Int[cell_id for cell_id, n_children in enumerate(child_ids) if n_children == 0]
 
-    return center_level_0, length_level_0, coordinates, levels, chil
+    # Extract leaf cells (= cells to be plotted) and contract all other arrays accordingly
+    leaf_cells = similar(levels)
+    n_cells = 0
+    for cell_id in 1:length(levels)
+      if sum(child_ids[:, cell_id]) > 0
+        continue
+      end
+
+      n_cells += 1
+      leaf_cells[n_cells] = cell_id
+    end
+    leaf_cells = leaf_cells[1:n_cells]
+
+    coordinates = coordinates[:, leaf_cells]
+    levels = levels[leaf_cells]
+
+    return center_level_0, length_level_0, leaf_cells, coordinates, levels
   end
 end
 
