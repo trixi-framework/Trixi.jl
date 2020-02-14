@@ -51,7 +51,7 @@ function Equations.initial_conditions(equation::ShallowWater, x, t)
     return [1.0, 2.0]
   elseif name == "convergence_test"
     c = 2.0 # waterheight offset
-    L = 2 # domain length
+    L = 1.0 # domain length
     f = 1/L # periodicity frequency
     omega = 2 * pi * f
     h = c + sin(omega*(x-t))
@@ -69,7 +69,7 @@ function Equations.sources(equation::ShallowWater, ut, u, x, cell_id, t, n_nodes
   if name == "convergence_test"
     # these values need to be consistent to the initial condition
     c = 2.0 # waterheight offset
-    L = 2 # domain length
+    L = 1.0 # domain length
     f = 1/L # periodicity frequency
     omega = 2 * pi * f
     for i = 1:n_nodes
