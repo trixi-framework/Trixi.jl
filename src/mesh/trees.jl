@@ -262,9 +262,7 @@ count_leaf_cells(t::Tree) = length(leaf_cells(t))
 
 
 # Refine entire tree by one level
-function refine!(t::Tree)
-  refine!(t, leaf_cells(t))
-end
+refine!(t::Tree) = refine!(t, leaf_cells(t))
 
 
 # Refine given cells and rebalance tree.
@@ -278,6 +276,8 @@ function refine!(t::Tree, cell_ids)
   while length(refined) > 0
     refined = rebalance!(t, refined)
   end
+
+  return refined
 end
 
 
@@ -418,6 +418,163 @@ end
 
 # Wrap single-cell refinements such that `sort(...)` does not complain
 refine_unbalanced!(t::Tree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
+
+
+# Coarsen entire tree by one level
+function coarsen!(t::Tree)
+  # Special case: if there is only one cell (root), there is nothing to do
+  if length(t) == 1
+    return
+  end
+
+  # Get list of unique parent ids for all leaf cells
+  parent_ids = unique(t.parent_ids[leaf_cells(t)])
+  coarsen!(t, parents_ids)
+end
+
+
+# Coarsen given *parent* cells (= these cells must have children who are all
+# leaf cells) while retaining a balanced tree.
+#
+# A cell to be coarsened might cause an unbalanced tree if the neighboring cell
+# was already refined. Since it is generally not desired that cells are
+# coarsened without specifically asking for it, these cells will then *not* be
+# coarsened.
+function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
+  # Return early if array is empty
+  if length(cell_ids) == 0
+    return
+  end
+
+  # To maximize the number of cells that may be coarsened, start with the cells at the highest level
+  sorted_by_level = sort(cell_ids, by = i -> t.levels[i])
+
+  # Keep track of cells that were actually coarsened
+  coarsened = similar(cell_ids)
+  n_coarsened = 0
+
+  # Local function to adjust cell ids after some cells have been removed
+  function adjust_cell_ids!(cell_ids, coarsened_cell_id, count)
+    for (id, cell_id) in enumerate(cell_ids)
+      if cell_id > coarsened_cell_id
+        cell_ids[id] = cell_id - count
+      end
+    end
+  end
+
+  # Iterate backwards over cells to coarsen
+  while true
+    # Retrieve next cell or quit
+    if length(sorted_by_level) > 0
+      coarse_cell_id = pop!(sorted_by_level)
+    else
+      break
+    end
+
+    # Ensure that cell has children (violation is an error)
+    if !has_children(t, coarse_cell_id)
+      error("cell is leaf and cannot be coarsened to: $coarse_cell_id")
+    end
+
+    # Ensure that all child cells are leaf cells (violation is an error)
+    for child in 1:n_children_per_cell(t)
+      if has_child(t, coarse_cell_id, child)
+        if !is_leaf(t, t.child_ids[child, coarse_cell_id])
+          error("cell $coarse_cell_id has child cell at position $child that is not a leaf cell")
+        end
+      end
+    end
+
+    # Check if coarse cell has refined neighbors that would prevent coarsening
+    skip = false
+    # Iterate over all children (which are to be removed)
+    for child in 1:n_children_per_cell(t)
+      # Continue if child does not exist
+      if !has_child(t, coarse_cell_id, child)
+        continue
+      end
+      child_id = t.child_ids[child, coarse_cell_id]
+
+      # Go over all neighbors of child cell. If it has a neighbor that is *not*
+      # a sibling and that is not a leaf cell, we cannot coarsen its parent
+      # without creating an unbalanced tree.
+      for direction in 1:n_directions(t)
+        # Continue if neighbor would be a sibling
+        if has_sibling(child, direction)
+          continue
+        end
+
+        # Continue if child cell has no neighbor in that direction
+        if !has_neighbor(t, child_id, direction)
+          continue
+        end
+        neighbor_id = t.neighbor_ids[direction, child_id]
+
+        if !has_children(t, neighbor_id)
+          continue
+        end
+
+        # If neighbor is not a sibling, is existing, and has children, do not coarsen
+        skip = true
+        break
+      end
+    end
+    # Skip if a neighboring cell prevents coarsening
+    if skip
+      continue
+    end
+
+    # If a coarse cell has children that are all leaf cells, they must follow
+    # immediately due to depth-first ordering of the tree
+    count = n_children(t, coarse_cell_id)
+    remove_shift!(t, coarse_cell_id + 1, coarse_cell_id + count)
+
+    # Take into account shifts in tree that alters cell ids
+    adjust_cell_ids!(sorted_by_level, coarse_cell_id, count)
+    adjust_cell_ids!(coarsened, coarse_cell_id, count)
+
+    # Keep track of coarsened cells
+    coarsened[n_coarsened + 1] = coarse_cell_id
+    n_coarsened += 1
+  end
+
+  return coarsened
+end
+
+# Wrap single-cell coarsening such that `sort(...)` does not complain
+coarsen!(t::Tree, cell_id::Int) = coarsen!(t::Tree, [cell_id])
+
+
+# Coarsen all viable parent cells with coordinates in a given rectangular box
+function coarsen_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
+                     coordinates_max::AbstractArray{Float64}) where D
+  for dim in 1:D
+    @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
+  end
+
+  # Find all leaf cells within box
+  leaves = filter_leaf_cells(t) do cell_id
+    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
+            all(coordinates_max .> t.coordinates[:, cell_id]))
+  end
+
+  # Get list of unique parent ids for all leaf cells
+  parent_ids = unique(t.parent_ids[leaves])
+  
+  # Filter parent ids to be within box
+  parents = filter(parent_ids) do cell_id
+    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
+            all(coordinates_max .> t.coordinates[:, cell_id]))
+  end
+
+  # Coarsen cells
+  coarsen!(t, parents)
+end
+
+# Convenience method for 1D
+function coarsen_box!(t::Tree{1}, coordinates_min::Real, coordinates_max::Real)
+  return coarsen_box!(t, [convert(Float64, coordinates_min)], [convert(Float64, coordinates_max)])
+end
 
 
 # Return coordinates of a child cell based on its relative position to the parent.

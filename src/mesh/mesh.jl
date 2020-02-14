@@ -4,7 +4,7 @@ include("trees.jl")
 
 using ..Jul1dge
 using ..Auxiliary: parameter, timer
-using .Trees: Tree, refine!, refine_box!, append!
+using .Trees: Tree, refine!, refine_box!, append!, coarsen_box!
 
 using TimerOutputs: @timeit, print_timer
 using HDF5: h5open, attrs
@@ -79,6 +79,15 @@ function generate_mesh()
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
       error("unknown refinement patch type '$type_'")
+    end
+  end
+
+  # Apply coarsening patches
+  @timeit timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
+    if patch["type"] == "box"
+      coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
+    else
+      error("unknown coarsening patch type '$type_'")
     end
   end
 
