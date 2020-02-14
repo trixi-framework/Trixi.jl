@@ -317,29 +317,45 @@ function rebalance!(t::Tree, refined_cell_ids)
 
   # Iterate over cell ids that have previously been refined
   for cell_id in refined_cell_ids
-    # Loop over all possible directions
-    for direction in 1:n_directions(t)
-      # Check if a neighbor exists. If yes, there is nothing else to do, since
-      # our current cell is at most one level further refined
-      if has_neighbor(t, cell_id, direction)
+    # Loop over newly created children
+    for child in 1:n_children_per_cell(t)
+      # Skip if child cell does not exist
+      if !has_child(t, cell_id, child)
         continue
       end
+      child_id = t.child_ids[child, cell_id]
 
-      # If also no coarse neighbor exists, there is nothing to do in this direction
-      if !has_coarse_neighbor(t, cell_id, direction)
-        continue
+      # Go over all potential neighbors of child cell
+      for direction in 1:n_directions(t)
+        # Continue if neighbor would be a sibling
+        if has_sibling(child, direction)
+          continue
+        end
+
+        # Continue if refined cell has a neighbor in that direction
+        if has_neighbor(t, cell_id, direction)
+          continue
+        end
+
+        # Continue if refined cell has no coarse neighbor, since that would
+        # mean it there is no neighbor in that direction at all (domain
+        # boundary)
+        if !has_coarse_neighbor(t, cell_id, direction)
+          continue
+        end
+
+        # Otherwise, the coarse neighbor exists and is not refined, thus it must
+        # be marked for refinement
+        coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
+        @show cell_id, coarse_neighbor_id, direction, t.parent_ids[cell_id]
+        count += 1
+        to_refine[count] = coarse_neighbor_id
       end
-
-      # Otherwise, the coarse neighbor exists and is not refined, thus it must
-      # be marked for refinement
-      coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
-      count += 1
-      to_refine[count] = coarse_neighbor_id
     end
   end
 
   # Finally, refine all marked cells...
-  refined = refine_unbalanced!(t, @view to_refine[1:count])
+  refined = refine_unbalanced!(t, unique(to_refine[1:count]))
 
   # ...and return list of refined cells
   return refined
@@ -354,7 +370,7 @@ function refine_unbalanced!(t::Tree, cell_ids)
   refined = zeros(Int, length(cell_ids))
 
   # Loop over all cells that are to be refined
-  for (count, original_cell_id) in enumerate(sort(cell_ids))
+  for (count, original_cell_id) in enumerate(sort(unique(cell_ids)))
     # Determine actual cell id, taking into account previously inserted cells
     n_children = n_children_per_cell(t)
     cell_id = original_cell_id + (count - 1) * n_children
