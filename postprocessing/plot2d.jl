@@ -43,14 +43,14 @@ function main()
   end
 
   # Create plot
-  @timeit "create plot" plot(size=(1600,1200), thickness_scaling=3, aspectratio=:equal, legend=:none)
+  @timeit "create plot" plot(size=(2000,2000), thickness_scaling=3, aspectratio=:equal, legend=:none)
 
   # Add cells
   @timeit "add cells" for i in 1:length(levels)
     length = length_level_0 / 2^levels[i]
     vertices = cell_vertices(coordinates[:, i], length)
     plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]], linecolor=:black,
-          annotate=(coordinates[1, i], coordinates[2, i], text("$(leaf_cells[i])", 6)), grid=false)
+          annotate=(coordinates[1, i], coordinates[2, i], text("$(leaf_cells[i])", 4)), grid=false)
   end
 
   # Determine output file name
