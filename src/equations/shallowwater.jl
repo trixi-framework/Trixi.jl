@@ -38,7 +38,7 @@ struct ShallowWater <: AbstractEquation{2}
     gravityacc = 1.0
     # I do not understand that "hllc" is there, what does it mean
     # riemann_solver = parameter("riemann_solver", "hllc", valid=["ec","es", "laxfriedrichs"])
-    riemann_solver = parameter("riemann_solver", valid=["laxfriedrichs"])
+    riemann_solver = parameter("riemann_solver","laxfriedrichs", valid=["laxfriedrichs"])
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gravityacc, riemann_solver)
   end
 end
@@ -55,7 +55,7 @@ function Equations.initial_conditions(equation::ShallowWater, x, t)
     f = 1/L # periodicity frequency
     omega = 2 * pi * f
     h = c + sin(omega*(x-t))
-    h_u = h*v
+    h_u = h*1.0
     return [h, h_u]
   else
     error("Unknown initial condition '$name'")
@@ -89,7 +89,7 @@ end
 
 # Calculate flux at a given cell id
 @inline function Equations.calcflux!(f::AbstractArray{Float64}, equation::ShallowWater,
-                                     u::Array{Float64, 2}, cell_id::Int, n_nodes::Int)
+                                     u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
   @inbounds for i = 1:n_nodes
     h   = u[1, i, cell_id]
     h_u = u[2, i, cell_id]
@@ -110,7 +110,7 @@ end
 
 # Calculate flux across interface with different states on both sides (Riemann problem)
 function Equations.riemann!(flux_surfaces::Array{Float64, 2},
-                            u_surfaces::Array{Float64, 2}, surface_id::Int,
+                            u_surfaces::Array{Float64, 3}, surface_id::Int,
                             equation::ShallowWater, n_nodes::Int)
 
   # Store for convenience
@@ -141,7 +141,7 @@ function Equations.riemann!(flux_surfaces::Array{Float64, 2},
 end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.calc_max_dt(equation::ShallowWater, u::Array{Float64, 2},
+function Equations.calc_max_dt(equation::ShallowWater, u::Array{Float64, 3},
                                cell_id::Int, n_nodes::Int,
                                invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
@@ -150,7 +150,7 @@ function Equations.calc_max_dt(equation::ShallowWater, u::Array{Float64, 2},
     h_u = u[2, i, cell_id]
     u = h_u/h
     c = sqrt(equation.gravityacc * h)
-    λ_max = max(λ_max, abs(v) + c)
+    λ_max = max(λ_max, abs(u) + c)
   end
 
   dt = cfl * 2 / (invjacobian * λ_max) / (2 * (n_nodes - 1) + 1)
@@ -160,7 +160,7 @@ end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::ShallowWater, cons::Array{Float64, 2})
+function Equations.cons2prim(equation::ShallowWater, cons::Array{Float64, 3})
   prim = similar(cons)
   @. prim[1, :, :] = cons[1, :, :]
   @. prim[2, :, :] = cons[2, :, :] / cons[1, :, :]
