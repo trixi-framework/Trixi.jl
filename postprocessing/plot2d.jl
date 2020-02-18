@@ -12,7 +12,7 @@ using .Interpolation: gauss_lobatto_nodes_weights,
 using .Trees: n_children_per_cell
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using Plots: plot, plot!, gr, savefig, scatter!, text
+using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!
 using TimerOutputs
 using Pkg.TOML: parse
 using DelimitedFiles: readdlm
@@ -51,6 +51,8 @@ function main()
     vertices = cell_vertices(coordinates[:, i], length)
     plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]], linecolor=:black,
           annotate=(coordinates[1, i], coordinates[2, i], text("$(leaf_cells[i])", 4)), grid=false)
+    contourf!(vertices[1,1:2], vertices[2, 2:3], (x,y) ->
+              i/100 .+ x.+y, levels=20, c=:bluesreds)
   end
 
   # Determine output file name
