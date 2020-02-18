@@ -347,7 +347,6 @@ function rebalance!(t::Tree, refined_cell_ids)
         # Otherwise, the coarse neighbor exists and is not refined, thus it must
         # be marked for refinement
         coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
-        @show cell_id, coarse_neighbor_id, direction, t.parent_ids[cell_id]
         count += 1
         to_refine[count] = coarse_neighbor_id
       end
