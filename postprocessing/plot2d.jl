@@ -12,7 +12,7 @@ using .Interpolation: gauss_lobatto_nodes_weights,
 using .Trees: n_children_per_cell
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!
+using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!, heatmap, heatmap!
 using TimerOutputs
 using Pkg.TOML: parse
 using DelimitedFiles: readdlm
