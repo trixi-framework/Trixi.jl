@@ -5,7 +5,7 @@ export AbstractContainer
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
 
-# Add generic functions such that submodules can add methods for themselves
+# Add generic functions for which concrete containers must add implementations
 function invalidate! end
 function raw_copy! end
 function move_connectivity! end
