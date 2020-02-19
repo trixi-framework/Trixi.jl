@@ -1,5 +1,7 @@
 module Auxiliary
 
+include("containers.jl")
+
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using TimerOutputs: TimerOutput
 using Pkg.TOML: parsefile
