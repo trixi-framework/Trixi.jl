@@ -308,7 +308,7 @@ end
 # Calculate and store fluxes across surfaces
 function calc_surfaces_flux!(flux_surfaces::Array{Float64, 2}, u_surfaces::Array{Float64, 3}, dg)
   @inbounds Threads.@threads for surface_id = 1:dg.n_surfaces
-    riemann!(dg.flux_surfaces, dg.u_surfaces, surface_id, equations(dg), nnodes(dg))
+    riemann!(flux_surfaces, u_surfaces, surface_id, equations(dg), nnodes(dg))
   end
 end
 
