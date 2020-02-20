@@ -67,12 +67,11 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   u_t = zeros(Float64, V, N + 1, n_elements)
   u_rungekutta = zeros(Float64, V, N + 1, n_elements)
   flux = zeros(Float64, V, N + 1, n_elements)
+  surface_ids = zeros(Int, 2, n_elements)
 
   n_surfaces = n_elements
   u_surfaces = zeros(Float64, 2, V, n_surfaces)
   flux_surfaces = zeros(Float64, V, n_surfaces)
-
-  surface_ids = zeros(Int, 2, n_elements)
   neighbor_ids = zeros(Int, 2, n_surfaces)
 
   # Create surfaces between elements
