@@ -58,7 +58,7 @@ function load_restart_file!(dg::Dg, restart_filename::String)
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      dg.u[v, :, :] = read(file["variables_$v"])
+      dg.elements.u[v, :, :] = read(file["variables_$v"])
     end
   end
 
@@ -107,7 +107,7 @@ function save_restart_file(filename::String, dg::Dg, mesh::TreeMesh,
     attrs(file)["timestep"] = timestep
 
     # Restart files always store conservative variables
-    data = dg.u
+    data = dg.elements.u
     varnames = equation.varnames_cons
 
     # Store each variable of the solution
@@ -163,16 +163,16 @@ function save_solution_file(::Val{:hdf5}, filename::String, dg::Dg,
     attrs(file)["timestep"] = timestep
 
     # Add coordinates as 1D arrays
-    file["x"] = dg.node_coordinates[:]
+    file["x"] = dg.elements.node_coordinates[:]
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "conservative",
                                    valid=["conservative", "primitive"])
     if solution_variables == "conservative"
-      data = dg.u
+      data = dg.elements.u
       varnames = equation.varnames_cons
     else
-      data = cons2prim(equation, dg.u)
+      data = cons2prim(equation, dg.elements.u)
       varnames = equation.varnames_prim
     end
 
@@ -204,10 +204,10 @@ function save_solution_file(::Val{:text}, filename::String, dg::Dg, mesh::TreeMe
                                 "conservative",
                                 valid=["conservative", "primitive"])
     if output_variables == "conservative"
-      data = dg.u
+      data = dg.elements.u
       varnames = equation.varnames_cons
     else
-      data = cons2prim(equation, dg.u)
+      data = cons2prim(equation, dg.elements.u)
       varnames = equation.varnames_prim
     end
 
@@ -233,7 +233,7 @@ function save_solution_file(::Val{:text}, filename::String, dg::Dg, mesh::TreeMe
     # Write data
     for element_id = 1:dg.n_elements, i = 1:n_nodes
       data_out = Vector{String}(undef, ndim + nvariables(dg))
-      data_out[1] = @sprintf("%+10.8e", dg.node_coordinates[i, element_id])
+      data_out[1] = @sprintf("%+10.8e", dg.elements.node_coordinates[i, element_id])
       for v = 1:nvariables(dg)
         data_out[v+1] = @sprintf("%+10.8e", data[v, i, element_id])
       end

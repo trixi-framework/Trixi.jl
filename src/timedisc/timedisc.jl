@@ -23,8 +23,9 @@ function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(solver, t_stage)
     @timeit timer() "Runge-Kutta step" begin
-      @. solver.u_rungekutta = solver.u_t - solver.u_rungekutta * a[stage]
-      @. solver.u += solver.u_rungekutta * b[stage] * dt
+      @. solver.elements.u_rungekutta = (solver.elements.u_t
+                                         - solver.elements.u_rungekutta * a[stage])
+      @. solver.elements.u += solver.elements.u_rungekutta * b[stage] * dt
     end
   end
 end
