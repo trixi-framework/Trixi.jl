@@ -37,19 +37,19 @@ nelements(elements::ElementContainer) = length(elements.inverse_jacobian)
 
 # Container data structure (structure-of-arrays style) for DG surfaces
 struct SurfaceContainer{V, N} <: AbstractContainer
-  u_surfaces::Array{Float64, 3}
-  flux_surfaces::Array{Float64, 2}
+  u::Array{Float64, 3}
+  flux::Array{Float64, 2}
   neighbor_ids::Array{Int, 2}
 end
 
 
 function SurfaceContainer{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
-  u_surfaces = fill(NaN, 2, V, capacity)
-  flux_surfaces = fill(NaN, V, capacity)
+  u = fill(NaN, 2, V, capacity)
+  flux = fill(NaN, V, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
 
-  surfaces = SurfaceContainer{V, N}(u_surfaces, flux_surfaces, neighbor_ids)
+  surfaces = SurfaceContainer{V, N}(u, flux, neighbor_ids)
 
   return surfaces
 end

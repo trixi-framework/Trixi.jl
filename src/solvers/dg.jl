@@ -238,10 +238,10 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux_surfaces, dg.surfaces.u_surfaces, dg)
+  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux, dg.surfaces.u, dg)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.surfaces.flux_surfaces, 
+  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.surfaces.flux, 
                                                             dg.lhat, dg.elements.surface_ids)
 
   # Apply Jacobian from mapping to reference element
@@ -286,8 +286,8 @@ function prolong2surfaces!(dg)
     left = dg.surfaces.neighbor_ids[1, s]
     right = dg.surfaces.neighbor_ids[2, s]
     for v = 1:nvariables(dg)
-      dg.surfaces.u_surfaces[1, v, s] = dg.elements.u[v, nnodes(dg), left]
-      dg.surfaces.u_surfaces[2, v, s] = dg.elements.u[v, 1, right]
+      dg.surfaces.u[1, v, s] = dg.elements.u[v, nnodes(dg), left]
+      dg.surfaces.u[2, v, s] = dg.elements.u[v, 1, right]
     end
   end
 end
