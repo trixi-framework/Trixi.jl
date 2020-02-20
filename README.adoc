@@ -1,4 +1,4 @@
-= Trixi: Julia-based 1D DGSEM Extreme
+= Trixi: A tree-based flexible DG/SBP framework written in Julia
 Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>
 :toc:
 
