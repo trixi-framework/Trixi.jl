@@ -1,8 +1,8 @@
 module Solvers
 
-using ..Jul1dge.Mesh: TreeMesh
-using ..Jul1dge.Equations: AbstractEquation
-using ..Jul1dge.Auxiliary: parameter
+using ..Trixi.Mesh: TreeMesh
+using ..Trixi.Equations: AbstractEquation
+using ..Trixi.Auxiliary: parameter
 
 export AbstractSolver
 export make_solver

@@ -4,6 +4,6 @@
 include("../src/main.jl")
 
 if abspath(PROGRAM_FILE) == @__FILE__
-  # Run jul1dge but handle user interrupts gracefully (Ctrl-c)
-  @Jul1dge.Auxiliary.interruptable run()
+  # Run Trixi but handle user interrupts gracefully (Ctrl-c)
+  @Trixi.Auxiliary.interruptable run()
 end

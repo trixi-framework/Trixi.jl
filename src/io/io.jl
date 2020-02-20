@@ -1,6 +1,6 @@
 module Io
 
-using ..Jul1dge
+using ..Trixi
 using ..Solvers: AbstractSolver, polydeg, equations, Dg
 using ..Solvers.DgSolver: polydeg
 using ..Equations: nvariables, cons2prim

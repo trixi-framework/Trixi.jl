@@ -1,4 +1,4 @@
-module Jul1dge
+module Trixi
 
 # Set ndim as a short, module-wide constant.
 # Rationale: This makes code easier to understand than using hardcoded dimension values.

@@ -2,7 +2,7 @@ module Mesh
 
 include("trees.jl")
 
-using ..Jul1dge
+using ..Trixi
 using ..Auxiliary: parameter, timer
 using .Trees: Tree, refine!, refine_box!, append!, coarsen_box!
 

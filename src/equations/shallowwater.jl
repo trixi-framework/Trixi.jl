@@ -1,6 +1,6 @@
 module ShallowWaterEquations
 
-using ...Jul1dge
+using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
 using StaticArrays: SVector, MVector, MMatrix

@@ -1,6 +1,6 @@
 module LinearScalarAdvectionEquations
 
-using ...Jul1dge
+using ...Trixi
 using ..Equations # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Auxiliary: parameter
 using StaticArrays: SVector, MVector, MMatrix

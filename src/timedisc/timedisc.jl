@@ -1,6 +1,6 @@
 module TimeDisc
 
-using ..Jul1dge
+using ..Trixi
 using ..Solvers: AbstractSolver, rhs!
 using ..Auxiliary: timer
 using TimerOutputs: @timeit

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-# Get useful bits and pieces from jul1dge
+# Get useful bits and pieces from trixi
 include("../src/auxiliary/auxiliary.jl")
 include("../src/solvers/interpolation.jl")
 include("../src/mesh/trees.jl")
@@ -324,7 +324,7 @@ function parse_commandline_arguments()
   s = ArgParseSettings()
   @add_arg_table s begin
     "datafile"
-      help = "Name of Jul1dge data file to plot (allowed extensions: .h5, .dat)"
+      help = "Name of Trixi data file to plot (allowed extensions: .h5, .dat)"
       arg_type = String
       required = true
       nargs = '+'

@@ -1,6 +1,6 @@
 module Equations
 
-using ..Jul1dge
+using ..Trixi
 
 export make_equations
 export nvariables

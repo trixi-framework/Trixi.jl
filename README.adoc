@@ -1,9 +1,9 @@
-= Jul1dge: Julia-based 1D DGSEM Extreme
+= Trixi: Julia-based 1D DGSEM Extreme
 Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>
 :toc:
 
 == Installation
-Strictly speaking, no installation is necessary to run Jul1dge. However, the
+Strictly speaking, no installation is necessary to run Trixi. However, the
 simulation program and the postprocessing tools rely on a number of Julia
 packages, which need to be available on the respective machine. This can most
 easily be achieved by performing the following steps:
@@ -11,12 +11,12 @@ easily be achieved by performing the following steps:
 1.  Clone the repository:
 +
 [source, bash]
-git clone git@gitlab.mi.uni-koeln.de:numsim/code/Jul1dge.jl.git
+git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
 
 2.  Enter the cloned directory and run the Julia command-line tool:
 +
 [source, bash]
-cd Jul1dge.jl
+cd Trixi.jl
 julia
 
 3.  Switch to the package manager with pressing `]`, activate the current
@@ -26,15 +26,15 @@ julia
 ----
 julia> ]
 (v1.3) pkg> activate .
-Activating environment at `~/path/to/Jul1dge.jl/Project.toml`
+Activating environment at `~/path/to/Trixi.jl/Project.toml`
 
-(Jul1dge) pkg> instantiate
+(Trixi) pkg> instantiate
 ----
 
 == Usage
-Enter the root directory `Jul1dge.jl` and run
+Enter the root directory `Trixi.jl` and run
 [source, bash]
-bin/jul1dge.jl
+bin/trixi.jl
 
 To change the simulation setup, edit `parameters.toml`.
 
@@ -61,4 +61,4 @@ other and this guide, and which have been used as a basis:
 *   https://github.com/jrevels/YASGuide
 
 == Authors
-Jul1dge was created by Michael Schlottke-Lakemper and Gregor Gassner.
+Trixi was created by Michael Schlottke-Lakemper and Gregor Gassner.

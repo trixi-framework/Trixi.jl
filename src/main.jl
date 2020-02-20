@@ -1,13 +1,13 @@
-include("Jul1dge.jl")
+include("Trixi.jl")
 
-using .Jul1dge
-using .Jul1dge.Mesh: generate_mesh, load_mesh
-using .Jul1dge.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Jul1dge.Equations: make_equations, nvariables
-using .Jul1dge.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
-using .Jul1dge.TimeDisc: timestep!
-using .Jul1dge.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
-using .Jul1dge.Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
+using .Trixi
+using .Trixi.Mesh: generate_mesh, load_mesh
+using .Trixi.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
+using .Trixi.Equations: make_equations, nvariables
+using .Trixi.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
+using .Trixi.TimeDisc: timestep!
+using .Trixi.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
+using .Trixi.Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer
@@ -193,7 +193,7 @@ function run()
       n_analysis_timesteps = 0
       if finalstep
         println("-"^80)
-        println("Jul1dge simulation run finished.    Final time: $time    Time steps: $step")
+        println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
         println("-"^80)
         println()
       end
@@ -229,7 +229,7 @@ function run()
   end
 
   # Print timer information
-  print_timer(timer(), title="jul1dge", allocations=true, linechars=:ascii, compact=false)
+  print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
 end
 

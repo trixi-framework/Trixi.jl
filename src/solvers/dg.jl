@@ -2,7 +2,7 @@ module DgSolver
 
 include("interpolation.jl")
 
-using ...Jul1dge
+using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, riemann!, sources, calc_max_dt
 import ...Equations: nvariables # Import to allow method extension
