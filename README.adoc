@@ -1,6 +1,5 @@
 = Jul1dge: Julia-based 1D DGSEM Extreme
 Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>
-
 :toc:
 
 == Installation
