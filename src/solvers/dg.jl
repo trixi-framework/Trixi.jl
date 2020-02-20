@@ -31,12 +31,9 @@ export analyze_solution
 struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
-
   n_elements::Int
 
-  u_surfaces::Array{Float64, 3}
-  flux_surfaces::Array{Float64, 2}
-  neighbor_ids::Array{Int, 2}
+  surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
 
   nodes::SVector{Np1}
@@ -57,14 +54,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Determine number of elements
   leaf_cell_ids = leaf_cells(mesh.tree)
   n_elements = length(leaf_cell_ids)
-
-  # Initialize elements
-  elements = ElementContainer{V, N}(n_elements)
-
   n_surfaces = n_elements
-  u_surfaces = zeros(Float64, 2, V, n_surfaces)
-  flux_surfaces = zeros(Float64, V, n_surfaces)
-  neighbor_ids = zeros(Int, 2, n_surfaces)
+
+  # Initialize elements and surfaces
+  elements = ElementContainer{V, N}(n_elements)
+  surfaces = SurfaceContainer{V, N}(n_surfaces)
+
 
   # Create surfaces between elements
   # Order of elements, surfaces:
@@ -81,10 +76,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   end
   elements.surface_ids[2, n_elements] = 1
   for s = 1:n_surfaces
-    neighbor_ids[1, s] = s - 1
-    neighbor_ids[2, s] = s
+    surfaces.neighbor_ids[1, s] = s - 1
+    surfaces.neighbor_ids[2, s] = s
   end
-  neighbor_ids[1, 1] = n_elements
+  surfaces.neighbor_ids[1, 1] = n_elements
 
 
   # Initialize interpolation data structures
@@ -104,17 +99,17 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, N + 1, NAna, NAna + 1}(
-      equation, elements, n_elements, u_surfaces, flux_surfaces,
-      neighbor_ids, n_surfaces, nodes, weights, dhat, lhat, analysis_nodes,
-      analysis_weights, analysis_weights_volume, analysis_vandermonde,
-      analysis_total_volume)
+      equation, elements, n_elements, surfaces, n_surfaces, nodes, weights,
+      dhat, lhat, analysis_nodes, analysis_weights, analysis_weights_volume,
+      analysis_vandermonde, analysis_total_volume)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
     cell_id = leaf_cell_ids[element_id]
     dx = length_at_cell(mesh.tree, cell_id)
     dg.elements.inverse_jacobian[element_id] = 2/dx
-    dg.elements.node_coordinates[:, element_id] = @. mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[:]
+    dg.elements.node_coordinates[:, element_id] = (
+        @. mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[:])
   end
 
   return dg
@@ -243,10 +238,10 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surfaces_flux!(dg.flux_surfaces, dg.u_surfaces, dg)
+  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux_surfaces, dg.surfaces.u_surfaces, dg)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.flux_surfaces, 
+  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.surfaces.flux_surfaces, 
                                                             dg.lhat, dg.elements.surface_ids)
 
   # Apply Jacobian from mapping to reference element
@@ -288,18 +283,18 @@ function prolong2surfaces!(dg)
   equation = equations(dg)
 
   for s = 1:dg.n_surfaces
-    left = dg.neighbor_ids[1, s]
-    right = dg.neighbor_ids[2, s]
+    left = dg.surfaces.neighbor_ids[1, s]
+    right = dg.surfaces.neighbor_ids[2, s]
     for v = 1:nvariables(dg)
-      dg.u_surfaces[1, v, s] = dg.elements.u[v, nnodes(dg), left]
-      dg.u_surfaces[2, v, s] = dg.elements.u[v, 1, right]
+      dg.surfaces.u_surfaces[1, v, s] = dg.elements.u[v, nnodes(dg), left]
+      dg.surfaces.u_surfaces[2, v, s] = dg.elements.u[v, 1, right]
     end
   end
 end
 
 
 # Calculate and store fluxes across surfaces
-function calc_surfaces_flux!(flux_surfaces::Array{Float64, 2}, u_surfaces::Array{Float64, 3}, dg)
+function calc_surface_flux!(flux_surfaces::Array{Float64, 2}, u_surfaces::Array{Float64, 3}, dg)
   @inbounds Threads.@threads for surface_id = 1:dg.n_surfaces
     riemann!(flux_surfaces, u_surfaces, surface_id, equations(dg), nnodes(dg))
   end
