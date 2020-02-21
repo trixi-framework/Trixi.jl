@@ -8,9 +8,10 @@ struct ElementContainer{V, N} <: AbstractContainer
   u_t::Array{Float64, 3}
   u_rungekutta::Array{Float64, 3}
   flux::Array{Float64, 3}
-  inverse_jacobian::Array{Float64, 1}
-  node_coordinates::Array{Float64, 2}
-  surface_ids::Array{Int, 2}
+  inverse_jacobian::Vector{Float64}
+  node_coordinates::Matrix{Float64}
+  surface_ids::Matrix{Int}
+  cell_ids::Vector{Int}
 end
 
 
@@ -23,9 +24,10 @@ function ElementContainer{V, N}(capacity::Integer) where {V, N}
   inverse_jacobian = fill(NaN, capacity)
   node_coordinates = fill(NaN, N + 1, capacity)
   surface_ids = fill(typemin(Int), 2, capacity)
+  cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer{V, N}(u, u_t, u_rungekutta, flux,
-                                    inverse_jacobian, node_coordinates, surface_ids)
+                                    inverse_jacobian, node_coordinates, surface_ids, cell_ids)
 
   return elements
 end
@@ -38,8 +40,8 @@ nelements(elements::ElementContainer) = length(elements.inverse_jacobian)
 # Container data structure (structure-of-arrays style) for DG surfaces
 struct SurfaceContainer{V, N} <: AbstractContainer
   u::Array{Float64, 3}
-  flux::Array{Float64, 2}
-  neighbor_ids::Array{Int, 2}
+  flux::Matrix{Float64}
+  neighbor_ids::Matrix{Int}
 end
 
 
@@ -56,4 +58,4 @@ end
 
 
 # Return number of surfaces
-nsurfaces(elements::SurfaceContainer) = length(elements.inverse_jacobian)
+nsurfaces(surfaces::SurfaceContainer) = size(surfaces.neighbor_ids)[2]

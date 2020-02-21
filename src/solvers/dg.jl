@@ -9,7 +9,8 @@ using ...Equations: AbstractEquation, initial_conditions, calcflux!, riemann!, s
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh: TreeMesh
-using ...Mesh.Trees: leaf_cells, length_at_cell
+using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
+                     opposite_direction, has_coarse_neighbor, has_child
 using .Interpolation: interpolate_nodes, calc_dhat,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
 using StaticArrays: SVector, SMatrix, MMatrix
@@ -51,36 +52,21 @@ end
 
 # Convenience constructor to create DG solver instance
 function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
-  # Determine number of elements
+  # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
   n_elements = length(leaf_cell_ids)
-  n_surfaces = n_elements
 
-  # Initialize elements and surfaces
+  # Initialize elements
   elements = ElementContainer{V, N}(n_elements)
+  elements.cell_ids .= leaf_cell_ids
+
+  # Initialize surfaces
+  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
+  @assert n_surfaces == n_elements "In 1D and periodic domains, n_surf must be the same as n_elem"
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
-
-  # Create surfaces between elements
-  # Order of elements, surfaces:
-  # |---|---|---|
-  # s c s c s c s
-  # 1 1 2 2 3 3 1
-  # Order of adjacent surfaces:
-  # 1 --- 2
-  # Order of adjacent elements:
-  # 1  |  2
-  for element_id = 1:n_elements
-    elements.surface_ids[1, element_id] = element_id
-    elements.surface_ids[2, element_id] = element_id + 1
-  end
-  elements.surface_ids[2, n_elements] = 1
-  for s = 1:n_surfaces
-    surfaces.neighbor_ids[1, s] = s - 1
-    surfaces.neighbor_ids[2, s] = s
-  end
-  surfaces.neighbor_ids[1, 1] = n_elements
-
+  # Connect surfaces and elements
+  init_connectivity!(elements, surfaces, mesh)
 
   # Initialize interpolation data structures
   nodes, weights = gauss_lobatto_nodes_weights(N + 1)
@@ -134,6 +120,76 @@ end
 
 # Return number of degrees of freedom
 @inline Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
+
+
+# Count the number of surfaces that need to be created
+# FIXME: This is currently (for 1D) overkill, but should serve as a blueprint
+# for an extension to 2D
+function count_required_surfaces(mesh::TreeMesh, cell_ids)
+  count = 0
+
+  # Iterate over all cells
+  for cell_id in cell_ids
+    for dir in 1:n_directions(mesh.tree)
+      # Only count surfaces in positive direction to avoid double counting
+      if dir % 2 == 0
+        count += 1
+        continue
+      end
+    end
+  end
+
+  return count
+end
+
+
+# Initialize connectivity between elements and surfaces
+# FIXME: This is currently (for 1D) overkill, but should serve as a blueprint
+# for an extension to 2D
+function init_connectivity!(elements, surfaces, mesh)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(elements)
+    c2e[elements.cell_ids[element_id]] = element_id
+  end
+
+  # Reset surface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via surfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Find neighbor cell in positive x-direction
+    direction = 2
+    if has_neighbor(tree, cell_id, direction)
+      # Find direct neighbor
+      neighbor_cell_id = tree.neighbor_ids[direction, cell_id]
+
+      # Check if neighbor has children - if yes, find appropriate child neighbor
+      if has_child(tree, neighbor_cell_id, opposite_direction(direction))
+        neighbor_cell_id = tree.child_ids[opposite_direction(direction), neighbor_cell_id]
+      end
+    elseif has_coarse_neighbor(tree, cell_id, direction)
+      neighbor_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
+    else
+      error("this cannot happen in 1D with periodic BCs")
+    end
+
+    # Create surface between elements
+    count += 1
+    surfaces.neighbor_ids[direction, count] = c2e[neighbor_cell_id]
+    surfaces.neighbor_ids[opposite_direction(direction), count] = element_id
+
+    # Set surface ids in elements
+    elements.surface_ids[direction, element_id] = count
+    elements.surface_ids[opposite_direction(direction), c2e[neighbor_cell_id]] = count
+  end
+
+  @assert count == nsurfaces(surfaces) "Actual surface count does not match expectations"
+end
 
 
 # Calculate L2/Linf error norms based on "exact solution"
