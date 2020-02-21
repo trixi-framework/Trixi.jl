@@ -6,7 +6,8 @@ using .Trixi.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Trixi.Equations: make_equations, nvariables
 using .Trixi.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
 using .Trixi.TimeDisc: timestep!
-using .Trixi.Auxiliary: parse_commandline_arguments, parse_parameters_file, parameter, timer
+using .Trixi.Auxiliary: parse_commandline_arguments, parse_parameters_file,
+                        parameter, timer, print_startup_message
 using .Trixi.Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 
 using Printf: println, @printf
@@ -17,6 +18,9 @@ using Profile: clear_malloc_data
 function run()
   # Parse command line arguments
   args = parse_commandline_arguments()
+
+  # Print starup message
+  print_startup_message()
 
   # Parse parameters file
   parse_parameters_file(args["parameters-file"])

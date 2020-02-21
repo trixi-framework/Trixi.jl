@@ -98,4 +98,19 @@ macro interruptable(ex)
 end
 
 
+# Print informative message at startup
+function print_startup_message()
+  s = """
+
+    ████████╗██████╗ ██╗██╗  ██╗██╗
+    ╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
+       ██║   ██████╔╝██║ ╚███╔╝ ██║
+       ██║   ██╔══██╗██║ ██╔██╗ ██║
+       ██║   ██║  ██║██║██╔╝ ██╗██║
+       ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
+    """
+  println(s)
+end
+
+
 end
