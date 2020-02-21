@@ -132,17 +132,17 @@ ndims(t::Tree) = ndims(typeof(t))
 # Check whether cell has parent cell
 has_parent(t::Tree, cell_id::Int) = t.parent_ids[cell_id] > 0
 
+# Count number of children for a given cell
+n_children(t::Tree, cell_id::Int) = count(x -> (x > 0), @view t.child_ids[:, cell_id])
+
 # Check whether cell has any child cell
-has_child(t::Tree, cell_id::Int, child_id::Int) = t.child_ids[child_id, cell_id] > 0
+has_children(t::Tree, cell_id::Int) = n_children(t, cell_id) > 0
 
 # Check whether cell is leaf cell
 is_leaf(t::Tree, cell_id::Int) = !has_children(t, cell_id)
 
 # Check whether cell has specific child cell
-has_children(t::Tree, cell_id::Int) = n_children(t, cell_id) > 0
-
-# Count number of children for a given cell
-n_children(t::Tree, cell_id::Int) = count(x -> (x > 0), @view t.child_ids[:, cell_id])
+has_child(t::Tree, cell_id::Int, child::Int) = t.child_ids[child, cell_id] > 0
 
 # Check if cell has a neighbor at the same refinement level in the given direction
 has_neighbor(t::Tree, cell_id::Int, direction::Int) = t.neighbor_ids[direction, cell_id] > 0
