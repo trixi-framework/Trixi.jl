@@ -1,52 +1,48 @@
-= Trixi: A tree-based flexible DG/SBP framework written in Julia
-Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>
-:toc:
+# Trixi: A tree-based flexible DG/SBP framework written in Julia
 
-== Installation
+## Installation
 Strictly speaking, no installation is necessary to run Trixi. However, the
 simulation program and the postprocessing tools rely on a number of Julia
 packages, which need to be available on the respective machine. This can most
 easily be achieved by performing the following steps:
 
 1.  Clone the repository:
-+
-[source, bash]
-git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
-
+    ```bash
+    git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+    ```
 2.  Enter the cloned directory and run the Julia command-line tool:
-+
-[source, bash]
-cd Trixi.jl
-julia
-
+    ```bash
+    cd Trixi.jl
+    julia
+    ```
 3.  Switch to the package manager with pressing `]`, activate the current
     directory and then instatiate it:
-+
-[source, julia]
-----
-julia> ]
-(v1.3) pkg> activate .
-Activating environment at `~/path/to/Trixi.jl/Project.toml`
+    ```julia
+    julia> ]
+    (v1.3) pkg> activate .
+    Activating environment at `~/path/to/Trixi.jl/Project.toml`
 
-(Trixi) pkg> instantiate
-----
+    (Trixi) pkg> instantiate
+    ```
 
-== Usage
+
+## Usage
 Enter the root directory `Trixi.jl` and run
-[source, bash]
-bin/trixi.jl
+```bash
+bin/trixi
+```
 
 To change the simulation setup, edit `parameters.toml`.
 
 
-== Style guide
+## Style guide
 The following lists a few conventions that have been used so far:
 
 *   Modules, types, structs with `CamelCase`
 *   Functions, variables with lowercase `snake_case`  
 *   Indentation with 2 spaces (never tabs!), line continuations indented with 4
     spaces
-*   Maximum line length (strictly): *100*
+*   Maximum line length (strictly): **100**
 *   Prefer `for i in ...` to `for i = ...` for better semantic clarity and
     greater flexibility
 
@@ -60,5 +56,5 @@ other and this guide, and which have been used as a basis:
 *   https://www.juliaopt.org/JuMP.jl/stable/style/
 *   https://github.com/jrevels/YASGuide
 
-== Authors
+## Authors
 Trixi was created by Michael Schlottke-Lakemper and Gregor Gassner.
