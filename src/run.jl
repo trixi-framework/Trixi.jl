@@ -1,14 +1,11 @@
-include("Trixi.jl")
-
-using .Trixi
-using .Trixi.Mesh: generate_mesh, load_mesh
-using .Trixi.Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Trixi.Equations: make_equations, nvariables
-using .Trixi.Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
-using .Trixi.TimeDisc: timestep!
-using .Trixi.Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                        parameter, timer, print_startup_message
-using .Trixi.Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
+using .Mesh: generate_mesh, load_mesh
+using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
+using .Equations: make_equations, nvariables
+using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
+using .TimeDisc: timestep!
+using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
+                  parameter, timer, print_startup_message
+using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer

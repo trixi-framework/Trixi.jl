@@ -13,7 +13,7 @@ exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 =#
 
 # Include file with definition of main function
-include("../src/main.jl")
+include("../src/Trixi.jl")
 
 # Run Trixi but handle user interrupts gracefully (Ctrl-c)
-@Trixi.Auxiliary.interruptable run()
+@Trixi.Auxiliary.interruptable Trixi.run()

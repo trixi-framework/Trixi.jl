@@ -62,7 +62,7 @@ parameter_exists(name::String) = haskey(parameters["default"], name)
 
 
 # Parse command line arguments and return as dict
-function parse_commandline_arguments()
+function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
   @add_arg_table s begin
     "--parameters-file", "-p"
@@ -71,7 +71,7 @@ function parse_commandline_arguments()
       default = "parameters.toml"
   end
 
-  return parse_args(s)
+  return parse_args(args, s)
 end
 
 

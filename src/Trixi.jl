@@ -13,4 +13,7 @@ include("solvers/solvers.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 
+# Include top-level run method
+include("run.jl")
+
 end
