@@ -16,4 +16,4 @@ exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 include("../src/Trixi.jl")
 
 # Run Trixi but handle user interrupts gracefully (Ctrl-c)
-@Trixi.Auxiliary.interruptable Trixi.run()
+@Trixi.Auxiliary.interruptable Trixi.run(args=ARGS)

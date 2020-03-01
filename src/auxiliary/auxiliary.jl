@@ -68,6 +68,7 @@ function parse_commandline_arguments(args=ARGS)
     "--parameters-file", "-p"
       help = "Name of file with runtime parameters."
       arg_type = String
+      dest_name = "parameters_file"
       default = "parameters.toml"
   end
 

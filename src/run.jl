@@ -12,15 +12,24 @@ using TimerOutputs: @timeit, print_timer
 using Profile: clear_malloc_data
 
 
-function run()
-  # Parse command line arguments
-  args = parse_commandline_arguments()
+function run(;args=nothing, kwargs...)
+  # Handle command line arguments
+  if !isnothing(args)
+    # If args are given explicitly, parse command line arguments
+    args = parse_commandline_arguments(args)
+  else
+    # Otherwise interpret keyword arguments as command line arguments
+    args = Dict{String, Any}()
+    for (key, value) in kwargs
+      args[string(key)] = value
+    end
+  end
 
   # Print starup message
   print_startup_message()
 
   # Parse parameters file
-  parse_parameters_file(args["parameters-file"])
+  parse_parameters_file(args["parameters_file"])
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
