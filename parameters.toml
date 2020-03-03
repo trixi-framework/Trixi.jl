@@ -1,8 +1,8 @@
 ####################################################################################################
 # Simulation
-equations = "euler"
-# equations = "linearscalaradvection"
-# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+# equations = "euler"
+equations = "linearscalaradvection"
+advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 initial_conditions = "convergence_test"
 # initial_conditions = "constant"
