@@ -4,7 +4,8 @@ include("trees.jl")
 
 using ..Trixi
 using ..Auxiliary: parameter, timer
-using .Trees: Tree, refine!, refine_box!, append!, coarsen_box!
+using ..Auxiliary.Containers: append!
+using .Trees: Tree, refine!, refine_box!, coarsen_box!
 
 using TimerOutputs: @timeit, print_timer
 using HDF5: h5open, attrs

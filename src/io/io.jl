@@ -58,7 +58,7 @@ function load_restart_file!(dg::Dg, restart_filename::String)
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      dg.elements.u[v, :, :] = read(file["variables_$v"])
+      dg.elements.u[v, :, :, :] = read(file["variables_$v"])
     end
   end
 
@@ -113,7 +113,7 @@ function save_restart_file(filename::String, dg::Dg, mesh::TreeMesh,
     # Store each variable of the solution
     for v = 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = data[v, :, :][:]
+      file["variables_$v"] = data[v, :, :, :][:]
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -163,7 +163,8 @@ function save_solution_file(::Val{:hdf5}, filename::String, dg::Dg,
     attrs(file)["timestep"] = timestep
 
     # Add coordinates as 1D arrays
-    file["x"] = dg.elements.node_coordinates[:]
+    file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
+    file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "conservative",
@@ -179,7 +180,7 @@ function save_solution_file(::Val{:hdf5}, filename::String, dg::Dg,
     # Store each variable of the solution
     for v = 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = data[v, :, :][:]
+      file["variables_$v"] = data[v, :, :, :][:]
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -225,17 +226,19 @@ function save_solution_file(::Val{:text}, filename::String, dg::Dg, mesh::TreeMe
     # Write column names, put in quotation marks to account for whitespace in names
     columns = Vector{String}(undef, ndim + nvariables(dg))
     columns[1] = @sprintf("%-15s", "\"x\"")
+    columns[2] = @sprintf("%-15s", "\"y\"")
     for v = 1:nvariables(dg)
-      columns[v+1] = @sprintf("%-15s", "\"$(varnames[v])\"")
+      columns[v+2] = @sprintf("%-15s", "\"$(varnames[v])\"")
     end
     println(file, strip(join(columns, " ")))
 
     # Write data
-    for element_id = 1:dg.n_elements, i = 1:n_nodes
+    for element_id = 1:dg.n_elements, j = 1:n_nodes, i = 1:n_nodes
       data_out = Vector{String}(undef, ndim + nvariables(dg))
-      data_out[1] = @sprintf("%+10.8e", dg.elements.node_coordinates[i, element_id])
+      data_out[1] = @sprintf("%+10.8e", dg.elements.node_coordinates[1, i, j, element_id])
+      data_out[2] = @sprintf("%+10.8e", dg.elements.node_coordinates[2, i, j, element_id])
       for v = 1:nvariables(dg)
-        data_out[v+1] = @sprintf("%+10.8e", data[v, i, element_id])
+        data_out[v+2] = @sprintf("%+10.8e", data[v, i, j, element_id])
       end
       println(file, join(data_out, " "))
     end

@@ -1,6 +1,17 @@
 module Containers
 
 export AbstractContainer
+export append!
+export shring!
+export copy!
+export move!
+export swap!
+export insert!
+export erase!
+export remove_shift!
+export remove_fill!
+export reset!
+export clear!
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
