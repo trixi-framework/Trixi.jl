@@ -62,7 +62,7 @@ function generate_mesh()
 
   # Domain length is calculated as the maximum length in any axis direction
   domain_center = @. (coordinates_min + coordinates_max) / 2
-  domain_length = max(coordinates_max .- coordinates_min)
+  domain_length = maximum(coordinates_max .- coordinates_min)
 
   # Create mesh
   @timeit timer() "creation" mesh = TreeMesh(Val{ndim}(), n_cells_max, domain_center, domain_length)
