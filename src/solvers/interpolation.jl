@@ -12,7 +12,7 @@ export lagrange_interpolating_polynomials
 export gauss_lobatto_nodes_weights
 
 
-# Interpolate data using the given Vandermonde matrix and return interpolated values.
+# Interpolate data using the given Vandermonde matrix and return interpolated values (1D version).
 function interpolate_nodes(data_in::AbstractArray{T, 2},
                            vandermonde::AbstractArray{T, 2}, n_vars::Integer) where T
   n_nodes_out = size(vandermonde, 1)
@@ -20,9 +20,43 @@ function interpolate_nodes(data_in::AbstractArray{T, 2},
   data_out = zeros(eltype(data_in), n_vars, n_nodes_out)
 
   for i = 1:n_nodes_out
-    for j = 1:n_nodes_in
+    for ii = 1:n_nodes_in
       for v = 1:n_vars
-        data_out[v, i] += vandermonde[i, j] * data_in[v, j]
+        data_out[v, i] += vandermonde[i, ii] * data_in[v, ii]
+      end
+    end
+  end
+
+  return data_out
+end
+
+
+# Interpolate data using the given Vandermonde matrix and return interpolated values (2D version).
+function interpolate_nodes(data_in::AbstractArray{T, 3},
+                           vandermonde::AbstractArray{T, 2}, n_vars::Integer) where T
+  n_nodes_out = size(vandermonde, 1)
+  n_nodes_in = size(vandermonde, 2)
+
+  # Interpolate in x-direction
+  temp = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_in)
+  for i = 1:n_nodes_out
+    for j = 1:n_nodes_in
+      for ii = 1:n_nodes_in
+        for v = 1:n_vars
+          temp[v, i, j] += vandermonde[i, ii] * data_in[v, ii, j]
+        end
+      end
+    end
+  end
+
+  # Interpolate in y-direction
+  data_out = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_out)
+  for i = 1:n_nodes_out
+    for j = 1:n_nodes_out
+      for jj = 1:n_nodes_in
+        for v = 1:n_vars
+          data_out[v, i, j] += vandermonde[j, jj] * temp[v, i, jj]
+        end
       end
     end
   end
