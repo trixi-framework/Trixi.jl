@@ -22,7 +22,7 @@ struct LinearScalarAdvection <: AbstractEquation{1}
   sources::String
   varnames_cons::SVector{1, String}
   varnames_prim::SVector{1, String}
-  advectionvelocity::Float64
+  advectionvelocity::SVector{2, Float64}
 
   function LinearScalarAdvection()
     name = "linearscalaradvection"
@@ -37,20 +37,22 @@ end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initial_conditions(equation::LinearScalarAdvection, x, t)
+function Equations.initial_conditions(equation::LinearScalarAdvection,
+                                      x::AbstractArray{Float64}, t::Real)
   name = equation.initial_conditions
+
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
   if name == "gauss"
-    return [exp(-(x - equation.advectionvelocity * t)^2)]
+    return [exp(-(x_trans[1]^2 + x_trans[2]^2))]
   elseif name == "convergence_test"
     c = 1.0
     A = 0.5
-    a = 0.3
     L = 2 
     f = 1/L
     omega = 2 * pi * f
-    u = a
-    p = 1.0
-    scalar = c + A * sin(omega * (x - a * t))
+    scalar = c + A * sin(omega * sum(x_trans))
     return [scalar]
   elseif name == "constant"
     return [2.0]
@@ -61,44 +63,71 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::LinearScalarAdvection, ut, u, x, cell_id, t, n_nodes)
+function Equations.sources(equation::LinearScalarAdvection, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
   error("Unknown source terms '$name'")
 end
 
 
-# Calculate flux at a given cell id
-@inline function Equations.calcflux!(f::AbstractArray{Float64}, equation::LinearScalarAdvection,
-                             u::Array{Float64, 3}, cell_id::Int, n_nodes::Int)
-  a = equation.advectionvelocity
-
-  for i = 1:n_nodes
-    f[1, i]  = u[1, i, cell_id] * a
+# Calculate 2D flux (element version)
+@inline function Equations.calcflux!(f1::AbstractArray{Float64},
+                                     f2::AbstractArray{Float64},
+                                     equation::LinearScalarAdvection,
+                                     u::AbstractArray{Float64}, element_id::Int,
+                                     n_nodes::Int)
+  for j = 1:n_nodes
+    for i = 1:n_nodes
+      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, u[:, i, j, element_id])
+    end
   end
 end
 
 
-# Calculate flux across interface with different states on both sides (Riemann problem)
-function Equations.riemann!(flux_surfaces::Array{Float64, 2},
-                            u_surfaces::Array{Float64, 3}, surface_id::Int,
-                            equation::LinearScalarAdvection, n_nodes::Int)
-  a = equation.advectionvelocity
-  flux_surfaces[1, surface_id] = 1/2 * (
-      (a + abs(a)) * u_surfaces[1, 1, surface_id] + (a - abs(a)) * u_surfaces[2, 1, surface_id])
+# Calculate 2D flux (pointwise version)
+@inline function Equations.calcflux!(f1::AbstractArray{Float64},
+                                     f2::AbstractArray{Float64},
+                                     equation::LinearScalarAdvection,
+                                     u::AbstractArray{Float64})
+  f1[1] = u[1] * equation.advectionvelocity[1]
+  f2[1] = u[1] * equation.advectionvelocity[2]
+end
+
+
+# Calculate flux across interface with different states on both sides (pointwise version)
+function Equations.riemann!(flux_surfaces::AbstractArray{Float64},
+                            u_surfaces::AbstractArray{Float64},
+                            equation::LinearScalarAdvection, orientation::Int)
+  a = equation.advectionvelocity[orientation]
+  flux_surfaces[1] = 1/2 * (
+      (a + abs(a)) * u_surfaces[1, 1] + (a - abs(a)) * u_surfaces[2, 1])
+end
+
+
+# Calculate flux across interface with different states on both sides (surface version)
+function Equations.riemann!(flux_surfaces::Array{Float64, 3},
+                            u_surfaces::Array{Float64, 4}, surface_id::Int,
+                            equation::LinearScalarAdvection, n_nodes::Int,
+                            orientations::Vector{Int})
+  for i = 1:n_nodes
+    @views riemann!(flux_surfaces[:, i, surface_id], u_surfaces[:, :, i, surface_id],
+                    equation, orientations[surface_id])
+  end
 end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function Equations.calc_max_dt(equation::LinearScalarAdvection,
-                               u::Array{Float64, 3}, cell_id::Int,
+                               u::Array{Float64, 4}, element_id::Int,
                                n_nodes::Int, invjacobian::Float64,
-  cfl::Float64)
-  return cfl * 2 / (invjacobian * equation.advectionvelocity) / (2 * (n_nodes - 1) + 1)
+                               cfl::Float64)
+  return (cfl
+          * 2 / (invjacobian * maximum(abs.(equation.advectionvelocity)))
+          / (2 * (n_nodes - 1) + 1))
 end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::LinearScalarAdvection, cons::Array{Float64, 3})
+function Equations.cons2prim(equation::LinearScalarAdvection, cons::Array{Float64, 4})
   return cons
 end
 

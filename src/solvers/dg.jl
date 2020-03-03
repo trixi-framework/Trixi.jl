@@ -62,40 +62,55 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize surfaces
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
-  @assert n_surfaces == n_elements "In 1D and periodic domains, n_surf must be the same as n_elem"
+  @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                      * "n_surf must be the same as 2*n_elem")
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
   # Connect surfaces and elements
   init_connectivity!(elements, surfaces, mesh)
 
   # Initialize interpolation data structures
-  nodes, weights = gauss_lobatto_nodes_weights(N + 1)
+  n_nodes = N + 1
+  nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
   dhat = calc_dhat(nodes, weights)
-  lhat = zeros(N + 1, 2)
+  lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
-  NAna = 2 * (N + 1) - 1
+  NAna = 2 * (n_nodes) - 1
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = sum(mesh.tree.length_level_0.^ndim)
+  analysis_total_volume = mesh.tree.length_level_0^ndim
 
   # Create actual DG solver instance
-  dg = Dg{typeof(equation), V, N, N + 1, NAna, NAna + 1}(
+  dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation, elements, n_elements, surfaces, n_surfaces, nodes, weights,
       dhat, lhat, analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
+    # Get cell id
     cell_id = leaf_cell_ids[element_id]
+
+    # Get cell length
     dx = length_at_cell(mesh.tree, cell_id)
+
+    # Calculate inverse Jacobian as 1/(h/2)
     dg.elements.inverse_jacobian[element_id] = 2/dx
-    dg.elements.node_coordinates[:, element_id] = (
-        @. mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[:])
+
+    # Calculate node coordinates
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+        dg.elements.node_coordinates[1, i, j, element_id] = (
+            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+        dg.elements.node_coordinates[2, i, j, element_id] = (
+            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
+      end
+    end
   end
 
   return dg
@@ -103,11 +118,11 @@ end
 
 
 # Return polynomial degree for a DG solver
-@inline polydeg(::Dg{Eqn, N}) where {Eqn, N} = N
+@inline polydeg(::Dg{Eqn, V, N}) where {Eqn, V, N} = N
 
 
 # Return number of nodes in one direction
-@inline nnodes(::Dg{Eqn, N}) where {Eqn, N} = N + 1
+@inline nnodes(::Dg{Eqn, V, N}) where {Eqn, V, N} = N + 1
 
 
 # Return system of equations instance for a DG solver
@@ -123,8 +138,6 @@ end
 
 
 # Count the number of surfaces that need to be created
-# FIXME: This is currently (for 1D) overkill, but should serve as a blueprint
-# for an extension to 2D
 function count_required_surfaces(mesh::TreeMesh, cell_ids)
   count = 0
 
@@ -144,8 +157,6 @@ end
 
 
 # Initialize connectivity between elements and surfaces
-# FIXME: This is currently (for 1D) overkill, but should serve as a blueprint
-# for an extension to 2D
 function init_connectivity!(elements, surfaces, mesh)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
@@ -162,33 +173,40 @@ function init_connectivity!(elements, surfaces, mesh)
     # Get cell id
     cell_id = elements.cell_ids[element_id]
 
-    # Find neighbor cell in positive x-direction
-    direction = 2
-    if has_neighbor(tree, cell_id, direction)
-      # Find direct neighbor
-      neighbor_cell_id = tree.neighbor_ids[direction, cell_id]
+    # Find neighbor cell in positive x- and y-direction (+x -> 2, +y -> 4)
+    for direction in [2, 4]
+      if has_neighbor(tree, cell_id, direction)
+        # Find direct neighbor
+        neighbor_cell_id = tree.neighbor_ids[direction, cell_id]
 
-      # Check if neighbor has children - if yes, find appropriate child neighbor
-      if has_child(tree, neighbor_cell_id, opposite_direction(direction))
-        neighbor_cell_id = tree.child_ids[opposite_direction(direction), neighbor_cell_id]
+        # Check if neighbor has children - if yes, find appropriate child neighbor
+        if has_child(tree, neighbor_cell_id, opposite_direction(direction))
+          neighbor_cell_id = tree.child_ids[opposite_direction(direction), neighbor_cell_id]
+          error("this cannot happen for conforming meshes")
+        end
+      elseif has_coarse_neighbor(tree, cell_id, direction)
+        neighbor_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
+        error("this cannot happen for conforming meshes")
+      else
+        error("this cannot happen with periodic BCs")
       end
-    elseif has_coarse_neighbor(tree, cell_id, direction)
-      neighbor_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
-    else
-      error("this cannot happen in 1D with periodic BCs")
+
+      # Create surface between elements (1 -> "left" of surface, 2 -> "right" of surface)
+      count += 1
+      surfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
+      surfaces.neighbor_ids[1, count] = element_id
+
+      # Set orientation (x -> 1, y -> 2)
+      surfaces.orientations[count] = div(direction, 2)
+
+      # Set surface ids in elements
+      elements.surface_ids[direction, element_id] = count
+      elements.surface_ids[opposite_direction(direction), c2e[neighbor_cell_id]] = count
     end
-
-    # Create surface between elements
-    count += 1
-    surfaces.neighbor_ids[direction, count] = c2e[neighbor_cell_id]
-    surfaces.neighbor_ids[opposite_direction(direction), count] = element_id
-
-    # Set surface ids in elements
-    elements.surface_ids[direction, element_id] = count
-    elements.surface_ids[opposite_direction(direction), c2e[neighbor_cell_id]] = count
   end
 
-  @assert count == nsurfaces(surfaces) "Actual surface count does not match expectations"
+  @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
+                                        "expectations $(nsurfaces(surfaces))")
 end
 
 
@@ -206,19 +224,22 @@ function calc_error_norms(dg::Dg, t::Float64)
   # Iterate over all elements for error calculations
   for element_id = 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.elements.u[:, :, element_id],
+    u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
                           dg.analysis_vandermonde, nvariables(equation))
-    x = interpolate_nodes(reshape(dg.elements.node_coordinates[:, element_id], 1, :),
-                          dg.analysis_vandermonde, 1)
+    x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, element_id],
+                          dg.analysis_vandermonde, ndim)
 
     # Calculate errors at each analysis node
-    jacobian = (1 / dg.elements.inverse_jacobian[element_id])^ndim
-    for i = 1:n_nodes_analysis
-      u_exact = initial_conditions(equation, x[i], t)
-      diff = similar(u_exact)
-      @. diff = u_exact - u[:, i]
-      @. l2_error += diff^2 * dg.analysis_weights_volume[i] * jacobian
-      @. linf_error = max(linf_error, abs(diff))
+    weights = dg.analysis_weights_volume
+    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    for j = 1:n_nodes_analysis
+      for i = 1:n_nodes_analysis
+        u_exact = initial_conditions(equation, x[:, i, j], t)
+        diff = similar(u_exact)
+        @. diff = u_exact - u[:, i, j]
+        @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
+        @. linf_error = max(linf_error, abs(diff))
+      end
     end
   end
 
@@ -230,16 +251,15 @@ end
 
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg{Eqn, N}, time::Real, dt::Real,
-                                  step::Integer, runtime_absolute::Real,
-  runtime_relative::Real) where {Eqn, N}
+function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
+                                  runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
 
   println()
   println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $N")
+  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
   println("-"^80)
   println(" #timesteps:    " * @sprintf("% 14d", step))
   println(" dt:            " * @sprintf("%10.8e", dt))
@@ -270,9 +290,11 @@ function Solvers.set_initial_conditions(dg::Dg, time::Float64)
   equation = equations(dg)
 
   for element_id = 1:dg.n_elements
-    for i = 1:(polydeg(dg) + 1)
-      dg.elements.u[:, i, element_id] .= initial_conditions(
-          equation, dg.elements.node_coordinates[i, element_id], time)
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        dg.elements.u[:, i, j, element_id] .= initial_conditions(
+            equation, dg.elements.node_coordinates[:, i, j, element_id], time)
+      end
     end
   end
 end
@@ -294,7 +316,8 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux, dg.surfaces.u, dg)
+  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux,
+                                                    dg.surfaces.u, dg, dg.surfaces.orientations)
 
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.surfaces.flux, 
@@ -310,23 +333,28 @@ end
 
 # Calculate and store volume fluxes
 function calc_volume_flux!(dg)
-  N = polydeg(dg)
   equation = equations(dg)
 
-  @inbounds Threads.@threads for element_id = 1:dg.n_elements
-     @views calcflux!(dg.elements.flux[:, :, element_id], equation,
-                      dg.elements.u, element_id, nnodes(dg))
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  for element_id = 1:dg.n_elements
+     @views calcflux!(dg.elements.flux[:, :, :, element_id, 1],
+                      dg.elements.flux[:, :, :, element_id, 2],
+                      equation, dg.elements.u, element_id, nnodes(dg))
   end
 end
 
 
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg, u_t::Array{Float64, 3}, dhat::SMatrix, flux::Array{Float64, 3})
-  @inbounds Threads.@threads for element_id = 1:dg.n_elements
-    for i = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        for j = 1:nnodes(dg)
-          u_t[v, i, element_id] += dhat[i, j] * flux[v, j, element_id]
+function calc_volume_integral!(dg, u_t::Array{Float64, 4}, dhat::SMatrix, flux::Array{Float64, 5})
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  for element_id = 1:dg.n_elements
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          for l = 1:nnodes(dg)
+            u_t[v, i, j, element_id] += (dhat[i, l] * flux[v, l, j, element_id, 1] +
+                                         dhat[j, l] * flux[v, i, l, element_id, 2])
+          end
         end
       end
     end
@@ -339,34 +367,57 @@ function prolong2surfaces!(dg)
   equation = equations(dg)
 
   for s = 1:dg.n_surfaces
-    left = dg.surfaces.neighbor_ids[1, s]
-    right = dg.surfaces.neighbor_ids[2, s]
-    for v = 1:nvariables(dg)
-      dg.surfaces.u[1, v, s] = dg.elements.u[v, nnodes(dg), left]
-      dg.surfaces.u[2, v, s] = dg.elements.u[v, 1, right]
+    left_element_id = dg.surfaces.neighbor_ids[1, s]
+    right_element_id = dg.surfaces.neighbor_ids[2, s]
+    for l = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        if dg.surfaces.orientations[s] == 1
+          # Surface in x-direction
+          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
+          dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+        else
+          # Surface in y-direction
+          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
+          dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
+        end
+      end
     end
   end
 end
 
 
 # Calculate and store fluxes across surfaces
-function calc_surface_flux!(flux_surfaces::Array{Float64, 2}, u_surfaces::Array{Float64, 3}, dg)
-  @inbounds Threads.@threads for surface_id = 1:dg.n_surfaces
-    riemann!(flux_surfaces, u_surfaces, surface_id, equations(dg), nnodes(dg))
+function calc_surface_flux!(flux_surfaces::Array{Float64, 3},
+                            u_surfaces::Array{Float64, 4}, dg,
+                            orientations::Vector{Int})
+  #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
+  for s = 1:dg.n_surfaces
+    riemann!(flux_surfaces, u_surfaces, s, equations(dg), nnodes(dg), orientations)
   end
 end
 
 
 # Calculate surface integrals and update u_t
-function calc_surface_integral!(dg, u_t::Array{Float64, 3}, flux_surfaces::Array{Float64, 2},
-                                lhat::SMatrix, surface_ids::Array{Int, 2})
+function calc_surface_integral!(dg, u_t::Array{Float64, 4}, flux_surfaces::Array{Float64, 3},
+                                lhat::SMatrix, surface_ids::Matrix{Int})
   for element_id = 1:dg.n_elements
-    left = surface_ids[1, element_id]
-    right = surface_ids[2, element_id]
+    # Left/right/bottom/top from element-centric perspective
+    left   = surface_ids[1, element_id]
+    right  = surface_ids[2, element_id]
+    bottom = surface_ids[3, element_id]
+    top    = surface_ids[4, element_id]
 
-    for v = 1:nvariables(dg)
-      u_t[v, 1,          element_id] -= flux_surfaces[v, left ] * lhat[1,          1]
-      u_t[v, nnodes(dg), element_id] += flux_surfaces[v, right] * lhat[nnodes(dg), 2]
+    for l = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        # surface at -x
+        u_t[v, 1,          l, element_id] -= flux_surfaces[v, l, left  ] * lhat[1,          1]
+        # surface at +x
+        u_t[v, nnodes(dg), l, element_id] += flux_surfaces[v, l, right ] * lhat[nnodes(dg), 2]
+        # surface at -y
+        u_t[v, l, 1,          element_id] -= flux_surfaces[v, l, bottom] * lhat[1,          1]
+        # surface at +y
+        u_t[v, l, nnodes(dg), element_id] += flux_surfaces[v, l, top   ] * lhat[nnodes(dg), 2]
+      end
     end
   end
 end
@@ -375,9 +426,11 @@ end
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
   for element_id = 1:dg.n_elements
-    for i = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        dg.elements.u_t[v, i, element_id] *= -dg.elements.inverse_jacobian[element_id]
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          dg.elements.u_t[v, i, j, element_id] *= -dg.elements.inverse_jacobian[element_id]
+        end
       end
     end
   end

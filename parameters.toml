@@ -2,7 +2,7 @@
 # Simulation
 equations = "euler"
 # equations = "linearscalaradvection"
-# advectionvelocity = 1.0 # Need only for linarscalaradvection
+# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 initial_conditions = "convergence_test"
 # sources = 
@@ -25,8 +25,8 @@ analysis_interval = 100
 ####################################################################################################
 # Mesh
 n_cells_max = 10000
-coordinates_min = -16
-coordinates_max =  16
+coordinates_min = [-1, -1]
+coordinates_max =  [1, 1]
 initial_refinement_level = 6
 refinement_patches = [
   {type = "box", coordinates_min = 0, coordinates_max = 16},
