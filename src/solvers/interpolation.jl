@@ -1,6 +1,6 @@
 module Interpolation
 
-using GaussQuadrature: legendre, both
+using GaussQuadrature: legendre, both, neither
 
 export interpolate_nodes
 export calc_dhat
@@ -190,6 +190,12 @@ end
 # Calculate nodes and weights for Legendre-Gauss-Lobatto quadratue.
 function gauss_lobatto_nodes_weights(n_nodes::Integer)
   return legendre(n_nodes, both)
+end
+
+
+# Calculate nodes and weights for Legendre-Gauss quadratue.
+function gauss_nodes_weights(n_nodes::Integer)
+  return legendre(n_nodes, neither)
 end
 
 
