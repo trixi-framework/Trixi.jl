@@ -40,8 +40,6 @@ function make_equations(name::String)
     return LinearScalarAdvection()
   elseif name == "euler"
     return Euler()
-  elseif name == "shallowwater"
-    return ShallowWater()
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -69,9 +67,5 @@ using .LinearScalarAdvectionEquations
 # Euler
 include("euler.jl")
 using .EulerEquations
-
-# ShallowWater
-include("shallowwater.jl")
-using .ShallowWaterEquations
 
 end # module
