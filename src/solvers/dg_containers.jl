@@ -1,5 +1,6 @@
 import ...Auxiliary.Containers: invalidate!, raw_copy!, move_connectivity!, delete_connectivity!
 using ... Auxiliary.Containers: AbstractContainer
+import Base
 
 
 # Container data structure (structure-of-arrays style) for DG elements
@@ -62,3 +63,56 @@ end
 
 # Return number of surfaces
 nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
+
+
+# Container data structure (structure-of-arrays style) for DG L2 mortars
+# Positions/directions for large_sides = 1, orientations = 1:
+#           |    |
+# upper = 2 |    |
+#           |    |
+#                | 3
+#           |    |
+# lower = 1 |    |
+#           |    |
+struct L2MortarContainer{V, N} <: AbstractContainer
+  u_upper::Array{Float64, 4} # [leftright, variables, i, mortars]
+  u_lower::Array{Float64, 4} # [leftright, variables, i, mortars]
+  neighbor_ids::Matrix{Int}  # [position, mortars]
+  # Large sides: left -> 1, right -> 2
+  large_sides::Vector{Int}   # [mortars]
+  orientations::Vector{Int}  # [mortars]
+end
+
+
+function L2MortarContainer{V, N}(capacity::Integer) where {V, N}
+  # Initialize fields with defaults
+  n_nodes = N + 1
+  u_upper = fill(NaN, 2, V, n_nodes, capacity)
+  u_lower = fill(NaN, 2, V, n_nodes, capacity)
+  neighbor_ids = fill(typemin(Int), 3, capacity)
+  large_sides = fill(typemin(Int), capacity)
+  orientations = fill(typemin(Int), capacity)
+
+  l2mortars = L2MortarContainer{V, N}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
+
+  return l2mortars
+end
+
+
+# Return number of mortars
+nl2mortars(l2mortars::L2MortarContainer) = length(l2mortars.orientations)
+
+# Allow printing container contents
+function Base.show(io::IO, c::L2MortarContainer{V, N}) where {V, N}
+  println(io, '*'^20)
+  for idx in CartesianIndices(c.u_upper)
+    println(io, "c.u_upper[$idx] = $(c.u_upper[idx])")
+  end
+  for idx in CartesianIndices(c.u_lower)
+    println(io, "c.u_lower[$idx] = $(c.u_lower[idx])")
+  end
+  println(io, "transpose(c.neighbor_ids) = $(transpose(c.neighbor_ids))")
+  println(io, "c.large_sides = $(c.large_sides)")
+  println(io, "c.orientations = $(c.orientations)")
+  println(io, '*'^20)
+end

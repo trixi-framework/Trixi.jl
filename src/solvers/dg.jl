@@ -2,6 +2,7 @@ module DgSolver
 
 include("interpolation.jl")
 include("dg_containers.jl")
+include("l2mortar.jl")
 
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
@@ -10,9 +11,10 @@ import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer
 using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
-                     opposite_direction, has_coarse_neighbor, has_child
+                     opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
+import .L2Mortar # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -37,10 +39,18 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
 
+  l2mortars::L2MortarContainer{V, N}
+  n_l2mortars::Int
+
   nodes::SVector{Np1}
   weights::SVector{Np1}
   dhat::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
+
+  l2mortar_forward_upper::SMatrix{Np1, Np1}
+  l2mortar_forward_lower::SMatrix{Np1, Np1}
+  l2mortar_reverse_upper::SMatrix{Np1, Np1}
+  l2mortar_reverse_lower::SMatrix{Np1, Np1}
 
   analysis_nodes::SVector{NAnap1}
   analysis_weights::SVector{NAnap1}
@@ -62,12 +72,21 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize surfaces
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
-  @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
-                                      * "n_surf must be the same as 2*n_elem")
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
-  # Connect surfaces and elements
-  init_connectivity!(elements, surfaces, mesh)
+  # Initialize L2 mortars
+  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
+  l2mortars = L2MortarContainer{V, N}(n_l2mortars)
+
+  # Sanity check
+  if n_l2mortars == 0
+    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Connect elements with surfaces and l2mortars
+  init_surface_connectivity!(elements, surfaces, mesh)
+  init_l2mortar_connectivity!(elements, l2mortars, mesh)
 
   # Initialize interpolation data structures
   n_nodes = N + 1
@@ -76,6 +95,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
+
+  # Initialize L2 mortar projection operators
+  l2mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
+  l2mortar_forward_lower = L2Mortar.calc_forward_lower(n_nodes)
+  l2mortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes)
+  l2mortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes)
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -87,8 +112,14 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
-      equation, elements, n_elements, surfaces, n_surfaces, nodes, weights,
-      dhat, lhat, analysis_nodes, analysis_weights, analysis_weights_volume,
+      equation,
+      elements, n_elements,
+      surfaces, n_surfaces,
+      l2mortars, n_l2mortars,
+      nodes, weights, dhat, lhat,
+      l2mortar_forward_upper, l2mortar_forward_lower,
+      l2mortar_reverse_upper, l2mortar_reverse_lower,
+      analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume)
 
   # Calculate inverse Jacobian and node coordinates
@@ -143,12 +174,50 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for dir in 1:n_directions(mesh.tree)
+    for direction in 1:n_directions(mesh.tree)
       # Only count surfaces in positive direction to avoid double counting
-      if dir % 2 == 0
-        count += 1
+      if direction % 2 == 1
         continue
       end
+
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
+      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_id)
+        continue
+      end
+
+      count += 1
+    end
+  end
+
+  return count
+end
+
+
+# Count the number of L2 mortars that need to be created
+function count_required_l2mortars(mesh::TreeMesh, cell_ids)
+  count = 0
+
+  # Iterate over all cells and count mortars from perspective of coarse cells
+  for cell_id in cell_ids
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, cell is small with large neighbor -> do nothing
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If neighbor has no children, this is a conforming interface -> do nothing
+      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if !has_children(mesh.tree, neighbor_id)
+        continue
+      end
+
+      count +=1
     end
   end
 
@@ -157,7 +226,7 @@ end
 
 
 # Initialize connectivity between elements and surfaces
-function init_connectivity!(elements, surfaces, mesh)
+function init_surface_connectivity!(elements, surfaces, mesh)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -173,22 +242,22 @@ function init_connectivity!(elements, surfaces, mesh)
     # Get cell id
     cell_id = elements.cell_ids[element_id]
 
-    # Find neighbor cell in positive x- and y-direction (+x -> 2, +y -> 4)
-    for direction in [2, 4]
-      if has_neighbor(tree, cell_id, direction)
-        # Find direct neighbor
-        neighbor_cell_id = tree.neighbor_ids[direction, cell_id]
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # Only create surfaces in positive direction
+      if direction % 2 == 1
+        continue
+      end
 
-        # Check if neighbor has children - if yes, find appropriate child neighbor
-        if has_child(tree, neighbor_cell_id, opposite_direction(direction))
-          neighbor_cell_id = tree.child_ids[opposite_direction(direction), neighbor_cell_id]
-          error("this cannot happen for conforming meshes")
-        end
-      elseif has_coarse_neighbor(tree, cell_id, direction)
-        neighbor_cell_id = tree.neighbor_ids[direction, tree.parent_ids[cell_id]]
-        error("this cannot happen for conforming meshes")
-      else
-        error("this cannot happen with periodic BCs")
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+      
+      # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
       end
 
       # Create surface between elements (1 -> "left" of surface, 2 -> "right" of surface)
@@ -198,15 +267,83 @@ function init_connectivity!(elements, surfaces, mesh)
 
       # Set orientation (x -> 1, y -> 2)
       surfaces.orientations[count] = div(direction, 2)
-
-      # Set surface ids in elements
-      elements.surface_ids[direction, element_id] = count
-      elements.surface_ids[opposite_direction(direction), c2e[neighbor_cell_id]] = count
     end
   end
 
   @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
                                         "expectations $(nsurfaces(surfaces))")
+end
+
+
+# Initialize connectivity between elements and L2 mortars
+function init_l2mortar_connectivity!(elements, l2mortars, mesh)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(elements)
+    c2e[elements.cell_ids[element_id]] = element_id
+  end
+
+  # Reset surface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via surfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, cell is small with large neighbor -> do nothing
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If neighbor has no children, this is a conforming interface -> do nothing
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if !has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Create mortar between elements:
+      # 1 -> small element in negative coordinate direction
+      # 2 -> small element in positive coordinate direction
+      # 3 -> large element
+      count += 1
+      l2mortars.neighbor_ids[3, count] = element_id
+      if direction == 1
+        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+      elseif direction == 2
+        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+      elseif direction == 3
+        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+      elseif direction == 4
+        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+      else
+        error("should not happen")
+      end
+
+      # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
+      if direction in [2, 4]
+        l2mortars.large_sides[count] = 1
+      else
+        l2mortars.large_sides[count] = 2
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      if direction in [1, 2]
+        l2mortars.orientations[count] = 1
+      else
+        l2mortars.orientations[count] = 2
+      end
+    end
+  end
+
+  @assert count == nl2mortars(l2mortars) ("Actual l2mortar count ($count) does not match " *
+                                          "expectations $(nl2mortars(l2mortars))")
 end
 
 
@@ -316,10 +453,24 @@ function Solvers.rhs!(dg::Dg, t_stage)
                                                     dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
                                                     dg.surfaces.orientations)
 
+  # Prolong solution to L2 mortars
+  @timeit timer() "prolong2l2mortars" prolong2l2mortars!(dg)
+
+  # Calculate mortar fluxes
+  @timeit timer() "l2mortar flux" calc_l2mortar_flux!(dg.elements.surface_flux,
+                                                      dg.l2mortars.neighbor_ids,
+                                                      dg.l2mortars.u_lower,
+                                                      dg.l2mortars.u_upper,
+                                                      dg, dg.l2mortars.orientations)
+
+  #=for idx in CartesianIndices(dg.elements.surface_flux)=#
+  #=  @show idx, dg.elements.surface_flux[idx]=#
+  #=end=#
+  #=exit()=#
+
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
-                                                            dg.elements.surface_flux, 
-                                                            dg.lhat, dg.elements.surface_ids)
+                                                            dg.elements.surface_flux, dg.lhat)
 
   # Apply Jacobian from mapping to reference element
   @timeit timer() "Jacobian" apply_jacobian!(dg)
@@ -376,6 +527,69 @@ function prolong2surfaces!(dg)
 end
 
 
+# Prolong solution to L2 mortars
+function prolong2l2mortars!(dg)
+  equation = equations(dg)
+
+  for m = 1:dg.n_l2mortars
+    large_element_id = dg.l2mortars.neighbor_ids[3, m]
+    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+
+    # Copy solution small to small
+    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        @views dg.l2mortars.u_upper[2, :, :, m] .= dg.elements.u[:, 1, :, upper_element_id]
+        @views dg.l2mortars.u_lower[2, :, :, m] .= dg.elements.u[:, 1, :, lower_element_id]
+      else
+        # L2 mortars in y-direction
+        @views dg.l2mortars.u_upper[2, :, :, m] .= dg.elements.u[:, :, 1, upper_element_id]
+        @views dg.l2mortars.u_lower[2, :, :, m] .= dg.elements.u[:, :, 1, lower_element_id]
+      end
+    else # large_sides[m] == 2 -> small elements on left side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        @views dg.l2mortars.u_upper[1, :, :, m] .= dg.elements.u[:, nnodes(dg), :, upper_element_id]
+        @views dg.l2mortars.u_lower[1, :, :, m] .= dg.elements.u[:, nnodes(dg), :, lower_element_id]
+      else
+        # L2 mortars in y-direction
+        @views dg.l2mortars.u_upper[1, :, :, m] .= dg.elements.u[:, :, nnodes(dg), upper_element_id]
+        @views dg.l2mortars.u_lower[1, :, :, m] .= dg.elements.u[:, :, nnodes(dg), lower_element_id]
+      end
+    end
+
+    # Local storage for surface data of large element
+    u_large = zeros(nvariables(dg), nnodes(dg))
+
+    # Interpolate large element face data to small surface locations
+    for v = 1:nvariables(dg)
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large[v, :] = dg.elements.u[v, nnodes(dg), :, large_element_id]
+        else
+          # L2 mortars in y-direction
+          u_large[v, :] = dg.elements.u[v, :, nnodes(dg), large_element_id]
+        end
+        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+      else # large_sides[m] == 2 -> large element on right side
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large[v, :] = dg.elements.u[v, 1, :, large_element_id]
+        else
+          # L2 mortars in y-direction
+          u_large[v, :] = dg.elements.u[v, :, 1, large_element_id]
+        end
+        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+      end
+    end
+  end
+end
+
+
 # Calculate and store fluxes across surfaces
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg,
@@ -386,7 +600,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     fs = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
     riemann!(fs, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
-    # Get neighboring cells
+    # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
     right_neighbor_id = neighbor_ids[2, s]
 
@@ -403,9 +617,74 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 
+# Calculate and store fluxes across L2 mortars
+function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
+                             u_lower::Array{Float64, 4}, u_upper::Array{Float64, 4}, dg,
+                             orientations::Vector{Int})
+  #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
+  for m = 1:dg.n_l2mortars
+    large_element_id = dg.l2mortars.neighbor_ids[3, m]
+    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+
+    # Calculate fluxes
+    f_upper = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
+    f_lower = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
+    riemann!(f_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
+    riemann!(f_lower, u_lower, m, equations(dg), nnodes(dg), orientations)
+
+    # Copy flux small to small
+    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        surface_flux[:, :, 1, upper_element_id] .= f_upper
+        surface_flux[:, :, 1, lower_element_id] .= f_lower
+      else
+        # L2 mortars in y-direction
+        surface_flux[:, :, 3, upper_element_id] .= f_upper
+        surface_flux[:, :, 3, lower_element_id] .= f_lower
+      end
+    else # large_sides[m] == 2 -> small elements on left side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        surface_flux[:, :, 2, upper_element_id] .= f_upper
+        surface_flux[:, :, 2, lower_element_id] .= f_lower
+      else
+        # L2 mortars in y-direction
+        surface_flux[:, :, 4, upper_element_id] .= f_upper
+        surface_flux[:, :, 4, lower_element_id] .= f_lower
+      end
+    end
+
+    # Project small fluxes to large element
+    for v = 1:nvariables(dg)
+      large_surface_flux = (dg.l2mortar_reverse_upper * f_upper[v, :] +
+                            dg.l2mortar_reverse_lower * f_lower[v, :])
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          surface_flux[v, :, 2, large_element_id] .= large_surface_flux
+        else
+          # L2 mortars in y-direction
+          surface_flux[v, :, 4, large_element_id] .= large_surface_flux
+        end
+      else # large_sides[m] == 2 -> large element on right side
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          surface_flux[v, :, 1, large_element_id] .= large_surface_flux
+        else
+          # L2 mortars in y-direction
+          surface_flux[v, :, 3, large_element_id] .= large_surface_flux
+        end
+      end
+    end
+  end
+end
+
+
 # Calculate surface integrals and update u_t
 function calc_surface_integral!(dg, u_t::Array{Float64, 4}, surface_flux::Array{Float64, 4},
-                                lhat::SMatrix, surface_ids::Matrix{Int})
+                                lhat::SMatrix)
   for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
