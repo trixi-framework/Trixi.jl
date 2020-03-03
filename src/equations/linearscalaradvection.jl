@@ -126,9 +126,7 @@ function Equations.calc_max_dt(equation::LinearScalarAdvection,
                                u::Array{Float64, 4}, element_id::Int,
                                n_nodes::Int, invjacobian::Float64,
                                cfl::Float64)
-  return (cfl
-          * 2 / (invjacobian * maximum(abs.(equation.advectionvelocity)))
-          / (2 * (n_nodes - 1) + 1))
+  return cfl * 2 / (invjacobian * maximum(abs.(equation.advectionvelocity))) / n_nodes
 end
 
 

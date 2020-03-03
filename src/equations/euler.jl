@@ -373,7 +373,7 @@ function Equations.calc_max_dt(equation::Euler, u::Array{Float64, 4},
     end
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / (2 * (n_nodes - 1) + 1)
+  dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
 
   return dt
 end
