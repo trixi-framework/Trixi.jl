@@ -101,16 +101,14 @@ function main()
           grid=false)
 
     # Plot contours
-    #=contourf!(vertices[1,1:2], vertices[2, 2:3], (x,y) ->=#
-    #=          i/100 .+ x.+y, levels=20, c=:bluesreds)=#
     x = node_coordinates[:, 1, element_id, 1]
     y = node_coordinates[1, :, element_id, 2]
-    z = data[:, :, element_id, 1]
+    z = transpose(data[:, :, element_id, 1])
     contourf!(x, y, z, levels=20, c=:bluesreds)
   end
 
   # Determine output file name
-  base, _ = splitext(splitdir(meshfile)[2])
+  base, _ = splitext(splitdir(datafile)[2])
   output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
 
   # Create output directory if it does not exist
