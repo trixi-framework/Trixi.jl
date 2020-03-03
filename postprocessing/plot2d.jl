@@ -76,10 +76,22 @@ function main()
       error("unknown output format '$output_format'")
     end
 
+    # Check that all variables exist in data file
+    if isempty(args["variable"])
+      variables = labels
+    else
+      for var in args["variable"]
+        if !(var in labels)
+          error("variable '$var' does not exist in the data file $datafile")
+        end
+      end
+      variables = args["variable"]
+    end
+
     # Create output directory if it does not exist
     mkpath(args["output-directory"])
 
-    for variable_id in 1:n_variables
+    for (variable_id, label) in enumerate(variables)
       # Create plot
       @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
                                 aspectratio=:equal, legend=:none)
@@ -106,7 +118,7 @@ function main()
       # Determine output file name
       base, _ = splitext(splitdir(datafile)[2])
       output_filename = joinpath(args["output-directory"],
-                                 "$(base)_$(labels[variable_id])." * string(output_format))
+                                 "$(base)_$(label)." * string(output_format))
 
       # Save file
       @timeit "save plot" savefig(output_filename)
@@ -330,6 +342,10 @@ function parse_commandline_arguments()
       help = "Output file format (allowed: png, pdf)"
       arg_type = String
       default = "png"
+    "--variable", "-v"
+      help = "Variables to plot"
+      arg_type = String
+      action = :append_arg
     "--output-directory", "-o"
       help = "Output directory where generated images are stored (default: \".\")"
       arg_type = String
