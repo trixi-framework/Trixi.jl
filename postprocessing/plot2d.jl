@@ -38,7 +38,6 @@ function main()
 
   # Get mesh file name
   meshfile = extract_mesh_filename(Val(input_format), datafile)
-  @show meshfile
 
   # Read mesh
   @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
@@ -48,8 +47,6 @@ function main()
   @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
       Val(input_format), datafile)
 
-  @show size(node_coordinates_raw)
-  @show size(data_raw)
   # Interpolate DG data to visualization nodes
   nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
   @timeit "interpolate data" begin
@@ -66,12 +63,8 @@ function main()
   n_elements = length(levels)
   n_variables = size(data, 2)
   n_visnodes = nvisnodes == 0 ? n_nodes : nvisnodes
-  @show size(node_coordinates)
-  @show size(data)
   node_coordinates = reshape(node_coordinates, n_visnodes, n_visnodes, n_elements, ndim)
   data = reshape(data, n_visnodes, n_visnodes, n_elements, n_variables)
-  @show size(node_coordinates)
-  @show size(data)
 
   # Set up plotting
   output_format = get_output_format(args["format"])
@@ -197,11 +190,6 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
   vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Create output data structure
-  @show size(data_in, 1)
-  @show n_nodes_in
-  @show ndim
-  @show n_nodes_in^ndim
-  @show div(size(data_in, 1), n_nodes_in^ndim)
   n_elements = div(size(data_in, 1), n_nodes_in^ndim)
   n_variables = size(data_in, 2)
   data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_nodes_out, n_elements, n_variables)
