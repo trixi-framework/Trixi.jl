@@ -56,6 +56,12 @@ function Equations.initial_conditions(equation::LinearScalarAdvection,
     return [scalar]
   elseif name == "constant"
     return [2.0]
+  elseif name == "linear-x-y"
+    return [sum(x_trans)]
+  elseif name == "linear-x"
+    return [x_trans[1]]
+  elseif name == "linear-y"
+    return [x_trans[2]]
   else
     error("Unknown initial condition '$name'")
   end
