@@ -29,117 +29,44 @@ function main()
   # Parse command line arguments
   args = parse_commandline_arguments()
 
-  # Get data file name
-  datafile = args["datafile"][1]
-
-  # Determine input file format
-  input_format = get_input_format(datafile)
-  @assert input_format == :hdf5 "Only HDF5 files are currently supported"
-
-  # Get mesh file name
-  meshfile = extract_mesh_filename(Val(input_format), datafile)
-
-  # Read mesh
-  @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
-     read_meshfile(Val(input_format), meshfile)
-
-  # Read data
-  @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
-      Val(input_format), datafile)
-
-  # Interpolate DG data to visualization nodes
-  nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
-  @timeit "interpolate data" begin
-    if nvisnodes == 0
-      node_coordinates = node_coordinates_raw
-      data = data_raw
-    else
-      node_coordinates = interpolate_data(node_coordinates_raw, n_nodes, nvisnodes)
-      data = interpolate_data(data_raw, n_nodes, nvisnodes)
-    end
-  end
-
-  # Reshape data arrays for convenience
-  n_elements = length(levels)
-  n_variables = size(data, 2)
-  n_visnodes = nvisnodes == 0 ? n_nodes : nvisnodes
-  node_coordinates = reshape(node_coordinates, n_visnodes, n_visnodes, n_elements, ndim)
-  data = reshape(data, n_visnodes, n_visnodes, n_elements, n_variables)
-
-  # Set up plotting
-  output_format = get_output_format(args["format"])
-  gr()
-  if output_format == :pdf
-    GR.inline("pdf")
-  elseif output_format == :png
-    GR.inline("png")
-  else
-    error("unknown output format '$output_format'")
-  end
-
-  # Create plot
-  @timeit "create plot" plot(size=(2000,2000), thickness_scaling=3,
-                             aspectratio=:equal, legend=:none)
-
-  # Add elements
-  @timeit "add elements" for element_id in 1:n_elements
-    # Plot element outline
-    length = length_level_0 / 2^levels[element_id]
-    vertices = cell_vertices(coordinates[:, element_id], length)
-    plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
-          linecolor=:black,
-          annotate=(coordinates[1, element_id],
-                    coordinates[2, element_id],
-                    text("$(leaf_cells[element_id])", 4)),
-          grid=false)
-
-    # Plot contours
-    x = node_coordinates[:, 1, element_id, 1]
-    y = node_coordinates[1, :, element_id, 2]
-    z = transpose(data[:, :, element_id, 1])
-    contourf!(x, y, z, levels=20, c=:bluesreds)
-  end
-
-  # Determine output file name
-  base, _ = splitext(splitdir(datafile)[2])
-  output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
-
-  # Create output directory if it does not exist
-  mkpath(args["output-directory"])
-
-  # Save file
-  @timeit "save plot" savefig(output_filename)
-
-  print_timer()
-  println()
-  exit()
-
   # Iterate over input files
-  for f = 1:length(args["datafile"])
-    # User info
-    datafile = args["datafile"][f]
-    print("Processing '$datafile'... ")
-
+  for datafile in 1:length(args["datafile"])
     # Determine input file format
     input_format = get_input_format(datafile)
+    @assert input_format == :hdf5 "Only HDF5 files are currently supported"
 
-    # Read data from file
-    @timeit "read data" labels, x_raw, y_raw, n_nodes = read_datafile(
+    # Get mesh file name
+    meshfile = extract_mesh_filename(Val(input_format), datafile)
+
+    # Read mesh
+    @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
+      read_meshfile(Val(input_format), meshfile)
+
+    # Read data
+    @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
         Val(input_format), datafile)
 
     # Interpolate DG data to visualization nodes
     nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
     @timeit "interpolate data" begin
       if nvisnodes == 0
-        x = x_raw
-        y = y_raw
+        node_coordinates = node_coordinates_raw
+        data = data_raw
       else
-        x = interpolate_data(x_raw, n_nodes, nvisnodes)
-        y = interpolate_data(y_raw, n_nodes, nvisnodes)
+        node_coordinates = interpolate_data(node_coordinates_raw, n_nodes, nvisnodes)
+        data = interpolate_data(data_raw, n_nodes, nvisnodes)
       end
     end
 
+    # Reshape data arrays for convenience
+    n_elements = length(levels)
+    n_variables = size(data, 2)
+    n_visnodes = nvisnodes == 0 ? n_nodes : nvisnodes
+    node_coordinates = reshape(node_coordinates, n_visnodes, n_visnodes, n_elements, ndim)
+    data = reshape(data, n_visnodes, n_visnodes, n_elements, n_variables)
+
     # Set up plotting
+    output_format = get_output_format(args["format"])
     gr()
     if output_format == :pdf
       GR.inline("pdf")
@@ -150,14 +77,26 @@ function main()
     end
 
     # Create plot
-    @timeit "create plot" plot(x, y, label=labels, size=(1600,1200), thickness_scaling=3)
+    @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
+                               aspectratio=:equal, legend=:none)
 
-    # Add mesh unless disabled
-    if !args["no-mesh"]
-      x_mesh = vcat(x_raw[1:n_nodes:end], x_raw[end])
-      y_mesh = zeros(size(x_mesh))
-      @timeit "create plot" scatter!(x_mesh, y_mesh, label="mesh", markershape = :vline, 
-                                     markerstrokewidth=3, markersize=8)
+    # Add elements
+    @timeit "add elements" for element_id in 1:n_elements
+      # Plot element outline
+      length = length_level_0 / 2^levels[element_id]
+      vertices = cell_vertices(coordinates[:, element_id], length)
+      plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
+            linecolor=:black,
+            annotate=(coordinates[1, element_id],
+                      coordinates[2, element_id],
+                      text("$(leaf_cells[element_id])", 4)),
+            grid=false)
+
+      # Plot contours
+      x = node_coordinates[:, 1, element_id, 1]
+      y = node_coordinates[1, :, element_id, 2]
+      z = transpose(data[:, :, element_id, 1])
+      contourf!(x, y, z, levels=20, c=:bluesreds)
     end
 
     # Determine output file name
@@ -169,9 +108,6 @@ function main()
 
     # Save file
     @timeit "save plot" savefig(output_filename)
-
-    # User info
-    println("done")
   end
 
   print_timer()
