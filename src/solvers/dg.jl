@@ -13,7 +13,7 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child
 using .Interpolation: interpolate_nodes, calc_dhat,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
-using StaticArrays: SVector, SMatrix, MMatrix
+using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
 
@@ -305,12 +305,8 @@ function Solvers.rhs!(dg::Dg, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
-  # Calculate volume flux
-  @timeit timer() "volume flux" calc_volume_flux!(dg)
-
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg, dg.elements.u_t,
-                                                          dg.dhat, dg.elements.flux)
+  @timeit timer() "volume integral" calc_volume_integral!(dg, dg.elements.u_t, dg.dhat)
 
   # Prolong solution to surfaces
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
@@ -331,29 +327,21 @@ function Solvers.rhs!(dg::Dg, t_stage)
 end
 
 
-# Calculate and store volume fluxes
-function calc_volume_flux!(dg)
-  equation = equations(dg)
-
-  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id = 1:dg.n_elements
-     @views calcflux!(dg.elements.flux[:, :, :, element_id, 1],
-                      dg.elements.flux[:, :, :, element_id, 2],
-                      equation, dg.elements.u, element_id, nnodes(dg))
-  end
-end
-
-
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg, u_t::Array{Float64, 4}, dhat::SMatrix, flux::Array{Float64, 5})
+function calc_volume_integral!(dg, u_t::Array{Float64, 4}, dhat::SMatrix)
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
   for element_id = 1:dg.n_elements
+    # Calculate volume fluxes
+    f1 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
+    f2 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
+    calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate volume integral
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dhat[i, l] * flux[v, l, j, element_id, 1] +
-                                         dhat[j, l] * flux[v, i, l, element_id, 2])
+            u_t[v, i, j, element_id] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
         end
       end
