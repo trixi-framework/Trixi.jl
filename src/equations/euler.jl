@@ -94,6 +94,34 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     else
       return [0.125, 0.0, 0.0, 0.25]
     end
+  elseif name == "isentropic_vortex"
+    # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
+    # make sure that the inicenter does not exit the domain, e.g. T=10.0
+    # initial center of the vortex
+    inicenter = [-5.,-5.]
+    # size and strength of the vortex
+    inihalfwidth = 1.0                     # seems to be working with 1 only?!? needs debugging
+    iniamplitude = 0.2
+    # base flow
+    prim=[1.0,1.0,1.0,10.0]
+    vel=prim[2:3]
+    rt=prim[4]/prim[1]                      # ideal gas equation
+    cent=(inicenter+vel*t)                  # advection of center
+    cent=x-cent                             # distance to centerpoint
+    #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
+    # cross product with iniaxis = [0,0,1]
+    helper =  cent[1]
+    cent[1] = -cent[2]               
+    cent[2] = helper
+    cent=cent/inihalfwidth   
+    r2=cent[1]^2+cent[2]^2 
+    du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
+    dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
+    prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))     
+    prim[2:3]=prim[2:3]+du*cent #v
+    prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))     
+    rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim) 
+    return [rho,rho_v1,rho_v2,rho_e]
   else
     error("Unknown initial condition '$name'")
   end
@@ -322,6 +350,16 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
                          * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * prim[2, :, :, :] +
                                                       cons[3, :, :, :] * prim[3, :, :, :])))
   return prim
+end
+
+# Convert primitive to conservative variables
+function prim2cons(equation::Euler, prim::AbstractArray{Float64})
+  cons = similar(prim)
+  cons[1] = prim[1]
+  cons[2] = prim[2] * prim[1]
+  cons[3] = prim[3] * prim[1]
+  cons[4] = prim[4]/(equation.gamma-1)+1/2*(cons[2] * prim[2] + cons[3] * prim[3])
+  return cons
 end
 
 end # module
