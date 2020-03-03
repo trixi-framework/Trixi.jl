@@ -94,7 +94,7 @@ function main()
     for (variable_id, label) in enumerate(variables)
       # Create plot
       @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
-                                aspectratio=:equal, legend=:none)
+                                 aspectratio=:equal, legend=:none, title=label, colorbar=true)
 
       # Add elements
       @timeit "add elements" for element_id in 1:n_elements
