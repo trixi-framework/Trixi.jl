@@ -100,7 +100,6 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     # initial center of the vortex
     inicenter = [-5.,-5.]
     # size and strength of the vortex
-    inihalfwidth = 1.0                     # seems to be working with 1 only?!? needs debugging
     iniamplitude = 0.2
     # base flow
     prim=[1.0,1.0,1.0,10.0]
@@ -113,7 +112,6 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     helper =  cent[1]
     cent[1] = -cent[2]               
     cent[2] = helper
-    cent=cent/inihalfwidth   
     r2=cent[1]^2+cent[2]^2 
     du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
     dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
