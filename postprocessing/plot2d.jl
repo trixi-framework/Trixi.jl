@@ -60,7 +60,7 @@ function main()
 
     # Reshape data arrays for convenience
     n_elements = length(levels)
-    n_variables = size(data, 2)
+    n_variables = length(labels)
     n_visnodes = nvisnodes == 0 ? n_nodes : nvisnodes
     node_coordinates = reshape(node_coordinates, n_visnodes, n_visnodes, n_elements, ndim)
     data = reshape(data, n_visnodes, n_visnodes, n_elements, n_variables)
@@ -76,38 +76,41 @@ function main()
       error("unknown output format '$output_format'")
     end
 
-    # Create plot
-    @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
-                               aspectratio=:equal, legend=:none)
-
-    # Add elements
-    @timeit "add elements" for element_id in 1:n_elements
-      # Plot element outline
-      length = length_level_0 / 2^levels[element_id]
-      vertices = cell_vertices(coordinates[:, element_id], length)
-      plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
-            linecolor=:black,
-            annotate=(coordinates[1, element_id],
-                      coordinates[2, element_id],
-                      text("$(leaf_cells[element_id])", 4)),
-            grid=false)
-
-      # Plot contours
-      x = node_coordinates[:, 1, element_id, 1]
-      y = node_coordinates[1, :, element_id, 2]
-      z = transpose(data[:, :, element_id, 1])
-      contourf!(x, y, z, levels=20, c=:bluesreds)
-    end
-
-    # Determine output file name
-    base, _ = splitext(splitdir(datafile)[2])
-    output_filename = joinpath(args["output-directory"], base * "." * string(output_format))
-
     # Create output directory if it does not exist
     mkpath(args["output-directory"])
 
-    # Save file
-    @timeit "save plot" savefig(output_filename)
+    for variable_id in 1:n_variables
+      # Create plot
+      @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
+                                aspectratio=:equal, legend=:none)
+
+      # Add elements
+      @timeit "add elements" for element_id in 1:n_elements
+        # Plot element outline
+        length = length_level_0 / 2^levels[element_id]
+        vertices = cell_vertices(coordinates[:, element_id], length)
+        plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
+              linecolor=:black,
+              annotate=(coordinates[1, element_id],
+                        coordinates[2, element_id],
+                        text("$(leaf_cells[element_id])", 4)),
+              grid=false)
+
+        # Plot contours
+        x = node_coordinates[:, 1, element_id, 1]
+        y = node_coordinates[1, :, element_id, 2]
+        z = transpose(data[:, :, element_id, variable_id])
+        contourf!(x, y, z, levels=20, c=:bluesreds)
+      end
+
+      # Determine output file name
+      base, _ = splitext(splitdir(datafile)[2])
+      output_filename = joinpath(args["output-directory"],
+                                 "$(base)_$(labels[variable_id])." * string(output_format))
+
+      # Save file
+      @timeit "save plot" savefig(output_filename)
+    end
   end
 
   print_timer()
