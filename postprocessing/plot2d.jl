@@ -1,15 +1,20 @@
 #!/usr/bin/env julia
 
+module TrixiPlot
+
 # Get useful bits and pieces from trixi
 include("../src/auxiliary/auxiliary.jl")
 include("../src/solvers/interpolation.jl")
+
+module Mesh
 include("../src/mesh/trees.jl")
+end
 
 const ndim = 2
 
 using .Interpolation: gauss_lobatto_nodes_weights,
                       polynomial_interpolation_matrix, interpolate_nodes
-using .Trees: n_children_per_cell
+using .Mesh.Trees: n_children_per_cell
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
 using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!, heatmap, heatmap!
@@ -24,15 +29,52 @@ function main()
   # Parse command line arguments
   args = parse_commandline_arguments()
 
-  # Determine output file format
-  output_format = get_output_format(args["format"])
+  # Get data file name
+  datafile = args["datafile"][1]
 
-  meshfile = args["datafile"][1]
+  # Determine input file format
+  input_format = get_input_format(datafile)
+  @assert input_format == :hdf5 "Only HDF5 files are currently supported"
 
-  center_level_0, length_level_0, leaf_cells, coordinates, levels =
-     read_meshfile(Val(:hdf5), meshfile)
+  # Get mesh file name
+  meshfile = extract_mesh_filename(Val(input_format), datafile)
+  @show meshfile
+
+  # Read mesh
+  @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
+     read_meshfile(Val(input_format), meshfile)
+
+  # Read data
+  @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
+      Val(input_format), datafile)
+
+  @show size(node_coordinates_raw)
+  @show size(data_raw)
+  # Interpolate DG data to visualization nodes
+  nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
+  @timeit "interpolate data" begin
+    if nvisnodes == 0
+      node_coordinates = node_coordinates_raw
+      data = data_raw
+    else
+      node_coordinates = interpolate_data(node_coordinates_raw, n_nodes, nvisnodes)
+      data = interpolate_data(data_raw, n_nodes, nvisnodes)
+    end
+  end
+
+  # Reshape data arrays for convenience
+  n_elements = length(levels)
+  n_variables = size(data, 2)
+  n_visnodes = nvisnodes == 0 ? n_nodes : nvisnodes
+  @show size(node_coordinates)
+  @show size(data)
+  node_coordinates = reshape(node_coordinates, n_visnodes, n_visnodes, n_elements, ndim)
+  data = reshape(data, n_visnodes, n_visnodes, n_elements, n_variables)
+  @show size(node_coordinates)
+  @show size(data)
 
   # Set up plotting
+  output_format = get_output_format(args["format"])
   gr()
   if output_format == :pdf
     GR.inline("pdf")
@@ -43,16 +85,28 @@ function main()
   end
 
   # Create plot
-  @timeit "create plot" plot(size=(2000,2000), thickness_scaling=3, aspectratio=:equal, legend=:none)
+  @timeit "create plot" plot(size=(2000,2000), thickness_scaling=3,
+                             aspectratio=:equal, legend=:none)
 
-  # Add cells
-  @timeit "add cells" for i in 1:length(levels)
-    length = length_level_0 / 2^levels[i]
-    vertices = cell_vertices(coordinates[:, i], length)
-    plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]], linecolor=:black,
-          annotate=(coordinates[1, i], coordinates[2, i], text("$(leaf_cells[i])", 4)), grid=false)
-    contourf!(vertices[1,1:2], vertices[2, 2:3], (x,y) ->
-              i/100 .+ x.+y, levels=20, c=:bluesreds)
+  # Add elements
+  @timeit "add elements" for element_id in 1:n_elements
+    # Plot element outline
+    length = length_level_0 / 2^levels[element_id]
+    vertices = cell_vertices(coordinates[:, element_id], length)
+    plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
+          linecolor=:black,
+          annotate=(coordinates[1, element_id],
+                    coordinates[2, element_id],
+                    text("$(leaf_cells[element_id])", 4)),
+          grid=false)
+
+    # Plot contours
+    #=contourf!(vertices[1,1:2], vertices[2, 2:3], (x,y) ->=#
+    #=          i/100 .+ x.+y, levels=20, c=:bluesreds)=#
+    x = node_coordinates[:, 1, element_id, 1]
+    y = node_coordinates[1, :, element_id, 2]
+    z = data[:, :, element_id, 1]
+    contourf!(x, y, z, levels=20, c=:bluesreds)
   end
 
   # Determine output file name
@@ -138,29 +192,36 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
   # Get node coordinates for input and output locations on reference element
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
   dx = 2/n_nodes_out
-  nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
+  #=nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))=#
+  nodes_out = collect(range(-1, 1, length=n_nodes_out))
 
   # Get interpolation matrix
   vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Create output data structure
-  n_elements = div(size(data_in, 1), n_nodes_in)
+  @show size(data_in, 1)
+  @show n_nodes_in
+  @show ndim
+  @show n_nodes_in^ndim
+  @show div(size(data_in, 1), n_nodes_in^ndim)
+  n_elements = div(size(data_in, 1), n_nodes_in^ndim)
   n_variables = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_elements, n_variables)
+  data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_nodes_out, n_elements, n_variables)
 
   # Interpolate each variable separately
   for v = 1:n_variables
     # Reshape data to fit expected format for interpolation function
     # FIXME: this "reshape here, reshape later" funny business should be implemented properly
-    reshaped = reshape(data_in[:, v], 1, n_nodes_in, n_elements)
+    reshaped = reshape(data_in[:, v], 1, n_nodes_in, n_nodes_in, n_elements)
 
     # Interpolate data for each cell
-    for cell_id = 1:n_elements
-      data_out[:, cell_id, v] = interpolate_nodes(reshaped[:, :, cell_id], vandermonde, 1)
+    for element_id = 1:n_elements
+      data_out[:, :, element_id, v] = interpolate_nodes(reshaped[:, :, :, element_id],
+                                                        vandermonde, 1)
     end
   end
 
-  return reshape(data_out, n_nodes_out * n_elements, n_variables)
+  return reshape(data_out, n_nodes_out^ndim * n_elements, n_variables)
 end
 
 
@@ -177,6 +238,17 @@ function cell_vertices(coordinates::AbstractArray{Float64, 1}, length::Float64)
   vertices[2, 4] = coordinates[2] + 1/2 * length
 
   return vertices
+end
+
+
+function extract_mesh_filename(::Val{:hdf5}, filename::String)
+  # Open file for reading
+  h5open(filename, "r") do file
+    # Extract filename relative to data file
+    mesh_file = read(attrs(file)["mesh_file"])
+
+    return joinpath(dirname(filename), mesh_file)
+  end
 end
 
 
@@ -235,9 +307,10 @@ function read_datafile(::Val{:hdf5}, filename::String)
 
     # Extract coordinates
     n_nodes = N + 1
-    num_datapoints = n_nodes * n_elements
-    coordinates = Array{Float64}(undef, num_datapoints)
-    coordinates .= read(file["x"])
+    num_datapoints = n_nodes^ndim * n_elements
+    coordinates = Array{Float64}(undef, num_datapoints, ndim)
+    coordinates[:, 1] .= read(file["x"])
+    coordinates[:, 2] .= read(file["y"])
 
     # Extract data arrays
     data = Array{Float64}(undef, num_datapoints, n_variables)
@@ -331,7 +404,7 @@ function parse_commandline_arguments()
     "--format", "-f"
       help = "Output file format (allowed: png, pdf)"
       arg_type = String
-      default = "pdf"
+      default = "png"
     "--output-directory", "-o"
       help = "Output directory where generated images are stored (default: \".\")"
       arg_type = String
@@ -350,7 +423,9 @@ function parse_commandline_arguments()
   return parse_args(s)
 end
 
+end # module TrixiPlot
+
 
 if abspath(PROGRAM_FILE) == @__FILE__
-  @Auxiliary.interruptable main()
+  @TrixiPlot.Auxiliary.interruptable TrixiPlot.main()
 end
