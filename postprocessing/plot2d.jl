@@ -30,7 +30,7 @@ function main()
   args = parse_commandline_arguments()
 
   # Iterate over input files
-  for datafile in 1:length(args["datafile"])
+  for datafile in args["datafile"]
     # Determine input file format
     input_format = get_input_format(datafile)
     @assert input_format == :hdf5 "Only HDF5 files are currently supported"
