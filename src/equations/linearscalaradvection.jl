@@ -93,25 +93,25 @@ end
 end
 
 
-# Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(flux_surfaces::AbstractArray{Float64},
-                            u_surfaces::AbstractArray{Float64},
-                            equation::LinearScalarAdvection, orientation::Int)
-  a = equation.advectionvelocity[orientation]
-  flux_surfaces[1] = 1/2 * (
-      (a + abs(a)) * u_surfaces[1, 1] + (a - abs(a)) * u_surfaces[2, 1])
-end
-
-
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(flux_surfaces::Array{Float64, 3},
+function Equations.riemann!(surface_flux::Matrix{Float64},
                             u_surfaces::Array{Float64, 4}, surface_id::Int,
                             equation::LinearScalarAdvection, n_nodes::Int,
                             orientations::Vector{Int})
   for i = 1:n_nodes
-    @views riemann!(flux_surfaces[:, i, surface_id], u_surfaces[:, :, i, surface_id],
+    @views riemann!(surface_flux[:, i], u_surfaces[:, :, i, surface_id],
                     equation, orientations[surface_id])
   end
+end
+
+
+# Calculate flux across interface with different states on both sides (pointwise version)
+function Equations.riemann!(surface_flux::AbstractArray{Float64},
+                            u_surfaces::AbstractArray{Float64},
+                            equation::LinearScalarAdvection, orientation::Int)
+  a = equation.advectionvelocity[orientation]
+  surface_flux[1] = 1/2 * (
+      (a + abs(a)) * u_surfaces[1, 1] + (a - abs(a)) * u_surfaces[2, 1])
 end
 
 

@@ -312,11 +312,13 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg.surfaces.flux,
-                                                    dg.surfaces.u, dg, dg.surfaces.orientations)
+  @timeit timer() "surface flux" calc_surface_flux!(dg.elements.surface_flux,
+                                                    dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
+                                                    dg.surfaces.orientations)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t, dg.surfaces.flux, 
+  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
+                                                            dg.elements.surface_flux, 
                                                             dg.lhat, dg.elements.surface_ids)
 
   # Apply Jacobian from mapping to reference element
@@ -375,36 +377,46 @@ end
 
 
 # Calculate and store fluxes across surfaces
-function calc_surface_flux!(flux_surfaces::Array{Float64, 3},
+function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg,
                             orientations::Vector{Int})
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   for s = 1:dg.n_surfaces
-    riemann!(flux_surfaces, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    # Calculate flux
+    fs = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
+    riemann!(fs, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+
+    # Get neighboring cells
+    left_neighbor_id  = neighbor_ids[1, s]
+    right_neighbor_id = neighbor_ids[2, s]
+
+    # Determine surface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_neighbor_direction = 2 * orientations[s]
+    right_neighbor_direction = 2 * orientations[s] - 1
+
+    # Copy flux to left and right element storage
+    surface_flux[:, :, left_neighbor_direction,  left_neighbor_id]  .= fs
+    surface_flux[:, :, right_neighbor_direction, right_neighbor_id] .= fs
   end
 end
 
 
 # Calculate surface integrals and update u_t
-function calc_surface_integral!(dg, u_t::Array{Float64, 4}, flux_surfaces::Array{Float64, 3},
+function calc_surface_integral!(dg, u_t::Array{Float64, 4}, surface_flux::Array{Float64, 4},
                                 lhat::SMatrix, surface_ids::Matrix{Int})
   for element_id = 1:dg.n_elements
-    # Left/right/bottom/top from element-centric perspective
-    left   = surface_ids[1, element_id]
-    right  = surface_ids[2, element_id]
-    bottom = surface_ids[3, element_id]
-    top    = surface_ids[4, element_id]
-
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         # surface at -x
-        u_t[v, 1,          l, element_id] -= flux_surfaces[v, l, left  ] * lhat[1,          1]
+        u_t[v, 1,          l, element_id] -= surface_flux[v, l, 1, element_id] * lhat[1,          1]
         # surface at +x
-        u_t[v, nnodes(dg), l, element_id] += flux_surfaces[v, l, right ] * lhat[nnodes(dg), 2]
+        u_t[v, nnodes(dg), l, element_id] += surface_flux[v, l, 2, element_id] * lhat[nnodes(dg), 2]
         # surface at -y
-        u_t[v, l, 1,          element_id] -= flux_surfaces[v, l, bottom] * lhat[1,          1]
+        u_t[v, l, 1,          element_id] -= surface_flux[v, l, 3, element_id] * lhat[1,          1]
         # surface at +y
-        u_t[v, l, nnodes(dg), element_id] += flux_surfaces[v, l, top   ] * lhat[nnodes(dg), 2]
+        u_t[v, l, nnodes(dg), element_id] += surface_flux[v, l, 4, element_id] * lhat[nnodes(dg), 2]
       end
     end
   end
