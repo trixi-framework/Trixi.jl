@@ -28,9 +28,12 @@ function main()
 
   # Parse command line arguments
   args = parse_commandline_arguments()
+  verbose = args["verbose"]
 
   # Iterate over input files
   for datafile in args["datafile"]
+    verbose && println("Processing file $datafile...")
+
     # Determine input file format
     input_format = get_input_format(datafile)
     @assert input_format == :hdf5 "Only HDF5 files are currently supported"
@@ -39,14 +42,17 @@ function main()
     meshfile = extract_mesh_filename(Val(input_format), datafile)
 
     # Read mesh
+    verbose && println("| Reading mesh file...")
     @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
       read_meshfile(Val(input_format), meshfile)
 
     # Read data
+    verbose && println("| Reading data file...")
     @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
         Val(input_format), datafile)
 
     # Interpolate DG data to visualization nodes
+    verbose && println("| Interpolating data...")
     nvisnodes = (args["nvisnodes"] == nothing ? 4 * n_nodes : args["nvisnodes"])
     @timeit "interpolate data" begin
       if nvisnodes == 0
@@ -91,7 +97,10 @@ function main()
     # Create output directory if it does not exist
     mkpath(args["output-directory"])
 
+    verbose && println("| Creating plots...")
     for (variable_id, label) in enumerate(variables)
+      verbose && println("| | Variable $label...")
+
       # Create plot
       @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
                                  aspectratio=:equal, legend=:none, title=label, colorbar=true,
@@ -126,6 +135,7 @@ function main()
     end
   end
 
+  verbose && println("| done.\n")
   print_timer()
   println()
 end
@@ -343,10 +353,13 @@ function parse_commandline_arguments()
       help = "Output file format (allowed: png, pdf)"
       arg_type = String
       default = "png"
-    "--variable", "-v"
+    "--variable", "-V"
       help = "Variables to plot"
       arg_type = String
       action = :append_arg
+    "--verbose", "-v"
+      help = "Enable verbose output to avoid despair over long plot times 😉"
+      action = :store_true
     "--output-directory", "-o"
       help = "Output directory where generated images are stored (default: \".\")"
       arg_type = String
