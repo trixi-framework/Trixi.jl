@@ -126,6 +126,22 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))     
     rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim) 
     return [rho,rho_v1,rho_v2,rho_e]
+  elseif name == "weak_blast_wave"
+    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Set up polar coordinates
+    inicenter = [0, 0]
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    p = r > 0.5 ? 1.0 : 1.245
+
+    return prim2cons(equation, [rho, v1, v2, p])
   else
     error("Unknown initial condition '$name'")
   end
