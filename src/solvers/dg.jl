@@ -529,8 +529,6 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
   for element_id = 1:dg.n_elements
     # Calculate volume fluxes (one more dimension than weak form)
-    #=f1 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))=#
-    #=f2 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))=#
     f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))

@@ -180,8 +180,6 @@ end
                                               u::AbstractArray{Float64},
                                               element_id::Int, n_nodes::Int)
   # Calculate regular volume fluxes
-  #=f1_diag = Array{Float64, 3}(undef, nvariables(equation), n_nodes, n_nodes)=#
-  #=f2_diag = Array{Float64, 3}(undef, nvariables(equation), n_nodes, n_nodes)=#
   f1_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
   f2_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
