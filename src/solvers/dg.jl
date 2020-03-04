@@ -12,7 +12,7 @@ using ...Auxiliary: timer
 using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
-using .Interpolation: interpolate_nodes, calc_dhat,
+using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
 import .L2Mortar # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
@@ -45,6 +45,7 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   nodes::SVector{Np1}
   weights::SVector{Np1}
   dhat::SMatrix{Np1, Np1}
+  dsplit::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
 
   l2mortar_forward_upper::SMatrix{Np1, Np1}
@@ -92,6 +93,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_nodes = N + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
   dhat = calc_dhat(nodes, weights)
+  dsplit = calc_dsplit(nodes, weights)
   lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
@@ -116,7 +118,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       elements, n_elements,
       surfaces, n_surfaces,
       l2mortars, n_l2mortars,
-      nodes, weights, dhat, lhat,
+      nodes, weights, dhat, dsplit, lhat,
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,

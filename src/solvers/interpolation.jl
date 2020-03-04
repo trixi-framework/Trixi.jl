@@ -4,6 +4,7 @@ using GaussQuadrature: legendre, both, neither
 
 export interpolate_nodes
 export calc_dhat
+export calc_dsplit
 export polynomial_derivative_matrix
 export polynomial_interpolation_matrix
 export barycentric_weights
@@ -76,6 +77,20 @@ function calc_dhat(nodes, weights)
   end
 
   return dhat
+end
+
+
+# Calculate the Dsplit matrix for split-form differentiation: dplit = 2D - M⁻¹B
+function calc_dsplit(nodes, weights)
+  # Start with 2 x the normal D matrix
+  dsplit = polynomial_derivative_matrix(nodes)
+  dsplit = 2 .* dsplit
+
+  # Modify to account for 
+  dsplit[1, 1] += 1/weights[1]
+  dsplit[end, end] -= 1/weights[end]
+
+  return dsplit
 end
 
 
