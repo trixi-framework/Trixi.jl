@@ -941,39 +941,32 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
     alpha[element_id] = max(alpha_max, alpha[element_id])
   end
 
-  # Diffuse alpha values by averaging over all neighbors
-  # Start with own contribution
-  alpha_weighted_sum = similar(alpha)
-  alpha_weighted_sum .= alpha
-  averaging_weights = ones(size(alpha))
- 
-  # Contributions from surfaces: equal contribution from both sides
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Loop over surfaces
   for surface_id in 1:dg.n_surfaces
+    # Get neighboring element ids
     left = dg.surfaces.neighbor_ids[1, surface_id]
     right = dg.surfaces.neighbor_ids[2, surface_id]
-    alpha_weighted_sum[left] += alpha[right]
-    alpha_weighted_sum[right] += alpha[left]
-    averaging_weights[left] += 1
-    averaging_weights[right] += 1
+
+    # Apply smoothing
+    alpha[left] = max(alpha[left], 0.5 * alpha[right])
+    alpha[right] = max(alpha[right], 0.5 * alpha[left])
   end
  
-  # Contributions from l2mortars: 4x alpha of large elements, 1/4 alpha of small elements
-  # TODO: Gregor please check if this weighted averaging makes sense
+  # Loop over mortars
+  # TODO: Gregor, please check if this implementation makes sense
   for l2mortar_id in 1:dg.n_l2mortars
+    # Get neighboring element ids
     lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
     upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
     large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-    alpha_weighted_sum[lower] += 4 * alpha[large]
-    alpha_weighted_sum[upper] += 4 * alpha[large]
-    alpha_weighted_sum[large] += 1/2 * (alpha[lower] + alpha[upper])
-    averaging_weights[lower] += 4
-    averaging_weights[upper] += 4
-    averaging_weights[large] += 1/2
+    # Apply smoothing
+    alpha[lower] = max(alpha[lower], 0.5 * alpha[large])
+    alpha[upper] = max(alpha[upper], 0.5 * alpha[large])
+    alpha[large] = max(alpha[large], 0.5 * alpha[lower])
+    alpha[large] = max(alpha[large], 0.5 * alpha[upper])
   end
-
-  # Average alphas
-  alpha .= alpha_weighted_sum ./ averaging_weights
 
   # Clip blending factor for values close to zero (-> pure DG)
   dg_only = isapprox.(alpha, 0, atol=1e-12)
