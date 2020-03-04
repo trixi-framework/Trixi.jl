@@ -214,4 +214,63 @@ function gauss_nodes_weights(n_nodes::Integer)
 end
 
 
+# From FLUXO (but really from blue book by Kopriva)
+function legendre_polynomial_and_derivative(N::Int, x::Real)
+  if N == 0
+    poly = 1.0
+    deriv = 0.0
+  elseif N == 1
+    poly = convert(Float64, x)
+    deriv = 1.0
+  else
+    poly_Nm2 = 1.0
+    poly_Nm1 = convert(Float64, x)
+    deriv_Nm2 = 0.0
+    deriv_Nm1 = 1.0
+
+    poly = 0.0
+    deriv = 0.0
+    for i in 2:N
+      poly = ((2*i-1) * x * poly_Nm1 - (i-1) * poly_Nm2) / i
+      deriv=deriv_Nm2 + (2*i-1)*poly_Nm1
+      poly_Nm2=poly_Nm1
+      poly_Nm1=poly
+      deriv_Nm2=deriv_Nm1
+      deriv_Nm1=deriv
+    end
+  end
+
+  # Normalize
+  poly = poly * sqrt(N+0.5)
+  deriv = deriv * sqrt(N+0.5)
+
+  return poly, deriv
+end
+
+
+# Calculate Legendre vandermonde matrix and its inverse
+function vandermonde_legendre(nodes, N)
+  n_nodes = length(nodes)
+  n_modes = N + 1
+  vandermonde = zeros(n_nodes, n_modes)
+
+  for i in 1:n_nodes
+    for m in 1:n_modes
+      vandermonde[i, m], _ = legendre_polynomial_and_derivative(m-1, nodes[i])
+    end
+  end
+  # for very high polynomial degree, this is not well conditioned    
+  inverse_vandermonde = inv(vandermonde)
+  return vandermonde, inverse_vandermondee
+end
+vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
+
+
+# Convert nodal to modal representation
+function nodal2modal(data_in::AbstractArray{Float64, 3},
+                     vandermonde::AbstractArray{Float64, 2})
+  interpolate_nodes(data_in, vandermonde, 1)
+end
+
+
 end

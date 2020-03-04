@@ -103,7 +103,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
     # make sure that the inicenter does not exit the domain, e.g. T=10.0
     # initial center of the vortex
-    inicenter = [-5.,-5.]
+    inicenter = [0,0]
     # size and strength of the vortex
     iniamplitude = 0.2
     # base flow
@@ -164,7 +164,7 @@ end
                                      rho_v2::Float64, rho_e::Float64)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2+v2^2))
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
   f1[1]  = rho_v1
   f1[2]  = rho_v1 * v1 + p
@@ -286,7 +286,7 @@ end
                              rho_e::Float64, orientation::Int)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2+v2^2))
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
   if orientation == 1
     f[1]  = rho_v1
     f[2]  = rho_v1 * v1 + p
@@ -500,6 +500,7 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
   return prim
 end
 
+
 # Convert primitive to conservative variables
 function prim2cons(equation::Euler, prim::AbstractArray{Float64})
   cons = similar(prim)
@@ -508,6 +509,20 @@ function prim2cons(equation::Euler, prim::AbstractArray{Float64})
   cons[3] = prim[3] * prim[1]
   cons[4] = prim[4]/(equation.gamma-1)+1/2*(cons[2] * prim[2] + cons[3] * prim[3])
   return cons
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities
+function Equations.cons2indicator(equation::Euler, cons::Array{Float64, 4})
+  rho, rho_v1, rho_v2, rho_e = cons
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+
+  # Calculate pressure
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+
+  # Indicator variable is rho * p
+  return rho * p
 end
 
 end # module

@@ -12,6 +12,7 @@ export calcflux_twopoint!
 export riemann!
 export calc_max_dt
 export cons2prim
+export cons2indicator
 
 
 # Base type from which all systems of equations types inherit from
@@ -58,6 +59,7 @@ function calcflux_twopoint! end
 function riemann! end
 function calc_max_dt end
 function cons2prim end
+function cons2indicator end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.

@@ -45,6 +45,8 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
 
   nodes::SVector{Np1}
   weights::SVector{Np1}
+  inverse_weights::SVector{Np1}
+  inverse_vandermonde_legendre::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
 
   volume_integral_type::Symbol
@@ -94,13 +96,15 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize interpolation data structures
   n_nodes = N + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
+  inverse_weights = 1 ./ weights
+  _, inverse_vandermonde_legendre = vandermonde_legendre(nodes)
   lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
 
   # Initialize differentiation operator
   volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
-                                          valid=["weak_form", "split_form"]))
+                                          valid=["weak_form", "split_form", "shock_capturing"]))
   if volume_integral_type == :weak_form
     differentiation_operator = calc_dhat(nodes, weights)
   else
@@ -128,7 +132,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       elements, n_elements,
       surfaces, n_surfaces,
       l2mortars, n_l2mortars,
-      nodes, weights, lhat,
+      nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
       volume_integral_type, differentiation_operator,
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
@@ -476,11 +480,6 @@ function Solvers.rhs!(dg::Dg, t_stage)
                                                       dg.l2mortars.u_upper,
                                                       dg, dg.l2mortars.orientations)
 
-  #=for idx in CartesianIndices(dg.elements.surface_flux)=#
-  #=  @show idx, dg.elements.surface_flux[idx]=#
-  #=end=#
-  #=exit()=#
-
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
                                                             dg.elements.surface_flux, dg.lhat)
@@ -503,7 +502,7 @@ end
 # Calculate volume integral (DGSEM in weak form)
 function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id = 1:dg.n_elements
+  for element_id in 1:dg.n_elements
     # Calculate volume fluxes
     f1 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
     f2 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
@@ -527,7 +526,7 @@ end
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id = 1:dg.n_elements
+  for element_id in 1:dg.n_elements
     # Calculate volume fluxes (one more dimension than weak form)
     f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
@@ -543,6 +542,110 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
           end
         end
       end
+    end
+  end
+end
+
+
+# Calculate volume integral (DGSEM in split form with shock capturing)
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
+                               dsplit_transposed::SMatrix)
+  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
+                        dg.inverse_weights)
+end
+
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
+                               dsplit_transposed::SMatrix, inverse_weights::SVector)
+  # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+  alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
+
+  # Loop over pure DG elements
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  for element_id in element_ids_dg
+    # Calculate volume fluxes (one more dimension than weak form)
+    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate volume integral
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          for l = 1:nnodes(dg)
+            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
+                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+          end
+        end
+      end
+    end
+  end
+
+  # Loop over blended DG-FV elements
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  for element_id in element_ids_dgfv
+    # Calculate volume fluxes (one more dimension than weak form)
+    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate DG volume integral contribution
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          for l = 1:nnodes(dg)
+            u_t[v, i, j, element_id] += ((1 - alpha[element_id]) *
+                                         (dsplit_transposed[l, i] * f1[v, l, i, j] +
+                                          dsplit_transposed[l, j] * f2[v, l, i, j]))
+          end
+        end
+      end
+    end
+
+    # Calculate volume fluxes (one more dimension than weak form)
+    fstar1 = MArray{Tuple{nvariables(dg), nnodes(dg)+1, nnodes(dg)}, Float64}(undef)
+    fstar2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)+1}, Float64}(undef)
+    calcflux_fv!(fstar1, fstar2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate FV volume integral contribution
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          u_t[v, i, j, element_id] += ((alpha[element_id])
+                                       *(inverse_weights[i]*(fstar1[v, i+1, j] - fstar1[v,i,j]) +
+                                         inverse_weights[j]*(fstar2[v, i, j+1] - fstar2[v,i,j])))
+
+        end
+      end
+    end
+  end
+end
+
+
+# Calculate 2D two-point flux (element version)
+@inline function calcflux_fv!(fstar1::AbstractArray{Float64},
+                              fstar2::AbstractArray{Float64},
+                              equation,
+                              u::AbstractArray{Float64},
+                              element_id::Int, n_nodes::Int)
+
+  u_leftright=MMatrix{2,nvariables(equation), Float64}(undef)
+
+  fstar1[:,1,:]       = 0.0
+  fstar1[:,n_nodes+1,:] = 0.0
+  for j = 1:n_nodes
+    for i = 2:n_nodes
+      u_leftright[1,:] = u[:,i-1,j,element_id]
+      u_leftright[2,:] = u[:,i,j,element_id]
+      @views riemann!(fstar1[:,i,j],u_leftright,equation,1) 
+    end
+  end
+  fstar2[:,:,1]       = 0.0
+  fstar2[:,:,n_nodes+1] = 0.0
+  for j = 2:n_nodes
+    for i = 1:n_nodes
+      u_leftright[1,:] = u[:,i,j-1,element_id]
+      u_leftright[2,:] = u[:,i,j,element_id]
+      @views riemann!(fstar2[:,i,j],u_leftright,equation,2) 
     end
   end
 end
@@ -785,6 +888,47 @@ function Solvers.calc_dt(dg::Dg, cfl)
   end
 
   return min_dt
+end
+
+
+# Calculate blending factors for shock capturing
+function calc_blending_factors(dg, u::AbstractArray{Float64})
+  # Calculate blending factor
+  alpha = similar(dg.elements.inverse_jacobian)
+  indicator = zeros(1, nnodes(dg), nnodes(dg))
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+  alpha_min = 0.001
+  alpha_max = 0.5
+
+  for element_id in 1:dg.n_elements
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for i in 1:nnodes(dg)
+      for j in 1:nnodes(dg)
+        @views indicator[1, i, j] = cons2indicator(equations(dg), u[:, i, j, element_id])
+      end
+    end
+
+    # Convert to modal representation
+    modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
+
+    # Calculate total energies for all modes, without highest, without two highest
+    total_energy = sum(modal.^2)
+    total_energy_clip1 = sum(modal[:, 1:nnodes(dg)-1, 1:nnodes(dg)-1].^2)
+    total_energy_clip2 = sum(modal[:, 1:nnodes(dg)-2, 1:nnodes(dg)-2].^2)
+
+    # Calculate energy in lower modes
+    energy = max((total_energy - total_energy_clip1)/total_energy,
+                 (total_energy_clip1 - total_energy_clip2)/total_energy_clip_1)
+
+    alpha[element_id] = 1/(1 + exp(-parameter_s/threshold * (energy - threshold)))
+  end
+
+  # Clip blending factor for values close to zero (-> pure DG)
+  dg_only = isapprox.(alpha, 0, atol=1e-12)
+  element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
+  element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
+  return alpha, element_ids_dg, element_ids_dgfv
 end
 
 end # module
