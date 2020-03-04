@@ -23,8 +23,8 @@ struct Euler <: AbstractEquation{4}
   varnames_cons::SVector{4, String}
   varnames_prim::SVector{4, String}
   gamma::Float64
-  surface_flux_type::String
-  volume_flux_type::String
+  surface_flux_type::Symbol
+  volume_flux_type::Symbol
 
   function Euler()
     name = "euler"
@@ -33,9 +33,12 @@ struct Euler <: AbstractEquation{4}
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_e"]
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
-    surface_flux_type = parameter("surface_flux_type", "hllc", valid=["hllc", "laxfriedrichs"])
-    volume_flux_type = parameter("volume_flux_type", "central", valid=["central", "laxfriedrichs"])
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, surface_flux_type)
+    surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
+                                         valid=["hllc", "laxfriedrichs"]))
+    volume_flux_type = Symbol(parameter("volume_flux_type", "central",
+                                        valid=["central", "kennedygruber"]))
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
+        surface_flux_type, volume_flux_type)
   end
 end
 
@@ -175,9 +178,19 @@ end
 end
 
 
+# Calculate 2D two-point flux (decide which volume flux type to use)
+@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
+                                              f2::AbstractArray{Float64},
+                                              equation::Euler,
+                                              u::AbstractArray{Float64},
+                                              element_id::Int, n_nodes::Int)
+  calcflux_twopoint!(f1, f2, Val(equation.volume_flux_type), equation, u, element_id, n_nodes)
+end
+
 # Calculate 2D two-point flux (element version)
 @inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
                                               f2::AbstractArray{Float64},
+                                              twopoint_flux_type::Val,
                                               equation::Euler,
                                               u::AbstractArray{Float64},
                                               element_id::Int, n_nodes::Int)
@@ -195,7 +208,8 @@ end
 
       # Flux in x-direction
       for l = i + 1:n_nodes
-        @views symmetric_twopoint_flux!(f1[:, l, i, j], equation, 1, # 1-> x-direction
+        @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
+                                        equation, 1, # 1-> x-direction
                                         u[:, i, j, element_id],
                                         u[:, l, j, element_id])
         @views f1[:, i, l, j] .= f1[:, l, i, j]
@@ -203,7 +217,8 @@ end
 
       # Flux in y-direction
       for l = j + 1:n_nodes
-        @views symmetric_twopoint_flux!(f2[:, l, i, j], equation, 2, # 2 -> y-direction
+        @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
+                                        equation, 2, # 2 -> y-direction
                                         u[:, i, j, element_id],
                                         u[:, i, l, element_id])
         @views f2[:, j, i, l] .= f2[:, l, i, j]
@@ -213,7 +228,22 @@ end
 end
 
 
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64},
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
+                                          equation::Euler, orientation::Int,
+                                          u_ll::AbstractArray{Float64},
+                                          u_rr::AbstractArray{Float64})
+  # Calculate regular 1D fluxes
+  f_ll = MVector{4, Float64}(undef)
+  f_rr = MVector{4, Float64}(undef)
+  calcflux1D!(f_ll, equation, u_ll[1], u_ll[2], u_ll[3], u_ll[4], orientation)
+  calcflux1D!(f_rr, equation, u_rr[1], u_rr[2], u_rr[3], u_rr[4], orientation)
+
+  # Average regular fluxes
+  @. f[:] = 1/2 * (f_ll + f_rr)
+end
+
+
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
                                           equation::Euler, orientation::Int,
                                           u_ll::AbstractArray{Float64},
                                           u_rr::AbstractArray{Float64})
@@ -294,13 +324,13 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
-  if equation.surface_flux_type == "laxfriedrichs"
+  if equation.surface_flux_type == :laxfriedrichs
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type == "hllc"
+  elseif equation.surface_flux_type == :hllc
     error("not yet implemented or tested")
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
@@ -342,7 +372,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
       end
     end
   else
-    error("unknown Riemann solver '$(equation.surface_flux_type)'")
+    error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
   end
 end
 
@@ -372,11 +402,11 @@ end
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 # 
-#   if equation.surface_flux_type == "laxfriedrichs"
+#   if equation.surface_flux_type == :laxfriedrichs
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 # 
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
-#   elseif equation.surface_flux_type == "hllc"
+#   elseif equation.surface_flux_type == :hllc
 #     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
 #     h_ll = (rho_e_ll + p_ll) / rho_ll
 #     h_rr = (rho_e_rr + p_rr) / rho_rr
@@ -405,7 +435,7 @@ end
 #       end
 #     end
 #   else
-#     error("unknown Riemann solver '$(equation.surface_flux_type)'")
+#     error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
 #   end
 # end
 

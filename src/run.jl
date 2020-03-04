@@ -118,7 +118,8 @@ function run(;args=nothing, kwargs...)
           | | N:                $N
           | | CFL:              $cfl
           | | volume integral:  $(string(solver.volume_integral_type))
-          | | surface flux:     $(equations.surface_flux_type)
+          | | volume flux:      $(string(equations.volume_flux_type))
+          | | surface flux:     $(string(equations.surface_flux_type))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #l2mortars:       $(solver.n_l2mortars)
