@@ -6,7 +6,7 @@ equations = "euler"
 
 initial_conditions = "isentropic_vortex"
 # initial_conditions = "constant"
-riemann_solver = "laxfriedrichs"
+surface_flux_type = "laxfriedrichs"
 # sources = 
 t_start = 0.0
 t_end   = 5.0

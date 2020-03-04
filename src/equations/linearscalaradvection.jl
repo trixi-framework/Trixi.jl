@@ -23,6 +23,8 @@ struct LinearScalarAdvection <: AbstractEquation{1}
   varnames_cons::SVector{1, String}
   varnames_prim::SVector{1, String}
   advectionvelocity::SVector{2, Float64}
+  surface_flux_type::String
+  volume_flux_type::String
 
   function LinearScalarAdvection()
     name = "linearscalaradvection"
@@ -31,7 +33,7 @@ struct LinearScalarAdvection <: AbstractEquation{1}
     varnames_cons = ["scalar"]
     varnames_prim = ["scalar"]
     a = parameter("advectionvelocity")
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a)
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, "upwind", "central")
   end
 end
 

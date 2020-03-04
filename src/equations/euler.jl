@@ -23,7 +23,8 @@ struct Euler <: AbstractEquation{4}
   varnames_cons::SVector{4, String}
   varnames_prim::SVector{4, String}
   gamma::Float64
-  riemann_solver::String
+  surface_flux_type::String
+  volume_flux_type::String
 
   function Euler()
     name = "euler"
@@ -32,8 +33,9 @@ struct Euler <: AbstractEquation{4}
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_e"]
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
-    riemann_solver = parameter("riemann_solver", "hllc", valid=["hllc", "laxfriedrichs"])
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, riemann_solver)
+    surface_flux_type = parameter("surface_flux_type", "hllc", valid=["hllc", "laxfriedrichs"])
+    volume_flux_type = parameter("volume_flux_type", "central", valid=["central", "laxfriedrichs"])
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, surface_flux_type)
   end
 end
 
@@ -292,13 +294,13 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
-  if equation.riemann_solver == "laxfriedrichs"
+  if equation.surface_flux_type == "laxfriedrichs"
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.riemann_solver == "hllc"
+  elseif equation.surface_flux_type == "hllc"
     error("not yet implemented or tested")
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
     h_ll = (rho_e_ll + p_ll) / rho_ll
@@ -340,7 +342,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
       end
     end
   else
-    error("unknown Riemann solver '$(equation.riemann_solver)'")
+    error("unknown Riemann solver '$(equation.surface_flux_type)'")
   end
 end
 
@@ -370,11 +372,11 @@ end
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 # 
-#   if equation.riemann_solver == "laxfriedrichs"
+#   if equation.surface_flux_type == "laxfriedrichs"
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 # 
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
-#   elseif equation.riemann_solver == "hllc"
+#   elseif equation.surface_flux_type == "hllc"
 #     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
 #     h_ll = (rho_e_ll + p_ll) / rho_ll
 #     h_rr = (rho_e_rr + p_rr) / rho_rr
@@ -403,7 +405,7 @@ end
 #       end
 #     end
 #   else
-#     error("unknown Riemann solver '$(equation.riemann_solver)'")
+#     error("unknown Riemann solver '$(equation.surface_flux_type)'")
 #   end
 # end
 
