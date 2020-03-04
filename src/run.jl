@@ -118,6 +118,8 @@ function run(;args=nothing, kwargs...)
           | | N:                $N
           | | CFL:              $cfl
           | | #elements:        $(solver.n_elements)
+          | | #surfaces:        $(solver.n_surfaces)
+          | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
           | Mesh
