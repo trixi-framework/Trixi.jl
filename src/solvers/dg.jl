@@ -7,14 +7,16 @@ include("l2mortar.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt
+                    riemann!, sources, calc_max_dt,
+	            cons2indicator
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
-                      polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights
+                      polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
+		      vandermonde_legendre, nodal2modal
 import .L2Mortar # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
@@ -919,9 +921,19 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
 
     # Calculate energy in lower modes
     energy = max((total_energy - total_energy_clip1)/total_energy,
-                 (total_energy_clip1 - total_energy_clip2)/total_energy_clip_1)
+                 (total_energy_clip1 - total_energy_clip2)/total_energy_clip1)
 
     alpha[element_id] = 1/(1 + exp(-parameter_s/threshold * (energy - threshold)))
+    # take care of the case close to pure DG
+    if (alpha[element_id]<alpha_min)
+      alpha[element_id] = 0.
+    end
+    # take care of the case close to pure FV
+    if (alpha[element_id]>1-alpha_min)
+      alpha[element_id] = 1.
+    end
+    # clip the maximum amount of FV allowed
+    alpha[element_id] = max(alpha_max,alpha[element_id])
   end
 
   # Clip blending factor for values close to zero (-> pure DG)

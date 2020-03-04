@@ -13,6 +13,7 @@ export calcflux!
 export riemann!
 export calc_max_dt
 export cons2prim
+export cons2indicator
 
 
 # Main data structure for system of equations "Euler"
@@ -513,7 +514,7 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities
-function Equations.cons2indicator(equation::Euler, cons::Array{Float64, 4})
+function Equations.cons2indicator(equation::Euler, cons::AbstractArray{Float64})
   rho, rho_v1, rho_v2, rho_e = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho

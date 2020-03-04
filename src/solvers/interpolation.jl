@@ -11,6 +11,8 @@ export barycentric_weights
 export calc_lhat
 export lagrange_interpolating_polynomials
 export gauss_lobatto_nodes_weights
+export vandermonde_legendre
+export modal2nodal
 
 
 # Interpolate data using the given Vandermonde matrix and return interpolated values (1D version).
@@ -261,7 +263,7 @@ function vandermonde_legendre(nodes, N)
   end
   # for very high polynomial degree, this is not well conditioned    
   inverse_vandermonde = inv(vandermonde)
-  return vandermonde, inverse_vandermondee
+  return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 
