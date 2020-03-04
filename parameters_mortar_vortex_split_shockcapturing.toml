@@ -28,6 +28,7 @@ cfl = 0.4
 n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "shock_capturing"
+# volume_integral_type = "split_form"
 
 
 ####################################################################################################

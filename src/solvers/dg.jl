@@ -559,11 +559,13 @@ end
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix, inverse_weights::SVector)
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
+  @timeit timer() "blending factors" begin
+    alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
+  end
 
   # Loop over pure DG elements
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id in element_ids_dg
+  @timeit timer() "pure DG" for element_id in element_ids_dg
     # Calculate volume fluxes (one more dimension than weak form)
     f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
@@ -584,7 +586,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
 
   # Loop over blended DG-FV elements
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id in element_ids_dgfv
+  @timeit timer() "blended DG-FV" for element_id in element_ids_dgfv
     # Calculate volume fluxes (one more dimension than weak form)
     f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
@@ -924,22 +926,60 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
                  (total_energy_clip1 - total_energy_clip2)/total_energy_clip1)
 
     alpha[element_id] = 1/(1 + exp(-parameter_s/threshold * (energy - threshold)))
-    # take care of the case close to pure DG
-    if (alpha[element_id]<alpha_min)
+
+    # Take care of the case close to pure DG
+    if (alpha[element_id] < alpha_min)
       alpha[element_id] = 0.
     end
-    # take care of the case close to pure FV
-    if (alpha[element_id]>1-alpha_min)
+
+    # Take care of the case close to pure FV
+    if (alpha[element_id] > 1-alpha_min)
       alpha[element_id] = 1.
     end
-    # clip the maximum amount of FV allowed
-    alpha[element_id] = max(alpha_max,alpha[element_id])
+
+    # Clip the maximum amount of FV allowed
+    alpha[element_id] = max(alpha_max, alpha[element_id])
   end
+
+  # Diffuse alpha values by averaging over all neighbors
+  # Start with own contribution
+  alpha_weighted_sum = similar(alpha)
+  alpha_weighted_sum .= alpha
+  averaging_weights = ones(size(alpha))
+ 
+  # Contributions from surfaces: equal contribution from both sides
+  for surface_id in 1:dg.n_surfaces
+    left = dg.surfaces.neighbor_ids[1, surface_id]
+    right = dg.surfaces.neighbor_ids[2, surface_id]
+    alpha_weighted_sum[left] += alpha[right]
+    alpha_weighted_sum[right] += alpha[left]
+    averaging_weights[left] += 1
+    averaging_weights[right] += 1
+  end
+ 
+  # Contributions from l2mortars: 4x alpha of large elements, 1/4 alpha of small elements
+  # TODO: Gregor please check if this weighted averaging makes sense
+  for l2mortar_id in 1:dg.n_l2mortars
+    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+
+    alpha_weighted_sum[lower] += 4 * alpha[large]
+    alpha_weighted_sum[upper] += 4 * alpha[large]
+    alpha_weighted_sum[large] += 1/2 * (alpha[lower] + alpha[upper])
+    averaging_weights[lower] += 4
+    averaging_weights[upper] += 4
+    averaging_weights[large] += 1/2
+  end
+
+  # Average alphas
+  alpha .= alpha_weighted_sum ./ averaging_weights
 
   # Clip blending factor for values close to zero (-> pure DG)
   dg_only = isapprox.(alpha, 0, atol=1e-12)
   element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
   element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
+
   return alpha, element_ids_dg, element_ids_dgfv
 end
 
