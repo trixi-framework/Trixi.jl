@@ -61,6 +61,13 @@ function run(;args=nothing, kwargs...)
   solver = make_solver(solver_name, equations, mesh)
   println("done")
 
+  # Sanity checks
+  # If DG volume integral type is weak form, volume flux type must be central,
+  # as everything else does not make sense
+  if dg.volume_integral_type == :weak_form && equations.volume_flux_type != :central
+    error("using the weak formulation with a volume flux other than 'central' does not make sense")
+  end
+
   # Initialize solution
   if restart
     print("Loading restart file...")
