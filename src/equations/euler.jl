@@ -228,6 +228,7 @@ end
 end
 
 
+# Central two-point flux (identical to weak form volume integral, except for floating point errors)
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
                                           equation::Euler, orientation::Int,
                                           u_ll::AbstractArray{Float64},
@@ -243,18 +244,39 @@ end
 end
 
 
+# Kinetic energy preserving two-point flux by Kennedy and Gruber
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
                                           equation::Euler, orientation::Int,
                                           u_ll::AbstractArray{Float64},
                                           u_rr::AbstractArray{Float64})
-  # Calculate regular 1D fluxes
-  f_ll = MVector{4, Float64}(undef)
-  f_rr = MVector{4, Float64}(undef)
-  calcflux1D!(f_ll, equation, u_ll[1], u_ll[2], u_ll[3], u_ll[4], orientation)
-  calcflux1D!(f_rr, equation, u_rr[1], u_rr[2], u_rr[3], u_rr[4], orientation)
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
 
-  # Average regular fluxes
-  @. f[:] = 1/2 * (f_ll + f_rr)
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg = 1/2 * (v1_ll + v1_rr)
+  v2_avg = 1/2 * (v2_ll + v2_rr)
+  p_avg = 1/2 * ((equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2)) +
+                 (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2)))
+  e_avg = 1/2 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f[1]  = rho_avg * v1_avg
+    f[2]  = rho_avg * v1_avg * v1_avg + p_avg
+    f[3]  = rho_avg * v1_avg * v2_avg
+    f[4]  = (rho_avg * e_avg + p_avg) * v1_avg
+  else
+    f[1]  = rho_avg * v2_avg
+    f[2]  = rho_avg * v2_avg * v1_avg
+    f[3]  = rho_avg * v2_avg * v2_avg + p_avg
+    f[4]  = (rho_avg * e_avg + p_avg) * v2_avg
+  end
 end
 
 

@@ -64,7 +64,7 @@ function run(;args=nothing, kwargs...)
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central,
   # as everything else does not make sense
-  if dg.volume_integral_type == :weak_form && equations.volume_flux_type != :central
+  if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central
     error("using the weak formulation with a volume flux other than 'central' does not make sense")
   end
 
