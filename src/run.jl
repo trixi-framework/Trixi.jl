@@ -117,6 +117,7 @@ function run(;args=nothing, kwargs...)
           | | solver:           $solver_name
           | | N:                $N
           | | CFL:              $cfl
+          | | volume integral:  $(string(solver.volume_integral_type))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #l2mortars:       $(solver.n_l2mortars)

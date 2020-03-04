@@ -6,9 +6,10 @@ include("l2mortar.jl")
 
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
-using ...Equations: AbstractEquation, initial_conditions, calcflux!, riemann!, sources, calc_max_dt
+using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
+                    riemann!, sources, calc_max_dt
 import ...Equations: nvariables # Import to allow method extension
-using ...Auxiliary: timer
+using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
@@ -44,9 +45,10 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
 
   nodes::SVector{Np1}
   weights::SVector{Np1}
-  dhat::SMatrix{Np1, Np1}
-  dsplit::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
+
+  volume_integral_type::Symbol
+  differentiation_operator::SMatrix{Np1, Np1}
 
   l2mortar_forward_upper::SMatrix{Np1, Np1}
   l2mortar_forward_lower::SMatrix{Np1, Np1}
@@ -92,11 +94,19 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize interpolation data structures
   n_nodes = N + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
-  dhat = calc_dhat(nodes, weights)
-  dsplit = calc_dsplit(nodes, weights)
   lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
+
+  # Initialize differentiation operator
+  volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
+                                          valid=["weak_form", "split_form"]))
+  if volume_integral_type == :weak_form
+    differentiation_operator = calc_dhat(nodes, weights)
+  else
+    # Transposed dsplit for efficiency
+    differentiation_operator = transpose(calc_dsplit(nodes, weights))
+  end
 
   # Initialize L2 mortar projection operators
   l2mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
@@ -118,7 +128,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       elements, n_elements,
       surfaces, n_surfaces,
       l2mortars, n_l2mortars,
-      nodes, weights, dhat, dsplit, lhat,
+      nodes, weights, lhat,
+      volume_integral_type, differentiation_operator,
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
@@ -445,7 +456,7 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg, dg.elements.u_t, dg.dhat)
+  @timeit timer() "volume integral" calc_volume_integral!(dg)
 
   # Prolong solution to surfaces
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
@@ -483,7 +494,14 @@ end
 
 
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg, u_t::Array{Float64, 4}, dhat::SMatrix)
+function calc_volume_integral!(dg)
+  calc_volume_integral!(dg, Val(dg.volume_integral_type), dg.elements.u_t,
+                        dg.differentiation_operator)
+end
+
+
+# Calculate volume integral (DGSEM in weak form)
+function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
   for element_id = 1:dg.n_elements
     # Calculate volume fluxes
@@ -497,6 +515,33 @@ function calc_volume_integral!(dg, u_t::Array{Float64, 4}, dhat::SMatrix)
         for v = 1:nvariables(dg)
           for l = 1:nnodes(dg)
             u_t[v, i, j, element_id] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+          end
+        end
+      end
+    end
+  end
+end
+
+
+# Calculate volume integral (DGSEM in split form)
+function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
+                               dsplit_transposed::SMatrix)
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  for element_id = 1:dg.n_elements
+    # Calculate volume fluxes (one more dimension than weak form)
+    #=f1 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))=#
+    #=f2 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))=#
+    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate volume integral
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          for l = 1:nnodes(dg)
+            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
+                                         dsplit_transposed[l, j] * f2[v, l, i, j])
           end
         end
       end

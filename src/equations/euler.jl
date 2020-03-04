@@ -3,7 +3,7 @@ module EulerEquations
 using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
-using StaticArrays: SVector, MVector, MMatrix
+using StaticArrays: SVector, MVector, MMatrix, MArray
 
 # Export all symbols that should be available from Equations
 export Euler
@@ -150,6 +150,7 @@ end
   end
 end
 
+
 # Calculate 2D flux (pointwise version)
 @inline function Equations.calcflux!(f1::AbstractArray{Float64},
                                      f2::AbstractArray{Float64},
@@ -170,6 +171,62 @@ end
   f2[3]  = rho_v2 * v2 + p
   f2[4]  = (rho_e + p) * v2
 end
+
+
+# Calculate 2D two-point flux (element version)
+@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
+                                              f2::AbstractArray{Float64},
+                                              equation::Euler,
+                                              u::AbstractArray{Float64},
+                                              element_id::Int, n_nodes::Int)
+  # Calculate regular volume fluxes
+  #=f1_diag = Array{Float64, 3}(undef, nvariables(equation), n_nodes, n_nodes)=#
+  #=f2_diag = Array{Float64, 3}(undef, nvariables(equation), n_nodes, n_nodes)=#
+  f1_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
+  f2_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
+  calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
+
+
+  for j = 1:n_nodes
+    for i = 1:n_nodes
+      # Set diagonal entries (= regular volume fluxes due to consistency)
+      @views f1[:, i, i, j] .= f1_diag[:, i, j]
+      @views f2[:, j, i, j] .= f2_diag[:, i, j]
+
+      # Flux in x-direction
+      for l = i + 1:n_nodes
+        @views symmetric_twopoint_flux!(f1[:, l, i, j], equation, 1, # 1-> x-direction
+                                        u[:, i, j, element_id],
+                                        u[:, l, j, element_id])
+        @views f1[:, i, l, j] .= f1[:, l, i, j]
+      end
+
+      # Flux in y-direction
+      for l = j + 1:n_nodes
+        @views symmetric_twopoint_flux!(f2[:, l, i, j], equation, 2, # 2 -> y-direction
+                                        u[:, i, j, element_id],
+                                        u[:, i, l, element_id])
+        @views f2[:, j, i, l] .= f2[:, l, i, j]
+      end
+    end
+  end
+end
+
+
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64},
+                                          equation::Euler, orientation::Int,
+                                          u_ll::AbstractArray{Float64},
+                                          u_rr::AbstractArray{Float64})
+  # Calculate regular 1D fluxes
+  f_ll = MVector{4, Float64}(undef)
+  f_rr = MVector{4, Float64}(undef)
+  calcflux1D!(f_ll, equation, u_ll[1], u_ll[2], u_ll[3], u_ll[4], orientation)
+  calcflux1D!(f_rr, equation, u_rr[1], u_rr[2], u_rr[3], u_rr[4], orientation)
+
+  # Average regular fluxes
+  @. f[:] = 1/2 * (f_ll + f_rr)
+end
+
 
 # Calculate 1D flux in for a single point
 @inline function calcflux1D!(f::AbstractArray{Float64}, equation::Euler, rho::Float64,

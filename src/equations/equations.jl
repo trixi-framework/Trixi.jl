@@ -8,6 +8,7 @@ export AbstractEquation
 export initial_conditions
 export sources
 export calcflux!
+export calcflux_twopoint!
 export riemann!
 export calc_max_dt
 export cons2prim
@@ -53,6 +54,7 @@ end
 function initial_conditions end
 function sources end
 function calcflux! end
+function calcflux_twopoint! end
 function riemann! end
 function calc_max_dt end
 function cons2prim end
