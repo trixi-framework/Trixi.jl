@@ -48,7 +48,7 @@ function main()
 
     # Read data
     verbose && println("| Reading data file...")
-    @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes = read_datafile(
+    @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes, time = read_datafile(
         Val(input_format), datafile)
 
     # Interpolate DG data to visualization nodes
@@ -103,7 +103,8 @@ function main()
 
       # Create plot
       @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
-                                 aspectratio=:equal, legend=:none, title=label, colorbar=true,
+                                 aspectratio=:equal, legend=:none, title="$label (t = $time)",
+                                 colorbar=true,
                                  tickfontsize=18, titlefontsize=28)
 
       # Add elements
@@ -246,6 +247,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
     N = read(attrs(file)["N"])
     n_elements = read(attrs(file)["n_elements"])
     n_variables = read(attrs(file)["n_vars"])
+    time = read(attrs(file)["time"])
 
     # Extract labels for legend
     labels = Array{String}(undef, 1, n_variables)
@@ -266,7 +268,7 @@ function read_datafile(::Val{:hdf5}, filename::String)
       data[:, v] .= read(file["variables_$v"])
     end
 
-    return labels, coordinates, data, n_nodes
+    return labels, coordinates, data, n_nodes, time
   end
 end
 
