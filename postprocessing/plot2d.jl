@@ -94,7 +94,8 @@ function main()
     for (variable_id, label) in enumerate(variables)
       # Create plot
       @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
-                                 aspectratio=:equal, legend=:none, title=label, colorbar=true)
+                                 aspectratio=:equal, legend=:none, title=label, colorbar=true,
+                                 tickfontsize=18, titlefontsize=28)
 
       # Add elements
       @timeit "add elements" for element_id in 1:n_elements
@@ -105,7 +106,7 @@ function main()
               linecolor=:black,
               annotate=(coordinates[1, element_id],
                         coordinates[2, element_id],
-                        text("$(leaf_cells[element_id])", 4)),
+                        text("$(leaf_cells[element_id])", 10)),
               grid=false)
 
         # Plot contours
