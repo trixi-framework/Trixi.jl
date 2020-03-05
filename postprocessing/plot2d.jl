@@ -20,7 +20,6 @@ using HDF5: h5open, attrs
 using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!, heatmap, heatmap!
 using TimerOutputs
 using Pkg.TOML: parse
-using DelimitedFiles: readdlm
 import GR
 
 function main()
@@ -34,22 +33,18 @@ function main()
   for datafile in args["datafile"]
     verbose && println("Processing file $datafile...")
 
-    # Determine input file format
-    input_format = get_input_format(datafile)
-    @assert input_format == :hdf5 "Only HDF5 files are currently supported"
-
     # Get mesh file name
-    meshfile = extract_mesh_filename(Val(input_format), datafile)
+    meshfile = extract_mesh_filename(datafile)
 
     # Read mesh
     verbose && println("| Reading mesh file...")
     @timeit "read mesh" center_level_0, length_level_0, leaf_cells, coordinates, levels =
-      read_meshfile(Val(input_format), meshfile)
+      read_meshfile(meshfile)
 
     # Read data
     verbose && println("| Reading data file...")
-    @timeit "read data" labels, node_coordinates_raw, data_raw, n_nodes, time = read_datafile(
-        Val(input_format), datafile)
+    @timeit "read data" (labels, node_coordinates_raw,
+                         data_raw, n_nodes, time) = read_datafile(datafile)
 
     # Interpolate DG data to visualization nodes
     verbose && println("| Interpolating data...")
@@ -190,7 +185,7 @@ function cell_vertices(coordinates::AbstractArray{Float64, 1}, length::Float64)
 end
 
 
-function extract_mesh_filename(::Val{:hdf5}, filename::String)
+function extract_mesh_filename(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract filename relative to data file
@@ -201,7 +196,7 @@ function extract_mesh_filename(::Val{:hdf5}, filename::String)
 end
 
 
-function read_meshfile(::Val{:hdf5}, filename::String)
+function read_meshfile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
@@ -240,7 +235,7 @@ function read_meshfile(::Val{:hdf5}, filename::String)
 end
 
 
-function read_datafile(::Val{:hdf5}, filename::String)
+function read_datafile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
@@ -269,65 +264,6 @@ function read_datafile(::Val{:hdf5}, filename::String)
     end
 
     return labels, coordinates, data, n_nodes, time
-  end
-end
-
-
-function read_datafile(::Val{:text}, filename::String)
-  # Open file for reading
-  open(filename, "r") do file
-    # We assume that the input file has the following structure:
-    # - zero or more lines starting with hashtag '#', marking comments with context information
-    # - one line with the column names (quoted in '"')
-    # - the data, columnwise, separated by one or more space characters
-
-    context_raw = ""
-    labels_raw = Vector{String}()
-
-    # First, read file line by line
-    while true
-      line = readline(file)
-      if !startswith(line, "#")
-        # If a line does not start with a hashtag, the line must contain the column headers
-        for m in eachmatch(r"\"([^\"]+)\"", line)
-          push!(labels_raw, m.captures[1])
-        end
-        break
-      else
-        # Otherwise, save line to process later
-        context_raw *= strip(lstrip(line, '#')) * "\n"
-      end
-    end
-
-    # Extract basic information
-    context = parse(context_raw)
-    N = context["N"]
-    n_nodes = N + 1
-
-    # Create data structure for labels (the "-1" since we omit the coordinate)
-    labels = Array{String}(undef, 1, length(labels_raw) - 1)
-    labels[1, :] .= labels_raw[2:end]
-
-    # Read all data
-    data_in = readdlm(file, ' ', Float64)
-
-    # Extract coordinates and data
-    coordinates = data_in[:, 1]
-    data = data_in[:, 2:end]
-
-    return labels, coordinates, data, n_nodes
-  end
-end
-
-
-function get_input_format(filename::String)
-  _, ext = splitext(filename)
-  if ext == ".h5"
-    return :hdf5
-  elseif ext == ".dat"
-    return :text
-  else
-    error("unrecognized input file extension '$ext' (must be '.h5' or '.dat')")
   end
 end
 
