@@ -61,7 +61,9 @@ Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache:
 
 1.  Go to the Trixi root directory and start the Julia REPL by running `julia`.
-2.  From the REPL, load the `Revise` package (this step _has_ to come first):
+2.  From the REPL, load the `Revise` package (this step _has_ to come first, as
+    otherwise `Revise` will not be able to track changes to the source code of
+    Trixi):
     ```julia
        julia> using Revise
     ```
