@@ -15,7 +15,7 @@ easily be achieved by performing the following steps:
     cd Trixi.jl
     julia
     ```
-3.  Switch to the package manager with pressing `]`, activate the current
+3.  Switch to the package manager by pressing `]`, activate the current
     directory and then instatiate it:
     ```julia
     julia> ]
@@ -32,7 +32,69 @@ Enter the root directory `Trixi.jl` and run
 bin/trixi
 ```
 
-To change the simulation setup, edit `parameters.toml`.
+To change the simulation setup, edit `parameters.toml`. You can pass a different
+parameter file on the command line using `-p new_parameters.toml`.
+
+
+## Development
+When a Julia program is executed, the just-in-time compiler has to compile all
+functions at their first use, which incurs an overhead each time a program is
+run. For proper packages and commands executed in the REPL (= "return-eval-print
+loop", which is what the Julia community calls the shell prompt that opens
+when running `julia` without any files), however, the previously compiled
+functions are cached. Therefore, it can be beneficial to run Trixi from the REPL
+during development, as it allows much faster turnaround times.
+
+If you naively run Trixi from the REPL by including `Trixi.jl`, you will not be
+able to change your Trixi source files and then run the changed code without
+restarting the REPL, which destroys any potential benefits from caching.
+However, restarting Julia can be avoided by using the `Revise.jl` package, which
+tracks changed files and re-loads them automatically. Therefore, you first need
+to install the `Revise.jl` package using the package installation by the
+following procedure:
+
+1.  Start `julia`.
+2.  Switch to the package manager by pressing `]`
+3.  Execute `add Revise`
+
+Now you are able to run Trixi from the REPL, change Trixi code between runs,
+**and** enjoy the advantages of the compilation cache:
+
+1.  Go to the Trixi root directory and start the Julia REPL by running `julia`.
+2.  From the REPL, load the `Revise` package (this step _has_ to come first):
+    ```julia
+       julia> using Revise
+    ```
+3.  Add the current directory to the load path for modules:
+    ```julia
+       julia> push!(LOAD_PATH, ".")
+       4-element Array{String,1}:
+        "@"      
+        "@v#.#"  
+        "@stdlib"
+        "."      
+    ```
+4.  Import Trixi, ignoring the warnings shown below:
+    ```julia
+    julia> import Trixi
+    [ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
+    ┌ Warning: Package Trixi does not have Pkg in its dependencies:
+    │ - If you have Trixi checked out for development and have
+    │   added Pkg as a dependency but haven't updated your primary
+    │   environment's manifest file, try `Pkg.resolve()`.
+    │ - Otherwise you may need to report an issue with Trixi
+    └ Loading Pkg into Trixi from project dependency, future warnings for Trixi are suppressed.
+    ```
+5.  Run Trixi by calling its `main()` function with the parameters file as a
+    keyword argument:
+    ```julia
+    julia> Trixi.run(parameters_file="parameters.toml")
+    ```
+
+The first run will be a little bit slower (i.e., as when running `bin/trixi`
+directly), as Julia has to compile all functions for the first time. Starting at
+the second run, only those functions are recompiled for which the source code
+has changed since the last invocation.
 
 
 ## Style guide
