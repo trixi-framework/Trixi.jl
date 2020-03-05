@@ -8,11 +8,14 @@ using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 
 using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer
+using TimerOutputs: @timeit, print_timer, reset_timer!
 using Profile: clear_malloc_data
 
 
 function run(;args=nothing, kwargs...)
+  # Reset timer
+  reset_timer!(timer())
+
   # Handle command line arguments
   if !isnothing(args)
     # If args are given explicitly, parse command line arguments
