@@ -37,7 +37,7 @@ volume_integral_type = "shock_capturing"
 n_cells_max = 100000
 coordinates_min = [-2, -2]
 coordinates_max =  [2, 2]
-initial_refinement_level = 5
+initial_refinement_level = 4
 # refinement_patches = [
 #   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
 # ]
@@ -49,4 +49,3 @@ initial_refinement_level = 5
 solution_interval = 100
 solution_variables = "primitive"
 restart_interval = 10
-output_format = "hdf5"

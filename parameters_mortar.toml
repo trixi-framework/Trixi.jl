@@ -43,4 +43,3 @@ refinement_patches = [
 solution_interval = 100
 solution_variables = "primitive"
 restart_interval = 10
-output_format = "hdf5"

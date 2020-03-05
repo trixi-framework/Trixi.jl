@@ -41,4 +41,3 @@ initial_refinement_level = 4
 solution_interval = 100
 solution_variables = "conservative"
 restart_interval = 10
-output_format = "hdf5"
