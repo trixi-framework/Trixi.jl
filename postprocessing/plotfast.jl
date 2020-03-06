@@ -34,10 +34,33 @@ function run(;args=nothing, kwargs...)
       args[string(key)] = value
     end
 
-    # Clean up some of the arguments
+    # Clean up some of the arguments and provide defaults
+    # FIXME: This is redundant to parse_commandline_arguments
     # If datafile is a single string, convert it to array
+    if !haskey(args, "datafile")
+      println(stderr, "error: no datafile was provided")
+      return
+    end
     if isa(args["datafile"], String)
       args["datafile"] = [args["datafile"]]
+    end
+    if !haskey(args, "format")
+      args["format"] = "png"
+    end
+    if !haskey(args, "variable")
+      args["variable"] = []
+    end
+    if !haskey(args, "grid_lines")
+      args["grid_lines"] = false
+    end
+    if !haskey(args, "verbose")
+      args["verbose"] = false
+    end
+    if !haskey(args, "output_directory")
+      args["output_directory"] = "."
+    end
+    if !haskey(args, "nvisnodes")
+      args["nvisnodes"] = nothing
     end
   end
   verbose = args["verbose"]
@@ -516,6 +539,8 @@ end
 
 
 function parse_commandline_arguments(args=ARGS)
+  # If anything is changed here, it should also be checked at the beginning of run()
+  # FIXME: Refactor the code to avoid this redundancy
   s = ArgParseSettings()
   @add_arg_table s begin
     "datafile"
