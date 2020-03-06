@@ -19,11 +19,27 @@ using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
 using TimerOutputs
 import GR
 
-function main()
+function run(;args=nothing, kwargs...)
+  # Reset timer
   reset_timer!()
 
-  # Parse command line arguments
-  args = parse_commandline_arguments()
+  # Handle command line arguments
+  if !isnothing(args)
+    # If args are given explicitly, parse command line arguments
+    args = parse_commandline_arguments(args)
+  else
+    # Otherwise interpret keyword arguments as command line arguments
+    args = Dict{String, Any}()
+    for (key, value) in kwargs
+      args[string(key)] = value
+    end
+
+    # Clean up some of the arguments
+    # If datafile is a single string, convert it to array
+    if isa(args["datafile"], String)
+      args["datafile"] = [args["datafile"]]
+    end
+  end
   verbose = args["verbose"]
 
   # Iterate over input files
@@ -499,7 +515,7 @@ function get_output_format(format::String)
 end
 
 
-function parse_commandline_arguments()
+function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
   @add_arg_table s begin
     "datafile"
@@ -523,7 +539,7 @@ function parse_commandline_arguments()
       help = "Enable verbose output to avoid despair over long plot times 😉"
       action = :store_true
     "--output-directory", "-o"
-      help = "Output directory where generated images are stored (default: \".\")"
+      help = "Output directory where generated images are stored"
       dest_name = "output_directory"
       arg_type = String
       default = "."
@@ -579,6 +595,6 @@ end # module TrixiPlot
 
 
 if abspath(PROGRAM_FILE) == @__FILE__
-  #=@TrixiPlot.interruptable TrixiPlot.main()=#
-  TrixiPlot.main()
+  #=@TrixiPlot.interruptable TrixiPlot.run()=#
+  TrixiPlot.run(args=ARGS)
 end
