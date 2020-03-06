@@ -235,7 +235,7 @@ function run(;args=nothing, kwargs...)
       # Determine output file name
       base, _ = splitext(splitdir(datafile)[2])
       output_filename = joinpath(args["output_directory"],
-                                 "$(base)_$(label)_fast." * string(output_format))
+                                 "$(base)_$(label)." * string(output_format))
 
       # Save file
       @timeit "save plot" savefig(output_filename)
