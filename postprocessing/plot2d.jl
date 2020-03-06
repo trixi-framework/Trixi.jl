@@ -118,7 +118,7 @@ function run(;args=nothing, kwargs...)
     verbose && println("| Reading data file...")
     @timeit "read data" (labels, node_coordinates,
                          unstructured_data, n_nodes, time) = read_datafile(datafile)
-    @show minimum(unstructured_data), maximum(unstructured_data)
+    #=@show minimum(unstructured_data), maximum(unstructured_data)=#
 
 
     # Determine resolution for data interpolation
@@ -160,15 +160,15 @@ function run(;args=nothing, kwargs...)
 
     # Interpolate unstructured DG data to structured data
     verbose && println("| Interpolating data...")
-    @show minimum(unstructured_data), maximum(unstructured_data)
+    #=@show minimum(unstructured_data), maximum(unstructured_data)=#
     @timeit "interpolate data" (structured_data =
         unstructured2structured(unstructured_data, normalized_coordinates,
                                 levels, resolution, nvisnodes_per_level))
 
     # Interpolate cell-centered values to node-centered values
-    @show minimum(structured_data), maximum(structured_data)
+    #=@show minimum(structured_data), maximum(structured_data)=#
     node_centered_data = cell2node(structured_data)
-    @show minimum(node_centered_data), maximum(node_centered_data)
+    #=@show minimum(node_centered_data), maximum(node_centered_data)=#
 
     # Determine axis coordinates for contour plot
     xs = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[1]
@@ -570,7 +570,7 @@ function read_datafile(filename::String)
     data = Array{Float64}(undef, n_nodes, n_nodes, n_elements, n_variables)
     for v = 1:n_variables
       vardata = read(file["variables_$v"])
-      @show minimum(vardata), maximum(vardata)
+      #=@show minimum(vardata), maximum(vardata)=#
       @views data[:, :, :, v][:] .= vardata
     end
 
