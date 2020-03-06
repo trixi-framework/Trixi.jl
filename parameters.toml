@@ -6,6 +6,7 @@ advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 initial_conditions = "convergence_test"
 # initial_conditions = "constant"
+# initial_conditions = "linear-x-y"
 surface_flux_type = "laxfriedrichs"
 # sources = 
 t_start = 0.0
@@ -31,7 +32,8 @@ coordinates_min = [-1, -1]
 coordinates_max =  [1, 1]
 initial_refinement_level = 4
 # refinement_patches = [
-#   {type = "box", coordinates_min = 0, coordinates_max = 16},
+#   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
+#   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
 # ]
 
 
