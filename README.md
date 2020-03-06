@@ -1,8 +1,8 @@
 # Trixi: A tree-based flexible DG/SBP framework written in Julia
 
 <p align="center">
-
-  <img width="300px" src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/doc/images/trixi.png" />
+  <img width="300px"
+       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/doc/images/trixi.png">
 </p>
 
 ## Installation
