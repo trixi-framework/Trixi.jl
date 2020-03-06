@@ -90,30 +90,38 @@ function main()
     end
 
     # Create output directory if it does not exist
-    mkpath(args["output-directory"])
+    mkpath(args["output_directory"])
 
     verbose && println("| Creating plots...")
     for (variable_id, label) in enumerate(variables)
       verbose && println("| | Variable $label...")
 
       # Create plot
-      @timeit "create plot" plot(size=(2000,2000), thickness_scaling=1,
-                                 aspectratio=:equal, legend=:none, title="$label (t = $time)",
-                                 colorbar=true,
-                                 tickfontsize=18, titlefontsize=28)
+      verbose && println("| | | Creating figure...")
+      @timeit "create figure" plot(size=(2000,2000), thickness_scaling=1,
+                                   aspectratio=:equal, legend=:none, title="$label (t = $time)",
+                                   colorbar=true,
+                                   tickfontsize=18, titlefontsize=28)
 
-      # Add elements
-      @timeit "add elements" for element_id in 1:n_elements
-        # Plot element outline
-        length = length_level_0 / 2^levels[element_id]
-        vertices = cell_vertices(coordinates[:, element_id], length)
-        plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
-              linecolor=:black,
-              annotate=(coordinates[1, element_id],
-                        coordinates[2, element_id],
-                        text("$(leaf_cells[element_id])", 10)),
-              grid=false)
+      # Plot grid lines
+      if args["grid_lines"]
+        verbose && println("| | | Plotting grid lines...")
+        @timeit "plot grid lines" for element_id in 1:n_elements
+          # Plot element outline
+          length = length_level_0 / 2^levels[element_id]
+          vertices = cell_vertices(coordinates[:, element_id], length)
+          plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
+                linecolor=:black,
+                annotate=(coordinates[1, element_id],
+                          coordinates[2, element_id],
+                          text("$(leaf_cells[element_id])", 10)),
+                grid=false)
+        end
+      end
 
+      # Plot contours
+      verbose && println("| | | Plotting contours...")
+      @timeit "plot contours" for element_id in 1:n_elements
         # Plot contours
         x = node_coordinates[:, 1, element_id, 1]
         y = node_coordinates[1, :, element_id, 2]
@@ -123,7 +131,7 @@ function main()
 
       # Determine output file name
       base, _ = splitext(splitdir(datafile)[2])
-      output_filename = joinpath(args["output-directory"],
+      output_filename = joinpath(args["output_directory"],
                                  "$(base)_$(label)." * string(output_format))
 
       # Save file
@@ -295,12 +303,17 @@ function parse_commandline_arguments()
       help = "Variables to plot"
       arg_type = String
       action = :append_arg
+    "--grid-lines", "-g"
+      help = "Plot outline of elements (warning: this is an expensive operation!)"
+      dest_name = "grid_lines"
+      action = :store_true
     "--verbose", "-v"
       help = "Enable verbose output to avoid despair over long plot times 😉"
       action = :store_true
     "--output-directory", "-o"
-      help = "Output directory where generated images are stored (default: \".\")"
+      help = "Output directory where generated images are stored"
       arg_type = String
+      dest_name = "output_directory"
       default = "."
     "--nvisnodes"
       help = ("Number of visualization nodes per cell "
@@ -308,9 +321,6 @@ function parse_commandline_arguments()
               * "A value of zero prevents any interpolation of data.")
       arg_type = Int
       default = nothing
-    "--no-mesh"
-      help =  ("Do not plot mesh in addition to solution data.")
-      action = :store_true
   end
 
   return parse_args(s)
