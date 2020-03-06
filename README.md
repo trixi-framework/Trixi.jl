@@ -1,5 +1,10 @@
 # Trixi: A tree-based flexible DG/SBP framework written in Julia
 
+<p align="center">
+  <img width="300px"
+   src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/doc/images/trixi.png" />
+</p>
+
 ## Installation
 Strictly speaking, no installation is necessary to run Trixi. However, the
 simulation program and the postprocessing tools rely on a number of Julia
@@ -97,6 +102,22 @@ The first run will be a little bit slower (i.e., as when running `bin/trixi`
 directly), as Julia has to compile all functions for the first time. Starting at
 the second run, only those functions are recompiled for which the source code
 has changed since the last invocation.
+
+If you wish to use `Revise` to run a script that is not a package, e.g., the
+plotting tools in `postprocessing/`, you cannot use `import` but need to include
+the script directly using `includet(...)`. For example, for the `plot2d.jl`
+script, you would perform the following steps:
+```julia
+julia> using Revise
+
+julia> includet("postprocessing/plotfast.jl")
+
+julia> ┌ Warning: /home/mschlott/.julia/packages/Plots/12uaJ/src/Plots.jl/ is not an existing directory, Revise is not watching
+└ @ Revise /home/mschlott/.julia/packages/Revise/SZ4ae/src/Revise.jl:489
+
+julia> TrixiPlot.main()
+```
+Once again, you can usually safely ignore the warning.
 
 
 ## Style guide
