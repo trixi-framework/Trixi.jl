@@ -63,7 +63,10 @@ following procedure:
 3.  Execute `add Revise`
 
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
-**and** enjoy the advantages of the compilation cache:
+**and** enjoy the advantages of the compilation cache!
+
+
+### Using Revise manually
 
 1.  Go to the Trixi root directory and start the Julia REPL by running `julia`.
 2.  From the REPL, load the `Revise` package (this step _has_ to come first, as
@@ -118,6 +121,25 @@ julia> ┌ Warning: /home/mschlott/.julia/packages/Plots/12uaJ/src/Plots.jl/ is 
 julia> TrixiPlot.main()
 ```
 Once again, you can usually safely ignore the warning.
+
+
+### Automatically starting Trixi in interactive mode
+To automatically start into an interactive session, run Trixi or `plot2d.jl`
+with the `--interactive` (or short: `-i`) flag. This will open up a REPL and
+load everything you need to start using Trixi from the REPL.
+
+Example:
+```bash
+bin/trixi -i
+
+# Some Julia output follows...
+
+julia> Trixi.run(parameters_file="parameters.toml")
+```
+
+Note: When using interactive mode, all flags except `--interactive`/`-i` are
+ignored. You thus have to supply all command line arguments via the respective
+`run()` method.
 
 
 ## Style guide

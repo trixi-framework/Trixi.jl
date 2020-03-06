@@ -9,6 +9,24 @@
 # [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
 
 #=
+# Check if '-i' or '--interactive' was passed as an argument
+interactive=0
+for arg in "$@"; do
+  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
+    interactive=1
+  fi
+done
+
+# If not interactive, just run script as usual. Otherwise load REPL
+if [ $interactive -eq 0 ]; then
+  exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
+else
+  exec julia --banner=no -i \
+      -e "push!(LOAD_PATH, \".\"); using Revise; import Trixi" \
+      -e 'println("\n==> Run `Trixi.run(parameters_file=\"file.toml\")` to start a simulation\n")'
+fi
+=#
+#=
 exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 =#
 

@@ -1,4 +1,31 @@
-#!/usr/bin/env julia
+#!/bin/bash
+
+# This file uses the method outlined in [1] to pass additional arguments to the
+# `julia` executable (in this case: enable colored output). The approach should
+# work portably on all UNIX-like operating systems.
+#
+# NOTE TO WINDOWS USERS: Just invoke `bin/trixi` explicitly with the `julia` executable.
+#
+# [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
+
+#=
+# Check if '-i' or '--interactive' was passed as an argument
+interactive=0
+for arg in "$@"; do
+  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
+    interactive=1
+  fi
+done
+
+# If not interactive, just run script as usual. Otherwise load REPL
+if [ $interactive -eq 0 ]; then
+  exec julia --color=yes -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
+else
+  exec julia --banner=no -i \
+      -e "using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\"${BASH_SOURCE[0]}\")" \
+      -e 'println("\n==> Run `TrixiPlot.run(datafile=\"file.h5\")` to plot a file\n")'
+fi
+=#
 
 module TrixiPlot
 
@@ -69,8 +96,18 @@ function run(;args=nothing, kwargs...)
   for datafile in args["datafile"]
     verbose && println("Processing file $datafile...")
 
+    # Check if data file exists
+    if !isfile(datafile)
+      error("data file '$datafile' does not exist")
+    end
+
     # Get mesh file name
     meshfile = extract_mesh_filename(datafile)
+
+    # Check if mesh file exists
+    if !isfile(meshfile)
+      error("mesh file '$meshfile' does not exist")
+    end
 
     # Read mesh
     verbose && println("| Reading mesh file...")
@@ -137,6 +174,11 @@ function run(;args=nothing, kwargs...)
     xs = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[1]
     ys = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[2]
 
+    # Determine element vertices to plot grid lines
+    if args["grid_lines"]
+      vertices_x, vertices_y = calc_vertices(coordinates, levels, length_level_0)
+    end
+
     # Set up plotting
     output_format = get_output_format(args["format"])
     gr()
@@ -163,6 +205,10 @@ function run(;args=nothing, kwargs...)
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
+    # Calculate x and y limits
+    xlims = (-1, 1) .* (length_level_0/2 + center_level_0[1])
+    ylims = (-1, 1) .* (length_level_0/2 + center_level_0[2])
+
     verbose && println("| Creating plots...")
     @timeit "plot generation" for (variable_id, label) in enumerate(variables)
       verbose && println("| | Variable $label...")
@@ -171,28 +217,19 @@ function run(;args=nothing, kwargs...)
       verbose && println("| | | Creating figure...")
       @timeit "create figure" plot(size=(2000,2000), thickness_scaling=1,
                                    aspectratio=:equal, legend=:none, title="$label (t = $time)",
-                                   colorbar=true,
+                                   colorbar=true, xlims=xlims, ylims=ylims,
                                    tickfontsize=18, titlefontsize=28)
 
       # Plot contours
       verbose && println("| | | Plotting contours...")
       @timeit "plot contours" contourf!(xs, ys, node_centered_data[:, :, variable_id],
-                                        c=:bluesreds, levels=20)
+                                        c=:RdYlBu, levels=20)
 
       # Plot grid lines
       if args["grid_lines"]
         verbose && println("| | | Plotting grid lines...")
-        @timeit "plot grid lines" for element_id in 1:n_elements
-          # Plot element outline
-          length = length_level_0 / 2^levels[element_id]
-          vertices = cell_vertices(coordinates[:, element_id], length)
-          plot!([vertices[1,:]..., vertices[1, 1]], [vertices[2,:]..., vertices[2, 1]],
-                linecolor=:black,
-                annotate=(coordinates[1, element_id],
-                          coordinates[2, element_id],
-                          text("$(leaf_cells[element_id])", 10)),
-                grid=false)
-        end
+        @timeit "plot grid lines" plot!(vertices_x, vertices_y, linecolor=:black,
+                                        linewidth=1, grid=false)
       end
 
       # Determine output file name
@@ -427,22 +464,36 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
 end
 
 
-function cell_vertices(coordinates::AbstractArray{Float64, 1}, length::Float64)
+function calc_vertices(coordinates::AbstractArray{Float64, 2},
+                       levels::AbstractArray{Int}, length_level_0::Float64)
   @assert ndim == 2 "Algorithm currently only works in 2D"
-  vertices = zeros(ndim, 2^ndim)
-  vertices[1, 1] = coordinates[1] - 1/2 * length
-  vertices[2, 1] = coordinates[2] - 1/2 * length
-  vertices[1, 2] = coordinates[1] + 1/2 * length
-  vertices[2, 2] = coordinates[2] - 1/2 * length
-  vertices[1, 3] = coordinates[1] + 1/2 * length
-  vertices[2, 3] = coordinates[2] + 1/2 * length
-  vertices[1, 4] = coordinates[1] - 1/2 * length
-  vertices[2, 4] = coordinates[2] + 1/2 * length
 
-  return vertices
+  # Initialize output arrays
+  n_elements = length(levels)
+  x = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
+  y = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
+
+  # Calculate vertices for all coordinates at once
+  for element_id in 1:n_elements
+    length = length_level_0 / 2^levels[element_id]
+    x[1, element_id] = coordinates[1, element_id] - 1/2 * length
+    x[2, element_id] = coordinates[1, element_id] + 1/2 * length
+    x[3, element_id] = coordinates[1, element_id] + 1/2 * length
+    x[4, element_id] = coordinates[1, element_id] - 1/2 * length
+    x[5, element_id] = coordinates[1, element_id] - 1/2 * length
+
+    y[1, element_id] = coordinates[2, element_id] - 1/2 * length
+    y[2, element_id] = coordinates[2, element_id] - 1/2 * length
+    y[3, element_id] = coordinates[2, element_id] + 1/2 * length
+    y[4, element_id] = coordinates[2, element_id] + 1/2 * length
+    y[5, element_id] = coordinates[2, element_id] - 1/2 * length
+  end
+
+  return x, y
 end
 
 
+# Use data file to extract mesh filename from attributes
 function extract_mesh_filename(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -454,6 +505,7 @@ function extract_mesh_filename(filename::String)
 end
 
 
+# Read in mesh file and return relevant data
 function read_meshfile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -619,7 +671,7 @@ n_children_per_cell(dims::Integer) = 2^dims
 end # module TrixiPlot
 
 
-if abspath(PROGRAM_FILE) == @__FILE__
+if (abspath(PROGRAM_FILE) == @__FILE__) || (@isdefined(run_script) && run_script)
   #=@TrixiPlot.interruptable TrixiPlot.run()=#
   TrixiPlot.run(args=ARGS)
 end

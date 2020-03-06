@@ -104,6 +104,7 @@ function main()
 
       # Plot grid lines
       if args["grid_lines"]
+        error("wololo")
         verbose && println("| | | Plotting grid lines...")
         @timeit "plot grid lines" for element_id in 1:n_elements
           # Plot element outline
