@@ -17,9 +17,8 @@ using .Interpolation: gauss_lobatto_nodes_weights,
 using .Mesh.Trees: n_children_per_cell
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using Plots: plot, plot!, gr, savefig, scatter!, text, contourf, contourf!, heatmap, heatmap!
+using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
 using TimerOutputs
-using Pkg.TOML: parse
 import GR
 
 function main()
