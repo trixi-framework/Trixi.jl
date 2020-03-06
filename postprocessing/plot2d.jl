@@ -223,7 +223,7 @@ function run(;args=nothing, kwargs...)
       # Plot contours
       verbose && println("| | | Plotting contours...")
       @timeit "plot contours" contourf!(xs, ys, node_centered_data[:, :, variable_id],
-                                        c=:RdYlBu, levels=20)
+                                        c=:bluesreds, levels=20)
 
       # Plot grid lines
       if args["grid_lines"]
