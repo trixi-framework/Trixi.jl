@@ -1,6 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>"]
+authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>",
+           "Gregor Gassner <ggassner@math.uni-koeln.de"]
 version = "0.1.0"
 
 [deps]
