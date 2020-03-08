@@ -53,6 +53,13 @@ function run(;args=nothing, kwargs...)
     println("done")
   end
 
+  # Perform mesh sanity checks for MPI
+  @mpi begin
+    @assert minimum_level(mesh.tree) == maximum_level(mesh.tree) "MPI + non-unform mesh not yet supported"
+    @assert n_domains() & (n_domains()-1) == 0 "Number of MPI ranks must be a power of two"
+    @assert 4^minimum_level(mesh.tree) <= n_domains() "Not enough domains for simple partitioning"
+  end
+
   # Initialize system of equations
   print("Initializing system of equations... ")
   equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
