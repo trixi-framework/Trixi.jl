@@ -45,6 +45,9 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
 
+  mpi_surfaces::MpiSurfaceContainer{V, N}
+  n_mpi_surfaces::Int
+
   l2mortars::L2MortarContainer{V, N}
   n_l2mortars::Int
 
@@ -72,19 +75,9 @@ end
 
 # Convenience constructor to create DG solver instance
 function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
-  # Get cells for which an element needs to be created (i.e., all leaf cells)
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  # Get cells for which an element needs to be created (i.e., all domain-local leaf cells)
+  leaf_cell_ids = leaf_cells_by_domain(mesh.tree, domain_id())
   n_elements = length(leaf_cell_ids)
-
-  # If MPI is available, divide the number of elements across all MPI ranks
-  @mpi begin
-    n_elements_global = n_elements
-
-    # The following initializations do not work in general but only under heavy constraints
-    n_elements = n_elements_global/n_domains()
-    elements_by_domain = fill(n_elements, n_domains())
-    index_by_domain = [n_elements * (d-1) for d in 1:n_domains()]
-  end
 
   # Initialize elements
   elements = ElementContainer{V, N}(n_elements)
@@ -93,6 +86,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize surfaces
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
   surfaces = SurfaceContainer{V, N}(n_surfaces)
+
+  # Initialize MPI surfaces
+  n_mpi_surfaces = count_required_mpi_surfaces(mesh, leaf_cell_ids)
+  mpi_surfaces = MpiSurfaceContainer{V, N}(n_surfaces)
 
   # Initialize L2 mortars
   n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
@@ -106,6 +103,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Connect elements with surfaces and l2mortars
   init_surface_connectivity!(elements, surfaces, mesh)
+  init_mpi_surface_connectivity!(elements, mpi_surfaces, mesh)
   init_l2mortar_connectivity!(elements, l2mortars, mesh)
 
   # Initialize interpolation data structures
@@ -146,6 +144,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
+      mpi_surfaces, n_mpi_surfaces,
       l2mortars, n_l2mortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
       volume_integral_type, differentiation_operator,
@@ -218,8 +217,44 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
       end
 
       # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is from different domain -> requires MPI surface
+      if mesh.tree.domain_ids[neighbor_id] != domain_id()
+        continue
+      end
+
+      count += 1
+    end
+  end
+
+  return count
+end
+
+
+# Count the number of MPI surfaces that need to be created
+function count_required_mpi_surfaces(mesh::TreeMesh, cell_ids)
+  count = 0
+
+  # Iterate over all cells
+  for cell_id in cell_ids
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
       neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_id)
+        continue
+      end
+
+      # Skip if neighbor is from same domain -> requires normal surface
+      if mesh.tree.domain_ids[neighbor_id] == domain_id()
         continue
       end
 
@@ -285,10 +320,15 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
-      
+
       # Skip if neighbor has children
       neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is from different domain -> requires MPI surface
+      if mesh.tree.domain_ids[neighbor_id] != domain_id()
         continue
       end
 
@@ -304,6 +344,60 @@ function init_surface_connectivity!(elements, surfaces, mesh)
 
   @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
                                         "expectations $(nsurfaces(surfaces))")
+end
+
+
+# Initialize connectivity between elements and MPI surfaces
+function init_mpi_surface_connectivity!(elements, mpi_surfaces, mesh)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(elements)
+    c2e[elements.cell_ids[element_id]] = element_id
+  end
+
+  # Reset MPI surface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via MPI surfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is from same domain -> requires normal surface
+      if mesh.tree.domain_ids[neighbor_id] == domain_id()
+        continue
+      end
+
+      # Create MPI surface (element sides: 1 -> "left" of surface, 2 -> "right" of surface)
+      count += 1
+      mpi_surfaces.element_ids[count] = element_id
+      if direction in [2, 4]
+        mpi_surfaces.element_sides[count] = 1
+      else
+        mpi_surfaces.element_sides[count] = 2
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      mpi_surfaces.orientations[count] = div(direction, 2)
+    end
+  end
+
+  @assert count == nmpisurfaces(mpi_surfaces) ("Actual mpi_surface count ($count) does not match " *
+                                               "expectations $(nmpisurfaces(mpi_surfaces))")
 end
 
 
