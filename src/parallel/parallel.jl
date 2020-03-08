@@ -40,21 +40,31 @@ have_mpi() = _have_mpi
 # Default MPI communicator
 comm() = _comm
 
-# Return rank and size
+# Convenience methods
 domain_id() = _domain_id
 n_domains() = _n_domains
 is_mpi_root() = domain_id() == 0
 
+# Check if this is a parallel run
+if_parallel() = have_mpi() && n_domains() > 1
 
-# Macro to enable expressions only if MPI is installed
+
+# Macro to enable expressions only if MPI is used
 macro mpi(expr)
   if have_mpi()
     return :($(esc(expr)))
   end
 end
 
-# Macro to enable expressions only if MPI is available and this is the MPI root
-macro mpi(expr)
+# Macro to enable expressions only if MPI is used and more than one rank is used
+macro mpi_parallel(expr)
+  if have_mpi() && is_parallel()
+    return :($(esc(expr)))
+  end
+end
+
+# Macro to enable expressions only if MPI is used and this is the MPI root
+macro mpi_root(expr)
   if have_mpi() && is_mpi_root()
     return :($(esc(expr)))
   end
