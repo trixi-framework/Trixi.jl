@@ -258,6 +258,14 @@ end
 leaf_cells(t::Tree) = filter_leaf_cells((cell_id)->true, t)
 
 
+# Return an array with the ids of all leaf cells of a given domain
+function leaf_cells_by_domain(t::Tree, domain_id::Int)
+  filter_leaf_cells(t) do cell_id
+    return t.domain_ids[cell_id] == domain_id
+  end
+end
+
+
 # Count the number of leaf cells.
 count_leaf_cells(t::Tree) = length(leaf_cells(t))
 
