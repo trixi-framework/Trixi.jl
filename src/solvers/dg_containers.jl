@@ -70,6 +70,7 @@ struct MpiSurfaceContainer{V, N} <: AbstractContainer
   u::Array{Float64, 4}      # [leftright, variables, i, mpi_surfaces]
   element_ids::Vector{Int} # [mpi_surfaces]
   element_sides::Vector{Int} # [mpi_surfaces]
+  neighbor_cell_ids::Vector{Int} # [mpi_surfaces]
   orientations::Vector{Int} # [mpi_surfaces]
 end
 
@@ -81,9 +82,11 @@ function MpiSurfaceContainer{V, N}(capacity::Integer) where {V, N}
   element_ids = fill(typemin(Int), capacity)
   # Element sides: left -> 1, right -> 2
   element_sides = fill(typemin(Int), capacity)
+  neighbor_cell_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  mpi_surfaces = MpiSurfaceContainer{V, N}(u, element_ids, element_sides, orientations)
+  mpi_surfaces = MpiSurfaceContainer{V, N}(u, element_ids, element_sides,
+                                           neighbor_cell_ids, orientations)
 
   return mpi_surfaces
 end

@@ -18,7 +18,7 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
 import .L2Mortar # Import to satisfy Gregor
-using ...Parallel: n_domains, domain_id, @mpi
+using ...Parallel: n_domains, domain_id, @mpi, is_parallel
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
@@ -70,6 +70,8 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   analysis_weights_volume::SVector{NAnap1}
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
+
+  neighbor_domains::Vector{Int}
 end
 
 
@@ -139,6 +141,46 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Initialize data structures for parallelization
+  if is_parallel()
+    # Determine unique list of neighbor domains
+    neighbor_domains = Int[]
+    for s in 1:n_mpi_surfaces
+      neighbor_cell_id = mpi_surfaces.neighbor_cell_ids[s]
+      neighbor_domain = mesh.tree.domain_ids[neighbor_cell_id]
+      push!(neighbor_domains, neighbor_domain)
+    end
+    neighbor_domains = unique(sorted(neighbor_domains))
+
+    # Find all MPI surfaces
+    mpi_surfaces_by_domain = fill(Int[], length(neigbor_domains))
+    for idx, d in neighbor_domains
+      # First, determine all MPI surfaces for a given domain
+      for s in 1:n_mpi_surfaces
+        neighbor_cell_id = mpi_surfaces.neighbor_cell_ids[s]
+        neighbor_domain = mesh.tree.domain_ids[neighbor_cell_id]
+        if neighbor_domain == d
+          push!(mpi_surfaces_by_domain[idx], s)
+        end
+      end
+
+      # Then, sort in a globally unique way (by cell_id of "left" neighbor cell)
+      sort!(mpi_surfaces_by_domain[idx], by = surface_id -> let
+              if mpi_surfaces.element_sides[surface_id] == 1
+                element_id = mpi_surfaces.element_ids[surface_id]
+                return elements.cell_ids[element_ids]
+              else
+                neighbor_cell_id = mpi_surfaces.neighbor_cell_ids[surface_id]
+                return neighbor_cell_id
+              end
+            end)
+    end
+  else
+    # Set sensible defaults for serial execution
+    neighbor_domains = Int[1]
+    mpi_surfaces_by_neighbor = Int[]
+  end
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -151,7 +193,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume)
+      analysis_vandermonde, analysis_total_volume,
+      neighbor_domains, mpi_surfaces_by_domain)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
@@ -385,6 +428,7 @@ function init_mpi_surface_connectivity!(elements, mpi_surfaces, mesh)
       # Create MPI surface (element sides: 1 -> "left" of surface, 2 -> "right" of surface)
       count += 1
       mpi_surfaces.element_ids[count] = element_id
+      mpi_surfaces.neighbor_cell_ids[count] = neighbor_cell_id
       if direction in [2, 4]
         mpi_surfaces.element_sides[count] = 1
       else
