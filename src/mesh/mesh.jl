@@ -5,7 +5,8 @@ include("trees.jl")
 using ..Trixi
 using ..Auxiliary: parameter, timer
 using ..Auxiliary.Containers: append!
-using .Trees: Tree, refine!, refine_box!, coarsen_box!
+using .Trees: Tree, refine!, refine_box!, coarsen_box!, leaf_cells
+using ..Parallel: n_domains, @mpi
 
 using TimerOutputs: @timeit, print_timer
 using HDF5: h5open, attrs
@@ -92,6 +93,9 @@ function generate_mesh()
     end
   end
 
+  # Set up for mesh parallelization
+  @mpi init_parallel(mesh)
+
   return mesh
 end
 
@@ -126,7 +130,38 @@ function load_mesh(restart_filename::String)
     mesh.tree.coordinates[:, 1:n_cells] = read(file["coordinates"])
   end
 
+  # Set up for mesh parallelization
+  @mpi init_parallel(mesh)
+
   return mesh
+end
+
+
+function init_parallel(mesh::TreeMesh)
+  # Perform mesh sanity checks for MPI
+  @assert minimum_level(mesh.tree) == maximum_level(mesh.tree) "MPI + non-unform mesh not yet supported"
+  @assert n_domains() & (n_domains()-1) == 0 "Number of MPI ranks must be a power of two"
+  @assert 4^minimum_level(mesh.tree) <= n_domains() "Not enough domains for simple partitioning"
+
+  # Set domain_id for each cell (simple partitioning with equally sized domains at the leaf level)
+  # FIXME: Implement proper partitioning
+
+  # Reset all cells to belong to root domain
+  mesh.tree.domain_ids .= 0
+
+  # Divide up leaf_cell_ids
+  leaf_cell_ids = leaf_cells(mesh.trees)
+  cells_per_domain = div(length(leaf_cell_ids), n_domains())
+  for cell_id in leaf_cell_ids
+    mesh.tree.domain_ids[cell_id] = div(cell_id - 1, cells_per_domain)
+  end
+
+  # Another sanity check: count cells
+  leaf_cells_per_domain = zeros(Int, n_domains())
+  for cell_id in leaf_cell_ids
+    leaf_cells_per_domain[mesh.tree.domain_ids[cell_id] - 1] += 1
+  end
+  @assert leaf_cells_per_domain .== cells_per_domain "Leaf cells are not equally distributed"
 end
 
 
