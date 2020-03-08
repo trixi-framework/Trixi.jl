@@ -6,6 +6,7 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
+using .Parallel: domain_id, n_domains, have_mpi
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -121,7 +122,12 @@ function run(;args=nothing, kwargs...)
           | n_steps_max:        $n_steps_max
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
-          | #parallel threads:  $(Threads.nthreads())
+          |
+          | Parallelization
+          | | MPI available:    $(have_mpi())
+          | | domain id:        $(domain_id())
+          | | #domains:         $(n_domains())
+          | | #threads:         $(Threads.nthreads())
           |
           | Solver
           | | solver:           $solver_name
