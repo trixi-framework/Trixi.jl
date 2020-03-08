@@ -18,6 +18,8 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
 import .L2Mortar # Import to satisfy Gregor
+using ...Parallel: n_domains, domain_id, @mpi
+
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -73,6 +75,16 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
   n_elements = length(leaf_cell_ids)
+
+  # If MPI is available, divide the number of elements across all MPI ranks
+  @mpi begin
+    n_elements_global = n_elements
+
+    # The following initializations do not work in general but only under heavy constraints
+    n_elements = n_elements_global/n_domains()
+    elements_by_domain = fill(n_elements, n_domains())
+    index_by_domain = [n_elements * (d-1) for d in 1:n_domains()]
+  end
 
   # Initialize elements
   elements = ElementContainer{V, N}(n_elements)
