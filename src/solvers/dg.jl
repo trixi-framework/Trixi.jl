@@ -8,7 +8,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt,
-	            cons2indicator
+	            cons2entropy,cons2indicator
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -30,6 +30,7 @@ export polydeg
 export rhs!
 export calc_dt
 export calc_error_norms
+export calc_entropy_timederivative
 export analyze_solution
 
 
@@ -405,6 +406,31 @@ function calc_error_norms(dg::Dg, t::Float64)
   return l2_error, linf_error
 end
 
+# Calculate L2/Linf error norms based on "exact solution"
+function calc_entropy_timederivative(dg::Dg, t::Float64)
+  # Gather necessary information
+  equation = equations(dg)
+  n_nodes = nnodes(dg)
+  # Compute entropy variables for all elements and nodes with current solution u
+  duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
+  # Compute ut = rhs(u) with current solution u
+  Solvers.rhs!(dg, t)
+  # Quadrature weights
+  weights = dg.weights
+  # Integrate over all elements to get the total semi-discrete entropy update
+  dsdu_ut = 0.0
+  for element_id = 1:dg.n_elements
+    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+         dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
+      end
+    end
+  end
+  # Normalize with total volume
+  dsdu_ut = dsdu_ut/dg.analysis_total_volume
+  return dsdu_ut
+end
 
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
@@ -412,6 +438,7 @@ function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
+  duds_ut = calc_entropy_timederivative(dg, time)
 
   println()
   println("-"^80)
@@ -436,6 +463,10 @@ function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
   for v in 1:nvariables(equation)
     @printf("  %10.8e", linf_error[v])
   end
+  println()
+  print(" Semi-discrete Entropy update:  ")
+  @printf("  %10.8e", duds_ut)
+
   println()
   println()
 end

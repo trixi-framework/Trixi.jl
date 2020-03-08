@@ -13,6 +13,7 @@ export calcflux!
 export riemann!
 export calc_max_dt
 export cons2prim
+export cons2entropy
 export cons2indicator
 
 
@@ -35,9 +36,9 @@ struct Euler <: AbstractEquation{4}
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs"]))
+                                         valid=["hllc", "laxfriedrichs","central","kennedygruber","chandrashekar_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "kennedygruber"]))
+                                        valid=["central","kennedygruber","chandrashekar_ec"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -140,6 +141,22 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
     v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
     p = r > 0.5 ? 1.0 : 1.245
+
+    return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "blast_wave"
+    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Set up polar coordinates
+    inicenter = [0, 0]
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    p = r > 0.5 ? 1.0E-3 : 1.245
 
     return prim2cons(equation, [rho, v1, v2, p])
   else
@@ -296,6 +313,73 @@ end
   end
 end
 
+# Entropy conserving two-point flux by Chandrashekar
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_ec},
+                                          equation::Euler, orientation::Int,
+                                          u_ll::AbstractArray{Float64},
+                                          u_rr::AbstractArray{Float64})
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  beta_ll = 0.5*rho_ll/p_ll
+  beta_rr = 0.5*rho_rr/p_rr
+  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2)
+  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2)
+     
+  # Compute the necessary mean values
+  rho_avg  = 0.5*(rho_ll+rho_rr)
+  rho_mean = ln_mean(rho_ll,rho_rr)
+  beta_mean = ln_mean(beta_ll,beta_rr)
+  beta_avg = 0.5*(beta_ll+beta_rr)
+  v1_avg = 0.5*(v1_ll+v1_rr)
+  v2_avg = 0.5*(v2_ll+v2_rr)
+  p_mean = 0.5*rho_avg/beta_avg
+  velocity_square_avg = specific_kin_ll + specific_kin_rr
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f[1]  = rho_mean * v1_avg
+    f[2]  = f[1] * v1_avg + p_mean
+    f[3]  = f[1] * v2_avg
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+  else
+    f[1]  = rho_mean * v2_avg
+    f[2]  = f[1] * v1_avg
+    f[3]  = f[1] * v2_avg + p_mean
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+  end
+end
+
+# Computes the logarithmic mean: (aR-aL)/(LOG(aR)-LOG(aL)) = (aR-aL)/LOG(aR/aL)
+# Problem: if aL~= aR, then 0/0, but should tend to --> 0.5*(aR+aL)
+#
+# introduce xi=aR/aL and f=(aR-aL)/(aR+aL) = (xi-1)/(xi+1)
+# => xi=(1+f)/(1-f)
+# => Log(xi) = log(1+f)-log(1-f), and for small f (f^2<1.0E-02) :
+#
+#    Log(xi) ~=     (f - 1/2 f^2 + 1/3 f^3 - 1/4 f^4 + 1/5 f^5 - 1/6 f^6 + 1/7 f^7)
+#                  +(f + 1/2 f^2 + 1/3 f^3 + 1/4 f^4 + 1/5 f^5 + 1/6 f^6 + 1/7 f^7)
+#             = 2*f*(1           + 1/3 f^2           + 1/5 f^4           + 1/7 f^6)
+#  (aR-aL)/Log(xi) = (aR+aL)*f/(2*f*(1 + 1/3 f^2 + 1/5 f^4 + 1/7 f^6)) = (aR+aL)/(2 + 2/3 f^2 + 2/5 f^4 + 2/7 f^6)
+#  (aR-aL)/Log(xi) = 0.5*(aR+aL)*(105/ (105+35 f^2+ 21 f^4 + 15 f^6)
+function ln_mean(value1::Float64,value2::Float64)
+  epsilon_f2 = 1.0e-4
+  ratio = value2/value1
+  # f2 = f^2
+  f2=(ratio*(ratio-2.)+1.)/(ratio*(ratio+2.)+1.) 
+  if (f2<epsilon_f2)
+    return (value1+value2)*52.5/(105.0 + f2*(35.0 + f2*(21.0 +f2*15.0)))
+  else
+    return (value2-value1)/log(ratio)
+  end
+end
+
 
 # Calculate 1D flux in for a single point
 @inline function calcflux1D!(f::AbstractArray{Float64}, equation::Euler, rho::Float64,
@@ -362,13 +446,18 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   f_rr = zeros(MVector{4})
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
-
+ 
   if equation.surface_flux_type == :laxfriedrichs
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
+  elseif equation.surface_flux_type in [:central,:kennedygruber,:chandrashekar_ec]
+    @views symmetric_twopoint_flux!(surface_flux[:], Val(equation.surface_flux_type),
+                             equation, orientation,
+                             u_surfaces[1,:], u_surfaces[2,:])
+     
   elseif equation.surface_flux_type == :hllc
     error("not yet implemented or tested")
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
@@ -517,6 +606,33 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
   return prim
 end
 
+# Convert conservative variables to entropy
+function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+  entropy = similar(cons)
+  v = zeros(2,n_nodes,n_nodes,n_elements)
+  v_square = zeros(n_nodes,n_nodes,n_elements)
+  p = zeros(n_nodes,n_nodes,n_elements)
+  s = zeros(n_nodes,n_nodes,n_elements)
+  rho_p = zeros(n_nodes,n_nodes,n_elements)
+
+  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :] 
+  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :] 
+  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
+  @. p[ :, :, :] = ((equation.gamma - 1)
+                         * (cons[4, :, :, :] - 
+		     1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
+                            cons[3, :, :, :] * v[2, :, :, :])))
+  @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
+  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :] 
+
+  @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
+                           0.5*rho_p[:,:,:]*v_square[:,:,:] 
+  @. entropy[2, :, :, :] = rho_p[:,:,:]*v[1,:,:,:]
+  @. entropy[3, :, :, :] = rho_p[:,:,:]*v[2,:,:,:]
+  @. entropy[4, :, :, :] = -rho_p[:,:,:]
+
+  return entropy
+end
 
 # Convert primitive to conservative variables
 function prim2cons(equation::Euler, prim::AbstractArray{Float64})
@@ -541,5 +657,7 @@ function Equations.cons2indicator(equation::Euler, cons::AbstractArray{Float64})
   # Indicator variable is rho * p
   return rho * p
 end
+
+       
 
 end # module
