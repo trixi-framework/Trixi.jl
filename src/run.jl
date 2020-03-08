@@ -6,7 +6,7 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
-using .Parallel: domain_id, n_domains, have_mpi
+using .Parallel: domain_id, n_domains, is_mpi_enabled
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -51,13 +51,6 @@ function run(;args=nothing, kwargs...)
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
     println("done")
-  end
-
-  # Perform mesh sanity checks for MPI
-  @mpi begin
-    @assert minimum_level(mesh.tree) == maximum_level(mesh.tree) "MPI + non-unform mesh not yet supported"
-    @assert n_domains() & (n_domains()-1) == 0 "Number of MPI ranks must be a power of two"
-    @assert 4^minimum_level(mesh.tree) <= n_domains() "Not enough domains for simple partitioning"
   end
 
   # Initialize system of equations
@@ -131,7 +124,7 @@ function run(;args=nothing, kwargs...)
           | solution interval:  $solution_interval
           |
           | Parallelization
-          | | MPI available:    $(have_mpi())
+          | | MPI enabled:      $(is_mpi_enabled())
           | | domain id:        $(domain_id())
           | | #domains:         $(n_domains())
           | | #threads:         $(Threads.nthreads())
