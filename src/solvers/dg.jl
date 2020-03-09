@@ -703,7 +703,7 @@ function Solvers.rhs!(dg::Dg, t_stage)
                                                       dg, dg.l2mortars.orientations)
 
   # Finish data exchange and calculate MPI surface fluxes
-  @mpi_parallel @timeit timer() "surface flux" (
+  @mpi_parallel @timeit timer() "MPI surface flux" (
       calc_mpi_surface_flux!(dg.elements.surface_flux, dg.mpi_surfaces.element_ids,
                             dg.mpi_surfaces.element_sides, dg.mpi_surfaces.u, dg,
                             dg.mpi_surfaces.orientations))
