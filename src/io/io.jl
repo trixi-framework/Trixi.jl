@@ -8,6 +8,7 @@ using ..Auxiliary: parameter
 using ..Mesh: TreeMesh
 using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
                     n_children_per_cell, n_directions
+using ..Parallel: is_mpi_root
 
 using HDF5: h5open, attrs
 using Printf: @sprintf
@@ -173,9 +174,8 @@ end
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
-  # Create output directory (if it does not exist)
+  # Determine output directory
   output_directory = parameter("output_directory", "out")
-  mkpath(output_directory)
 
   # Determine file name based on existence of meaningful time step
   if timestep >= 0
@@ -184,25 +184,30 @@ function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
     filename = joinpath(output_directory, "mesh")
   end
 
-  # Create output directory (if it does not exist)
-  # Open file (clobber existing content)
-  h5open(filename * ".h5", "w") do file
-    # Add context information as attributes
-    n_cells = length(mesh.tree)
-    attrs(file)["ndim"] = ndim
-    attrs(file)["n_cells"] = n_cells
-    attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
-    attrs(file)["minimum_level"] = minimum_level(mesh.tree)
-    attrs(file)["maximum_level"] = maximum_level(mesh.tree)
-    attrs(file)["center_level_0"] = mesh.tree.center_level_0
-    attrs(file)["length_level_0"] = mesh.tree.length_level_0
+  # Since mesh should be replicated *exactly* on all domains, only write from root
+  if is_mpi_root()
+    # Create output directory (if it does not exist)
+    mkpath(output_directory)
 
-    # Add tree data
-    file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
-    file["child_ids"] = @view mesh.tree.child_ids[:, 1:n_cells]
-    file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
-    file["levels"] = @view mesh.tree.levels[1:n_cells]
-    file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+    # Open file (clobber existing content)
+    h5open(filename * ".h5", "w") do file
+      # Add context information as attributes
+      n_cells = length(mesh.tree)
+      attrs(file)["ndim"] = ndim
+      attrs(file)["n_cells"] = n_cells
+      attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
+      attrs(file)["minimum_level"] = minimum_level(mesh.tree)
+      attrs(file)["maximum_level"] = maximum_level(mesh.tree)
+      attrs(file)["center_level_0"] = mesh.tree.center_level_0
+      attrs(file)["length_level_0"] = mesh.tree.length_level_0
+
+      # Add tree data
+      file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
+      file["child_ids"] = @view mesh.tree.child_ids[:, 1:n_cells]
+      file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
+      file["levels"] = @view mesh.tree.levels[1:n_cells]
+      file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+    end
   end
 
   return filename * ".h5"
