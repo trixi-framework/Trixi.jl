@@ -8,6 +8,13 @@ export ndomains
 export is_mpi_root
 export @mpi
 export @mpi_root
+export Request
+export Irecv!
+export Isend
+export Waitall!
+export Reduce!
+export Allreduce!
+export MPI_IN_PLACE
 
 
 # Allows quick manual disabling of MPI usage, even if MPI is available
@@ -26,11 +33,25 @@ if Base.find_package("MPI") !== nothing && _use_mpi
   const _comm = MPI.COMM_WORLD
   const _domain_id = MPI.Comm_rank(_comm)
   const _n_domains = MPI.Comm_size(_comm)
+  const Request = MPI.Request
+  Irecv!(args...) = MPI.Irecv!(args...)
+  Isend(args...) = MPI.Isend(args...)
+  Waitall!(args...) = MPI.Waitall!(args...)
+  Reduce!(args...) = MPI.Reduce!(args...)
+  Allreduce!(args...) = MPI.Allreduce!(args...)
+  MPI_IN_PLACE = MPI.IN_PLACE
 else
   const _is_mpi_enabled = false
   const _comm = nothing
   const _domain_id = 0
   const _n_domains = 1
+  const Request = Nothing
+  Irecv!(args...) = nothing
+  Isend(args...) = nothing
+  Waitall!(args...) = nothing
+  Reduce!(args...) = nothing
+  Allreduce!(args...) = nothing
+  MPI_IN_PLACE = nothing
 end
 
 
