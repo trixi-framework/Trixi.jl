@@ -12,13 +12,14 @@ using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_tw
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
-using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
+using ...Mesh.Trees: leaf_cells, leaf_cells_by_domain, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
 import .L2Mortar # Import to satisfy Gregor
-using ...Parallel: n_domains, domain_id, @mpi, is_parallel
+using ...Parallel: n_domains, domain_id, is_parallel, Request, Irecv!, @mpi_parallel,
+                   Isend, comm, Waitall!, Allreduce!, MPI_IN_PLACE
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
@@ -72,6 +73,11 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   analysis_total_volume::Float64
 
   neighbor_domains::Vector{Int}
+  mpi_surfaces_by_domain::Vector{Vector{Int}}
+  mpi_send_buffers::Vector{Vector{Float64}}
+  mpi_recv_buffers::Vector{Vector{Float64}}
+  mpi_send_requests::Vector{Request}
+  mpi_recv_requests::Vector{Request}
 end
 
 
@@ -154,7 +160,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
     # Find all MPI surfaces
     mpi_surfaces_by_domain = fill(Int[], length(neigbor_domains))
-    for idx, d in neighbor_domains
+    for (idx, d) in enumerate(neighbor_domains)
       # First, determine all MPI surfaces for a given domain
       for s in 1:n_mpi_surfaces
         neighbor_cell_id = mpi_surfaces.neighbor_cell_ids[s]
@@ -175,10 +181,25 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
               end
             end)
     end
+
+    # Initialize buffers and requests
+    mpi_send_buffers = Vector{Vector{Float64}}(undef, length(neighbor_domains))
+    mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(neighbor_domains))
+    for d in 1:length(neighbor_domains)
+      buffer_size = length(mpi_surfaces_by_domain[d]) * n_nodes * V
+      mpi_send_buffers[idx] = Vector{Float64}(undef, buffer_size)
+      mpi_recv_buffers[idx] = Vector{Float64}(undef, buffer_size)
+    end
+    mpi_send_requests::Vector{Request}(undef, length(neighbor_domains))
+    mpi_recv_requests::Vector{Request}(undef, length(neighbor_domains))
   else
     # Set sensible defaults for serial execution
-    neighbor_domains = Int[1]
+    neighbor_domains = Int[]
     mpi_surfaces_by_neighbor = Int[]
+    mpi_send_buffers = Vector{Vector{Float64}}()
+    mpi_recv_buffers = Vector{Vector{Float64}}()
+    mpi_send_requests::Vector{Request}()
+    mpi_recv_requests::Vector{Request}()
   end
 
   # Create actual DG solver instance
@@ -194,7 +215,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      neighbor_domains, mpi_surfaces_by_domain)
+      neighbor_domains, mpi_surfaces_by_domain,
+      mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
@@ -266,7 +288,7 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
       end
 
       # Skip if neighbor is from different domain -> requires MPI surface
-      if mesh.tree.domain_ids[neighbor_id] != domain_id()
+      if mesh.tree.domain_ids[neighbor_cell_id] != domain_id()
         continue
       end
 
@@ -291,13 +313,13 @@ function count_required_mpi_surfaces(mesh::TreeMesh, cell_ids)
       end
 
       # Skip if neighbor has children
-      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
-      if has_children(mesh.tree, neighbor_id)
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
         continue
       end
 
       # Skip if neighbor is from same domain -> requires normal surface
-      if mesh.tree.domain_ids[neighbor_id] == domain_id()
+      if mesh.tree.domain_ids[neighbor_cell_id] == domain_id()
         continue
       end
 
@@ -322,8 +344,8 @@ function count_required_l2mortars(mesh::TreeMesh, cell_ids)
       end
 
       # If neighbor has no children, this is a conforming interface -> do nothing
-      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
-      if !has_children(mesh.tree, neighbor_id)
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if !has_children(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -371,7 +393,7 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       end
 
       # Skip if neighbor is from different domain -> requires MPI surface
-      if mesh.tree.domain_ids[neighbor_id] != domain_id()
+      if mesh.tree.domain_ids[neighbor_cell_id] != domain_id()
         continue
       end
 
@@ -421,7 +443,7 @@ function init_mpi_surface_connectivity!(elements, mpi_surfaces, mesh)
       end
 
       # Skip if neighbor is from same domain -> requires normal surface
-      if mesh.tree.domain_ids[neighbor_id] == domain_id()
+      if mesh.tree.domain_ids[neighbor_cell_id] == domain_id()
         continue
       end
 
@@ -550,6 +572,10 @@ function calc_error_norms(dg::Dg, t::Float64)
     end
   end
 
+  # Collect global information
+  @mpi_parallel Allreduce!(MPI_IN_PLACE, l2_error, +, comm())
+  @mpi_parallel Allreduce!(MPI_IN_PLACE, linf_error, max, comm())
+
   # For L2 error, divide by total volume
   @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
 
@@ -590,35 +616,36 @@ function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
 
-  println()
-  println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
-  println("-"^80)
-  println(" #timesteps:    " * @sprintf("% 14d", step))
-  println(" dt:            " * @sprintf("%10.8e", dt))
-  println(" sim. time:     " * @sprintf("%10.8e", time))
-  println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
-  println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
-  print(" Variable:    ")
-  for v in 1:nvariables(equation)
-    @printf("  %-14s", equation.varnames_cons[v])
+  if is_mpi_root()
+    println()
+    println("-"^80)
+    println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
+    println("-"^80)
+    println(" #timesteps:    " * @sprintf("% 14d", step))
+    println(" dt:            " * @sprintf("%10.8e", dt))
+    println(" sim. time:     " * @sprintf("%10.8e", time))
+    println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
+    println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("  %-14s", equation.varnames_cons[v])
+    end
+    println()
+    print(" L2 error:    ")
+    for v in 1:nvariables(equation)
+      @printf("  %10.8e", l2_error[v])
+    end
+    println()
+    print(" Linf error:  ")
+    for v in 1:nvariables(equation)
+      @printf("  %10.8e", linf_error[v])
+    end
+    println()
+    print(" Semi-discrete Entropy update:  ")
+    @printf("  %10.8e", duds_ut)
+    println()
+    println()
   end
-  println()
-  print(" L2 error:    ")
-  for v in 1:nvariables(equation)
-    @printf("  %10.8e", l2_error[v])
-  end
-  println()
-  print(" Linf error:  ")
-  for v in 1:nvariables(equation)
-    @printf("  %10.8e", linf_error[v])
-  end
-  println()
-  print(" Semi-discrete Entropy update:  ")
-  @printf("  %10.8e", duds_ut)
-
-  println()
-  println()
 end
 
 
@@ -642,6 +669,9 @@ function Solvers.rhs!(dg::Dg, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
+  # Prolong solution to MPI surfaces and start data exchange
+  @mpi_parallel @timeit timer() "prolong2mpisurfaces" prolong2mpisurfaces!(dg)
+
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
 
@@ -662,6 +692,12 @@ function Solvers.rhs!(dg::Dg, t_stage)
                                                       dg.l2mortars.u_lower,
                                                       dg.l2mortars.u_upper,
                                                       dg, dg.l2mortars.orientations)
+
+  # Finish data exchange and calculate MPI surface fluxes
+  @mpi_parallel @timeit timer() "surface flux" (
+      calc_mpi_surface_flux!(dg.elements.surface_flux, dg.mpi_surfaces.element_ids,
+                            dg.mpi_surfaces.element_sides, dg.mpi_surfaces.u, dg,
+                            dg.mpi_surfaces.orientations))
 
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
@@ -836,10 +872,103 @@ end
 end
 
 
+# Prolong solution to MPI surfaces: copy local data, start sending via MPI
+function prolong2mpisurfaces!(dg)
+  # Start receiving data
+  for (idx, d) in enumerate(dg.neighbor_domains)
+    dg.mpi_recv_requests[idx] = Irecv!(mpi_recv_buffers[idx], d, 1000, comm())
+  end
+
+  # Prolong local data
+  for s = 1:dg.n_mpi_surfaces
+    element_id = dg.mpi_surfaces.element_ids[s]
+    element_side = dg.mpi_surfaces.element_sides[s]
+    if element_side == 1
+      node_id = nnodes(dg)
+    else
+      node_id = 1
+    end
+    for l = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        if dg.mpi_surfaces.orientations[s] == 1
+          # Surface in x-direction
+          dg.mpi_surfaces.u[element_side, v, l, s] = dg.elements.u[v, node_id, l, element_id]
+        else
+          # Surface in y-direction
+          dg.mpi_surfaces.u[element_side, v, l, s] = dg.elements.u[v, l, node_id, element_id]
+        end
+      end
+    end
+  end
+
+  # Copy data from MPI surfaces to send buffers
+  block_size = nvariables(dg) * nnodes(dg)
+  for d in 1:length(dg.neighbor_domains)
+    for (idx, s) in mpi_surfaces_by_domain[d]
+      element_id = dg.mpi_surfaces.element_ids[s]
+      element_side = dg.mpi_surfaces.element_sides[s]
+      @views mpi_send_buffers[d][1:block_size .+ (idx-1)*block_size] = (
+          dg.mpi_surfaces.u[element_side, :, :, s][:])
+    end
+  end
+
+  # Start sending data
+  for (idx, d) in enumerate(dg.neighbor_domains)
+    dg.mpi_send_requests[idx] = Isend(mpi_send_buffers[idx], d, 1000, comm())
+  end
+end
+
+
+# Calculate and store fluxes across surfaces
+function calc_mpi_surface_flux!(surface_flux::Array{Float64, 4},
+                                element_ids::Vector{Int},
+                                element_sides::Vector{Int},
+                                u_surfaces::Array{Float64, 4}, dg,
+                                orientations::Vector{Int})
+  # Finish receiving data
+  Waitall!(dg.mpi_recv_requests)
+
+  # Copy data from receive buffers to MPI surfaces
+  block_size = nvariables(dg) * nnodes(dg)
+  for d in 1:length(dg.neighbor_domains)
+    for (idx, s) in mpi_surfaces_by_domain[d]
+      element_id = dg.mpi_surfaces.element_ids[s]
+      element_side = dg.mpi_surfaces.element_sides[s]
+      @views dg.mpi_surfaces.u[3 - element_side, :, :, s][:] = (
+          dg.mpi_recv_buffers[d][1:block_size .+ (idx-1)*block_size])
+    end
+  end
+
+  #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
+  for s = 1:dg.n_surfaces
+    # Calculate flux
+    fs = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
+    riemann!(fs, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+
+    # Get element information
+    element_id  = element_ids[s]
+    element_side  = element_sides[s]
+
+    # Determine surface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    if element_side == 1
+      element_direction = 2 * orientations[s]
+    else
+      element_direction = 2 * orientations[s] - 1
+    end
+
+    # Copy flux to left and right element storage
+    surface_flux[:, :, element_direction,  element_id]  .= fs
+  end
+
+  # Finish sending data
+  Waitall!(dg.mpi_send_requests)
+end
+
+
 # Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
-  equation = equations(dg)
-
   for s = 1:dg.n_surfaces
     left_element_id = dg.surfaces.neighbor_ids[1, s]
     right_element_id = dg.surfaces.neighbor_ids[2, s]
@@ -862,8 +991,6 @@ end
 
 # Prolong solution to L2 mortars
 function prolong2l2mortars!(dg)
-  equation = equations(dg)
-
   for m = 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]

@@ -93,7 +93,7 @@ end
 
 
 # Return number of mpi_surfaces
-nmpi_surfaces(mpi_surfaces::MpiSurfaceContainer) = length(mpi_surfaces.orientations)
+nmpisurfaces(mpi_surfaces::MpiSurfaceContainer) = length(mpi_surfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
