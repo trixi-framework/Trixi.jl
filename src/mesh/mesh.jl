@@ -5,7 +5,7 @@ include("trees.jl")
 using ..Trixi
 using ..Auxiliary: parameter, timer
 using ..Auxiliary.Containers: append!
-using .Trees: Tree, refine!, refine_box!, coarsen_box!, leaf_cells
+using .Trees: Tree, refine!, refine_box!, coarsen_box!, leaf_cells, minimum_level, maximum_level
 using ..Parallel: n_domains, @mpi_root, is_parallel
 
 using TimerOutputs: @timeit, print_timer
@@ -142,7 +142,7 @@ function init_parallel(mesh::TreeMesh)
     # Perform mesh sanity checks for MPI
     @assert minimum_level(mesh.tree) == maximum_level(mesh.tree) "MPI + non-unform mesh not yet supported"
     @assert n_domains() & (n_domains()-1) == 0 "Number of MPI ranks must be a power of two"
-    @assert 4^minimum_level(mesh.tree) <= n_domains() "Not enough domains for simple partitioning"
+    @assert 4^minimum_level(mesh.tree) >= n_domains() "Not enough domains for simple partitioning"
 
     # Set domain_id for each cell (simple partitioning with equally sized domains at the leaf level)
     # FIXME: Implement proper partitioning
@@ -151,18 +151,18 @@ function init_parallel(mesh::TreeMesh)
     mesh.tree.domain_ids .= 0
 
     # Divide up leaf_cell_ids
-    leaf_cell_ids = leaf_cells(mesh.trees)
+    leaf_cell_ids = leaf_cells(mesh.tree)
     cells_per_domain = div(length(leaf_cell_ids), n_domains())
-    for cell_id in leaf_cell_ids
-      mesh.tree.domain_ids[cell_id] = div(cell_id - 1, cells_per_domain)
+    for (idx, cell_id) in enumerate(leaf_cell_ids)
+      mesh.tree.domain_ids[cell_id] = div(idx - 1, cells_per_domain)
     end
 
     # Another sanity check: count cells
     leaf_cells_per_domain = zeros(Int, n_domains())
     for cell_id in leaf_cell_ids
-      leaf_cells_per_domain[mesh.tree.domain_ids[cell_id] - 1] += 1
+      leaf_cells_per_domain[mesh.tree.domain_ids[cell_id] + 1] += 1
     end
-    @assert leaf_cells_per_domain .== cells_per_domain "Leaf cells are not equally distributed"
+    @assert all(leaf_cells_per_domain .== cells_per_domain) "Leaf cells are not equally distributed"
   else
     # If non-parallel run (no MPI or just one rank), assign all cells to rank 0
     mesh.tree.domain_ids .= 0
