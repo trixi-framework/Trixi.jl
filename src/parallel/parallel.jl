@@ -16,7 +16,6 @@ export Isend
 export Waitall!
 export Reduce!
 export Allreduce!
-export MPI_IN_PLACE
 export mpi_finalize
 
 
@@ -42,7 +41,6 @@ if Base.find_package("MPI") !== nothing && _use_mpi
   Waitall!(args...) = MPI.Waitall!(args...)
   Reduce!(args...) = MPI.Reduce!(args...)
   Allreduce!(args...) = MPI.Allreduce!(args...)
-  MPI_IN_PLACE = MPI.IN_PLACE
 else
   const _is_mpi_enabled = false
   const _comm = nothing
@@ -54,7 +52,6 @@ else
   Waitall!(args...) = nothing
   Reduce!(args...) = nothing
   Allreduce!(args...) = nothing
-  MPI_IN_PLACE = nothing
 end
 
 
