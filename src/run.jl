@@ -6,7 +6,7 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
-using .Parallel: domain_id, n_domains, is_mpi_enabled
+using .Parallel: domain_id, n_domains, is_mpi_enabled, is_mpi_root
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -228,7 +228,7 @@ function run(;args=nothing, kwargs...)
         println("-"^80)
         println()
       end
-    elseif alive_interval > 0 && step % alive_interval == 0
+    elseif alive_interval > 0 && step % alive_interval == 0 && is_mpi_root()
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
               step, dt, time, runtime_absolute)

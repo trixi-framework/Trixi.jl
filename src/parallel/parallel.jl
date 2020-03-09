@@ -6,8 +6,8 @@ export comm
 export domain_id
 export ndomains
 export is_mpi_root
-export @mpi
 export @mpi_root
+export @mpi_parallel
 export Request
 export Irecv!
 export Isend
@@ -67,11 +67,11 @@ n_domains() = _n_domains
 is_mpi_root() = domain_id() == 0
 
 # Check if this is a parallel run
-if_parallel() = is_mpi_enabled() && n_domains() > 1
+is_parallel() = is_mpi_enabled() && n_domains() > 1
 
 
 # Macro to enable expressions only if MPI is used
-macro mpi(expr)
+macro mpi_enabled(expr)
   if is_mpi_enabled()
     return :($(esc(expr)))
   end
@@ -84,9 +84,9 @@ macro mpi_parallel(expr)
   end
 end
 
-# Macro to enable expressions only if MPI is used and this is the MPI root
+# Macro to enable expressions only on MPI root (or if MPI is disabled)
 macro mpi_root(expr)
-  if is_mpi_enabled() && is_mpi_root()
+  if !is_mpi_enabled() || is_mpi_root()
     return :($(esc(expr)))
   end
 end
