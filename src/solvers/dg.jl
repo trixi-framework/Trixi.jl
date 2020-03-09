@@ -19,7 +19,7 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
 		      vandermonde_legendre, nodal2modal
 import .L2Mortar # Import to satisfy Gregor
 using ...Parallel: n_domains, domain_id, is_parallel, Request, Irecv!, @mpi_parallel, @mpi_root,
-                   Isend, comm, Waitall!, Allreduce!, is_mpi_root, mpi_println
+                   Isend, comm, Waitall!, Allreduce!, is_mpi_root, mpi_println, Allgather!
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
@@ -78,6 +78,7 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   mpi_recv_buffers::Vector{Vector{Float64}}
   mpi_send_requests::Vector{Request}
   mpi_recv_requests::Vector{Request}
+  n_elements_by_domain::Vector{Int}
 end
 
 
@@ -199,6 +200,15 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
     end
     mpi_send_requests = Vector{Request}(undef, length(neighbor_domains))
     mpi_recv_requests = Vector{Request}(undef, length(neighbor_domains))
+
+    # Count number of elements on each domain
+    n_elements_by_domain = Vector{Int}(undef, n_domains())
+    n_elements_by_domain[domain_id() + 1] = n_elements
+    Allgather!(n_elements_by_domain, 1, comm())
+
+    # Sanity check: total number of elements matches number of leaf cells
+    @assert sum(n_elements_by_domain) == length(leaf_cells(mesh.tree)) (
+        "Total number of elements does not match total number of leaf cells.")
   else
     # Set sensible defaults for serial execution
     neighbor_domains = Int[]
@@ -207,6 +217,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
     mpi_recv_buffers = Vector{Vector{Float64}}()
     mpi_send_requests = Vector{Request}()
     mpi_recv_requests = Vector{Request}()
+    n_elements_by_domain = Int[n_elements]
   end
 
   # Create actual DG solver instance
@@ -223,7 +234,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
       neighbor_domains, mpi_surfaces_by_domain,
-      mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests)
+      mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
+      n_elements_by_domain)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:n_elements
