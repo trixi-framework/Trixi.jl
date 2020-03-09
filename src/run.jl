@@ -6,7 +6,8 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
-using .Parallel: domain_id, n_domains, is_mpi_enabled, is_mpi_root, @mpi_root
+using .Parallel: domain_id, n_domains, is_mpi_enabled, is_mpi_root, @mpi_root,
+                 mpi_finalize, @mpi_enabled
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -264,5 +265,8 @@ function run(;args=nothing, kwargs...)
     print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
     println()
   end
+
+  # Call to finalize MPI program
+  @mpi_enabled mpi_finalize()
 end
 

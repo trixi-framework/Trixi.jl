@@ -8,6 +8,8 @@ export ndomains
 export is_mpi_root
 export @mpi_root
 export @mpi_parallel
+export mpi_print
+export mpi_println
 export Request
 export Irecv!
 export Isend
@@ -15,6 +17,7 @@ export Waitall!
 export Reduce!
 export Allreduce!
 export MPI_IN_PLACE
+export mpi_finalize
 
 
 # Allows quick manual disabling of MPI usage, even if MPI is available
@@ -91,9 +94,13 @@ macro mpi_root(expr)
   end
 end
 
+# Print rank information in addition to message itself
+mpi_print(msg) = print("rank $(domain_id()): $(msg...)")
+mpi_println(msg) = println("rank $(domain_id()): $(msg...)")
+
 
 # Finalize MPI
-function finalize()
+function mpi_finalize()
   if is_mpi_enabled() && _use_mpi && !isinteractive() && MPI.Initialized() && !MPI.Finalized()
     MPI.Finalize()
   end
