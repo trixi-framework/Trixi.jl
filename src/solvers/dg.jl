@@ -159,7 +159,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
     neighbor_domains = unique(sort(neighbor_domains))
 
     # Find all MPI surfaces
-    mpi_surfaces_by_domain = fill(Int[], length(neighbor_domains))
+    mpi_surfaces_by_domain = [Int[] for d in 1:length(neighbor_domains)]
     for (idx, d) in enumerate(neighbor_domains)
       # First, determine all MPI surfaces for a given domain
       for s in 1:n_mpi_surfaces
@@ -182,6 +182,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
               end
             end)
     end
+
+    # Sanity check: The total count of MPI surfaces by domain must match the number of MPI surfaces
+    @assert nmpisurfaces(mpi_surfaces) == sum(length(v) for v in mpi_surfaces_by_domain) (
+        "Total number of mpi_surfaces_by_domain " *
+        "($(sum(length(v) for v in mpi_surfaces_by_domain))) does " *
+        "not match actual number of surfaces ($(nmpisurfaces(mpi_surfaces)))")
 
     # Initialize buffers and requests
     mpi_send_buffers = Vector{Vector{Float64}}(undef, length(neighbor_domains))
