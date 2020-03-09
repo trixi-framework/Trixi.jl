@@ -6,6 +6,7 @@ export comm
 export domain_id
 export ndomains
 export is_mpi_root
+export mpi_root
 export @mpi_root
 export @mpi_parallel
 export mpi_print
@@ -16,6 +17,7 @@ export Isend
 export Waitall!
 export Reduce!
 export Allreduce!
+export Bcast!
 export mpi_finalize
 
 
@@ -41,6 +43,7 @@ if Base.find_package("MPI") !== nothing && _use_mpi
   Waitall!(args...) = MPI.Waitall!(args...)
   Reduce!(args...) = MPI.Reduce!(args...)
   Allreduce!(args...) = MPI.Allreduce!(args...)
+  Bcast!(args...) = MPI.Bcast!(args...)
 else
   const _is_mpi_enabled = false
   const _comm = nothing
@@ -52,6 +55,7 @@ else
   Waitall!(args...) = nothing
   Reduce!(args...) = nothing
   Allreduce!(args...) = nothing
+  Bcast!(args...) = nothing
 end
 
 
@@ -65,6 +69,7 @@ comm() = _comm
 domain_id() = _domain_id
 n_domains() = _n_domains
 is_mpi_root() = domain_id() == 0
+mpi_root() = 0
 
 # Check if this is a parallel run
 is_parallel() = is_mpi_enabled() && n_domains() > 1

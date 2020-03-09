@@ -2,9 +2,11 @@ module Auxiliary
 
 include("containers.jl")
 
+using ..Parallel: Bcast!, is_mpi_root, mpi_root, comm, @mpi_enabled
+
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using TimerOutputs: TimerOutput
-using Pkg.TOML: parsefile
+using Pkg.TOML: parse
 
 export timer
 export parse_parameters_file
@@ -25,7 +27,24 @@ const parameters = Dict()
 
 # Parse parameters file into global dict
 function parse_parameters_file(filename::AbstractString)
-  parameters["default"] = parsefile(filename)
+  if is_mpi_root()
+    # On MPI root, read file as byte array, count & broadcast content length, then broadcast content
+    content = read(filename)
+
+    # Only execute the following lines if MPI is enabled
+    @mpi_enabled count = Int[length(content)]
+    @mpi_enabled Bcast!(count, mpi_root(), comm())
+    @mpi_enabled Bcast!(content, mpi_root(), comm())
+  else
+    # On other domains, receive content length, create receive buffer, then receive content
+    count = Int[0]
+
+    # No @mpi_enable necessary as else condition only executed during MPI runs with > 1 ranks
+    Bcast!(count, mpi_root(), comm())
+    content = Array{UInt8, 1}(undef, count[1])
+    Bcast!(content, mpi_root(), comm())
+  end
+  parameters["default"] = parse(String(content))
 end
 
 
