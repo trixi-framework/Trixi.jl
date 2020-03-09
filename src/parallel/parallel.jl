@@ -16,7 +16,10 @@ export Irecv!
 export Isend
 export Waitall!
 export Reduce!
+export Gather!
+export Gatherv
 export Allreduce!
+export Allgather!
 export Bcast!
 export mpi_finalize
 
@@ -42,7 +45,10 @@ if Base.find_package("MPI") !== nothing && _use_mpi
   Isend(args...) = MPI.Isend(args...)
   Waitall!(args...) = MPI.Waitall!(args...)
   Reduce!(args...) = MPI.Reduce!(args...)
+  Gather!(args...) = MPI.Gather!(args...)
+  Gatherv(args...) = MPI.Gatherv(args...)
   Allreduce!(args...) = MPI.Allreduce!(args...)
+  Allgather!(args...) = MPI.Allgather!(args...)
   Bcast!(args...) = MPI.Bcast!(args...)
 else
   const _is_mpi_enabled = false
@@ -54,7 +60,10 @@ else
   Isend(args...) = nothing
   Waitall!(args...) = nothing
   Reduce!(args...) = nothing
+  Gather!(args...) = nothing
+  Gatherv(args...) = nothing
   Allreduce!(args...) = nothing
+  Allgather!(args...) = nothing
   Bcast!(args...) = nothing
 end
 
