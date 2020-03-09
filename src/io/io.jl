@@ -8,7 +8,7 @@ using ..Auxiliary: parameter
 using ..Mesh: TreeMesh
 using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
                     n_children_per_cell, n_directions
-using ..Parallel: is_mpi_root
+using ..Parallel: is_mpi_root, is_parallel, mpi_root, comm, Gatherv
 
 using HDF5: h5open, attrs
 using Printf: @sprintf
@@ -128,45 +128,68 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
   time = convert(Float64, time)
   dt = convert(Float64, dt)
 
-  # Open file (clobber existing content)
-  h5open(filename * ".h5", "w") do file
-    equation = equations(dg)
-    N = polydeg(dg)
+  # Get basic information
+  equation = equations(dg)
+  N = polydeg(dg)
+  n_nodes = N + 1
 
-    # Add context information as attributes
-    attrs(file)["ndim"] = ndim
-    attrs(file)["equations"] = equation.name
-    attrs(file)["N"] = N
-    attrs(file)["n_vars"] = nvariables(dg)
-    attrs(file)["n_elements"] = dg.n_elements
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = time
-    attrs(file)["dt"] = dt
-    attrs(file)["timestep"] = timestep
+  # Convert to primitive variables if requested
+  solution_variables = parameter("solution_variables", "conservative",
+                                valid=["conservative", "primitive"])
+  if solution_variables == "conservative"
+    data = dg.elements.u
+    varnames = equation.varnames_cons
+  else
+    data = cons2prim(equation, dg.elements.u)
+    varnames = equation.varnames_prim
+  end
 
-    # Add coordinates as 1D arrays
-    file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
-    file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
+  if is_mpi_root()
+    # Open file (clobber existing content)
+    h5open(filename * ".h5", "w") do file
+      # Add context information as attributes
+      attrs(file)["ndim"] = ndim
+      attrs(file)["equations"] = equation.name
+      attrs(file)["N"] = N
+      attrs(file)["n_vars"] = nvariables(dg)
+      attrs(file)["n_elements"] = sum(dg.n_elements_by_domain)
+      attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+      attrs(file)["time"] = time
+      attrs(file)["dt"] = dt
+      attrs(file)["timestep"] = timestep
 
-    # Convert to primitive variables if requested
-    solution_variables = parameter("solution_variables", "conservative",
-                                   valid=["conservative", "primitive"])
-    if solution_variables == "conservative"
-      data = dg.elements.u
-      varnames = equation.varnames_cons
-    else
-      data = cons2prim(equation, dg.elements.u)
-      varnames = equation.varnames_prim
+      # Add coordinates as 1D arrays
+      if is_parallel()
+        # Counts must be of type Int32 to match MPI API
+        counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
+        file["x"] = Gatherv(dg.elements.node_coordinates[1, :, :, :][:], counts, mpi_root(), comm())
+        file["y"] = Gatherv(dg.elements.node_coordinates[2, :, :, :][:], counts, mpi_root(), comm())
+      else
+        file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
+        file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
+      end
+
+      # Store each variable of the solution
+      for v = 1:nvariables(dg)
+        # Convert to 1D array
+        if is_parallel()
+          file["variables_$v"] = Gatherv(data[v, :, :, :][:], counts, mpi_root(), comm())
+        else
+          file["variables_$v"] = data[v, :, :, :][:]
+        end
+
+        # Add variable name as attribute
+        var = file["variables_$v"]
+        attrs(var)["name"] = varnames[v]
+      end
     end
-
-    # Store each variable of the solution
+  else
+    # This branch is only ever executed if MPI is enabled and there are more than one ranks
+    counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
+    Gatherv(dg.elements.node_coordinates[1, :, :, :][:], counts, mpi_root(), comm())
+    Gatherv(dg.elements.node_coordinates[2, :, :, :][:], counts, mpi_root(), comm())
     for v = 1:nvariables(dg)
-      # Convert to 1D array
-      file["variables_$v"] = data[v, :, :, :][:]
-
-      # Add variable name as attribute
-      var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      Gatherv(data[v, :, :, :][:], counts, mpi_root(), comm())
     end
   end
 end
