@@ -212,7 +212,7 @@ function run(;args=nothing, kwargs...)
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       # Calculate absolute and relative runtime
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
-      runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /
+      runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 * n_domains() /
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
