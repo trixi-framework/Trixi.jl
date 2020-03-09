@@ -6,7 +6,7 @@ using ..Trixi
 using ..Auxiliary: parameter, timer
 using ..Auxiliary.Containers: append!
 using .Trees: Tree, refine!, refine_box!, coarsen_box!, leaf_cells
-using ..Parallel: n_domains, @mpi, is_parallel
+using ..Parallel: n_domains, @mpi_root, is_parallel
 
 using TimerOutputs: @timeit, print_timer
 using HDF5: h5open, attrs
