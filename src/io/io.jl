@@ -81,34 +81,51 @@ function save_restart_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timeste
   time = convert(Float64, time)
   dt = convert(Float64, dt)
 
-  # Open file (clobber existing content)
-  h5open(filename * ".h5", "w") do file
-    equation = equations(dg)
-    N = polydeg(dg)
+  # Get basic information
+  equation = equations(dg)
+  N = polydeg(dg)
+  n_nodes = N + 1
 
-    # Add context information as attributes
-    attrs(file)["ndim"] = ndim
-    attrs(file)["equations"] = equation.name
-    attrs(file)["N"] = N
-    attrs(file)["n_vars"] = nvariables(dg)
-    attrs(file)["n_elements"] = dg.n_elements
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = time
-    attrs(file)["dt"] = dt
-    attrs(file)["timestep"] = timestep
+  # Restart files always store conservative variables
+  data = dg.elements.u
+  varnames = equation.varnames_cons
 
-    # Restart files always store conservative variables
-    data = dg.elements.u
-    varnames = equation.varnames_cons
+  if is_parallel()
+    # Counts must be of type Int32 to match MPI API
+    counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
+  end
 
-    # Store each variable of the solution
+  if is_mpi_root()
+    # Open file (clobber existing content)
+    h5open(filename * ".h5", "w") do file
+      # Add context information as attributes
+      attrs(file)["ndim"] = ndim
+      attrs(file)["equations"] = equation.name
+      attrs(file)["N"] = N
+      attrs(file)["n_vars"] = nvariables(dg)
+      attrs(file)["n_elements"] = sum(dg.n_elements_by_domain)
+      attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+      attrs(file)["time"] = time
+      attrs(file)["dt"] = dt
+      attrs(file)["timestep"] = timestep
+
+      # Store each variable of the solution
+      for v = 1:nvariables(dg)
+        # Convert to 1D array
+        if is_parallel()
+          file["variables_$v"] = Gatherv(data[v, :, :, :][:], counts, mpi_root(), comm())
+        else
+          file["variables_$v"] = data[v, :, :, :][:]
+        end
+
+        # Add variable name as attribute
+        var = file["variables_$v"]
+        attrs(var)["name"] = varnames[v]
+      end
+    end
+  else
     for v = 1:nvariables(dg)
-      # Convert to 1D array
-      file["variables_$v"] = data[v, :, :, :][:]
-
-      # Add variable name as attribute
-      var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      Gatherv(data[v, :, :, :][:], counts, mpi_root(), comm())
     end
   end
 end
@@ -144,6 +161,11 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
     varnames = equation.varnames_prim
   end
 
+  if is_parallel()
+    # Counts must be of type Int32 to match MPI API
+    counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
+  end
+
   if is_mpi_root()
     # Open file (clobber existing content)
     h5open(filename * ".h5", "w") do file
@@ -160,8 +182,6 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
 
       # Add coordinates as 1D arrays
       if is_parallel()
-        # Counts must be of type Int32 to match MPI API
-        counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
         file["x"] = Gatherv(dg.elements.node_coordinates[1, :, :, :][:], counts, mpi_root(), comm())
         file["y"] = Gatherv(dg.elements.node_coordinates[2, :, :, :][:], counts, mpi_root(), comm())
       else
@@ -185,7 +205,6 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
     end
   else
     # This branch is only ever executed if MPI is enabled and there are more than one ranks
-    counts = Int32.(dg.n_elements_by_domain .* n_nodes^2)
     Gatherv(dg.elements.node_coordinates[1, :, :, :][:], counts, mpi_root(), comm())
     Gatherv(dg.elements.node_coordinates[2, :, :, :][:], counts, mpi_root(), comm())
     for v = 1:nvariables(dg)
