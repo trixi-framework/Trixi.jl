@@ -18,6 +18,8 @@ export Waitall!
 export Reduce!
 export Gather!
 export Gatherv
+export Scatterv
+export Scatterv_in_place!
 export Allreduce!
 export Allgather!
 export Bcast!
@@ -47,6 +49,8 @@ if Base.find_package("MPI") !== nothing && _use_mpi
   Reduce!(args...) = MPI.Reduce!(args...)
   Gather!(args...) = MPI.Gather!(args...)
   Gatherv(args...) = MPI.Gatherv(args...)
+  Scatterv(args...) = MPI.Scatterv(args...)
+  Scatterv_in_place!(args...) = MPI.Scatterv_in_place!(args...)
   Allreduce!(args...) = MPI.Allreduce!(args...)
   Allgather!(args...) = MPI.Allgather!(args...)
   Bcast!(args...) = MPI.Bcast!(args...)
@@ -62,6 +66,8 @@ else
   Reduce!(args...) = nothing
   Gather!(args...) = nothing
   Gatherv(args...) = nothing
+  Scatterv(args...) = nothing
+  Scatterv_in_place!(args...) = nothing
   Allreduce!(args...) = nothing
   Allgather!(args...) = nothing
   Bcast!(args...) = nothing
