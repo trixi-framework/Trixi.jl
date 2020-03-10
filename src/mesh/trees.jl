@@ -34,6 +34,7 @@ mutable struct Tree{D} <: AbstractContainer
   neighbor_ids::Matrix{Int}
   levels::Vector{Int}
   coordinates::Matrix{Float64}
+  domain_ids::Vector{Int}
 
   capacity::Int
   length::Int
@@ -56,6 +57,7 @@ mutable struct Tree{D} <: AbstractContainer
     t.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, D, capacity + 1)
+    t.domain_ids = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
@@ -97,12 +99,12 @@ function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
 
   # Create root cell
   t.length += 1
-  t.levels[1] = 0
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
   t.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
+  t.domain_ids[1] = 0
 end
 
 
@@ -115,6 +117,7 @@ function Base.show(io::IO, t::Tree{D}) where D
   println(io, "transpose(t.neighbor_ids[:, 1:l]) = $(transpose(t.neighbor_ids[:, 1:l]))")
   println(io, "t.levels[1:l] = $(t.levels[1:l])")
   println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
+  println(io, "t.domain_ids[1:l] = $(t.domain_ids[1:l])")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
@@ -255,6 +258,14 @@ end
 leaf_cells(t::Tree) = filter_leaf_cells((cell_id)->true, t)
 
 
+# Return an array with the ids of all leaf cells of a given domain
+function leaf_cells_by_domain(t::Tree, domain_id::Int)
+  filter_leaf_cells(t) do cell_id
+    return t.domain_ids[cell_id] == domain_id
+  end
+end
+
+
 # Count the number of leaf cells.
 count_leaf_cells(t::Tree) = length(leaf_cells(t))
 
@@ -389,6 +400,7 @@ function refine_unbalanced!(t::Tree, cell_ids)
       t.levels[child_id] = t.levels[cell_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+      t.domain_ids[child_id] = t.domain_ids[cell_id] + 1
 
       # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
@@ -618,6 +630,7 @@ function invalidate!(t::Tree, first::Int, last::Int)
   t.neighbor_ids[:, first:last] .= typemin(Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
+  t.domain_ids[first:last] .= typemin(Int)
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::Tree) = invalidate!(t, 1, length(t))
@@ -741,6 +754,7 @@ function raw_copy!(target::Tree, source::Tree, first::Int,
              destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
+  copy_data!(target.domain_ids, source.domain_ids, first, last, destination)
 end
 function raw_copy!(c::AbstractContainer, first::Int,
                                         last::Int, destination::Int)
@@ -762,6 +776,7 @@ function reset_data_structures!(t::Tree{D}) where D
   t.neighbor_ids = Matrix{Int}(undef, 2*D, t.capacity + 1)
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, D, t.capacity + 1)
+  t.domain_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end
