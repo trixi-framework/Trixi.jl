@@ -18,7 +18,6 @@
         Examples: `nnodes`, `polydeg`, `nelements`, `nsurfaces`,
 5.  Get rid of `n_surfaces`/`n_elements` etc. variable for which a `get_xxx`
     function exists.
-6.  Fix `--interactive` mode for Trixi.
 
 
 ## Open issues with unresolved questions or unknown implementation
