@@ -142,8 +142,7 @@ end
 function Equations.cons2entropy(equation::LinearScalarAdvection,
                                 cons::Array{Float64, 4}, n_nodes::Int,
                                 n_elements::Int)
-  entropy = similar(cons)
-  @. entropy = cons^2
+  return cons
 end
 
 end # module
