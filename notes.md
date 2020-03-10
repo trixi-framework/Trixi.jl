@@ -29,11 +29,11 @@
     *   split equations into multiple files/folders?
     *   split DG methods in multiple files?
 3.  **Performance optimization**
-    a.  Reduce memory allocations in hot kernels
-    b.  Improve performance by using @inbounds (?)
+    1.  Reduce memory allocations in hot kernels
+    2.  Improve performance by using @inbounds (?)
 4.  Implement logging mechanism: basically store all output in log file such
     that it can be recovered later, e.g., in `out/trixi_YYYMMDDHHmmss.log`
 5.  We need a testing tool for easy testing of functionality in case of larger
     refactorings and/or new features that affect existing solutions
 6.  **Visualization**
-    a.  Visualize element data (e.g., one data point per element)
+    1.  Visualize element data (e.g., one data point per element)
