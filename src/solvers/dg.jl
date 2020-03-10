@@ -985,7 +985,6 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
   end
  
   # Loop over mortars
-  # TODO: Gregor, please check if this implementation makes sense
   for l2mortar_id in 1:dg.n_l2mortars
     # Get neighboring element ids
     lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
