@@ -17,21 +17,23 @@ for arg in "$@"; do
   fi
 done
 
+# Get directory of script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PROJECT_DIR="$(dirname \"$dir\")"
+
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
-  exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
+  exec julia --color=yes --project="$PROJECT_DIR" \
+      -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
-  exec julia --banner=no -i \
-      -e "push!(LOAD_PATH, \".\"); using Revise; import Trixi" \
-      -e 'println("\n==> Run `Trixi.run(parameters_file=\"file.toml\")` to start a simulation\n")'
+  exec julia --banner=no -i --project="$PROJECT_DIR" \
+      -e 'println("First, execute `using Revise; import Trixi` to load Trixi while tracking changes to its files.")' \
+      -e 'println("Then you can start a Trixi simulation by running `Trixi.run(parameters_file=\"parameters.toml\")`.\n")'
 fi
 =#
-#=
-exec julia --color=yes -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
-=#
 
-# Include file with definition of main function
-include("../src/Trixi.jl")
+# Load Trixi
+import Trixi
 
 # Run Trixi but handle user interrupts gracefully (Ctrl-c)
 @Trixi.Auxiliary.interruptable Trixi.run(args=ARGS)
