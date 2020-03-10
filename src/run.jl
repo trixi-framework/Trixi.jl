@@ -113,6 +113,7 @@ function run(;args=nothing, kwargs...)
           | restart:            $(restart ? "yes" : "no")
           """
   if restart
+    s *= "| | restart file:     $restart_filename\n"
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
