@@ -60,6 +60,7 @@ function riemann! end
 function calc_max_dt end
 function cons2prim end
 function cons2indicator end
+function cons2entropy end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.
