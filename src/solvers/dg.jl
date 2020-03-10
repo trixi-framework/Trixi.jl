@@ -630,6 +630,14 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
       end
     end
   end
+
+  # Collect global information
+  @mpi_parallel begin
+    buffer = Float64[dsdu_ut]
+    Allreduce!(buffer, +, comm())
+    dsdu_ut = buffer[1]
+  end
+
   # Normalize with total volume
   dsdu_ut = dsdu_ut/dg.analysis_total_volume
   return dsdu_ut
