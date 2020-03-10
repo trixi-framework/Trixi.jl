@@ -2,12 +2,10 @@
 
 ## Ready for rock'n'roll
 
-1.  Separate `differentiation_matrix` into individual matrices and keep all
-    matrices around all the time (i.e., `D`, `Dhat`, `Dsplit`)
-2.  Rename `u_t` to `ut`
-3.  `cons2prim`, `cons2entropy` etc. should be implemented point-wise in
+1.  Rename `u_t` to `ut`
+2.  `cons2prim`, `cons2entropy` etc. should be implemented point-wise in
     equations, element-wise in solver
-4.  Rename stuff
+3.  Rename stuff
     *   `weights` -> `weights1d` (also add `weights2d`)
     *   `nodes` -> `nodes1d` (also add `nodes2d`)
     *   `inverse_jacobian` -> `inverse_jacobian1d` (also add `jacobian1d`,
@@ -16,7 +14,7 @@
         should be prefixed by `get` such that the original name is free to be used
         as the variable name.  
         Examples: `nnodes`, `polydeg`, `nelements`, `nsurfaces`,
-5.  Get rid of `n_surfaces`/`n_elements` etc. variable for which a `get_xxx`
+4.  Get rid of `n_surfaces`/`n_elements` etc. variable for which a `get_xxx`
     function exists.
 
 
