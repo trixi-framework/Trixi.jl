@@ -12,6 +12,7 @@ export sources
 export calcflux!
 export riemann!
 export calc_max_dt
+export cons2entropy
 export cons2prim
 
 
@@ -135,6 +136,14 @@ end
 # Convert conservative variables to primitive
 function Equations.cons2prim(equation::LinearScalarAdvection, cons::Array{Float64, 4})
   return cons
+end
+
+# Convert conservative variables to entropy
+function Equations.cons2entropy(equation::LinearScalarAdvection,
+                                cons::Array{Float64, 4}, n_nodes::Int,
+                                n_elements::Int)
+  entropy = similar(cons)
+  @. entropy = cons^2
 end
 
 end # module
