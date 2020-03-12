@@ -624,9 +624,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
   end
 
-  # Loop over pure DG elements
-  @timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)
-
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
@@ -637,9 +634,36 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
   f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
+  # Loop over pure DG elements
+  #=@timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)=#
+  @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
+    f1_diag = f1_diag_threaded[Threads.threadid()]
+    f2_diag = f2_diag_threaded[Threads.threadid()]
+
+    # Calculate volume fluxes (one more dimension than weak form)
+    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+
+    # Calculate volume integral
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        for v = 1:nvariables(dg)
+          for l = 1:nnodes(dg)
+            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
+                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+          end
+        end
+      end
+    end
+  end
+
   # Loop over blended DG-FV elements
-  #=@timeit timer() @inbounds Threads.@threads "blended DG-FV" for element_id in element_ids_dgfv=#
-  @timeit timer() Threads.@threads "blended DG-FV" for element_id in element_ids_dgfv
+  #=@timeit timer() @inbounds "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv=#
+  @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
