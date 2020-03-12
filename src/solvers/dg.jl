@@ -586,7 +586,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     end
 
     # add everything in a element local container, used to update the element later
-    # strong form volume integral
+    # strong form volume integral is needed to compute the entropy production/destruction
     ut_volumeintegral = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
     d_matrix = polynomial_derivative_matrix(dg.nodes)
     # Calculate standard volume integral
@@ -602,18 +602,23 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
 
     # store entrop weak form diffusion term in a container, in case cotribution is necessary 
     ut_diffusion =zeros(nvariables(dg),nnodes(dg),nnodes(dg))
-    f1_visc = zeros(nnodes(dg), nnodes(dg))
-    f2_visc = zeros( nnodes(dg), nnodes(dg))
+    f1_visc = zeros(nvariables(dg),nnodes(dg), nnodes(dg))
+    f2_visc = zeros(nvariables(dg), nnodes(dg), nnodes(dg))
     differentiation_matrix = polynomial_derivative_matrix(dg.nodes)
     # Calculate entropy diffusion term, weak form, laplace type, but with entropy variables
+    for v = 1:nvariables(dg)
+      # compute the viscous flux
+      f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
+      f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
+    end
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
           # compute the viscous flux
-	  f1_visc = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
-	  f2_visc = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
+	  #f1_visc = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
+	  #f2_visc = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
           for l = 1:nnodes(dg)
-            @views ut_diffusion[v,i,j] += dhat[i,l]*f1_visc[l,j] + dhat[j,l]*f2_visc[i,l]
+            @views ut_diffusion[v,i,j] += dhat[i,l]*f1_visc[v,l,j] + dhat[j,l]*f2_visc[v,i,l]
           end
         end
       end
