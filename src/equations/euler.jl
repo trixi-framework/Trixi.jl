@@ -15,6 +15,7 @@ export calc_max_dt
 export cons2prim
 export cons2entropy
 export cons2indicator
+export cons2indicator!
 
 
 # Main data structure for system of equations "Euler"
@@ -36,9 +37,10 @@ struct Euler <: AbstractEquation{4}
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs","central","kennedygruber","chandrashekar_ec"]))
+                                         valid=["hllc", "laxfriedrichs","central", 
+                                                "kennedygruber", "chandrashekar_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central","kennedygruber","chandrashekar_ec"]))
+                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -680,9 +682,22 @@ function prim2cons(equation::Euler, prim::AbstractArray{Float64})
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities
-function Equations.cons2indicator(equation::Euler, cons::AbstractArray{Float64})
-  rho, rho_v1, rho_v2, rho_e = cons
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
+                                           cons::AbstractArray{Float64},
+                                           element_id::Int, n_nodes::Int)
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      indicator[1, i, j] = cons2indicator(equation,
+                                          cons[1, i, j, element_id], cons[2, i, j, element_id],
+                                          cons[3, i, j, element_id], cons[4, i, j, element_id])
+    end
+  end
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
