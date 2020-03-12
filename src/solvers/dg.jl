@@ -894,9 +894,9 @@ function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
 
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
-    fstar_lower = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
     fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
-    fstarnode_lower = fstarnode_upper_threaded[Threads.threadid()]
+    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
     riemann!(fstar_upper, fstarnode_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
