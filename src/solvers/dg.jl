@@ -635,6 +635,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   A1d = Array{Float64, 1}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
+  # Note: Prefixing the array with the type ("A4d[A4d(...") seems to be
+  # necessary for optimal performance
   f1_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
                     for _ in 1:Threads.nthreads()]
   f2_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -652,7 +654,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   fstarnode_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
-  #=@timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)=#
+  #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
   @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
@@ -677,7 +679,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   end
 
   # Loop over blended DG-FV elements
-  #=@timeit timer() @inbounds "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv=#
+  #=@timeit timer() "blended DG-FV" @inbounds Threads.@threads for element_id in element_ids_dgfv=#
   @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
