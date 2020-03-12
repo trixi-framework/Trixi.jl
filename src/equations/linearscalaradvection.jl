@@ -103,8 +103,8 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(surface_flux::Matrix{Float64},
-                            u_surfaces::Array{Float64, 4}, surface_id::Int,
+function Equations.riemann!(surface_flux::AbstractMatrix{Float64}, ::AbstractVector{Float64},
+                            u_surfaces::AbstractArray{Float64, 4}, surface_id::Int,
                             equation::LinearScalarAdvection, n_nodes::Int,
                             orientations::Vector{Int})
   for i = 1:n_nodes
