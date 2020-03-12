@@ -432,7 +432,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
 end
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
+function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
@@ -564,12 +564,33 @@ end
 # Calculate volume integral (DGSEM in split form)
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
+  # Pre-allocate data structures to speed up computation
+  #=f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+  #=f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+  #=f1_diag = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+  #=f2_diag = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+  f1s = [MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+        for _ in 1:Threads.nthreads()]
+  f2s = [MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+        for _ in 1:Threads.nthreads()]
+  f1_diags = [MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+             for _ in 1:Threads.nthreads()]
+  f2_diags = [MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
+             for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id in 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
+  #=for element_id in 1:dg.n_elements=#
     # Calculate volume fluxes (one more dimension than weak form)
-    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    #=f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+    #=f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)=#
+    #=calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u, element_id, nnodes(dg))=#
+    f1 = f1s[Threads.threadid()]
+    f2 = f2s[Threads.threadid()]
+    f1_diag = f1_diags[Threads.threadid()]
+    f2_diag = f2_diags[Threads.threadid()]
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
+                       element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -783,11 +804,16 @@ end
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg,
                             orientations::Vector{Int})
+  fstars = [Matrix{Float64}(undef, nvariables(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstarnodes = [Vector{Float64}(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
-  for s = 1:dg.n_surfaces
+  Threads.@threads for s = 1:dg.n_surfaces
+  #=for s = 1:dg.n_surfaces=#
     # Calculate flux
-    fs = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
-    riemann!(fs, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    #=fstar = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))=#
+    fstar = fstars[Threads.threadid()]
+    fstarnode = fstarnodes[Threads.threadid()]
+    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -800,8 +826,14 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     right_neighbor_direction = 2 * orientations[s] - 1
 
     # Copy flux to left and right element storage
-    surface_flux[:, :, left_neighbor_direction,  left_neighbor_id]  .= fs
-    surface_flux[:, :, right_neighbor_direction, right_neighbor_id] .= fs
+    #=surface_flux[:, :, left_neighbor_direction,  left_neighbor_id]  .= fs=#
+    #=surface_flux[:, :, right_neighbor_direction, right_neighbor_id] .= fs=#
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i]
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i]
+      end
+    end
   end
 end
 
