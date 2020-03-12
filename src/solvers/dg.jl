@@ -530,7 +530,7 @@ function calc_volume_integral!(dg)
     calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
   elseif dg.volume_integral_type == :split_form
     calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
-  elseif dg.volume_integral_type == :shock_capturings
+  elseif dg.volume_integral_type == :shock_capturing
     calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t, dg.dsplit_transposed)
   else
     error("unknown volume integral type")
