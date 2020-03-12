@@ -807,15 +807,19 @@ end
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
+  # Type alias only for convenience
+  M2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  V1d = MArray{Tuple{nvariables(dg)}, Float64}
+
   # Pre-allocate data structures to speed up computation (thread-safe)
-  fstars = [Matrix{Float64}(undef, nvariables(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
-  fstarnodes = [Vector{Float64}(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
+  fstar_threaded = [M2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [V1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
-    fstar = fstars[Threads.threadid()]
-    fstarnode = fstarnodes[Threads.threadid()]
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     # Calculate flux
     riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
