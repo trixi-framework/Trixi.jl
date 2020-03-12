@@ -780,22 +780,38 @@ function prolong2l2mortars!(dg)
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        @views dg.l2mortars.u_upper[2, :, :, m] .= dg.elements.u[:, 1, :, upper_element_id]
-        @views dg.l2mortars.u_lower[2, :, :, m] .= dg.elements.u[:, 1, :, lower_element_id]
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.l2mortars.u_upper[2, v, l, m] = dg.elements.u[v, 1, l, upper_element_id]
+            dg.l2mortars.u_lower[2, v, l, m] = dg.elements.u[v, 1, l, lower_element_id]
+          end
+        end
       else
         # L2 mortars in y-direction
-        @views dg.l2mortars.u_upper[2, :, :, m] .= dg.elements.u[:, :, 1, upper_element_id]
-        @views dg.l2mortars.u_lower[2, :, :, m] .= dg.elements.u[:, :, 1, lower_element_id]
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.l2mortars.u_upper[2, v, l, m] = dg.elements.u[v, l, 1, upper_element_id]
+            dg.l2mortars.u_lower[2, v, l, m] = dg.elements.u[v, l, 1, lower_element_id]
+          end
+        end
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        @views dg.l2mortars.u_upper[1, :, :, m] .= dg.elements.u[:, nnodes(dg), :, upper_element_id]
-        @views dg.l2mortars.u_lower[1, :, :, m] .= dg.elements.u[:, nnodes(dg), :, lower_element_id]
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.l2mortars.u_upper[1, v, l, m] = dg.elements.u[v, nnodes(dg), l, upper_element_id]
+            dg.l2mortars.u_lower[1, v, l, m] = dg.elements.u[v, nnodes(dg), l, lower_element_id]
+          end
+        end
       else
         # L2 mortars in y-direction
-        @views dg.l2mortars.u_upper[1, :, :, m] .= dg.elements.u[:, :, nnodes(dg), upper_element_id]
-        @views dg.l2mortars.u_lower[1, :, :, m] .= dg.elements.u[:, :, nnodes(dg), lower_element_id]
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.l2mortars.u_upper[1, v, l, m] = dg.elements.u[v, l, nnodes(dg), upper_element_id]
+            dg.l2mortars.u_lower[1, v, l, m] = dg.elements.u[v, l, nnodes(dg), lower_element_id]
+          end
+        end
       end
     end
 
@@ -807,20 +823,28 @@ function prolong2l2mortars!(dg)
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
-          u_large[v, :] = dg.elements.u[v, nnodes(dg), :, large_element_id]
+          for l in 1:nnodes(dg)
+            u_large[v, l] = dg.elements.u[v, nnodes(dg), l, large_element_id]
+          end
         else
           # L2 mortars in y-direction
-          u_large[v, :] = dg.elements.u[v, :, nnodes(dg), large_element_id]
+          for l in 1:nnodes(dg)
+            u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
+          end
         end
         @views dg.l2mortars.u_upper[1, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
         @views dg.l2mortars.u_lower[1, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
       else # large_sides[m] == 2 -> large element on right side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
-          u_large[v, :] = dg.elements.u[v, 1, :, large_element_id]
+          for l in 1:nnodes(dg)
+            u_large[v, l] = dg.elements.u[v, 1, l, large_element_id]
+          end
         else
           # L2 mortars in y-direction
-          u_large[v, :] = dg.elements.u[v, :, 1, large_element_id]
+          for l in 1:nnodes(dg)
+            u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
+          end
         end
         @views dg.l2mortars.u_upper[2, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
         @views dg.l2mortars.u_lower[2, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
