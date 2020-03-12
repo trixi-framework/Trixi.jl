@@ -572,18 +572,18 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     f2 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
     calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
     
-    # add everything in a element local container, used to update the element later
-    ut_volumeintegral_weak = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
-    # Calculate standard volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          for l = 1:nnodes(dg)
-            @views ut_volumeintegral_weak[v, i, j] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
-          end
-        end
-      end
-    end
+    ## add everything in a element local container, used to update the element later
+    #ut_volumeintegral_weak = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
+    ## Calculate standard volume integral
+    #for j = 1:nnodes(dg)
+    #  for i = 1:nnodes(dg)
+    #    for v = 1:nvariables(dg)
+    #      for l = 1:nnodes(dg)
+    #        @views ut_volumeintegral_weak[v, i, j] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+    #      end
+    #    end
+    #  end
+    #end
 
     # add everything in a element local container, used to update the element later
     # strong form volume integral is needed to compute the entropy production/destruction
@@ -604,12 +604,11 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     ut_diffusion =zeros(nvariables(dg),nnodes(dg),nnodes(dg))
     f1_visc = zeros(nvariables(dg),nnodes(dg), nnodes(dg))
     f2_visc = zeros(nvariables(dg), nnodes(dg), nnodes(dg))
-    differentiation_matrix = polynomial_derivative_matrix(dg.nodes)
     # Calculate entropy diffusion term, weak form, laplace type, but with entropy variables
     for v = 1:nvariables(dg)
       # compute the viscous flux
-      f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
-      f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
+      f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*d_matrix*entropy[v,:, :,element_id]
+      f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(d_matrix)
     end
     # at H matrix for laplace type viscosity operator!
     vec = zeros(nvariables(dg))
@@ -649,9 +648,6 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
-          # compute the viscous flux
-	  #f1_visc = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
-	  #f2_visc = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
           for l = 1:nnodes(dg)
             @views ut_diffusion[v,i,j] += dhat[i,l]*f1_visc[v,l,j] + dhat[j,l]*f2_visc[v,i,l]
           end
@@ -674,6 +670,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     # Compute the goal amount of entropy change, i.e. the surface integral of the entropy flux
     duds_ut_goal = 0.0
     # Calculate surface integral of scalar entropy flux
+    # Further, update the volume integral contribution to include the surface integral from the flux inside
     # xi direction 
     for j = 1:nnodes(dg)
       # get first and last nodal value
@@ -691,6 +688,8 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       f_entropy_minus = -u_minus[1]*s_minus*v1_minus/(equation.gamma -1)
       # update entropy contribution  
       @views duds_ut_goal += (f_entropy_plus - f_entropy_minus)*dg.weights[j]
+      @views ut_volumeintegral[:,1,j] += f1[:,1,j]/dg.weights[1]
+      @views ut_volumeintegral[:,nnodes(dg),j] -= f1[:,nnodes(dg),j]/dg.weights[nnodes(dg)]
     end 
     # eta direction 
     for i = 1:nnodes(dg)
@@ -709,11 +708,14 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       f_entropy_minus = -u_minus[1]*s_minus*v2_minus/(equation.gamma -1)
       # update entropy contribution  
       @views duds_ut_goal += (f_entropy_plus - f_entropy_minus)*dg.weights[i]
+      @views ut_volumeintegral[:,i,1] += f2[:,i,1]/dg.weights[1]
+      @views ut_volumeintegral[:,i,nnodes(dg)] -= f2[:,i,nnodes(dg)]/dg.weights[nnodes(dg)]
     end 
+
  
     # Compute the necessary (anti)diffusion to generate the right amount of entropy change
     entropy_diffusion = 0.0
-    if (duds_ut_diffusion <  0.0) 
+    if (duds_ut_diffusion <  -1.e-15) 
       @show duds_ut_diffusion
       exit()
     end
@@ -728,10 +730,12 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
 
     # update element rhs and add entropy fix
     if isapprox(entropy_diffusion,0.0,atol = 1e-13)
-      @. u_t[:,:,:,element_id] += ut_volumeintegral_weak[:,:,:]
+      @. u_t[:,:,:,element_id] += ut_volumeintegral[:,:,:]
+      #@. u_t[:,:,:,element_id] += ut_volumeintegral_weak[:,:,:]
     else
       #@show entropy_diffusion
-      @. u_t[:,:,:,element_id] += ut_volumeintegral_weak[:,:,:] + entropy_diffusion*ut_diffusion[:,:,:] 
+      @. u_t[:,:,:,element_id] += ut_volumeintegral[:,:,:] + entropy_diffusion*ut_diffusion[:,:,:] 
+      #@. u_t[:,:,:,element_id] += ut_volumeintegral_weak[:,:,:] + entropy_diffusion*ut_diffusion[:,:,:] 
     end
   end
 end
