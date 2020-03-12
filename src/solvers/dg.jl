@@ -53,7 +53,9 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   lhat::SMatrix{Np1, 2}
 
   volume_integral_type::Symbol
-  differentiation_operator::SMatrix{Np1, Np1}
+  dhat::SMatrix{Np1, Np1}
+  dsplit::SMatrix{Np1, Np1}
+  dsplit_transposed::SMatrix{Np1, Np1}
 
   l2mortar_forward_upper::SMatrix{Np1, Np1}
   l2mortar_forward_lower::SMatrix{Np1, Np1}
@@ -108,12 +110,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize differentiation operator
   volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
                                           valid=["weak_form", "split_form", "shock_capturing"]))
-  if volume_integral_type == :weak_form
-    differentiation_operator = calc_dhat(nodes, weights)
-  else
-    # Transposed dsplit for efficiency
-    differentiation_operator = transpose(calc_dsplit(nodes, weights))
-  end
+  dhat = calc_dhat(nodes, weights)
+  dsplit = calc_dsplit(nodes, weights)
+  dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
   l2mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
@@ -136,7 +135,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       surfaces, n_surfaces,
       l2mortars, n_l2mortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, differentiation_operator,
+      volume_integral_type, dhat, dsplit, dsplit_transposed,
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
@@ -527,8 +526,15 @@ end
 
 # Calculate volume integral and update u_t
 function calc_volume_integral!(dg)
-  calc_volume_integral!(dg, Val(dg.volume_integral_type), dg.elements.u_t,
-                        dg.differentiation_operator)
+  if dg.volume_integral_type == :weak_form
+    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
+  elseif dg.volume_integral_type == :split_form
+    calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
+  elseif dg.volume_integral_type == :shock_capturings
+    calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t, dg.dsplit_transposed)
+  else
+    error("unknown volume integral type")
+  end
 end
 
 
