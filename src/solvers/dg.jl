@@ -627,12 +627,16 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A3dp1_x = MArray{Tuple{nvariables(dg), nnodes(dg)+1, nnodes(dg)}, Float64}
+  A3dp1_y = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)+1}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
   f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
   f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
   f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  fstar1_threaded = [A3dp1_x(undef) for _ in 1:Threads.nthreads()]
+  fstar2_threaded = [A3dp1_y(undef) for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)=#
@@ -688,8 +692,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     end
 
     # Calculate volume fluxes (one more dimension than weak form)
-    fstar1 = MArray{Tuple{nvariables(dg), nnodes(dg)+1, nnodes(dg)}, Float64}(undef)
-    fstar2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)+1}, Float64}(undef)
+    fstar1 = fstar1_threaded[Threads.threadid()]
+    fstar2 = fstar2_threaded[Threads.threadid()]
     calcflux_fv!(fstar1, fstar2, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate FV volume integral contribution
@@ -951,8 +955,8 @@ function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
 
     # Project small fluxes to large element
     for v = 1:nvariables(dg)
-      large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
-                            dg.l2mortar_reverse_lower * fstar_lower[v, :])
+      @views large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
+                                   dg.l2mortar_reverse_lower * fstar_lower[v, :])
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
