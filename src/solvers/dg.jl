@@ -625,18 +625,21 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   end
 
   # Type alias only for convenience
-  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-  A3dp1_x = MArray{Tuple{nvariables(dg), nnodes(dg)+1, nnodes(dg)}, Float64}
-  A3dp1_y = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)+1}, Float64}
+  A4d = Array{Float64, 4}
+  A3d = Array{Float64, 3}
+  A3dp1_x = Array{Float64, 3}
+  A3dp1_y = Array{Float64, 3}
+  A2d = Array{Float64, 2}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  fstar1_threaded = [A3dp1_x(undef) for _ in 1:Threads.nthreads()]
-  fstar2_threaded = [A3dp1_y(undef) for _ in 1:Threads.nthreads()]
+  f1_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  f2_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  f1_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  f2_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+  u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg))) for _ in 1:Threads.nthreads()]
+
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)=#
@@ -648,8 +651,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
     calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
@@ -694,7 +695,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     # Calculate volume fluxes (one more dimension than weak form)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    u_leftright = u_leftright_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1, fstar2, u_leftright, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate FV volume integral contribution
     for j = 1:nnodes(dg)
@@ -714,30 +716,40 @@ end
 # Calculate 2D two-point flux (element version)
 @inline function calcflux_fv!(fstar1::AbstractArray{Float64},
                               fstar2::AbstractArray{Float64},
-                              equation,
+                              u_leftright::AbstractArray{Float64},
+                              equation::AbstractEquation,
                               u::AbstractArray{Float64},
                               element_id::Int, n_nodes::Int)
-
-  u_leftright=MMatrix{2,nvariables(equation), Float64}(undef)
-
-  fstar1[:,1,:]       = 0.0
-  fstar1[:,n_nodes+1,:] = 0.0
+  for j in 1:n_nodes
+    for v in 1:nvariables(equation)
+      fstar1[v, 1,         j] = 0.0
+      fstar1[v, n_nodes+1, j] = 0.0
+    end
+  end
   for j = 1:n_nodes
     for i = 2:n_nodes
-      u_leftright[1,:] = u[:,i-1,j,element_id]
-      u_leftright[2,:] = u[:,i,j,element_id]
+      for v in 1:nvariables(equation)
+        u_leftright[1,v] = u[v,i-1,j,element_id]
+        u_leftright[2,v] = u[v,i,j,element_id]
+      end
       @views riemann!(fstar1[:,i,j],
                       u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                       u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                       equation, 1)
     end
   end
-  fstar2[:,:,1]       = 0.0
-  fstar2[:,:,n_nodes+1] = 0.0
+  for i in 1:n_nodes
+    for v in 1:nvariables(equation)
+      fstar2[v,i,1]         = 0.0
+      fstar2[v,i,n_nodes+1] = 0.0
+    end
+  end
   for j = 2:n_nodes
     for i = 1:n_nodes
-      u_leftright[1,:] = u[:,i,j-1,element_id]
-      u_leftright[2,:] = u[:,i,j,element_id]
+      for v in 1:nvariables(equation)
+        u_leftright[1,v] = u[v,i,j-1,element_id]
+        u_leftright[2,v] = u[v,i,j,element_id]
+      end
       @views riemann!(fstar2[:,i,j],
                       u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                       u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
