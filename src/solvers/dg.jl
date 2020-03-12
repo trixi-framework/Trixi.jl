@@ -620,7 +620,9 @@ end
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix, inverse_weights::SVector)
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  @timeit timer() "blending factors" begin
+  # TODO: We cannot activate this timer as it causes huge allocations (but no idea why...)
+  #=@timeit timer() "blending factors" begin=#
+  begin
     alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
   end
 
