@@ -10,11 +10,11 @@ initial_conditions = "isentropic_vortex"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
 surface_flux_type = "laxfriedrichs"
-# volume_flux_type = "kennedygruber"
-volume_flux_type = "central"
+volume_flux_type = "kennedygruber"
+# volume_flux_type = "central"
 # sources = 
 t_start = 0.0
-t_end   = 10.0
+t_end   = 1.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -36,10 +36,10 @@ volume_integral_type = "shock_capturing"
 n_cells_max = 100000
 coordinates_min = [-10, -10]
 coordinates_max =  [10, 10]
-initial_refinement_level = 3
-# refinement_patches = [
-#   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
-# ]
+initial_refinement_level = 4
+refinement_patches = [
+  {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
+]
 
 
 ####################################################################################################
