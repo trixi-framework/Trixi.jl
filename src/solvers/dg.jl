@@ -541,11 +541,11 @@ end
 # Calculate volume integral (DGSEM in weak form)
 function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
   # Type alias only for convenience
-  M3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+  f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
   Threads.@threads for element_id in 1:dg.n_elements
@@ -574,14 +574,14 @@ end
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
   # Type alias only for convenience
-  M4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  M3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [M4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [M4d(undef) for _ in 1:Threads.nthreads()]
-  f1_diag_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
-  f2_diag_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
   Threads.@threads for element_id = 1:dg.n_elements
@@ -625,33 +625,30 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   end
 
   # Loop over pure DG elements
-  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  @timeit timer() "pure DG" for element_id in element_ids_dg
-    # Calculate volume fluxes (one more dimension than weak form)
-    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+  @timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)
 
-    # Calculate volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                         dsplit_transposed[l, j] * f2[v, l, i, j])
-          end
-        end
-      end
-    end
-  end
+  # Type alias only for convenience
+  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   # Loop over blended DG-FV elements
-  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  @timeit timer() "blended DG-FV" for element_id in element_ids_dgfv
+  #=@timeit timer() @inbounds Threads.@threads "blended DG-FV" for element_id in element_ids_dgfv=#
+  @timeit timer() Threads.@threads "blended DG-FV" for element_id in element_ids_dgfv
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
+    f1_diag = f1_diag_threaded[Threads.threadid()]
+    f2_diag = f2_diag_threaded[Threads.threadid()]
+
     # Calculate volume fluxes (one more dimension than weak form)
-    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
+                       element_id, nnodes(dg))
 
     # Calculate DG volume integral contribution
     for j = 1:nnodes(dg)
@@ -701,7 +698,10 @@ end
     for i = 2:n_nodes
       u_leftright[1,:] = u[:,i-1,j,element_id]
       u_leftright[2,:] = u[:,i,j,element_id]
-      @views riemann!(fstar1[:,i,j],u_leftright,equation,1) 
+      @views riemann!(fstar1[:,i,j],
+                      u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                      u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                      equation, 1)
     end
   end
   fstar2[:,:,1]       = 0.0
@@ -710,7 +710,10 @@ end
     for i = 1:n_nodes
       u_leftright[1,:] = u[:,i,j-1,element_id]
       u_leftright[2,:] = u[:,i,j,element_id]
-      @views riemann!(fstar2[:,i,j],u_leftright,equation,2) 
+      @views riemann!(fstar2[:,i,j],
+                      u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                      u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                      equation, 2)
     end
   end
 end
@@ -808,12 +811,12 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
                             u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
   # Type alias only for convenience
-  M2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  V1d = MArray{Tuple{nvariables(dg)}, Float64}
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_threaded = [M2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [V1d(undef) for _ in 1:Threads.nthreads()]
+  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
@@ -849,45 +852,59 @@ end
 function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                              u_lower::Array{Float64, 4}, u_upper::Array{Float64, 4}, dg,
                              orientations::Vector{Int})
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_upper_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
-  for m = 1:dg.n_l2mortars
+  Threads.@threads for m = 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
 
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_upper_threaded[Threads.threadid()]
+    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
+    fstarnode_lower = fstarnode_upper_threaded[Threads.threadid()]
+
     # Calculate fluxes
-    f_upper = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
-    f_lower = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
-    riemann!(f_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
-    riemann!(f_lower, u_lower, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_upper, fstarnode_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_lower, fstarnode_lower, u_lower, m, equations(dg), nnodes(dg), orientations)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux[:, :, 1, upper_element_id] .= f_upper
-        surface_flux[:, :, 1, lower_element_id] .= f_lower
+        surface_flux[:, :, 1, upper_element_id] .= fstar_upper
+        surface_flux[:, :, 1, lower_element_id] .= fstar_lower
       else
         # L2 mortars in y-direction
-        surface_flux[:, :, 3, upper_element_id] .= f_upper
-        surface_flux[:, :, 3, lower_element_id] .= f_lower
+        surface_flux[:, :, 3, upper_element_id] .= fstar_upper
+        surface_flux[:, :, 3, lower_element_id] .= fstar_lower
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux[:, :, 2, upper_element_id] .= f_upper
-        surface_flux[:, :, 2, lower_element_id] .= f_lower
+        surface_flux[:, :, 2, upper_element_id] .= fstar_upper
+        surface_flux[:, :, 2, lower_element_id] .= fstar_lower
       else
         # L2 mortars in y-direction
-        surface_flux[:, :, 4, upper_element_id] .= f_upper
-        surface_flux[:, :, 4, lower_element_id] .= f_lower
+        surface_flux[:, :, 4, upper_element_id] .= fstar_upper
+        surface_flux[:, :, 4, lower_element_id] .= fstar_lower
       end
     end
 
     # Project small fluxes to large element
     for v = 1:nvariables(dg)
-      large_surface_flux = (dg.l2mortar_reverse_upper * f_upper[v, :] +
-                            dg.l2mortar_reverse_lower * f_lower[v, :])
+      large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
+                            dg.l2mortar_reverse_lower * fstar_lower[v, :])
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction

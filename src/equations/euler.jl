@@ -36,9 +36,10 @@ struct Euler <: AbstractEquation{4}
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs","central","kennedygruber","chandrashekar_ec"]))
+                                         valid=["hllc", "laxfriedrichs","central", 
+                                                "kennedygruber", "chandrashekar_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central","kennedygruber","chandrashekar_ec"]))
+                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
