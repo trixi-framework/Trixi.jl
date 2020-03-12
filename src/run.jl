@@ -6,6 +6,7 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
+using .AMR: adapt!
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -72,6 +73,8 @@ function run(;args=nothing, kwargs...)
   end
 
   # Initialize solution
+  amr_interval = parameter("amr_interval", 0)
+  adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -83,6 +86,17 @@ function run(;args=nothing, kwargs...)
     step = 0
     set_initial_conditions(solver, time)
     println("done")
+
+    # If AMR is enabled, adapt mesh and re-apply ICs
+    if amr_interval > 0 && adapt_initial_conditions
+      has_changed = adapt!(mesh, solver)
+
+      # If mesh has changed, write a new mesh file name
+      if has_changed
+        mesh.current_filename = save_mesh_file(mesh, step)
+        set_initial_conditions(solver, time)
+      end
+    end
   end
   t_end = parameter("t_end")
 
@@ -118,7 +132,13 @@ function run(;args=nothing, kwargs...)
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
-          | n_steps_max:        $n_steps_max
+          | AMR:                $(amr_interval > 0 ? "yes" : "no")
+          """
+  if amr_interval > 0
+    s *= "| | AMR interval:     $amr_interval\n"
+    s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
+  end
+  s *= """| n_steps_max:        $n_steps_max
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
           | #parallel threads:  $(Threads.nthreads())
@@ -242,6 +262,16 @@ function run(;args=nothing, kwargs...)
       output_start_time = time_ns()
       @timeit timer() "I/O" save_restart_file(solver, mesh, time, dt, step)
       output_time += time_ns() - output_start_time
+    end
+
+    # Perform adaptive mesh refinement
+    if amr_interval > 0 && (step % amr_interval == 0)
+      has_changed = adapt!(mesh, solver)
+
+      # If mesh has changed, write a new mesh file name
+      if has_changed
+        mesh.current_filename = save_mesh_file(mesh, step)
+      end
     end
 
     # The following call ensures that when doing memory allocation
