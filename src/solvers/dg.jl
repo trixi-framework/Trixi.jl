@@ -432,7 +432,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
 end
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg, time::Real, dt::Real, step::Integer,
+function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
@@ -540,11 +540,20 @@ end
 
 # Calculate volume integral (DGSEM in weak form)
 function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
+  # Type alias only for convenience
+  M3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
+
     # Calculate volume fluxes
-    f1 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-    f2 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
     calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
@@ -564,12 +573,27 @@ end
 # Calculate volume integral (DGSEM in split form)
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
+  # Type alias only for convenience
+  M4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
+  M3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded = [M4d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [M4d(undef) for _ in 1:Threads.nthreads()]
+  f1_diag_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+  f2_diag_threaded = [M3d(undef) for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  for element_id in 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
+    f1_diag = f1_diag_threaded[Threads.threadid()]
+    f2_diag = f2_diag_threaded[Threads.threadid()]
+
     # Calculate volume fluxes (one more dimension than weak form)
-    f1 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    f2 = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}(undef)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
+                       element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -781,13 +805,24 @@ end
 
 # Calculate and store fluxes across surfaces
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg,
+                            u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
+  # Type alias only for convenience
+  M2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  V1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_threaded = [M2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [V1d(undef) for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
-  for s = 1:dg.n_surfaces
+  Threads.@threads for s = 1:dg.n_surfaces
+    # Choose thread-specific pre-allocated container
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
+
     # Calculate flux
-    fs = Matrix{Float64}(undef, nvariables(dg), nnodes(dg))
-    riemann!(fs, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -800,8 +835,12 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     right_neighbor_direction = 2 * orientations[s] - 1
 
     # Copy flux to left and right element storage
-    surface_flux[:, :, left_neighbor_direction,  left_neighbor_id]  .= fs
-    surface_flux[:, :, right_neighbor_direction, right_neighbor_id] .= fs
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i]
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i]
+      end
+    end
   end
 end
 
