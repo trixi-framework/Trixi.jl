@@ -14,6 +14,7 @@ using Profile: clear_malloc_data
 
 function run(;args=nothing, kwargs...)
   # Reset timer
+  # WOLOLO!
   reset_timer!(timer())
 
   # Handle command line arguments
