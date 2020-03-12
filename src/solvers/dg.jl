@@ -8,7 +8,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt,
-	            cons2entropy,cons2indicator
+	                  cons2entropy, cons2indicator, cons2indicator!
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -630,7 +630,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
   A2d = Array{Float64, 2}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+  A1d = Array{Float64, 1}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -647,7 +647,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
                             for _ in 1:Threads.nthreads()]
   u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
                              for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" calc_volume_integral!(dg, Val(:split_form), u_t, dsplit_transposed)=#
@@ -1081,19 +1081,30 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    for i in 1:nnodes(dg)
-      for j in 1:nnodes(dg)
-        @views indicator[1, i, j] = cons2indicator(equations(dg), u[:, i, j, element_id])
-      end
-    end
+    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg))
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
 
     # Calculate total energies for all modes, without highest, without two highest
-    total_energy = sum(modal.^2)
-    total_energy_clip1 = sum(modal[:, 1:nnodes(dg)-1, 1:nnodes(dg)-1].^2)
-    total_energy_clip2 = sum(modal[:, 1:nnodes(dg)-2, 1:nnodes(dg)-2].^2)
+    total_energy = 0.0
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        total_energy += modal[1, i, j]^2
+      end
+    end
+    total_energy_clip1 = 0.0
+    for j in 1:nnodes(dg)
+      for i in 1:(nnodes(dg)-1)
+        total_energy_clip1 += modal[1, i, j]^2
+      end
+    end
+    total_energy_clip2 = 0.0
+    for j in 1:nnodes(dg)
+      for i in 1:(nnodes(dg)-2)
+        total_energy_clip2 += modal[1, i, j]^2
+      end
+    end
 
     # Calculate energy in lower modes
     energy = max((total_energy - total_energy_clip1)/total_energy,

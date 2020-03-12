@@ -13,6 +13,7 @@ export riemann!
 export calc_max_dt
 export cons2prim
 export cons2indicator
+export cons2indicator!
 
 
 # Base type from which all systems of equations types inherit from
@@ -60,6 +61,7 @@ function riemann! end
 function calc_max_dt end
 function cons2prim end
 function cons2indicator end
+function cons2indicator! end
 function cons2entropy end
 
 # Next, include module files and make symbols available. Here we employ an
