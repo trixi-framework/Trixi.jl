@@ -6,6 +6,7 @@ const ndim = 2
 export ndim
 
 # Include all top-level submodule files
+include("parallel/parallel.jl")
 include("auxiliary/auxiliary.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")

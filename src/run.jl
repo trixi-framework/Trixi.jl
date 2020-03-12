@@ -6,6 +6,8 @@ using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
+using .Parallel: domain_id, n_domains, is_mpi_enabled, is_mpi_root, @mpi_root,
+                 mpi_finalize, @mpi_enabled
 
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!
@@ -29,7 +31,7 @@ function run(;args=nothing, kwargs...)
   end
 
   # Print starup message
-  print_startup_message()
+  @mpi_root print_startup_message()
 
   # Parse parameters file
   parse_parameters_file(args["parameters_file"])
@@ -42,27 +44,27 @@ function run(;args=nothing, kwargs...)
 
   # Initialize mesh
   if restart
-    print("Loading mesh... ")
+    @mpi_root print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
-    println("done")
+    @mpi_root println("done")
   else
-    print("Creating mesh... ")
+    @mpi_root print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
-    println("done")
+    @mpi_root println("done")
   end
 
   # Initialize system of equations
-  print("Initializing system of equations... ")
+  @mpi_root print("Initializing system of equations... ")
   equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
   equations = make_equations(equations_name)
-  println("done")
+  @mpi_root println("done")
 
   # Initialize solver
-  print("Initializing solver... ")
+  @mpi_root print("Initializing solver... ")
   solver_name = parameter("solver", valid=["dg"])
   solver = make_solver(solver_name, equations, mesh)
-  println("done")
+  @mpi_root println("done")
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central,
@@ -73,16 +75,16 @@ function run(;args=nothing, kwargs...)
 
   # Initialize solution
   if restart
-    print("Loading restart file...")
+    @mpi_root print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
-    println("done")
+    @mpi_root println("done")
   else
-    print("Applying initial conditions... ")
+    @mpi_root print("Applying initial conditions... ")
     t_start = parameter("t_start")
     time = t_start
     step = 0
     set_initial_conditions(solver, time)
-    println("done")
+    @mpi_root println("done")
   end
   t_end = parameter("t_end")
 
@@ -111,6 +113,7 @@ function run(;args=nothing, kwargs...)
           | restart:            $(restart ? "yes" : "no")
           """
   if restart
+    s *= "| | restart file:     $restart_filename\n"
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
@@ -121,7 +124,12 @@ function run(;args=nothing, kwargs...)
           | n_steps_max:        $n_steps_max
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
-          | #parallel threads:  $(Threads.nthreads())
+          |
+          | Parallelization
+          | | MPI enabled:      $(is_mpi_enabled())
+          | | domain id:        $(domain_id())
+          | | #domains:         $(n_domains())
+          | | #threads:         $(Threads.nthreads())
           |
           | Solver
           | | solver:           $solver_name
@@ -145,8 +153,8 @@ function run(;args=nothing, kwargs...)
           | | minimum dx:       $min_dx
           | | maximum dx:       $max_dx
           """
-  println()
-  println(s)
+  @mpi_root println()
+  @mpi_root println(s)
 
   # Set up main loop
   save_final_solution = parameter("save_final_solution", true)
@@ -205,7 +213,7 @@ function run(;args=nothing, kwargs...)
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       # Calculate absolute and relative runtime
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
-      runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /
+      runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 * n_domains() /
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
@@ -216,13 +224,13 @@ function run(;args=nothing, kwargs...)
       analysis_start_time = time_ns()
       output_time = 0.0
       n_analysis_timesteps = 0
-      if finalstep
+      if finalstep && is_mpi_root()
         println("-"^80)
         println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
         println("-"^80)
         println()
       end
-    elseif alive_interval > 0 && step % alive_interval == 0
+    elseif alive_interval > 0 && step % alive_interval == 0 && is_mpi_root()
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
               step, dt, time, runtime_absolute)
@@ -254,7 +262,12 @@ function run(;args=nothing, kwargs...)
   end
 
   # Print timer information
-  print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
-  println()
+  if is_mpi_root()
+    print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
+    println()
+  end
+
+  # Call to finalize MPI program
+  @mpi_enabled mpi_finalize()
 end
 

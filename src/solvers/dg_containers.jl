@@ -65,6 +65,37 @@ end
 nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
 
 
+# Container data structure (structure-of-arrays style) for DG mpi_surfaces
+struct MpiSurfaceContainer{V, N} <: AbstractContainer
+  u::Array{Float64, 4}      # [leftright, variables, i, mpi_surfaces]
+  element_ids::Vector{Int} # [mpi_surfaces]
+  element_sides::Vector{Int} # [mpi_surfaces]
+  neighbor_cell_ids::Vector{Int} # [mpi_surfaces]
+  orientations::Vector{Int} # [mpi_surfaces]
+end
+
+
+function MpiSurfaceContainer{V, N}(capacity::Integer) where {V, N}
+  # Initialize fields with defaults
+  n_nodes = N + 1
+  u = fill(NaN, 2, V, n_nodes, capacity)
+  element_ids = fill(typemin(Int), capacity)
+  # Element sides: left -> 1, right -> 2
+  element_sides = fill(typemin(Int), capacity)
+  neighbor_cell_ids = fill(typemin(Int), capacity)
+  orientations = fill(typemin(Int), capacity)
+
+  mpi_surfaces = MpiSurfaceContainer{V, N}(u, element_ids, element_sides,
+                                           neighbor_cell_ids, orientations)
+
+  return mpi_surfaces
+end
+
+
+# Return number of mpi_surfaces
+nmpisurfaces(mpi_surfaces::MpiSurfaceContainer) = length(mpi_surfaces.orientations)
+
+
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for large_sides = 1, orientations = 1:
 #           |    |
