@@ -611,6 +611,41 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*differentiation_matrix*entropy[v,:, :,element_id]
       f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(differentiation_matrix)
     end
+    # at H matrix for laplace type viscosity operator!
+    vec = zeros(nvariables(dg))
+    cons = zeros(nvariables(dg))
+    h_matrix = zeros(nvariables(dg),nvariables(dg))
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+	# compute H matrix
+	cons = dg.elements.u[:,i,j,element_id]
+	v1 = cons[2]/cons[1]
+	v2 = cons[3]/cons[1]
+	rhov1v1 = cons[2]*v1
+	rhov2v2 = cons[3]*v2
+	rhov1v2 = cons[2]*v2
+	#rhov2v1 = cons[3]*v1
+	p = (equation.gamma - 1)*(cons[4] - 0.5*(rhov1v1+rhov2v2))
+	h = (cons[4] + p)/cons[1]
+	a_square = equation.gamma*p/cons[1]
+	h_matrix[1,:] = cons
+	h_matrix[2:4,1] = cons[2:4]
+	h_matrix[2,2] = rhov1v1+p
+	h_matrix[2,3] = rhov1v2
+	h_matrix[3,2] = h_matrix[2,3]
+	h_matrix[2,4] = cons[1]*h*v1
+	h_matrix[4,2] = h_matrix[2,4]
+	h_matrix[3,3] = rhov2v2+p
+	h_matrix[3,4] = cons[1]*h*v2
+	h_matrix[4,3] = h_matrix[3,4]
+	h_matrix[4,4] = cons[1]*h*h - a_square*p/(equation.gamma-1)
+        # apply H matrix to the two viscous fluxes to get Laplacian type viscosity
+	vec[:] = f1_visc[:,i,j]
+	f1_visc[:,i,j] = h_matrix*vec
+	vec[:] = f2_visc[:,i,j]
+	f2_visc[:,i,j] = h_matrix*vec
+      end
+    end
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
