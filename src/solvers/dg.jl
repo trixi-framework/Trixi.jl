@@ -1164,4 +1164,41 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
   return alpha, element_ids_dg, element_ids_dgfv
 end
 
+
+function refine!(dg::Dg, cells_to_refine::AbstractArray{Int})
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = dg.mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(dg.elements)
+    c2e[dg.elements.cell_ids[element_id]] = element_id
+  end
+  elements_to_refine = c2e[cells_to_refine]
+
+  # Loop over all elements and refine them
+  for element_id in elements_to_refine
+    #....
+  end
+
+  # Sanity check: make sure that cell centers and element centers match
+  for element_id in 1:nelements(dg.elements)
+    # Get cell id from element
+    cell_id = dg.elements.cell_ids[element_id]
+
+    # Determine element coordinate as average over first and last node
+    # coordinates, as they are symmetric
+    element_center = [0.0, 0.0]
+    element_center[1] = 1/2 * (dg.elements.node_coordinates[1, 1,   j, element_id] +
+                               dg.elements.node_coordinates[1, end, j, element_id])
+    element_center[2] = 1/2 * (dg.elements.node_coordinates[2, i, 1,   element_id] +
+                               dg.elements.node_coordinates[2, i, end, element_id])
+
+    # Check if coordinates match
+    if !isapprox(element_center, tree.coordinates[:, cell_id], atol=1e-12)
+      error("element center for element $element_id ($element_center) does not match " *
+            "corresponding center for cell $cell_id $((tree.coordinates[:, cell_id]))")
+    end
+  end
+end
+
+
 end # module
