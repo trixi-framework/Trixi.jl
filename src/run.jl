@@ -92,9 +92,10 @@ function run(;args=nothing, kwargs...)
       has_changed = adapt!(mesh, solver)
 
       # If mesh has changed, write a new mesh file name
-      if has_changed
+      while has_changed
         mesh.current_filename = save_mesh_file(mesh, step)
         set_initial_conditions(solver, time)
+        has_changed = adapt!(mesh, solver)
       end
     end
   end
@@ -266,7 +267,7 @@ function run(;args=nothing, kwargs...)
 
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0)
-      has_changed = adapt!(mesh, solver)
+      @timeit timer() "AMR" has_changed = adapt!(mesh, solver)
 
       # If mesh has changed, write a new mesh file name
       if has_changed

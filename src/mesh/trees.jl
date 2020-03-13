@@ -23,17 +23,17 @@ export Tree
 # no children at all (= leaf cell). This restriction is also assumed at
 # multiple positions in the refinement/coarsening algorithms.
 #
-# An exception to the 2:1 rule exists for the low-level
-# `refine_unbalanced!` and `coarsen_unbalanced!` functions, which is required
-# for implementing level-wise refinement/coarsening in a sane way. Also,
-# depth-first ordering *might* not by guaranteed during refinement/coarsening
-# operations.
+# An exception to the 2:1 rule exists for the low-level `refine_unbalanced!`
+# function, which is required for implementing level-wise refinement in a sane
+# way. Also, depth-first ordering *might* not by guaranteed during
+# refinement/coarsening operations.
 mutable struct Tree{D} <: AbstractContainer
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
   neighbor_ids::Matrix{Int}
   levels::Vector{Int}
   coordinates::Matrix{Float64}
+  original_cell_ids::Vector{Int}
 
   capacity::Int
   length::Int
@@ -56,6 +56,7 @@ mutable struct Tree{D} <: AbstractContainer
     t.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, D, capacity + 1)
+    t.original_cell_ids = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
@@ -97,12 +98,12 @@ function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
 
   # Create root cell
   t.length += 1
-  t.levels[1] = 0
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
   t.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
+  t.original_cell_ids[1] = 1
 end
 
 
@@ -115,6 +116,7 @@ function Base.show(io::IO, t::Tree{D}) where D
   println(io, "transpose(t.neighbor_ids[:, 1:l]) = $(transpose(t.neighbor_ids[:, 1:l]))")
   println(io, "t.levels[1:l] = $(t.levels[1:l])")
   println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
+  println(io, "t.original_cell_ids[1:l] = $(t.original_cell_ids[1:l])")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
@@ -259,6 +261,12 @@ leaf_cells(t::Tree) = filter_leaf_cells((cell_id)->true, t)
 count_leaf_cells(t::Tree) = length(leaf_cells(t))
 
 
+# Store cell id in each cell to use for post-AMR analysis
+function reset_original_cell_ids!(t::Tree)
+  t.original_cell_ids[1:length(t)] .= 1:length(t)
+end
+
+
 # Refine entire tree by one level
 refine!(t::Tree) = refine!(t, leaf_cells(t))
 
@@ -270,12 +278,31 @@ refine!(t::Tree) = refine!(t, leaf_cells(t))
 #         refinements.
 # Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
 function refine!(t::Tree, cell_ids)
+  # Reset original cell ids such that each cell knows its current id
+  reset_original_cell_ids!(t)
+
+  # Refine all requested cells
   refined = refine_unbalanced!(t, cell_ids)
+  refinement_count = length(refined)
+
+  # Iteratively rebalance the tree until it does not change anymore
   while length(refined) > 0
     refined = rebalance!(t, refined)
+    refinement_count += length(refined)
   end
 
-  return refined
+  # Determine list of *original* cell ids that were refined
+  # Note: original_cell_ids contains the cell_id *before* refinement. At
+  # refinement, the refined cell's original_cell_ids value is flipped in sign
+  # to easily find it later.
+  @views refined_original_cells = (
+      -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+
+  # Check if count of refinement cells matches information in original_cell_ids
+  @assert refinement_count == length(refined_original_cells) (
+      "Mismatch in number of refined cells")
+
+  return refined_original_cells
 end
 
 
@@ -378,6 +405,9 @@ function refine_unbalanced!(t::Tree, cell_ids)
     # Insert new cells directly behind parent (depth-first)
     insert!(t, cell_id + 1, n_children)
 
+    # Flip sign of refined cell such that we can easily find it
+    t.original_cell_ids[cell_id] = -t.original_cell_ids[cell_id]
+
     # Initialize child cells
     for child in 1:n_children
       # Set child information based on parent
@@ -389,6 +419,7 @@ function refine_unbalanced!(t::Tree, cell_ids)
       t.levels[child_id] = t.levels[cell_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+      t.original_cell_ids[child_id] = 0
 
       # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
@@ -618,6 +649,7 @@ function invalidate!(t::Tree, first::Int, last::Int)
   t.neighbor_ids[:, first:last] .= typemin(Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
+  t.original_cell_ids[first:last] .= typemin(Int)
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::Tree) = invalidate!(t, 1, length(t))
@@ -741,6 +773,7 @@ function raw_copy!(target::Tree, source::Tree, first::Int,
              destination, n_directions(target))
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
+  copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
 end
 function raw_copy!(c::AbstractContainer, first::Int,
                                         last::Int, destination::Int)
@@ -762,6 +795,7 @@ function reset_data_structures!(t::Tree{D}) where D
   t.neighbor_ids = Matrix{Int}(undef, 2*D, t.capacity + 1)
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, D, t.capacity + 1)
+  t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end

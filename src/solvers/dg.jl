@@ -32,10 +32,12 @@ export calc_dt
 export calc_error_norms
 export calc_entropy_timederivative
 export analyze_solution
+export refine!
+export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
+mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -76,15 +78,15 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   leaf_cell_ids = leaf_cells(mesh.tree)
   n_elements = length(leaf_cell_ids)
 
-  # Initialize elements
+  # Initialize elements container
   elements = ElementContainer{V, N}(n_elements)
-  elements.cell_ids .= leaf_cell_ids
+  init_elements(elements, leaf_cell_ids, mesh, N + 1)
 
-  # Initialize surfaces
+  # Initialize surfaces container
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
-  # Initialize L2 mortars
+  # Initialize L2 mortars container
   n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
   l2mortars = L2MortarContainer{V, N}(n_l2mortars)
 
@@ -140,28 +142,6 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume)
-
-  # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:n_elements
-    # Get cell id
-    cell_id = leaf_cell_ids[element_id]
-
-    # Get cell length
-    dx = length_at_cell(mesh.tree, cell_id)
-
-    # Calculate inverse Jacobian as 1/(h/2)
-    dg.elements.inverse_jacobian[element_id] = 2/dx
-
-    # Calculate node coordinates
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-        dg.elements.node_coordinates[1, i, j, element_id] = (
-            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
-        dg.elements.node_coordinates[2, i, j, element_id] = (
-            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
-      end
-    end
-  end
 
   return dg
 end
@@ -241,6 +221,38 @@ function count_required_l2mortars(mesh::TreeMesh, cell_ids)
   end
 
   return count
+end
+
+
+# Initialize element data after creating a new elements container
+function init_elements(elements, cell_ids, mesh, n_nodes::Int)
+  # Store cell ids
+  elements.cell_ids .= cell_ids
+
+  # Determine node locations
+  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Calculate inverse Jacobian and node coordinates
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = cell_ids[element_id]
+
+    # Get cell length
+    dx = length_at_cell(mesh.tree, cell_id)
+
+    # Calculate inverse Jacobian as 1/(h/2)
+    elements.inverse_jacobian[element_id] = 2/dx
+
+    # Calculate node coordinates
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+        elements.node_coordinates[1, i, j, element_id] = (
+            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+        elements.node_coordinates[2, i, j, element_id] = (
+            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
+      end
+    end
+  end
 end
 
 
@@ -1165,39 +1177,183 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
 end
 
 
-function refine!(dg::Dg, cells_to_refine::AbstractArray{Int})
-  # Construct cell -> element mapping for easier algorithm implementation
-  tree = dg.mesh.tree
-  c2e = zeros(Int, length(tree))
-  for element_id in 1:nelements(dg.elements)
-    c2e[dg.elements.cell_ids[element_id]] = element_id
-  end
-  elements_to_refine = c2e[cells_to_refine]
+function Solvers.refine!(dg::Dg, mesh::TreeMesh, refined_original_cells::AbstractArray{Int})
+  # Determine for each old element whether it needs to be refined
+  needs_refinement = falses(nelements(dg.elements))
+  tree = mesh.tree
+  elements_to_refine = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
+                                          refined_original_cells)
+  needs_refinement[elements_to_refine] .= true
 
-  # Loop over all elements and refine them
-  for element_id in elements_to_refine
-    #....
-  end
+  # Retain current solution data
+  old_n_elements = nelements(dg.elements)
+  old_u = dg.elements.u
 
-  # Sanity check: make sure that cell centers and element centers match
-  for element_id in 1:nelements(dg.elements)
-    # Get cell id from element
-    cell_id = dg.elements.cell_ids[element_id]
+  # Get new list of leaf cells
+  leaf_cell_ids = leaf_cells(tree)
+  n_elements = length(leaf_cell_ids)
 
-    # Determine element coordinate as average over first and last node
-    # coordinates, as they are symmetric
-    element_center = [0.0, 0.0]
-    element_center[1] = 1/2 * (dg.elements.node_coordinates[1, 1,   j, element_id] +
-                               dg.elements.node_coordinates[1, end, j, element_id])
-    element_center[2] = 1/2 * (dg.elements.node_coordinates[2, i, 1,   element_id] +
-                               dg.elements.node_coordinates[2, i, end, element_id])
+  # Initialize new elements container
+  elements = ElementContainer{nvariables(dg), polydeg(dg)}(n_elements)
+  init_elements(elements, leaf_cell_ids, mesh, nnodes(dg))
 
-    # Check if coordinates match
-    if !isapprox(element_center, tree.coordinates[:, cell_id], atol=1e-12)
-      error("element center for element $element_id ($element_center) does not match " *
-            "corresponding center for cell $cell_id $((tree.coordinates[:, cell_id]))")
+  # Loop over all elements in old container and either copy them or refine them
+  element_id = 1
+  for old_element_id in 1:old_n_elements
+    if needs_refinement[old_element_id]
+      refine_element!(elements.u, element_id, old_u, old_element_id, dg,
+                      dg.l2mortar_forward_upper, dg.l2mortar_forward_lower)
+      element_id += 2^ndim
+    else
+      # Copy old element data to new element container
+      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+      element_id += 1
     end
   end
+
+  # Initialize new surfaces container
+  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
+  surfaces = SurfaceContainer{nvariables(dg), polydeg(dg)}(n_surfaces)
+
+  # Initialize L2 mortars container
+  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
+  l2mortars = L2MortarContainer{nvariables(dg), polydeg(dg)}(n_l2mortars)
+
+  # Sanity check
+  if n_l2mortars == 0
+    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Connect elements with surfaces and l2mortars
+  init_surface_connectivity!(elements, surfaces, mesh)
+  init_l2mortar_connectivity!(elements, l2mortars, mesh)
+
+  # Update DG instance with new data
+  dg.elements = elements
+  dg.n_elements = n_elements
+  dg.surfaces = surfaces
+  dg.n_surfaces = n_surfaces
+  dg.l2mortars = l2mortars
+  dg.n_l2mortars = n_l2mortars
+
+  # Sanity check: make sure that cell centers and element centers match
+  #=for element_id in 1:nelements(new_elements)=#
+  #=  # Get cell id from element=#
+  #=  cell_id = new_elements.cell_ids[element_id]=#
+
+  #=  # Determine element coordinate as average over first and last node=#
+  #=  # coordinates, as they are symmetric=#
+  #=  element_center = [0.0, 0.0]=#
+  #=  element_center[1] = 1/2 * (new_elements.node_coordinates[1, 1,   j, element_id] +=#
+  #=                             new_elements.node_coordinates[1, end, j, element_id])=#
+  #=  element_center[2] = 1/2 * (new_elements.node_coordinates[2, i, 1,   element_id] +=#
+  #=                             new_elements.node_coordinates[2, i, end, element_id])=#
+
+  #=  # Check if coordinates match=#
+  #=  if !isapprox(element_center, tree.coordinates[:, cell_id], atol=1e-12)=#
+  #=    error("element center for element $element_id ($element_center) does not match " *=#
+  #=          "corresponding center for cell $cell_id $((tree.coordinates[:, cell_id]))")=#
+  #=  end=#
+  #=end=#
+end
+
+
+function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
+                         old_u::AbstractArray{Float64, 4}, old_element_id::Int,
+                         dg::Dg,
+                         forward_upper::AbstractMatrix{Float64},
+                         forward_lower::AbstractMatrix{Float64})
+  # Store new element ids
+  lower_left_id  = element_id
+  lower_right_id = element_id + 1
+  upper_left_id  = element_id + 2
+  upper_right_id = element_id + 3
+
+  # Interpolate to lower left element
+  u[:, :, :, lower_left_id] .= 0.0
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, lower_left_id] += (old_u[v, k, l, old_element_id] *
+                                          forward_lower[i, k] * forward_lower[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Interpolate to lower right element
+  u[:, :, :, lower_right_id] .= 0.0
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, lower_right_id] += (old_u[v, k, l, old_element_id] *
+                                           forward_upper[i, k] * forward_lower[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Interpolate to upper left element
+  u[:, :, :, upper_left_id] .= 0.0
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, upper_left_id] += (old_u[v, k, l, old_element_id] *
+                                          forward_lower[i, k] * forward_upper[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Interpolate to upper right element
+  u[:, :, :, upper_right_id] .= 0.0
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, upper_right_id] += (old_u[v, k, l, old_element_id] *
+                                           forward_upper[i, k] * forward_upper[j, l])
+          end
+        end
+      end
+    end
+  end
+end
+
+
+# Calculate an AMR indicator value for each element/leaf cell
+#
+# The indicator value λ ∈ [-1,1] is ≈ -1 for cells that should be coarsened, ≈
+# 0 for cells that should remain as-is, and ≈ 1 for cells that should be
+# refined.
+#
+# Note: The implementation here implicitly assumes that we have an element for
+# each leaf cell and that they are in the same order.
+function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh)
+  lambda = zeros(dg.n_elements)
+
+  # First AMR test: refine all elements with positive x-coordinate
+  # FIXME: Use actualy indicator function
+  for element_id in 1:dg.n_elements
+    cell_id = dg.elements.cell_ids[element_id]
+    x = mesh.tree.coordinates[1, cell_id]
+    if x > 0
+      lambda[element_id] = 1.0
+    end
+  end
+
+  return lambda
 end
 
 

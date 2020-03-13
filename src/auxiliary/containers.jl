@@ -44,7 +44,7 @@ end
 # Inquire about capacity and size
 capacity(c::AbstractContainer) = c.capacity
 Base.length(c::AbstractContainer) = c.length
-size(c::AbstractContainer) = (length(c),)
+Base.size(c::AbstractContainer) = (length(c),)
 
 
 # Increase container length by `count` elements
