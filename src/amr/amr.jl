@@ -17,7 +17,7 @@ using HDF5: h5open, attrs
 export adapt!
 
 
-function adapt!(mesh::TreeMesh, solver::AbstractSolver)
+function adapt!(mesh::TreeMesh, solver::AbstractSolver, only_refine=false)
   print("Begin adaptation...")
   # Alias for convenience
   tree = mesh.tree
@@ -48,7 +48,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver)
     refined_original_cells = Int[]
   end
 
-  if !isempty(to_coarsen)
+  if !only_refine && !isempty(to_coarsen)
     # ...
   else
     coarsened_original_cells = Int[]

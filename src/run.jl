@@ -89,14 +89,16 @@ function run(;args=nothing, kwargs...)
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      has_changed = adapt!(mesh, solver)
+      has_changed = adapt!(mesh, solver, true)
 
       # If mesh has changed, write a new mesh file name
       while has_changed
-        mesh.current_filename = save_mesh_file(mesh, step)
         set_initial_conditions(solver, time)
-        has_changed = adapt!(mesh, solver)
+        has_changed = adapt!(mesh, solver, true)
       end
+
+      # Save mesh file
+      mesh.current_filename = save_mesh_file(mesh)
     end
   end
   t_end = parameter("t_end")
@@ -192,6 +194,7 @@ function run(;args=nothing, kwargs...)
   analysis_start_time = time_ns()
   output_time = 0.0
   n_analysis_timesteps = 0
+  return
 
   # Start main loop (loop until final time step is reached)
   finalstep = false

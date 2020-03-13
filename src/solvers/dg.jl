@@ -69,6 +69,8 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_weights_volume::SVector{NAnap1}
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
+
+  amr_indicator::Symbol
 end
 
 
@@ -130,6 +132,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Initialize AMR
+  amr_indicator = Symbol(parameter("amr_indicator", "target_level", valid=["target_level"]))
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -141,7 +146,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume)
+      analysis_vandermonde, analysis_total_volume,
+      amr_indicator)
 
   return dg
 end
@@ -1343,14 +1349,50 @@ end
 function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh)
   lambda = zeros(dg.n_elements)
 
-  # First AMR test: refine all elements with positive x-coordinate
-  # FIXME: Use actualy indicator function
-  for element_id in 1:dg.n_elements
-    cell_id = dg.elements.cell_ids[element_id]
-    x = mesh.tree.coordinates[1, cell_id]
-    if x > 0
-      lambda[element_id] = 1.0
+  if dg.amr_indicator === :target_level
+    base_level = 4
+    max_level = 6
+    threshold_high = 0.6
+    threshold_low = 0.1
+
+    #=target_level_type = parameter("amr_target_level_type", "center", valid=["center"])=#
+    #=target_level_value = parameter("amr_target_level_value", 6)=#
+    #=for element_id in 1:dg.n_elements=#
+    #=  cell_id = dg.elements.cell_ids[element_id]=#
+    #=  x = mesh.tree.coordinates[1, cell_id]=#
+    #=  y = mesh.tree.coordinates[2, cell_id]=#
+    #=  if abs(x) < 0.5 && abs(y) < 0.5=#
+    #=    if mesh.tree.levels[cell_id] < target_level_value=#
+    #=      lambda[element_id] = 1.0=#
+    #=    end=#
+    #=  end=#
+    #=end=#
+
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      # Determine target level from peak value
+      peak = maximum(dg.elements.u[:, :, :, element_id])
+      if peak > threshold_high
+        target_level = max_level
+      elseif peak > threshold_low
+        target_level = max_level - 1
+      else
+        target_level = base_level
+      end
+
+      # Compare target level with actual level to set indicator
+      cell_id = dg.elements.cell_ids[element_id]
+      actual_level = mesh.tree.levels[cell_id]
+      if actual_level < target_level
+        lambda[element_id] = 1.0
+      elseif actual_level > target_level
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
     end
+  else
+    error("unknown AMR indicator '$(dg.amr_indicator)'")
   end
 
   return lambda
