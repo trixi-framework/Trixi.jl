@@ -1243,26 +1243,6 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, refined_original_cells::Abstrac
   dg.n_surfaces = n_surfaces
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
-
-  # Sanity check: make sure that cell centers and element centers match
-  #=for element_id in 1:nelements(new_elements)=#
-  #=  # Get cell id from element=#
-  #=  cell_id = new_elements.cell_ids[element_id]=#
-
-  #=  # Determine element coordinate as average over first and last node=#
-  #=  # coordinates, as they are symmetric=#
-  #=  element_center = [0.0, 0.0]=#
-  #=  element_center[1] = 1/2 * (new_elements.node_coordinates[1, 1,   j, element_id] +=#
-  #=                             new_elements.node_coordinates[1, end, j, element_id])=#
-  #=  element_center[2] = 1/2 * (new_elements.node_coordinates[2, i, 1,   element_id] +=#
-  #=                             new_elements.node_coordinates[2, i, end, element_id])=#
-
-  #=  # Check if coordinates match=#
-  #=  if !isapprox(element_center, tree.coordinates[:, cell_id], atol=1e-12)=#
-  #=    error("element center for element $element_id ($element_center) does not match " *=#
-  #=          "corresponding center for cell $cell_id $((tree.coordinates[:, cell_id]))")=#
-  #=  end=#
-  #=end=#
 end
 
 
