@@ -8,10 +8,10 @@ advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 # initial_conditions = "constant"
 # initial_conditions = "linear-x-y"
 initial_conditions = "gauss"
-surface_flux_type = "laxfriedrichs"
+# surface_flux_type = "laxfriedrichs"
 # sources = 
 t_start = 0.0
-t_end   = 5.0
+t_end   = 10.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -29,10 +29,10 @@ analysis_interval = 100
 ####################################################################################################
 # Mesh
 n_cells_max = 10000
-coordinates_min = [-10, -10]
-coordinates_max =  [10, 10]
-initial_refinement_level = 5
-amr_interval = 20
+coordinates_min = [-5, -5]
+coordinates_max = [ 5,  5]
+initial_refinement_level = 4
+amr_interval = 5
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
 #   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
