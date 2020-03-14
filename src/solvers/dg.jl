@@ -33,6 +33,7 @@ export calc_error_norms
 export calc_entropy_timederivative
 export analyze_solution
 export refine!
+export coarsen!
 export calc_amr_indicator
 
 
@@ -1330,6 +1331,152 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
           for v = 1:nvariables(dg)
             u[v, i, j, upper_right_id] += (old_u[v, k, l, old_element_id] *
                                            forward_upper[i, k] * forward_upper[j, l])
+          end
+        end
+      end
+    end
+  end
+end
+
+
+function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, removed_child_cells::AbstractArray{Int})
+  # Determine for each old element whether it needs to be removed
+  to_be_removed = falses(nelements(dg.elements))
+  elements_to_remove = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
+                                          removed_child_cells)
+  to_be_removed[elements_to_remove] .= true
+
+  # Retain current solution data
+  old_n_elements = nelements(dg.elements)
+  old_u = dg.elements.u
+
+  # Get new list of leaf cells
+  leaf_cell_ids = leaf_cells(mesh.tree)
+  n_elements = length(leaf_cell_ids)
+
+  # Initialize new elements container
+  elements = ElementContainer{nvariables(dg), polydeg(dg)}(n_elements)
+  init_elements(elements, leaf_cell_ids, mesh, nnodes(dg))
+
+  # Loop over all elements in old container and either copy them or coarsen them
+  skip = 0
+  element_id = 1
+  for old_element_id in 1:old_n_elements
+    # If skip is set, we just coarsened 2^ndim elements and need to omit the following elements
+    if skip > 0
+      skip -= 1
+      continue
+    end
+
+    if to_be_removed[old_element_id]
+      # If an element is to be removed, sanity check if the following elements
+      # are also marked - otherwise there would be an error in the way the
+      # cells/elements are sorted
+      @assert all(to_be_removed[old_element_id:(old_element_id+2^ndim-1)]) "bad cell/element order"
+
+      coarsen_elements!(elements.u, element_id, old_u, old_element_id, dg,
+                        dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower)
+      element_id += 1
+      skip = 3
+    else
+      # Copy old element data to new element container
+      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+      element_id += 1
+    end
+  end
+
+  # Initialize new surfaces container
+  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
+  surfaces = SurfaceContainer{nvariables(dg), polydeg(dg)}(n_surfaces)
+
+  # Initialize L2 mortars container
+  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
+  l2mortars = L2MortarContainer{nvariables(dg), polydeg(dg)}(n_l2mortars)
+
+  # Sanity check
+  if n_l2mortars == 0
+    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Connect elements with surfaces and l2mortars
+  init_surface_connectivity!(elements, surfaces, mesh)
+  init_l2mortar_connectivity!(elements, l2mortars, mesh)
+
+  # Update DG instance with new data
+  dg.elements = elements
+  dg.n_elements = n_elements
+  dg.surfaces = surfaces
+  dg.n_surfaces = n_surfaces
+  dg.l2mortars = l2mortars
+  dg.n_l2mortars = n_l2mortars
+end
+
+
+function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
+                           old_u::AbstractArray{Float64, 4}, old_element_id::Int,
+                           dg::Dg,
+                           reverse_upper::AbstractMatrix{Float64},
+                           reverse_lower::AbstractMatrix{Float64})
+  # Store old element ids
+  lower_left_id  = old_element_id
+  lower_right_id = old_element_id + 1
+  upper_left_id  = old_element_id + 2
+  upper_right_id = old_element_id + 3
+
+  # Reset solution
+  u[:, :, :, element_id] .= 0.0
+
+  # Project from lower left element
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, element_id] += (old_u[v, k, l, lower_left_id] *
+                                       reverse_lower[i, k] * reverse_lower[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Project from lower right element
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, element_id] += (old_u[v, k, l, lower_right_id] *
+                                       reverse_upper[i, k] * reverse_lower[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Project from upper left element
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, element_id] += (old_u[v, k, l, upper_left_id] *
+                                       reverse_lower[i, k] * reverse_upper[j, l])
+          end
+        end
+      end
+    end
+  end
+
+  # Project from upper right element
+  for j = 1:nnodes(dg)
+    for i = 1:nnodes(dg)
+      for l = 1:nnodes(dg)
+        for k = 1:nnodes(dg)
+          for v = 1:nvariables(dg)
+            u[v, i, j, element_id] += (old_u[v, k, l, upper_right_id] *
+                                       reverse_upper[i, k] * reverse_upper[j, l])
           end
         end
       end

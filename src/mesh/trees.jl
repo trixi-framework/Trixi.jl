@@ -2,7 +2,7 @@ module Trees
 
 using StaticArrays: MVector, @MVector
 import ...Auxiliary.Containers: invalidate!, raw_copy!, move_connectivity!, delete_connectivity!
-using ...Auxiliary.Containers: AbstractContainer, clear!, insert!, copy_data!
+using ...Auxiliary.Containers: AbstractContainer, clear!, insert!, copy_data!, remove_shift!
 import Base
 
 export Tree
@@ -487,14 +487,16 @@ end
 function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
   # Return early if array is empty
   if length(cell_ids) == 0
-    return
+    return Int[]
   end
+
+  # Reset original cell ids such that each cell knows its current id
+  reset_original_cell_ids!(t)
 
   # To maximize the number of cells that may be coarsened, start with the cells at the highest level
   sorted_by_level = sort(cell_ids, by = i -> t.levels[i])
 
-  # Keep track of cells that were actually coarsened
-  coarsened = similar(cell_ids)
+  # Keep track of number of cells that were actually coarsened
   n_coarsened = 0
 
   # Local function to adjust cell ids after some cells have been removed
@@ -568,21 +570,34 @@ function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
       continue
     end
 
+    # Flip sign of cell to be coarsened to such that we can easily find it
+    t.original_cell_ids[coarse_cell_id] = -t.original_cell_ids[coarse_cell_id]
+
     # If a coarse cell has children that are all leaf cells, they must follow
     # immediately due to depth-first ordering of the tree
     count = n_children(t, coarse_cell_id)
+    @assert count == n_children_per_cell(t) "cell $coarse_cell_id does not have all child cells"
     remove_shift!(t, coarse_cell_id + 1, coarse_cell_id + count)
 
     # Take into account shifts in tree that alters cell ids
     adjust_cell_ids!(sorted_by_level, coarse_cell_id, count)
-    adjust_cell_ids!(coarsened, coarse_cell_id, count)
 
-    # Keep track of coarsened cells
-    coarsened[n_coarsened + 1] = coarse_cell_id
+    # Keep track of number of coarsened cells
     n_coarsened += 1
   end
 
-  return coarsened
+  # Determine list of *original* cell ids that were coarsened to
+  # Note: original_cell_ids contains the cell_id *before* coarsening. At
+  # coarsening, the coarsened parent cell's original_cell_ids value is flipped in sign
+  # to easily find it later.
+  @views coarsened_original_cells = (
+      -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+
+  # Check if count of coarsened cells matches information in original_cell_ids
+  @assert n_coarsened == length(coarsened_original_cells) (
+      "Mismatch in number of coarsened cells")
+
+  return coarsened_original_cells
 end
 
 # Wrap single-cell coarsening such that `sort(...)` does not complain
