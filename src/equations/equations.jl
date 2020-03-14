@@ -13,6 +13,7 @@ export riemann!
 export calc_max_dt
 export cons2prim
 export cons2indicator
+export cons2indicator!
 export calc_h_matrix!
 export calc_f1_entropy
 export calc_f2_entropy
@@ -63,6 +64,7 @@ function riemann! end
 function calc_max_dt end
 function cons2prim end
 function cons2indicator end
+function cons2indicator! end
 function cons2entropy end
 function calc_h_matrix! end
 function calc_f1_entropy end

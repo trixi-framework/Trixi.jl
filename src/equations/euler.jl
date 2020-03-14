@@ -18,6 +18,7 @@ export calc_h_matrix!
 export cons2prim
 export cons2entropy
 export cons2indicator
+export cons2indicator!
 
 
 # Main data structure for system of equations "Euler"
@@ -39,9 +40,10 @@ struct Euler <: AbstractEquation{4}
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs","central","kennedygruber","chandrashekar_ec"]))
+                                         valid=["hllc", "laxfriedrichs","central", 
+                                                "kennedygruber", "chandrashekar_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central","kennedygruber","chandrashekar_ec"]))
+                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -218,47 +220,60 @@ end
 # Calculate 2D two-point flux (decide which volume flux type to use)
 @inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
                                               f2::AbstractArray{Float64},
+                                              f1_diag::AbstractArray{Float64},
+                                              f2_diag::AbstractArray{Float64},
                                               equation::Euler,
                                               u::AbstractArray{Float64},
                                               element_id::Int, n_nodes::Int)
-  calcflux_twopoint!(f1, f2, Val(equation.volume_flux_type), equation, u, element_id, n_nodes)
+  calcflux_twopoint!(f1, f2, f1_diag, f2_diag, Val(equation.volume_flux_type),
+                     equation, u, element_id, n_nodes)
 end
 
 # Calculate 2D two-point flux (element version)
 @inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
                                               f2::AbstractArray{Float64},
+                                              f1_diag::AbstractArray{Float64},
+                                              f2_diag::AbstractArray{Float64},
                                               twopoint_flux_type::Val,
                                               equation::Euler,
                                               u::AbstractArray{Float64},
                                               element_id::Int, n_nodes::Int)
   # Calculate regular volume fluxes
-  f1_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
-  f2_diag = MArray{Tuple{nvariables(equation), n_nodes, n_nodes}, Float64}(undef)
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
 
 
   for j = 1:n_nodes
     for i = 1:n_nodes
       # Set diagonal entries (= regular volume fluxes due to consistency)
-      @views f1[:, i, i, j] .= f1_diag[:, i, j]
-      @views f2[:, j, i, j] .= f2_diag[:, i, j]
+      for v in 1:nvariables(equation)
+        f1[v, i, i, j] = f1_diag[v, i, j]
+        f2[v, j, i, j] = f2_diag[v, i, j]
+      end
 
       # Flux in x-direction
       for l = i + 1:n_nodes
         @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
                                         equation, 1, # 1-> x-direction
-                                        u[:, i, j, element_id],
-                                        u[:, l, j, element_id])
-        @views f1[:, i, l, j] .= f1[:, l, i, j]
+                                        u[1, i, j, element_id], u[2, i, j, element_id],
+                                        u[3, i, j, element_id], u[4, i, j, element_id], 
+                                        u[1, l, j, element_id], u[2, l, j, element_id],
+                                        u[3, l, j, element_id], u[4, l, j, element_id])
+        for v in 1:nvariables(equation)
+          f1[v, i, l, j] = f1[v, l, i, j]
+        end
       end
 
       # Flux in y-direction
       for l = j + 1:n_nodes
         @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
                                         equation, 2, # 2 -> y-direction
-                                        u[:, i, j, element_id],
-                                        u[:, i, l, element_id])
-        @views f2[:, j, i, l] .= f2[:, l, i, j]
+                                        u[1, i, j, element_id], u[2, i, j, element_id],
+                                        u[3, i, j, element_id], u[4, i, j, element_id], 
+                                        u[1, i, l, element_id], u[2, i, l, element_id],
+                                        u[3, i, l, element_id], u[4, i, l, element_id])
+        for v in 1:nvariables(equation)
+          f2[v, j, i, l] = f2[v, l, i, j]
+        end
       end
     end
   end
@@ -268,13 +283,19 @@ end
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
                                           equation::Euler, orientation::Int,
-                                          u_ll::AbstractArray{Float64},
-                                          u_rr::AbstractArray{Float64})
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
   # Calculate regular 1D fluxes
   f_ll = MVector{4, Float64}(undef)
   f_rr = MVector{4, Float64}(undef)
-  calcflux1D!(f_ll, equation, u_ll[1], u_ll[2], u_ll[3], u_ll[4], orientation)
-  calcflux1D!(f_rr, equation, u_rr[1], u_rr[2], u_rr[3], u_rr[4], orientation)
+  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
+  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
   # Average regular fluxes
   @. f[:] = 1/2 * (f_ll + f_rr)
@@ -284,11 +305,15 @@ end
 # Kinetic energy preserving two-point flux by Kennedy and Gruber
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
                                           equation::Euler, orientation::Int,
-                                          u_ll::AbstractArray{Float64},
-                                          u_rr::AbstractArray{Float64})
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
@@ -319,11 +344,15 @@ end
 # Entropy conserving two-point flux by Chandrashekar
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_ec},
                                           equation::Euler, orientation::Int,
-                                          u_ll::AbstractArray{Float64},
-                                          u_rr::AbstractArray{Float64})
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
@@ -406,32 +435,39 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(surface_flux::Matrix{Float64},
-                            u_surfaces::Array{Float64, 4}, surface_id::Int,
+function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
+                            fstarnode::AbstractVector{Float64},
+                            u_surfaces::AbstractArray{Float64, 4},
+                            surface_id::Int,
                             equation::Euler, n_nodes::Int,
                             orientations::Vector{Int})
+  # Call pointwise Riemann solver
   for i = 1:n_nodes
-    @views riemann!(surface_flux[:, i], u_surfaces[:, :, i, surface_id],
-                    equation, orientations[surface_id])
+    # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
+    riemann!(fstarnode,
+             u_surfaces[1, 1, i, surface_id],
+             u_surfaces[1, 2, i, surface_id],
+             u_surfaces[1, 3, i, surface_id],
+             u_surfaces[1, 4, i, surface_id],
+             u_surfaces[2, 1, i, surface_id],
+             u_surfaces[2, 2, i, surface_id],
+             u_surfaces[2, 3, i, surface_id],
+             u_surfaces[2, 4, i, surface_id],
+             equation, orientations[surface_id])
+
+    # Copy flux back to actual flux array
+    for v in 1:nvariables(equation)
+      surface_flux[v, i] = fstarnode[v]
+    end
   end
 end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
 function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
-                            u_surfaces::AbstractArray{Float64, 2},
+                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
                             equation::Euler, orientation::Int)
-
-  # Store for convenience
-  rho_ll    = u_surfaces[1, 1]
-  rho_v1_ll = u_surfaces[1, 2]
-  rho_v2_ll = u_surfaces[1, 3]
-  rho_e_ll  = u_surfaces[1, 4]
-  rho_rr    = u_surfaces[2, 1]
-  rho_v1_rr = u_surfaces[2, 2]
-  rho_v2_rr = u_surfaces[2, 3]
-  rho_e_rr  = u_surfaces[2, 4]
-
   # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
@@ -456,10 +492,11 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type in [:central,:kennedygruber,:chandrashekar_ec]
-    @views symmetric_twopoint_flux!(surface_flux[:], Val(equation.surface_flux_type),
+  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec)
+    symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
-                             u_surfaces[1,:], u_surfaces[2,:])
+                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
      
   elseif equation.surface_flux_type == :hllc
     error("not yet implemented or tested")
@@ -648,9 +685,22 @@ function prim2cons(equation::Euler, prim::AbstractArray{Float64})
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities
-function Equations.cons2indicator(equation::Euler, cons::AbstractArray{Float64})
-  rho, rho_v1, rho_v2, rho_e = cons
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
+                                           cons::AbstractArray{Float64},
+                                           element_id::Int, n_nodes::Int)
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      indicator[1, i, j] = cons2indicator(equation,
+                                          cons[1, i, j, element_id], cons[2, i, j, element_id],
+                                          cons[3, i, j, element_id], cons[4, i, j, element_id])
+    end
+  end
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
