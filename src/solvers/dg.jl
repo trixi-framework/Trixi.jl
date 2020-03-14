@@ -620,11 +620,11 @@ end
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix, inverse_weights::SVector)
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  # TODO: We cannot activate this timer as it causes huge allocations (but no idea why...)
-  #=@timeit timer() "blending factors" begin=#
-  begin
-    alpha, element_ids_dg, element_ids_dgfv = calc_blending_factors(dg, dg.elements.u)
-  end
+  # Note: We need this 'out' shenanigans as otherwise the timer does not work
+  # properly and causes a huge increase in memory allocations.
+  out = Any[]
+  @timeit timer() "blending factors" calc_blending_factors(out, dg, dg.elements.u)
+  alpha, element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -1074,7 +1074,7 @@ end
 
 
 # Calculate blending factors for shock capturing
-function calc_blending_factors(dg, u::AbstractArray{Float64})
+function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   # Calculate blending factor
   alpha = similar(dg.elements.inverse_jacobian)
   indicator = zeros(1, nnodes(dg), nnodes(dg))
@@ -1161,7 +1161,9 @@ function calc_blending_factors(dg, u::AbstractArray{Float64})
   element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
   element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
 
-  return alpha, element_ids_dg, element_ids_dgfv
+  push!(out, alpha)
+  push!(out, element_ids_dg)
+  push!(out, element_ids_dgfv)
 end
 
 end # module
