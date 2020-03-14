@@ -8,7 +8,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt,
-	            cons2entropy,cons2indicator
+	            cons2entropy,cons2indicator,calc_h_matrix!,calc_f1_entropy,calc_f2_entropy
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -599,8 +599,6 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       # also note, that we are computing the physical derivative d/dx and d/dy by dividing with the 1D Jacobian
       f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*d_matrix*entropy[v,:, :,element_id]
       f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(d_matrix)
-      #f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*d_matrix*dg.elements.u[v,:, :,element_id]
-      #f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*dg.elements.u[v,:, :,element_id]*transpose(d_matrix)
     end
     # at H matrix for laplace type viscosity operator!
     vec = zeros(nvariables(dg))
@@ -609,26 +607,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         # compute H matrix
-        cons = dg.elements.u[:,i,j,element_id]
-        v1 = cons[2]/cons[1]
-        v2 = cons[3]/cons[1]
-        rhov1v1 = cons[2]*v1
-        rhov2v2 = cons[3]*v2
-        rhov1v2 = cons[2]*v2
-        p = (equation.gamma - 1)*(cons[4] - 0.5*(rhov1v1+rhov2v2))
-        h = (cons[4] + p)/cons[1]
-        a_square = equation.gamma*p/cons[1]
-        h_matrix[1,:] = cons
-        h_matrix[2:4,1] = cons[2:4]
-        h_matrix[2,2] = rhov1v1+p
-        h_matrix[2,3] = rhov1v2
-        h_matrix[3,2] = h_matrix[2,3]
-        h_matrix[2,4] = cons[1]*h*v1
-        h_matrix[4,2] = h_matrix[2,4]
-        h_matrix[3,3] = rhov2v2+p
-        h_matrix[3,4] = cons[1]*h*v2
-        h_matrix[4,3] = h_matrix[3,4]
-        h_matrix[4,4] = cons[1]*h*h - a_square*p/(equation.gamma-1)
+	calc_h_matrix!(equations(dg),dg.elements.u[:,i,j,element_id],h_matrix)
         # apply H matrix to the two viscous fluxes to get Laplacian type viscosity
         vec[:] = f1_visc[:,i,j]
         f1_visc[:,i,j] = h_matrix*vec
@@ -668,16 +647,8 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       # get first and last nodal value
       u_plus  = dg.elements.u[:,nnodes(dg),j,element_id]
       u_minus = dg.elements.u[:,1,j,element_id]
-      v1_plus = u_plus[2]/u_plus[1]
-      v1_minus = u_minus[2]/u_minus[1]
-      v2_plus = u_plus[3]/u_plus[1]
-      v2_minus = u_minus[3]/u_minus[1]
-      p_plus = (equation.gamma - 1)*(u_plus[4] - 0.5*(u_plus[2]*v1_plus + u_plus[3]*v2_plus))
-      p_minus = (equation.gamma - 1)*(u_minus[4] - 0.5*(u_minus[2]*v1_minus + u_minus[3]*v2_minus))
-      s_plus = log(p_plus) - equation.gamma*log(u_plus[1])
-      s_minus = log(p_minus) - equation.gamma*log(u_minus[1])
-      f_entropy_plus = -u_plus[1]*s_plus*v1_plus/(equation.gamma -1)
-      f_entropy_minus = -u_minus[1]*s_minus*v1_minus/(equation.gamma -1)
+      f_entropy_plus = calc_f1_entropy(equations(dg),u_plus)
+      f_entropy_minus = calc_f1_entropy(equations(dg),u_minus)
       # update entropy contribution  
       @views duds_ut_goal += ( f_entropy_plus - f_entropy_minus)*dg.weights[j]
       @views duds_ut_goal += ( sum(f1[:,1,j].*entropy[:,1,j,element_id])-sum(f1[:,nnodes(dg),j].*entropy[:,nnodes(dg),j,element_id]))*dg.weights[j]
@@ -687,16 +658,8 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       # get first and last nodal value
       u_plus  = dg.elements.u[:,i,nnodes(dg),element_id]
       u_minus = dg.elements.u[:,i,1,element_id]
-      v1_plus = u_plus[2]/u_plus[1]
-      v1_minus = u_minus[2]/u_minus[1]
-      v2_plus = u_plus[3]/u_plus[1]
-      v2_minus = u_minus[3]/u_minus[1]
-      p_plus = (equation.gamma - 1)*(u_plus[4] - 0.5*(u_plus[2]*v1_plus + u_plus[3]*v2_plus))
-      p_minus = (equation.gamma - 1)*(u_minus[4] - 0.5*(u_minus[2]*v1_minus + u_minus[3]*v2_minus))
-      s_plus = log(p_plus) - equation.gamma*log(u_plus[1])
-      s_minus = log(p_minus) - equation.gamma*log(u_minus[1])
-      f_entropy_plus = -u_plus[1]*s_plus*v2_plus/(equation.gamma -1)
-      f_entropy_minus = -u_minus[1]*s_minus*v2_minus/(equation.gamma -1)
+      f_entropy_plus = calc_f2_entropy(equations(dg),u_plus)
+      f_entropy_minus = calc_f2_entropy(equations(dg),u_minus)
       # update entropy contribution  
       @views duds_ut_goal += (f_entropy_plus - f_entropy_minus)*dg.weights[i]
       @views duds_ut_goal += ( sum(f2[:,i,1].*entropy[:,i,1,element_id])-sum(f2[:,i,nnodes(dg)].*entropy[:,i,nnodes(dg),element_id]))*dg.weights[i]

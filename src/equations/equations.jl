@@ -13,6 +13,9 @@ export riemann!
 export calc_max_dt
 export cons2prim
 export cons2indicator
+export calc_h_matrix!
+export calc_f1_entropy
+export calc_f2_entropy
 
 
 # Base type from which all systems of equations types inherit from
@@ -61,6 +64,9 @@ function calc_max_dt end
 function cons2prim end
 function cons2indicator end
 function cons2entropy end
+function calc_h_matrix! end
+function calc_f1_entropy end
+function calc_f2_entropy end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.

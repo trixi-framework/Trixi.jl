@@ -10,8 +10,11 @@ export Euler
 export initial_conditions
 export sources
 export calcflux!
+export calc_f1_entropy
+export calc_f2_entropy
 export riemann!
 export calc_max_dt
+export calc_h_matrix!
 export cons2prim
 export cons2entropy
 export cons2indicator
@@ -658,6 +661,63 @@ function Equations.cons2indicator(equation::Euler, cons::AbstractArray{Float64})
   return rho * p
 end
 
+# Compute entropy flux in x direction
+function Equations.calc_f1_entropy(equation::Euler, cons::AbstractArray{Float64})
+  rho, rho_v1, rho_v2, rho_e = cons
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  # Calculate pressure
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  # Calculate thermodynamic entropy
+  s = log(p) - equation.gamma*log(rho)
+  # calculate flux in x direction
+  f1_entropy = -rho*s*v1/(equation.gamma-1)
+  return f1_entropy
+end
+
+# Compute entropy flux in y direction
+function Equations.calc_f2_entropy(equation::Euler, cons::AbstractArray{Float64})
+  rho, rho_v1, rho_v2, rho_e = cons
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  # Calculate pressure
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  # Calculate thermodynamic entropy
+  s = log(p) - equation.gamma*log(rho)
+  # calculate flux in y direction
+  f2_entropy = -rho*s*v2/(equation.gamma-1)
+  return f2_entropy
+end
+
+# Compute H matrix at a node
+# H = du/dw, where w are the entropy variables
+# note that the H matrix is symmetric and positive definit
+function Equations.calc_h_matrix!(equation::Euler, cons::AbstractArray{Float64},h_matrix::AbstractArray{Float64,2})
+  v1 = cons[2]/cons[1]
+  v2 = cons[3]/cons[1]
+  rhov1v1 = cons[2]*v1
+  rhov2v2 = cons[3]*v2
+  rhov1v2 = cons[2]*v2
+  # pressure
+  p = (equation.gamma - 1)*(cons[4] - 0.5*(rhov1v1+rhov2v2))
+  # enthalpy
+  h = (cons[4] + p)/cons[1]
+  # square of sound speed
+  a_square = equation.gamma*p/cons[1]
+  # use the symmetry of the H matrix
+  h_matrix[1,:] = cons
+  h_matrix[2:4,1] = cons[2:4]
+  h_matrix[2,2] = rhov1v1+p
+  h_matrix[2,3] = rhov1v2
+  h_matrix[3,2] = h_matrix[2,3]
+  h_matrix[2,4] = cons[1]*h*v1
+  h_matrix[4,2] = h_matrix[2,4]
+  h_matrix[3,3] = rhov2v2+p
+  h_matrix[3,4] = cons[1]*h*v2
+  h_matrix[4,3] = h_matrix[3,4]
+  h_matrix[4,4] = cons[1]*h*h - a_square*p/(equation.gamma-1)
+  return h_matrix
+end
        
 
 end # module

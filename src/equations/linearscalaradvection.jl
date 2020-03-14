@@ -10,10 +10,14 @@ export LinearScalarAdvection
 export initial_conditions
 export sources
 export calcflux!
+export calc_f1_entropy
+export calc_f2_entropy
 export riemann!
 export calc_max_dt
+export calc_h_matrix!
 export cons2entropy
 export cons2prim
+
 
 
 # Main data structure for system of equations "linear scalar advection"
@@ -143,6 +147,28 @@ function Equations.cons2entropy(equation::LinearScalarAdvection,
                                 cons::Array{Float64, 4}, n_nodes::Int,
                                 n_elements::Int)
   return cons
+end
+
+# Compute entropy flux in x direction
+function Equations.calc_f1_entropy(equation::LinearScalarAdvection, cons::AbstractArray{Float64})
+  # calculate flux in x direction
+  f1_entropy = cons[1]*cons[1]*equation.advectionvelocity[1]/2
+  return f1_entropy
+end
+
+# Compute entropy flux in y direction
+function Equations.calc_f2_entropy(equation::LinearScalarAdvection, cons::AbstractArray{Float64})
+  # calculate flux in y direction
+  f2_entropy = cons[1]*cons[1]*equation.advectionvelocity[2]/2
+  return f2_entropy
+end
+
+# Compute H matrix at a node
+# H = du/dw, where w are the entropy variables
+# note that the H matrix is symmetric and positive definit
+function Equations.calc_h_matrix!(equation::LinearScalarAdvection, cons::AbstractArray{Float64},h_matrix::AbstractArray{Float64,2})
+  # as the entopy variables are the conservative variables
+  h_matrix[1,1] = 1.0
 end
 
 end # module
