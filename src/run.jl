@@ -194,7 +194,6 @@ function run(;args=nothing, kwargs...)
   analysis_start_time = time_ns()
   output_time = 0.0
   n_analysis_timesteps = 0
-  return
 
   # Start main loop (loop until final time step is reached)
   finalstep = false
