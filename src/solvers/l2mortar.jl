@@ -41,7 +41,7 @@ function calc_forward_lower(n_nodes)
 end
 
 
-function calc_reverse_upper(n_nodes)
+function calc_reverse_upper(n_nodes, ::Val{:gauss})
   # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
   gauss_nodes, gauss_weights = gauss_nodes_weights(n_nodes)
   gauss_wbary = barycentric_weights(gauss_nodes)
@@ -64,7 +64,7 @@ function calc_reverse_upper(n_nodes)
 end
 
 
-function calc_reverse_lower(n_nodes)
+function calc_reverse_lower(n_nodes, ::Val{:gauss})
   # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
   gauss_nodes, gauss_weights = gauss_nodes_weights(n_nodes)
   gauss_wbary = barycentric_weights(gauss_nodes)
@@ -84,6 +84,42 @@ function calc_reverse_lower(n_nodes)
   lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
 
   return gauss2lobatto * operator * lobatto2gauss
+end
+
+
+function calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto})
+  # Calculate nodes, weights, and barycentric weights
+  nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
+  wbary = barycentric_weights(nodes)
+
+  # Calculate projection matrix (actually: discrete L2 projection with errors)
+  operator = zeros(n_nodes, n_nodes)
+  for j in 1:n_nodes
+    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] + 1), nodes, wbary)
+    for i in 1:n_nodes
+      operator[i, j] = 1/2 * poly[i] * weights[j]/weights[i]
+    end
+  end
+
+  return operator
+end
+
+
+function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto})
+  # Calculate nodes, weights, and barycentric weights
+  nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
+  wbary = barycentric_weights(nodes)
+
+  # Calculate projection matrix (actually: discrete L2 projection with errors)
+  operator = zeros(n_nodes, n_nodes)
+  for j in 1:n_nodes
+    poly = lagrange_interpolating_polynomials(1/2 * (nodes[j] - 1), nodes, wbary)
+    for i in 1:n_nodes
+      operator[i, j] = 1/2 * poly[i] * weights[j]/weights[i]
+    end
+  end
+
+  return operator
 end
 
 
