@@ -413,7 +413,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
   duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
   # Compute ut = rhs(u) with current solution u
-  Solvers.rhs!(dg, t)
+  Solvers.rhs!(dg, t, disable_timers=true)
   # Quadrature weights
   weights = dg.weights
   # Integrate over all elements to get the total semi-discrete entropy update
@@ -487,7 +487,28 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage)
+function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
+  # Run rhs! without timing the individual contributions
+  # FIXME: This should be done properly, e.g., by a macro call
+  if disable_timers
+    dg.elements.u_t .= 0.0
+    calc_volume_integral!(dg)
+    prolong2surfaces!(dg)
+    calc_surface_flux!(dg.elements.surface_flux,
+                       dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
+                       dg.surfaces.orientations)
+    prolong2l2mortars!(dg)
+    calc_l2mortar_flux!(dg.elements.surface_flux,
+                        dg.l2mortars.neighbor_ids,
+                        dg.l2mortars.u_lower,
+                        dg.l2mortars.u_upper,
+                        dg, dg.l2mortars.orientations)
+    calc_surface_integral!(dg, dg.elements.u_t, dg.elements.surface_flux, dg.lhat)
+    apply_jacobian!(dg)
+    calc_sources!(dg, t_stage)
+    return
+  end
+
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
