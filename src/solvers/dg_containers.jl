@@ -1,5 +1,5 @@
 import ...Auxiliary.Containers: invalidate!, raw_copy!, move_connectivity!, delete_connectivity!
-using ... Auxiliary.Containers: AbstractContainer
+using ...Auxiliary.Containers: AbstractContainer
 import Base
 
 

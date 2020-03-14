@@ -1,5 +1,10 @@
 module DgSolver
 
+# Note: there are more includes at the bottom that depend on DG internals
+include("interpolation.jl")
+include("dg_containers.jl")
+include("l2mortar.jl")
+
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
@@ -17,11 +22,6 @@ import .L2Mortar # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
-
-include("interpolation.jl")
-include("dg_containers.jl")
-include("dg_amr.jl")
-include("l2mortar.jl")
 
 export Dg
 export set_initial_conditions
@@ -1206,6 +1206,10 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
 end
+
+
+# Note: this is included here since it depends on definitions in the DG main file
+include("dg_amr.jl")
 
 
 end # module
