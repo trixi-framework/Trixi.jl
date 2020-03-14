@@ -23,8 +23,10 @@ if [ $interactive -eq 0 ]; then
       -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
 else
   exec julia --banner=no -i \
-      -e "println(\"First, execute \`using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\` to load the plotting tool while tracking changes to its code.\")" \
-      -e 'println("Then you can start plot files by running `TrixiPlot.run(datafile=\"file.h5\")`.\n")'
+      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
+      -e 'println("# Start plotting by running the second line.\n")' \
+      -e "println(\"using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
+      -e 'println("TrixiPlot.run(datafile=\"file.h5\")")'
 fi
 =#
 

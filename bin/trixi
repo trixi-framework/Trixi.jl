@@ -28,8 +28,8 @@ if [ $interactive -eq 0 ]; then
 else
   exec julia --banner=no -i \
       -e "push!(LOAD_PATH, \"$MODULE_DIR\")" \
-      -e 'println("Execute the first line once at the beginning of an interactive session.")' \
-      -e 'println("Start a Trixi simulation by running the second line.\n")' \
+      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
+      -e 'println("# Start a Trixi simulation by running the second line.\n")' \
       -e 'println("using Revise; import Trixi")' \
       -e 'println("Trixi.run(parameters_file=\"parameters.toml\")")'
 fi
