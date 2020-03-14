@@ -23,7 +23,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
   tree = mesh.tree
 
   # Determine indicator value
-  lambda = calc_amr_indicator(solver, mesh)
+  lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh)
 
   # Get list of current leaf cells
   leaf_cell_ids = leaf_cells(tree)
@@ -39,18 +39,18 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
   to_coarsen = leaf_cell_ids[lambda .< coarsening_threshold]
 
   # Start by refining cells
-  if !only_coarsen && !isempty(to_refine)
+  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
     # Refine cells
-    refined_original_cells = Mesh.Trees.refine!(tree, to_refine)
+    refined_original_cells = @timeit timer() "mesh" Mesh.Trees.refine!(tree, to_refine)
 
     # Refine elements
-    Solvers.refine!(solver, mesh, refined_original_cells)
+     @timeit timer() "solver" Solvers.refine!(solver, mesh, refined_original_cells)
   else
     refined_original_cells = Int[]
   end
 
   # Then, coarsen cells
-  if !only_refine && !isempty(to_coarsen)
+  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -81,7 +81,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndim]
 
     # Finally, coarsen cells
-    coarsened_original_cells = Mesh.Trees.coarsen!(tree, to_coarsen)
+    coarsened_original_cells = @timeit timer() "mesh" Mesh.Trees.coarsen!(tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have been removed
     removed_child_cells = zeros(Int, n_children_per_cell(tree) * length(coarsened_original_cells))
@@ -92,7 +92,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
     end
 
     # Coarsen elements
-    Solvers.coarsen!(solver, mesh, removed_child_cells)
+    @timeit timer() "solver" Solvers.coarsen!(solver, mesh, removed_child_cells)
   else
     coarsened_original_cells = Int[]
   end
