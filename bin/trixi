@@ -17,10 +17,6 @@ for arg in "$@"; do
   fi
 done
 
-# Get directory of script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_DIR="$(dirname \"$dir\")"
-
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
   exec julia --color=yes \
