@@ -595,41 +595,72 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dh
   end
 end
 
+
 # Calculate volume integral (DGSEM with entropy fix, i.e. adding local weak form viscosity to compensate for aliasing)
 # note, that this fix can be implemented for all types of volume integrals. the cheapest one is the weak_form standard integral
 # the weak form standard volume integral seems to be also linearly stable
 function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, dhat::SMatrix)
-
+  # Get the differentiation matrix
+  d_matrix = polynomial_derivative_matrix(dg.nodes)
+  # Get the weights
+  weights = dg.weights
   # first compute all nodal collocated entropy variables. they are needed to compute the fix and the viscous term
   equation = equations(dg)
   entropy  = cons2entropy(equation,dg.elements.u,nnodes(dg),dg.n_elements) 
 
-  for element_id in 1:dg.n_elements
+  # Type alias only for convenience
+  A3d_m = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A2d_m = MArray{Tuple{nvariables(dg),nvariables(dg)}, Float64}
+  A1d_m = MArray{Tuple{nvariables(dg)}, Float64}
+  f1_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  ut_volumeintegral_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  f1_visc_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  f2_visc_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  ut_diffusion_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
+  #vec_threaded      = [A1d_m(undef) for _ in 1:Threads.nthreads()]
+  #h_matrix_threaded = [A2d_m(undef) for _ in 1:Threads.nthreads()]
+
+  A3d = Array{Float64, 3}
+  A2d = Array{Float64, 2}
+  A1d = Array{Float64, 1}
+  #f1_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  #f2_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  #ut_volumeintegral_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  #f1_visc_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  #f2_visc_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  #ut_diffusion_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
+  vec_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
+  h_matrix_threaded = A2d[A2d(undef, nvariables(dg),nvariables(dg)) for _ in 1:Threads.nthreads()]
+
+
+  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
     # Calculate volume fluxes
-    f1 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-    f2 = Array{Float64, 3}(undef, nvariables(dg), nnodes(dg), nnodes(dg))
     calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
     
     # Compute the standard weak form volume integral
     # add everything in a element local container, used to update the element later
-    ut_volumeintegral = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
+    ut_volumeintegral = ut_volumeintegral_threaded[Threads.threadid()]
+    ut_volumeintegral[:,:,:] .= 0.0
+    #ut_volumeintegral = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
     # Calculate standard volume integral
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
           for l = 1:nnodes(dg)
-            @views ut_volumeintegral[v, i, j] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+            ut_volumeintegral[v, i, j] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
         end
       end
     end
 
     # Compute the Laplacian type weak form diffusion volume integral
-    # store weak form diffusion term in a container, in case we need its contribution later 
-    ut_diffusion =zeros(nvariables(dg),nnodes(dg),nnodes(dg))
-    d_matrix = polynomial_derivative_matrix(dg.nodes)
-    f1_visc = zeros(nvariables(dg),nnodes(dg), nnodes(dg))
-    f2_visc = zeros(nvariables(dg), nnodes(dg), nnodes(dg))
+    f1_visc = f1_visc_threaded[Threads.threadid()]
+    f2_visc = f2_visc_threaded[Threads.threadid()]
     # Calculate entropy diffusion term, weak form, laplace type, but with entropy variables
     for v = 1:nvariables(dg)
       # compute the viscous flux
@@ -639,20 +670,30 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(d_matrix)
     end
     # at H matrix for laplace type viscosity operator!
-    vec = zeros(nvariables(dg))
-    cons = zeros(nvariables(dg))
-    h_matrix = zeros(nvariables(dg),nvariables(dg))
+    vec      = vec_threaded[Threads.threadid()]
+    h_matrix = h_matrix_threaded[Threads.threadid()]
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         # compute H matrix
 	calc_h_matrix!(equations(dg),dg.elements.u[:,i,j,element_id],h_matrix)
         # apply H matrix to the two viscous fluxes to get Laplacian type viscosity
-        vec[:] = f1_visc[:,i,j]
-        f1_visc[:,i,j] = h_matrix*vec
-        vec[:] = f2_visc[:,i,j]
-        f2_visc[:,i,j] = h_matrix*vec
+        vec[:] .= f1_visc[:,i,j]
+        #f1_visc[:,i,j] = h_matrix*vec
+	f1_visc[1,i,j] = h_matrix[1,1]*vec[1] + h_matrix[1,2]*vec[2]+h_matrix[1,3]*vec[3]+h_matrix[1,4]*vec[4]
+	f1_visc[2,i,j] = h_matrix[2,1]*vec[1] + h_matrix[2,2]*vec[2]+h_matrix[2,3]*vec[3]+h_matrix[2,4]*vec[4]
+	f1_visc[3,i,j] = h_matrix[3,1]*vec[1] + h_matrix[3,2]*vec[2]+h_matrix[3,3]*vec[3]+h_matrix[3,4]*vec[4]
+	f1_visc[4,i,j] = h_matrix[4,1]*vec[1] + h_matrix[4,2]*vec[2]+h_matrix[4,3]*vec[3]+h_matrix[4,4]*vec[4]
+        vec[:] .= f2_visc[:,i,j]
+        #f2_visc[:,i,j] = h_matrix*vec
+	f2_visc[1,i,j] = h_matrix[1,1]*vec[1] + h_matrix[1,2]*vec[2]+h_matrix[1,3]*vec[3]+h_matrix[1,4]*vec[4]
+	f2_visc[2,i,j] = h_matrix[2,1]*vec[1] + h_matrix[2,2]*vec[2]+h_matrix[2,3]*vec[3]+h_matrix[2,4]*vec[4]
+	f2_visc[3,i,j] = h_matrix[3,1]*vec[1] + h_matrix[3,2]*vec[2]+h_matrix[3,3]*vec[3]+h_matrix[3,4]*vec[4]
+	f2_visc[4,i,j] = h_matrix[4,1]*vec[1] + h_matrix[4,2]*vec[2]+h_matrix[4,3]*vec[3]+h_matrix[4,4]*vec[4]
       end
     end
+    # store weak form diffusion term in a container, in case we need its contribution later 
+    ut_diffusion =ut_diffusion_threaded[Threads.threadid()]
+    ut_diffusion[:,:,:] .= 0.0
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
@@ -665,7 +706,6 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
 
     # Contract the volume integral contribution with the entropy variables to estimate the element local entropy change
     # Further compute the amount of entropy dissipation generated by the weak form diffusion term
-    weights = dg.weights
     duds_ut_volume = 0.0
     duds_ut_diffusion = 0.0
     for j = 1:nnodes(dg)
@@ -728,6 +768,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     end
   end
 end
+
 
 # Calculate volume integral (DGSEM in split form)
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
