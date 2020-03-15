@@ -524,6 +524,7 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
                        dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
                        dg.surfaces.orientations)
     prolong2l2mortars!(dg)
+    prolong2ecmortars!(dg)
     calc_l2mortar_flux!(dg.elements.surface_flux,
                         dg.l2mortars.neighbor_ids,
                         dg.l2mortars.u_lower,
@@ -1191,8 +1192,8 @@ function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
             for v in 1:nvariables(dg)
               surface_flux[v, i, 2, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
                                                           PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 1, upper_element_id] += PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 1, lower_element_id] += PR2L_lower[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 1, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 1, lower_element_id] +=  PR2L_lower[i, l] * fstar_upper[v, i, l]
             end
           end
         end
@@ -1206,8 +1207,8 @@ function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
             for v in 1:nvariables(dg)
               surface_flux[v, i, 4, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
                                                           PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 3, upper_element_id] += PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 3, lower_element_id] += PR2L_lower[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 3, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 3, lower_element_id] +=  PR2L_lower[i, l] * fstar_upper[v, i, l]
             end
           end
         end
@@ -1223,8 +1224,8 @@ function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
             for v in 1:nvariables(dg)
               surface_flux[v, i, 1, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
                                                           PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 2, upper_element_id] += PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 2, lower_element_id] += PR2L_lower[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 2, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 2, lower_element_id] +=  PR2L_lower[i, l] * fstar_upper[v, i, l]
             end
           end
         end
@@ -1238,8 +1239,8 @@ function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
             for v in 1:nvariables(dg)
               surface_flux[v, i, 3, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
                                                           PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 4, upper_element_id] += PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 4, lower_element_id] += PR2L_lower[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 4, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 4, lower_element_id] +=  PR2L_lower[i, l] * fstar_upper[v, i, l]
             end
           end
         end
