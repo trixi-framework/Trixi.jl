@@ -648,29 +648,41 @@ end
 
 # Convert conservative variables to entropy
 function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
-  entropy = similar(cons)
-  v = zeros(2,n_nodes,n_nodes,n_elements)
-  v_square = zeros(n_nodes,n_nodes,n_elements)
-  p = zeros(n_nodes,n_nodes,n_elements)
-  s = zeros(n_nodes,n_nodes,n_elements)
-  rho_p = zeros(n_nodes,n_nodes,n_elements)
 
-  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :] 
-  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :] 
-  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
-  @. p[ :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 
-		     1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
-                            cons[3, :, :, :] * v[2, :, :, :])))
-  @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
-  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :] 
+  A4d = Array{Float64, 4}
+  A3d = Array{Float64, 3}
+  A2d = Array{Float64, 2}
 
-  @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
-                           0.5*rho_p[:,:,:]*v_square[:,:,:] 
-  @. entropy[2, :, :, :] = rho_p[:,:,:]*v[1,:,:,:]
-  @. entropy[3, :, :, :] = rho_p[:,:,:]*v[2,:,:,:]
-  @. entropy[4, :, :, :] = -rho_p[:,:,:]
+  nVar = nvariables(equation)
 
+  entropy = A4d(undef, nVar,n_nodes,n_nodes,n_elements)
+  v = A3d(undef, 2,n_nodes,n_nodes)
+  v_square = A2d(undef, n_nodes,n_nodes)
+  p = A2d(undef, n_nodes,n_nodes)
+  s = A2d(undef, n_nodes,n_nodes)
+  rho_p = A2d(undef, n_nodes,n_nodes)
+
+  for element_id in 1:n_elements
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+        v[1,i,j] = cons[2,i,j,element_id] / cons[1,i,j,element_id] 
+        v[2,i,j] = cons[3,i,j,element_id] / cons[1,i,j,element_id] 
+        v_square[i,j] = v[1,i,j]*v[1,i,j]+v[2,i,j]*v[2,i,j]
+        p[i,j] = ((equation.gamma - 1)
+                            * (cons[4,i,j,element_id] - 
+           	     1/2 * (cons[2,i,j,element_id] * v[1,i,j] +
+                               cons[3,i,j,element_id] * v[2,i,j])))
+        s[i,j] = log(p[i,j]) - equation.gamma*log(cons[1,i,j,element_id])
+        rho_p[i,j] = cons[1,i,j,element_id] / p[i,j] 
+
+        entropy[1,i,j,element_id] = (equation.gamma - s[i,j])/(equation.gamma-1) -
+                              0.5*rho_p[i,j]*v_square[i,j] 
+        entropy[2,i,j,element_id] = rho_p[i,j]*v[1,i,j]
+        entropy[3,i,j,element_id] = rho_p[i,j]*v[2,i,j]
+        entropy[4,i,j,element_id] = -rho_p[i,j]
+      end
+    end
+  end
   return entropy
 end
 
