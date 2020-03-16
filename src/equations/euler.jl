@@ -755,8 +755,13 @@ function Equations.calc_h_matrix!(equation::Euler, cons::AbstractArray{Float64},
   # square of sound speed
   a_square = equation.gamma*p/cons[1]
   # use the symmetry of the H matrix
-  h_matrix[1,:] = cons
-  h_matrix[2:4,1] = cons[2:4]
+  h_matrix[1,1] = cons[1]
+  h_matrix[1,2] = cons[2]
+  h_matrix[1,3] = cons[3]
+  h_matrix[1,4] = cons[4]
+  h_matrix[2,1] = h_matrix[1,2]
+  h_matrix[3,1] = h_matrix[1,3]
+  h_matrix[4,1] = h_matrix[1,4]
   h_matrix[2,2] = rhov1v1+p
   h_matrix[2,3] = rhov1v2
   h_matrix[3,2] = h_matrix[2,3]
