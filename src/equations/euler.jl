@@ -724,7 +724,7 @@ end
 end
 
 # Compute entropy flux in x direction
-function Equations.calc_f1_entropy(equation::Euler, cons::AbstractArray{Float64})
+@inline function Equations.calc_f1_entropy(equation::Euler, cons::AbstractArray{Float64})
   rho, rho_v1, rho_v2, rho_e = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -754,18 +754,19 @@ end
 # Compute H matrix at a node
 # H = du/dw, where w are the entropy variables
 # note that the H matrix is symmetric and positive definit
-function Equations.calc_h_matrix!(equation::Euler, cons::AbstractArray{Float64},h_matrix::AbstractArray{Float64,2})
-  v1 = cons[2]/cons[1]
-  v2 = cons[3]/cons[1]
+@inline function Equations.calc_h_matrix!(equation::Euler, cons::AbstractArray{Float64},h_matrix::AbstractArray{Float64,2})
+  srho = 1/cons[1]
+  v1 = cons[2]*srho
+  v2 = cons[3]*srho
   rhov1v1 = cons[2]*v1
   rhov2v2 = cons[3]*v2
   rhov1v2 = cons[2]*v2
   # pressure
   p = (equation.gamma - 1)*(cons[4] - 0.5*(rhov1v1+rhov2v2))
   # enthalpy
-  h = (cons[4] + p)/cons[1]
+  h = (cons[4] + p)*srho
   # square of sound speed
-  a_square = equation.gamma*p/cons[1]
+  a_square = equation.gamma*p*srho
   # use the symmetry of the H matrix
   h_matrix[1,1] = cons[1]
   h_matrix[1,2] = cons[2]

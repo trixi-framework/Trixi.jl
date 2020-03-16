@@ -675,7 +675,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         # compute H matrix
-	calc_h_matrix!(equations(dg),dg.elements.u[:,i,j,element_id],h_matrix)
+	@views calc_h_matrix!(equations(dg),dg.elements.u[:,i,j,element_id],h_matrix)
         # apply H matrix to the two viscous fluxes to get Laplacian type viscosity
         vec[:] .= f1_visc[:,i,j]
         #f1_visc[:,i,j] = h_matrix*vec
