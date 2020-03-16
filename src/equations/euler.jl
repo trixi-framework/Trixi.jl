@@ -647,35 +647,34 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
 end
 
 # Convert conservative variables to entropy
-function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int) = Equations.cons2entropy(equation.gamma, cons, Val(n_nodes),Val(n_elements),Val(nvariables(equation)))
+function Equations.cons2entropy(gamma::Float64, cons::A, ::Val{N}, ::Val{nElems}, ::Val{nVar})  where A<:AbstractArray{T,4} where {T,N,nElems,nVar}
 
   A4d = Array{Float64, 4}
   A3d = Array{Float64, 3}
   A2d = Array{Float64, 2}
 
-  nVar = nvariables(equation)
+  entropy = A4d(undef,nVar,N,N,nElems)
+  v = A3d(undef,2,N,N)
+  v_square = A2d(undef,N,N)
+  p = A2d(undef,N,N)
+  s = A2d(undef,N,N)
+  rho_p = A2d(undef,N,N)
 
-  entropy = A4d(undef, nVar,n_nodes,n_nodes,n_elements)
-  v = A3d(undef, 2,n_nodes,n_nodes)
-  v_square = A2d(undef, n_nodes,n_nodes)
-  p = A2d(undef, n_nodes,n_nodes)
-  s = A2d(undef, n_nodes,n_nodes)
-  rho_p = A2d(undef, n_nodes,n_nodes)
-
-  for element_id in 1:n_elements
-    for j = 1:n_nodes
-      for i = 1:n_nodes
+  @simd for element_id in 1:nElems
+     for j = 1:N
+       for i = 1:N
         v[1,i,j] = cons[2,i,j,element_id] / cons[1,i,j,element_id] 
         v[2,i,j] = cons[3,i,j,element_id] / cons[1,i,j,element_id] 
         v_square[i,j] = v[1,i,j]*v[1,i,j]+v[2,i,j]*v[2,i,j]
-        p[i,j] = ((equation.gamma - 1)
+        p[i,j] = ((gamma - 1)
                             * (cons[4,i,j,element_id] - 
            	     1/2 * (cons[2,i,j,element_id] * v[1,i,j] +
                                cons[3,i,j,element_id] * v[2,i,j])))
-        s[i,j] = log(p[i,j]) - equation.gamma*log(cons[1,i,j,element_id])
+        s[i,j] = log(p[i,j]) - gamma*log(cons[1,i,j,element_id])
         rho_p[i,j] = cons[1,i,j,element_id] / p[i,j] 
 
-        entropy[1,i,j,element_id] = (equation.gamma - s[i,j])/(equation.gamma-1) -
+        entropy[1,i,j,element_id] = (gamma - s[i,j])/(gamma-1) -
                               0.5*rho_p[i,j]*v_square[i,j] 
         entropy[2,i,j,element_id] = rho_p[i,j]*v[1,i,j]
         entropy[3,i,j,element_id] = rho_p[i,j]*v[2,i,j]

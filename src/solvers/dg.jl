@@ -50,12 +50,14 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
 
   nodes::SVector{Np1}
   weights::SVector{Np1}
+  weights2d::SMatrix{Np1,Np1}
   inverse_weights::SVector{Np1}
   inverse_vandermonde_legendre::SMatrix{Np1, Np1}
   lhat::SMatrix{Np1, 2}
 
   volume_integral_type::Symbol
   dhat::SMatrix{Np1, Np1}
+  d::SMatrix{Np1, Np1}
   dsplit::SMatrix{Np1, Np1}
   dsplit_transposed::SMatrix{Np1, Np1}
 
@@ -104,6 +106,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_nodes = N + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
   inverse_weights = 1 ./ weights
+  weights2d = zeros(n_nodes,n_nodes)
+  for j = 1:n_nodes
+    for i = 1:n_nodes
+      weights2d[i,j] = weights[i]*weights[j]
+    end
+  end
   _, inverse_vandermonde_legendre = vandermonde_legendre(nodes)
   lhat = zeros(n_nodes, 2)
   lhat[:, 1] = calc_lhat(-1.0, nodes, weights)
@@ -114,6 +122,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
                                           valid=["weak_form", "split_form", "shock_capturing",
                                                  "entropy_fix"]))
   dhat = calc_dhat(nodes, weights)
+  d = polynomial_derivative_matrix(nodes)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
@@ -137,8 +146,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       elements, n_elements,
       surfaces, n_surfaces,
       l2mortars, n_l2mortars,
-      nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, dhat, dsplit, dsplit_transposed,
+      nodes, weights, weights2d, inverse_weights, inverse_vandermonde_legendre, lhat,
+      volume_integral_type, dhat, d, dsplit, dsplit_transposed,
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
@@ -551,9 +560,9 @@ end
 # Calculate volume integral and update u_t
 function calc_volume_integral!(dg)
   if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
+    calc_volume_integral!(dg, Val(:weak_form))
   elseif dg.volume_integral_type == :entropy_fix
-    calc_volume_integral!(dg, Val(:entropy_fix), dg.elements.u_t, dg.dhat)
+    calc_volume_integral!(dg, Val(:entropy_fix))
   elseif dg.volume_integral_type == :split_form
     calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
   elseif dg.volume_integral_type == :shock_capturing
@@ -565,28 +574,31 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
+
+calc_volume_integral!(dg, ::Val{:weak_form})=calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat,Val(nvariables(dg)),Val(dg.n_elements))
+
+function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::A, dhat::SMatrix{N,N,T},::Val{nVar},::Val{nElems}) where A<:AbstractArray{T,4} where {T,N,nVar,nElems}
   # Type alias only for convenience
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A3d = MArray{Tuple{nVar, N, N}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
   f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  Threads.@threads for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in 1:nElems
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
 
     # Calculate volume fluxes
-    calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, N)
 
     # Calculate volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          for l = 1:nnodes(dg)
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds @simd for v = 1:nVar
+          @inbounds for l = 1:N
             u_t[v, i, j, element_id] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
         end
@@ -599,19 +611,20 @@ end
 # Calculate volume integral (DGSEM with entropy fix, i.e. adding local weak form viscosity to compensate for aliasing)
 # note, that this fix can be implemented for all types of volume integrals. the cheapest one is the weak_form standard integral
 # the weak form standard volume integral seems to be also linearly stable
-function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, dhat::SMatrix)
-  # Get the differentiation matrix
-  d_matrix = polynomial_derivative_matrix(dg.nodes)
-  # Get the weights
-  weights = dg.weights
+
+calc_volume_integral!(dg, ::Val{:entropy_fix})=calc_volume_integral!(dg, Val(:entropy_fix), dg.elements.u_t, dg.dhat,dg.d,dg.weights,dg.weights2d,Val(nvariables(dg)),Val(dg.n_elements))
+
+function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::A, dhat::SMatrix{N,N,T},d_matrix::SMatrix{N,N,T},weights::SVector{N,T},weights2d::SMatrix{N,N,T},::Val{nVar},::Val{nElems}) where A<:AbstractArray{T,4} where {T,N,nVar,nElems}
+#function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, dhat::SMatrix)
+   
   # first compute all nodal collocated entropy variables. they are needed to compute the fix and the viscous term
   equation = equations(dg)
-  entropy  = cons2entropy(equation,dg.elements.u,nnodes(dg),dg.n_elements) 
+  entropy  = cons2entropy(equation,dg.elements.u,N,nElems) 
 
   # Type alias only for convenience
-  A3d_m = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-  A2d_m = MArray{Tuple{nvariables(dg),nvariables(dg)}, Float64}
-  A1d_m = MArray{Tuple{nvariables(dg)}, Float64}
+  A3d_m = MArray{Tuple{nVar, N, N}, Float64}
+  #A2d_m = MArray{Tuple{nVar,nVar}, Float64}
+  #A1d_m = MArray{Tuple{nVar}, Float64}
   f1_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
   f2_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
   ut_volumeintegral_threaded = [A3d_m(undef) for _ in 1:Threads.nthreads()]
@@ -621,7 +634,7 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
   #vec_threaded      = [A1d_m(undef) for _ in 1:Threads.nthreads()]
   #h_matrix_threaded = [A2d_m(undef) for _ in 1:Threads.nthreads()]
 
-  A3d = Array{Float64, 3}
+  #A3d = Array{Float64, 3}
   A2d = Array{Float64, 2}
   A1d = Array{Float64, 1}
   #f1_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
@@ -630,28 +643,34 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
   #f1_visc_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
   #f2_visc_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
   #ut_diffusion_threaded = A3d[A3d(undef, nvariables(dg),nnodes(dg),nnodes(dg)) for _ in 1:Threads.nthreads()]
-  vec_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
-  h_matrix_threaded = A2d[A2d(undef, nvariables(dg),nvariables(dg)) for _ in 1:Threads.nthreads()]
-
+  vec_threaded = A1d[A1d(undef, nVar) for _ in 1:Threads.nthreads()]
+  h_matrix_threaded = A2d[A2d(undef, nVar,nVar) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  Threads.@threads for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in 1:nElems
+   
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
     # Calculate volume fluxes
-    calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux!(f1, f2, equation, dg.elements.u, element_id, N)
     
     # Compute the standard weak form volume integral
     # add everything in a element local container, used to update the element later
     ut_volumeintegral = ut_volumeintegral_threaded[Threads.threadid()]
-    ut_volumeintegral[:,:,:] .= 0.0
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds @simd for v=1:nVar
+          ut_volumeintegral[v,i,j] = 0.0
+        end
+      end
+    end
     #ut_volumeintegral = zeros(nvariables(dg),nnodes(dg),nnodes(dg))
     # Calculate standard volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          for l = 1:nnodes(dg)
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+          @inbounds for l = 1:N
+        @inbounds @simd for v = 1:nVar
             ut_volumeintegral[v, i, j] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
         end
@@ -662,20 +681,39 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     f1_visc = f1_visc_threaded[Threads.threadid()]
     f2_visc = f2_visc_threaded[Threads.threadid()]
     # Calculate entropy diffusion term, weak form, laplace type, but with entropy variables
-    for v = 1:nvariables(dg)
-      # compute the viscous flux
-      # note that in 2D, we can apply the D matrix to get the xi derivative D*f1 and we can compute f2*D^T to get the eta derivative
-      # also note, that we are computing the physical derivative d/dx and d/dy by dividing with the 1D Jacobian
-      f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*d_matrix*entropy[v,:, :,element_id]
-      f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(d_matrix)
+    #@inbounds @simd for v = 1:nVar
+    # compute the viscous flux
+    # note that in 2D, we can apply the D matrix to get the xi derivative D*f1 and we can compute f2*D^T to get the eta derivative
+    # also note, that we are computing the physical derivative d/dx and d/dy by dividing with the 1D Jacobian
+    #f1_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*d_matrix*entropy[v,:, :,element_id]
+    #f2_visc[v,:,:] = -dg.elements.inverse_jacobian[element_id]*entropy[v,:, :,element_id]*transpose(d_matrix)
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds @simd for v=1:nVar
+          f1_visc[v,i,j] = 0.0
+          f2_visc[v,i,j] = 0.0
+        end
+      end
     end
+    iJ = dg.elements.inverse_jacobian[element_id]
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds for l = 1:N
+          @inbounds @simd for v = 1:nVar
+		  f1_visc[v,i,j] += -iJ*d_matrix[i,l]*entropy[v,l, j,element_id]
+		  f2_visc[v,i,j] += -iJ*entropy[v,i, l,element_id]*d_matrix[j,l]
+          end
+	end
+      end
+    end
+
     # at H matrix for laplace type viscosity operator!
     vec      = vec_threaded[Threads.threadid()]
     h_matrix = h_matrix_threaded[Threads.threadid()]
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
         # compute H matrix
-	@views calc_h_matrix!(equations(dg),dg.elements.u[:,i,j,element_id],h_matrix)
+	@views calc_h_matrix!(equation,dg.elements.u[:,i,j,element_id],h_matrix)
         # apply H matrix to the two viscous fluxes to get Laplacian type viscosity
         vec[:] .= f1_visc[:,i,j]
         #f1_visc[:,i,j] = h_matrix*vec
@@ -692,13 +730,19 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
       end
     end
     # store weak form diffusion term in a container, in case we need its contribution later 
-    ut_diffusion =ut_diffusion_threaded[Threads.threadid()]
-    ut_diffusion[:,:,:] .= 0.0
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          for l = 1:nnodes(dg)
-            @views ut_diffusion[v,i,j] += dhat[i,l]*f1_visc[v,l,j] + dhat[j,l]*f2_visc[v,i,l]
+    ut_diffusion = ut_diffusion_threaded[Threads.threadid()]
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds @simd for v=1:nVar
+          ut_diffusion[v,i,j] = 0.0
+        end
+      end
+    end
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+        @inbounds @simd for v = 1:nVar
+          @inbounds for l = 1:N
+            ut_diffusion[v,i,j] += dhat[i,l]*f1_visc[v,l,j] + dhat[j,l]*f2_visc[v,i,l]
           end
         end
       end
@@ -708,10 +752,12 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     # Further compute the amount of entropy dissipation generated by the weak form diffusion term
     dsdu_ut_volume = 0.0
     dsdu_ut_diffusion = 0.0
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-         @views dsdu_ut_volume    += weights[i]*weights[j]*sum(entropy[:,i,j,element_id].*ut_volumeintegral[:,i,j])
-         @views dsdu_ut_diffusion += weights[i]*weights[j]*sum(entropy[:,i,j,element_id].*ut_diffusion[:,i,j])
+    @inbounds for j = 1:N
+      @inbounds for i = 1:N
+	@inbounds @simd for v = 1:nVar 
+         dsdu_ut_volume    += weights2d[i,j]*entropy[v,i,j,element_id].*ut_volumeintegral[v,i,j]
+         dsdu_ut_diffusion += weights2d[i,j]*entropy[v,i,j,element_id].*ut_diffusion[v,i,j]
+	end
       end
     end
 
@@ -721,26 +767,30 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     # Calculate surface integral of scalar entropy flux
     # Further, update the volume integral contribution to include the surface integral from the flux inside
     # xi direction 
-    for j = 1:nnodes(dg)
+    @inbounds for j = 1:N
       # get first and last nodal value
-      u_plus  = dg.elements.u[:,nnodes(dg),j,element_id]
+      u_plus  = dg.elements.u[:,N,j,element_id]
       u_minus = dg.elements.u[:,1,j,element_id]
-      f_entropy_plus = calc_f1_entropy(equations(dg),u_plus)
-      f_entropy_minus = calc_f1_entropy(equations(dg),u_minus)
+      f_entropy_plus = calc_f1_entropy(equation,u_plus)
+      f_entropy_minus = calc_f1_entropy(equation,u_minus)
       # update entropy contribution  
-      @views dsdu_ut_goal += ( f_entropy_plus - f_entropy_minus)*dg.weights[j]
-      @views dsdu_ut_goal += ( sum(f1[:,1,j].*entropy[:,1,j,element_id])-sum(f1[:,nnodes(dg),j].*entropy[:,nnodes(dg),j,element_id]))*dg.weights[j]
+      dsdu_ut_goal += ( f_entropy_plus - f_entropy_minus)*weights[j]
+      @simd for v = 1:nVar
+        dsdu_ut_goal += (f1[v,1,j]*entropy[v,1,j,element_id]-f1[v,N,j]*entropy[v,N,j,element_id])*weights[j]
+      end
     end 
     # eta direction 
-    for i = 1:nnodes(dg)
+    @inbounds for i = 1:N
       # get first and last nodal value
-      u_plus  = dg.elements.u[:,i,nnodes(dg),element_id]
+      u_plus  = dg.elements.u[:,i,N,element_id]
       u_minus = dg.elements.u[:,i,1,element_id]
-      f_entropy_plus = calc_f2_entropy(equations(dg),u_plus)
-      f_entropy_minus = calc_f2_entropy(equations(dg),u_minus)
+      f_entropy_plus = calc_f2_entropy(equation,u_plus)
+      f_entropy_minus = calc_f2_entropy(equation,u_minus)
       # update entropy contribution  
-      @views dsdu_ut_goal += (f_entropy_plus - f_entropy_minus)*dg.weights[i]
-      @views dsdu_ut_goal += ( sum(f2[:,i,1].*entropy[:,i,1,element_id])-sum(f2[:,i,nnodes(dg)].*entropy[:,i,nnodes(dg),element_id]))*dg.weights[i]
+      dsdu_ut_goal += (f_entropy_plus - f_entropy_minus)*weights[i]
+      @simd for v = 1:nVar
+        dsdu_ut_goal += (f2[v,i,1]*entropy[v,i,1,element_id]-f2[v,i,N]*entropy[v,i,N,element_id])*weights[i]
+      end
     end 
 
  
@@ -760,11 +810,23 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::Array{Float64, 4}, 
     end
 
     # update element rhs and add entropy fix
-    if isapprox(entropy_diffusion,0.0,atol = 1e-13)
-      @. u_t[:,:,:,element_id] += ut_volumeintegral[:,:,:]
+    if isapprox(entropy_diffusion,0.0,atol = 1e-13) 
+      @inbounds for j = 1:N
+	@inbounds for i = 1:N
+	  @inbounds for v=1:nVar
+            u_t[v,i,j,element_id] += ut_volumeintegral[v,i,j]
+          end
+        end
+      end
     else
       #@show entropy_diffusion
-      @. u_t[:,:,:,element_id] += ut_volumeintegral[:,:,:] + entropy_diffusion*ut_diffusion[:,:,:] 
+      @inbounds for j = 1:N
+	@inbounds for i = 1:N
+	  @inbounds @simd for v=1:nVar
+            u_t[v,i,j,element_id] += ut_volumeintegral[v,i,j] + entropy_diffusion*ut_diffusion[v,i,j]
+          end
+        end
+      end
     end
   end
 end
