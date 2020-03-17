@@ -3,7 +3,7 @@
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{Int})
   # Return early if there is nothing to do
-  if issempty(cells_to_refine)
+  if isempty(cells_to_refine)
     return
   end
 
@@ -145,7 +145,7 @@ end
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::AbstractArray{Int})
   # Return early if there is nothing to do
-  if issempty(child_cells_to_coarsen)
+  if isempty(child_cells_to_coarsen)
     return
   end
 
