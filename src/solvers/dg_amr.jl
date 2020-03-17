@@ -7,9 +7,10 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
     return
   end
 
-  # Determine for each old element whether it needs to be refined
+  # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg.elements))
   tree = mesh.tree
+  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
   elements_to_refine = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
                                           cells_to_refine)
   needs_refinement[elements_to_refine] .= true
@@ -30,6 +31,7 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
   element_id = 1
   for old_element_id in 1:old_n_elements
     if needs_refinement[old_element_id]
+      # Refine element and store solution directly in new data structure
       refine_element!(elements.u, element_id, old_u, old_element_id, dg,
                       dg.l2mortar_forward_upper, dg.l2mortar_forward_lower)
       element_id += 2^ndim
@@ -151,6 +153,7 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg.elements))
+  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
   elements_to_remove = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
                                           child_cells_to_coarsen)
   to_be_removed[elements_to_remove] .= true
@@ -171,7 +174,7 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
   skip = 0
   element_id = 1
   for old_element_id in 1:old_n_elements
-    # If skip is set, we just coarsened 2^ndim elements and need to omit the following elements
+    # If skip is non-zero, we just coarsened 2^ndim elements and need to omit the following elements
     if skip > 0
       skip -= 1
       continue
@@ -183,6 +186,7 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
       # cells/elements are sorted
       @assert all(to_be_removed[old_element_id:(old_element_id+2^ndim-1)]) "bad cell/element order"
 
+      # Coarsen elements and store solution directly in new data structure
       coarsen_elements!(elements.u, element_id, old_u, old_element_id, dg,
                         dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower)
       element_id += 1
