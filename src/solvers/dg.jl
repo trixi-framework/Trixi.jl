@@ -1,5 +1,6 @@
 module DgSolver
 
+# Note: there are more includes at the bottom that depend on DG internals
 include("interpolation.jl")
 include("dg_containers.jl")
 include("l2mortar.jl")
@@ -32,10 +33,13 @@ export calc_dt
 export calc_error_norms
 export calc_entropy_timederivative
 export analyze_solution
+export refine!
+export coarsen!
+export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
+mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -67,6 +71,8 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   analysis_weights_volume::SVector{NAnap1}
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
+
+  amr_indicator::Symbol
 end
 
 
@@ -74,17 +80,17 @@ end
 function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
+
+  # Initialize elements container
   n_elements = length(leaf_cell_ids)
-
-  # Initialize elements
   elements = ElementContainer{V, N}(n_elements)
-  elements.cell_ids .= leaf_cell_ids
+  init_elements(elements, leaf_cell_ids, mesh, N + 1)
 
-  # Initialize surfaces
+  # Initialize surfaces container
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
-  # Initialize L2 mortars
+  # Initialize L2 mortars container
   n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
   l2mortars = L2MortarContainer{V, N}(n_l2mortars)
 
@@ -128,6 +134,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Initialize AMR
+  amr_indicator = Symbol(parameter("amr_indicator", "target_level", valid=["target_level"]))
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -139,29 +148,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_forward_upper, l2mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume)
-
-  # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:n_elements
-    # Get cell id
-    cell_id = leaf_cell_ids[element_id]
-
-    # Get cell length
-    dx = length_at_cell(mesh.tree, cell_id)
-
-    # Calculate inverse Jacobian as 1/(h/2)
-    dg.elements.inverse_jacobian[element_id] = 2/dx
-
-    # Calculate node coordinates
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-        dg.elements.node_coordinates[1, i, j, element_id] = (
-            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
-        dg.elements.node_coordinates[2, i, j, element_id] = (
-            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
-      end
-    end
-  end
+      analysis_vandermonde, analysis_total_volume,
+      amr_indicator)
 
   return dg
 end
@@ -241,6 +229,38 @@ function count_required_l2mortars(mesh::TreeMesh, cell_ids)
   end
 
   return count
+end
+
+
+# Initialize element data after creating a new elements container
+function init_elements(elements, cell_ids, mesh, n_nodes::Int)
+  # Store cell ids
+  elements.cell_ids .= cell_ids
+
+  # Determine node locations
+  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Calculate inverse Jacobian and node coordinates
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = cell_ids[element_id]
+
+    # Get cell length
+    dx = length_at_cell(mesh.tree, cell_id)
+
+    # Calculate inverse Jacobian as 1/(h/2)
+    elements.inverse_jacobian[element_id] = 2/dx
+
+    # Calculate node coordinates
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+        elements.node_coordinates[1, i, j, element_id] = (
+            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+        elements.node_coordinates[2, i, j, element_id] = (
+            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
+      end
+    end
+  end
 end
 
 
@@ -1186,5 +1206,10 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
 end
+
+
+# Note: this is included here since it depends on definitions in the DG main file
+include("dg_amr.jl")
+
 
 end # module
