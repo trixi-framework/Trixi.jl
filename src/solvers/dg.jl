@@ -80,9 +80,9 @@ end
 function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
-  n_elements = length(leaf_cell_ids)
 
   # Initialize elements container
+  n_elements = length(leaf_cell_ids)
   elements = ElementContainer{V, N}(n_elements)
   init_elements(elements, leaf_cell_ids, mesh, N + 1)
 

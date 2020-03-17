@@ -89,12 +89,12 @@ function run(;args=nothing, kwargs...)
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      has_changed = adapt!(mesh, solver)
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver)
 
       # If mesh has changed, write a new mesh file name
       while has_changed
         set_initial_conditions(solver, time)
-        has_changed = adapt!(mesh, solver)
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver)
       end
 
       # Save mesh file

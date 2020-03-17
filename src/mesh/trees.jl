@@ -103,7 +103,7 @@ function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
   t.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
-  t.original_cell_ids[1] = 1
+  t.original_cell_ids[1] = 0
 end
 
 
@@ -293,8 +293,8 @@ function refine!(t::Tree, cell_ids)
 
   # Determine list of *original* cell ids that were refined
   # Note: original_cell_ids contains the cell_id *before* refinement. At
-  # refinement, the refined cell's original_cell_ids value is flipped in sign
-  # to easily find it later.
+  # refinement, the refined cell's original_cell_ids value has its sign flipped
+  # to easily find it now.
   @views refined_original_cells = (
       -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
@@ -405,7 +405,7 @@ function refine_unbalanced!(t::Tree, cell_ids)
     # Insert new cells directly behind parent (depth-first)
     insert!(t, cell_id + 1, n_children)
 
-    # Flip sign of refined cell such that we can easily find it
+    # Flip sign of refined cell such that we can easily find it later
     t.original_cell_ids[cell_id] = -t.original_cell_ids[cell_id]
 
     # Initialize child cells
@@ -588,8 +588,8 @@ function coarsen!(t::Tree, cell_ids::AbstractArray{Int})
 
   # Determine list of *original* cell ids that were coarsened to
   # Note: original_cell_ids contains the cell_id *before* coarsening. At
-  # coarsening, the coarsened parent cell's original_cell_ids value is flipped in sign
-  # to easily find it later.
+  # coarsening, the coarsened parent cell's original_cell_ids value has its sign flipped
+  # to easily find it now.
   @views coarsened_original_cells = (
       -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 

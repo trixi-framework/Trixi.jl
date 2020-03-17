@@ -17,6 +17,12 @@ using HDF5: h5open, attrs
 export adapt!
 
 
+# Obtain AMR indicators from solver, then adapt mesh, and finally adapt solver
+#
+# If `only_refine` is true, no coarsening will be performed, independent of the indicator values.
+# If `only_coarsen` is true, no refinement will be performed, independent of the indicator values.
+#
+# Return true if anything was changed, false if no cells where coarsened/refined
 function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_coarsen=false)
   print("Begin adaptation...")
   # Alias for convenience
@@ -31,21 +37,22 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
                                                    "different length")
 
   # Set thresholds for refinement and coarsening
-  refinement_threshold = parameter("refinement_threshold",  0.5)
-  coarsening_threshold = parameter("coarsening_threshold", -0.5)
+  indicator_threshold_refinement = parameter("indicator_threshold_refinement",  0.5)
+  indicator_threshold_coarsening = parameter("indicator_threshold_coarsening", -0.5)
 
   # Determine list of cells to refine or coarsen
-  to_refine = leaf_cell_ids[lambda .> refinement_threshold]
-  to_coarsen = leaf_cell_ids[lambda .< coarsening_threshold]
+  to_refine = leaf_cell_ids[lambda .> indicator_threshold_refinement]
+  to_coarsen = leaf_cell_ids[lambda .< indicator_threshold_coarsening]
 
   # Start by refining cells
   @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
-    # Refine cells
+    # Refine mesh
     refined_original_cells = @timeit timer() "mesh" Mesh.Trees.refine!(tree, to_refine)
 
-    # Refine elements
+    # Refine solver
      @timeit timer() "solver" Solvers.refine!(solver, mesh, refined_original_cells)
   else
+    # If there is nothing to refine, create empty array for later use
     refined_original_cells = Int[]
   end
 
@@ -61,29 +68,35 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
     # removed, since these are needed for the coarsen! function. However, since
     # we only want to coarsen if *all* child cells are marked for coarsening,
     # we count the coarsening indicators for each parent cell and only coarsen
-    # if all children are marked as such (i.e., where the count is 2^ndim). In
+    # if all children are marked as such (i.e., where the count is 2^ndim). At
     # the same time, check if a cell is marked for coarsening even though it is
     # *not* a leaf cell -> this can only happen if it was refined due to 2:1
     # smoothing during the preceding refinement operation.
     parents_to_coarsen = zeros(Int, length(tree))
     for cell_id in to_coarsen
+      # If cell has no parent, it cannot be coarsened
       if !has_parent(tree, cell_id)
         continue
       end
 
+      # If cell is not leaf (anymore), it cannot be coarsened
       if !is_leaf(tree, cell_id)
         continue
       end
 
+      # Increase count for parent cell
       parent_id = tree.parent_ids[cell_id]
       parents_to_coarsen[parent_id] += 1
     end
+
+    # Extract only those parent cells for which all children should be coarsened
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndim]
 
-    # Finally, coarsen cells
+    # Finally, coarsen mesh
     coarsened_original_cells = @timeit timer() "mesh" Mesh.Trees.coarsen!(tree, to_coarsen)
 
-    # Convert coarsened parent cell ids to the list of child cell ids that have been removed
+    # Convert coarsened parent cell ids to the list of child cell ids that have
+    # been removed, since this is the information that is expected by the solver
     removed_child_cells = zeros(Int, n_children_per_cell(tree) * length(coarsened_original_cells))
     for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
       for child in 1:n_children_per_cell(tree)
@@ -91,9 +104,10 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
       end
     end
 
-    # Coarsen elements
+    # Coarsen solver
     @timeit timer() "solver" Solvers.coarsen!(solver, mesh, removed_child_cells)
   else
+    # If there is nothing to coarsen, create empty array for later use
     coarsened_original_cells = Int[]
   end
 
@@ -101,6 +115,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
                  "coarsened: $(length(coarsened_original_cells)), " *
                  "new number of cells/elements: $(length(tree))/$(solver.n_elements))")
 
+  # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
 end
 

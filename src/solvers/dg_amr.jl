@@ -2,6 +2,11 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{Int})
+  # Return early if there is nothing to do
+  if issempty(cells_to_refine)
+    return
+  end
+
   # Determine for each old element whether it needs to be refined
   needs_refinement = falses(nelements(dg.elements))
   tree = mesh.tree
@@ -139,6 +144,11 @@ end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::AbstractArray{Int})
+  # Return early if there is nothing to do
+  if issempty(child_cells_to_coarsen)
+    return
+  end
+
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg.elements))
   elements_to_remove = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
