@@ -54,6 +54,7 @@ function run(;args=nothing, verbose=false, kwargs...)
     print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
+    mesh.unsaved_changes = false
     println("done")
   end
 
@@ -95,7 +96,7 @@ function run(;args=nothing, verbose=false, kwargs...)
     if amr_interval > 0 && adapt_initial_conditions
       @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver)
 
-      # If mesh has changed, write a new mesh file name
+      # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions(solver, time)
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver)
@@ -103,6 +104,7 @@ function run(;args=nothing, verbose=false, kwargs...)
 
       # Save mesh file
       mesh.current_filename = save_mesh_file(mesh)
+      mesh.unsaved_changes = false
     end
   end
   t_end = parameter("t_end")
@@ -259,7 +261,16 @@ function run(;args=nothing, verbose=false, kwargs...)
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
-      @timeit timer() "I/O" save_solution_file(solver, mesh, time, dt, step)
+      @timeit timer() "I/O" begin
+        # If mesh has changed, write a new mesh file name
+        if has_changed
+          mesh.current_filename = save_mesh_file(mesh, step)
+          mesh.unsaved_changes = false
+        end
+
+        # Then write solution file
+        save_solution_file(solver, mesh, time, dt, step)
+      end
       output_time += time_ns() - output_start_time
     end
 
@@ -267,7 +278,16 @@ function run(;args=nothing, verbose=false, kwargs...)
     if restart_interval > 0 && (
         step % restart_interval == 0 || (finalstep && save_final_restart))
       output_start_time = time_ns()
-      @timeit timer() "I/O" save_restart_file(solver, mesh, time, dt, step)
+      @timeit timer() "I/O" begin
+        # If mesh has changed, write a new mesh file
+        if has_changed
+          mesh.current_filename = save_mesh_file(mesh, step)
+          mesh.unsaved_changes = false
+        end
+
+        # Then write restart file
+        save_restart_file(solver, mesh, time, dt, step)
+      end
       output_time += time_ns() - output_start_time
     end
 
@@ -275,10 +295,8 @@ function run(;args=nothing, verbose=false, kwargs...)
     if amr_interval > 0 && (step % amr_interval == 0)
       @timeit timer() "AMR" has_changed = adapt!(mesh, solver)
 
-      # If mesh has changed, write a new mesh file name
-      if has_changed
-        mesh.current_filename = save_mesh_file(mesh, step)
-      end
+      # Store if mesh has changed to write changed mesh file before next restart/solution output
+      mesh.unsaved_changes = has_changed
     end
 
     # The following call ensures that when doing memory allocation
