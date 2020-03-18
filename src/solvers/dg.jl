@@ -2,7 +2,7 @@ module DgSolver
 
 include("interpolation.jl")
 include("dg_containers.jl")
-include("l2mortar.jl")
+include("l2projection.jl")
 
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
@@ -17,7 +17,7 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
-import .L2Mortar # Import to satisfy Gregor
+import .L2Projection # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -43,8 +43,11 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
 
+  mortar_type::Symbol
   l2mortars::L2MortarContainer{V, N}
   n_l2mortars::Int
+  ecmortars::EcMortarContainer{V, N}
+  n_ecmortars::Int
 
   nodes::SVector{Np1}
   weights::SVector{Np1}
@@ -57,10 +60,12 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   dsplit::SMatrix{Np1, Np1}
   dsplit_transposed::SMatrix{Np1, Np1}
 
-  l2mortar_forward_upper::SMatrix{Np1, Np1}
-  l2mortar_forward_lower::SMatrix{Np1, Np1}
+  mortar_forward_upper::SMatrix{Np1, Np1}
+  mortar_forward_lower::SMatrix{Np1, Np1}
   l2mortar_reverse_upper::SMatrix{Np1, Np1}
   l2mortar_reverse_lower::SMatrix{Np1, Np1}
+  ecmortar_reverse_upper::SMatrix{Np1, Np1}
+  ecmortar_reverse_lower::SMatrix{Np1, Np1}
 
   analysis_nodes::SVector{NAnap1}
   analysis_weights::SVector{NAnap1}
@@ -84,19 +89,36 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
   surfaces = SurfaceContainer{V, N}(n_surfaces)
 
-  # Initialize L2 mortars
-  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
+  # Initialize mortars
+  mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
+  n_mortars = count_required_mortars(mesh, leaf_cell_ids)
+  if mortar_type === :l2
+    n_l2mortars = n_mortars
+    n_ecmortars = 0
+  elseif mortar_type === :ec
+    n_l2mortars = 0
+    n_ecmortars = n_mortars
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
   l2mortars = L2MortarContainer{V, N}(n_l2mortars)
+  ecmortars = EcMortarContainer{V, N}(n_ecmortars)
 
   # Sanity check
-  if n_l2mortars == 0
+  if n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
 
   # Connect elements with surfaces and l2mortars
   init_surface_connectivity!(elements, surfaces, mesh)
-  init_l2mortar_connectivity!(elements, l2mortars, mesh)
+  if mortar_type === :l2
+    init_mortar_connectivity!(elements, l2mortars, mesh)
+  elseif mortar_type === :ec
+    init_mortar_connectivity!(elements, ecmortars, mesh)
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
 
   # Initialize interpolation data structures
   n_nodes = N + 1
@@ -115,10 +137,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  l2mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
-  l2mortar_forward_lower = L2Mortar.calc_forward_lower(n_nodes)
-  l2mortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes)
-  l2mortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes)
+  mortar_forward_upper = L2Projection.calc_forward_upper(n_nodes)
+  mortar_forward_lower = L2Projection.calc_forward_lower(n_nodes)
+  l2mortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss))
+  l2mortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss))
+  ecmortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
+  ecmortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -133,11 +157,14 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
+      mortar_type,
       l2mortars, n_l2mortars,
+      ecmortars, n_ecmortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
       volume_integral_type, dhat, dsplit, dsplit_transposed,
-      l2mortar_forward_upper, l2mortar_forward_lower,
+      mortar_forward_upper, mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
+      ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume)
 
@@ -218,8 +245,8 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
 end
 
 
-# Count the number of L2 mortars that need to be created
-function count_required_l2mortars(mesh::TreeMesh, cell_ids)
+# Count the number of mortars that need to be created
+function count_required_mortars(mesh::TreeMesh, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -294,8 +321,8 @@ function init_surface_connectivity!(elements, surfaces, mesh)
 end
 
 
-# Initialize connectivity between elements and L2 mortars
-function init_l2mortar_connectivity!(elements, l2mortars, mesh)
+# Initialize connectivity between elements and mortars
+function init_mortar_connectivity!(elements, mortars, mesh)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -328,41 +355,41 @@ function init_l2mortar_connectivity!(elements, l2mortars, mesh)
       # 2 -> small element in positive coordinate direction
       # 3 -> large element
       count += 1
-      l2mortars.neighbor_ids[3, count] = element_id
+      mortars.neighbor_ids[3, count] = element_id
       if direction == 1
-        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
-        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+        mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+        mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
       elseif direction == 2
-        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
-        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+        mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+        mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
       elseif direction == 3
-        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
-        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+        mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+        mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
       elseif direction == 4
-        l2mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
-        l2mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+        mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+        mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
       else
         error("should not happen")
       end
 
       # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
       if direction in [2, 4]
-        l2mortars.large_sides[count] = 1
+        mortars.large_sides[count] = 1
       else
-        l2mortars.large_sides[count] = 2
+        mortars.large_sides[count] = 2
       end
 
       # Set orientation (x -> 1, y -> 2)
       if direction in [1, 2]
-        l2mortars.orientations[count] = 1
+        mortars.orientations[count] = 1
       else
-        l2mortars.orientations[count] = 2
+        mortars.orientations[count] = 2
       end
     end
   end
 
-  @assert count == nl2mortars(l2mortars) ("Actual l2mortar count ($count) does not match " *
-                                          "expectations $(nl2mortars(l2mortars))")
+  @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
+                                      "expectations $(nmortars(mortars))")
 end
 
 
@@ -494,16 +521,10 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
     dg.elements.u_t .= 0.0
     calc_volume_integral!(dg)
     prolong2surfaces!(dg)
-    calc_surface_flux!(dg.elements.surface_flux,
-                       dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
-                       dg.surfaces.orientations)
-    prolong2l2mortars!(dg)
-    calc_l2mortar_flux!(dg.elements.surface_flux,
-                        dg.l2mortars.neighbor_ids,
-                        dg.l2mortars.u_lower,
-                        dg.l2mortars.u_upper,
-                        dg, dg.l2mortars.orientations)
-    calc_surface_integral!(dg, dg.elements.u_t, dg.elements.surface_flux, dg.lhat)
+    calc_surface_flux!(dg)
+    prolong2mortars!(dg)
+    calc_mortar_flux!(dg)
+    calc_surface_integral!(dg)
     apply_jacobian!(dg)
     calc_sources!(dg, t_stage)
     return
@@ -519,23 +540,16 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg.elements.surface_flux,
-                                                    dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
-                                                    dg.surfaces.orientations)
+  @timeit timer() "surface flux" calc_surface_flux!(dg)
 
-  # Prolong solution to L2 mortars
-  @timeit timer() "prolong2l2mortars" prolong2l2mortars!(dg)
+  # Prolong solution to mortars
+  @timeit timer() "prolong2mortars" prolong2mortars!(dg)
 
   # Calculate mortar fluxes
-  @timeit timer() "l2mortar flux" calc_l2mortar_flux!(dg.elements.surface_flux,
-                                                      dg.l2mortars.neighbor_ids,
-                                                      dg.l2mortars.u_lower,
-                                                      dg.l2mortars.u_upper,
-                                                      dg, dg.l2mortars.orientations)
+  @timeit timer() "mortar flux" calc_mortar_flux!(dg)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
-                                                            dg.elements.surface_flux, dg.lhat)
+  @timeit timer() "surface integral" calc_surface_integral!(dg)
 
   # Apply Jacobian from mapping to reference element
   @timeit timer() "Jacobian" apply_jacobian!(dg)
@@ -825,8 +839,11 @@ function prolong2surfaces!(dg)
 end
 
 
-# Prolong solution to L2 mortars
-function prolong2l2mortars!(dg)
+# Prolong solution to mortars (select correct method based on mortar type)
+prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
+
+# Prolong solution to mortars (l2mortar version)
+function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
   for m = 1:dg.n_l2mortars
@@ -890,8 +907,8 @@ function prolong2l2mortars!(dg)
             u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
       else # large_sides[m] == 2 -> large element on right side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
@@ -904,8 +921,63 @@ function prolong2l2mortars!(dg)
             u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
+      end
+    end
+  end
+end
+
+
+# Prolong solution to mortars (ecmortar version)
+function prolong2mortars!(dg, ::Val{:ec})
+  equation = equations(dg)
+
+  for m = 1:dg.n_ecmortars
+    large_element_id = dg.ecmortars.neighbor_ids[3, m]
+    upper_element_id = dg.ecmortars.neighbor_ids[2, m]
+    lower_element_id = dg.ecmortars.neighbor_ids[1, m]
+
+    # Copy solution small to small
+    if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
+      if dg.ecmortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.ecmortars.u_upper[v, l, m] = dg.elements.u[v, 1,          l, upper_element_id]
+            dg.ecmortars.u_lower[v, l, m] = dg.elements.u[v, 1,          l, lower_element_id]
+            dg.ecmortars.u_large[v, l, m] = dg.elements.u[v, nnodes(dg), l, large_element_id]
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.ecmortars.u_upper[v, l, m] = dg.elements.u[v, l, 1,          upper_element_id]
+            dg.ecmortars.u_lower[v, l, m] = dg.elements.u[v, l, 1,          lower_element_id]
+            dg.ecmortars.u_large[v, l, m] = dg.elements.u[v, l, nnodes(dg), large_element_id]
+          end
+        end
+      end
+    else # large_sides[m] == 2 -> small elements on left side, large element on right
+      if dg.ecmortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.ecmortars.u_upper[v, l, m] = dg.elements.u[v, nnodes(dg), l, upper_element_id]
+            dg.ecmortars.u_lower[v, l, m] = dg.elements.u[v, nnodes(dg), l, lower_element_id]
+            dg.ecmortars.u_large[v, l, m] = dg.elements.u[v, 1,          l, large_element_id]
+          end
+        end
+      else
+        # L2 mortars in y-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
+            dg.ecmortars.u_upper[v, l, m] = dg.elements.u[v, l, nnodes(dg), upper_element_id]
+            dg.ecmortars.u_lower[v, l, m] = dg.elements.u[v, l, nnodes(dg), lower_element_id]
+            dg.ecmortars.u_large[v, l, m] = dg.elements.u[v, l, 1,          large_element_id]
+          end
+        end
       end
     end
   end
@@ -913,6 +985,10 @@ end
 
 
 # Calculate and store fluxes across surfaces
+calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg,
+                                            dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
@@ -954,10 +1030,19 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 
+# Calculate and store fluxes across mortars (select correct method based on mortar type)
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
+
+
 # Calculate and store fluxes across L2 mortars
-function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                             u_lower::Array{Float64, 4}, u_upper::Array{Float64, 4}, dg,
-                             orientations::Vector{Int})
+calc_mortar_flux!(dg, ::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2),
+                                                      dg.l2mortars.neighbor_ids,
+                                                      dg.l2mortars.u_lower,
+                                                      dg.l2mortars.u_upper,
+                                                      dg.l2mortars.orientations)
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
+                           neighbor_ids::Matrix{Int}, u_lower::Array{Float64, 4},
+                           u_upper::Array{Float64, 4}, orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1033,8 +1118,135 @@ function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
 end
 
 
+# Calculate and store fluxes across EC mortars
+calc_mortar_flux!(dg, ::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec),
+                                                      dg.ecmortars.neighbor_ids,
+                                                      dg.ecmortars.u_lower,
+                                                      dg.ecmortars.u_upper,
+                                                      dg.ecmortars.u_large,
+                                                      dg.ecmortars.orientations)
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
+                           neighbor_ids::Matrix{Int},
+                           u_lower::Array{Float64, 3},
+                           u_upper::Array{Float64, 3},
+                           u_large::Array{Float64, 3},
+                           orientations::Vector{Int})
+  # Type alias only for convenience
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_upper_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_upper_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
+  # Store matrix references for convenience (notation: R -> large, L -> small)
+  # Note: the same notation is used in the publications of Lucas Friedrich
+  PR2L_upper = dg.mortar_forward_upper
+  PR2L_lower = dg.mortar_forward_lower
+  PL2R_upper = dg.ecmortar_reverse_upper
+  PL2R_lower = dg.ecmortar_reverse_lower
+
+  #=@inbounds Threads.@threads for m = 1:dg.n_ecmortars=#
+  Threads.@threads for m = 1:dg.n_ecmortars
+    large_element_id = dg.ecmortars.neighbor_ids[3, m]
+    upper_element_id = dg.ecmortars.neighbor_ids[2, m]
+    lower_element_id = dg.ecmortars.neighbor_ids[1, m]
+
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
+    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
+      riemann!(fstar_upper, fstarnode_upper, u_large, u_upper, m,
+               equations(dg), nnodes(dg), orientations)
+      riemann!(fstar_lower, fstarnode_lower, u_large, u_lower, m,
+               equations(dg), nnodes(dg), orientations)
+    else # large_sides[m] == 2 -> small elements on left side, large element on right
+      riemann!(fstar_upper, fstarnode_upper, u_upper, u_large, m,
+               equations(dg), nnodes(dg), orientations)
+      riemann!(fstar_lower, fstarnode_lower, u_lower, u_large, m,
+               equations(dg), nnodes(dg), orientations)
+    end
+
+    # Transfer fluxes to elements
+    if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
+      if dg.ecmortars.orientations[m] == 1
+        # EC mortars in x-direction
+        surface_flux[:, :, 2, large_element_id] .= 0.0
+        surface_flux[:, :, 1, upper_element_id] .= 0.0
+        surface_flux[:, :, 1, lower_element_id] .= 0.0
+        for i in 1:nnodes(dg)
+          for l in 1:nnodes(dg)
+            for v in 1:nvariables(dg)
+              surface_flux[v, i, 2, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
+                                                          PL2R_lower[i, l] * fstar_lower[v, i, l])
+              surface_flux[v, i, 1, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
+              surface_flux[v, i, 1, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
+            end
+          end
+        end
+      else
+        # EC mortars in y-direction
+        surface_flux[:, :, 4, large_element_id] .= 0.0
+        surface_flux[:, :, 3, upper_element_id] .= 0.0
+        surface_flux[:, :, 3, lower_element_id] .= 0.0
+        for i in 1:nnodes(dg)
+          for l in 1:nnodes(dg)
+            for v in 1:nvariables(dg)
+              surface_flux[v, i, 4, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
+                                                          PL2R_lower[i, l] * fstar_lower[v, i, l])
+              surface_flux[v, i, 3, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
+              surface_flux[v, i, 3, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
+            end
+          end
+        end
+      end
+    else # large_sides[m] == 2 -> small elements on left side, large element on right
+      if dg.ecmortars.orientations[m] == 1
+        # EC mortars in x-direction
+        surface_flux[:, :, 1, large_element_id] .= 0.0
+        surface_flux[:, :, 2, upper_element_id] .= 0.0
+        surface_flux[:, :, 2, lower_element_id] .= 0.0
+        for i in 1:nnodes(dg)
+          for l in 1:nnodes(dg)
+            for v in 1:nvariables(dg)
+              surface_flux[v, i, 1, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
+                                                          PL2R_lower[i, l] * fstar_lower[v, l, i])
+              surface_flux[v, i, 2, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 2, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
+            end
+          end
+        end
+      else
+        # EC mortars in y-direction
+        surface_flux[:, :, 3, large_element_id] .= 0.0
+        surface_flux[:, :, 4, upper_element_id] .= 0.0
+        surface_flux[:, :, 4, lower_element_id] .= 0.0
+        for i in 1:nnodes(dg)
+          for l in 1:nnodes(dg)
+            for v in 1:nvariables(dg)
+              surface_flux[v, i, 3, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
+                                                          PL2R_lower[i, l] * fstar_lower[v, l, i])
+              surface_flux[v, i, 4, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux[v, i, 4, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+
 # Calculate surface integrals and update u_t
-function calc_surface_integral!(dg, u_t::Array{Float64, 4}, surface_flux::Array{Float64, 4},
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg,
+                                                    dg.elements.surface_flux, dg.lhat)
+function calc_surface_integral!(u_t::Array{Float64, 4}, dg, surface_flux::Array{Float64, 4},
                                 lhat::SMatrix)
   for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
