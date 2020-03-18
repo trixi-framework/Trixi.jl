@@ -263,7 +263,7 @@ function run(;args=nothing, verbose=false, kwargs...)
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
         # If mesh has changed, write a new mesh file name
-        if has_changed
+        if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
           mesh.unsaved_changes = false
         end
@@ -280,7 +280,7 @@ function run(;args=nothing, verbose=false, kwargs...)
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
         # If mesh has changed, write a new mesh file
-        if has_changed
+        if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
           mesh.unsaved_changes = false
         end

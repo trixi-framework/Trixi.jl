@@ -99,8 +99,9 @@ function L2MortarContainer{V, N}(capacity::Integer) where {V, N}
 end
 
 
-# Return number of mortars
-nl2mortars(l2mortars::L2MortarContainer) = length(l2mortars.orientations)
+# Return number of L2 mortars
+nmortars(l2mortars::L2MortarContainer) = length(l2mortars.orientations)
+
 
 # Allow printing container contents
 function Base.show(io::IO, c::L2MortarContainer{V, N}) where {V, N}
@@ -116,3 +117,44 @@ function Base.show(io::IO, c::L2MortarContainer{V, N}) where {V, N}
   println(io, "c.orientations = $(c.orientations)")
   println(io, '*'^20)
 end
+
+
+# Container data structure (structure-of-arrays style) for DG Ec mortars
+# Positions/directions for large_sides = 1, orientations = 1:
+#           |    |
+# upper = 2 |    |
+#           |    |
+#                | 3
+#           |    |
+# lower = 1 |    |
+#           |    |
+struct EcMortarContainer{V, N} <: AbstractContainer
+  u_upper::Array{Float64, 3} # [variables, i, mortars]
+  u_lower::Array{Float64, 3} # [variables, i, mortars]
+  u_large::Array{Float64, 3} # [variables, i, mortars]
+  neighbor_ids::Matrix{Int}  # [position, mortars]
+  # Large sides: left -> 1, right -> 2
+  large_sides::Vector{Int}   # [mortars]
+  orientations::Vector{Int}  # [mortars]
+end
+
+
+function EcMortarContainer{V, N}(capacity::Integer) where {V, N}
+  # Initialize fields with defaults
+  n_nodes = N + 1
+  u_upper = fill(NaN, V, n_nodes, capacity)
+  u_lower = fill(NaN, V, n_nodes, capacity)
+  u_large = fill(NaN, V, n_nodes, capacity)
+  neighbor_ids = fill(typemin(Int), 3, capacity)
+  large_sides = fill(typemin(Int), capacity)
+  orientations = fill(typemin(Int), capacity)
+
+  ecmortars = EcMortarContainer{V, N}(u_upper, u_lower, u_large, neighbor_ids,
+                                      large_sides, orientations)
+
+  return ecmortars
+end
+
+
+# Return number of EC mortars
+nmortars(ecmortars::EcMortarContainer) = length(ecmortars.orientations)

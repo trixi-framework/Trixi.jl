@@ -1,7 +1,8 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{Int})
+function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
+                         cells_to_refine::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -21,11 +22,10 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
 
   # Get new list of leaf cells
   leaf_cell_ids = leaf_cells(tree)
-  n_elements = length(leaf_cell_ids)
 
   # Initialize new elements container
-  elements = ElementContainer{nvariables(dg), polydeg(dg)}(n_elements)
-  init_elements(elements, leaf_cell_ids, mesh, nnodes(dg))
+  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or refine them
   element_id = 1
@@ -33,7 +33,7 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
     if needs_refinement[old_element_id]
       # Refine element and store solution directly in new data structure
       refine_element!(elements.u, element_id, old_u, old_element_id, dg,
-                      dg.l2mortar_forward_upper, dg.l2mortar_forward_lower)
+                      dg.mortar_forward_upper, dg.mortar_forward_lower)
       element_id += 2^ndim
     else
       # Copy old element data to new element container
@@ -43,22 +43,19 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
   end
 
   # Initialize new surfaces container
-  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
-  surfaces = SurfaceContainer{nvariables(dg), polydeg(dg)}(n_surfaces)
+  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_surfaces = nsurfaces(surfaces)
 
-  # Initialize L2 mortars container
-  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
-  l2mortars = L2MortarContainer{nvariables(dg), polydeg(dg)}(n_l2mortars)
+  # Initialize new mortar containers
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  n_l2mortars = nmortars(l2mortars)
+  n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if n_l2mortars == 0
+  if n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
-
-  # Connect elements with surfaces and l2mortars
-  init_surface_connectivity!(elements, surfaces, mesh)
-  init_l2mortar_connectivity!(elements, l2mortars, mesh)
 
   # Update DG instance with new data
   dg.elements = elements
@@ -67,6 +64,8 @@ function Solvers.refine!(dg::Dg, mesh::TreeMesh, cells_to_refine::AbstractArray{
   dg.n_surfaces = n_surfaces
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
+  dg.ecmortars = ecmortars
+  dg.n_ecmortars = n_ecmortars
 end
 
 
@@ -145,7 +144,8 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::AbstractArray{Int})
+function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
+                          child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -164,11 +164,10 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
 
   # Get new list of leaf cells
   leaf_cell_ids = leaf_cells(mesh.tree)
-  n_elements = length(leaf_cell_ids)
 
   # Initialize new elements container
-  elements = ElementContainer{nvariables(dg), polydeg(dg)}(n_elements)
-  init_elements(elements, leaf_cell_ids, mesh, nnodes(dg))
+  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or coarsen them
   skip = 0
@@ -199,22 +198,19 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
   end
 
   # Initialize new surfaces container
-  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
-  surfaces = SurfaceContainer{nvariables(dg), polydeg(dg)}(n_surfaces)
+  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_surfaces = nsurfaces(surfaces)
 
-  # Initialize L2 mortars container
-  n_l2mortars = count_required_l2mortars(mesh, leaf_cell_ids)
-  l2mortars = L2MortarContainer{nvariables(dg), polydeg(dg)}(n_l2mortars)
+  # Initialize new mortar containers
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  n_l2mortars = nmortars(l2mortars)
+  n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if n_l2mortars == 0
+  if n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
-
-  # Connect elements with surfaces and l2mortars
-  init_surface_connectivity!(elements, surfaces, mesh)
-  init_l2mortar_connectivity!(elements, l2mortars, mesh)
 
   # Update DG instance with new data
   dg.elements = elements
@@ -223,6 +219,8 @@ function Solvers.coarsen!(dg::Dg, mesh::TreeMesh, child_cells_to_coarsen::Abstra
   dg.n_surfaces = n_surfaces
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
+  dg.ecmortars = ecmortars
+  dg.n_ecmortars = n_ecmortars
 end
 
 

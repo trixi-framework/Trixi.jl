@@ -431,6 +431,39 @@ end
 end
 
 
+# Calculate flux across interface with different states on both sides (EC mortar version)
+function Equations.riemann!(surface_flux::AbstractArray{Float64, 3},
+                            fstarnode::AbstractVector{Float64},
+                            u_surfaces_left::AbstractArray{Float64, 3},
+                            u_surfaces_right::AbstractArray{Float64, 3},
+                            surface_id::Int,
+                            equation::Euler, n_nodes::Int,
+                            orientations::Vector{Int})
+  # Call pointwise Riemann solver
+  # i -> left, j -> right
+  for j = 1:n_nodes
+    for i = 1:n_nodes
+      # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
+      riemann!(fstarnode,
+               u_surfaces_left[1, i, surface_id],
+               u_surfaces_left[2, i, surface_id],
+               u_surfaces_left[3, i, surface_id],
+               u_surfaces_left[4, i, surface_id],
+               u_surfaces_right[1, j, surface_id],
+               u_surfaces_right[2, j, surface_id],
+               u_surfaces_right[3, j, surface_id],
+               u_surfaces_right[4, j, surface_id],
+               equation, orientations[surface_id])
+
+      # Copy flux back to actual flux array
+      for v in 1:nvariables(equation)
+        surface_flux[v, i, j] = fstarnode[v]
+      end
+    end
+  end
+end
+
+
 # Calculate flux across interface with different states on both sides (surface version)
 function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
                             fstarnode::AbstractVector{Float64},
