@@ -13,7 +13,7 @@ using TimerOutputs: @timeit, print_timer, reset_timer!
 using Profile: clear_malloc_data
 
 
-function run(;args=nothing, kwargs...)
+function run(;args=nothing, verbose=false, kwargs...)
   # Reset timer
   reset_timer!(timer())
 
@@ -24,10 +24,14 @@ function run(;args=nothing, kwargs...)
   else
     # Otherwise interpret keyword arguments as command line arguments
     args = Dict{String, Any}()
+    args["verbose"] = verbose
     for (key, value) in kwargs
       args[string(key)] = value
     end
   end
+
+  # Set global verbosity
+  globals[:verbose] = args["verbose"]
 
   # Print starup message
   print_startup_message()

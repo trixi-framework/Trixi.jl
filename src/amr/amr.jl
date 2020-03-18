@@ -24,7 +24,9 @@ export adapt!
 #
 # Return true if anything was changed, false if no cells where coarsened/refined
 function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_coarsen=false)
-  print("Begin adaptation...")
+  # Debug output
+  globals[:verbose] && print("Begin adaptation...")
+
   # Alias for convenience
   tree = mesh.tree
 
@@ -111,9 +113,11 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
     coarsened_original_cells = Int[]
   end
 
-  println("done (refined: $(length(refined_original_cells)), " *
-                 "coarsened: $(length(coarsened_original_cells)), " *
-                 "new number of cells/elements: $(length(tree))/$(solver.n_elements))")
+  # Debug output
+  globals[:verbose] && println("done (refined: $(length(refined_original_cells)), " *
+                               "coarsened: $(length(coarsened_original_cells)), " *
+                               "new number of cells/elements: " *
+                               "$(length(tree))/$(solver.n_elements))")
 
   # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
