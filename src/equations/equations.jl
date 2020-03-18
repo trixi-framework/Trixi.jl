@@ -10,6 +10,7 @@ export sources
 export calcflux!
 export calcflux_twopoint!
 export riemann!
+export riemann_fv!
 export calc_max_dt
 export cons2prim
 export cons2indicator
@@ -61,6 +62,7 @@ function sources end
 function calcflux! end
 function calcflux_twopoint! end
 function riemann! end
+function riemann_fv! end
 function calc_max_dt end
 function cons2prim end
 function cons2indicator end
