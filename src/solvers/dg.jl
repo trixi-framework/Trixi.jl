@@ -43,9 +43,9 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
 
+  mortar_type::Symbol
   l2mortars::L2MortarContainer{V, N}
   n_l2mortars::Int
-
   ecmortars::EcMortarContainer{V, N}
   n_ecmortars::Int
 
@@ -157,6 +157,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
+      mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
@@ -523,8 +524,7 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
     calc_surface_flux!(dg.elements.surface_flux,
                        dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
                        dg.surfaces.orientations)
-    prolong2l2mortars!(dg)
-    prolong2ecmortars!(dg)
+    prolong2mortars!(dg)
     calc_l2mortar_flux!(dg.elements.surface_flux,
                         dg.l2mortars.neighbor_ids,
                         dg.l2mortars.u_lower,
@@ -556,11 +556,8 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
                                                     dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
                                                     dg.surfaces.orientations)
 
-  # Prolong solution to L2 mortars
-  @timeit timer() "prolong2l2mortars" prolong2l2mortars!(dg)
-
-  # Prolong solution to EC mortars
-  @timeit timer() "prolong2ecmortars" prolong2ecmortars!(dg)
+  # Prolong solution to mortars
+  @timeit timer() "prolong2mortars" prolong2mortars!(dg)
 
   # Calculate L2 mortar fluxes
   @timeit timer() "l2mortar flux" calc_l2mortar_flux!(dg.elements.surface_flux,
@@ -869,8 +866,11 @@ function prolong2surfaces!(dg)
 end
 
 
-# Prolong solution to L2 mortars
-function prolong2l2mortars!(dg)
+# Prolong solution to mortars (l2mortar version)
+prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
+
+# Prolong solution to mortars (l2mortar version)
+function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
   for m = 1:dg.n_l2mortars
@@ -956,8 +956,8 @@ function prolong2l2mortars!(dg)
 end
 
 
-# Prolong solution to EC mortars
-function prolong2ecmortars!(dg)
+# Prolong solution to mortars (ecmortar version)
+function prolong2mortars!(dg, ::Val{:ec})
   equation = equations(dg)
 
   for m = 1:dg.n_ecmortars
