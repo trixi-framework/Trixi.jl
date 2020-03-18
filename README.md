@@ -21,7 +21,7 @@ easily be achieved by performing the following steps:
     julia
     ```
 3.  Switch to the package manager by pressing `]`, activate the current
-    directory and then instatiate it:
+    directory and then instantiate it:
     ```julia
     julia> ]
     (v1.3) pkg> activate .
