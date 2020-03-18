@@ -60,12 +60,12 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   dsplit::SMatrix{Np1, Np1}
   dsplit_transposed::SMatrix{Np1, Np1}
 
-  l2mortar_forward_upper::SMatrix{Np1, Np1}
-  l2mortar_forward_lower::SMatrix{Np1, Np1}
-  l2mortar_reverse_upper_gauss::SMatrix{Np1, Np1}
-  l2mortar_reverse_lower_gauss::SMatrix{Np1, Np1}
-  l2mortar_reverse_upper_gauss_lobatto::SMatrix{Np1, Np1}
-  l2mortar_reverse_lower_gauss_lobatto::SMatrix{Np1, Np1}
+  mortar_forward_upper::SMatrix{Np1, Np1}
+  mortar_forward_lower::SMatrix{Np1, Np1}
+  l2mortar_reverse_upper::SMatrix{Np1, Np1}
+  l2mortar_reverse_lower::SMatrix{Np1, Np1}
+  ecmortar_reverse_upper::SMatrix{Np1, Np1}
+  ecmortar_reverse_lower::SMatrix{Np1, Np1}
 
   analysis_nodes::SVector{NAnap1}
   analysis_weights::SVector{NAnap1}
@@ -137,12 +137,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  l2mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
-  l2mortar_forward_lower = L2Mortar.calc_forward_lower(n_nodes)
-  l2mortar_reverse_upper_gauss = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss))
-  l2mortar_reverse_lower_gauss = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss))
-  l2mortar_reverse_upper_gauss_lobatto = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-  l2mortar_reverse_lower_gauss_lobatto = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+  mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
+  mortar_forward_lower = L2Mortar.calc_forward_lower(n_nodes)
+  l2mortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss))
+  l2mortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss))
+  ecmortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
+  ecmortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -161,9 +161,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortars, n_ecmortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
       volume_integral_type, dhat, dsplit, dsplit_transposed,
-      l2mortar_forward_upper, l2mortar_forward_lower,
-      l2mortar_reverse_upper_gauss, l2mortar_reverse_lower_gauss,
-      l2mortar_reverse_upper_gauss_lobatto, l2mortar_reverse_lower_gauss_lobatto,
+      mortar_forward_upper, mortar_forward_lower,
+      l2mortar_reverse_upper, l2mortar_reverse_lower,
+      ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume)
 
@@ -934,8 +934,8 @@ function prolong2l2mortars!(dg)
             u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
       else # large_sides[m] == 2 -> large element on right side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
@@ -948,8 +948,8 @@ function prolong2l2mortars!(dg)
             u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.l2mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.l2mortar_forward_lower * u_large[v, :]
+        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
+        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
       end
     end
   end
@@ -1108,8 +1108,8 @@ function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
 
     # Project small fluxes to large element
     for v = 1:nvariables(dg)
-      @views large_surface_flux = (dg.l2mortar_reverse_upper_gauss * fstar_upper[v, :] +
-                                   dg.l2mortar_reverse_lower_gauss * fstar_lower[v, :])
+      @views large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
+                                   dg.l2mortar_reverse_lower * fstar_lower[v, :])
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
@@ -1150,10 +1150,11 @@ function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matr
   fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   # Store matrix references for convenience (notation: R -> large, L -> small)
-  PR2L_upper = dg.l2mortar_forward_upper
-  PR2L_lower = dg.l2mortar_forward_lower
-  PL2R_upper = dg.l2mortar_reverse_upper_gauss_lobatto
-  PL2R_lower = dg.l2mortar_reverse_lower_gauss_lobatto
+  # Note: the same notation is used in the publications of Lucas Friedrich
+  PR2L_upper = dg.mortar_forward_upper
+  PR2L_lower = dg.mortar_forward_lower
+  PL2R_upper = dg.ecmortar_reverse_upper
+  PL2R_lower = dg.ecmortar_reverse_lower
 
   #=@inbounds Threads.@threads for m = 1:dg.n_ecmortars=#
   Threads.@threads for m = 1:dg.n_ecmortars
