@@ -2,7 +2,7 @@ module DgSolver
 
 include("interpolation.jl")
 include("dg_containers.jl")
-include("l2mortar.jl")
+include("l2projection.jl")
 
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
@@ -17,7 +17,7 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
-import .L2Mortar # Import to satisfy Gregor
+import .L2Projection # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -137,12 +137,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  mortar_forward_upper = L2Mortar.calc_forward_upper(n_nodes)
-  mortar_forward_lower = L2Mortar.calc_forward_lower(n_nodes)
-  l2mortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss))
-  l2mortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss))
-  ecmortar_reverse_upper = L2Mortar.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-  ecmortar_reverse_lower = L2Mortar.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+  mortar_forward_upper = L2Projection.calc_forward_upper(n_nodes)
+  mortar_forward_lower = L2Projection.calc_forward_lower(n_nodes)
+  l2mortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss))
+  l2mortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss))
+  ecmortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
+  ecmortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
