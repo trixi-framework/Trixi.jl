@@ -521,22 +521,10 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
     dg.elements.u_t .= 0.0
     calc_volume_integral!(dg)
     prolong2surfaces!(dg)
-    calc_surface_flux!(dg.elements.surface_flux,
-                       dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
-                       dg.surfaces.orientations)
+    calc_surface_flux!(dg)
     prolong2mortars!(dg)
-    calc_l2mortar_flux!(dg.elements.surface_flux,
-                        dg.l2mortars.neighbor_ids,
-                        dg.l2mortars.u_lower,
-                        dg.l2mortars.u_upper,
-                        dg, dg.l2mortars.orientations)
-    calc_ecmortar_flux!(dg.elements.surface_flux,
-                        dg.ecmortars.neighbor_ids,
-                        dg.ecmortars.u_lower,
-                        dg.ecmortars.u_upper,
-                        dg.ecmortars.u_large,
-                        dg, dg.ecmortars.orientations)
-    calc_surface_integral!(dg, dg.elements.u_t, dg.elements.surface_flux, dg.lhat)
+    calc_mortar_flux!(dg)
+    calc_surface_integral!(dg)
     apply_jacobian!(dg)
     calc_sources!(dg, t_stage)
     return
@@ -552,31 +540,16 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
   @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
 
   # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg.elements.surface_flux,
-                                                    dg.surfaces.neighbor_ids, dg.surfaces.u, dg, 
-                                                    dg.surfaces.orientations)
+  @timeit timer() "surface flux" calc_surface_flux!(dg)
 
   # Prolong solution to mortars
   @timeit timer() "prolong2mortars" prolong2mortars!(dg)
 
-  # Calculate L2 mortar fluxes
-  @timeit timer() "l2mortar flux" calc_l2mortar_flux!(dg.elements.surface_flux,
-                                                      dg.l2mortars.neighbor_ids,
-                                                      dg.l2mortars.u_lower,
-                                                      dg.l2mortars.u_upper,
-                                                      dg, dg.l2mortars.orientations)
-
-  # Calculate EC mortar fluxes
-  @timeit timer() "ecmortar flux" calc_ecmortar_flux!(dg.elements.surface_flux,
-                                                      dg.ecmortars.neighbor_ids,
-                                                      dg.ecmortars.u_lower,
-                                                      dg.ecmortars.u_upper,
-                                                      dg.ecmortars.u_large,
-                                                      dg, dg.ecmortars.orientations)
+  # Calculate mortar fluxes
+  @timeit timer() "mortar flux" calc_mortar_flux!(dg)
 
   # Calculate surface integrals
-  @timeit timer() "surface integral" calc_surface_integral!(dg, dg.elements.u_t,
-                                                            dg.elements.surface_flux, dg.lhat)
+  @timeit timer() "surface integral" calc_surface_integral!(dg)
 
   # Apply Jacobian from mapping to reference element
   @timeit timer() "Jacobian" apply_jacobian!(dg)
@@ -866,7 +839,7 @@ function prolong2surfaces!(dg)
 end
 
 
-# Prolong solution to mortars (l2mortar version)
+# Prolong solution to mortars (select correct method based on mortar type)
 prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
 
 # Prolong solution to mortars (l2mortar version)
@@ -1012,6 +985,10 @@ end
 
 
 # Calculate and store fluxes across surfaces
+calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg,
+                                            dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
@@ -1053,10 +1030,19 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 
+# Calculate and store fluxes across mortars (select correct method based on mortar type)
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
+
+
 # Calculate and store fluxes across L2 mortars
-function calc_l2mortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                             u_lower::Array{Float64, 4}, u_upper::Array{Float64, 4}, dg,
-                             orientations::Vector{Int})
+calc_mortar_flux!(dg, ::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2),
+                                                      dg.l2mortars.neighbor_ids,
+                                                      dg.l2mortars.u_lower,
+                                                      dg.l2mortars.u_upper,
+                                                      dg.l2mortars.orientations)
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
+                           neighbor_ids::Matrix{Int}, u_lower::Array{Float64, 4},
+                           u_upper::Array{Float64, 4}, orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1133,12 +1119,18 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-function calc_ecmortar_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                             u_lower::Array{Float64, 3},
-                             u_upper::Array{Float64, 3},
-                             u_large::Array{Float64, 3},
-                             dg,
-                             orientations::Vector{Int})
+calc_mortar_flux!(dg, ::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec),
+                                                      dg.ecmortars.neighbor_ids,
+                                                      dg.ecmortars.u_lower,
+                                                      dg.ecmortars.u_upper,
+                                                      dg.ecmortars.u_large,
+                                                      dg.ecmortars.orientations)
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
+                           neighbor_ids::Matrix{Int},
+                           u_lower::Array{Float64, 3},
+                           u_upper::Array{Float64, 3},
+                           u_large::Array{Float64, 3},
+                           orientations::Vector{Int})
   # Type alias only for convenience
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1252,7 +1244,9 @@ end
 
 
 # Calculate surface integrals and update u_t
-function calc_surface_integral!(dg, u_t::Array{Float64, 4}, surface_flux::Array{Float64, 4},
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg,
+                                                    dg.elements.surface_flux, dg.lhat)
+function calc_surface_integral!(u_t::Array{Float64, 4}, dg, surface_flux::Array{Float64, 4},
                                 lhat::SMatrix)
   for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
