@@ -166,6 +166,20 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > 0.5 ? 1.0E-3 : 1.245
 
     return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "khi" #domain size is [-1,1]^2, resolution is 32^2 elements, N=7
+    # parameters
+    dens0 = 1.0 #0.5
+    dens1 = 1.5
+    pres0 = 1.0
+    velx0 = 0.5
+    vely0 = 0.1
+    slope = 15
+  
+    rho = dens0 + dens1 * 0.5*(1+(tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1)))
+    v1  = velx0 * (tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1))
+    v2  = vely0 * sin(2*pi*x[1])
+    p   = pres0
+    return prim2cons(equation, [rho, v1, v2, p])
   else
     error("Unknown initial condition '$name'")
   end
