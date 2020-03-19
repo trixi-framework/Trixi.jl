@@ -14,6 +14,7 @@ export calc_f1_entropy
 export calc_f2_entropy
 export riemann!
 export riemann_fv!
+export riemann_fv_diss!
 export calc_max_dt
 export calc_h_matrix!
 export cons2prim
@@ -462,9 +463,8 @@ function Equations.riemann_fv!(surface_flux::AbstractMatrix{Float64},
   end
 end
 
-
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann_fv!(surface_flux::AbstractArray{Float64, 1},
+function Equations.riemann_fv_diss!(surface_flux::AbstractArray{Float64, 1},
                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
                             equation::Euler, orientation::Int)
@@ -492,60 +492,37 @@ function Equations.riemann_fv!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] =  - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] =  - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] =  - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-    #surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-    #surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-    #surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-    #surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-#  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec)
-#    symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
-#                             equation, orientation,
-#                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-#                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-#     
-#  elseif equation.surface_flux_type == :hllc
-#    error("not yet implemented or tested")
-#    v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-#    h_ll = (rho_e_ll + p_ll) / rho_ll
-#    h_rr = (rho_e_rr + p_rr) / rho_rr
-#    h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-#    c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
-#    s_ll = v_tilde - c_tilde
-#    s_rr = v_tilde + c_tilde
-#
-#    if s_ll > 0
-#      surface_flux[1, surface_id] = f_ll[1]
-#      surface_flux[2, surface_id] = f_ll[2]
-#      surface_flux[3, surface_id] = f_ll[3]
-#    elseif s_rr < 0
-#      surface_flux[1, surface_id] = f_rr[1]
-#      surface_flux[2, surface_id] = f_rr[2]
-#      surface_flux[3, surface_id] = f_rr[3]
-#    else
-#      s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
-#                / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
-#      if s_ll <= 0 && 0 <= s_star
-#        surface_flux[1, surface_id] = (f_ll[1] + s_ll *
-#            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) - rho_ll))
-#        surface_flux[2, surface_id] = (f_ll[2] + s_ll *
-#            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) * s_star - rho_v_ll))
-#        surface_flux[3, surface_id] = (f_ll[3] + s_ll *
-#            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) *
-#            (rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll))))
-#            - rho_e_ll))
-#      else
-#        surface_flux[1, surface_id] = (f_rr[1] + s_rr *
-#            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) - rho_rr))
-#        surface_flux[2, surface_id] = (f_rr[2] + s_rr *
-#            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) * s_star - rho_v_rr))
-#        surface_flux[3, surface_id] = (f_rr[3] + s_rr *
-#            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) *
-#            (rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr))))
-#            - rho_e_rr))
-#      end
-#    end
-#  else
-#    error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
-#  end
+end
+
+# Calculate flux across interface with different states on both sides (pointwise version)
+function Equations.riemann_fv!(surface_flux::AbstractArray{Float64, 1},
+                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
+                            equation::Euler, orientation::Int)
+  # Calculate primitive variables and speed of sound
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  c_ll = sqrt(equation.gamma * p_ll / rho_ll)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  c_rr = sqrt(equation.gamma * p_rr / rho_rr)
+
+  # Obtain left and right fluxes
+  f_ll = zeros(MVector{4})
+  f_rr = zeros(MVector{4})
+  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
+  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
+ 
+#  if equation.surface_flux_type == :laxfriedrichs
+    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
+    surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
+    surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
+    surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
 end
 
 # Calculate flux across interface with different states on both sides (EC mortar version)

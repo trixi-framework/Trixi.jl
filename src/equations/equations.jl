@@ -63,6 +63,7 @@ function calcflux! end
 function calcflux_twopoint! end
 function riemann! end
 function riemann_fv! end
+function riemann_fv_diss! end
 function calc_max_dt end
 function cons2prim end
 function cons2indicator end
