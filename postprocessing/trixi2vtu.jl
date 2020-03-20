@@ -76,6 +76,9 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "verbose")
       args["verbose"] = false
     end
+    if !haskey(args, "save-pvd")
+      args["save-pvd"] = "auto"
+    end
     if !haskey(args, "output_directory")
       args["output_directory"] = "."
     end
@@ -83,14 +86,23 @@ function run(;args=nothing, kwargs...)
       args["nvisnodes"] = nothing
     end
   end
+
+  # Store for convenience
   verbose = args["verbose"]
+  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(args["datafile"]) > 1)
+    save_pvd = true
+  else
+    save_pvd = false
+  end
 
-  # Determine pvd filename
-  pvd_filename = joinpath(args["output_directory"], get_pvd_filename(args["datafile"]))
+  if save_pvd
+    # Determine pvd filename
+    pvd_filename = joinpath(args["output_directory"], get_pvd_filename(args["datafile"]))
 
-  # Opening PVD file
-  verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
-  @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
+    # Opening PVD file
+    verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
+    @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
+  end
 
   # Iterate over input files
   for datafile in args["datafile"]
@@ -164,14 +176,18 @@ function run(;args=nothing, kwargs...)
     verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
     @timeit "save VTK file" vtk_save(vtk)
 
-    # Add to PVD file
-    verbose && println("| Adding to PVD file...")
-    @timeit "add VTK to PVD file" pvd[time] = vtk
+    if save_pvd
+      # Add to PVD file
+      verbose && println("| Adding to PVD file...")
+      @timeit "add VTK to PVD file" pvd[time] = vtk
+    end
   end
 
-  # Save PVD file
-  verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
-  @timeit "save PVD file" vtk_save(pvd)
+  if save_pvd
+    # Save PVD file
+    verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
+    @timeit "save PVD file" vtk_save(pvd)
+  end
 
   verbose && println("| done.\n")
   print_timer()
@@ -219,48 +235,6 @@ function longest_common_prefix(strings::AbstractArray)
 end
 
 
-# Convert cell-centered values to node-centered values by averaging over all
-# four neighbors and making use of the periodicity of the solution
-function cell2node(cell_centered_data::AbstractArray{Float64})
-  # Create temporary data structure to make the averaging algorithm as simple
-  # as possible (by using a ghost layer)
-  tmp = similar(cell_centered_data, size(cell_centered_data) .+ (2, 2, 0))
-
-  # Fill center with original data
-  tmp[2:end-1, 2:end-1, :] .= cell_centered_data
-
-  # Fill sides with opposite data (periodic domain)
-  # x-direction
-  tmp[1,   2:end-1, :] .= cell_centered_data[end, :, :]
-  tmp[end, 2:end-1, :] .= cell_centered_data[1,   :, :]
-  # y-direction
-  tmp[2:end-1, 1,   :] .= cell_centered_data[:, end, :]
-  tmp[2:end-1, end, :] .= cell_centered_data[:, 1,   :]
-  # Corners
-  tmp[1,   1,   :] = cell_centered_data[end, end, :]
-  tmp[end, 1,   :] = cell_centered_data[1,   end, :]
-  tmp[1,   end, :] = cell_centered_data[end, 1,   :]
-  tmp[end, end, :] = cell_centered_data[1,   1,   :]
-
-  # Create output data structure
-  resolution_in, _, n_variables = size(cell_centered_data)
-  resolution_out = resolution_in + 1
-  node_centered_data = Array{Float64}(undef, resolution_out, resolution_out, n_variables)
-
-  # Obtain node-centered value by averaging over neighboring cell-centered values
-  for j in 1:resolution_out
-    for i in 1:resolution_out
-      node_centered_data[i, j, :] = (tmp[i,   j,   :] +
-                                     tmp[i+1, j,   :] +
-                                     tmp[i,   j+1, :] +
-                                     tmp[i+1, j+1, :]) / 4
-    end
-  end
-
-  return node_centered_data
-end
-
-
 # Interpolate to visualization nodes
 function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable_id::Int)
   # Extract data shape information
@@ -292,139 +266,7 @@ function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable
 end
 
 
-# Interpolate unstructured DG data to structured data (cell-centered)
-function unstructured2structured(unstructured_data::AbstractArray{Float64},
-                                 normalized_coordinates::AbstractArray{Float64},
-                                 levels::AbstractArray{Int}, resolution::Int,
-                                 nvisnodes_per_level::AbstractArray{Int})
-  # Extract data shape information
-  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
-
-  # Get node coordinates for DG locations on reference element
-  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-
-  #=# Calculate node coordinates for structured locations on reference element=#
-  #=max_level = length(nvisnodes_per_level) - 1=#
-  #=visnodes_per_level = []=#
-  #=for l in 0:max_level=#
-  #=  n_nodes_out = nvisnodes_per_level[l + 1]=#
-  #=  dx = 2 / n_nodes_out=#
-  #=  push!(visnodes_per_level, collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out)))=#
-  #=end=#
-
-  # Calculate interpolation vandermonde matrices for each level
-  max_level = length(nvisnodes_per_level) - 1
-  vandermonde_per_level = []
-  for l in 0:max_level
-    n_nodes_out = nvisnodes_per_level[l + 1]
-    dx = 2 / n_nodes_out
-    nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
-    push!(vandermonde_per_level, polynomial_interpolation_matrix(nodes_in, nodes_out))
-  end
-
-  # For each element, calculate index position at which to insert data in global data structure
-  lower_left_index = element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
-
-  # Create output data structure
-  structured = Array{Float64}(undef, resolution, resolution, n_variables)
-
-  # For each variable, interpolate element data and store to global data structure
-  for v in 1:n_variables
-    # Reshape data array for use in interpolate_nodes function
-    reshaped_data = reshape(unstructured_data[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
-
-    for element_id in 1:n_elements
-      # Extract level for convenience
-      level = levels[element_id]
-
-      # Determine target indices
-      n_nodes_out = nvisnodes_per_level[level + 1]
-      first = lower_left_index[:, element_id]
-      last = first .+ (n_nodes_out - 1)
-
-      # Interpolate data
-      vandermonde = vandermonde_per_level[level + 1]
-      structured[first[1]:last[1], first[2]:last[2], v] .= (
-          reshape(interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
-                  n_nodes_out, n_nodes_out))
-    end
-  end
-
-  return structured
-end
-
-
-# For a given normalized element coordinate, return the index of its lower left
-# contribution to the global data structure
-function element2index(normalized_coordinates::AbstractArray{Float64}, levels::AbstractArray{Int},
-                       resolution::Int, nvisnodes_per_level::AbstractArray{Int})
-  n_elements = length(levels)
-
-  # First, determine lower left coordinate for all cells
-  dx = 2 / resolution
-  lower_left_coordinate = Array{Float64}(undef, ndim, n_elements)
-  for element_id in 1:n_elements
-    nvisnodes = nvisnodes_per_level[levels[element_id] + 1]
-    lower_left_coordinate[1, element_id] = (
-        normalized_coordinates[1, element_id] - (nvisnodes - 1)/2 * dx)
-    lower_left_coordinate[2, element_id] = (
-        normalized_coordinates[2, element_id] - (nvisnodes - 1)/2 * dx)
-  end
-
-  # Then, convert coordinate to global index
-  indices = coordinate2index(lower_left_coordinate, resolution)
-
-  return indices
-end
-
-
-# Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
-function coordinate2index(coordinate, resolution::Integer)
-  # Calculate 1D normalized coordinates
-  dx = 2/resolution
-  mesh_coordinates = collect(range(-1 + dx/2, 1 - dx/2, length=resolution))
-
-  # Find index
-  id_x = searchsortedfirst.(Ref(mesh_coordinates), coordinate[1, :], lt=(x,y)->x .< y .- dx/2)
-  id_y = searchsortedfirst.(Ref(mesh_coordinates), coordinate[2, :], lt=(x,y)->x .< y .- dx/2)
-  return transpose(hcat(id_x, id_y))
-end
-
-
-function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
-  # Get node coordinates for input and output locations on reference element
-  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-  dx = 2/n_nodes_out
-  #=nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))=#
-  nodes_out = collect(range(-1, 1, length=n_nodes_out))
-
-  # Get interpolation matrix
-  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
-
-  # Create output data structure
-  n_elements = div(size(data_in, 1), n_nodes_in^ndim)
-  n_variables = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_nodes_out, n_elements, n_variables)
-
-  for n in 1:1
-  # Interpolate each variable separately
-  for v = 1:n_variables
-    # Reshape data to fit expected format for interpolation function
-    # FIXME: this "reshape here, reshape later" funny business should be implemented properly
-    reshaped = reshape(data_in[:, v], 1, n_nodes_in, n_nodes_in, n_elements)
-
-    # Interpolate data for each cell
-    for element_id = 1:1#n_elements
-      data_out[:, :, element_id, v] = interpolate_nodes(reshaped[:, :, :, element_id],
-                                                        vandermonde, 1)
-    end
-  end
-  end
-
-  return reshape(data_out, n_nodes_out^ndim * n_elements, n_variables)
-end
-
-
+# Convert coordinates and level information to a list of points and VTK cells
 function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
                                levels::AbstractVector{Int},
                                center_level_0::AbstractVector{Float64},
@@ -486,35 +328,6 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
 end
 
 
-function calc_vertices(coordinates::AbstractArray{Float64, 2},
-                       levels::AbstractArray{Int}, length_level_0::Float64)
-  @assert ndim == 2 "Algorithm currently only works in 2D"
-
-  # Initialize output arrays
-  n_elements = length(levels)
-  x = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
-  y = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
-
-  # Calculate vertices for all coordinates at once
-  for element_id in 1:n_elements
-    length = length_level_0 / 2^levels[element_id]
-    x[1, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[2, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[3, element_id] = coordinates[1, element_id] + 1/2 * length
-    x[4, element_id] = coordinates[1, element_id] - 1/2 * length
-    x[5, element_id] = coordinates[1, element_id] - 1/2 * length
-
-    y[1, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[2, element_id] = coordinates[2, element_id] - 1/2 * length
-    y[3, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[4, element_id] = coordinates[2, element_id] + 1/2 * length
-    y[5, element_id] = coordinates[2, element_id] - 1/2 * length
-  end
-
-  return x, y
-end
-
-
 # Use data file to extract mesh filename from attributes
 function extract_mesh_filename(filename::String)
   # Open file for reading
@@ -567,6 +380,7 @@ function read_meshfile(filename::String)
 end
 
 
+# Read in data file and return all relevant information
 function read_datafile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -595,17 +409,7 @@ function read_datafile(filename::String)
 end
 
 
-function get_output_format(format::String)
-  if format == "png"
-    return :png
-  elseif format == "pdf"
-    return :pdf
-  else
-    error("unrecognized output file format '$format' (must be 'png' or 'pdf')")
-  end
-end
-
-
+# Parse command line arguments and return result
 function parse_commandline_arguments(args=ARGS)
   # If anything is changed here, it should also be checked at the beginning of run()
   # FIXME: Refactor the code to avoid this redundancy
@@ -619,6 +423,12 @@ function parse_commandline_arguments(args=ARGS)
     "--verbose", "-v"
       help = "Enable verbose output to avoid despair over long plot times 😉"
       action = :store_true
+    "--save-pvd"
+      help = ("In addition to a VTK file, write a PVD file that contains time information. " *
+              "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
+              "created if multiple files are converted.")
+      default = "auto"
+      range_tester = (x->x in ("yes", "auto", "no"))
     "--output-directory", "-o"
       help = "Output directory where generated images are stored"
       dest_name = "output_directory"
