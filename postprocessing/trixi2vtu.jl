@@ -128,12 +128,12 @@ function run(;args=nothing, kwargs...)
     end
 
     # Calculate VTK points and cells
-    verbose && println("| Building VTK mesh...")
-    @timeit "build VTK mesh" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
-                                                                           levels,
-                                                                           center_level_0,
-                                                                           length_level_0,
-                                                                           n_visnodes)
+    verbose && println("| Preparing VTK cell cells...")
+    @timeit "prepare VTK cells" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
+                                                                              levels,
+                                                                              center_level_0,
+                                                                              length_level_0,
+                                                                              n_visnodes)
 
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
@@ -143,8 +143,8 @@ function run(;args=nothing, kwargs...)
     vtk_filename = joinpath(args["output_directory"], "$(base)")
 
     # Open VTK file
-    verbose && println("| Opening VTK file '$(vtk_filename).vtu'...")
-    @timeit "open VTK file" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
+    verbose && println("| Building VTK mesh...")
+    @timeit "build VTK mesh" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
 
     # Add data to file
     verbose && println("| Adding data to VTK file...")
