@@ -45,7 +45,7 @@ using .PointLocators: PointLocator, insert!, Point
 
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
-using WriteVTK: vtk_grid, MeshCell, VTKCellTypes
+using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 using TimerOutputs
 
 function run(;args=nothing, kwargs...)
@@ -73,15 +73,6 @@ function run(;args=nothing, kwargs...)
     if isa(args["datafile"], String)
       args["datafile"] = [args["datafile"]]
     end
-    if !haskey(args, "format")
-      args["format"] = "png"
-    end
-    if !haskey(args, "variable")
-      args["variable"] = []
-    end
-    if !haskey(args, "grid_lines")
-      args["grid_lines"] = false
-    end
     if !haskey(args, "verbose")
       args["verbose"] = false
     end
@@ -93,6 +84,13 @@ function run(;args=nothing, kwargs...)
     end
   end
   verbose = args["verbose"]
+
+  # Determine pvd filename
+  pvd_filename = joinpath(args["output_directory"], get_pvd_filename(args["datafile"]))
+
+  # Opening PVD file
+  verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
+  @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
 
   # Iterate over input files
   for datafile in args["datafile"]
@@ -118,8 +116,7 @@ function run(;args=nothing, kwargs...)
 
     # Read data
     verbose && println("| Reading data file...")
-    @timeit "read data" labels, unstructured_data, n_nodes, time = read_datafile(datafile)
-
+    @timeit "read data" labels, data, n_nodes, time = read_datafile(datafile)
 
     # Determine resolution for data interpolation
     if args["nvisnodes"] == nothing
@@ -138,101 +135,43 @@ function run(;args=nothing, kwargs...)
                                                                            length_level_0,
                                                                            n_visnodes)
 
-    # Create VTK file and store cell ids
-    verbose && println("| Creating VTK file...")
-    @timeit "create VTK file" vtk_grid("datafile", vtk_points, vtk_cells) do vtk
-      vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
-      vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)), n_visnodes)
-    end
-
-    verbose && println("| done.\n")
-    print_timer()
-    println()
-    return
-
-    # Interpolate unstructured DG data to structured data
-    verbose && println("| Interpolating data...")
-    #=@show minimum(unstructured_data), maximum(unstructured_data)=#
-    @timeit "interpolate data" (structured_data =
-        unstructured2structured(unstructured_data, normalized_coordinates,
-                                levels, resolution, nvisnodes_per_level))
-
-    # Interpolate cell-centered values to node-centered values
-    #=@show minimum(structured_data), maximum(structured_data)=#
-    node_centered_data = cell2node(structured_data)
-    #=@show minimum(node_centered_data), maximum(node_centered_data)=#
-
-    # Determine axis coordinates for contour plot
-    xs = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[1]
-    ys = collect(range(-1, 1, length=resolution+1)) .* length_level_0/2 .+ center_level_0[2]
-
-    # Determine element vertices to plot grid lines
-    if args["grid_lines"]
-      vertices_x, vertices_y = calc_vertices(coordinates, levels, length_level_0)
-    end
-
-    # Set up plotting
-    output_format = get_output_format(args["format"])
-    gr()
-    if output_format == :pdf
-      GR.inline("pdf")
-    elseif output_format == :png
-      GR.inline("png")
-    else
-      error("unknown output format '$output_format'")
-    end
-
-    # Check that all variables exist in data file
-    if isempty(args["variable"])
-      variables = labels
-    else
-      for var in args["variable"]
-        if !(var in labels)
-          error("variable '$var' does not exist in the data file $datafile")
-        end
-      end
-      variables = args["variable"]
-    end
-
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
-    # Calculate x and y limits
-    xlims = (-1, 1) .* (length_level_0/2 + center_level_0[1])
-    ylims = (-1, 1) .* (length_level_0/2 + center_level_0[2])
+    # Determine output file name
+    base, _ = splitext(splitdir(datafile)[2])
+    vtk_filename = joinpath(args["output_directory"], "$(base)")
 
-    verbose && println("| Creating plots...")
-    @timeit "plot generation" for (variable_id, label) in enumerate(variables)
-      verbose && println("| | Variable $label...")
+    # Open VTK file
+    verbose && println("| Opening VTK file '$(vtk_filename).vtu'...")
+    @timeit "open VTK file" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
 
-      # Create plot
-      verbose && println("| | | Creating figure...")
-      @timeit "create figure" plot(size=(2000,2000), thickness_scaling=1,
-                                   aspectratio=:equal, legend=:none, title="$label (t = $time)",
-                                   colorbar=true, xlims=xlims, ylims=ylims,
-                                   tickfontsize=18, titlefontsize=28)
-
-      # Plot contours
-      verbose && println("| | | Plotting contours...")
-      @timeit "plot contours" contourf!(xs, ys, node_centered_data[:, :, variable_id],
-                                        c=:bluesreds, levels=20)
-
-      # Plot grid lines
-      if args["grid_lines"]
-        verbose && println("| | | Plotting grid lines...")
-        @timeit "plot grid lines" plot!(vertices_x, vertices_y, linecolor=:black,
-                                        linewidth=1, grid=false)
+    # Add data to file
+    verbose && println("| Adding data to VTK file...")
+    @timeit "add data to VTK file" begin
+      verbose && println("| | cell_ids...")
+      @timeit "cell_ids" vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
+      verbose && println("| | element_ids...")
+      @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
+                                                              n_visnodes)
+      for (variable_id, label) in enumerate(labels)
+        verbose && println("| | $label...")
+        @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
       end
-
-      # Determine output file name
-      base, _ = splitext(splitdir(datafile)[2])
-      output_filename = joinpath(args["output_directory"],
-                                 "$(base)_$(label)." * string(output_format))
-
-      # Save file
-      @timeit "save plot" savefig(output_filename)
     end
+
+    # Save VTK file
+    verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
+    @timeit "save VTK file" vtk_save(vtk)
+
+    # Add to PVD file
+    verbose && println("| Adding to PVD file...")
+    @timeit "add VTK to PVD file" pvd[time] = vtk
   end
+
+  # Save PVD file
+  verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
+  @timeit "save PVD file" vtk_save(pvd)
 
   verbose && println("| done.\n")
   print_timer()
@@ -250,6 +189,33 @@ function cell2visnode(cell_data::Vector, n_visnodes::Int)
     end
   end
   return visnode_data
+end
+
+
+# Determine filename for PVD file based on common name
+function get_pvd_filename(datafiles::AbstractArray)
+  filenames = getindex.(splitdir.(datafiles), 2)
+  bases = getindex.(splitext.(filenames), 1)
+  pvd_filename = longest_common_prefix(bases)
+  return pvd_filename
+end
+
+
+# Determine longest common prefix
+function longest_common_prefix(strings::AbstractArray)
+  # Return early if array is empty
+  if isempty(strings)
+    return ""
+  end
+
+  # Count length of common prefix, by ensuring that all strings are long enough
+  # and then comparing the next character
+  len = 0
+  while all(length.(strings) .> len) && all(getindex.(strings, len+1) .== strings[1][len+1])
+    len +=1
+  end
+
+  return strings[1][1:len]
 end
 
 
@@ -292,6 +258,37 @@ function cell2node(cell_centered_data::AbstractArray{Float64})
   end
 
   return node_centered_data
+end
+
+
+# Interpolate to visualization nodes
+function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable_id::Int)
+  # Extract data shape information
+  n_nodes_in, _, n_elements, n_variables = size(data_gl)
+
+  # Get node coordinates for DG locations on reference element
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  # Calculate Vandermonde matrix
+  dx = 2 / n_visnodes
+  nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_visnodes))
+  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
+
+  # Create output data structure
+  data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements)
+
+  # Reshape data array for use in interpolate_nodes function
+  @views reshaped_data = reshape(data_gl[:, :, :, variable_id], 1, n_nodes_in,
+                                 n_nodes_in, n_elements)
+
+  # Interpolate data to visualization nodes
+  for element_id in 1:n_elements
+    @views data_vis[:, :, element_id] .= reshape(
+        interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
+        n_visnodes, n_visnodes)
+  end
+
+  return data_vis
 end
 
 
