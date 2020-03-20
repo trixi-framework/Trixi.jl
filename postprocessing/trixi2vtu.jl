@@ -25,7 +25,7 @@ else
   exec julia --banner=no -i \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start plotting by running the second line.\n")' \
-      -e "println(\"using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
+      -e "println(\"using Revise; includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
       -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
 fi
 =#
@@ -34,7 +34,7 @@ module Trixi2Vtu
 
 # Get useful bits and pieces from trixi
 include("../src/solvers/interpolation.jl")
-include("pointlocators.jl")
+include("src/pointlocators.jl")
 
 # Number of spatial dimensions
 const ndim = 2
