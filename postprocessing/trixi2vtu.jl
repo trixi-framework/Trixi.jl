@@ -120,34 +120,35 @@ function run(;args=nothing, kwargs...)
     verbose && println("| Reading data file...")
     @timeit "read data" labels, unstructured_data, n_nodes, time = read_datafile(datafile)
 
+
+    # Determine resolution for data interpolation
+    if args["nvisnodes"] == nothing
+      n_visnodes = 4 * n_nodes
+    elseif args["nvisnodes"] == 0
+      n_visnodes = n_nodes
+    else
+      n_visnodes = args["nvisnodes"]
+    end
+
     # Calculate VTK points and cells
     verbose && println("| Building VTK mesh...")
     @timeit "build VTK mesh" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
                                                                            levels,
                                                                            center_level_0,
-                                                                           length_level_0)
+                                                                           length_level_0,
+                                                                           n_visnodes)
 
     # Create VTK file and store cell ids
     verbose && println("| Creating VTK file...")
     @timeit "create VTK file" vtk_grid("datafile", vtk_points, vtk_cells) do vtk
-      vtk["cell_ids"] = leaf_cells
-      vtk["element_ids"] = collect(1:length(leaf_cells))
+      vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
+      vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)), n_visnodes)
     end
 
     verbose && println("| done.\n")
     print_timer()
     println()
     return
-
-
-    # Determine resolution for data interpolation
-    if args["nvisnodes"] == nothing
-      nvisnodes = 4 * n_nodes
-    elseif args["nvisnodes"] == 0
-      nvisnodes = n_nodes
-    else
-      nvisnodes = args["nvisnodes"]
-    end
 
     # Interpolate unstructured DG data to structured data
     verbose && println("| Interpolating data...")
@@ -236,6 +237,19 @@ function run(;args=nothing, kwargs...)
   verbose && println("| done.\n")
   print_timer()
   println()
+end
+
+
+# Convert cell data to visnode data
+function cell2visnode(cell_data::Vector, n_visnodes::Int)
+  cellsize = n_visnodes^ndim
+  visnode_data = Vector{eltype(cell_data)}(undef, length(cell_data) * cellsize)
+  for cell_id in 1:length(cell_data)
+    for node_id in 1:cellsize
+      visnode_data[(cell_id - 1)*cellsize + node_id] = cell_data[cell_id]
+    end
+  end
+  return visnode_data
 end
 
 
@@ -417,7 +431,8 @@ end
 function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
                                levels::AbstractVector{Int},
                                center_level_0::AbstractVector{Float64},
-                               length_level_0::Float64)
+                               length_level_0::Float64,
+                               n_visnodes::Int=1)
   @assert ndim == 2 "Algorithm currently only works in 2D"
 
   # Create point locator
@@ -426,22 +441,41 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
   # Create arrays for points and cells
   n_elements = length(levels)
   points = Vector{Point}()
-  vtk_cells = Vector{MeshCell}(undef, n_elements)
+  vtk_cells = Vector{MeshCell}(undef, n_elements * n_visnodes^ndim)
   point_ids = Vector{Int}(undef, 2^ndim)
+
+  # Reshape cell array for easy-peasy access
+  reshaped = reshape(vtk_cells, n_visnodes, n_visnodes, n_elements)
 
   # Create VTK cell for each Trixi element
   for element_id in 1:n_elements
-    # Get point id for each vertex
-    x = coordinates[1, element_id]
-    y = coordinates[2, element_id]
-    dx = length_level_0 / 2^levels[element_id]
-    point_ids[1] = insert!(pl, points, x - dx/2, y - dx/2)
-    point_ids[2] = insert!(pl, points, x + dx/2, y - dx/2)
-    point_ids[3] = insert!(pl, points, x - dx/2, y + dx/2)
-    point_ids[4] = insert!(pl, points, x + dx/2, y + dx/2)
+    # Extract cell values
+    cell_x = coordinates[1, element_id]
+    cell_y = coordinates[2, element_id]
+    cell_dx = length_level_0 / 2^levels[element_id]
 
-    # Add cell
-    vtk_cells[element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids)) 
+    # Adapt to visualization nodes for easy-to-understand loops
+    dx = cell_dx / n_visnodes
+    x_lowerleft = cell_x - cell_dx/2 - dx/2
+    y_lowerleft = cell_y - cell_dx/2 - dx/2
+
+    # Create cell for each visualization node
+    for j = 1:n_visnodes
+      for i = 1:n_visnodes
+        # Determine x and y
+        x = x_lowerleft + i * dx
+        y = y_lowerleft + j * dx
+
+        # Get point id for each vertex
+        point_ids[1] = insert!(pl, points, x - dx/2, y - dx/2)
+        point_ids[2] = insert!(pl, points, x + dx/2, y - dx/2)
+        point_ids[3] = insert!(pl, points, x - dx/2, y + dx/2)
+        point_ids[4] = insert!(pl, points, x + dx/2, y + dx/2)
+
+        # Add cell
+        reshaped[i, j, element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids)) 
+      end
+    end
   end
 
   # Convert array-of-points to two-dimensional array
