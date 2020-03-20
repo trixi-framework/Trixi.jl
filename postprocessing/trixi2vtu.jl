@@ -26,7 +26,7 @@ else
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start plotting by running the second line.\n")' \
       -e "println(\"using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
-      -e 'println("TrixiPlot.run(datafile=\"file.h5\")")'
+      -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
 fi
 =#
 
@@ -34,6 +34,7 @@ module Trixi2Vtu
 
 # Get useful bits and pieces from trixi
 include("../src/solvers/interpolation.jl")
+include("pointlocators.jl")
 
 # Number of spatial dimensions
 const ndim = 2
@@ -120,14 +121,22 @@ function run(;args=nothing, kwargs...)
     @timeit "read data" labels, unstructured_data, n_nodes, time = read_datafile(datafile)
 
     # Calculate VTK points and cells
-    vtk_points, vtk_cells, = calc_vtk_points_cells(coordinates, levels,
-                                                   center_level_0, length_level_0)
+    verbose && println("| Building VTK mesh...")
+    @timeit "build VTK mesh" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
+                                                                           levels,
+                                                                           center_level_0,
+                                                                           length_level_0)
 
     # Create VTK file and store cell ids
-    vtk_grid("datafile") do vtk_file
+    verbose && println("| Creating VTK file...")
+    @timeit "create VTK file" vtk_grid("datafile", vtk_points, vtk_cells) do vtk
       vtk["cell_ids"] = leaf_cells
       vtk["element_ids"] = collect(1:length(leaf_cells))
     end
+
+    verbose && println("| done.\n")
+    print_timer()
+    println()
     return
 
 
@@ -432,7 +441,7 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
     point_ids[4] = insert!(pl, points, x + dx/2, y + dx/2)
 
     # Add cell
-    vtk_cells[element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, point_ids) 
+    vtk_cells[element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids)) 
   end
 
   # Convert array-of-points to two-dimensional array
@@ -547,7 +556,6 @@ function read_datafile(filename::String)
     data = Array{Float64}(undef, n_nodes, n_nodes, n_elements, n_variables)
     for v = 1:n_variables
       vardata = read(file["variables_$v"])
-      #=@show minimum(vardata), maximum(vardata)=#
       @views data[:, :, :, v][:] .= vardata
     end
 
@@ -595,141 +603,6 @@ function parse_commandline_arguments(args=ARGS)
 
   return parse_args(s)
 end
-
-
-####################################################################################################
-# Submodule with point locator functionality
-####################################################################################################
-module PointLocators
-
-
-# Point structure
-Point = NamedTuple{(:x, :y), Tuple{Float64, Float64}}
-
-
-# Main data structure for quadtree-like point locator
-struct PointLocator
-  center::Point
-  length::Float64
-  max_point_ids::Int
-  point_ids::Vector{Int}
-  children::Vector{PointLocator}
-
- function PointLocator(center, length, offset=0.0)
-   # Use offset to avoid ambiguitites for points falling on coordinate lines
-   center_ .= center .+ offset
-   length_ = length + 2 * offset
-
-   # Use at most 20 points per locator node
-   max_point_ids = 20
-   point_ids = Vector{Int}()
-   children = Vector{PointLocator}()
-
-   return PointLocator(center_, length_, max_point_ids, point_ids, children)
- end
-end
-
-
-# Return if locator has no children
-is_leaf(pl::PointLocator) = isempty(p.children)
-
-
-# Insert point into locator
-function insert!(pl::PointLocator, points::Vector{Point}, point::Point)
-  # Check if locator is leaf
-  if is_leaf(pl)
-    # If locator is leaf, check if point already exists
-    point_id = get_point_id(pl, point)
-
-    # Return point_id if found
-    if point_id > 0
-      return point_id
-    end
-
-    # Otherwise check if there is enough room in current locator or if it needs to be refined
-    if length(pl.point_ids) < pl.max_point_ids
-      # Add point to this locator and to list of points
-      point_id = length(points) + 1
-      push!(points, point)
-      push!(point_ids, point_id)
-      return point_id
-    else
-      # Refine locator
-      refine!(pl)
-
-      # Re-add to newly refined locator
-      insert!(pl, points, point)
-    end
-  else
-    # If locator is non-lef, find appropriate child locator and add point there
-    child_locator = pl.children[get_child_id(pl, point)]
-    insert!(child_locator, points, point)
-  end
-end
-insert!(pl::PointLocator, pts::Vector{Point}, x::Float64, y::Float64) = insert!(pl, pts, (x, y))
-
-
-# Refine point locator and move points to child locators
-function refine!(pl::PointLocator)
-  # Store for convenience
-  dx = pl.length / 2
-  x = pl.center.x
-  y = pl.center.y
-
-  # Add lower left child
-  push!(pl.children, PointLocator((x - dx/2, y - dx/2), dx))
-
-  # Add lower right child
-  push!(pl.children, PointLocator((x + dx/2, y - dx/2), dx))
-
-  # Add upper left child
-  push!(pl.children, PointLocator((x - dx/2, y + dx/2), dx))
-
-  # Add upper right child
-  push!(pl.children, PointLocator((x + dx/2, y + dx/2), dx))
-end
-
-
-# Get id of child locator for given point
-function get_child_id(pl::PointLocator, point::Point)
-  if point.y < pl.center.y
-    if point.x < pl.center.x
-      # Lower left child
-      return 1
-    else
-      # Lower right child
-      return 2
-    end
-  else
-    if point.x < pl.center.x
-      # Upper left child
-      return 3
-    else
-      # Upper right child
-      return 4
-    end
-  end
-end
-
-
-# Get point id if point exists or zero otherwise
-function get_point_id(pl::PointLocator, points::Vector{Point}, point::Point)
-  # Iterate over point ids, extract point coordinates and compare to point
-  for point_id in pl.point_ids
-    x = points[point_id].x
-    y = points[point_id].y
-    if isapprox(point.x, x, atol=1e-13) && isapprox(point.y, y, atol=1e-13)
-      return point_id
-    end
-  end
-
-  # If no point was found, return zero
-  return 0
-end
-
-
-end
-
 
 
 ####################################################################################################
