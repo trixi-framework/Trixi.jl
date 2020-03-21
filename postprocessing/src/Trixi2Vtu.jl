@@ -190,6 +190,8 @@ function run(;args=nothing, kwargs...)
       verbose && println("| | element_ids...")
       @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
                                                               n_visnodes)
+      verbose && println("| | levels...")
+      @timeit "levels" vtk["levels"] = cell2visnode(levels, n_visnodes)
 
       # Only add data if it is a data file
       if is_datafile
