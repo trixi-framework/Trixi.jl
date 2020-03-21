@@ -1,40 +1,8 @@
-#!/bin/bash
-
-# This file uses the method outlined in [1] to pass additional arguments to the
-# `julia` executable (in this case: enable colored output). The approach should
-# work portably on all UNIX-like operating systems.
-#
-# NOTE TO WINDOWS USERS: Just invoke `bin/trixi` explicitly with the `julia` executable.
-#
-# [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
-
-#=
-# Check if '-i' or '--interactive' was passed as an argument
-interactive=0
-for arg in "$@"; do
-  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
-    interactive=1
-  fi
-done
-
-# If not interactive, just run script as usual. Otherwise load REPL
-if [ $interactive -eq 0 ]; then
-  exec julia --color=yes \
-      -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
-else
-  exec julia --banner=no -i \
-      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start plotting by running the second line.\n")' \
-      -e "println(\"using Revise; includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
-      -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
-fi
-=#
-
 module Trixi2Vtu
 
 # Get useful bits and pieces from trixi
-include("../src/solvers/interpolation.jl")
-include("src/pointlocators.jl")
+include("../../src/solvers/interpolation.jl")
+include("pointlocators.jl")
 
 # Number of spatial dimensions
 const ndim = 2
@@ -47,6 +15,7 @@ using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs
 using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 using TimerOutputs
+
 
 function run(;args=nothing, kwargs...)
   # Reset timer
@@ -423,6 +392,12 @@ function parse_commandline_arguments(args=ARGS)
     "--verbose", "-v"
       help = "Enable verbose output to avoid despair over long plot times 😉"
       action = :store_true
+    "-p", "--procs"
+      help = ("Non-negative integer value N launches N additional local worker processes. " *
+              "A value of 'auto' launches as many workers as there are local CPU threads.")
+      range_tester = x -> x == "auto" || (!isnothing(tryparse(Int, x)) && parse(Int, x) >= 0)
+      arg_type = String
+      default = "auto"
     "--save-pvd"
       help = ("In addition to a VTK file, write a PVD file that contains time information. " *
               "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
@@ -482,9 +457,3 @@ n_children_per_cell() = n_children_per_cell(ndim)
 n_children_per_cell(dims::Integer) = 2^dims
 
 end # module Trixi2Vtu
-
-
-if (abspath(PROGRAM_FILE) == @__FILE__) || (@isdefined(run_script) && run_script)
-  #=@Trixi2Vtu.interruptable Trixi2Vtu.run()=#
-  Trixi2Vtu.run(args=ARGS)
-end
