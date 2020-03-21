@@ -15,6 +15,7 @@ using ArgParse: ArgParseSettings, @add_arg_table, parse_args
 using HDF5: h5open, attrs, exists
 using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 using TimerOutputs
+using ProgressMeter: @showprogress, Progress, next!
 
 
 function run(;args=nothing, kwargs...)
@@ -45,6 +46,9 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "verbose")
       args["verbose"] = false
     end
+    if !haskey(args, "hide-progress")
+      args["hide-progress"] = false
+    end
     if !haskey(args, "save-pvd")
       args["save-pvd"] = "auto"
     end
@@ -61,9 +65,16 @@ function run(;args=nothing, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
+  hide_progress = args["hide-progress"]
+  datafiles = args["datafile"]
+
+  # If verbose mode is enabled, always hide progress bar
+  if verbose
+    hide_progress = true
+  end
 
   # Initialize PVD file if desired
-  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(args["datafile"]) > 1)
+  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(datafiles) > 1)
     # Determine pvd filename
     if !isnothing(args["pvd-filename"])
       # Use filename if given on command line
@@ -72,7 +83,7 @@ function run(;args=nothing, kwargs...)
       # Strip of directory/extension
       filename, _ = splitext(splitdir(filename)[2])
     else
-      filename = get_pvd_filename(args["datafile"])
+      filename = get_pvd_filename(datafiles)
 
       # If filename is empty, it means we were not able to determine an
       # appropriate file thus the user has to supply one
@@ -99,9 +110,14 @@ function run(;args=nothing, kwargs...)
     save_pvd = false
   end
 
+  # Show progress bar if not disabled
+  if !hide_progress
+    progress = Progress(length(datafiles), 0.5, "Converting .h5 to .vtu...", 40)
+  end
+
   # Iterate over input files
-  for datafile in args["datafile"]
-    verbose && println("Processing file $datafile...")
+  for (index, datafile) in enumerate(datafiles)
+    verbose && println("Processing file $datafile ($(index)/$(length(datafiles)))...")
 
     # Check if data file exists
     if !isfile(datafile)
@@ -193,6 +209,11 @@ function run(;args=nothing, kwargs...)
       verbose && println("| Adding to PVD file...")
       @timeit "add VTK to PVD file" pvd[time] = vtk
       has_data = true
+    end
+
+    # Update progress bar
+    if !hide_progress
+      next!(progress, showvalues=[(:finished, datafile)])
     end
   end
 
@@ -445,6 +466,9 @@ function parse_commandline_arguments(args=ARGS)
       nargs = '+'
     "--verbose", "-v"
       help = "Enable verbose output to avoid despair over long plot times 😉"
+      action = :store_true
+    "--hide-progress"
+      help = "Hide progress bar (will be hidden automatically if `--verbose` is given)"
       action = :store_true
     "-p", "--procs"
       help = ("Non-negative integer value N launches N additional local worker processes. " *
