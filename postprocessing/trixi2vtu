@@ -24,19 +24,19 @@ MODULE_DIR=$(dirname "$DIR")
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
   exec julia --color=yes \
-      -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
+      -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
 else
   exec julia --banner=no -i \
       -e "push!(LOAD_PATH, \"$MODULE_DIR\")" \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start a Trixi simulation by running the second line.\n")' \
-      -e 'println("using Revise; import Trixi")' \
-      -e 'println("Trixi.run(parameters_file=\"parameters.toml\")")'
+      -e 'println("# Start Trixi2Vtu by running the second line.\n")' \
+      -e 'println("using Revise; import Trixi2Vtu")' \
+      -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
 fi
 =#
 
-# Load Trixi
-include("../src/Trixi.jl")
+# Load Trixi2Vtu
+include("src/Trixi2Vtu.jl")
 
-# Run Trixi but handle user interrupts gracefully (Ctrl-c)
-@Trixi.Auxiliary.interruptable Trixi.run(args=ARGS)
+# Run Trixi2Vtu but handle user interrupts gracefully (Ctrl-c)
+@Trixi2Vtu.interruptable Trixi2Vtu.run(args=ARGS)

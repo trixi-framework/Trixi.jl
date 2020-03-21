@@ -12,6 +12,9 @@ export calc_dt
 export equations
 export rhs!
 export ndofs
+export refine!
+export coarsen!
+export calc_amr_indicator
 
 # Base type from which all solvers inherit from
 abstract type AbstractSolver end
@@ -38,6 +41,9 @@ function calc_dt end
 function equations end
 function rhs! end
 function ndofs end
+function refine! end
+function coarsen! end
+function calc_amr_indicator end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.

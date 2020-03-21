@@ -70,6 +70,9 @@ function parse_commandline_arguments(args=ARGS)
       arg_type = String
       dest_name = "parameters_file"
       default = "parameters.toml"
+    "--verbose", "-v"
+      help = "Enable verbose output, which might help with debugging."
+      action = :store_true
   end
 
   return parse_args(args, s)

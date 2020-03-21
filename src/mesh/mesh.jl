@@ -18,6 +18,7 @@ export generate_mesh
 mutable struct TreeMesh{D}
   tree::Tree{D}
   current_filename::String
+  unsaved_changes::Bool
 
   function TreeMesh{D}(n_cells_max::Integer) where D
     # Verify that D is an integer
@@ -27,6 +28,7 @@ mutable struct TreeMesh{D}
     m = new()
     m.tree = Tree{D}(n_cells_max)
     m.current_filename = ""
+    m.unsaved_changes = false
 
     return m
   end
@@ -40,6 +42,7 @@ mutable struct TreeMesh{D}
     m = new()
     m.tree = Tree{D}(n_cells_max, domain_center, domain_length)
     m.current_filename = ""
+    m.unsaved_changes = false
 
     return m
   end
@@ -107,6 +110,7 @@ function load_mesh(restart_filename::String)
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)
   mesh.current_filename = filename
+  mesh.unsaved_changes = false
 
   # Open mesh file
   h5open(filename, "r") do file
