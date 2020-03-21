@@ -18,7 +18,7 @@ function run(;args=nothing, verbose=false, kwargs...)
   reset_timer!(timer())
 
   # Handle command line arguments
-  if !isnothing(args)
+  @timeit timer() "parse command line" if !isnothing(args)
     # If args are given explicitly, parse command line arguments
     args = parse_commandline_arguments(args)
   else
@@ -37,7 +37,7 @@ function run(;args=nothing, verbose=false, kwargs...)
   print_startup_message()
 
   # Parse parameters file
-  parse_parameters_file(args["parameters_file"])
+  @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)

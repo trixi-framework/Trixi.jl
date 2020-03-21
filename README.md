@@ -34,11 +34,11 @@ easily be achieved by performing the following steps:
 ## Usage
 Enter the root directory `Trixi.jl` and run
 ```bash
-bin/trixi
+bin/trixi parameters.toml
 ```
 
-To change the simulation setup, edit `parameters.toml`. You can pass a different
-parameter file on the command line using `-p new_parameters.toml`.
+To change the simulation setup, edit `parameters.toml`. You can also pass a different
+parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 
 ## Development

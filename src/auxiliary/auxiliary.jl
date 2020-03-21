@@ -65,11 +65,10 @@ parameter_exists(name::String) = haskey(parameters["default"], name)
 function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
   @add_arg_table s begin
-    "--parameters-file", "-p"
+    "parameters_file"
       help = "Name of file with runtime parameters."
       arg_type = String
-      dest_name = "parameters_file"
-      default = "parameters.toml"
+      required = true
     "--verbose", "-v"
       help = "Enable verbose output, which might help with debugging."
       action = :store_true
