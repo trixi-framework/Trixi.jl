@@ -12,7 +12,7 @@ using .Interpolation: gauss_lobatto_nodes_weights,
 using .PointLocators: PointLocator, insert!, Point
 
 using ArgParse: ArgParseSettings, @add_arg_table, parse_args
-using HDF5: h5open, attrs
+using HDF5: h5open, attrs, exists
 using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 using TimerOutputs
 
@@ -48,6 +48,9 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "save-pvd")
       args["save-pvd"] = "auto"
     end
+    if !haskey(args, "pvd-filename")
+      args["save-pvd"] = nothing
+    end
     if !haskey(args, "output_directory")
       args["output_directory"] = "."
     end
@@ -58,19 +61,42 @@ function run(;args=nothing, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
-  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(args["datafile"]) > 1)
-    save_pvd = true
-  else
-    save_pvd = false
-  end
 
-  if save_pvd
+  # Initialize PVD file if desired
+  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(args["datafile"]) > 1)
     # Determine pvd filename
-    pvd_filename = joinpath(args["output_directory"], get_pvd_filename(args["datafile"]))
+    if !isnothing(args["pvd-filename"])
+      # Use filename if given on command line
+      filename = args["pvd-filename"]
+
+      # Strip of directory/extension
+      filename, _ = splitext(splitdir(filename)[2])
+    else
+      filename = get_pvd_filename(args["datafile"])
+
+      # If filename is empty, it means we were not able to determine an
+      # appropriate file thus the user has to supply one
+      if filename == ""
+        error("could not auto-detect PVD filename: please provide a name with `--pvd-filename` " *
+              "or disable saving a PVD file with `--save-pvd=no`")
+      end
+    end
+
+    # Get full filenae
+    pvd_filename = joinpath(args["output_directory"], filename)
 
     # Opening PVD file
     verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
     @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
+
+    # Add variable to avoid writing PVD file if only mesh files were converted
+    has_data = false
+
+    # Enable saving to PVD
+    save_pvd = true
+  else
+    # Disable saving to PVD
+    save_pvd = false
   end
 
   # Iterate over input files
@@ -82,12 +108,20 @@ function run(;args=nothing, kwargs...)
       error("data file '$datafile' does not exist")
     end
 
-    # Get mesh file name
-    meshfile = extract_mesh_filename(datafile)
+    # Check if it is a data file at all
+    is_datafile = is_solution_restart_file(datafile)
 
-    # Check if mesh file exists
-    if !isfile(meshfile)
-      error("mesh file '$meshfile' does not exist")
+    # If file is solution/restart file, extract mesh file name
+    if is_datafile
+      # Get mesh file name
+      meshfile = extract_mesh_filename(datafile)
+
+      # Check if mesh file exists
+      if !isfile(meshfile)
+        error("mesh file '$meshfile' does not exist")
+      end
+    else
+      meshfile = datafile
     end
 
     # Read mesh
@@ -95,17 +129,22 @@ function run(;args=nothing, kwargs...)
     @timeit "read mesh" (center_level_0, length_level_0,
                          leaf_cells, coordinates, levels) = read_meshfile(meshfile)
 
-    # Read data
-    verbose && println("| Reading data file...")
-    @timeit "read data" labels, data, n_nodes, time = read_datafile(datafile)
+    if is_datafile
+      # Read data only if it is a data file
+      verbose && println("| Reading data file...")
+      @timeit "read data" labels, data, n_nodes, time = read_datafile(datafile)
 
-    # Determine resolution for data interpolation
-    if args["nvisnodes"] == nothing
-      n_visnodes = 4 * n_nodes
-    elseif args["nvisnodes"] == 0
-      n_visnodes = n_nodes
+      # Determine resolution for data interpolation
+      if args["nvisnodes"] == nothing
+        n_visnodes = 4 * n_nodes
+      elseif args["nvisnodes"] == 0
+        n_visnodes = n_nodes
+      else
+        n_visnodes = args["nvisnodes"]
+      end
     else
-      n_visnodes = args["nvisnodes"]
+      # If file is a mesh file, do not interpolate data
+      n_visnodes = 1
     end
 
     # Calculate VTK points and cells
@@ -121,7 +160,7 @@ function run(;args=nothing, kwargs...)
 
     # Determine output file name
     base, _ = splitext(splitdir(datafile)[2])
-    vtk_filename = joinpath(args["output_directory"], "$(base)")
+    vtk_filename = joinpath(args["output_directory"], base)
 
     # Open VTK file
     verbose && println("| Building VTK mesh...")
@@ -135,9 +174,13 @@ function run(;args=nothing, kwargs...)
       verbose && println("| | element_ids...")
       @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
                                                               n_visnodes)
-      for (variable_id, label) in enumerate(labels)
-        verbose && println("| | $label...")
-        @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+
+      # Only add data if it is a data file
+      if is_datafile
+        for (variable_id, label) in enumerate(labels)
+          verbose && println("| | $label...")
+          @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+        end
       end
     end
 
@@ -145,15 +188,16 @@ function run(;args=nothing, kwargs...)
     verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
     @timeit "save VTK file" vtk_save(vtk)
 
-    if save_pvd
-      # Add to PVD file
+    # Add to PVD file only if it is a datafile
+    if save_pvd && is_datafile
       verbose && println("| Adding to PVD file...")
       @timeit "add VTK to PVD file" pvd[time] = vtk
+      has_data = true
     end
   end
 
-  if save_pvd
-    # Save PVD file
+  # Save PVD file only if at least one data file was added
+  if save_pvd && has_data
     verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
     @timeit "save PVD file" vtk_save(pvd)
   end
@@ -297,6 +341,16 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
 end
 
 
+# Check if file is a datafile
+function is_solution_restart_file(filename::String)
+  # Open file for reading
+  h5open(filename, "r") do file
+    # If attribute "mesh_file" exists, this must be a data file
+    return exists(attrs(file), "mesh_file")
+  end
+end
+
+
 # Use data file to extract mesh filename from attributes
 function extract_mesh_filename(filename::String)
   # Open file for reading
@@ -385,7 +439,7 @@ function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
   @add_arg_table s begin
     "datafile"
-      help = "Name of Trixi solution/restart/grid file to convert to a VTK XML file."
+      help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
       arg_type = String
       required = true
       nargs = '+'
@@ -403,7 +457,12 @@ function parse_commandline_arguments(args=ARGS)
               "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
               "created if multiple files are converted.")
       default = "auto"
+      arg_type = String
       range_tester = (x->x in ("yes", "auto", "no"))
+    "--pvd-filename"
+      help = ("Use this filename to store PVD file (instead of auto-detecting name). Note that " *
+              "only the name will be used (directory and extension are ignored).")
+      arg_type = String
     "--output-directory", "-o"
       help = "Output directory where generated images are stored"
       dest_name = "output_directory"
