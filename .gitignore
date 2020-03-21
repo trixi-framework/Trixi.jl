@@ -3,4 +3,7 @@
 *.h5
 *.mp4
 *.mem
+*.vtu
+*.pvd
+*.avi
 out/

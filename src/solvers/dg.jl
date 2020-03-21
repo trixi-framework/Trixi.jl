@@ -1,5 +1,6 @@
 module DgSolver
 
+# Note: there are more includes at the bottom that depend on DG internals
 include("interpolation.jl")
 include("dg_containers.jl")
 include("l2projection.jl")
@@ -32,10 +33,13 @@ export calc_dt
 export calc_error_norms
 export calc_entropy_timederivative
 export analyze_solution
+export refine!
+export coarsen!
+export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
+mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -72,6 +76,8 @@ struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
   analysis_weights_volume::SVector{NAnap1}
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
+
+  amr_indicator::Symbol
 end
 
 
@@ -79,45 +85,25 @@ end
 function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
-  n_elements = length(leaf_cell_ids)
 
-  # Initialize elements
-  elements = ElementContainer{V, N}(n_elements)
-  elements.cell_ids .= leaf_cell_ids
+  # Initialize element container
+  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  n_elements = nelements(elements)
 
-  # Initialize surfaces
-  n_surfaces = count_required_surfaces(mesh, leaf_cell_ids)
-  surfaces = SurfaceContainer{V, N}(n_surfaces)
+  # Initialize surface container
+  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_surfaces = nsurfaces(surfaces)
 
-  # Initialize mortars
+  # Initialize mortar containers
   mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
-  n_mortars = count_required_mortars(mesh, leaf_cell_ids)
-  if mortar_type === :l2
-    n_l2mortars = n_mortars
-    n_ecmortars = 0
-  elseif mortar_type === :ec
-    n_l2mortars = 0
-    n_ecmortars = n_mortars
-  else
-    error("unknown mortar type '$(mortar_type)'")
-  end
-  l2mortars = L2MortarContainer{V, N}(n_l2mortars)
-  ecmortars = EcMortarContainer{V, N}(n_ecmortars)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
+  n_l2mortars = nmortars(l2mortars)
+  n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
   if n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
-  end
-
-  # Connect elements with surfaces and l2mortars
-  init_surface_connectivity!(elements, surfaces, mesh)
-  if mortar_type === :l2
-    init_mortar_connectivity!(elements, l2mortars, mesh)
-  elseif mortar_type === :ec
-    init_mortar_connectivity!(elements, ecmortars, mesh)
-  else
-    error("unknown mortar type '$(mortar_type)'")
   end
 
   # Initialize interpolation data structures
@@ -152,6 +138,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Initialize AMR
+  amr_indicator = Symbol(parameter("amr_indicator", "target_level", valid=["target_level"]))
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -166,29 +155,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume)
-
-  # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:n_elements
-    # Get cell id
-    cell_id = leaf_cell_ids[element_id]
-
-    # Get cell length
-    dx = length_at_cell(mesh.tree, cell_id)
-
-    # Calculate inverse Jacobian as 1/(h/2)
-    dg.elements.inverse_jacobian[element_id] = 2/dx
-
-    # Calculate node coordinates
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-        dg.elements.node_coordinates[1, i, j, element_id] = (
-            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
-        dg.elements.node_coordinates[2, i, j, element_id] = (
-            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
-      end
-    end
-  end
+      analysis_vandermonde, analysis_total_volume,
+      amr_indicator)
 
   return dg
 end
@@ -268,6 +236,96 @@ function count_required_mortars(mesh::TreeMesh, cell_ids)
   end
 
   return count
+end
+
+
+# Create element container, initialize element data, and return element container for further use
+#
+# V: number of variables
+# N: polynomial degree
+function init_elements(cell_ids, mesh, ::Val{V}, ::Val{N}) where {V, N}
+  # Initialize container
+  n_elements = length(cell_ids)
+  elements = ElementContainer{V, N}(n_elements)
+
+  # Store cell ids
+  elements.cell_ids .= cell_ids
+
+  # Determine node locations
+  n_nodes = N + 1
+  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  # Calculate inverse Jacobian and node coordinates
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = cell_ids[element_id]
+
+    # Get cell length
+    dx = length_at_cell(mesh.tree, cell_id)
+
+    # Calculate inverse Jacobian as 1/(h/2)
+    elements.inverse_jacobian[element_id] = 2/dx
+
+    # Calculate node coordinates
+    for j = 1:n_nodes
+      for i = 1:n_nodes
+        elements.node_coordinates[1, i, j, element_id] = (
+            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+        elements.node_coordinates[2, i, j, element_id] = (
+            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
+      end
+    end
+  end
+
+  return elements
+end
+
+
+# Create surface container, initialize surface data, and return surface container for further use
+#
+# V: number of variables
+# N: polynomial degree
+function init_surfaces(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N}
+  # Initialize container
+  n_surfaces = count_required_surfaces(mesh, cell_ids)
+  surfaces = SurfaceContainer{V, N}(n_surfaces)
+
+  # Connect elements with surfaces
+  init_surface_connectivity!(elements, surfaces, mesh)
+
+  return surfaces
+end
+
+
+# Create mortar container, initialize mortar data, and return mortar container for further use
+#
+# V: number of variables
+# N: polynomial degree
+function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
+  # Initialize containers
+  n_mortars = count_required_mortars(mesh, cell_ids)
+  if mortar_type === :l2
+    n_l2mortars = n_mortars
+    n_ecmortars = 0
+  elseif mortar_type === :ec
+    n_l2mortars = 0
+    n_ecmortars = n_mortars
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
+  l2mortars = L2MortarContainer{V, N}(n_l2mortars)
+  ecmortars = EcMortarContainer{V, N}(n_ecmortars)
+
+  # Connect elements with surfaces and l2mortars
+  if mortar_type === :l2
+    init_mortar_connectivity!(elements, l2mortars, mesh)
+  elseif mortar_type === :ec
+    init_mortar_connectivity!(elements, ecmortars, mesh)
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
+
+  return l2mortars, ecmortars
 end
 
 
@@ -1398,5 +1456,10 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
 end
+
+
+# Note: this is included here since it depends on definitions in the DG main file
+include("dg_amr.jl")
+
 
 end # module

@@ -19,11 +19,14 @@ done
 
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
-  exec julia --color=yes -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
+  exec julia --color=yes \
+      -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
 else
   exec julia --banner=no -i \
-      -e "using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\"${BASH_SOURCE[0]}\")" \
-      -e 'println("\n==> Run `TrixiPlot.run(datafile=\"file.h5\")` to plot a file\n")'
+      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
+      -e 'println("# Start plotting by running the second line.\n")' \
+      -e "println(\"using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
+      -e 'println("TrixiPlot.run(datafile=\"file.h5\")")'
 fi
 =#
 
@@ -116,8 +119,7 @@ function run(;args=nothing, kwargs...)
 
     # Read data
     verbose && println("| Reading data file...")
-    @timeit "read data" (labels, node_coordinates,
-                         unstructured_data, n_nodes, time) = read_datafile(datafile)
+    @timeit "read data" labels, unstructured_data, n_nodes, time = read_datafile(datafile)
     #=@show minimum(unstructured_data), maximum(unstructured_data)=#
 
 
@@ -560,13 +562,8 @@ function read_datafile(filename::String)
       labels[1, v] = read(attrs(file["variables_$v"])["name"])
     end
 
-    # Extract coordinates
-    n_nodes = N + 1
-    coordinates = Array{Float64}(undef, n_nodes, n_nodes, n_elements, ndim)
-    coordinates[:, :, :, 1][:] .= read(file["x"])
-    coordinates[:, :, :, 2][:] .= read(file["y"])
-
     # Extract data arrays
+    n_nodes = N + 1
     data = Array{Float64}(undef, n_nodes, n_nodes, n_elements, n_variables)
     for v = 1:n_variables
       vardata = read(file["variables_$v"])
@@ -574,7 +571,7 @@ function read_datafile(filename::String)
       @views data[:, :, :, v][:] .= vardata
     end
 
-    return labels, coordinates, data, n_nodes, time
+    return labels, data, n_nodes, time
   end
 end
 
