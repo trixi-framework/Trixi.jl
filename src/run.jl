@@ -292,7 +292,7 @@ function run(;args=nothing, verbose=false, kwargs...)
     end
 
     # Perform adaptive mesh refinement
-    if amr_interval > 0 && (step % amr_interval == 0)
+    if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
       @timeit timer() "AMR" has_changed = adapt!(mesh, solver)
 
       # Store if mesh has changed to write changed mesh file before next restart/solution output
