@@ -305,27 +305,14 @@ end
 #
 # Note: The implementation here implicitly assumes that we have an element for
 # each leaf cell and that they are in the same order.
-function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh)
+function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
   lambda = zeros(dg.n_elements)
 
-  if dg.amr_indicator === :target_level
+  if dg.amr_indicator === :gauss
     base_level = 4
     max_level = 6
     threshold_high = 0.6
     threshold_low = 0.1
-
-    #=target_level_type = parameter("amr_target_level_type", "center", valid=["center"])=#
-    #=target_level_value = parameter("amr_target_level_value", 6)=#
-    #=for element_id in 1:dg.n_elements=#
-    #=  cell_id = dg.elements.cell_ids[element_id]=#
-    #=  x = mesh.tree.coordinates[1, cell_id]=#
-    #=  y = mesh.tree.coordinates[2, cell_id]=#
-    #=  if abs(x) < 0.5 && abs(y) < 0.5=#
-    #=    if mesh.tree.levels[cell_id] < target_level_value=#
-    #=      lambda[element_id] = 1.0=#
-    #=    end=#
-    #=  end=#
-    #=end=#
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -350,9 +337,58 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh)
         lambda[element_id] = 0.0
       end
     end
+  elseif dg.amr_indicator === :isentropic_vortex
+    base_level = 3
+    max_level = 5
+    radius_high = 2
+    radius_low = 3
+
+    # Domain size needed to handle periodicity
+    domain_length = mesh.tree.length_level_0
+
+    # Get analytical vortex center (based on assumption that center=[0.0,0.0]
+    # at t=0.0 and that we stop after one period)
+    if time < domain_length/2
+      center = Float64[time, time]
+    else
+      center = Float64[time-domain_length, time-domain_length]
+    end
+
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      cell_id = dg.elements.cell_ids[element_id]
+      r = periodic_distance(mesh.tree.coordinates[:, cell_id], center, domain_length)
+      if r < radius_high
+        target_level = max_level
+      elseif r < radius_low
+        target_level = max_level - 1
+      else
+        target_level = base_level
+      end
+
+      # Compare target level with actual level to set indicator
+      cell_id = dg.elements.cell_ids[element_id]
+      actual_level = mesh.tree.levels[cell_id]
+      if actual_level < target_level
+        lambda[element_id] = 1.0
+      elseif actual_level > target_level
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
+    end
   else
     error("unknown AMR indicator '$(dg.amr_indicator)'")
   end
 
   return lambda
+end
+
+
+# For periodic domains, distance between two points must take into account
+# periodic extensions of the domain
+function periodic_distance(coordinates, center, domain_length)
+  dx = abs.(coordinates - center)
+  dx_periodic = min.(dx, domain_length .- dx)
+  return sqrt(sum(dx_periodic.^2))
 end
