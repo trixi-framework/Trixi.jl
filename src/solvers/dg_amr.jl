@@ -305,6 +305,9 @@ end
 #
 # Note: The implementation here implicitly assumes that we have an element for
 # each leaf cell and that they are in the same order.
+#
+# FIXME: This is currently implemented for each test case - we need something
+# appropriate that is both equation and test case independent
 function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
   lambda = zeros(dg.n_elements)
 
