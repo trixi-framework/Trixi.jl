@@ -79,6 +79,8 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_total_volume::Float64
 
   amr_indicator::Symbol
+
+  element_variables::Dict{Symbol, Union{Matrix{Float64}, Matrix{Int}}}
 end
 
 
@@ -143,6 +145,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex"]))
 
+  # Initialize storage for element variables
+  element_variables = Dict{Symbol, Union{Matrix{Float64}, Matrix{Int}}()
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -158,7 +163,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      amr_indicator)
+      amr_indicator,
+      element_variables)
 
   return dg
 end
@@ -708,18 +714,25 @@ end
 # Calculate volume integral (DGSEM in split form with shock capturing)
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
+  # (Re-)initialize element variable storage for blending factor
+  if (!haskey(dg.element_variables, :alpha) ||
+      size(dg.element_variables[:alpha]) != (1, nelements(dg)))
+    dg.element_variables[:alpha] = Matrix{Float64}(undef, 1, nelements(dg))
+  end
+
   calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
-                        dg.inverse_weights)
+                        dg.inverse_weights, dg.element_variables[:alpha])
 end
 
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix, inverse_weights::SVector)
+                               dsplit_transposed::SMatrix, inverse_weights::SVector,
+                               alpha::Matrix{Float64})
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(out, dg, dg.elements.u)
-  alpha, element_ids_dg, element_ids_dgfv = out
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+  element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -1367,9 +1380,8 @@ end
 
 
 # Calculate blending factors for shock capturing
-function calc_blending_factors(out, dg, u::AbstractArray{Float64})
+function calc_blending_factors(alpha::Matrix(Float64), out, dg, u::AbstractArray{Float64})
   # Calculate blending factor
-  alpha = similar(dg.elements.inverse_jacobian)
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
@@ -1454,7 +1466,6 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
   element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
 
-  push!(out, alpha)
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
 end
