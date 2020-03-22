@@ -107,7 +107,7 @@ function run(;args=nothing, kwargs...)
     # Open separate PVD file for mesh information
     if separate_mesh
       # Get full filenae
-      pvd_mesh_filename = joinpath(args["output_directory"], "mesh_" * filename)
+      pvd_mesh_filename = joinpath(args["output_directory"], filename * "_mesh")
 
       # Opening PVD file
       verbose && println("Opening PVD mesh file '$(pvd_mesh_filename).pvd'...")
@@ -531,12 +531,6 @@ function parse_commandline_arguments(args=ARGS)
     "--hide-progress"
       help = "Hide progress bar (will be hidden automatically if `--verbose` is given)"
       action = :store_true
-    "-p", "--procs"
-      help = ("Non-negative integer value N launches N additional local worker processes. " *
-              "A value of 'auto' launches as many workers as there are local CPU threads.")
-      range_tester = x -> x == "auto" || (!isnothing(tryparse(Int, x)) && parse(Int, x) >= 0)
-      arg_type = String
-      default = "auto"
     "--separate-mesh", "-m"
       help = "Save mesh information in separate file."
       action = :store_true
