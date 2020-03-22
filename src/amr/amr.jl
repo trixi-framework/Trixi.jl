@@ -23,7 +23,8 @@ export adapt!
 # If `only_coarsen` is true, no refinement will be performed, independent of the indicator values.
 #
 # Return true if anything was changed, false if no cells where coarsened/refined
-function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_coarsen=false)
+function adapt!(mesh::TreeMesh, solver::AbstractSolver, time::Float64;
+                only_refine=false, only_coarsen=false)
   # Debug output
   globals[:verbose] && print("Begin adaptation...")
 
@@ -31,7 +32,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver; only_refine=false, only_
   tree = mesh.tree
 
   # Determine indicator value
-  lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh)
+  lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
 
   # Get list of current leaf cells
   leaf_cell_ids = leaf_cells(tree)

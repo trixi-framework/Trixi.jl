@@ -9,7 +9,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt,
-	                  cons2entropy, cons2indicator, cons2indicator!
+	                  cons2entropy, cons2indicator, cons2indicator!, cons2prim
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -19,6 +19,7 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
 import .L2Projection # Import to satisfy Gregor
+
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
@@ -139,7 +140,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
   # Initialize AMR
-  amr_indicator = Symbol(parameter("amr_indicator", "target_level", valid=["target_level"]))
+  amr_indicator = Symbol(parameter("amr_indicator", "n/a",
+                                   valid=["n/a", "gauss", "isentropic_vortex"]))
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
