@@ -52,6 +52,9 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "save-pvd")
       args["save-pvd"] = "auto"
     end
+    if !haskey(args, "separate-mesh")
+      args["separate-mesh"] = false
+    end
     if !haskey(args, "pvd-filename")
       args["save-pvd"] = nothing
     end
@@ -66,6 +69,7 @@ function run(;args=nothing, kwargs...)
   # Store for convenience
   verbose = args["verbose"]
   hide_progress = args["hide-progress"]
+  separate_mesh = args["separate-mesh"]
   datafiles = args["datafile"]
 
   # If verbose mode is enabled, always hide progress bar
@@ -99,6 +103,16 @@ function run(;args=nothing, kwargs...)
     # Opening PVD file
     verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
     @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
+
+    # Open separate PVD file for mesh information
+    if separate_mesh
+      # Get full filenae
+      pvd_mesh_filename = joinpath(args["output_directory"], "mesh_" * filename)
+
+      # Opening PVD file
+      verbose && println("Opening PVD mesh file '$(pvd_mesh_filename).pvd'...")
+      @timeit "open PVD mesh file" pvd_mesh = paraview_collection(pvd_mesh_filename)
+    end
 
     # Add variable to avoid writing PVD file if only mesh files were converted
     has_data = false
@@ -164,12 +178,19 @@ function run(;args=nothing, kwargs...)
     end
 
     # Calculate VTK points and cells
-    verbose && println("| Preparing VTK cell cells...")
+    verbose && println("| Preparing VTK cells...")
     @timeit "prepare VTK cells" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
                                                                               levels,
                                                                               center_level_0,
                                                                               length_level_0,
                                                                               n_visnodes)
+
+    # Prepare VTK points and cells for mesh file
+    if separate_mesh
+      verbose && println("| Preparing VTK mesh cells...")
+      @timeit "prepare VTK mesh cells" vtk_mesh_points, vtk_mesh_cells = calc_vtk_points_cells(
+          coordinates, levels, center_level_0, length_level_0, 1)
+    end
 
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
@@ -179,19 +200,40 @@ function run(;args=nothing, kwargs...)
     vtk_filename = joinpath(args["output_directory"], base)
 
     # Open VTK file
-    verbose && println("| Building VTK mesh...")
-    @timeit "build VTK mesh" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
+    verbose && println("| Building VTK grid...")
+    @timeit "build VTK grid" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
+
+    # Open VTK mesh file
+    if separate_mesh
+      # Determine output file name
+      vtk_mesh_filename = joinpath(args["output_directory"], "mesh_" * base)
+
+      # Open VTK mesh file
+      verbose && println("| Building VTK mesh grid...")
+      @timeit "build VTK mesh grid" vtk_mesh = vtk_grid(vtk_mesh_filename,
+                                                        vtk_mesh_points,
+                                                        vtk_mesh_cells)
+    end
 
     # Add data to file
     verbose && println("| Adding data to VTK file...")
     @timeit "add data to VTK file" begin
-      verbose && println("| | cell_ids...")
-      @timeit "cell_ids" vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
-      verbose && println("| | element_ids...")
-      @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
-                                                              n_visnodes)
-      verbose && println("| | levels...")
-      @timeit "levels" vtk["levels"] = cell2visnode(levels, n_visnodes)
+      if separate_mesh
+        verbose && println("| | cell_ids...")
+        @timeit "cell_ids" vtk_mesh["cell_ids"] = leaf_cells
+        verbose && println("| | element_ids...")
+        @timeit "element_ids" vtk_mesh["element_ids"] = collect(1:length(leaf_cells))
+        verbose && println("| | levels...")
+        @timeit "levels" vtk_mesh["levels"] = levels
+      else
+        verbose && println("| | cell_ids...")
+        @timeit "cell_ids" vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
+        verbose && println("| | element_ids...")
+        @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
+                                                                n_visnodes)
+        verbose && println("| | levels...")
+        @timeit "levels" vtk["levels"] = cell2visnode(levels, n_visnodes)
+      end
 
       # Only add data if it is a data file
       if is_datafile
@@ -213,6 +255,19 @@ function run(;args=nothing, kwargs...)
       has_data = true
     end
 
+    if separate_mesh
+      # Save VTK mesh file
+      verbose && println("| Saving VTK mesh file '$(vtk_mesh_filename).vtu'...")
+      @timeit "save VTK mesh file" vtk_save(vtk_mesh)
+
+      # Add to PVD file only if it is a datafile
+      if save_pvd
+        verbose && println("| Adding to PVD mesh file...")
+        @timeit "add VTK mesh to PVD mesh file" pvd_mesh[time] = vtk_mesh
+        has_data = true
+      end
+    end
+
     # Update progress bar
     if !hide_progress
       next!(progress, showvalues=[(:finished, datafile)])
@@ -223,6 +278,10 @@ function run(;args=nothing, kwargs...)
   if save_pvd && has_data
     verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
     @timeit "save PVD file" vtk_save(pvd)
+  end
+  if save_pvd && separate_mesh
+    verbose && println("| Saving PVD mesh file '$(pvd_mesh_filename).pvd'...")
+    @timeit "save PVD mesh file" vtk_save(pvd_mesh)
   end
 
   verbose && println("| done.\n")
@@ -478,6 +537,9 @@ function parse_commandline_arguments(args=ARGS)
       range_tester = x -> x == "auto" || (!isnothing(tryparse(Int, x)) && parse(Int, x) >= 0)
       arg_type = String
       default = "auto"
+    "--separate-mesh", "-m"
+      help = "Save mesh information in separate file."
+      action = :store_true
     "--save-pvd"
       help = ("In addition to a VTK file, write a PVD file that contains time information. " *
               "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
