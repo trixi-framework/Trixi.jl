@@ -1179,6 +1179,8 @@ function calc_volume_integral!(dg, ::Val{:entropy_fix}, u_t::A, dhat::SMatrix{N,
       #@show dsdu_ut_diffusion
       entropy_diffusion = (dsdu_ut_goal - dsdu_ut_volume)/dsdu_ut_diffusion
     end
+    # entropy stable version: make sure that alpha>=0
+    #entropy_diffusion = max(0.0,entropy_diffusion)
 
     # update element rhs and add entropy fix
     if isapprox(entropy_diffusion,0.0,atol = 1e-13) 
