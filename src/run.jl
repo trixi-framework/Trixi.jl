@@ -296,7 +296,9 @@ function run(;args=nothing, verbose=false, kwargs...)
       @timeit timer() "AMR" has_changed = adapt!(mesh, solver)
 
       # Store if mesh has changed to write changed mesh file before next restart/solution output
-      mesh.unsaved_changes = has_changed
+      if has_changed
+        mesh.unsaved_changes = true
+      end
     end
 
     # The following call ensures that when doing memory allocation
