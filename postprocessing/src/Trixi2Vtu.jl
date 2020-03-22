@@ -206,7 +206,7 @@ function run(;args=nothing, kwargs...)
     # Open VTK mesh file
     if separate_mesh
       # Determine output file name
-      vtk_mesh_filename = joinpath(args["output_directory"], "mesh_" * base)
+      vtk_mesh_filename = joinpath(args["output_directory"], base * "_mesh")
 
       # Open VTK mesh file
       verbose && println("| Building VTK mesh grid...")
