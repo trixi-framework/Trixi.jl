@@ -1408,13 +1408,13 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       end
     end
     total_energy_clip1 = 0.0
-    for j in 1:nnodes(dg)
+    for j in 1:nnodes(dg)-1
       for i in 1:(nnodes(dg)-1)
         total_energy_clip1 += modal[1, i, j]^2
       end
     end
     total_energy_clip2 = 0.0
-    for j in 1:nnodes(dg)
+    for j in 1:nnodes(dg)-2
       for i in 1:(nnodes(dg)-2)
         total_energy_clip2 += modal[1, i, j]^2
       end
@@ -1440,6 +1440,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
+  alpha_pre_smooth = copy(alpha)
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
   # Loop over surfaces
   for surface_id in 1:dg.n_surfaces
@@ -1448,8 +1449,8 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     right = dg.surfaces.neighbor_ids[2, surface_id]
 
     # Apply smoothing
-    alpha[left] = max(alpha[left], 0.5 * alpha[right])
-    alpha[right] = max(alpha[right], 0.5 * alpha[left])
+    alpha[left] = max(alpha_pre_smooth[left], 0.5 * alpha_pre_smooth[right],alpha[left])
+    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],alpha[right])
   end
  
   # Loop over mortars
@@ -1460,10 +1461,10 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
     # Apply smoothing
-    alpha[lower] = max(alpha[lower], 0.5 * alpha[large])
-    alpha[upper] = max(alpha[upper], 0.5 * alpha[large])
-    alpha[large] = max(alpha[large], 0.5 * alpha[lower])
-    alpha[large] = max(alpha[large], 0.5 * alpha[upper])
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large],alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large],alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower],alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper],alpha[large])
   end
 
   # Clip blending factor for values close to zero (-> pure DG)
