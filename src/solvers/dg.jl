@@ -79,6 +79,8 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_total_volume::Float64
 
   amr_indicator::Symbol
+
+  element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 end
 
 
@@ -143,6 +145,13 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex"]))
 
+  # Initialize storage for element variables
+  element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
+  # Initialize element variables such that they are available in the first solution file
+  if volume_integral_type === :shock_capturing
+    element_variables[:blending_factor] = zeros(n_elements)
+  end
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -158,7 +167,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      amr_indicator)
+      amr_indicator,
+      element_variables)
 
   return dg
 end
@@ -708,18 +718,25 @@ end
 # Calculate volume integral (DGSEM in split form with shock capturing)
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
+  # (Re-)initialize element variable storage for blending factor
+  if (!haskey(dg.element_variables, :blending_factor) ||
+      length(dg.element_variables[:blending_factor]) != dg.n_elements)
+    dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+  end
+
   calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
-                        dg.inverse_weights)
+                        dg.inverse_weights, dg.element_variables[:blending_factor])
 end
 
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix, inverse_weights::SVector)
+                               dsplit_transposed::SMatrix, inverse_weights::SVector,
+                               alpha::Vector{Float64})
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(out, dg, dg.elements.u)
-  alpha, element_ids_dg, element_ids_dgfv = out
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+  element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -758,7 +775,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
+                       element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -1367,9 +1385,8 @@ end
 
 
 # Calculate blending factors for shock capturing
-function calc_blending_factors(out, dg, u::AbstractArray{Float64})
+function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64})
   # Calculate blending factor
-  alpha = similar(dg.elements.inverse_jacobian)
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
@@ -1391,13 +1408,13 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
       end
     end
     total_energy_clip1 = 0.0
-    for j in 1:nnodes(dg)
+    for j in 1:(nnodes(dg)-1)
       for i in 1:(nnodes(dg)-1)
         total_energy_clip1 += modal[1, i, j]^2
       end
     end
     total_energy_clip2 = 0.0
-    for j in 1:nnodes(dg)
+    for j in 1:(nnodes(dg)-2)
       for i in 1:(nnodes(dg)-2)
         total_energy_clip2 += modal[1, i, j]^2
       end
@@ -1420,10 +1437,13 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element_id] = max(alpha_max, alpha[element_id])
+    alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_pre_smooth = copy(alpha)
+
   # Loop over surfaces
   for surface_id in 1:dg.n_surfaces
     # Get neighboring element ids
@@ -1431,11 +1451,11 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
     right = dg.surfaces.neighbor_ids[2, surface_id]
 
     # Apply smoothing
-    alpha[left] = max(alpha[left], 0.5 * alpha[right])
-    alpha[right] = max(alpha[right], 0.5 * alpha[left])
+    alpha[left] = max(alpha_pre_smooth[left], 0.5 * alpha_pre_smooth[right], alpha[left])
+    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left], alpha[right])
   end
  
-  # Loop over mortars
+  # Loop over L2 mortars
   for l2mortar_id in 1:dg.n_l2mortars
     # Get neighboring element ids
     lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
@@ -1443,10 +1463,24 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
     large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
     # Apply smoothing
-    alpha[lower] = max(alpha[lower], 0.5 * alpha[large])
-    alpha[upper] = max(alpha[upper], 0.5 * alpha[large])
-    alpha[large] = max(alpha[large], 0.5 * alpha[lower])
-    alpha[large] = max(alpha[large], 0.5 * alpha[upper])
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  end
+ 
+  # Loop over EC mortars
+  for ecmortar_id in 1:dg.n_ecmortars
+    # Get neighboring element ids
+    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
   end
 
   # Clip blending factor for values close to zero (-> pure DG)
@@ -1454,7 +1488,6 @@ function calc_blending_factors(out, dg, u::AbstractArray{Float64})
   element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
   element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
 
-  push!(out, alpha)
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
 end

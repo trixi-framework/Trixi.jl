@@ -146,7 +146,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
 
     return prim2cons(equation, [rho, v1, v2, p])
   elseif name == "blast_wave"
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
     inicenter = [0, 0]
     x_norm = x[1] - inicenter[1]
