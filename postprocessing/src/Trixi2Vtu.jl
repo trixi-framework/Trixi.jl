@@ -162,7 +162,7 @@ function run(;args=nothing, kwargs...)
     if is_datafile
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
-      @timeit "read data" labels, data, n_nodes, time = read_datafile(datafile)
+      @timeit "read data" labels, data, n_nodes, element_variables, time = read_datafile(datafile)
 
       # Determine resolution for data interpolation
       if args["nvisnodes"] == nothing
@@ -216,6 +216,7 @@ function run(;args=nothing, kwargs...)
     # Add data to file
     verbose && println("| Adding data to VTK file...")
     @timeit "add data to VTK file" begin
+      # Add cell/element data to celldata VTK file if it exists, otherwise to regular VTK file
       if separate_celldata
         verbose && println("| | cell_ids...")
         @timeit "cell_ids" vtk_celldata["cell_ids"] = leaf_cells
@@ -235,9 +236,23 @@ function run(;args=nothing, kwargs...)
 
       # Only add data if it is a data file
       if is_datafile
+        # Add solution variables
         for (variable_id, label) in enumerate(labels)
-          verbose && println("| | $label...")
+          verbose && println("| | Variable: $label...")
           @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+        end
+
+        # Add element variables
+        if separate_celldata
+          for (label, variable) in element_variables
+            verbose && println("| | Element variable: $label...")
+            @timeit label vtk_celldata[label] = variable
+          end
+        else
+          for (label, variable) in element_variables
+            verbose && println("| | Element variable: $label...")
+            @timeit label vtk[label] = cell2visnode(variable, n_visnodes)
+          end
         end
       end
     end
@@ -507,7 +522,16 @@ function read_datafile(filename::String)
       @views data[:, :, :, v][:] .= vardata
     end
 
-    return labels, data, n_nodes, time
+    # Extract element variable arrays
+    element_variables = Dict{String, Union{Vector{Float64}, Vector{Int}}}()
+    index = 1
+    while exists(file, "element_variables_$index")
+      varname = read(attrs(file["element_variables_$index"])["name"])
+      element_variables[varname] = read(file["element_variables_$index"])
+      index +=1
+    end
+
+    return labels, data, n_nodes, element_variables, time
   end
 end
 
