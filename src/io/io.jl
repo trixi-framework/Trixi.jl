@@ -148,7 +148,7 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
     file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
 
     # Convert to primitive variables if requested
-    solution_variables = parameter("solution_variables", "conservative",
+    solution_variables = parameter("solution_variables", "primitive",
                                    valid=["conservative", "primitive"])
     if solution_variables == "conservative"
       data = dg.elements.u
@@ -166,6 +166,16 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timest
       # Add variable name as attribute
       var = file["variables_$v"]
       attrs(var)["name"] = varnames[v]
+    end
+
+    # Store element variables
+    for (v, (key, element_variables)) in enumerate(dg.element_variables)
+      # Add to file
+      file["element_variables_$v"] = element_variables
+
+      # Add variable name as attribute
+      var = file["element_variables_$v"]
+      attrs(var)["name"] = string(key)
     end
   end
 end
