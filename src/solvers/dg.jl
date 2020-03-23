@@ -80,7 +80,7 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   amr_indicator::Symbol
 
-  element_variables::Dict{Symbol, Union{Matrix{Float64}, Matrix{Int}}}
+  element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 end
 
 
@@ -146,7 +146,11 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
                                    valid=["n/a", "gauss", "isentropic_vortex"]))
 
   # Initialize storage for element variables
-  element_variables = Dict{Symbol, Union{Matrix{Float64}, Matrix{Int}}()
+  element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
+  # Initialize element variables such that they are available in the first solution file
+  if volume_integral_type === :shock_capturing
+    element_variables[:blending_factor] = zeros(n_elements)
+  end
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -715,18 +719,18 @@ end
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix)
   # (Re-)initialize element variable storage for blending factor
-  if (!haskey(dg.element_variables, :alpha) ||
-      size(dg.element_variables[:alpha]) != (1, nelements(dg)))
-    dg.element_variables[:alpha] = Matrix{Float64}(undef, 1, nelements(dg))
+  if (!haskey(dg.element_variables, :blending_factor) ||
+      length(dg.element_variables[:blending_factor]) != dg.n_elements)
+    dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
 
   calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
-                        dg.inverse_weights, dg.element_variables[:alpha])
+                        dg.inverse_weights, dg.element_variables[:blending_factor])
 end
 
 function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
                                dsplit_transposed::SMatrix, inverse_weights::SVector,
-                               alpha::Matrix{Float64})
+                               alpha::Vector{Float64})
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
@@ -771,7 +775,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
+                       element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -1380,7 +1385,7 @@ end
 
 
 # Calculate blending factors for shock capturing
-function calc_blending_factors(alpha::Matrix(Float64), out, dg, u::AbstractArray{Float64})
+function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64})
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
@@ -1432,7 +1437,7 @@ function calc_blending_factors(alpha::Matrix(Float64), out, dg, u::AbstractArray
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element_id] = max(alpha_max, alpha[element_id])
+    alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
   # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
