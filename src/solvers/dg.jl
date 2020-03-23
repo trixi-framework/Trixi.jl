@@ -1463,10 +1463,24 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
     # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large],alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large],alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower],alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper],alpha[large])
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  end
+ 
+  # Loop over EC mortars
+  for ecmortar_id in 1:dg.n_ecmortars
+    # Get neighboring element ids
+    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
   end
 
   # Clip blending factor for values close to zero (-> pure DG)
