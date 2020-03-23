@@ -1408,13 +1408,13 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       end
     end
     total_energy_clip1 = 0.0
-    for j in 1:nnodes(dg)-1
+    for j in 1:(nnodes(dg)-1)
       for i in 1:(nnodes(dg)-1)
         total_energy_clip1 += modal[1, i, j]^2
       end
     end
     total_energy_clip2 = 0.0
-    for j in 1:nnodes(dg)-2
+    for j in 1:(nnodes(dg)-2)
       for i in 1:(nnodes(dg)-2)
         total_energy_clip2 += modal[1, i, j]^2
       end
