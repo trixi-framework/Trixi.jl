@@ -9,13 +9,13 @@ equations = "euler"
 # initial_conditions = "linear-x-y"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
-initial_conditions = "weak_blast_wave"
+initial_conditions = "blast_wave"
 surface_flux_type = "laxfriedrichs"
-volume_flux_type = "kennedygruber"
+volume_flux_type = "chandrashekar_ec"
 # volume_flux_type = "central"
 # sources = 
 t_start = 0.0
-t_end   = 1.0
+t_end   = 12.5
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -37,7 +37,7 @@ volume_integral_type = "shock_capturing"
 n_cells_max = 100000
 coordinates_min = [-2, -2]
 coordinates_max =  [2, 2]
-initial_refinement_level = 5
+initial_refinement_level = 6
 # refinement_patches = [
 #   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
 # ]
