@@ -40,7 +40,7 @@ struct Euler <: AbstractEquation{4}
                                          valid=["hllc", "laxfriedrichs","central", 
                                                 "kennedygruber", "chandrashekar_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
+                                        valid=["central", "kennedygruber", "chandrashekar_ec","secret"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -221,9 +221,9 @@ end
                                               f2_diag::AbstractArray{Float64},
                                               equation::Euler,
                                               u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
+                                              element_id::Int, n_nodes::Int,dg)
   calcflux_twopoint!(f1, f2, f1_diag, f2_diag, Val(equation.volume_flux_type),
-                     equation, u, element_id, n_nodes)
+                     equation, u, element_id, n_nodes,dg)
 end
 
 # Calculate 2D two-point flux (element version)
@@ -234,7 +234,7 @@ end
                                               twopoint_flux_type::Val,
                                               equation::Euler,
                                               u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
+                                              element_id::Int, n_nodes::Int,dg)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
 
@@ -254,7 +254,7 @@ end
                                         u[1, i, j, element_id], u[2, i, j, element_id],
                                         u[3, i, j, element_id], u[4, i, j, element_id], 
                                         u[1, l, j, element_id], u[2, l, j, element_id],
-                                        u[3, l, j, element_id], u[4, l, j, element_id])
+                                        u[3, l, j, element_id], u[4, l, j, element_id],dg,i,l)
         for v in 1:nvariables(equation)
           f1[v, i, l, j] = f1[v, l, i, j]
         end
@@ -267,7 +267,7 @@ end
                                         u[1, i, j, element_id], u[2, i, j, element_id],
                                         u[3, i, j, element_id], u[4, i, j, element_id], 
                                         u[1, i, l, element_id], u[2, i, l, element_id],
-                                        u[3, i, l, element_id], u[4, i, l, element_id])
+                                        u[3, i, l, element_id], u[4, i, l, element_id],dg,j,l)
         for v in 1:nvariables(equation)
           f2[v, j, i, l] = f2[v, l, i, j]
         end
@@ -276,6 +276,68 @@ end
   end
 end
 
+# Central two-point flux (identical to weak form volume integral, except for floating point errors)
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:secret},
+                                          equation::Euler, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64,dg,ll,rr)
+  # Calculate regular 1D fluxes
+  f_ll = MVector{4, Float64}(undef)
+  f_rr = MVector{4, Float64}(undef)
+  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
+  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
+
+  # Average regular fluxes
+  @. f[:] = 1/2 * (f_ll + f_rr)
+
+  # secret part now
+  # use secret weapon coefficient, note that symmetric flux is not computed for ll==rr
+  # note that rr > ll
+  Qp = dg.Qp[ll,rr]
+  # Compute helper variables
+  cons = [rho_ll,rho_v1_ll,rho_v2_ll,rho_e_ll]
+  entropy_ll=zeros(4)
+  entropy_flux_ll = 0.0
+  cons2entropypair(equation.gamma, cons, entropy_ll, entropy_flux_ll, orientation)
+  cons = [rho_rr,rho_v1_rr,rho_v2_rr,rho_e_rr]
+  entropy_rr=zeros(4)
+  entropy_flux_rr = 0.0
+  cons2entropypair(equation.gamma, cons, entropy_rr, entropy_flux_rr, orientation)
+  entropy_potential_ll = sum(entropy_ll.*f_ll) - entropy_flux_ll
+  entropy_potential_rr = sum(entropy_rr.*f_rr) - entropy_flux_rr
+  entropy_jump = entropy_rr - entropy_ll
+  entropy_diss = 0.5*Qp.*entropy_jump
+  entropy_production = -(entropy_potential_rr - entropy_potential_ll) + sum(entropy_jump.*f)
+  entropy_diss_production = sum(entropy_jump.*entropy_diss)
+
+  #if (entropy_diss_production<-1E-15)
+  #  @show entropy_diss_production,Qp,ll,rr,orientation
+ #   exit()
+ # end
+ 
+  if isapprox(entropy_diss_production,0.0,atol = 1e-16) 
+    alpha = 0.0
+    #@show entropy_production
+    #@show entropy_diss_production
+    #@show alpha
+  else
+    alpha = entropy_production/entropy_diss_production
+    @show entropy_production
+    @show entropy_diss_production
+    @show alpha
+  end
+
+#  if isapprox(alpha,0.0,atol = 1e-15) 
+    # Compute flux correction
+    @. f[:] -= alpha*entropy_diss[:]
+#  end
+end
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
@@ -287,7 +349,7 @@ end
                                           rho_rr::Float64,
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
+                                          rho_e_rr::Float64,dg,ll,rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{4, Float64}(undef)
   f_rr = MVector{4, Float64}(undef)
@@ -309,7 +371,7 @@ end
                                           rho_rr::Float64,
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
+                                          rho_e_rr::Float64,dg,ll,rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -349,6 +411,53 @@ end
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
                                           rho_e_rr::Float64)
+  # Unpack left and right state
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  beta_ll = 0.5*rho_ll/p_ll
+  beta_rr = 0.5*rho_rr/p_rr
+  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2)
+  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2)
+     
+  # Compute the necessary mean values
+  rho_avg  = 0.5*(rho_ll+rho_rr)
+  rho_mean = ln_mean(rho_ll,rho_rr)
+  beta_mean = ln_mean(beta_ll,beta_rr)
+  beta_avg = 0.5*(beta_ll+beta_rr)
+  v1_avg = 0.5*(v1_ll+v1_rr)
+  v2_avg = 0.5*(v2_ll+v2_rr)
+  p_mean = 0.5*rho_avg/beta_avg
+  velocity_square_avg = specific_kin_ll + specific_kin_rr
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f[1]  = rho_mean * v1_avg
+    f[2]  = f[1] * v1_avg + p_mean
+    f[3]  = f[1] * v2_avg
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+  else
+    f[1]  = rho_mean * v2_avg
+    f[2]  = f[1] * v1_avg
+    f[3]  = f[1] * v2_avg + p_mean
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+  end
+end
+
+# Entropy conserving two-point flux by Chandrashekar
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_ec},
+                                          equation::Euler, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64,dg,ll,rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -741,6 +850,22 @@ end
   return rho * p
 end
 
-       
+function cons2entropypair(gamma::Float64, cons::A, entropy::A, entropy_flux::Float64, orientation::Int)  where A<:AbstractArray{T,1} where {T}
+  v=zeros(2)
+  v[1] = cons[2] / cons[1] 
+  v[2] = cons[3] / cons[1] 
+  v_square= v[1]*v[1]+v[2]*v[2]
+  p = ((gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2])))
+  s = log(p) - gamma*log(cons[1])
+  rho_p = cons[1] / p 
+ 
+  # entropy variables
+  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square 
+  entropy[2] = rho_p*v[1]
+  entropy[3] = rho_p*v[2]
+  entropy[4] = -rho_p
+  # entropy flux
+  entropy_flux = -cons[1+orientation]*s/(gamma-1)
+end
 
 end # module

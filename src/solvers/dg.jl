@@ -16,7 +16,7 @@ using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
-                      polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
+                      polynomial_interpolation_matrix,polynomial_derivative_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
 import .L2Projection # Import to satisfy Gregor
 
@@ -62,8 +62,12 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   volume_integral_type::Symbol
   dhat::SMatrix{Np1, Np1}
+  D::SMatrix{Np1, Np1}
   dsplit::SMatrix{Np1, Np1}
   dsplit_transposed::SMatrix{Np1, Np1}
+  Qp::SMatrix{Np1, Np1}
+  Q::SMatrix{Np1, Np1}
+  Mass::SMatrix{Np1, Np1}
 
   mortar_forward_upper::SMatrix{Np1, Np1}
   mortar_forward_lower::SMatrix{Np1, Np1}
@@ -120,8 +124,22 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
                                           valid=["weak_form", "split_form", "shock_capturing"]))
   dhat = calc_dhat(nodes, weights)
+  D = polynomial_derivative_matrix(nodes)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
+  Mass = zeros(n_nodes,n_nodes)
+  for i=1:n_nodes
+    Mass[i,i]=weights[i]
+  end
+  Q = Mass*D
+  Qp = zeros(n_nodes,n_nodes)
+  for i=1:n_nodes
+    for j=1:n_nodes
+      if (i!=j) 
+	Qp[i,j] = 1/Q[i,j]
+      end
+    end
+  end
 
   # Initialize L2 mortar projection operators
   mortar_forward_upper = L2Projection.calc_forward_upper(n_nodes)
@@ -152,7 +170,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, dhat, dsplit, dsplit_transposed,
+      volume_integral_type, dhat,D, dsplit, dsplit_transposed,Qp,Q,Mass,
       mortar_forward_upper, mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       ecmortar_reverse_upper, ecmortar_reverse_lower,
@@ -515,6 +533,8 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   end
   # Normalize with total volume
   dsdu_ut = dsdu_ut/dg.analysis_total_volume
+  @show dsdu_ut
+  exit()
   return dsdu_ut
 end
 
@@ -688,7 +708,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
 
     # Calculate volume fluxes (one more dimension than weak form)
     calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+                       element_id, nnodes(dg),dg)
 
     # Calculate volume integral
     for j = 1:nnodes(dg)

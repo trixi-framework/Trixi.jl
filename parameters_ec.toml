@@ -12,8 +12,9 @@ equations = "euler"
 initial_conditions = "weak_blast_wave"
 #surface_flux_type = "laxfriedrichs"
 surface_flux_type = "chandrashekar_ec"
-volume_flux_type = "chandrashekar_ec"
+#volume_flux_type = "chandrashekar_ec"
 # volume_flux_type = "central"
+ volume_flux_type = "secret"
 # sources = 
 t_start = 0.0
 t_end   = 0.4
@@ -31,6 +32,7 @@ n_steps_max = 10000
 analysis_interval = 100
 #volume_integral_type = "shock_capturing"
 volume_integral_type = "split_form"
+#volume_integral_type = "weak_form"
 # volume_integral_type = "entropy_fix"
 
 
