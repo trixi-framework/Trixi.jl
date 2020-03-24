@@ -533,8 +533,8 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   end
   # Normalize with total volume
   dsdu_ut = dsdu_ut/dg.analysis_total_volume
-  @show dsdu_ut
-  exit()
+  #@show dsdu_ut
+  #exit()
   return dsdu_ut
 end
 
