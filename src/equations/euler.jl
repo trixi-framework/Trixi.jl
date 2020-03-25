@@ -161,6 +161,50 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > 0.5 ? 1.0E-3 : 1.245
 
     return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "sedov_blast_wave"
+    # Set up polar coordinates
+    inicenter = [0, 0]
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+
+    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+    # r0 = 0.5 # = more reasonable setup
+    E = 1.0
+    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+    p0_outer = 1.0e-5 # = true Sedov setup
+    # p0_outer = 1.0e-3 # = more reasonable setup
+
+    # Calculate primitive variables
+    rho = 1.0
+    v1 = 0.0
+    v2 = 0.0
+    p = r > r0 ? p0_outer : p0_inner
+
+    return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "medium_sedov_blast_wave"
+    # Set up polar coordinates
+    inicenter = [0, 0]
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+
+    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+    # r0 = 0.5 # = more reasonable setup
+    E = 1.0
+    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+    # p0_outer = 1.0e-5 # = true Sedov setup
+    p0_outer = 1.0e-3 # = more reasonable setup
+
+    # Calculate primitive variables
+    rho = 1.0
+    v1 = 0.0
+    v2 = 0.0
+    p = r > r0 ? p0_outer : p0_inner
+
+    return prim2cons(equation, [rho, v1, v2, p])
   else
     error("Unknown initial condition '$name'")
   end
