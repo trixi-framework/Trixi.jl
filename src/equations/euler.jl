@@ -307,82 +307,59 @@ end
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
-  # Average regular fluxes
-  @. f[:] = 1/2 * (f_ll + f_rr)
-
-  ## compute EC flux for comparison and debugging
-  #f_ec = MVector{4, Float64}(undef)
-  #symmetric_twopoint_flux!(f_ec,Val(:chandrashekar_ec),
-  #                                        equation, orientation,
-  #                                        rho_ll,
-  #                                        rho_v1_ll,
-  #                                        rho_v2_ll,
-  #                                        rho_e_ll,
-  #                                        rho_rr,
-  #                                        rho_v1_rr,
-  #                                        rho_v2_rr,
-  #                                        rho_e_rr)
+  # Central flux as the baseline flux
+  for i = 1:4
+    f[i] = 1/2 * (f_ll[i] + f_rr[i])
+  end
 
   # secret part now
   # use secret weapon coefficient, note that symmetric flux is not computed for ll==rr
   # note that rr > ll
-  Qp = dg.Qp[ll,rr]
+  # Qp = dg.Qp[ll,rr]
   # Compute helper variables
-  entropy_ll = MVector{4, Float64}(undef)
-  entropy_rr = MVector{4, Float64}(undef)
-  entropy_jump = MVector{4, Float64}(undef)
   entropy_diss = MVector{4, Float64}(undef)
-  cons = MVector{4, Float64}(undef)
 
-  cons = [rho_ll,rho_v1_ll,rho_v2_ll,rho_e_ll]
-  entropy_ll,entropy_flux_ll = cons2entropypair(equation.gamma, cons, orientation)
-  cons = [rho_rr,rho_v1_rr,rho_v2_rr,rho_e_rr]
-  entropy_rr,entropy_flux_rr = cons2entropypair(equation.gamma, cons, orientation)
+
+  cons = (rho_ll,rho_v1_ll,rho_v2_ll,rho_e_ll)
+  entropy_ll,entropy_flux_ll = cons2entropyvars_and_flux(equation.gamma, cons, orientation)
+  cons = (rho_rr,rho_v1_rr,rho_v2_rr,rho_e_rr)
+  entropy_rr,entropy_flux_rr = cons2entropyvars_and_flux(equation.gamma, cons, orientation)
+
+  entropyvars_jump = entropy_rr - entropy_ll
+
   entropy_potential_ll = - entropy_flux_ll
   for i=1:4
     entropy_potential_ll += entropy_ll[i]*f_ll[i]
   end
+  
   entropy_potential_rr = - entropy_flux_rr
   for i=1:4
     entropy_potential_rr += entropy_rr[i]*f_rr[i]
   end
-  entropy_jump = entropy_rr - entropy_ll
+  
+  # simple dissipation term: 1/2 * Qplus * [v]
   for i=1:4
-    entropy_diss[i] = 0.5*Qp*entropy_jump[i]
+    #entropy_diss[i] = 0.5*Qp*entropyvars_jump[i]
+    entropy_diss[i] = entropyvars_jump[i]
   end
-  potential_jump = entropy_potential_rr - entropy_potential_ll
-  entropy_production = - potential_jump
+  
+  # entropy production of the central flux f
+  entropy_production = - (entropy_potential_rr - entropy_potential_ll)
   for i=1:4
-    entropy_production += entropy_jump[i]*f[i]
-  end
-  #if !isapprox(entropy_production,0.0,atol = 1e-15) 
-  #  @show entropy_jump
-  #  @show entropy_flux_ll, entropy_flux_rr
-  #  @show potential_jump
-  #  @show entropy_production,orientation	  
-  #  exit()
-  #end
-  entropy_diss_production = 0.0
-  for i=1:4
-    entropy_diss_production += entropy_jump[i]*entropy_diss[i]
+    entropy_production += entropyvars_jump[i]*f[i]
   end
 
-  #if (entropy_diss_production<-1E-15)
-  #  @show entropy_diss_production,Qp,ll,rr,orientation
-  #  exit()
-  # end
- 
+  # entropy production of the dissipation term
+  entropy_diss_production = 0.0
+  for i=1:4
+    entropy_diss_production += entropyvars_jump[i]*entropy_diss[i]
+  end
+
+  # compute alpha, but only in case ll!=rr, otherwise alpha=0
   if isapprox(entropy_diss_production,0.0,atol = 1e-13) 
     alpha = 0.0
-    #@show entropy_production
-    #@show entropy_diss_production
-    #@show alpha
   else
     alpha = -entropy_production/entropy_diss_production
-    #@show entropy_production
-    #@show entropy_diss_production
-    #@show alpha
-    #@show Qp
   end
   
   # ensure positivity of alpha
@@ -390,7 +367,9 @@ end
 
   if !isapprox(alpha,0.0,atol = 1e-13) 
     # Compute flux correction
-    f[:] += alpha*entropy_diss[:]
+    for i=1:4
+      f[i] += alpha*entropy_diss[i]
+    end
   end
 end
 
@@ -905,11 +884,10 @@ end
   return rho * p
 end
 
-@inline function cons2entropypair(gamma::Float64, cons::A,orientation::Int)  where A<:AbstractArray{Float64,1}
+@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
   entropy = MVector{4, Float64}(undef)
-  v = MVector{2, Float64}(undef)
-  v[1] = cons[2] / cons[1] 
-  v[2] = cons[3] / cons[1] 
+  #v = MVector{2, Float64}(undef)
+  v = (cons[2] / cons[1] , cons[3] / cons[1]) 
   v_square= v[1]*v[1]+v[2]*v[2]
   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
   s = log(p) - gamma*log(cons[1])
