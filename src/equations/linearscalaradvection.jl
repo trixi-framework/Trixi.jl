@@ -57,6 +57,9 @@ function Equations.initial_conditions(equation::LinearScalarAdvection,
     omega = 2 * pi * f
     scalar = c + A * sin(omega * sum(x_trans))
     return [scalar]
+  elseif name == "sin-sin"
+    scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
+    return [scalar]
   elseif name == "constant"
     return [2.0]
   elseif name == "linear-x-y"

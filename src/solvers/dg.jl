@@ -1447,12 +1447,12 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
   # Loop over surfaces
   for surface_id in 1:dg.n_surfaces
     # Get neighboring element ids
-    left = dg.surfaces.neighbor_ids[1, surface_id]
+    left  = dg.surfaces.neighbor_ids[1, surface_id]
     right = dg.surfaces.neighbor_ids[2, surface_id]
 
     # Apply smoothing
-    alpha[left] = max(alpha_pre_smooth[left], 0.5 * alpha_pre_smooth[right], alpha[left])
-    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left], alpha[right])
+    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
   end
  
   # Loop over L2 mortars
