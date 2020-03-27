@@ -23,7 +23,7 @@ easily be achieved by performing the following steps:
 
 
 ## Usage
-Enter the root directory `Trixi.jl` and run
+Enter the root directory `Trixi.jl/` and run
 ```bash
 bin/trixi parameters.toml
 ```
@@ -41,12 +41,12 @@ when running `julia` without any files), however, the previously compiled
 functions are cached. Therefore, it can be beneficial to run Trixi from the REPL
 during development, as it allows much faster turnaround times.
 
-If you naively run Trixi from the REPL by including `Trixi.jl`, you will not be
+If you naively run Trixi from the REPL by including `Trixi.jl/src/Trixi.jl`, you will not be
 able to change your Trixi source files and then run the changed code without
 restarting the REPL, which destroys any potential benefits from caching.
-However, restarting Julia can be avoided by using the `Revise.jl` package, which
+However, restarting Julia can be avoided by using the `Revise` package, which
 tracks changed files and re-loads them automatically. Therefore, you first need
-to install the `Revise.jl` package using the following command:
+to install the `Revise` package using the following command:
 
 ```bash
 julia -e 'import Pkg; Pkg.add("Revise")'
@@ -109,11 +109,15 @@ julia> Trixi.run("parameters.toml")
 To manually start in interactive mode (e.g., to supply additional arguments to
 the `julia` executable at startup`), execute Julia with the project directory
 set to the package directory of the program/tool you want to use:
-*   Trixi: `Trixi.jl`
+*   Trixi: `Trixi.jl/`
 *   `trixi2vtu`: `Trixi.jl/postprocessing/pgk/Trixi2Vtu`
 *   `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
 
-Then you can just proceed with the usual commands to load and start Trixi as in
+For example, to run Trixi this way, you need to start the REPL with
+```bash
+julia --project=path/to/Trixi.jl/
+```
+Then you can just proceed with the usual commands to load and run Trixi as in
 the example [above](#example).
 
 
@@ -131,7 +135,7 @@ higher resolution, to make up for the loss of accuracy from going from a
 high-order polynomial representation to a piecewise constant representation in
 ParaView.
 
-Before the first use, enter the `Trixi.jl` root directory and install all
+Before the first use, enter the `Trixi.jl/` root directory and install all
 necessary dependencies for `trixi2vtu` by running
 ```bash
 julia --project='postprocessing/pkg/Trixi2Vtu' -e 'import Pkg; Pkg.instantiate()'
@@ -169,7 +173,7 @@ data (especially for large files) and that it does not allow to customize the
 output without having to directly edit the source code of `trixi2img`.
 Currently, PNG and PDF are supported as output formats.
 
-Before the first use, enter the `Trixi.jl` root directory and install all
+Before the first use, enter the `Trixi.jl/` root directory and install all
 necessary dependencies for `trixi2img` by running
 ```bash
 julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
