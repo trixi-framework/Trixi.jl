@@ -27,7 +27,7 @@ if [ $interactive -eq 0 ]; then
       -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
   exec julia --banner=no --project="$PROJECT_DIR" -i \
-      -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")"
+      -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")" \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start Trixi2Vtu by running the second line.\n")' \
       -e 'println("using Revise; import Trixi2Vtu")' \
