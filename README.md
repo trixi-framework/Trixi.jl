@@ -55,12 +55,11 @@ able to change your Trixi source files and then run the changed code without
 restarting the REPL, which destroys any potential benefits from caching.
 However, restarting Julia can be avoided by using the `Revise.jl` package, which
 tracks changed files and re-loads them automatically. Therefore, you first need
-to install the `Revise.jl` package using the package installation by the
-following procedure:
+to install the `Revise.jl` package using the following command:
 
-1.  Start `julia`.
-2.  Switch to the package manager by pressing `]`
-3.  Execute `add Revise`
+```bash
+julia -e 'import Pkg; Pkg.add("Revise")'
+```
 
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache!
@@ -84,18 +83,12 @@ Now you are able to run Trixi from the REPL, change Trixi code between runs,
         "@stdlib"
         "."      
     ```
-4.  Import Trixi, ignoring the warnings shown below:
+4.  Import Trixi:
     ```julia
     julia> import Trixi
     [ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
-    ┌ Warning: Package Trixi does not have Pkg in its dependencies:
-    │ - If you have Trixi checked out for development and have
-    │   added Pkg as a dependency but haven't updated your primary
-    │   environment's manifest file, try `Pkg.resolve()`.
-    │ - Otherwise you may need to report an issue with Trixi
-    └ Loading Pkg into Trixi from project dependency, future warnings for Trixi are suppressed.
     ```
-5.  Run Trixi by calling its `main()` function with the parameters file as a
+5.  Run Trixi by calling its `run()` function with the parameters file as a
     keyword argument:
     ```julia
     julia> Trixi.run(parameters_file="parameters.toml")
@@ -106,27 +99,11 @@ directly), as Julia has to compile all functions for the first time. Starting at
 the second run, only those functions are recompiled for which the source code
 has changed since the last invocation.
 
-If you wish to use `Revise` to run a script that is not a package, e.g., the
-plotting tools in `postprocessing/`, you cannot use `import` but need to include
-the script directly using `includet(...)`. For example, for the `plot2d.jl`
-script, you would perform the following steps:
-```julia
-julia> using Revise
-
-julia> includet("postprocessing/plotfast.jl")
-
-julia> ┌ Warning: /home/mschlott/.julia/packages/Plots/12uaJ/src/Plots.jl/ is not an existing directory, Revise is not watching
-└ @ Revise /home/mschlott/.julia/packages/Revise/SZ4ae/src/Revise.jl:489
-
-julia> TrixiPlot.main()
-```
-Once again, you can usually safely ignore the warning.
-
 
 ### Automatically starting Trixi in interactive mode
-To automatically start into an interactive session, run Trixi or `plot2d.jl`
-with the `--interactive` (or short: `-i`) flag. This will open up a REPL and
-load everything you need to start using Trixi from the REPL.
+To automatically start into an interactive session, run Trixi or one of the
+postprocessing tools with the `--interactive` (or short: `-i`) flag. This will
+open up a REPL and load everything you need to start using Trixi from the REPL.
 
 Example:
 ```bash
@@ -140,6 +117,79 @@ julia> Trixi.run(parameters_file="parameters.toml")
 Note: When using interactive mode, all flags except `--interactive`/`-i` are
 ignored. You thus have to supply all command line arguments via the respective
 `run()` method.
+
+
+## Visualization and postprocessing
+There are two tools provided with Trixi that allow to visualize Trixi's output
+files, both of which can be found in `postprocessing/`: `trixi2vtu` and
+`trixi2img`. `
+
+### `trixi2vtu` (ParaView-based visualization)
+`trixi2vtu` converts Trixi's `.h5` output files to VTK files for unstructured meshes
+(`.vtu` files), which can be read by [ParaView](https://www.paraview.org) and
+other visualization tools. It automatically interpolates solution data from the
+original quadrature node locations to equidistant "visualization nodes" at a
+higher resolution, to make up for the loss of accuracy from going from a
+high-order polynomial representation to a piecewise constant representation in
+ParaView.
+
+Before the first use, enter the `Trixi.jl` root directory and install all
+necessary dependencies for `trixi2vtu` by running
+```bash
+julia --project='postprocessing/pkg/Trixi2Vtu' -e 'import Pkg; Pkg.instantiate()'
+```
+This installation step is only necessary once.
+
+Then, to convert a file, just call `trixi2vtu` with the name of a `.h5` file as argument:
+```bash
+trixi2vtu out/solution_000000.h5
+```
+This allows you to generate VTK files for solution, restart and mesh files.
+
+If you want to convert multiple solution/restart files at once, you can just supply
+multiple input files on the command line. `trixi2vtu` will then also generate a
+`.pvd` file, which allows ParaView to read all `.vtu` files at once and which
+uses the `time` attribute in solution/restart files to inform ParaView about the
+solution time. In this case it makes sense to also supply the `-s` flag, which
+generates separate `.vtu` and `.pvd` files for cell/element-based data (such as
+element ids, cell ids, levels etc.) such that they can be viewed on the original
+mesh (as opposed to the visualization nodes). To list all command line options,
+run `trixi2vtu --help`.
+
+Similarly to Trixi, `trixi2vtu` supports an interactive mode that can be invoked
+by running
+```bash
+trixi2vtu -i
+```
+
+
+### `trixi2img` (Julia-based visualization)
+`trixi2img` can be used to directly convert Trixi's output files to image files,
+without having to use a third-pary visualization tool such as ParaView. The
+downside of this approach is that it generally takes longer to visualize the
+data (especially for large files) and that it does not allow to customize the
+output without having to directly edit the source code of `trixi2img`.
+Currently, PNG and PDF are supported as output formats.
+
+Before the first use, enter the `Trixi.jl` root directory and install all
+necessary dependencies for `trixi2img` by running
+```bash
+julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
+```
+This installation step is only necessary once.
+
+Then, to convert a file, just call `trixi2img` with the name of a `.h5` file as argument:
+```bash
+trixi2img out/solution_000000.h5
+```
+Multiple files can be converted at once by specifying more input files on the
+command line.
+
+Similarly to Trixi, `trixi2img` supports an interactive mode that can be invoked
+by running
+```bash
+trixi2img -i
+```
 
 
 ## Style guide
