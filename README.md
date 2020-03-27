@@ -55,12 +55,11 @@ able to change your Trixi source files and then run the changed code without
 restarting the REPL, which destroys any potential benefits from caching.
 However, restarting Julia can be avoided by using the `Revise.jl` package, which
 tracks changed files and re-loads them automatically. Therefore, you first need
-to install the `Revise.jl` package using the package installation by the
-following procedure:
+to install the `Revise.jl` package using the following command:
 
-1.  Start `julia`.
-2.  Switch to the package manager by pressing `]`
-3.  Execute `add Revise`
+```bash
+julia -e 'import Pkg; Pkg.add("Revise")'
+```
 
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache!
@@ -84,18 +83,12 @@ Now you are able to run Trixi from the REPL, change Trixi code between runs,
         "@stdlib"
         "."      
     ```
-4.  Import Trixi, ignoring the warnings shown below:
+4.  Import Trixi:
     ```julia
     julia> import Trixi
     [ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
-    ┌ Warning: Package Trixi does not have Pkg in its dependencies:
-    │ - If you have Trixi checked out for development and have
-    │   added Pkg as a dependency but haven't updated your primary
-    │   environment's manifest file, try `Pkg.resolve()`.
-    │ - Otherwise you may need to report an issue with Trixi
-    └ Loading Pkg into Trixi from project dependency, future warnings for Trixi are suppressed.
     ```
-5.  Run Trixi by calling its `main()` function with the parameters file as a
+5.  Run Trixi by calling its `run()` function with the parameters file as a
     keyword argument:
     ```julia
     julia> Trixi.run(parameters_file="parameters.toml")
@@ -105,22 +98,6 @@ The first run will be a little bit slower (i.e., as when running `bin/trixi`
 directly), as Julia has to compile all functions for the first time. Starting at
 the second run, only those functions are recompiled for which the source code
 has changed since the last invocation.
-
-If you wish to use `Revise` to run a script that is not a package, e.g., the
-plotting tools in `postprocessing/`, you cannot use `import` but need to include
-the script directly using `includet(...)`. For example, for the `plot2d.jl`
-script, you would perform the following steps:
-```julia
-julia> using Revise
-
-julia> includet("postprocessing/plot2d.jl")
-
-julia> ┌ Warning: /home/mschlott/.julia/packages/Plots/12uaJ/src/Plots.jl/ is not an existing directory, Revise is not watching
-└ @ Revise /home/mschlott/.julia/packages/Revise/SZ4ae/src/Revise.jl:489
-
-julia> TrixiPlot.run(datafile="path/to/trixi_output.h5")
-```
-Once again, you can usually safely ignore the warning.
 
 
 ### Automatically starting Trixi in interactive mode
