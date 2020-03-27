@@ -92,7 +92,8 @@ function run(;args=nothing, kwargs...)
       # If filename is empty, it means we were not able to determine an
       # appropriate file thus the user has to supply one
       if filename == ""
-        error("could not auto-detect PVD filename: please provide a name with `--pvd-filename` " *
+        error("could not auto-detect PVD filename (input file names have no common prefix): " *
+              "please provide a PVD filename name with `--pvd-filename` " *
               "or disable saving a PVD file with `--save-pvd=no`")
       end
     end
@@ -262,10 +263,14 @@ function run(;args=nothing, kwargs...)
     @timeit "save VTK file" vtk_save(vtk)
 
     # Add to PVD file only if it is a datafile
-    if save_pvd && is_datafile
-      verbose && println("| Adding to PVD file...")
-      @timeit "add VTK to PVD file" pvd[time] = vtk
-      has_data = true
+    if save_pvd
+      if is_datafile
+        verbose && println("| Adding to PVD file...")
+        @timeit "add VTK to PVD file" pvd[time] = vtk
+        has_data = true
+      else
+        println("WARNING: file '$(datafile)' will not be added to PVD file since it is a mesh file")
+      end
     end
 
     if separate_celldata
@@ -274,7 +279,7 @@ function run(;args=nothing, kwargs...)
       @timeit "save VTK file" vtk_save(vtk_celldata)
 
       # Add to PVD file only if it is a datafile
-      if save_pvd
+      if save_pvd && is_datafile
         verbose && println("| Adding to PVD file...")
         @timeit "add VTK to PVD file" pvd_celldata[time] = vtk_celldata
         has_data = true
