@@ -118,7 +118,8 @@ For example, to run Trixi this way, you need to start the REPL with
 julia --project=path/to/Trixi.jl/
 ```
 Then you can just proceed with the usual commands to load and run Trixi as in
-the example [above](#example).
+the example [above](#example). The `--project` flag is required such that Julia
+can properly load Trixi and all her dependencies.
 
 
 ## Visualization and postprocessing
