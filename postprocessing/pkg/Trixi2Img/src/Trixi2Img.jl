@@ -1,39 +1,7 @@
-#!/bin/bash
-
-# This file uses the method outlined in [1] to pass additional arguments to the
-# `julia` executable (in this case: enable colored output). The approach should
-# work portably on all UNIX-like operating systems.
-#
-# NOTE TO WINDOWS USERS: Just invoke `bin/trixi` explicitly with the `julia` executable.
-#
-# [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
-
-#=
-# Check if '-i' or '--interactive' was passed as an argument
-interactive=0
-for arg in "$@"; do
-  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
-    interactive=1
-  fi
-done
-
-# If not interactive, just run script as usual. Otherwise load REPL
-if [ $interactive -eq 0 ]; then
-  exec julia --color=yes \
-      -e 'run_script=true; include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
-else
-  exec julia --banner=no -i \
-      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start plotting by running the second line.\n")' \
-      -e "println(\"using Revise; push!(Revise.dont_watch_pkgs, :Plots); includet(\\\"${BASH_SOURCE[0]}\\\")\")" \
-      -e 'println("TrixiPlot.run(datafile=\"file.h5\")")'
-fi
-=#
-
-module TrixiPlot
+module Trixi2Img
 
 # Get useful bits and pieces from trixi
-include("../src/solvers/interpolation.jl")
+include("../../../../src/solvers/interpolation.jl")
 
 # Number of spatial dimensions
 const ndim = 2
@@ -43,7 +11,7 @@ const max_supported_level = 11 # -> at most 2^11 = 2048 visualization nodes
 
 using .Interpolation: gauss_lobatto_nodes_weights,
                       polynomial_interpolation_matrix, interpolate_nodes
-using ArgParse: ArgParseSettings, @add_arg_table, parse_args
+using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 using HDF5: h5open, attrs
 using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
 using TimerOutputs
@@ -591,7 +559,7 @@ function parse_commandline_arguments(args=ARGS)
   # If anything is changed here, it should also be checked at the beginning of run()
   # FIXME: Refactor the code to avoid this redundancy
   s = ArgParseSettings()
-  @add_arg_table s begin
+  @add_arg_table! s begin
     "datafile"
       help = "Name of Trixi data file to plot (allowed extensions: .h5, .dat)"
       arg_type = String
@@ -665,10 +633,5 @@ end
 n_children_per_cell() = n_children_per_cell(ndim)
 n_children_per_cell(dims::Integer) = 2^dims
 
-end # module TrixiPlot
+end # module Trixi2Img
 
-
-if (abspath(PROGRAM_FILE) == @__FILE__) || (@isdefined(run_script) && run_script)
-  #=@TrixiPlot.interruptable TrixiPlot.run()=#
-  TrixiPlot.run(args=ARGS)
-end

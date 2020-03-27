@@ -19,7 +19,7 @@ done
 
 # Get directory of script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_DIR="$DIR/pkg/Trixi2Vtu"
+PROJECT_DIR="$DIR/pkg/Trixi2Img"
 
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
@@ -29,14 +29,14 @@ else
   exec julia --banner=no -i \
       -e "push!(LOAD_PATH, \"$PROJECT_DIR\")" \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start Trixi2Vtu by running the second line.\n")' \
-      -e 'println("using Revise; import Trixi2Vtu")' \
-      -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
+      -e 'println("# Start Trixi2Img by running the second line.\n")' \
+      -e 'println("using Revise; push!(Revise.dont_watch_pkgs, :Plots); using Revise; Revise.silence(\"Plots\"); import Trixi2Img")' \
+      -e 'println("Trixi2Img.run(datafile=\"file.h5\")")'
 fi
 =#
 
-# Load Trixi2Vtu
-include("pkg/Trixi2Vtu/src/Trixi2Vtu.jl")
+# Load Trixi2Img
+include("pkg/Trixi2Img/src/Trixi2Img.jl")
 
 # Run Trixi2Vtu but handle user interrupts gracefully (Ctrl-c)
-@Trixi2Vtu.interruptable Trixi2Vtu.run(args=ARGS)
+@Trixi2Img.interruptable Trixi2Img.run(args=ARGS)

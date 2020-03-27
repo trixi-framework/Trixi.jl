@@ -1,7 +1,7 @@
 module Trixi2Vtu
 
 # Get useful bits and pieces from trixi
-include("../../src/solvers/interpolation.jl")
+include("../../../../src/solvers/interpolation.jl")
 include("pointlocators.jl")
 
 # Number of spatial dimensions
@@ -11,7 +11,7 @@ using .Interpolation: gauss_lobatto_nodes_weights,
                       polynomial_interpolation_matrix, interpolate_nodes
 using .PointLocators: PointLocator, insert!, Point
 
-using ArgParse: ArgParseSettings, @add_arg_table, parse_args
+using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 using HDF5: h5open, attrs, exists
 using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 using TimerOutputs
@@ -541,7 +541,7 @@ function parse_commandline_arguments(args=ARGS)
   # If anything is changed here, it should also be checked at the beginning of run()
   # FIXME: Refactor the code to avoid this redundancy
   s = ArgParseSettings()
-  @add_arg_table s begin
+  @add_arg_table! s begin
     "datafile"
       help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
       arg_type = String
