@@ -2,7 +2,7 @@ module Auxiliary
 
 include("containers.jl")
 
-using ArgParse: ArgParseSettings, @add_arg_table, parse_args
+using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 using TimerOutputs: TimerOutput
 using Pkg.TOML: parsefile
 
@@ -64,7 +64,7 @@ parameter_exists(name::String) = haskey(parameters["default"], name)
 # Parse command line arguments and return as dict
 function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
-  @add_arg_table s begin
+  @add_arg_table! s begin
     "parameters_file"
       help = "Name of file with runtime parameters."
       arg_type = String

@@ -13,7 +13,7 @@ using TimerOutputs: @timeit, print_timer, reset_timer!
 using Profile: clear_malloc_data
 
 
-function run(;args=nothing, verbose=false, kwargs...)
+function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   # Reset timer
   reset_timer!(timer())
 
@@ -24,6 +24,10 @@ function run(;args=nothing, verbose=false, kwargs...)
   else
     # Otherwise interpret keyword arguments as command line arguments
     args = Dict{String, Any}()
+    if isnothing(parameters_file)
+      error("missing 'parameters_file' argument")
+    end
+    args["parameters_file"] = parameters_file
     args["verbose"] = verbose
     for (key, value) in kwargs
       args[string(key)] = value

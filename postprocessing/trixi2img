@@ -23,11 +23,11 @@ PROJECT_DIR="$DIR/pkg/Trixi2Img"
 
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
-  exec julia --color=yes \
-      -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@" 
+  exec julia --color=yes --project="$PROJECT_DIR" \
+      -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
-  exec julia --banner=no -i \
-      -e "push!(LOAD_PATH, \"$PROJECT_DIR\")" \
+  exec julia --banner=no --project="$PROJECT_DIR" -i \
+      -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")"
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start Trixi2Img by running the second line.\n")' \
       -e 'println("using Revise; push!(Revise.dont_watch_pkgs, :Plots); using Revise; Revise.silence(\"Plots\"); import Trixi2Img")' \
@@ -36,7 +36,7 @@ fi
 =#
 
 # Load Trixi2Img
-include("pkg/Trixi2Img/src/Trixi2Img.jl")
+import Trixi2Img
 
 # Run Trixi2Vtu but handle user interrupts gracefully (Ctrl-c)
 @Trixi2Img.interruptable Trixi2Img.run(args=ARGS)
