@@ -91,7 +91,7 @@ Now you are able to run Trixi from the REPL, change Trixi code between runs,
 5.  Run Trixi by calling its `run()` function with the parameters file as a
     keyword argument:
     ```julia
-    julia> Trixi.run(parameters_file="parameters.toml")
+    julia> Trixi.run("parameters.toml")
     ```
 
 The first run will be a little bit slower (i.e., as when running `bin/trixi`

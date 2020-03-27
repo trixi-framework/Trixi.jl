@@ -31,7 +31,7 @@ else
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start a Trixi simulation by running the second line.\n")' \
       -e 'println("using Revise; import Trixi")' \
-      -e 'println("Trixi.run(parameters_file=\"parameters.toml\")")'
+      -e 'println("Trixi.run(\"parameters.toml\")")'
 fi
 =#
 
