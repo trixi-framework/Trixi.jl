@@ -113,12 +113,12 @@ script, you would perform the following steps:
 ```julia
 julia> using Revise
 
-julia> includet("postprocessing/plotfast.jl")
+julia> includet("postprocessing/plot2d.jl")
 
 julia> ┌ Warning: /home/mschlott/.julia/packages/Plots/12uaJ/src/Plots.jl/ is not an existing directory, Revise is not watching
 └ @ Revise /home/mschlott/.julia/packages/Revise/SZ4ae/src/Revise.jl:489
 
-julia> TrixiPlot.main()
+julia> TrixiPlot.run(datafile="path/to/trixi_output.h5")
 ```
 Once again, you can usually safely ignore the warning.
 
