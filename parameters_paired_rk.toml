@@ -1,0 +1,42 @@
+####################################################################################################
+# Simulation
+# equations = "euler"
+equations = "linearscalaradvection"
+advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+
+initial_conditions = "sin-sin"
+surface_flux_type = "laxfriedrichs"
+t_start = 0.0
+t_end   = 1.0
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
+
+####################################################################################################
+# Solver
+solver = "dg"
+N = 3
+cfl = 0.5
+n_steps_max = 10000
+analysis_interval = 100
+time_integration_scheme = "paired_rk_2_16"
+
+
+####################################################################################################
+# Mesh
+n_cells_max = 10000
+coordinates_min = [0, 0]
+coordinates_max =  [1, 1]
+initial_refinement_level = 4
+# refinement_patches = [
+#   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
+#   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
+# ]
+
+
+####################################################################################################
+# I/O
+solution_interval = 10
+solution_variables = "primitive"
+restart_interval = 0
