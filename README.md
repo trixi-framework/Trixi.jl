@@ -15,19 +15,10 @@ easily be achieved by performing the following steps:
     ```bash
     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
     ```
-2.  Enter the cloned directory and run the Julia command-line tool:
+2.  Enter the cloned directory and run the following command to install all
+    required dependencies:
     ```bash
-    cd Trixi.jl
-    julia
-    ```
-3.  Switch to the package manager by pressing `]`, activate the current
-    directory and then instantiate it:
-    ```julia
-    julia> ]
-    (v1.4) pkg> activate .
-    Activating environment at `~/path/to/Trixi.jl/Project.toml`
-
-    (Trixi) pkg> instantiate
+    julia --project=. -e 'import Pkg; Pkg.instantiate()'
     ```
 
 
@@ -65,58 +56,65 @@ Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache!
 
 
-### Using Revise manually
-
-1.  Go to the Trixi root directory and start the Julia REPL by running `julia`.
-2.  From the REPL, load the `Revise` package (this step _has_ to come first, as
-    otherwise `Revise` will not be able to track changes to the source code of
-    Trixi):
-    ```julia
-       julia> using Revise
-    ```
-3.  Add the current directory to the load path for modules:
-    ```julia
-       julia> push!(LOAD_PATH, ".")
-       4-element Array{String,1}:
-        "@"      
-        "@v#.#"  
-        "@stdlib"
-        "."      
-    ```
-4.  Import Trixi:
-    ```julia
-    julia> import Trixi
-    [ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
-    ```
-5.  Run Trixi by calling its `run()` function with the parameters file as a
-    keyword argument:
-    ```julia
-    julia> Trixi.run("parameters.toml")
-    ```
-
-The first run will be a little bit slower (i.e., as when running `bin/trixi`
-directly), as Julia has to compile all functions for the first time. Starting at
-the second run, only those functions are recompiled for which the source code
-has changed since the last invocation.
-
-
-### Automatically starting Trixi in interactive mode
+### Automatically starting in interactive mode
 To automatically start into an interactive session, run Trixi or one of the
 postprocessing tools with the `--interactive` (or short: `-i`) flag. This will
 open up a REPL and load everything you need to start using Trixi from the REPL.
+When using interactive mode, all command line arguments except
+`--interactive`/`-i` are ignored.  You thus have to supply all command line
+arguments via the respective `run()` method. The first run will be a little bit
+slower (i.e., as when running `bin/trixi` directly), since Julia has to compile
+all functions for the first time. Starting with the second run, only those
+functions are recompiled for which the source code has changed since the last
+invocation.
 
-Example:
+Please note that `bin/trixi` and the tools in `postprocessing/` all
+start the REPL with the `--project` flag set to the respective Trixi project.
+That means that if you start in interactive mode and install/remove packages, it
+will *only* affect your local Trixi installation and *not* your general Julia
+environment. Therefore, to add new packages (such as `Revise`) to your Julia
+installation and not just to Trixi, you need to start the REPL manually and
+without providing the `--project` flag.
+
+#### Example
+Begin by executing:
 ```bash
 bin/trixi -i
+```
+This will start the Julia REPL with the following output:
+```bash
+# Note: project directory set to '.'. Changes to packages will only affect current project.
+# Execute the first line below once at the beginning of an interactive session.
+# Start a Trixi simulation by running the second line.
 
-# Some Julia output follows...
+using Revise; import Trixi
+Trixi.run("parameters.toml")
+julia>
+```
+Copy-pasting and then executing the first line yields:
+```bash
+julia> using Revise; import Trixi
+[ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
 
-julia> Trixi.run(parameters_file="parameters.toml")
+```
+You can then proceed by running the second line (you probably want to change
+`parameters.toml` to the parameters file you intend to use):
+```bash
+julia> Trixi.run("parameters.toml")
 ```
 
-Note: When using interactive mode, all flags except `--interactive`/`-i` are
-ignored. You thus have to supply all command line arguments via the respective
-`run()` method.
+
+### Manually starting in interactive mode
+
+To manually start in interactive mode (e.g., to supply additional arguments to
+the `julia` executable at startup`), execute Julia with the project directory
+set to the package directory of the program/tool you want to use:
+*   Trixi: `Trixi.jl`
+*   `trixi2vtu`: `Trixi.jl/postprocessing/pgk/Trixi2Vtu`
+*   `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
+
+Then you can just proceed with the usual commands to load and start Trixi as in
+the example [above](#example).
 
 
 ## Visualization and postprocessing
@@ -142,7 +140,7 @@ This installation step is only necessary once.
 
 Then, to convert a file, just call `trixi2vtu` with the name of a `.h5` file as argument:
 ```bash
-trixi2vtu out/solution_000000.h5
+postprocessing/trixi2vtu out/solution_000000.h5
 ```
 This allows you to generate VTK files for solution, restart and mesh files.
 
@@ -159,7 +157,7 @@ run `trixi2vtu --help`.
 Similarly to Trixi, `trixi2vtu` supports an interactive mode that can be invoked
 by running
 ```bash
-trixi2vtu -i
+postprocessing/trixi2vtu -i
 ```
 
 
@@ -180,7 +178,7 @@ This installation step is only necessary once.
 
 Then, to convert a file, just call `trixi2img` with the name of a `.h5` file as argument:
 ```bash
-trixi2img out/solution_000000.h5
+postprocessing/trixi2img out/solution_000000.h5
 ```
 Multiple files can be converted at once by specifying more input files on the
 command line.
@@ -188,7 +186,7 @@ command line.
 Similarly to Trixi, `trixi2img` supports an interactive mode that can be invoked
 by running
 ```bash
-trixi2img -i
+postprocessing/trixi2img -i
 ```
 
 
