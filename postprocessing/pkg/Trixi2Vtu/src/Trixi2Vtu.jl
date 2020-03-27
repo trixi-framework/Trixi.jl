@@ -164,7 +164,7 @@ function run(;args=nothing, kwargs...)
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
       @timeit "read data" (labels, data, n_elements, n_nodes,
-                           element_variables, time = read_datafile(datafile))
+                           element_variables, time) = read_datafile(datafile)
 
       # Check if dimensions match
       if length(leaf_cells) != n_elements
