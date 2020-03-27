@@ -664,7 +664,7 @@ end
 # Calculate volume integral and update u_t
 function calc_volume_integral!(dg)
   if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
+    calc_volume_integral!(dg, Val(:weak_form), 1:dg.n_elements, dg.elements.u_t, dg.dhat)
   elseif dg.volume_integral_type == :split_form
     calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
   elseif dg.volume_integral_type == :shock_capturing
@@ -676,7 +676,8 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
+function calc_volume_integral!(dg, ::Val{:weak_form}, element_ids,
+                               u_t::Array{Float64, 4}, dhat::SMatrix)
   # Type alias only for convenience
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
@@ -685,7 +686,7 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dh
   f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  Threads.@threads for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in element_ids
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
@@ -931,9 +932,12 @@ end
 
 # Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
+  prolong2surfaces!(dg, 1:dg.n_surfaces)
+end
+function prolong2surfaces!(dg, surface_ids)
   equation = equations(dg)
 
-  for s = 1:dg.n_surfaces
+  for s in surface_ids
     left_element_id = dg.surfaces.neighbor_ids[1, s]
     right_element_id = dg.surfaces.neighbor_ids[2, s]
     for l = 1:nnodes(dg)
@@ -960,7 +964,7 @@ prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
 function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
-  for m = 1:dg.n_l2mortars
+  for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1047,7 +1051,7 @@ end
 function prolong2mortars!(dg, ::Val{:ec})
   equation = equations(dg)
 
-  for m = 1:dg.n_ecmortars
+  for m in 1:dg.n_ecmortars
     large_element_id = dg.ecmortars.neighbor_ids[3, m]
     upper_element_id = dg.ecmortars.neighbor_ids[2, m]
     lower_element_id = dg.ecmortars.neighbor_ids[1, m]
@@ -1100,10 +1104,12 @@ end
 
 # Calculate and store fluxes across surfaces
 calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+                                            1:dg.n_surfaces,
                                             dg.surfaces.neighbor_ids,
                                             dg.surfaces.u, dg,
                                             dg.surfaces.orientations)
-function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
+function calc_surface_flux!(surface_flux::Array{Float64, 4}, surface_ids,
+                            neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg,
                             orientations::Vector{Int})
   # Type alias only for convenience
@@ -1115,7 +1121,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
-  Threads.@threads for s = 1:dg.n_surfaces
+  Threads.@threads for s in surface_ids
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
     fstarnode = fstarnode_threaded[Threads.threadid()]
@@ -1358,11 +1364,11 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg,
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, 1:dg.n_elements, dg,
                                                     dg.elements.surface_flux, dg.lhat)
-function calc_surface_integral!(u_t::Array{Float64, 4}, dg, surface_flux::Array{Float64, 4},
-                                lhat::SMatrix)
-  for element_id = 1:dg.n_elements
+function calc_surface_integral!(u_t::Array{Float64, 4}, element_ids, dg,
+                                surface_flux::Array{Float64, 4}, lhat::SMatrix)
+  for element_id in element_ids
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         # surface at -x
@@ -1381,7 +1387,10 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  for element_id = 1:dg.n_elements
+  apply_jacobian!(dg, 1:dg.n_elements)
+end
+function apply_jacobian!(dg, element_ids)
+  for element_id in element_ids
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
@@ -1395,12 +1404,15 @@ end
 
 # Calculate source terms and apply them to u_t
 function calc_sources!(dg::Dg, t)
+  calc_sources!(dg, 1:dg.n_elements, t)
+end
+function calc_sources!(dg::Dg, element_ids, t)
   equation = equations(dg)
   if equation.sources == "none"
     return
   end
 
-  for element_id = 1:dg.n_elements
+  for element_id in element_ids
     sources(equations(dg), dg.elements.u_t, dg.elements.u,
             dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end
