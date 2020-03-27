@@ -274,7 +274,7 @@ function run(;args=nothing, kwargs...)
       @timeit "save VTK file" vtk_save(vtk_celldata)
 
       # Add to PVD file only if it is a datafile
-      if save_pvd
+      if save_pvd && is_datafile
         verbose && println("| Adding to PVD file...")
         @timeit "add VTK to PVD file" pvd_celldata[time] = vtk_celldata
         has_data = true
