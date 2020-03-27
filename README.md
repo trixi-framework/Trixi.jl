@@ -24,7 +24,7 @@ easily be achieved by performing the following steps:
     directory and then instantiate it:
     ```julia
     julia> ]
-    (v1.3) pkg> activate .
+    (v1.4) pkg> activate .
     Activating environment at `~/path/to/Trixi.jl/Project.toml`
 
     (Trixi) pkg> instantiate
