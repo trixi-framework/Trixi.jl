@@ -19,7 +19,7 @@ done
 
 # Get directory of script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_DIR=$(dirname "$DIR")
+PROJECT_DIR="$(dirname '$DIR')"
 
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
@@ -27,6 +27,7 @@ if [ $interactive -eq 0 ]; then
       -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
   exec julia --banner=no --project="$PROJECT_DIR" -i \
+      -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")" \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
       -e 'println("# Start a Trixi simulation by running the second line.\n")' \
       -e 'println("using Revise; import Trixi")' \
