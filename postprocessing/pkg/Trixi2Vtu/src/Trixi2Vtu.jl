@@ -163,7 +163,15 @@ function run(;args=nothing, kwargs...)
     if is_datafile
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
-      @timeit "read data" labels, data, n_nodes, element_variables, time = read_datafile(datafile)
+      @timeit "read data" (labels, data, n_elements, n_nodes,
+                           element_variables, time = read_datafile(datafile))
+
+      # Check if dimensions match
+      if length(leaf_cells) != n_elements
+        error("number of elements in '$(datafile)' do not match number of leaf cells in " *
+              "'$(meshfile)' " *
+              "(did you forget to clean your 'out/' directory between different runs?)")
+      end
 
       # Determine resolution for data interpolation
       if args["nvisnodes"] == nothing
@@ -536,7 +544,7 @@ function read_datafile(filename::String)
       index +=1
     end
 
-    return labels, data, n_nodes, element_variables, time
+    return labels, data, n_elements, n_nodes, element_variables, time
   end
 end
 
