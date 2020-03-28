@@ -16,23 +16,29 @@ function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
 end
 
 
-# Carpenter's 4th-order 5-stage low-storage Runge-Kutta method
+# Second-order, 16-stage paired Runge-Kutta method
 function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, dt::Float64)
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
   b = [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
        1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
        2277821191437.0 / 14882151754819.0]
-  c = [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
-       2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
+  c = [ 0/30,  1/30,  2/30,  3/30,  4/30,  5/30, 6/30, 7/30, 8/30, 9/30,
+       10/30, 11/30, 12/30, 13/30, 14/30, 15/30]
 
-  for stage = 1:5
+  # Store for convenience
+  u   = solver.elements.u
+  u_t = solver.elements.u_t
+  k   = solver.elements.u_rungekutta
+
+  for stage in 1:5
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(solver, t_stage)
     @timeit timer() "Runge-Kutta step" begin
-      @. solver.elements.u_rungekutta = (solver.elements.u_t
-                                         - solver.elements.u_rungekutta * a[stage])
-      @. solver.elements.u += solver.elements.u_rungekutta * b[stage] * dt
+      #=@. k = u_t - k * a[stage]=#
+      #=@. u += k * b[stage] * dt=#
+      @. k = u_t - k * a[stage]
+      @. u += k * b[stage] * dt
     end
   end
 end
