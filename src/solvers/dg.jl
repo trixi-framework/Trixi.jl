@@ -535,33 +535,40 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
+  n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
   println()
   println("-"^80)
   println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
   println("-"^80)
-  println(" #timesteps:    " * @sprintf("% 14d", step))
-  println(" dt:            " * @sprintf("%10.8e", dt))
-  println(" sim. time:     " * @sprintf("%10.8e", time))
-  println(" run time:      " * @sprintf("%10.8e s", runtime_absolute))
-  println(" Time/DOF/step: " * @sprintf("%10.8e s", runtime_relative))
+  println(" #timesteps:     " * @sprintf("% 14d", step) *
+          "                 " *
+          " #elements:      " * @sprintf("% 14d", dg.n_elements))
+  println(" dt:             " * @sprintf("%10.8e", dt) *
+          "                 " *
+          " #surfaces:      " * @sprintf("% 14d", dg.n_surfaces))
+  println(" sim. time:      " * @sprintf("%10.8e", time) *
+          "                 " *
+          " #mortars:       " * @sprintf("% 14d", n_mortars))
+  println(" run time:       " * @sprintf("%10.8e s", runtime_absolute))
+  println(" Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
   print(" Variable:    ")
   for v in 1:nvariables(equation)
-    @printf("  %-14s", equation.varnames_cons[v])
+    @printf("   %-14s", equation.varnames_cons[v])
   end
   println()
   print(" L2 error:    ")
   for v in 1:nvariables(equation)
-    @printf("  %10.8e", l2_error[v])
+    @printf("  % 10.8e", l2_error[v])
   end
   println()
   print(" Linf error:  ")
   for v in 1:nvariables(equation)
-    @printf("  %10.8e", linf_error[v])
+    @printf("  % 10.8e", linf_error[v])
   end
   println()
-  print(" Semi-discrete Entropy update:  ")
-  @printf("  %10.8e", duds_ut)
+  print(" ∑dUdS*Ut:    ")
+  @printf("  % 10.8e", duds_ut)
 
   println()
   println()
