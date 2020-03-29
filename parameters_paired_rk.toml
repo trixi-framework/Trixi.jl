@@ -21,7 +21,7 @@ cfl = 0.7
 n_steps_max = 10000
 analysis_interval = 100
 time_integration_scheme = "paired_rk_2_16"
-derivative_evaluations = 2
+derivative_evaluations = 4
 
 
 ####################################################################################################

@@ -92,9 +92,23 @@ function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, d
   # Store for convenience
   u   = solver.elements.u
   k   = solver.elements.u_t
-  tmp = solver.elements.u_rungekutta
-  k1  = similar(k)
+  k1 = solver.elements.u_rungekutta
   un  = similar(k)
+
+  # Implement general Runge-Kutta method (not storage-optimized) for paired RK schemes, where
+  # aᵢⱼ= 0 except for j = 1 or j = i - 1
+  # bₛ = 1, bᵢ = 0  for i ≠ s
+  # c₁ = 0
+  #
+  #                 s
+  # uⁿ⁺¹ = uⁿ + Δt  ∑ bᵢkᵢ = uⁿ + Δt kₛ
+  #                i=1
+  # k₁ = rhs(tⁿ, uⁿ)
+  # k₂ = rhs(tⁿ + c₂Δt, uⁿ + Δt(a₂₁ k₁))
+  # k₃ = rhs(tⁿ + c₃Δt, uⁿ + Δt(a₃₁ k₁ + a₃₂ k₂))
+  # k₄ = rhs(tⁿ + c₄Δt, uⁿ + Δt(a₄₁ k₁ + a₄₃ k₃))
+  # ...
+  # kₛ = rhs(tⁿ + cₛΔt, uⁿ + Δt(aₛ₁ k₁ + aₛ,ₛ₋₁ kₛ₋₁))
 
   # Stage 1
   stage = 1
@@ -113,7 +127,7 @@ function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, d
   @timeit timer() "Runge-Kutta step" @. u = un + dt * a[ 2, 1] * k1
   @timeit timer() "rhs" rhs!(solver, t_stage, stage)
 
-  # Stages 3-15
+  # Stages 3-16
   for stage in 3:16
     t_stage = t + dt * c[stage]
     @timeit timer() "Runge-Kutta step" @. u = un + dt * (a[stage, 1] * k1 + a[stage, stage-1] * k)
