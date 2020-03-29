@@ -37,22 +37,42 @@ function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, d
   c[15] = 14/30
   c[16] = 15/30
 
+  # Initialize storage for a
+  a = fill(NaN, 16, 16)
+
   # a is from RKVToolbox.f95:coeff_myRKV() for N = 3, e = 16
-  a = zeros(16, 16)
-  a[ 3,  2] = 0.165166669337488
-  a[ 4,  3] = 0.0401668050701765
-  a[ 5,  4] = 0.00759455436520174
-  a[ 6,  5] = 0.00115122631486203
-  a[ 7,  6] = 0.000142357578873289
-  a[ 8,  7] = 1.44841485339422E-05
-  a[ 9,  8] = 1.21471109398537E-06
-  a[10,  9] = 8.3591475032839E-08
-  a[11, 10] = 4.66643183666034E-09
-  a[12, 11] = 2.07030960191563E-10
-  a[13, 12] = 7.05381938694148E-12
-  a[14, 13] = 1.74014502604551E-13
-  a[15, 14] = 2.77667689318645E-15
-  a[16, 15] = 2.15877727024596E-17
+  #=a[ 3,  2] = 0.165166669337488=#
+  #=a[ 4,  3] = 0.0401668050701765=#
+  #=a[ 5,  4] = 0.00759455436520174=#
+  #=a[ 6,  5] = 0.00115122631486203=#
+  #=a[ 7,  6] = 0.000142357578873289=#
+  #=a[ 8,  7] = 1.44841485339422E-05=#
+  #=a[ 9,  8] = 1.21471109398537E-06=#
+  #=a[10,  9] = 8.3591475032839E-08=#
+  #=a[11, 10] = 4.66643183666034E-09=#
+  #=a[12, 11] = 2.07030960191563E-10=#
+  #=a[13, 12] = 7.05381938694148E-12=#
+  #=a[14, 13] = 1.74014502604551E-13=#
+  #=a[15, 14] = 2.77667689318645E-15=#
+  #=a[16, 15] = 2.15877727024596E-17=#
+
+  # a is from RKVToolbox.f95:coeff_myRKV() for N = 4, e = 16
+  a[ 3,  2] = 0.165170249013769
+  a[ 4,  3] = 0.0401708925915785
+  a[ 5,  4] = 0.00759453418765444
+  a[ 6,  5] = 0.00115041317941212
+  a[ 7,  6] = 0.000142008703633599
+  a[ 8,  7] = 1.44012500747081E-05
+  a[ 9,  8] = 1.20129989690388E-06
+  a[10,  9] = 8.20080636558013E-08
+  a[11, 10] = 4.52651381950371E-09
+  a[12, 11] = 1.97772183056185E-10
+  a[13, 12] = 6.60458879939973E-12
+  a[14, 13] = 1.58815369931921E-13
+  a[15, 14] = 2.45444021408439E-15
+  a[16, 15] = 1.83497672067887E-17
+
+  # Compute first column of Butcher tableau
   a[ 2,  1] = c[ 2]
   a[ 3,  1] = c[ 3] - a[ 3, 2]
   a[ 4,  1] = c[ 4] - a[ 4, 3]
@@ -79,7 +99,7 @@ function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, d
   # Stage 1
   stage = 1
   t_stage = t + dt * c[stage]
-  @timeit timer() "rhs" rhs!(solver, t_stage)
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
 
   # Store permanently
   @timeit timer() "Runge-Kutta step" begin
@@ -91,13 +111,13 @@ function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, d
   stage = 2
   t_stage = t + dt * c[stage]
   @timeit timer() "Runge-Kutta step" @. u = un + dt * a[ 2, 1] * k1
-  @timeit timer() "rhs" rhs!(solver, t_stage)
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
 
   # Stages 3-15
   for stage in 3:16
     t_stage = t + dt * c[stage]
     @timeit timer() "Runge-Kutta step" @. u = un + dt * (a[stage, 1] * k1 + a[stage, stage-1] * k)
-    @timeit timer() "rhs" rhs!(solver, t_stage)
+    @timeit timer() "rhs" rhs!(solver, t_stage, stage)
   end
 
   # Final update to u

@@ -616,11 +616,15 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
+function Solvers.rhs!(dg::Dg, t_stage, stage=0; disable_timers=false)
+  e = parameter("derivative_evaluations", 16)
   # Run rhs! without timing the individual contributions
   # FIXME: This should be done properly, e.g., by a macro call
   if disable_timers
     dg.elements.u_t .= 0.0
+    if stage > 1 && stage < 16 + 2 - e
+      return
+    end
     calc_volume_integral!(dg)
     prolong2surfaces!(dg)
     calc_surface_flux!(dg)
@@ -634,6 +638,9 @@ function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
 
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
+  if stage > 1 && stage < 16 + 2 - e
+    return
+  end
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)

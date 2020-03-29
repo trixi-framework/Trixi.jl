@@ -16,11 +16,12 @@ t_end   = 1.0
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 3
-cfl = 0.5
+N = 4
+cfl = 0.7
 n_steps_max = 10000
 analysis_interval = 100
 time_integration_scheme = "paired_rk_2_16"
+derivative_evaluations = 2
 
 
 ####################################################################################################
@@ -28,7 +29,7 @@ time_integration_scheme = "paired_rk_2_16"
 n_cells_max = 10000
 coordinates_min = [0, 0]
 coordinates_max =  [1, 1]
-initial_refinement_level = 4
+initial_refinement_level = 1
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
 #   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
@@ -37,6 +38,6 @@ initial_refinement_level = 4
 
 ####################################################################################################
 # I/O
-solution_interval = 10
+solution_interval = 100
 solution_variables = "primitive"
 restart_interval = 0
