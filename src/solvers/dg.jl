@@ -8,7 +8,8 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim
+                    riemann!, sources, calc_max_dt,
+	                  cons2entropy, cons2indicator, cons2indicator!, cons2prim, math_entropy
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -525,7 +526,8 @@ function calc_error_norms(dg::Dg, t::Float64)
   return l2_error, linf_error
 end
 
-# Calculate L2/Linf error norms based on "exact solution"
+
+# Calculate time derivative of entropy as ∂S/∂t = ∂S/∂u ⋅ ∂u/∂t
 function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Gather necessary information
   equation = equations(dg)
@@ -584,6 +586,27 @@ function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
 end
 
 
+# Integrate mathematical entropy over entire domain
+function calc_total_math_entropy(dg::Dg)
+  # Compute mathematical entropy
+  s = math_entropy(equations(dg), dg.elements.u)
+
+  # Integrate over all elements to get the total mathematical entropy
+  s_total = 0.0
+  for element_id = 1:dg.n_elements
+    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+         s_total += jacobian_volume * dg.weights[i] * dg.weights[j]  *s[i, j, element_id]
+      end
+    end
+  end
+
+  # Normalize with total volume
+  s = s/dg.analysis_total_volume
+  return s_total
+end
+
 
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
@@ -592,6 +615,8 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
+  math_entropy = calc_total_math_entropy(dg)
+  n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
   # General information
   println()
@@ -639,8 +664,9 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
     @printf("  % 10.8e", linf_error[v])
   end
   println()
-  print(" ∑dUdS*Ut:    ")
-  @printf("  % 10.8e", duds_ut)
+  println(" ∑dUdS*Ut:      " * @sprintf("% 10.8e", duds_ut) *
+          "                 " *
+          " ∑S:            " * @sprintf("% 10.8e", math_entropy))
 
   if equation.name == "mhd"
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
@@ -651,8 +677,6 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
     print(" Linf ∇⋅B:    ")
     @printf("  % 10.8e", linf_divb)
   end
-
-  println()
 
   println("-"^80)
   println()

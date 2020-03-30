@@ -12,8 +12,9 @@ export sources
 export calcflux!
 export riemann!
 export calc_max_dt
-export cons2entropy
 export cons2prim
+export cons2entropy
+export math_entropy
 
 
 # Main data structure for system of equations "linear scalar advection"
@@ -146,6 +147,12 @@ function Equations.cons2entropy(equation::LinearScalarAdvection,
                                 cons::Array{Float64, 4}, n_nodes::Int,
                                 n_elements::Int)
   return cons
+end
+
+# Convert conservative variables to mathematical entropy
+function Equations.math_entropy(equation::LinearScalarAdvection,
+                                cons::Array{Float64, 4})
+  return dropdims(cons, dims=1)
 end
 
 end # module
