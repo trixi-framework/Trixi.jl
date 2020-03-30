@@ -131,6 +131,8 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   s = ""
   s *= """| Simulation setup
           | ----------------
+          | working directory:  $(pwd())
+          | parameters file:    $(args["parameters_file"])
           | equations:          $equations_name
           | | #variables:       $(nvariables(equations))
           | | variable names:   $(join(equations.varnames_cons, ", "))
