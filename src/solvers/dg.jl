@@ -541,13 +541,13 @@ function calc_total_math_entropy(dg::Dg)
     jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
-         s_total += jacobian_volume * dg.weights[i] * dg.weights[j]  *s[i, j, element_id]
+         s_total += jacobian_volume * dg.weights[i] * dg.weights[j] * s[i, j, element_id]
       end
     end
   end
 
   # Normalize with total volume
-  s = s/dg.analysis_total_volume
+  s_total = s_total/dg.analysis_total_volume
   return s_total
 end
 
