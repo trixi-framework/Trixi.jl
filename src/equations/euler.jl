@@ -14,6 +14,7 @@ export riemann!
 export calc_max_dt
 export cons2prim
 export cons2entropy
+export math_entropy
 export cons2indicator
 export cons2indicator!
 
@@ -720,7 +721,7 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
   return prim
 end
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy variables
 function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
   entropy = similar(cons)
   v = zeros(2,n_nodes,n_nodes,n_elements)
@@ -747,6 +748,27 @@ function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_node
 
   return entropy
 end
+
+
+# Convert conservative variables to mathematical entropy
+function Equations.math_entropy(equation::Euler, cons::Array{Float64, 4})
+  n_nodes = size(cons, 2)
+  n_elements = size(cons, 4)
+  v = zeros(2, n_nodes, n_nodes, n_elements)
+  p = zeros(n_nodes,n_nodes,n_elements)
+  s = zeros(n_nodes, n_nodes, n_elements)
+
+  @views @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :] 
+  @views @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :] 
+  @views @. p[ :, :, :] = ((equation.gamma - 1) * (cons[4, :, :, :] - 
+      1/2 * (cons[2, :, :, :] * v[1, :, :, :] + cons[3, :, :, :] * v[2, :, :, :])))
+  @views @. s[ :, :, :] = (cons[1, :, :, :] *
+                           (log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])) /
+                           (equation.gamma - 1))
+
+  return s
+end
+
 
 # Convert primitive to conservative variables
 function prim2cons(equation::Euler, prim::AbstractArray{Float64})
