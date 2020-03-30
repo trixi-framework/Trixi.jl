@@ -64,6 +64,7 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   dhat::SMatrix{Np1, Np1}
   dsplit::SMatrix{Np1, Np1}
   dsplit_transposed::SMatrix{Np1, Np1}
+  shock_alpha_max::Float64
 
   mortar_forward_upper::SMatrix{Np1, Np1}
   mortar_forward_lower::SMatrix{Np1, Np1}
@@ -143,7 +144,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi"]))
+  # Get alpha max used for shock capturing volume integral
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -151,6 +153,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   if volume_integral_type === :shock_capturing
     element_variables[:blending_factor] = zeros(n_elements)
   end
+
+  # maximum alpha for shock capturing
+  shock_alpha_max = parameter("shock_alpha_max", 0.5)
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -161,7 +166,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
       nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, dhat, dsplit, dsplit_transposed,
+      volume_integral_type, dhat, dsplit, dsplit_transposed,shock_alpha_max,
       mortar_forward_upper, mortar_forward_lower,
       l2mortar_reverse_upper, l2mortar_reverse_lower,
       ecmortar_reverse_upper, ecmortar_reverse_lower,
@@ -169,6 +174,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       analysis_vandermonde, analysis_total_volume,
       amr_indicator,
       element_variables)
+      
 
   return dg
 end
@@ -1390,8 +1396,8 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
-  alpha_min = 0.001
-  alpha_max = 0.5
+  alpha_min = 0.0001
+  alpha_max = dg.shock_alpha_max
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
@@ -1440,48 +1446,48 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
-  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-  # Copy alpha values such that smoothing is indpedenent of the element access order
-  alpha_pre_smooth = copy(alpha)
+  ## Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  ## Copy alpha values such that smoothing is indpedenent of the element access order
+  #alpha_pre_smooth = copy(alpha)
 
-  # Loop over surfaces
-  for surface_id in 1:dg.n_surfaces
-    # Get neighboring element ids
-    left  = dg.surfaces.neighbor_ids[1, surface_id]
-    right = dg.surfaces.neighbor_ids[2, surface_id]
+  ## Loop over surfaces
+  #for surface_id in 1:dg.n_surfaces
+  #  # Get neighboring element ids
+  #  left  = dg.surfaces.neighbor_ids[1, surface_id]
+  #  right = dg.surfaces.neighbor_ids[2, surface_id]
 
-    # Apply smoothing
-    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-  end
+  #  # Apply smoothing
+  #  alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+  #  alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+  #end
  
-  # Loop over L2 mortars
-  for l2mortar_id in 1:dg.n_l2mortars
-    # Get neighboring element ids
-    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+  ## Loop over L2 mortars
+  #for l2mortar_id in 1:dg.n_l2mortars
+  #  # Get neighboring element ids
+  #  lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+  #  upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+  #  large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-  end
+  #  # Apply smoothing
+  #  alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+  #  alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+  #  alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+  #  alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  #end
  
-  # Loop over EC mortars
-  for ecmortar_id in 1:dg.n_ecmortars
-    # Get neighboring element ids
-    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+  ## Loop over EC mortars
+  #for ecmortar_id in 1:dg.n_ecmortars
+  #  # Get neighboring element ids
+  #  lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+  #  upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+  #  large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-  end
+  #  # Apply smoothing
+  #  alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+  #  alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+  #  alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+  #  alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  #end
 
   # Clip blending factor for values close to zero (-> pure DG)
   dg_only = isapprox.(alpha, 0, atol=1e-12)

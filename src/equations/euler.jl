@@ -38,9 +38,9 @@ struct Euler <: AbstractEquation{4}
     gamma = 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
                                          valid=["hllc", "laxfriedrichs","central", 
-                                                "kennedygruber", "chandrashekar_ec"]))
+                                                "kennedygruber", "chandrashekar_ec","yuichi","secret"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
+                                        valid=["central", "kennedygruber", "chandrashekar_ec","yuichi","secret"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -205,6 +205,41 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "khi" #domain size is [-1,1]^2, resolution is 32^2 elements, N=7
+    # parameters
+    dens0 = 1.0 #0.5
+    dens1 = 1.5
+    pres0 = 1.0
+    velx0 = 0.5
+    vely0 = 0.1
+    slope = 15
+
+    rho = dens0 + dens1 * 0.5*(1+(tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1)))
+    v1  = velx0 * (tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1))
+    v2  = vely0 * sin(2*pi*x[1])
+    p   = pres0
+    return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "khi2" 
+    # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+    # change discontinuity to tanh 
+    # change noise from random to sine
+    # resolution 128^2, 256^2
+    # parameters
+    # domain size is [-0.5,0.5]^2
+    dens0 = 1.0 
+    dens1 = 2.0
+    velx0 = -0.5
+    velx1 = 0.5
+    slope = 50
+    # pressure equilibrium
+    p     = 2.5
+    #  y velocity is only white noise
+    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+    # density
+    rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+    #  x velocity
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+    return prim2cons(equation, [rho, v1, v2, p])
   else
     error("Unknown initial condition '$name'")
   end
@@ -341,6 +376,133 @@ end
   # Average regular fluxes
   @. f[:] = 1/2 * (f_ll + f_rr)
 end
+
+# Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:yuichi},
+                                          equation::Euler, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
+  # Unpack left and right state
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg = 1/2 * (v1_ll + v1_rr)
+  v2_avg = 1/2 * (v2_ll + v2_rr)
+  p_avg = 1/2 * (p_ll + p_rr)
+  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    pv1_avg = 1/2 * ( p_ll*v1_ll + p_rr*v1_rr)
+    f[1]  = rho_avg * v1_avg
+    f[2]  = rho_avg * v1_avg * v1_avg + p_avg
+    f[3]  = rho_avg * v1_avg * v2_avg
+    f[4]  = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg 
+  else
+    pv2_avg = 1/2 * ( p_ll*v2_ll + p_rr*v2_rr)
+    f[1]  = rho_avg * v2_avg
+    f[2]  = rho_avg * v2_avg * v1_avg
+    f[3]  = rho_avg * v2_avg * v2_avg + p_avg
+    f[4]  = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg 
+  end
+end
+
+# Central two-point flux (identical to weak form volume integral, except for floating point errors)
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:secret},
+                                          equation::Euler, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
+  # Calculate regular 1D fluxes
+  f_ll = MVector{4, Float64}(undef)
+  f_rr = MVector{4, Float64}(undef)
+  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
+  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
+
+  # Central flux as the baseline flux
+  for i = 1:4
+    f[i] = 1/2 * (f_ll[i] + f_rr[i])
+  end
+
+  # secret part now
+  # use secret weapon coefficient, note that symmetric flux is not computed for ll==rr
+  # note that rr > ll
+  # Qp = dg.Qp[ll,rr]
+  # Compute helper variables
+  entropy_diss = MVector{4, Float64}(undef)
+
+
+  cons = (rho_ll,rho_v1_ll,rho_v2_ll,rho_e_ll)
+  entropy_ll,entropy_flux_ll = cons2entropyvars_and_flux(equation.gamma, cons, orientation)
+  cons = (rho_rr,rho_v1_rr,rho_v2_rr,rho_e_rr)
+  entropy_rr,entropy_flux_rr = cons2entropyvars_and_flux(equation.gamma, cons, orientation)
+
+  entropyvars_jump = entropy_rr - entropy_ll
+
+  entropy_potential_ll = - entropy_flux_ll
+  for i=1:4
+    entropy_potential_ll += entropy_ll[i]*f_ll[i]
+  end
+  
+  entropy_potential_rr = - entropy_flux_rr
+  for i=1:4
+    entropy_potential_rr += entropy_rr[i]*f_rr[i]
+  end
+  
+  # simple dissipation term: 1/2 * Qplus * [v]
+  for i=1:4
+    #entropy_diss[i] = 0.5*Qp*entropyvars_jump[i]
+    entropy_diss[i] = entropyvars_jump[i]
+  end
+  
+  # entropy production of the central flux f
+  entropy_production = - (entropy_potential_rr - entropy_potential_ll)
+  for i=1:4
+    entropy_production += entropyvars_jump[i]*f[i]
+  end
+
+  # entropy production of the dissipation term
+  entropy_diss_production = 0.0
+  for i=1:4
+    entropy_diss_production += entropyvars_jump[i]*entropy_diss[i]
+  end
+
+  # compute alpha, but only in case ll!=rr, otherwise alpha=0
+  if isapprox(entropy_diss_production,0.0,atol = 1e-13) 
+    alpha = 0.0
+  else
+    alpha = -entropy_production/entropy_diss_production
+  end
+  
+  # ensure positivity of alpha
+  #alpha = min(alpha,0.0)
+
+  if !isapprox(alpha,0.0,atol = 1e-13) 
+    # Compute flux correction
+    for i=1:4
+      f[i] += alpha*entropy_diss[i]
+    end
+  end
+end
+
+
 
 
 # Kinetic energy preserving two-point flux by Kennedy and Gruber
@@ -566,7 +728,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec)
+  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec,:yuichi,:secret)
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
@@ -782,9 +944,27 @@ end
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
   # Indicator variable is rho * p
-  return rho * p
+  return rho #* p
 end
 
-       
+@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
+  entropy = MVector{4, Float64}(undef)
+  #v = MVector{2, Float64}(undef)
+  v = (cons[2] / cons[1] , cons[3] / cons[1]) 
+  v_square= v[1]*v[1]+v[2]*v[2]
+  p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
+  s = log(p) - gamma*log(cons[1])
+  rho_p = cons[1] / p 
+ 
+  # entropy variables
+  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square 
+  entropy[2] = rho_p*v[1]
+  entropy[3] = rho_p*v[2]
+  entropy[4] = -rho_p
+  # entropy flux
+  entropy_flux = -cons[1]*v[orientation]*s/(gamma-1)
+  return entropy, entropy_flux
+end       
+
 
 end # module
