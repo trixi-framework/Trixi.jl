@@ -68,8 +68,8 @@ function run(;args=nothing, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
-  hide_progress = args["hide-progress"]
-  separate_celldata = args["separate-celldata"]
+  hide_progress = args["hide_progress"]
+  separate_celldata = true # Cannot be false since we do not interpolate cell data to image data
   datafiles = args["datafile"]
 
   # If verbose mode is enabled, always hide progress bar
@@ -163,7 +163,7 @@ function run(;args=nothing, kwargs...)
     if is_datafile
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
-      @timeit "read data" (labels, data, n_elements, n_nodes,
+      @timeit "read data" (labels, unstructured_data, n_elements, n_nodes,
                            element_variables, time) = read_datafile(datafile)
 
       # Check if dimensions match
@@ -175,24 +175,25 @@ function run(;args=nothing, kwargs...)
 
       # Determine resolution for data interpolation
       if args["nvisnodes"] == nothing
-        n_visnodes = 4 * n_nodes
+        nvisnodes_at_max_level = 2 * n_nodes
       elseif args["nvisnodes"] == 0
-        n_visnodes = n_nodes
+        nvisnodes_at_max_level = n_nodes
       else
-        n_visnodes = args["nvisnodes"]
+        nvisnodes_at_max_level = args["nvisnodes"]
       end
+
+      # Determine level-wise resolution
+      max_level = maximum(levels)
+      resolution = nvisnodes_at_max_level * 2^max_level
+
+      # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
+      # level-0-cell) that contains the number of visualization nodes for any
+      # refinement level to visualize on an equidistant grid
+      nvisnodes_per_level = [2^(max_level - level)*nvisnodes_at_max_level for level in 0:max_level]
     else
       # If file is a mesh file, do not interpolate data
       n_visnodes = 1
     end
-
-    # Calculate VTK points and cells
-    verbose && println("| Preparing VTK cells...")
-    @timeit "prepare VTK cells" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
-                                                                              levels,
-                                                                              center_level_0,
-                                                                              length_level_0,
-                                                                              n_visnodes)
 
     # Prepare VTK points and cells for celldata file
     if separate_celldata
@@ -209,7 +210,28 @@ function run(;args=nothing, kwargs...)
 
     # Open VTK file
     verbose && println("| Building VTK grid...")
-    @timeit "build VTK grid" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
+    if is_datafile
+      Nx = Ny = resolution + 1
+      dx = dy = length_level_0/resolution
+      origin = center_level_0 .- 1/2 * length_level_0
+      spacing = [dx, dy]
+      @timeit "build VTK grid (node data)" vtk = vtk_grid(vtk_filename, Nx, Ny,
+                                                          origin=origin,
+                                                          spacing=spacing)
+
+      # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
+      normalized_coordinates = similar(coordinates)
+      for element_id in 1:n_elements
+        @views normalized_coordinates[:, element_id] .= (
+            (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
+      end
+
+      # Interpolate unstructured DG data to structured data
+      verbose && println("| Interpolating data...")
+      @timeit "interpolate data" (structured_data =
+          unstructured2structured(unstructured_data, normalized_coordinates,
+                                  levels, resolution, nvisnodes_per_level))
+    end
 
     # Open VTK celldata file
     if separate_celldata
@@ -217,9 +239,9 @@ function run(;args=nothing, kwargs...)
       vtk_celldata_filename = joinpath(args["output_directory"], base * "_celldata")
 
       # Open VTK file
-      @timeit "build VTK grid" vtk_celldata = vtk_grid(vtk_celldata_filename,
-                                                       vtk_celldata_points,
-                                                       vtk_celldata_cells)
+      @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
+                                                          vtk_celldata_points,
+                                                          vtk_celldata_cells)
     end
 
     # Add data to file
@@ -248,7 +270,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+          @timeit label vtk[label] = @views vec(structured_data[:, :, variable_id])
         end
 
         # Add element variables
@@ -313,6 +335,105 @@ function run(;args=nothing, kwargs...)
   verbose && println("| done.\n")
   print_timer()
   println()
+end
+
+
+# Interpolate unstructured DG data to structured data (cell-centered)
+function unstructured2structured(unstructured_data::AbstractArray{Float64},
+                                 normalized_coordinates::AbstractArray{Float64},
+                                 levels::AbstractArray{Int}, resolution::Int,
+                                 nvisnodes_per_level::AbstractArray{Int})
+  # Extract data shape information
+  n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
+
+  # Get node coordinates for DG locations on reference element
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+
+  #=# Calculate node coordinates for structured locations on reference element=#
+  #=max_level = length(nvisnodes_per_level) - 1=#
+  #=visnodes_per_level = []=#
+  #=for l in 0:max_level=#
+  #=  n_nodes_out = nvisnodes_per_level[l + 1]=#
+  #=  dx = 2 / n_nodes_out=#
+  #=  push!(visnodes_per_level, collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out)))=#
+  #=end=#
+
+  # Calculate interpolation vandermonde matrices for each level
+  max_level = length(nvisnodes_per_level) - 1
+  vandermonde_per_level = []
+  for l in 0:max_level
+    n_nodes_out = nvisnodes_per_level[l + 1]
+    dx = 2 / n_nodes_out
+    nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))
+    push!(vandermonde_per_level, polynomial_interpolation_matrix(nodes_in, nodes_out))
+  end
+
+  # For each element, calculate index position at which to insert data in global data structure
+  lower_left_index = element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
+
+  # Create output data structure
+  structured = Array{Float64}(undef, resolution, resolution, n_variables)
+
+  # For each variable, interpolate element data and store to global data structure
+  for v in 1:n_variables
+    # Reshape data array for use in interpolate_nodes function
+    reshaped_data = reshape(unstructured_data[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
+
+    for element_id in 1:n_elements
+      # Extract level for convenience
+      level = levels[element_id]
+
+      # Determine target indices
+      n_nodes_out = nvisnodes_per_level[level + 1]
+      first = lower_left_index[:, element_id]
+      last = first .+ (n_nodes_out - 1)
+
+      # Interpolate data
+      vandermonde = vandermonde_per_level[level + 1]
+      structured[first[1]:last[1], first[2]:last[2], v] .= (
+          reshape(interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
+                  n_nodes_out, n_nodes_out))
+    end
+  end
+
+  return structured
+end
+
+
+# For a given normalized element coordinate, return the index of its lower left
+# contribution to the global data structure
+function element2index(normalized_coordinates::AbstractArray{Float64}, levels::AbstractArray{Int},
+                       resolution::Int, nvisnodes_per_level::AbstractArray{Int})
+  n_elements = length(levels)
+
+  # First, determine lower left coordinate for all cells
+  dx = 2 / resolution
+  lower_left_coordinate = Array{Float64}(undef, ndim, n_elements)
+  for element_id in 1:n_elements
+    nvisnodes = nvisnodes_per_level[levels[element_id] + 1]
+    lower_left_coordinate[1, element_id] = (
+        normalized_coordinates[1, element_id] - (nvisnodes - 1)/2 * dx)
+    lower_left_coordinate[2, element_id] = (
+        normalized_coordinates[2, element_id] - (nvisnodes - 1)/2 * dx)
+  end
+
+  # Then, convert coordinate to global index
+  indices = coordinate2index(lower_left_coordinate, resolution)
+
+  return indices
+end
+
+
+# Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
+function coordinate2index(coordinate, resolution::Integer)
+  # Calculate 1D normalized coordinates
+  dx = 2/resolution
+  mesh_coordinates = collect(range(-1 + dx/2, 1 - dx/2, length=resolution))
+
+  # Find index
+  id_x = searchsortedfirst.(Ref(mesh_coordinates), coordinate[1, :], lt=(x,y)->x .< y .- dx/2)
+  id_y = searchsortedfirst.(Ref(mesh_coordinates), coordinate[2, :], lt=(x,y)->x .< y .- dx/2)
+  return transpose(hcat(id_x, id_y))
 end
 
 
