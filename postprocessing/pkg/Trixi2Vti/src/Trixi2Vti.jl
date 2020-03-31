@@ -35,39 +35,13 @@ function run(;args=nothing, kwargs...)
     hide_progress = true
   end
 
-  # Determine pvd filename
-  if !isnothing(args["pvd_filename"])
-    # Use filename if given on command line
-    filename = args["pvd_filename"]
-
-    # Strip of directory/extension
-    filename, _ = splitext(splitdir(filename)[2])
-  else
-    filename = get_pvd_filename(filenames)
-
-    # If filename is empty, it means we were not able to determine an
-    # appropriate file thus the user has to supply one
-    if filename == ""
-      error("could not auto-detect PVD filename (input file names have no common prefix): " *
-            "please provide a PVD filename name with `--pvd-filename` " *
-            "or disable saving a PVD file with `--save-pvd=no`")
-    end
+  # Get pvd filenames and open files
+  pvd_filename, pvd_celldata_filename = pvd_filenames(args)
+  verbose && println("Opening PVD files '$(pvd_filename).pvd' + '$(pvd_celldata_filename).pvd'...")
+  @timeit "open PVD file" begin
+    pvd = paraview_collection(pvd_filename)
+    pvd_celldata = paraview_collection(pvd_celldata_filename)
   end
-
-  # Get full filenae
-  pvd_filename = joinpath(args["output_directory"], filename)
-
-  # Opening PVD file
-  verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
-  @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
-
-  # Open separate PVD file for celldata information
-  # Get full filename
-  pvd_celldata_filename = joinpath(args["output_directory"], filename * "_celldata")
-
-  # Opening PVD file
-  verbose && println("Opening PVD file '$(pvd_celldata_filename).pvd'...")
-  @timeit "open PVD file" pvd_celldata = paraview_collection(pvd_celldata_filename)
 
   # Add variable to avoid writing PVD file if only mesh files were converted
   has_data = false
