@@ -110,7 +110,7 @@ To manually start in interactive mode (e.g., to supply additional arguments to
 the `julia` executable at startup`), execute Julia with the project directory
 set to the package directory of the program/tool you want to use:
 *   Trixi: `Trixi.jl/`
-*   `trixi2vtu`: `Trixi.jl/postprocessing/pgk/Trixi2Vtu`
+*   `trixi2vtk`: `Trixi.jl/postprocessing/pgk/Trixi2Vtk`
 *   `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
 
 For example, to run Trixi this way, you need to start the REPL with
@@ -124,45 +124,51 @@ can properly load Trixi and all her dependencies.
 
 ## Visualization and postprocessing
 There are two tools provided with Trixi that allow to visualize Trixi's output
-files, both of which can be found in `postprocessing/`: `trixi2vtu` and
+files, both of which can be found in `postprocessing/`: `trixi2vtk` and
 `trixi2img`. `
 
-### `trixi2vtu` (ParaView-based visualization)
-`trixi2vtu` converts Trixi's `.h5` output files to VTK files for unstructured meshes
-(`.vtu` files), which can be read by [ParaView](https://www.paraview.org) and
-other visualization tools. It automatically interpolates solution data from the
-original quadrature node locations to equidistant "visualization nodes" at a
-higher resolution, to make up for the loss of accuracy from going from a
-high-order polynomial representation to a piecewise constant representation in
-ParaView.
+### `trixi2vtk` (ParaView-based visualization)
+`trixi2vtk` converts Trixi's `.h5` output files to VTK files, which can be read
+by [ParaView](https://www.paraview.org) and other visualization tools. It
+automatically interpolates solution data from the original quadrature node
+locations to equidistant "visualization nodes" at a higher resolution, to make
+up for the loss of accuracy from going from a high-order polynomial
+representation to a piecewise constant representation in ParaView.
 
 Before the first use, enter the `Trixi.jl/` root directory and install all
-necessary dependencies for `trixi2vtu` by running
+necessary dependencies for `trixi2vtk` by running
 ```bash
-julia --project='postprocessing/pkg/Trixi2Vtu' -e 'import Pkg; Pkg.instantiate()'
+julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
 ```
 This installation step is only necessary once.
 
-Then, to convert a file, just call `trixi2vtu` with the name of a `.h5` file as argument:
+Then, to convert a file, just call `trixi2vtk` with the name of a `.h5` file as argument:
 ```bash
-postprocessing/trixi2vtu out/solution_000000.h5
+postprocessing/trixi2vtk out/solution_000000.h5
 ```
-This allows you to generate VTK files for solution, restart and mesh files.
+This allows you to generate VTK files for solution, restart and mesh files. By
+default, `trixi2vtk` generates `.vtu` (unstructured VTK) files for both cell/element data (e.g.,
+cell ids, element ids) and node data (e.g., solution variables). This format
+visualizes each cell with the same number of nodes, independent of its size.
+Alternatively, you can provide `-f vti` on the command line, which causes
+`trixi2vtk` to generate `.vti` (image data VTK) files for the solution files,
+while still using `.vtu` files for cell-/element-based data. In `.vti` files,
+a uniform resolution is used throughout the entire domain, resulting in
+different number of visualization nodes for each element.
+This can be advantageous to create publication-quality images, but
+increases the file size.
 
 If you want to convert multiple solution/restart files at once, you can just supply
-multiple input files on the command line. `trixi2vtu` will then also generate a
-`.pvd` file, which allows ParaView to read all `.vtu` files at once and which
+multiple input files on the command line. `trixi2vtk` will then also generate a
+`.pvd` file, which allows ParaView to read all `.vtu`/`.vti` files at once and which
 uses the `time` attribute in solution/restart files to inform ParaView about the
-solution time. In this case it makes sense to also supply the `-s` flag, which
-generates separate `.vtu` and `.pvd` files for cell/element-based data (such as
-element ids, cell ids, levels etc.) such that they can be viewed on the original
-mesh (as opposed to the visualization nodes). To list all command line options,
-run `trixi2vtu --help`.
+solution time. To list all command line options,
+run `trixi2vtk --help`.
 
-Similarly to Trixi, `trixi2vtu` supports an interactive mode that can be invoked
+Similarly to Trixi, `trixi2vtk` supports an interactive mode that can be invoked
 by running
 ```bash
-postprocessing/trixi2vtu -i
+postprocessing/trixi2vtk -i
 ```
 
 
