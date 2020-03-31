@@ -175,7 +175,7 @@ function run(;args=nothing, kwargs...)
 
       # Determine resolution for data interpolation
       if args["nvisnodes"] == nothing
-        n_visnodes = 4 * n_nodes
+        n_visnodes = 2 * n_nodes
       elseif args["nvisnodes"] == 0
         n_visnodes = n_nodes
       else
