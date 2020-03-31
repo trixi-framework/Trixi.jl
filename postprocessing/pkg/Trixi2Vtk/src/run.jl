@@ -2,7 +2,7 @@ using .Io: is_solution_restart_file, extract_mesh_filename, read_meshfile, read_
 using .Interpolate: interpolate_data
 using .Auxiliary: get_arguments
 using .VtkTools: build_vtk_grids, pvd_filenames
-using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
+using WriteVTK: vtk_save, paraview_collection
 using TimerOutputs
 using ProgressMeter: @showprogress, Progress, next!
 
