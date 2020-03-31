@@ -86,8 +86,8 @@ function run(;args=nothing, kwargs...)
     @timeit "read mesh" (center_level_0, length_level_0,
                          leaf_cells, coordinates, levels) = read_meshfile(meshfile)
 
+    # Read data only if it is a data file
     if is_datafile
-      # Read data only if it is a data file
       verbose && println("| Reading data file...")
       @timeit "read data" (labels, data, n_elements, n_nodes,
                            element_variables, time) = read_datafile(filename)
@@ -145,7 +145,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk_nodedata[label] = interpolated_data[:, variable_id]
+          @timeit label vtk_nodedata[label] = @views interpolated_data[:, variable_id]
         end
 
         # Add element variables
@@ -162,7 +162,7 @@ function run(;args=nothing, kwargs...)
       @timeit "save VTK file" vtk_save(vtk_nodedata)
     end
 
-    verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vti'...")
+    verbose && println("| Saving VTK file '$(vtk_celldata_filename).vti'...")
     @timeit "save VTK file" vtk_save(vtk_celldata)
 
     # Add to PVD file only if it is a datafile
@@ -451,37 +451,6 @@ function longest_common_prefix(strings::AbstractArray)
   end
 
   return strings[1][1:len]
-end
-
-
-# Interpolate to visualization nodes
-function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable_id::Int)
-  # Extract data shape information
-  n_nodes_in, _, n_elements, n_variables = size(data_gl)
-
-  # Get node coordinates for DG locations on reference element
-  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-
-  # Calculate Vandermonde matrix
-  dx = 2 / n_visnodes
-  nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_visnodes))
-  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
-
-  # Create output data structure
-  data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements)
-
-  # Reshape data array for use in interpolate_nodes function
-  @views reshaped_data = reshape(data_gl[:, :, :, variable_id], 1, n_nodes_in,
-                                 n_nodes_in, n_elements)
-
-  # Interpolate data to visualization nodes
-  for element_id in 1:n_elements
-    @views data_vis[:, :, element_id] .= reshape(
-        interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
-        n_visnodes, n_visnodes)
-  end
-
-  return data_vis
 end
 
 
