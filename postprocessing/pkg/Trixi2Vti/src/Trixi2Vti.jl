@@ -35,13 +35,13 @@ function run(;args=nothing, kwargs...)
 
     # Clean up some of the arguments and provide defaults
     # FIXME: This is redundant to parse_commandline_arguments
-    # If datafile is a single string, convert it to array
-    if !haskey(args, "datafile")
-      println(stderr, "error: no datafile was provided")
+    # If filename is a single string, convert it to array
+    if !haskey(args, "filename")
+      println(stderr, "error: no input file was provided")
       return
     end
-    if isa(args["datafile"], String)
-      args["datafile"] = [args["datafile"]]
+    if isa(args["filename"], String)
+      args["filename"] = [args["filename"]]
     end
     if !haskey(args, "verbose")
       args["verbose"] = false
@@ -63,7 +63,7 @@ function run(;args=nothing, kwargs...)
   # Store for convenience
   verbose = args["verbose"]
   hide_progress = args["hide_progress"]
-  datafiles = args["datafile"]
+  filenames = args["filename"]
 
   # If verbose mode is enabled, always hide progress bar
   if verbose
@@ -78,7 +78,7 @@ function run(;args=nothing, kwargs...)
     # Strip of directory/extension
     filename, _ = splitext(splitdir(filename)[2])
   else
-    filename = get_pvd_filename(datafiles)
+    filename = get_pvd_filename(filenames)
 
     # If filename is empty, it means we were not able to determine an
     # appropriate file thus the user has to supply one
@@ -109,32 +109,32 @@ function run(;args=nothing, kwargs...)
 
   # Show progress bar if not disabled
   if !hide_progress
-    progress = Progress(length(datafiles), 0.5, "Converting .h5 to .vtu...", 40)
+    progress = Progress(length(filenames), 0.5, "Converting .h5 to .vtu...", 40)
   end
 
   # Iterate over input files
-  for (index, datafile) in enumerate(datafiles)
-    verbose && println("Processing file $datafile ($(index)/$(length(datafiles)))...")
+  for (index, filename) in enumerate(filenames)
+    verbose && println("Processing file $filename ($(index)/$(length(filenames)))...")
 
     # Check if data file exists
-    if !isfile(datafile)
-      error("data file '$datafile' does not exist")
+    if !isfile(filename)
+      error("data file '$filename' does not exist")
     end
 
     # Check if it is a data file at all
-    is_datafile = is_solution_restart_file(datafile)
+    is_datafile = is_solution_restart_file(filename)
 
     # If file is solution/restart file, extract mesh file name
     if is_datafile
       # Get mesh file name
-      meshfile = extract_mesh_filename(datafile)
+      meshfile = extract_mesh_filename(filename)
 
       # Check if mesh file exists
       if !isfile(meshfile)
         error("mesh file '$meshfile' does not exist")
       end
     else
-      meshfile = datafile
+      meshfile = filename
     end
 
     # Read mesh
@@ -146,11 +146,11 @@ function run(;args=nothing, kwargs...)
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
       @timeit "read data" (labels, unstructured_data, n_elements, n_nodes,
-                           element_variables, time) = read_datafile(datafile)
+                           element_variables, time) = read_datafile(filename)
 
       # Check if dimensions match
       if length(leaf_cells) != n_elements
-        error("number of elements in '$(datafile)' do not match number of leaf cells in " *
+        error("number of elements in '$(filename)' do not match number of leaf cells in " *
               "'$(meshfile)' " *
               "(did you forget to clean your 'out/' directory between different runs?)")
       end
@@ -185,7 +185,7 @@ function run(;args=nothing, kwargs...)
     mkpath(args["output_directory"])
 
     # Determine output file name
-    base, _ = splitext(splitdir(datafile)[2])
+    base, _ = splitext(splitdir(filename)[2])
     vtk_filename = joinpath(args["output_directory"], base)
 
     # Open VTK file
@@ -259,7 +259,7 @@ function run(;args=nothing, kwargs...)
       @timeit "add VTK to PVD file" pvd[time] = vtk
       has_data = true
     else
-      println("WARNING: file '$(datafile)' will not be added to PVD file since it is a mesh file")
+      println("WARNING: file '$(filename)' will not be added to PVD file since it is a mesh file")
     end
 
     # Save VTK file
@@ -275,7 +275,7 @@ function run(;args=nothing, kwargs...)
 
     # Update progress bar
     if !hide_progress
-      next!(progress, showvalues=[(:finished, datafile)])
+      next!(progress, showvalues=[(:finished, filename)])
     end
   end
 
@@ -406,8 +406,8 @@ end
 
 
 # Determine filename for PVD file based on common name
-function get_pvd_filename(datafiles::AbstractArray)
-  filenames = getindex.(splitdir.(datafiles), 2)
+function get_pvd_filename(filenames::AbstractArray)
+  filenames = getindex.(splitdir.(filenames), 2)
   bases = getindex.(splitext.(filenames), 1)
   pvd_filename = longest_common_prefix(bases)
   return pvd_filename
@@ -525,7 +525,7 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
 end
 
 
-# Check if file is a datafile
+# Check if file is a data file
 function is_solution_restart_file(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -632,7 +632,7 @@ function parse_commandline_arguments(args=ARGS)
   s = ArgParseSettings()
   s.autofix_names = true
   @add_arg_table! s begin
-    "datafile"
+    "filename"
       help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
       arg_type = String
       required = true
@@ -643,16 +643,9 @@ function parse_commandline_arguments(args=ARGS)
     "--hide-progress"
       help = "Hide progress bar (will be hidden automatically if `--verbose` is given)"
       action = :store_true
-    "--save-pvd"
-      help = ("In addition to a VTK file, write a PVD file that contains time information. " *
-              "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
-              "created if multiple files are converted.")
-      default = "auto"
-      arg_type = String
-      range_tester = (x->x in ("yes", "auto", "no"))
     "--pvd-filename"
       help = ("Use this filename to store PVD file (instead of auto-detecting name). Note that " *
-              "only the name will be used (directory and extension are ignored).")
+              "only the name will be used (directory and file extension are ignored).")
       arg_type = String
     "--output-directory", "-o"
       help = "Output directory where generated images are stored"
