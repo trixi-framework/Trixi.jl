@@ -49,9 +49,6 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "hide_progress")
       args["hide_progress"] = false
     end
-    if !haskey(args, "save_pvd")
-      args["save_pvd"] = "auto"
-    end
     if !haskey(args, "pvd_filename")
       args["pvd_filename"] = nothing
     end
@@ -73,51 +70,42 @@ function run(;args=nothing, kwargs...)
     hide_progress = true
   end
 
-  # Initialize PVD file if desired
-  if args["save_pvd"] == "yes" || (args["save_pvd"] == "auto" && length(datafiles) > 1)
-    # Determine pvd filename
-    if !isnothing(args["pvd_filename"])
-      # Use filename if given on command line
-      filename = args["pvd_filename"]
+  # Determine pvd filename
+  if !isnothing(args["pvd_filename"])
+    # Use filename if given on command line
+    filename = args["pvd_filename"]
 
-      # Strip of directory/extension
-      filename, _ = splitext(splitdir(filename)[2])
-    else
-      filename = get_pvd_filename(datafiles)
-
-      # If filename is empty, it means we were not able to determine an
-      # appropriate file thus the user has to supply one
-      if filename == ""
-        error("could not auto-detect PVD filename (input file names have no common prefix): " *
-              "please provide a PVD filename name with `--pvd-filename` " *
-              "or disable saving a PVD file with `--save-pvd=no`")
-      end
-    end
-
-    # Get full filenae
-    pvd_filename = joinpath(args["output_directory"], filename)
-
-    # Opening PVD file
-    verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
-    @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
-
-    # Open separate PVD file for celldata information
-    # Get full filename
-    pvd_celldata_filename = joinpath(args["output_directory"], filename * "_celldata")
-
-    # Opening PVD file
-    verbose && println("Opening PVD file '$(pvd_celldata_filename).pvd'...")
-    @timeit "open PVD file" pvd_celldata = paraview_collection(pvd_celldata_filename)
-
-    # Add variable to avoid writing PVD file if only mesh files were converted
-    has_data = false
-
-    # Enable saving to PVD
-    save_pvd = true
+    # Strip of directory/extension
+    filename, _ = splitext(splitdir(filename)[2])
   else
-    # Disable saving to PVD
-    save_pvd = false
+    filename = get_pvd_filename(datafiles)
+
+    # If filename is empty, it means we were not able to determine an
+    # appropriate file thus the user has to supply one
+    if filename == ""
+      error("could not auto-detect PVD filename (input file names have no common prefix): " *
+            "please provide a PVD filename name with `--pvd-filename` " *
+            "or disable saving a PVD file with `--save-pvd=no`")
+    end
   end
+
+  # Get full filenae
+  pvd_filename = joinpath(args["output_directory"], filename)
+
+  # Opening PVD file
+  verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
+  @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
+
+  # Open separate PVD file for celldata information
+  # Get full filename
+  pvd_celldata_filename = joinpath(args["output_directory"], filename * "_celldata")
+
+  # Opening PVD file
+  verbose && println("Opening PVD file '$(pvd_celldata_filename).pvd'...")
+  @timeit "open PVD file" pvd_celldata = paraview_collection(pvd_celldata_filename)
+
+  # Add variable to avoid writing PVD file if only mesh files were converted
+  has_data = false
 
   # Show progress bar if not disabled
   if !hide_progress
@@ -266,14 +254,12 @@ function run(;args=nothing, kwargs...)
     @timeit "save VTK file" vtk_save(vtk)
 
     # Add to PVD file only if it is a datafile
-    if save_pvd
-      if is_datafile
-        verbose && println("| Adding to PVD file...")
-        @timeit "add VTK to PVD file" pvd[time] = vtk
-        has_data = true
-      else
-        println("WARNING: file '$(datafile)' will not be added to PVD file since it is a mesh file")
-      end
+    if is_datafile
+      verbose && println("| Adding to PVD file...")
+      @timeit "add VTK to PVD file" pvd[time] = vtk
+      has_data = true
+    else
+      println("WARNING: file '$(datafile)' will not be added to PVD file since it is a mesh file")
     end
 
     # Save VTK file
@@ -281,7 +267,7 @@ function run(;args=nothing, kwargs...)
     @timeit "save VTK file" vtk_save(vtk_celldata)
 
     # Add to PVD file only if it is a datafile
-    if save_pvd && is_datafile
+    if is_datafile
       verbose && println("| Adding to PVD file...")
       @timeit "add VTK to PVD file" pvd_celldata[time] = vtk_celldata
       has_data = true
@@ -294,14 +280,12 @@ function run(;args=nothing, kwargs...)
   end
 
   # Save PVD file only if at least one data file was added
-  if save_pvd && has_data
+  if has_data
     verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
     @timeit "save PVD file" vtk_save(pvd)
   end
-  if save_pvd
-    verbose && println("| Saving PVD file '$(pvd_celldata_filename).pvd'...")
-    @timeit "save PVD file" vtk_save(pvd_celldata)
-  end
+  verbose && println("| Saving PVD file '$(pvd_celldata_filename).pvd'...")
+  @timeit "save PVD file" vtk_save(pvd_celldata)
 
   verbose && println("| done.\n")
   print_timer()
