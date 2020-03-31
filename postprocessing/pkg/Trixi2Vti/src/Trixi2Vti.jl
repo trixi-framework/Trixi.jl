@@ -89,7 +89,7 @@ function run(;args=nothing, kwargs...)
     if is_datafile
       # Read data only if it is a data file
       verbose && println("| Reading data file...")
-      @timeit "read data" (labels, unstructured_data, n_elements, n_nodes,
+      @timeit "read data" (labels, data, n_elements, n_nodes,
                            element_variables, time) = read_datafile(filename)
 
       # Check if dimensions match
@@ -112,54 +112,22 @@ function run(;args=nothing, kwargs...)
       n_visnodes = 1
     end
 
-    # Prepare VTK points and cells for celldata file
-    @timeit "prepare VTK cells" vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(
-        coordinates, levels, center_level_0, length_level_0, 1)
-
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
-    # Determine output file names
-    base, _ = splitext(splitdir(filename)[2])
-    vtk_filename = joinpath(args["output_directory"], base)
-    vtk_celldata_filename = vtk_filename * "_celldata"
+    # Build VTK grids
+    vtk_nodedata, vtk_celldata = build_vtk_grids(coordinates, levels, center_level_0,
+                                                 length_level_0, n_visnodes, verbose,
+                                                 args["output_directory"], is_datafile, filename)
 
-    # Open VTK files
-    verbose && println("| Building VTK grid...")
+    # Interpolate data
     if is_datafile
-      # Determine level-wise resolution
-      max_level = maximum(levels)
-      resolution = n_visnodes * 2^max_level
-
-      Nx = Ny = resolution + 1
-      dx = dy = length_level_0/resolution
-      origin = center_level_0 .- 1/2 * length_level_0
-      spacing = [dx, dy]
-      @timeit "build VTK grid (node data)" vtk_nodedata = vtk_grid(vtk_filename, Nx, Ny,
-                                                          origin=origin,
-                                                          spacing=spacing)
-
-      # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
-      normalized_coordinates = similar(coordinates)
-      for element_id in 1:n_elements
-        @views normalized_coordinates[:, element_id] .= (
-            (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
-      end
-
-      # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
-      # level-0-cell) that contains the number of visualization nodes for any
-      # refinement level to visualize on an equidistant grid
-      nvisnodes_per_level = [2^(max_level - level)*n_visnodes for level in 0:max_level]
-
-      # Interpolate unstructured DG data to structured data
       verbose && println("| Interpolating data...")
-      @timeit "interpolate data" (structured_data =
-          unstructured2structured(unstructured_data, normalized_coordinates,
-                                  levels, resolution, nvisnodes_per_level))
+      @timeit "interpolate data" interpolated_data = interpolate_data(data, coordinates, levels,
+                                                                      center_level_0,
+                                                                      length_level_0,
+                                                                      n_visnodes, verbose)
     end
-    @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
-                                                        vtk_celldata_points,
-                                                        vtk_celldata_cells)
 
     # Add data to file
     verbose && println("| Adding data to VTK file...")
@@ -177,7 +145,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk_nodedata[label] = @views vec(structured_data[:, :, variable_id])
+          @timeit label vtk_nodedata[label] = interpolated_data[:, variable_id]
         end
 
         # Add element variables
@@ -230,6 +198,70 @@ function run(;args=nothing, kwargs...)
   verbose && println("| done.\n")
   print_timer()
   println()
+end
+
+
+# Interpolate data from input format to desired output format
+function interpolate_data(input_data, coordinates, levels, center_level_0, length_level_0,
+                          n_visnodes, verbose)
+  # Normalize element coordinates: move center to (0, 0) and domain size to [-1, 1]²
+  normalized_coordinates = similar(coordinates)
+  for element_id in axes(coordinates, 2)
+    @views normalized_coordinates[:, element_id] .= (
+        (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
+  end
+
+  # Determine level-wise resolution
+  max_level = maximum(levels)
+  resolution = n_visnodes * 2^max_level
+
+  # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
+  # level-0-cell) that contains the number of visualization nodes for any
+  # refinement level to visualize on an equidistant grid
+  nvisnodes_per_level = [2^(max_level - level)*n_visnodes for level in 0:max_level]
+
+  # Interpolate unstructured DG data to structured data
+  structured_data = unstructured2structured(input_data, normalized_coordinates, levels,
+                                            resolution, nvisnodes_per_level)
+
+  return structured_data
+end
+
+
+# Create and return VTK grids that are ready to be filled with data
+function build_vtk_grids(coordinates, levels, center_level_0, length_level_0,
+                         n_visnodes, verbose, output_directory, is_datafile, filename)
+    # Prepare VTK points and cells for celldata file
+    @timeit "prepare VTK cells" vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(
+        coordinates, levels, center_level_0, length_level_0, 1)
+
+    # Determine output file names
+    base, _ = splitext(splitdir(filename)[2])
+    vtk_filename = joinpath(output_directory, base)
+    vtk_celldata_filename = vtk_filename * "_celldata"
+
+    # Open VTK files
+    verbose && println("| Building VTK grid...")
+    if is_datafile
+      # Determine level-wise resolution
+      max_level = maximum(levels)
+      resolution = n_visnodes * 2^max_level
+
+      Nx = Ny = resolution + 1
+      dx = dy = length_level_0/resolution
+      origin = center_level_0 .- 1/2 * length_level_0
+      spacing = [dx, dy]
+      @timeit "build VTK grid (node data)" vtk_nodedata = vtk_grid(vtk_filename, Nx, Ny,
+                                                          origin=origin,
+                                                          spacing=spacing)
+    else
+      vtk_nodedata = nothing
+    end
+    @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
+                                                        vtk_celldata_points,
+                                                        vtk_celldata_cells)
+
+  return vtk_nodedata, vtk_celldata
 end
 
 
@@ -353,7 +385,8 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
     end
   end
 
-  return structured
+  # Return as one 1D array for each variable
+  return reshape(structured, resolution^ndim, n_variables)
 end
 
 

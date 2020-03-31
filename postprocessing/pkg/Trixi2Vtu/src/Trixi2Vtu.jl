@@ -122,7 +122,11 @@ function run(;args=nothing, kwargs...)
 
     # Interpolate data
     if is_datafile
-      interpolated_data = raw2visnodes(data, n_visnodes)
+      verbose && println("| Interpolating data...")
+      @timeit "interpolate data" interpolated_data = interpolate_data(data, coordinates, levels,
+                                                                      center_level_0,
+                                                                      length_level_0,
+                                                                      n_visnodes, verbose)
     end
 
     # Add data to file
@@ -141,7 +145,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk_nodedata[label] = interpolated_data[:, variable_id]
+          @timeit label vtk_nodedata[label] = @views interpolated_data[:, variable_id]
         end
 
         # Add element variables
@@ -196,6 +200,12 @@ function run(;args=nothing, kwargs...)
   println()
 end
 
+
+# Interpolate data from input format to desired output format
+function interpolate_data(input_data, coordinates, levels, center_level_0, length_level_0,
+                          n_visnodes, verbose)
+  return raw2visnodes(input_data, n_visnodes)
+end
 
 # Create and return VTK grids that are ready to be filled with data
 function build_vtk_grids(coordinates, levels, center_level_0, length_level_0,
