@@ -46,17 +46,17 @@ function run(;args=nothing, kwargs...)
     if !haskey(args, "verbose")
       args["verbose"] = false
     end
-    if !haskey(args, "hide-progress")
-      args["hide-progress"] = false
+    if !haskey(args, "hide_progress")
+      args["hide_progress"] = false
     end
-    if !haskey(args, "save-pvd")
-      args["save-pvd"] = "auto"
+    if !haskey(args, "save_pvd")
+      args["save_pvd"] = "auto"
     end
-    if !haskey(args, "separate-celldata")
-      args["separate-celldata"] = false
+    if !haskey(args, "separate_celldata")
+      args["separate_celldata"] = false
     end
-    if !haskey(args, "pvd-filename")
-      args["save-pvd"] = nothing
+    if !haskey(args, "pvd_filename")
+      args["pvd_filename"] = nothing
     end
     if !haskey(args, "output_directory")
       args["output_directory"] = "."
@@ -68,8 +68,8 @@ function run(;args=nothing, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
-  hide_progress = args["hide-progress"]
-  separate_celldata = args["separate-celldata"]
+  hide_progress = args["hide_progress"]
+  separate_celldata = args["separate_celldata"]
   datafiles = args["datafile"]
 
   # If verbose mode is enabled, always hide progress bar
@@ -78,11 +78,11 @@ function run(;args=nothing, kwargs...)
   end
 
   # Initialize PVD file if desired
-  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(datafiles) > 1)
+  if args["save_pvd"] == "yes" || (args["save_pvd"] == "auto" && length(datafiles) > 1)
     # Determine pvd filename
-    if !isnothing(args["pvd-filename"])
+    if !isnothing(args["pvd_filename"])
       # Use filename if given on command line
-      filename = args["pvd-filename"]
+      filename = args["pvd_filename"]
 
       # Strip of directory/extension
       filename, _ = splitext(splitdir(filename)[2])
@@ -554,6 +554,7 @@ function parse_commandline_arguments(args=ARGS)
   # If anything is changed here, it should also be checked at the beginning of run()
   # FIXME: Refactor the code to avoid this redundancy
   s = ArgParseSettings()
+  s.autofix_names = true
   @add_arg_table! s begin
     "datafile"
       help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
@@ -584,7 +585,6 @@ function parse_commandline_arguments(args=ARGS)
       arg_type = String
     "--output-directory", "-o"
       help = "Output directory where generated images are stored"
-      dest_name = "output_directory"
       arg_type = String
       default = "."
     "--nvisnodes"
