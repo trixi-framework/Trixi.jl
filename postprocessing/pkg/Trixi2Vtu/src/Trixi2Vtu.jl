@@ -288,19 +288,6 @@ function pvd_filenames(args)
 end
 
 
-# Convert cell data to visnode data
-function cell2visnode(cell_data::Vector, n_visnodes::Int)
-  cellsize = n_visnodes^ndim
-  visnode_data = Vector{eltype(cell_data)}(undef, length(cell_data) * cellsize)
-  for cell_id in 1:length(cell_data)
-    for node_id in 1:cellsize
-      visnode_data[(cell_id - 1)*cellsize + node_id] = cell_data[cell_id]
-    end
-  end
-  return visnode_data
-end
-
-
 # Determine filename for PVD file based on common name
 function get_pvd_filename(filenames::AbstractArray)
   filenames = getindex.(splitdir.(filenames), 2)

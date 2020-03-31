@@ -35,20 +35,25 @@ function run(;args=nothing, kwargs...)
     hide_progress = true
   end
 
+  # Variable to avoid writing PVD files if only a single file is converted
+  is_single_file = length(filenames) == 1
+
   # Get pvd filenames and open files
-  pvd_filename, pvd_celldata_filename = pvd_filenames(args)
-  verbose && println("Opening PVD files '$(pvd_filename).pvd' + '$(pvd_celldata_filename).pvd'...")
-  @timeit "open PVD file" begin
-    pvd = paraview_collection(pvd_filename)
-    pvd_celldata = paraview_collection(pvd_celldata_filename)
+  if !is_single_file
+    pvd_filename, pvd_celldata_filename = pvd_filenames(args)
+    verbose && println("Opening PVD files '$(pvd_filename).pvd' + '$(pvd_celldata_filename).pvd'...")
+    @timeit "open PVD file" begin
+      pvd = paraview_collection(pvd_filename)
+      pvd_celldata = paraview_collection(pvd_celldata_filename)
+    end
   end
 
-  # Add variable to avoid writing PVD file if only mesh files were converted
+  # Variable to avoid writing PVD file if only mesh files were converted
   has_data = false
 
   # Show progress bar if not disabled
   if !hide_progress
-    progress = Progress(length(filenames), 0.5, "Converting .h5 to .vtu...", 40)
+    progress = Progress(length(filenames), 0.5, "Converting .h5 to .vti...", 40)
   end
 
   # Iterate over input files
@@ -123,11 +128,12 @@ function run(;args=nothing, kwargs...)
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
-    # Determine output file name
+    # Determine output file names
     base, _ = splitext(splitdir(filename)[2])
     vtk_filename = joinpath(args["output_directory"], base)
+    vtk_celldata_filename = vtk_filename * "_celldata"
 
-    # Open VTK file
+    # Open VTK files
     verbose && println("| Building VTK grid...")
     if is_datafile
       Nx = Ny = resolution + 1
@@ -189,27 +195,26 @@ function run(;args=nothing, kwargs...)
     end
 
     # Save VTK file
-    verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
-    @timeit "save VTK file" vtk_save(vtk)
-
-    # Add to PVD file only if it is a datafile
     if is_datafile
-      verbose && println("| Adding to PVD file...")
-      @timeit "add VTK to PVD file" pvd[time] = vtk
-      has_data = true
-    else
-      println("WARNING: file '$(filename)' will not be added to PVD file since it is a mesh file")
+      verbose && println("| Saving VTK file '$(vtk_filename).vti'...")
+      @timeit "save VTK file" vtk_save(vtk)
     end
 
-    # Save VTK file
-    verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vtu'...")
+    verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vti'...")
     @timeit "save VTK file" vtk_save(vtk_celldata)
 
     # Add to PVD file only if it is a datafile
-    if is_datafile
-      verbose && println("| Adding to PVD file...")
-      @timeit "add VTK to PVD file" pvd_celldata[time] = vtk_celldata
-      has_data = true
+    if !is_single_file
+      if is_datafile
+        verbose && println("| Adding to PVD file...")
+        @timeit "add VTK to PVD file" begin
+          pvd[time] = vtk
+          pvd_celldata[time] = vtk_celldata
+        end
+        has_data = true
+      else
+        println("WARNING: file '$(filename)' will not be added to PVD file since it is a mesh file")
+      end
     end
 
     # Update progress bar
@@ -218,13 +223,15 @@ function run(;args=nothing, kwargs...)
     end
   end
 
-  # Save PVD file only if at least one data file was added
-  if has_data
-    verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
-    @timeit "save PVD file" vtk_save(pvd)
+  if !is_single_file
+    # Save PVD file only if at least one data file was added
+    if has_data
+      verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
+      @timeit "save PVD files" vtk_save(pvd)
+    end
+    verbose && println("| Saving PVD file '$(pvd_celldata_filename).pvd'...")
+    @timeit "save PVD files" vtk_save(pvd_celldata)
   end
-  verbose && println("| Saving PVD file '$(pvd_celldata_filename).pvd'...")
-  @timeit "save PVD file" vtk_save(pvd_celldata)
 
   verbose && println("| done.\n")
   print_timer()
@@ -371,19 +378,6 @@ function coordinate2index(coordinate, resolution::Integer)
   id_x = searchsortedfirst.(Ref(mesh_coordinates), coordinate[1, :], lt=(x,y)->x .< y .- dx/2)
   id_y = searchsortedfirst.(Ref(mesh_coordinates), coordinate[2, :], lt=(x,y)->x .< y .- dx/2)
   return transpose(hcat(id_x, id_y))
-end
-
-
-# Convert cell data to visnode data
-function cell2visnode(cell_data::Vector, n_visnodes::Int)
-  cellsize = n_visnodes^ndim
-  visnode_data = Vector{eltype(cell_data)}(undef, length(cell_data) * cellsize)
-  for cell_id in 1:length(cell_data)
-    for node_id in 1:cellsize
-      visnode_data[(cell_id - 1)*cellsize + node_id] = cell_data[cell_id]
-    end
-  end
-  return visnode_data
 end
 
 
@@ -615,7 +609,7 @@ function parse_commandline_arguments(args=ARGS)
   s.autofix_names = true
   @add_arg_table! s begin
     "filename"
-      help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
+      help = "Name of Trixi solution/restart/mesh file to convert to a .vti file."
       arg_type = String
       required = true
       nargs = '+'
