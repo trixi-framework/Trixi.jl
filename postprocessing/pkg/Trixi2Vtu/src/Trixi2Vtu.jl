@@ -86,8 +86,8 @@ function run(;args=nothing, kwargs...)
     @timeit "read mesh" (center_level_0, length_level_0,
                          leaf_cells, coordinates, levels) = read_meshfile(meshfile)
 
+    # Read data only if it is a data file
     if is_datafile
-      # Read data only if it is a data file
       verbose && println("| Reading data file...")
       @timeit "read data" (labels, data, n_elements, n_nodes,
                            element_variables, time) = read_datafile(filename)
@@ -112,38 +112,13 @@ function run(;args=nothing, kwargs...)
       n_visnodes = 1
     end
 
-    # Calculate VTK points and cells
-    verbose && println("| Preparing VTK cells...")
-    if is_datafile
-      @timeit "prepare VTK cells" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
-                                                                                levels,
-                                                                                center_level_0,
-                                                                                length_level_0,
-                                                                                n_visnodes)
-    end
-
-    # Prepare VTK points and cells for celldata file
-    @timeit "prepare VTK cells" vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(
-        coordinates, levels, center_level_0, length_level_0, 1)
-
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
-    # Determine output file names
-    base, _ = splitext(splitdir(filename)[2])
-    vtk_filename = joinpath(args["output_directory"], base)
-    vtk_celldata_filename = vtk_filename * "_celldata"
-
-    # Open VTK files
-    verbose && println("| Building VTK grid...")
-    if is_datafile
-      @timeit "build VTK grid" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
-    end
-
-    # Open VTK file
-    @timeit "build VTK grid" vtk_celldata = vtk_grid(vtk_celldata_filename,
-                                                      vtk_celldata_points,
-                                                      vtk_celldata_cells)
+    # Build VTK grids
+    vtk_nodedata, vtk_celldata = build_vtk_grids(coordinates, levels, center_level_0,
+                                                 length_level_0, n_visnodes, verbose,
+                                                 args["output_directory"], is_datafile, filename)
 
     # Add data to file
     verbose && println("| Adding data to VTK file...")
@@ -161,7 +136,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+          @timeit label vtk_nodedata[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
         end
 
         # Add element variables
@@ -175,7 +150,7 @@ function run(;args=nothing, kwargs...)
     # Save VTK file
     if is_datafile
       verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
-      @timeit "save VTK file" vtk_save(vtk)
+      @timeit "save VTK file" vtk_save(vtk_nodedata)
     end
 
     verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vtu'...")
@@ -186,7 +161,7 @@ function run(;args=nothing, kwargs...)
       if is_datafile
         verbose && println("| Adding to PVD file...")
         @timeit "add VTK to PVD file" begin
-          pvd[time] = vtk
+          pvd[time] = vtk_nodedata
           pvd_celldata[time] = vtk_celldata
         end
         has_data = true
@@ -214,6 +189,46 @@ function run(;args=nothing, kwargs...)
   verbose && println("| done.\n")
   print_timer()
   println()
+end
+
+
+# Create and return VTK grids that are ready to be filled with data
+function build_vtk_grids(coordinates, levels, center_level_0, length_level_0,
+                         n_visnodes, verbose, output_directory, is_datafile, filename)
+  # Calculate VTK points and cells
+  verbose && println("| Preparing VTK cells...")
+  if is_datafile
+    @timeit "prepare VTK cells (node data)" begin
+      vtk_points, vtk_cells = calc_vtk_points_cells(coordinates, levels,
+                                                    center_level_0, length_level_0, n_visnodes)
+    end
+  end
+
+  # Prepare VTK points and cells for celldata file
+  @timeit "prepare VTK cells (cell data)" begin
+    vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(coordinates, levels,
+                                                                    center_level_0,
+                                                                    length_level_0, 1)
+  end
+
+  # Determine output file names
+  base, _ = splitext(splitdir(filename)[2])
+  vtk_filename = joinpath(output_directory, base)
+  vtk_celldata_filename = vtk_filename * "_celldata"
+
+  # Open VTK files
+  verbose && println("| Building VTK grid...")
+  if is_datafile
+    @timeit "build VTK grid (node data)" vtk_nodedata = vtk_grid(vtk_filename, vtk_points,
+                                                                 vtk_cells)
+  else
+    vtk_nodedata = nothing
+  end
+  @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
+                                                                vtk_celldata_points,
+                                                                vtk_celldata_cells)
+
+  return vtk_nodedata, vtk_celldata
 end
 
 
@@ -245,8 +260,8 @@ function get_arguments(args; kwargs...)
     if !haskey(args, "hide_progress")
       args["hide_progress"] = false
     end
-    if !haskey(args, "pvd_filename")
-      args["pvd_filename"] = nothing
+    if !haskey(args, "pvd")
+      args["pvd"] = nothing
     end
     if !haskey(args, "output_directory")
       args["output_directory"] = "."
@@ -535,14 +550,14 @@ function parse_commandline_arguments(args=ARGS)
       arg_type = String
       default = "."
     "--nvisnodes"
-      help = ("Number of visualization nodes per cell "
-              * "(default: four times the number of DG nodes). "
-              * "A value of zero prevents any interpolation of data.")
+      help = ("Number of visualization nodes per element "
+              * "(default: twice the number of DG nodes). "
+              * "A value of zero uses the number of nodes in the DG elements.")
       arg_type = Int
       default = nothing
   end
 
-  return parse_args(s)
+  return parse_args(args, s)
 end
 
 

@@ -101,21 +101,12 @@ function run(;args=nothing, kwargs...)
 
       # Determine resolution for data interpolation
       if args["nvisnodes"] == nothing
-        nvisnodes_at_max_level = 2 * n_nodes
+        n_visnodes = 2 * n_nodes
       elseif args["nvisnodes"] == 0
-        nvisnodes_at_max_level = n_nodes
+        n_visnodes = n_nodes
       else
-        nvisnodes_at_max_level = args["nvisnodes"]
+        n_visnodes = args["nvisnodes"]
       end
-
-      # Determine level-wise resolution
-      max_level = maximum(levels)
-      resolution = nvisnodes_at_max_level * 2^max_level
-
-      # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
-      # level-0-cell) that contains the number of visualization nodes for any
-      # refinement level to visualize on an equidistant grid
-      nvisnodes_per_level = [2^(max_level - level)*nvisnodes_at_max_level for level in 0:max_level]
     else
       # If file is a mesh file, do not interpolate data
       n_visnodes = 1
@@ -136,11 +127,15 @@ function run(;args=nothing, kwargs...)
     # Open VTK files
     verbose && println("| Building VTK grid...")
     if is_datafile
+      # Determine level-wise resolution
+      max_level = maximum(levels)
+      resolution = n_visnodes * 2^max_level
+
       Nx = Ny = resolution + 1
       dx = dy = length_level_0/resolution
       origin = center_level_0 .- 1/2 * length_level_0
       spacing = [dx, dy]
-      @timeit "build VTK grid (node data)" vtk = vtk_grid(vtk_filename, Nx, Ny,
+      @timeit "build VTK grid (node data)" vtk_nodedata = vtk_grid(vtk_filename, Nx, Ny,
                                                           origin=origin,
                                                           spacing=spacing)
 
@@ -151,18 +146,17 @@ function run(;args=nothing, kwargs...)
             (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
       end
 
+      # nvisnodes_per_level is an array (accessed by "level + 1" to accommodate
+      # level-0-cell) that contains the number of visualization nodes for any
+      # refinement level to visualize on an equidistant grid
+      nvisnodes_per_level = [2^(max_level - level)*n_visnodes for level in 0:max_level]
+
       # Interpolate unstructured DG data to structured data
       verbose && println("| Interpolating data...")
       @timeit "interpolate data" (structured_data =
           unstructured2structured(unstructured_data, normalized_coordinates,
                                   levels, resolution, nvisnodes_per_level))
     end
-
-    # Open VTK celldata file
-    # Determine output file name
-    vtk_celldata_filename = joinpath(args["output_directory"], base * "_celldata")
-
-    # Open VTK file
     @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
                                                         vtk_celldata_points,
                                                         vtk_celldata_cells)
@@ -183,7 +177,7 @@ function run(;args=nothing, kwargs...)
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk[label] = @views vec(structured_data[:, :, variable_id])
+          @timeit label vtk_nodedata[label] = @views vec(structured_data[:, :, variable_id])
         end
 
         # Add element variables
@@ -197,7 +191,7 @@ function run(;args=nothing, kwargs...)
     # Save VTK file
     if is_datafile
       verbose && println("| Saving VTK file '$(vtk_filename).vti'...")
-      @timeit "save VTK file" vtk_save(vtk)
+      @timeit "save VTK file" vtk_save(vtk_nodedata)
     end
 
     verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vti'...")
@@ -208,7 +202,7 @@ function run(;args=nothing, kwargs...)
       if is_datafile
         verbose && println("| Adding to PVD file...")
         @timeit "add VTK to PVD file" begin
-          pvd[time] = vtk
+          pvd[time] = vtk_nodedata
           pvd_celldata[time] = vtk_celldata
         end
         has_data = true
@@ -267,8 +261,8 @@ function get_arguments(args; kwargs...)
     if !haskey(args, "hide_progress")
       args["hide_progress"] = false
     end
-    if !haskey(args, "pvd_filename")
-      args["pvd_filename"] = nothing
+    if !haskey(args, "pvd")
+      args["pvd"] = nothing
     end
     if !haskey(args, "output_directory")
       args["output_directory"] = "."
@@ -279,6 +273,34 @@ function get_arguments(args; kwargs...)
   end
 
   return args
+end
+
+
+# Determine and return filenames for PVD fiels
+function pvd_filenames(args)
+  # Determine pvd filename
+  if !isnothing(args["pvd"])
+    # Use filename if given on command line
+    filename = args["pvd"]
+
+    # Strip of directory/extension
+    filename, _ = splitext(splitdir(filename)[2])
+  else
+    filename = get_pvd_filename(args["filename"])
+
+    # If filename is empty, it means we were not able to determine an
+    # appropriate file thus the user has to supply one
+    if filename == ""
+      error("could not auto-detect PVD filename (input file names have no common prefix): " *
+            "please provide a PVD filename name with `--pvd`")
+    end
+  end
+
+  # Get full filenames
+  pvd_filename = joinpath(args["output_directory"], filename)
+  pvd_celldata_filename = pvd_filename * "_celldata"
+
+  return pvd_filename, pvd_celldata_filename
 end
 
 
@@ -619,7 +641,7 @@ function parse_commandline_arguments(args=ARGS)
     "--hide-progress"
       help = "Hide progress bar (will be hidden automatically if `--verbose` is given)"
       action = :store_true
-    "--pvd-filename"
+    "--pvd"
       help = ("Use this filename to store PVD file (instead of auto-detecting name). Note that " *
               "only the name will be used (directory and file extension are ignored).")
       arg_type = String
@@ -628,14 +650,14 @@ function parse_commandline_arguments(args=ARGS)
       arg_type = String
       default = "."
     "--nvisnodes"
-      help = ("Number of visualization nodes per cell "
-              * "(default: four times the number of DG nodes). "
-              * "A value of zero prevents any interpolation of data.")
+      help = ("Number of visualization nodes per element "
+              * "(default: twice the number of DG nodes). "
+              * "A value of zero uses the number of nodes in the DG elements.")
       arg_type = Int
       default = nothing
   end
 
-  return parse_args(s)
+  return parse_args(args, s)
 end
 
 
