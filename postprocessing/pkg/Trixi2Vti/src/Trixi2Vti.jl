@@ -22,43 +22,8 @@ function run(;args=nothing, kwargs...)
   # Reset timer
   reset_timer!()
 
-  # Handle command line arguments
-  if !isnothing(args)
-    # If args are given explicitly, parse command line arguments
-    args = parse_commandline_arguments(args)
-  else
-    # Otherwise interpret keyword arguments as command line arguments
-    args = Dict{String, Any}()
-    for (key, value) in kwargs
-      args[string(key)] = value
-    end
-
-    # Clean up some of the arguments and provide defaults
-    # FIXME: This is redundant to parse_commandline_arguments
-    # If filename is a single string, convert it to array
-    if !haskey(args, "filename")
-      println(stderr, "error: no input file was provided")
-      return
-    end
-    if isa(args["filename"], String)
-      args["filename"] = [args["filename"]]
-    end
-    if !haskey(args, "verbose")
-      args["verbose"] = false
-    end
-    if !haskey(args, "hide_progress")
-      args["hide_progress"] = false
-    end
-    if !haskey(args, "pvd_filename")
-      args["pvd_filename"] = nothing
-    end
-    if !haskey(args, "output_directory")
-      args["output_directory"] = "."
-    end
-    if !haskey(args, "nvisnodes")
-      args["nvisnodes"] = nothing
-    end
-  end
+  # Handle command line or keyword arguments
+  args = get_arguments(args, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
@@ -290,6 +255,49 @@ function run(;args=nothing, kwargs...)
   verbose && println("| done.\n")
   print_timer()
   println()
+end
+
+
+# Handle command line arguments (if given) or interpret keyword arguments
+function get_arguments(args; kwargs...)
+  # Handle command line arguments
+  if !isnothing(args)
+    # If args are given explicitly, parse command line arguments
+    args = parse_commandline_arguments(args)
+  else
+    # Otherwise interpret keyword arguments as command line arguments
+    args = Dict{String, Any}()
+    for (key, value) in kwargs
+      args[string(key)] = value
+    end
+
+    # Clean up some of the arguments and provide defaults
+    # FIXME: This is redundant to parse_commandline_arguments
+    # If filename is a single string, convert it to array
+    if !haskey(args, "filename")
+      error("no input file was provided")
+    end
+    if isa(args["filename"], String)
+      args["filename"] = [args["filename"]]
+    end
+    if !haskey(args, "verbose")
+      args["verbose"] = false
+    end
+    if !haskey(args, "hide_progress")
+      args["hide_progress"] = false
+    end
+    if !haskey(args, "pvd_filename")
+      args["pvd_filename"] = nothing
+    end
+    if !haskey(args, "output_directory")
+      args["output_directory"] = "."
+    end
+    if !haskey(args, "nvisnodes")
+      args["nvisnodes"] = nothing
+    end
+  end
+
+  return args
 end
 
 
