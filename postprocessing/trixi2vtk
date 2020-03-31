@@ -39,4 +39,4 @@ fi
 import Trixi2Vtk
 
 # Run Trixi2Vtk but handle user interrupts gracefully (Ctrl-c)
-@Trixi2Vtk.interruptable Trixi2Vtk.run(args=ARGS)
+@Trixi2Vtk.Auxiliary.interruptable Trixi2Vtk.run(args=ARGS)
