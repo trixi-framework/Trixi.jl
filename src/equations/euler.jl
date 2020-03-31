@@ -205,21 +205,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "khi" #domain size is [-1,1]^2, resolution is 32^2 elements, N=7
-    # parameters
-    dens0 = 1.0 #0.5
-    dens1 = 1.5
-    pres0 = 1.0
-    velx0 = 0.5
-    vely0 = 0.1
-    slope = 15
-
-    rho = dens0 + dens1 * 0.5*(1+(tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1)))
-    v1  = velx0 * (tanh(slope*(x[2]+0.5)) - (tanh(slope*(x[2]-0.5)) + 1))
-    v2  = vely0 * sin(2*pi*x[1])
-    p   = pres0
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "khi2" 
+  elseif name == "khi" 
     # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
     # change discontinuity to tanh 
     # change noise from random to sine
@@ -924,19 +910,24 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
                                            cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int)
+                                           element_id::Int, n_nodes::Int, which_indicator_var::Symbol)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
                                           cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id])
+					  cons[3, i, j, element_id], cons[4, i, j, element_id],Val(which_indicator_var))
     end
   end
 end
 
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e, ::Val{:density})
+  # Indicator variable is rho 
+  return rho 
+end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e, ::Val{:density_pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -944,7 +935,7 @@ end
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
   # Indicator variable is rho * p
-  return rho #* p
+  return rho * p
 end
 
 @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  

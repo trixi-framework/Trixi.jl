@@ -384,7 +384,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     base_level = 4
     max_level = 6
     blending_factor_threshold0 = 0.003
-    blending_factor_threshold1 = 0.001
+    blending_factor_threshold1 = 0.0003
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -394,7 +394,8 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, false, :density)
+
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
