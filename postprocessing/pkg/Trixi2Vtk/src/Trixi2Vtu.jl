@@ -22,137 +22,63 @@ function run(;args=nothing, kwargs...)
   # Reset timer
   reset_timer!()
 
-  # Handle command line arguments
-  if !isnothing(args)
-    # If args are given explicitly, parse command line arguments
-    args = parse_commandline_arguments(args)
-  else
-    # Otherwise interpret keyword arguments as command line arguments
-    args = Dict{String, Any}()
-    for (key, value) in kwargs
-      args[string(key)] = value
-    end
-
-    # Clean up some of the arguments and provide defaults
-    # FIXME: This is redundant to parse_commandline_arguments
-    # If datafile is a single string, convert it to array
-    if !haskey(args, "datafile")
-      println(stderr, "error: no datafile was provided")
-      return
-    end
-    if isa(args["datafile"], String)
-      args["datafile"] = [args["datafile"]]
-    end
-    if !haskey(args, "verbose")
-      args["verbose"] = false
-    end
-    if !haskey(args, "hide-progress")
-      args["hide-progress"] = false
-    end
-    if !haskey(args, "save-pvd")
-      args["save-pvd"] = "auto"
-    end
-    if !haskey(args, "separate-celldata")
-      args["separate-celldata"] = false
-    end
-    if !haskey(args, "pvd-filename")
-      args["save-pvd"] = nothing
-    end
-    if !haskey(args, "output_directory")
-      args["output_directory"] = "."
-    end
-    if !haskey(args, "nvisnodes")
-      args["nvisnodes"] = nothing
-    end
-  end
+  # Handle command line or keyword arguments
+  args = get_arguments(args, kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
-  hide_progress = args["hide-progress"]
-  separate_celldata = args["separate-celldata"]
-  datafiles = args["datafile"]
+  hide_progress = args["hide_progress"]
+  filenames = args["filename"]
 
   # If verbose mode is enabled, always hide progress bar
   if verbose
     hide_progress = true
   end
 
-  # Initialize PVD file if desired
-  if args["save-pvd"] == "yes" || (args["save-pvd"] == "auto" && length(datafiles) > 1)
-    # Determine pvd filename
-    if !isnothing(args["pvd-filename"])
-      # Use filename if given on command line
-      filename = args["pvd-filename"]
+  # Variable to avoid writing PVD files if only a single file is converted
+  is_single_file = length(filenames) == 1
 
-      # Strip of directory/extension
-      filename, _ = splitext(splitdir(filename)[2])
-    else
-      filename = get_pvd_filename(datafiles)
-
-      # If filename is empty, it means we were not able to determine an
-      # appropriate file thus the user has to supply one
-      if filename == ""
-        error("could not auto-detect PVD filename (input file names have no common prefix): " *
-              "please provide a PVD filename name with `--pvd-filename` " *
-              "or disable saving a PVD file with `--save-pvd=no`")
-      end
+  # Get pvd filenames and open files
+  if !is_single_file
+    pvd_filename, pvd_celldata_filename = pvd_filenames(args)
+    verbose && println("Opening PVD files '$(pvd_filename).pvd' + '$(pvd_celldata_filename).pvd'...")
+    @timeit "open PVD file" begin
+      pvd = paraview_collection(pvd_filename)
+      pvd_celldata = paraview_collection(pvd_celldata_filename)
     end
-
-    # Get full filenae
-    pvd_filename = joinpath(args["output_directory"], filename)
-
-    # Opening PVD file
-    verbose && println("Opening PVD file '$(pvd_filename).pvd'...")
-    @timeit "open PVD file" pvd = paraview_collection(pvd_filename)
-
-    # Open separate PVD file for celldata information
-    if separate_celldata
-      # Get full filename
-      pvd_celldata_filename = joinpath(args["output_directory"], filename * "_celldata")
-
-      # Opening PVD file
-      verbose && println("Opening PVD file '$(pvd_celldata_filename).pvd'...")
-      @timeit "open PVD file" pvd_celldata = paraview_collection(pvd_celldata_filename)
-    end
-
-    # Add variable to avoid writing PVD file if only mesh files were converted
-    has_data = false
-
-    # Enable saving to PVD
-    save_pvd = true
-  else
-    # Disable saving to PVD
-    save_pvd = false
   end
+
+  # Variable to avoid writing PVD file if only mesh files were converted
+  has_data = false
 
   # Show progress bar if not disabled
   if !hide_progress
-    progress = Progress(length(datafiles), 0.5, "Converting .h5 to .vtu...", 40)
+    progress = Progress(length(filenames), 0.5, "Converting .h5 to .vtu...", 40)
   end
 
   # Iterate over input files
-  for (index, datafile) in enumerate(datafiles)
-    verbose && println("Processing file $datafile ($(index)/$(length(datafiles)))...")
+  for (index, filename) in enumerate(filenames)
+    verbose && println("Processing file $filename ($(index)/$(length(filenames)))...")
 
     # Check if data file exists
-    if !isfile(datafile)
-      error("data file '$datafile' does not exist")
+    if !isfile(filename)
+      error("data file '$filename' does not exist")
     end
 
     # Check if it is a data file at all
-    is_datafile = is_solution_restart_file(datafile)
+    is_datafile = is_solution_restart_file(filename)
 
     # If file is solution/restart file, extract mesh file name
     if is_datafile
       # Get mesh file name
-      meshfile = extract_mesh_filename(datafile)
+      meshfile = extract_mesh_filename(filename)
 
       # Check if mesh file exists
       if !isfile(meshfile)
         error("mesh file '$meshfile' does not exist")
       end
     else
-      meshfile = datafile
+      meshfile = filename
     end
 
     # Read mesh
@@ -160,15 +86,15 @@ function run(;args=nothing, kwargs...)
     @timeit "read mesh" (center_level_0, length_level_0,
                          leaf_cells, coordinates, levels) = read_meshfile(meshfile)
 
+    # Read data only if it is a data file
     if is_datafile
-      # Read data only if it is a data file
       verbose && println("| Reading data file...")
       @timeit "read data" (labels, data, n_elements, n_nodes,
-                           element_variables, time) = read_datafile(datafile)
+                           element_variables, time) = read_datafile(filename)
 
       # Check if dimensions match
       if length(leaf_cells) != n_elements
-        error("number of elements in '$(datafile)' do not match number of leaf cells in " *
+        error("number of elements in '$(filename)' do not match number of leaf cells in " *
               "'$(meshfile)' " *
               "(did you forget to clean your 'out/' directory between different runs?)")
       end
@@ -186,128 +112,87 @@ function run(;args=nothing, kwargs...)
       n_visnodes = 1
     end
 
-    # Calculate VTK points and cells
-    verbose && println("| Preparing VTK cells...")
-    @timeit "prepare VTK cells" vtk_points, vtk_cells = calc_vtk_points_cells(coordinates,
-                                                                              levels,
-                                                                              center_level_0,
-                                                                              length_level_0,
-                                                                              n_visnodes)
-
-    # Prepare VTK points and cells for celldata file
-    if separate_celldata
-      @timeit "prepare VTK cells" vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(
-          coordinates, levels, center_level_0, length_level_0, 1)
-    end
-
     # Create output directory if it does not exist
     mkpath(args["output_directory"])
 
-    # Determine output file name
-    base, _ = splitext(splitdir(datafile)[2])
-    vtk_filename = joinpath(args["output_directory"], base)
+    # Build VTK grids
+    vtk_nodedata, vtk_celldata = build_vtk_grids(coordinates, levels, center_level_0,
+                                                 length_level_0, n_visnodes, verbose,
+                                                 args["output_directory"], is_datafile, filename)
 
-    # Open VTK file
-    verbose && println("| Building VTK grid...")
-    @timeit "build VTK grid" vtk = vtk_grid(vtk_filename, vtk_points, vtk_cells)
-
-    # Open VTK celldata file
-    if separate_celldata
-      # Determine output file name
-      vtk_celldata_filename = joinpath(args["output_directory"], base * "_celldata")
-
-      # Open VTK file
-      @timeit "build VTK grid" vtk_celldata = vtk_grid(vtk_celldata_filename,
-                                                       vtk_celldata_points,
-                                                       vtk_celldata_cells)
+    # Interpolate data
+    if is_datafile
+      verbose && println("| Interpolating data...")
+      @timeit "interpolate data" interpolated_data = interpolate_data(data, coordinates, levels,
+                                                                      center_level_0,
+                                                                      length_level_0,
+                                                                      n_visnodes, verbose)
     end
 
     # Add data to file
     verbose && println("| Adding data to VTK file...")
     @timeit "add data to VTK file" begin
-      # Add cell/element data to celldata VTK file if it exists, otherwise to regular VTK file
-      if separate_celldata
-        verbose && println("| | cell_ids...")
-        @timeit "cell_ids" vtk_celldata["cell_ids"] = leaf_cells
-        verbose && println("| | element_ids...")
-        @timeit "element_ids" vtk_celldata["element_ids"] = collect(1:length(leaf_cells))
-        verbose && println("| | levels...")
-        @timeit "levels" vtk_celldata["levels"] = levels
-      else
-        verbose && println("| | cell_ids...")
-        @timeit "cell_ids" vtk["cell_ids"] = cell2visnode(leaf_cells, n_visnodes)
-        verbose && println("| | element_ids...")
-        @timeit "element_ids" vtk["element_ids"] = cell2visnode(collect(1:length(leaf_cells)),
-                                                                n_visnodes)
-        verbose && println("| | levels...")
-        @timeit "levels" vtk["levels"] = cell2visnode(levels, n_visnodes)
-      end
+      # Add cell/element data to celldata VTK file
+      verbose && println("| | cell_ids...")
+      @timeit "cell_ids" vtk_celldata["cell_ids"] = leaf_cells
+      verbose && println("| | element_ids...")
+      @timeit "element_ids" vtk_celldata["element_ids"] = collect(1:length(leaf_cells))
+      verbose && println("| | levels...")
+      @timeit "levels" vtk_celldata["levels"] = levels
 
       # Only add data if it is a data file
       if is_datafile
         # Add solution variables
         for (variable_id, label) in enumerate(labels)
           verbose && println("| | Variable: $label...")
-          @timeit label vtk[label] = vec(raw2visnodes(data, n_visnodes, variable_id))
+          @timeit label vtk_nodedata[label] = @views interpolated_data[:, variable_id]
         end
 
         # Add element variables
-        if separate_celldata
-          for (label, variable) in element_variables
-            verbose && println("| | Element variable: $label...")
-            @timeit label vtk_celldata[label] = variable
-          end
-        else
-          for (label, variable) in element_variables
-            verbose && println("| | Element variable: $label...")
-            @timeit label vtk[label] = cell2visnode(variable, n_visnodes)
-          end
+        for (label, variable) in element_variables
+          verbose && println("| | Element variable: $label...")
+          @timeit label vtk_celldata[label] = variable
         end
       end
     end
 
     # Save VTK file
-    verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
-    @timeit "save VTK file" vtk_save(vtk)
-
-    # Add to PVD file only if it is a datafile
-    if save_pvd
-      if is_datafile
-        verbose && println("| Adding to PVD file...")
-        @timeit "add VTK to PVD file" pvd[time] = vtk
-        has_data = true
-      else
-        println("WARNING: file '$(datafile)' will not be added to PVD file since it is a mesh file")
-      end
+    if is_datafile
+      verbose && println("| Saving VTK file '$(vtk_filename).vtu'...")
+      @timeit "save VTK file" vtk_save(vtk_nodedata)
     end
 
-    if separate_celldata
-      # Save VTK file
-      verbose && println("| Saving VTK celldata file '$(vtk_celldata_filename).vtu'...")
-      @timeit "save VTK file" vtk_save(vtk_celldata)
+    verbose && println("| Saving VTK file '$(vtk_celldata_filename).vtu'...")
+    @timeit "save VTK file" vtk_save(vtk_celldata)
 
-      # Add to PVD file only if it is a datafile
-      if save_pvd && is_datafile
+    # Add to PVD file only if it is a datafile
+    if !is_single_file
+      if is_datafile
         verbose && println("| Adding to PVD file...")
-        @timeit "add VTK to PVD file" pvd_celldata[time] = vtk_celldata
+        @timeit "add VTK to PVD file" begin
+          pvd[time] = vtk_nodedata
+          pvd_celldata[time] = vtk_celldata
+        end
         has_data = true
+      else
+        println("WARNING: file '$(filename)' will not be added to PVD file since it is a mesh file")
       end
     end
 
     # Update progress bar
     if !hide_progress
-      next!(progress, showvalues=[(:finished, datafile)])
+      next!(progress, showvalues=[(:finished, filename)])
     end
   end
 
-  # Save PVD file only if at least one data file was added
-  if save_pvd && has_data
-    verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
-    @timeit "save PVD file" vtk_save(pvd)
-  end
-  if save_pvd && separate_celldata
+  if !is_single_file
+    # Save PVD file only if at least one data file was added
+    if has_data
+      verbose && println("| Saving PVD file '$(pvd_filename).pvd'...")
+      @timeit "save PVD files" vtk_save(pvd)
+    end
     verbose && println("| Saving PVD file '$(pvd_celldata_filename).pvd'...")
-    @timeit "save PVD file" vtk_save(pvd_celldata)
+    @timeit "save PVD files" vtk_save(pvd_celldata)
   end
 
   verbose && println("| done.\n")
@@ -316,22 +201,126 @@ function run(;args=nothing, kwargs...)
 end
 
 
-# Convert cell data to visnode data
-function cell2visnode(cell_data::Vector, n_visnodes::Int)
-  cellsize = n_visnodes^ndim
-  visnode_data = Vector{eltype(cell_data)}(undef, length(cell_data) * cellsize)
-  for cell_id in 1:length(cell_data)
-    for node_id in 1:cellsize
-      visnode_data[(cell_id - 1)*cellsize + node_id] = cell_data[cell_id]
+# Interpolate data from input format to desired output format
+function interpolate_data(input_data, coordinates, levels, center_level_0, length_level_0,
+                          n_visnodes, verbose)
+  return raw2visnodes(input_data, n_visnodes)
+end
+
+# Create and return VTK grids that are ready to be filled with data
+function build_vtk_grids(coordinates, levels, center_level_0, length_level_0,
+                         n_visnodes, verbose, output_directory, is_datafile, filename)
+  # Calculate VTK points and cells
+  verbose && println("| Preparing VTK cells...")
+  if is_datafile
+    @timeit "prepare VTK cells (node data)" begin
+      vtk_points, vtk_cells = calc_vtk_points_cells(coordinates, levels,
+                                                    center_level_0, length_level_0, n_visnodes)
     end
   end
-  return visnode_data
+
+  # Prepare VTK points and cells for celldata file
+  @timeit "prepare VTK cells (cell data)" begin
+    vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(coordinates, levels,
+                                                                    center_level_0,
+                                                                    length_level_0, 1)
+  end
+
+  # Determine output file names
+  base, _ = splitext(splitdir(filename)[2])
+  vtk_filename = joinpath(output_directory, base)
+  vtk_celldata_filename = vtk_filename * "_celldata"
+
+  # Open VTK files
+  verbose && println("| Building VTK grid...")
+  if is_datafile
+    @timeit "build VTK grid (node data)" vtk_nodedata = vtk_grid(vtk_filename, vtk_points,
+                                                                 vtk_cells)
+  else
+    vtk_nodedata = nothing
+  end
+  @timeit "build VTK grid (cell data)" vtk_celldata = vtk_grid(vtk_celldata_filename,
+                                                                vtk_celldata_points,
+                                                                vtk_celldata_cells)
+
+  return vtk_nodedata, vtk_celldata
+end
+
+
+# Handle command line arguments (if given) or interpret keyword arguments
+function get_arguments(args; kwargs...)
+  # Handle command line arguments
+  if !isnothing(args)
+    # If args are given explicitly, parse command line arguments
+    args = parse_commandline_arguments(args)
+  else
+    # Otherwise interpret keyword arguments as command line arguments
+    args = Dict{String, Any}()
+    for (key, value) in kwargs
+      args[string(key)] = value
+    end
+
+    # Clean up some of the arguments and provide defaults
+    # FIXME: This is redundant to parse_commandline_arguments
+    # If filename is a single string, convert it to array
+    if !haskey(args, "filename")
+      error("no input file was provided")
+    end
+    if isa(args["filename"], String)
+      args["filename"] = [args["filename"]]
+    end
+    if !haskey(args, "verbose")
+      args["verbose"] = false
+    end
+    if !haskey(args, "hide_progress")
+      args["hide_progress"] = false
+    end
+    if !haskey(args, "pvd")
+      args["pvd"] = nothing
+    end
+    if !haskey(args, "output_directory")
+      args["output_directory"] = "."
+    end
+    if !haskey(args, "nvisnodes")
+      args["nvisnodes"] = nothing
+    end
+  end
+
+  return args
+end
+
+
+# Determine and return filenames for PVD fiels
+function pvd_filenames(args)
+  # Determine pvd filename
+  if !isnothing(args["pvd"])
+    # Use filename if given on command line
+    filename = args["pvd"]
+
+    # Strip of directory/extension
+    filename, _ = splitext(splitdir(filename)[2])
+  else
+    filename = get_pvd_filename(args["filename"])
+
+    # If filename is empty, it means we were not able to determine an
+    # appropriate file thus the user has to supply one
+    if filename == ""
+      error("could not auto-detect PVD filename (input file names have no common prefix): " *
+            "please provide a PVD filename name with `--pvd`")
+    end
+  end
+
+  # Get full filenames
+  pvd_filename = joinpath(args["output_directory"], filename)
+  pvd_celldata_filename = pvd_filename * "_celldata"
+
+  return pvd_filename, pvd_celldata_filename
 end
 
 
 # Determine filename for PVD file based on common name
-function get_pvd_filename(datafiles::AbstractArray)
-  filenames = getindex.(splitdir.(datafiles), 2)
+function get_pvd_filename(filenames::AbstractArray)
+  filenames = getindex.(splitdir.(filenames), 2)
   bases = getindex.(splitext.(filenames), 1)
   pvd_filename = longest_common_prefix(bases)
   return pvd_filename
@@ -357,7 +346,7 @@ end
 
 
 # Interpolate to visualization nodes
-function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable_id::Int)
+function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int)
   # Extract data shape information
   n_nodes_in, _, n_elements, n_variables = size(data_gl)
 
@@ -370,20 +359,23 @@ function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int, variable
   vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Create output data structure
-  data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements)
+  data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements, n_variables)
 
-  # Reshape data array for use in interpolate_nodes function
-  @views reshaped_data = reshape(data_gl[:, :, :, variable_id], 1, n_nodes_in,
-                                 n_nodes_in, n_elements)
+  # For each variable, interpolate element data and store to global data structure
+  for v in 1:n_variables
+    # Reshape data array for use in interpolate_nodes function
+    @views reshaped_data = reshape(data_gl[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
 
-  # Interpolate data to visualization nodes
-  for element_id in 1:n_elements
-    @views data_vis[:, :, element_id] .= reshape(
-        interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
-        n_visnodes, n_visnodes)
+    # Interpolate data to visualization nodes
+    for element_id in 1:n_elements
+      @views data_vis[:, :, element_id, v] .= reshape(
+          interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
+          n_visnodes, n_visnodes)
+    end
   end
 
-  return data_vis
+  # Return as one 1D array for each variable
+  return reshape(data_vis, n_visnodes^ndim * n_elements, n_variables)
 end
 
 
@@ -449,7 +441,7 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
 end
 
 
-# Check if file is a datafile
+# Check if file is a data file
 function is_solution_restart_file(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
@@ -554,8 +546,9 @@ function parse_commandline_arguments(args=ARGS)
   # If anything is changed here, it should also be checked at the beginning of run()
   # FIXME: Refactor the code to avoid this redundancy
   s = ArgParseSettings()
+  s.autofix_names = true
   @add_arg_table! s begin
-    "datafile"
+    "filename"
       help = "Name of Trixi solution/restart/mesh file to convert to a .vtu file."
       arg_type = String
       required = true
@@ -566,36 +559,23 @@ function parse_commandline_arguments(args=ARGS)
     "--hide-progress"
       help = "Hide progress bar (will be hidden automatically if `--verbose` is given)"
       action = :store_true
-    "--separate-celldata", "-s"
-      help = ("Save cell data in separate file. This is slightly slower since it requires " *
-              "building two sets of VTK grids for each data file. However, it allows to view " *
-              "cell data on the original mesh (and not on the visualization nodes).")
-      action = :store_true
-    "--save-pvd"
-      help = ("In addition to a VTK file, write a PVD file that contains time information. " *
-              "Possible values are 'yes', 'no', or 'auto'. If set to 'auto', a PVD file is only " *
-              "created if multiple files are converted.")
-      default = "auto"
-      arg_type = String
-      range_tester = (x->x in ("yes", "auto", "no"))
-    "--pvd-filename"
+    "--pvd"
       help = ("Use this filename to store PVD file (instead of auto-detecting name). Note that " *
-              "only the name will be used (directory and extension are ignored).")
+              "only the name will be used (directory and file extension are ignored).")
       arg_type = String
     "--output-directory", "-o"
       help = "Output directory where generated images are stored"
-      dest_name = "output_directory"
       arg_type = String
       default = "."
     "--nvisnodes"
-      help = ("Number of visualization nodes per cell "
-              * "(default: four times the number of DG nodes). "
-              * "A value of zero prevents any interpolation of data.")
+      help = ("Number of visualization nodes per element "
+              * "(default: twice the number of DG nodes). "
+              * "A value of zero uses the number of nodes in the DG elements.")
       arg_type = Int
       default = nothing
   end
 
-  return parse_args(s)
+  return parse_args(args, s)
 end
 
 

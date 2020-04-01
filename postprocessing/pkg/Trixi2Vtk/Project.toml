@@ -1,5 +1,5 @@
-name = "Trixi2Vtu"
-uuid = "a1018a8d-efdc-41b8-9066-fe767651ed96"
+name = "Trixi2Vtk"
+uuid = "bc1476a1-1ca6-4cc3-950b-c312b255ff95"
 authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>"]
 version = "0.1.0"
 
