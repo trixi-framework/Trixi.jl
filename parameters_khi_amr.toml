@@ -30,11 +30,11 @@ t_end   = 5.0
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.5
+cfl = 0.7
 n_steps_max = 10000
 analysis_interval = 100
-shock_alpha_max = 0.0031
-amr_alpha_max = 0.0031
+shock_alpha_max = 0.002
+amr_alpha_max = 1.0 #0.0031
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
 #volume_integral_type = "split_form"

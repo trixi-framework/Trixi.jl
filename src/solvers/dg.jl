@@ -1405,7 +1405,7 @@ end
 
 # if calc_blending_factors is called without further details, it is assumed that blending factors for shock capturing are wanted 
 # for shock capturing, use shock_alpha_max, and do_smoothing = true, and which_indicator_var= :density_pressure
-calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64}) = calc_blending_factors(alpha, out, dg, dg.elements.u, dg.shock_alpha_max, false, Val(:density))
+calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64}) = calc_blending_factors(alpha, out, dg, dg.elements.u, dg.shock_alpha_max, true, Val(:density_pressure))
 
 
 # Calculate blending factors used for shock capturing, or amr control
