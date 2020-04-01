@@ -11,8 +11,115 @@ export timestep!
 # Integrate solution by repeatedly calling the rhs! method on the solver solution.
 function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
   time_integration_scheme = Symbol(parameter("time_integration_scheme", "carpenter_4_5",
-                                             valid=("carpenter_4_5", "paired_rk_2_16")))
+                                             valid=("carpenter_4_5", "paired_rk_2_16", "paired_rk_2_8")))
   timestep!(solver, Val(time_integration_scheme), t, dt)
+end
+
+
+# Second-order, 8-stage paired Runge-Kutta method
+function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_8}, t::Float64, dt::Float64)
+  # c is equidistant from zero to 1/2
+  c = zeros(16)
+  c[ 1] =  0/14
+  c[ 2] =  1/14
+  c[ 3] =  2/14
+  c[ 4] =  3/14
+  c[ 5] =  4/14
+  c[ 6] =  5/14
+  c[ 7] =  6/14
+  c[ 8] =  7/14
+
+  # Initialize storage for a
+  a = fill(NaN, 8, 8)
+
+  # a is from RKVToolbox.f95:coeff_myRKV() for N = 4, e = 8
+  a[ 3,  2] = 0.161052912159741
+  a[ 4,  3] = 0.0356912381251924
+  a[ 5,  4] = 0.00551136916447006
+  a[ 6,  5] = 0.000574761691915022
+  a[ 7,  6] = 3.67979150514884E-05
+  a[ 8,  7] = 1.10199952325967E-06
+
+  # Compute first column of Butcher tableau
+  a[ 2,  1] = c[ 2]
+  a[ 3,  1] = c[ 3] - a[ 3, 2]
+  a[ 4,  1] = c[ 4] - a[ 4, 3]
+  a[ 5,  1] = c[ 5] - a[ 5, 4]
+  a[ 6,  1] = c[ 6] - a[ 6, 5]
+  a[ 7,  1] = c[ 7] - a[ 7, 6]
+  a[ 8,  1] = c[ 8] - a[ 8, 7]
+
+  @show a[2,1]
+  @show a[3,1]
+  @show a[4,1]
+  @show a[5,1]
+  @show a[6,1]
+  @show a[7,1]
+  @show a[8,1]
+  @show a[2,1]
+  @show a[3,2]
+  @show a[4,3]
+  @show a[5,4]
+  @show a[6,5]
+  @show a[7,6]
+  @show a[8,7]
+  @show c[1]
+  @show c[2]
+  @show c[3]
+  @show c[4]
+  @show c[5]
+  @show c[6]
+  @show c[7]
+  @show c[8]
+  wololo
+
+  # Store for convenience
+  u   = solver.elements.u
+  k   = solver.elements.u_t
+  k1 = solver.elements.u_rungekutta
+  un  = similar(k)
+
+  # Implement general Runge-Kutta method (not storage-optimized) for paired RK schemes, where
+  # aᵢⱼ= 0 except for j = 1 or j = i - 1
+  # bₛ = 1, bᵢ = 0  for i ≠ s
+  # c₁ = 0
+  #
+  #                 s
+  # uⁿ⁺¹ = uⁿ + Δt  ∑ bᵢkᵢ = uⁿ + Δt kₛ
+  #                i=1
+  # k₁ = rhs(tⁿ, uⁿ)
+  # k₂ = rhs(tⁿ + c₂Δt, uⁿ + Δt(a₂₁ k₁))
+  # k₃ = rhs(tⁿ + c₃Δt, uⁿ + Δt(a₃₁ k₁ + a₃₂ k₂))
+  # k₄ = rhs(tⁿ + c₄Δt, uⁿ + Δt(a₄₁ k₁ + a₄₃ k₃))
+  # ...
+  # kₛ = rhs(tⁿ + cₛΔt, uⁿ + Δt(aₛ₁ k₁ + aₛ,ₛ₋₁ kₛ₋₁))
+
+  # Stage 1
+  stage = 1
+  t_stage = t + dt * c[stage]
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+
+  # Store permanently
+  @timeit timer() "Runge-Kutta step" begin
+    @. un = u
+    @. k1 = k
+  end
+
+  # Stage 2
+  stage = 2
+  t_stage = t + dt * c[stage]
+  @timeit timer() "Runge-Kutta step" @. u = un + dt * a[ 2, 1] * k1
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+
+  # Stages 3-8
+  for stage in 3:8
+    t_stage = t + dt * c[stage]
+    @timeit timer() "Runge-Kutta step" @. u = un + dt * (a[stage, 1] * k1 + a[stage, stage-1] * k)
+    @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+  end
+
+  # Final update to u
+  @timeit timer() "Runge-Kutta step" @. u = un + dt * k
 end
 
 
