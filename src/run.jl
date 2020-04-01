@@ -270,8 +270,10 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
 	# Compute current AMR indicator values
-        lambda = calc_amr_indicator(solver, mesh, time)
-        # If mesh has changed, write a new mesh file name
+	if solver.amr_indicator != Symbol("n/a")
+          lambda = calc_amr_indicator(solver, mesh, time)
+        end
+	# If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
           mesh.unsaved_changes = false
