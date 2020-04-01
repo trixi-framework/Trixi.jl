@@ -394,7 +394,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, false, :density)
+    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, false, Val(:density))
 
 
     # Iterate over all elements
