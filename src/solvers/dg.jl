@@ -146,14 +146,18 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi"]))
+
+  # Initialize storage for element variables
+  element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
+  if amr_indicator === :khi
+    element_variables[:amr_indicator_values] = zeros(n_elements)
+  end
   # maximum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
 
   # maximum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
 
-  # Initialize storage for element variables
-  element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === :shock_capturing
     element_variables[:blending_factor] = zeros(n_elements)

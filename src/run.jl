@@ -1,7 +1,7 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Equations: make_equations, nvariables
-using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
+using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs, calc_amr_indicator,rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
@@ -195,6 +195,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Save initial conditions if desired
   if !restart && parameter("save_initial_solution", true)
+    rhs!(solver, 0.0)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -268,6 +269,8 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
+	# Compute current AMR indicator values
+        lambda = calc_amr_indicator(solver, mesh, time)
         # If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
