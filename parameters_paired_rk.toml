@@ -17,11 +17,11 @@ t_end   = 1.0
 # Solver
 solver = "dg"
 N = 4
-cfl = 0.7
+cfl = 0.8
 n_steps_max = 10000
 analysis_interval = 100
-time_integration_scheme = "paired_rk_2_16"
-derivative_evaluations = 4
+time_integration_scheme = "paired_rk_2_8"
+# derivative_evaluations = 8
 
 
 ####################################################################################################
