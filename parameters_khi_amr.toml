@@ -20,7 +20,7 @@ volume_flux_type = "chandrashekar_ec"
 # volume_flux_type = "central"
 # sources = 
 t_start = 0.0
-t_end   = 0.5 #5.0
+t_end   = 5.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
