@@ -113,6 +113,26 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B2 = 0.0
     B3 = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+  elseif name == "mhd_blast"
+    # setup taken from Derigs et al. DMV article (2018)
+    # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+    r = sqrt(x[1]^2 + x[2]^2)
+    f = (0.1 - r)/0.01
+    if r <= 0.09
+      p = 1000.0
+    elseif r >= 0.1
+      p = 0.1
+    else
+      p = 0.1 + 999.9*f
+    end
+    rho = 1.0
+    v1 = 0.0
+    v2 = 0.0
+    v3 = 0.0
+    B1 = 100.0/sqrt(4.0*pi)
+    B2 = 0.0
+    B3 = 0.0
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   else
     error("Unknown initial condition '$name'")
   end
