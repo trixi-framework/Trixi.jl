@@ -18,8 +18,7 @@ function calc_coefficients(n_stages, n_derivative_evaluations)
   a = zeros(n_stages, n_stages)
 
   # First, store get the pre-computed coefficients
-  #=for i in (2 + n_stages - n_derivative_evaluations + 1):n_stages=#
-  for i in 3:n_stages
+  for i in (2 + n_stages - n_derivative_evaluations + 1):n_stages
     a[i, i-1] = rk_a[n_stages, n_derivative_evaluations][i, i-1]
   end
 
@@ -76,8 +75,11 @@ rk_a[16, 8][11,10] = 3.3274816172250303E-002
 
 # s = 16, e = 4
 rk_a[16, 4] = Coeff()
-rk_a[16, 4][16,15] = 0.34511338387216839
-rk_a[16, 4][15,14] = 0.23865894921016836
+rk_a[16, 4][16,15] = 0.30860538993562969
+rk_a[16, 4][15,14] = 0.13495465515328439
+
+# s = 16, e = 2 -> no unknown coefficients necessary but included for consistency
+rk_a[16, 2] = Coeff()
 
 
 end # module PairedRk
