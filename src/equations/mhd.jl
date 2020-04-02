@@ -36,7 +36,7 @@ struct Mhd <: AbstractEquation{8}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3"]
-    gamma = 1.6666666666666667
+    gamma = 1.4 # 1.6666666666666667
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
@@ -62,7 +62,7 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3]
   elseif name == "convergence_test"
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-    # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)]
+    # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
     α = 0.25*pi
     x_perp = x[1]*cos(α) + x[2]*sin(α)
     B_perp = 0.1*sin(2.0*pi*x_perp)
@@ -77,7 +77,7 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   elseif name == "orszag_tang"
     # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [0, 1] x [0, 1]
+    # domain must be [0, 1] x [0, 1], γ = 5/3
     rho = 1.0
     v1 = -sin(2.0*pi*x[2])
     v2 = sin(2.0*pi*x[1])
@@ -85,6 +85,32 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     p = 1.0/equation.gamma
     B1 = -sin(2.0*pi*x[2])/equation.gamma
     B2 = sin(4.0*pi*x[1])/equation.gamma
+    B3 = 0.0
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+  elseif name == "rotor"
+    # setup taken from Derigs et al. DMV article (2018)
+    # domain must be [0, 1] x [0, 1], γ = 1.4
+    Δx = x[1] - 0.5
+    Δy = x[2] - 0.5
+    r = sqrt(Δx^2 + Δy^2)
+    f = (0.115 - r)/0.015
+    if r <= 0.1
+      rho = 10.0
+      v1 = -20.0*Δy
+      v2 = 20.0*Δx
+    elseif r >= 0.115
+      rho = 1.0
+      v1 = 0.0
+      v2 = 0.0
+    else
+      rho = 1.0 + 9.0*f
+      v1 = -20.0*f*Δy
+      v2 = 20.0*f*Δx
+    end
+    v3 = 0.0
+    p = 1.0
+    B1 = 5.0/sqrt(4.0*pi)
+    B2 = 0.0
     B3 = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   else
