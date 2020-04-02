@@ -1,8 +1,11 @@
 module TimeDisc
 
+include("pairedrk.jl")
+
 using ..Trixi
 using ..Solvers: AbstractSolver, rhs!
 using ..Auxiliary: timer, parameter
+using .PairedRk: calc_coefficients
 using TimerOutputs: @timeit
 
 export timestep!
@@ -18,60 +21,8 @@ end
 
 # Second-order, 8-stage paired Runge-Kutta method
 function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_8}, t::Float64, dt::Float64)
-  # c is equidistant from zero to 1/2
-  c = zeros(16)
-  c[ 1] =  0/14
-  c[ 2] =  1/14
-  c[ 3] =  2/14
-  c[ 4] =  3/14
-  c[ 5] =  4/14
-  c[ 6] =  5/14
-  c[ 7] =  6/14
-  c[ 8] =  7/14
-
-  # Initialize storage for a
-  a = fill(NaN, 8, 8)
-
-  # a is from RKVToolbox.f95:coeff_myRKV() for N = 4, e = 8
-  a[ 3,  2] = 0.161052912159741
-  a[ 4,  3] = 0.0356912381251924
-  a[ 5,  4] = 0.00551136916447006
-  a[ 6,  5] = 0.000574761691915022
-  a[ 7,  6] = 3.67979150514884E-05
-  a[ 8,  7] = 1.10199952325967E-06
-
-  # Compute first column of Butcher tableau
-  a[ 2,  1] = c[ 2]
-  a[ 3,  1] = c[ 3] - a[ 3, 2]
-  a[ 4,  1] = c[ 4] - a[ 4, 3]
-  a[ 5,  1] = c[ 5] - a[ 5, 4]
-  a[ 6,  1] = c[ 6] - a[ 6, 5]
-  a[ 7,  1] = c[ 7] - a[ 7, 6]
-  a[ 8,  1] = c[ 8] - a[ 8, 7]
-
-  @show a[2,1]
-  @show a[3,1]
-  @show a[4,1]
-  @show a[5,1]
-  @show a[6,1]
-  @show a[7,1]
-  @show a[8,1]
-  @show a[2,1]
-  @show a[3,2]
-  @show a[4,3]
-  @show a[5,4]
-  @show a[6,5]
-  @show a[7,6]
-  @show a[8,7]
-  @show c[1]
-  @show c[2]
-  @show c[3]
-  @show c[4]
-  @show c[5]
-  @show c[6]
-  @show c[7]
-  @show c[8]
-  wololo
+  # Determine Runge-Kutta coefficients
+  a, c = calc_coefficients(8, 8)
 
   # Store for convenience
   u   = solver.elements.u
@@ -125,76 +76,8 @@ end
 
 # Second-order, 16-stage paired Runge-Kutta method
 function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_16}, t::Float64, dt::Float64)
-  # c is equidistant from zero to 1/2
-  c = zeros(16)
-  c[ 1] =  0/30
-  c[ 2] =  1/30
-  c[ 3] =  2/30
-  c[ 4] =  3/30
-  c[ 5] =  4/30
-  c[ 6] =  5/30
-  c[ 7] =  6/30
-  c[ 8] =  7/30
-  c[ 9] =  8/30
-  c[10] =  9/30
-  c[11] = 10/30
-  c[12] = 11/30
-  c[13] = 12/30
-  c[14] = 13/30
-  c[15] = 14/30
-  c[16] = 15/30
-
-  # Initialize storage for a
-  a = fill(NaN, 16, 16)
-
-  # a is from RKVToolbox.f95:coeff_myRKV() for N = 3, e = 16
-  #=a[ 3,  2] = 0.165166669337488=#
-  #=a[ 4,  3] = 0.0401668050701765=#
-  #=a[ 5,  4] = 0.00759455436520174=#
-  #=a[ 6,  5] = 0.00115122631486203=#
-  #=a[ 7,  6] = 0.000142357578873289=#
-  #=a[ 8,  7] = 1.44841485339422E-05=#
-  #=a[ 9,  8] = 1.21471109398537E-06=#
-  #=a[10,  9] = 8.3591475032839E-08=#
-  #=a[11, 10] = 4.66643183666034E-09=#
-  #=a[12, 11] = 2.07030960191563E-10=#
-  #=a[13, 12] = 7.05381938694148E-12=#
-  #=a[14, 13] = 1.74014502604551E-13=#
-  #=a[15, 14] = 2.77667689318645E-15=#
-  #=a[16, 15] = 2.15877727024596E-17=#
-
-  # a is from RKVToolbox.f95:coeff_myRKV() for N = 4, e = 16
-  a[ 3,  2] = 0.165170249013769
-  a[ 4,  3] = 0.0401708925915785
-  a[ 5,  4] = 0.00759453418765444
-  a[ 6,  5] = 0.00115041317941212
-  a[ 7,  6] = 0.000142008703633599
-  a[ 8,  7] = 1.44012500747081E-05
-  a[ 9,  8] = 1.20129989690388E-06
-  a[10,  9] = 8.20080636558013E-08
-  a[11, 10] = 4.52651381950371E-09
-  a[12, 11] = 1.97772183056185E-10
-  a[13, 12] = 6.60458879939973E-12
-  a[14, 13] = 1.58815369931921E-13
-  a[15, 14] = 2.45444021408439E-15
-  a[16, 15] = 1.83497672067887E-17
-
-  # Compute first column of Butcher tableau
-  a[ 2,  1] = c[ 2]
-  a[ 3,  1] = c[ 3] - a[ 3, 2]
-  a[ 4,  1] = c[ 4] - a[ 4, 3]
-  a[ 5,  1] = c[ 5] - a[ 5, 4]
-  a[ 6,  1] = c[ 6] - a[ 6, 5]
-  a[ 7,  1] = c[ 7] - a[ 7, 6]
-  a[ 8,  1] = c[ 8] - a[ 8, 7]
-  a[ 9,  1] = c[ 9] - a[ 9, 8]
-  a[10,  1] = c[10] - a[10, 9]
-  a[11,  1] = c[11] - a[11,10]
-  a[12,  1] = c[12] - a[12,11]
-  a[13,  1] = c[13] - a[13,12]
-  a[14,  1] = c[14] - a[14,13]
-  a[15,  1] = c[15] - a[15,14]
-  a[16,  1] = c[16] - a[16,15]
+  # Determine Runge-Kutta coefficients
+  a, c = calc_coefficients(16, 16)
 
   # Store for convenience
   u   = solver.elements.u
