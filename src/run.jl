@@ -195,7 +195,8 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Save initial conditions if desired
   if !restart && parameter("save_initial_solution", true)
-    rhs!(solver, 0.0)
+    # we need to make sure, that derived quantities, such as e.g. blending factor is already computed for the initial condition
+    rhs!(solver, time)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -269,9 +270,9 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
-	# Compute current AMR indicator values
-	if solver.amr_indicator != Symbol("n/a")
-          lambda = calc_amr_indicator(solver, mesh, time)
+	# Compute current AMR indicator values for the current number of elements
+	if amr_interval > 0
+          calc_amr_indicator(solver, mesh, time)
         end
 	# If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes

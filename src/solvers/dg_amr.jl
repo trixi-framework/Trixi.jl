@@ -383,6 +383,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
   elseif dg.amr_indicator === :khi
     base_level = 4
     max_level = 6
+    # to make the simulation smaller and quicker wall clock time, choose super_max_level = 6
     super_max_level = 7
     blending_factor_threshold0 = 0.3
     blending_factor_threshold1 = 0.003
@@ -396,7 +397,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:amr_indicator_values]
     out = Any[]
-    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, false, Val(:density))
+    calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, false, Val(:density))
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -423,7 +424,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
   elseif dg.amr_indicator === :blast_wave
     base_level = 4
     max_level = 6
-    blending_factor_threshold = 0.003
+    blending_factor_threshold = 0.01
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -433,7 +434,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+    calc_blending_factors(alpha, out, dg, dg.elements.u)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

@@ -23,6 +23,7 @@ import .L2Projection # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
+using Random: seed!
 
 export Dg
 export set_initial_conditions
@@ -591,7 +592,8 @@ end
 # Call equation-specific initial conditions functions and apply to all elements
 function Solvers.set_initial_conditions(dg::Dg, time::Float64)
   equation = equations(dg)
-
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
@@ -755,7 +757,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,dg.shock_alpha_max,true, Val(:density_pressure))
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
@@ -1403,11 +1405,6 @@ function Solvers.calc_dt(dg::Dg, cfl)
   return min_dt
 end
 
-# if calc_blending_factors is called without further details, it is assumed that blending factors for shock capturing are wanted 
-# for shock capturing, use shock_alpha_max, and do_smoothing = true, and which_indicator_var= :density_pressure
-calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64}) = calc_blending_factors(alpha, out, dg, dg.elements.u, dg.shock_alpha_max, true, Val(:density_pressure))
-
-
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},alpha_max::Float64, do_smoothing::Bool,which_indicator_var)
   # Calculate blending factor
@@ -1415,7 +1412,6 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
   alpha_min = 0.0001
-  #alpha_max = dg.shock_alpha_max
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
