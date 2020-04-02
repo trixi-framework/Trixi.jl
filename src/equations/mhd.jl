@@ -83,8 +83,8 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     v2 = sin(2.0*pi*x[1])
     v3 = 0.0
     p = 1.0/equation.gamma
-    B1 = v1/equation.gamma
-    B2 = v2/equation.gamma
+    B1 = -sin(2.0*pi*x[2])/equation.gamma
+    B2 = sin(4.0*pi*x[1])/equation.gamma
     B3 = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   else
@@ -376,7 +376,6 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
                             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr,
                             equation::Mhd, orientation::Int)
   # Calculate primitive variables and fast magnetoacoustic wave speeds
-  # TODO: make a function that computes the wave speed because it is needed for the time step
   # left
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
