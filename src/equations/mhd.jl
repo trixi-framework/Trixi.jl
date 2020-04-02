@@ -36,7 +36,7 @@ struct Mhd <: AbstractEquation{8}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3"]
-    gamma = 5.0/3.0 # am i allowed to do this???
+    gamma = 1.6666666666666667
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
@@ -130,7 +130,7 @@ end
                                      rho::Float64, rho_v1::Float64,
                                      rho_v2::Float64, rho_v3::Float64,
                                      rho_e::Float64, B1::Float64,
-                                     B2::Float64, B3:Float64)
+                                     B2::Float64, B3::Float64)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -201,7 +201,7 @@ end
                                         u[5, i, j, element_id], u[6, i, j, element_id],
                                         u[7, i, j, element_id], u[8, i, j, element_id],
                                         u[1, l, j, element_id], u[2, l, j, element_id],
-                                        u[3, l, j, element_id], u[4, l, j, element_id])
+                                        u[3, l, j, element_id], u[4, l, j, element_id],
                                         u[5, l, j, element_id], u[6, l, j, element_id],
                                         u[7, l, j, element_id], u[8, l, j, element_id])
         for v in 1:nvariables(equation)
@@ -218,7 +218,7 @@ end
                                         u[5, i, j, element_id], u[6, i, j, element_id],
                                         u[7, i, j, element_id], u[8, i, j, element_id],
                                         u[1, i, l, element_id], u[2, i, l, element_id],
-                                        u[3, i, l, element_id], u[4, i, l, element_id])
+                                        u[3, i, l, element_id], u[4, i, l, element_id],
                                         u[5, i, l, element_id], u[6, i, l, element_id],
                                         u[7, i, l, element_id], u[8, i, l, element_id])
         for v in 1:nvariables(equation)
@@ -389,7 +389,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   b1_ll = B1_ll / sqrt(rho_ll)
   b2_ll = B2_ll / sqrt(rho_ll)
   b3_ll = B3_ll / sqrt(rho_ll)
-  b_square_ll = b1_ll^2 + b2_ll^2 b3_ll^2
+  b_square_ll = b1_ll^2 + b2_ll^2 + b3_ll^2
   # fast magnetoacoustic wave speed
   if orientation == 1 # x-direction
     b_dir = b1_ll
@@ -448,7 +448,7 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 8},
+function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
                                element_id::Int, n_nodes::Int,
                                invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
@@ -473,9 +473,9 @@ function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 8},
       b3 = B3/sqrt(rho)
       b_square = b1^2 + b2^2 + b3^2
       cf_x_direction = sqrt(0.5*(a_square + b_square) +
-                            0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2)
+                            0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))
       cf_y_direction = sqrt(0.5*(a_square + b_square) +
-                            0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2)
+                            0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2))
       cf_max = max(cf_x_direction,cf_y_direction)
       λ_max = max(λ_max, v_mag + cf_max)
     end
@@ -488,7 +488,7 @@ end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::Mhd, cons::Array{Float64, 8})
+function Equations.cons2prim(equation::Mhd, cons::Array{Float64, 4})
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -509,7 +509,7 @@ end
 
 
 # Convert conservative variables to entropy
-function Equations.cons2entropy(equation::Mhd,cons::Array{Float64, 8},n_nodes::Int,n_elements::Int)
+function Equations.cons2entropy(equation::Mhd,cons::Array{Float64, 4},n_nodes::Int,n_elements::Int)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)
