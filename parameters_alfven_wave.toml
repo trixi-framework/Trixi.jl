@@ -6,7 +6,7 @@ initial_conditions = "convergence_test"
 surface_flux_type = "laxfriedrichs"
 # sources = 
 t_start = 0.0
-t_end   = 2.0
+t_end   = 1.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -15,8 +15,8 @@ t_end   = 2.0
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 3
-cfl = 0.5
+N = 5 
+cfl = 0.1
 n_steps_max = 10000
 analysis_interval = 100
 
