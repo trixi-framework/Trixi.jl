@@ -4,9 +4,10 @@ equations = "mhd"
 
 initial_conditions = "convergence_test"
 surface_flux_type = "laxfriedrichs"
+
 # sources = 
 t_start = 0.0
-t_end   = 1.0
+t_end   = 2.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -15,8 +16,8 @@ t_end   = 1.0
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 5 
-cfl = 0.1
+N = 3 
+cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
 
@@ -26,7 +27,7 @@ analysis_interval = 100
 n_cells_max = 10000
 coordinates_min = [0, 0]
 coordinates_max = [1.4142135623730951, 1.4142135623730951]
-initial_refinement_level = 4
+initial_refinement_level = 4 
 # refinement_patches = [
 #   {type = "box", coordinates_min = 0, coordinates_max = 16},
 # ]
