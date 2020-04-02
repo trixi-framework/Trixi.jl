@@ -369,7 +369,7 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
-      
+
       # Skip if neighbor has children
       neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_cell_id)
@@ -867,10 +867,19 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 1)
+	  if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 1)
+	  elseif equation.name == "mhd"
+		  riemann!(fstarnode,
+                   u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+				   u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                   u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+				   u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                   equation, 1)
+	  end
       for v in 1:nvariables(equation)
         fstar1[v,i,j] = fstarnode[v]
       end
@@ -888,10 +897,19 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 2)
+	  if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 2)
+	  elseif equation.name == "mhd"
+		  riemann!(fstarnode,
+                   u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+				   u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                   u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+				   u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                   equation, 2)
+      end
       for v in 1:nvariables(equation)
         fstar2[v,i,j] = fstarnode[v]
       end
@@ -1461,7 +1479,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
     alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
   end
- 
+
   # Loop over L2 mortars
   for l2mortar_id in 1:dg.n_l2mortars
     # Get neighboring element ids
@@ -1475,7 +1493,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
     alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
   end
- 
+
   # Loop over EC mortars
   for ecmortar_id in 1:dg.n_ecmortars
     # Get neighboring element ids
