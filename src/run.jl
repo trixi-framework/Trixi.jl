@@ -199,8 +199,9 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Save initial conditions if desired
   if !restart && parameter("save_initial_solution", true)
-    # we need to make sure, that derived quantities, such as e.g. blending factor is already computed for the initial condition
-    rhs!(solver, time)
+    # we need to make sure, that derived quantities, such as e.g. blending
+    # factor is already computed for the initial condition
+    rhs!(solver, time, disable_timers=true)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
