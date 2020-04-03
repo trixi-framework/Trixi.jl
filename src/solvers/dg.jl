@@ -1417,7 +1417,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
-  alpha_min = 0.0001
+  alpha_min = 0.001
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
