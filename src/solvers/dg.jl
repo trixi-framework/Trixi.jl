@@ -1411,7 +1411,8 @@ function Solvers.calc_dt(dg::Dg, cfl)
 end
 
 # Calculate blending factors used for shock capturing, or amr control
-function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},alpha_max::Float64, do_smoothing::Bool,which_indicator_var)
+function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
+                               alpha_max::Float64, do_smoothing::Bool, which_indicator_var)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
@@ -1420,7 +1421,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg),which_indicator_var)
+    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), which_indicator_var)
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
