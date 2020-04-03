@@ -876,9 +876,10 @@ end
 		  riemann!(fstarnode,
                    u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
 				   u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                   u_leftright[1, 9],
                    u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
 				   u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                   equation, 1)
+				   u_leftright[2, 9], equation, 1)
 	  end
       for v in 1:nvariables(equation)
         fstar1[v,i,j] = fstarnode[v]
@@ -906,9 +907,10 @@ end
 		  riemann!(fstarnode,
                    u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
 				   u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+				   u_leftright[1, 9],
                    u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
 				   u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                   equation, 2)
+                   u_leftright[2, 9], equation, 2)
       end
       for v in 1:nvariables(equation)
         fstar2[v,i,j] = fstarnode[v]
