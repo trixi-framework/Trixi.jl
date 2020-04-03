@@ -13,7 +13,7 @@ gamma = 1.66667
 initial_conditions = "blob"
 # sources = 
 t_start = 0.0
-t_end   = 4.0
+t_end   = 16.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
@@ -26,8 +26,7 @@ n_steps_max = 10000
 analysis_interval = 100
 shock_indicator_variable = "pressure"
 shock_alpha_max = 0.3
-shock_alpha_min = 0.0001
-amr_alpha_min = 0.0001
+shock_alpha_min = 0.001
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
 #volume_integral_type = "split_form"
@@ -57,6 +56,7 @@ initial_refinement_level = 6
 amr_indicator = "blob"
 amr_interval = 1
 amr_alpha_max = 1.0 #0.0031
+amr_alpha_min = 0.0001
 
 ####################################################################################################
 # I/O
