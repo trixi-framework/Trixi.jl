@@ -18,8 +18,25 @@ easily be achieved by performing the following steps:
 2.  Enter the cloned directory and run the following command to install all
     required dependencies:
     ```bash
-    julia --project=. -e 'import Pkg; Pkg.instantiate()'
+    julia utils/install.jl
     ```
+
+Afterwards you are able to use Trixi and the postprocessing tools without
+repeating these steps. In case the execution of the `install.jl` script fails,
+you can also install the dependencies manually:
+```bash
+# Enter the Trixi root directory
+cd path/to/Trixi.jl
+
+# Install Trixi dependencies
+julia --project=. -e 'import Pkg; Pkg.instantiate()'
+
+# Install Trixi2Img dependencies
+julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
+
+# Install Trixi2Vtk dependencies
+julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
+```
 
 
 ## Usage
@@ -135,13 +152,6 @@ locations to equidistant "visualization nodes" at a higher resolution, to make
 up for the loss of accuracy from going from a high-order polynomial
 representation to a piecewise constant representation in ParaView.
 
-Before the first use, enter the `Trixi.jl/` root directory and install all
-necessary dependencies for `trixi2vtk` by running
-```bash
-julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
-```
-This installation step is only necessary once.
-
 Then, to convert a file, just call `trixi2vtk` with the name of a `.h5` file as argument:
 ```bash
 postprocessing/trixi2vtk out/solution_000000.h5
@@ -179,13 +189,6 @@ downside of this approach is that it generally takes longer to visualize the
 data (especially for large files) and that it does not allow to customize the
 output without having to directly edit the source code of `trixi2img`.
 Currently, PNG and PDF are supported as output formats.
-
-Before the first use, enter the `Trixi.jl/` root directory and install all
-necessary dependencies for `trixi2img` by running
-```bash
-julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
-```
-This installation step is only necessary once.
 
 Then, to convert a file, just call `trixi2img` with the name of a `.h5` file as argument:
 ```bash
