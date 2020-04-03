@@ -515,7 +515,6 @@ function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
     end
   end
   # Set the GLM cleaning speed to be the same size as the fastest wavespeed.
-  # TODO: this is a hacked way to do this utlizing the global nature of the equation variables
   equation.c_h = max(equation.c_h,λ_max)
 
   dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
