@@ -9,7 +9,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt,
-	                  cons2entropy, cons2indicator, cons2indicator!, cons2prim
+	                  cons2entropy, cons2indicator!, cons2prim
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -23,6 +23,7 @@ import .L2Projection # Import to satisfy Gregor
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
 using TimerOutputs: @timeit
 using Printf: @sprintf, @printf
+using Random: seed!
 
 export Dg
 export set_initial_conditions
@@ -78,7 +79,9 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
 
+  shock_alpha_max::Float64
   amr_indicator::Symbol
+  amr_alpha_max::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 end
@@ -143,14 +146,24 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
+  if amr_indicator === :khi
+    element_variables[:amr_indicator_values] = zeros(n_elements)
+  end
+  # maximum alpha for shock capturing
+  shock_alpha_max = parameter("shock_alpha_max", 0.5)
+
+  # maximum alpha for amr control
+  amr_alpha_max = parameter("amr_alpha_max", 0.5)
+
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === :shock_capturing
     element_variables[:blending_factor] = zeros(n_elements)
   end
+
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -167,8 +180,9 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      amr_indicator,
+      shock_alpha_max,amr_indicator,amr_alpha_max,
       element_variables)
+      
 
   return dg
 end
@@ -578,7 +592,8 @@ end
 # Call equation-specific initial conditions functions and apply to all elements
 function Solvers.set_initial_conditions(dg::Dg, time::Float64)
   equation = equations(dg)
-
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
@@ -742,7 +757,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,dg.shock_alpha_max,true, Val(:density_pressure))
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
@@ -1390,19 +1405,17 @@ function Solvers.calc_dt(dg::Dg, cfl)
   return min_dt
 end
 
-
-# Calculate blending factors for shock capturing
-function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64})
+# Calculate blending factors used for shock capturing, or amr control
+function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},alpha_max::Float64, do_smoothing::Bool,which_indicator_var)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
-  alpha_min = 0.001
-  alpha_max = 0.5
+  alpha_min = 0.0001
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg))
+    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg),which_indicator_var)
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
@@ -1447,47 +1460,49 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
-  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-  # Copy alpha values such that smoothing is indpedenent of the element access order
-  alpha_pre_smooth = copy(alpha)
+  if (do_smoothing)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_pre_smooth = copy(alpha)
 
-  # Loop over surfaces
-  for surface_id in 1:dg.n_surfaces
-    # Get neighboring element ids
-    left  = dg.surfaces.neighbor_ids[1, surface_id]
-    right = dg.surfaces.neighbor_ids[2, surface_id]
+    # Loop over surfaces
+    for surface_id in 1:dg.n_surfaces
+      # Get neighboring element ids
+      left  = dg.surfaces.neighbor_ids[1, surface_id]
+      right = dg.surfaces.neighbor_ids[2, surface_id]
 
-    # Apply smoothing
-    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-  end
+      # Apply smoothing
+      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+    end
  
-  # Loop over L2 mortars
-  for l2mortar_id in 1:dg.n_l2mortars
-    # Get neighboring element ids
-    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+    # Loop over L2 mortars
+    for l2mortar_id in 1:dg.n_l2mortars
+      # Get neighboring element ids
+      lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+      upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+      large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-  end
+      # Apply smoothing
+      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+    end
  
-  # Loop over EC mortars
-  for ecmortar_id in 1:dg.n_ecmortars
-    # Get neighboring element ids
-    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+    # Loop over EC mortars
+    for ecmortar_id in 1:dg.n_ecmortars
+      # Get neighboring element ids
+      lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+      upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+      large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+      # Apply smoothing
+      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+    end
   end
 
   # Clip blending factor for values close to zero (-> pure DG)

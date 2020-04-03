@@ -100,7 +100,7 @@ function run(;args=nothing, kwargs...)
     end
     max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
     if args["nvisnodes"] == nothing
-      max_nvisnodes = 4 * n_nodes
+      max_nvisnodes = 2 * n_nodes
     elseif args["nvisnodes"] == 0
       max_nvisnodes = n_nodes
     else
