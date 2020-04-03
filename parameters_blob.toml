@@ -25,7 +25,7 @@ cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
 shock_indicator_variable = "pressure"
-shock_alpha_max = 0.3
+shock_alpha_max = 0.05
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
 #volume_integral_type = "split_form"
@@ -44,17 +44,17 @@ volume_flux_type = "chandrashekar_ec"
 n_cells_max = 100000
 coordinates_min = [-32.0, -32.0]
 coordinates_max =  [32.0, 32.0]
-initial_refinement_level = 6
-# refinement_patches = [
-#   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
-#   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
-#   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
-# ]
+initial_refinement_level = 4
+ refinement_patches = [
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+ ]
 ####################################################################################################
 # AMR
-amr_indicator = "blob"
-amr_interval = 1
-amr_alpha_max = 1.0 #0.0031
+#amr_indicator = "blob"
+#amr_interval = 1
+#amr_alpha_max = 1.0 #0.0031
 
 ####################################################################################################
 # I/O
