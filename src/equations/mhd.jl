@@ -17,7 +17,6 @@ export cons2entropy
 export cons2indicator
 export cons2indicator!
 
-# TODO: Riemann solvers, time step calculation
 
 # Main data structure for system of equations "Mhd"
 struct Mhd <: AbstractEquation{8}
@@ -36,7 +35,7 @@ struct Mhd <: AbstractEquation{8}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3"]
-    gamma = 1.4 # 1.6666666666666667
+    gamma = 1.6666666666666667 # 1.4
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
