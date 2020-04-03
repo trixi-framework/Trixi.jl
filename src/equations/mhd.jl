@@ -19,13 +19,14 @@ export cons2indicator!
 
 
 # Main data structure for system of equations "Mhd"
-struct Mhd <: AbstractEquation{8}
+mutable struct Mhd <: AbstractEquation{8}
   name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{8, String}
   varnames_prim::SVector{8, String}
   gamma::Float64
+  c_h::Float64 # GLM cleaning speed
   surface_flux_type::Symbol
   volume_flux_type::Symbol
 
@@ -35,12 +36,13 @@ struct Mhd <: AbstractEquation{8}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3"]
-    gamma = 1.6666666666666667 # 1.4
+    gamma = 0.0 # 1.6666666666666667
+    c_h = 0.0
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
                                         valid=["central"]))
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
         surface_flux_type, volume_flux_type)
   end
 end
@@ -50,6 +52,7 @@ end
 function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, t::Real)
   name = equation.initial_conditions
   if name == "constant"
+    equation.gamma = 1.4
     rho = 1.0
     rho_v1 = 0.1
     rho_v2 = -0.2
@@ -58,10 +61,11 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = 3.0
     B2 = -1.2
     B3 = 0.4
-    return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3]
+    ini_vec = [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3]
   elseif name == "convergence_test"
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
+    equation.gamma = 5.0/3.0
     α = 0.25*pi
     x_perp = x[1]*cos(α) + x[2]*sin(α)
     B_perp = 0.1*sin(2.0*pi*x_perp)
@@ -73,10 +77,11 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = cos(α) + v1
     B2 = sin(α) + v2
     B3 = v3
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   elseif name == "orszag_tang"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [0, 1] x [0, 1], γ = 5/3
+    equation.gamma = 5.0/3.0
     rho = 1.0
     v1 = -sin(2.0*pi*x[2])
     v2 = sin(2.0*pi*x[1])
@@ -85,10 +90,11 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = -sin(2.0*pi*x[2])/equation.gamma
     B2 = sin(4.0*pi*x[1])/equation.gamma
     B3 = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   elseif name == "rotor"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [0, 1] x [0, 1], γ = 1.4
+    equation.gamma = 1.4
     Δx = x[1] - 0.5
     Δy = x[2] - 0.5
     r = sqrt(Δx^2 + Δy^2)
@@ -111,10 +117,11 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = 5.0/sqrt(4.0*pi)
     B2 = 0.0
     B3 = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   elseif name == "mhd_blast"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+    equation.gamma = 1.4
     r = sqrt(x[1]^2 + x[2]^2)
     f = (0.1 - r)/0.01
     if r <= 0.09
@@ -131,10 +138,16 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = 100.0/sqrt(4.0*pi)
     B2 = 0.0
     B3 = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
+    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3])
   else
     error("Unknown initial condition '$name'")
   end
+
+  if equation.gamma == 0.0
+    error("Forgot to set adiabatic constant γ in initial setup!")
+  end
+
+  return ini_vec
 end
 
 
@@ -480,6 +493,11 @@ function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
       λ_max = max(λ_max, v_mag + cf_max)
     end
   end
+  #=
+  Set the GLM cleaning speed to be the same size as the fastest wavespeed.
+  TODO: this is a hacked way to do this utlizing the global nature of the equation variables
+  =#
+  equation.c_h = max(equation.c_h,λ_max)
 
   dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
 
