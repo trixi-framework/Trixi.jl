@@ -1,7 +1,8 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Equations: make_equations, nvariables
-using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
+using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
+                calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
@@ -84,6 +85,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
+  adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -98,12 +100,14 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time)
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+          only_refine=adapt_initial_conditions_only_refine)
 
       # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions(solver, time)
-        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time)
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+            only_refine=adapt_initial_conditions_only_refine)
       end
 
       # Save mesh file
@@ -195,6 +199,9 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Save initial conditions if desired
   if !restart && parameter("save_initial_solution", true)
+    # we need to make sure, that derived quantities, such as e.g. blending
+    # factor is already computed for the initial condition
+    rhs!(solver, time, disable_timers=true)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -268,6 +275,12 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
+        # Compute current AMR indicator values such that it can be written to
+        # the solution file for the current number of elements
+        if amr_interval > 0
+          calc_amr_indicator(solver, mesh, time)
+        end
+
         # If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
