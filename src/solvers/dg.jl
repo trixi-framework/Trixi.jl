@@ -762,7 +762,9 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,dg.shock_alpha_max,true, Val(dg.shock_indicator_variable))
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,
+                                                           dg.shock_alpha_max, true,
+                                                           Val(dg.shock_indicator_variable))
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience

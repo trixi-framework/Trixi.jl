@@ -38,9 +38,9 @@ struct Euler <: AbstractEquation{4}
     gamma = parameter("gamma", 1.4)
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
                                          valid=["hllc", "laxfriedrichs","central", 
-                                                "kennedygruber", "chandrashekar_ec","yuichi"]))
+                                                "kennedygruber", "chandrashekar_ec", "yuichi"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "kennedygruber", "chandrashekar_ec","yuichi"]))
+                              valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -660,7 +660,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec,:yuichi)
+  elseif equation.surface_flux_type in (:central, :kennedygruber, :chandrashekar_ec, :yuichi)
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
@@ -842,6 +842,7 @@ function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_node
   return entropy
 end
 
+
 # Convert primitive to conservative variables
 function prim2cons(equation::Euler, prim::AbstractArray{Float64})
   cons = similar(prim)
@@ -866,12 +867,14 @@ end
   end
 end
 
+
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
                                           ::Val{:density})
   # Indicator variable is rho 
   return rho 
 end
+
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
@@ -885,7 +888,8 @@ end
   # Indicator variable is rho * p
   return rho * p
 end
-#
+
+
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
                                           ::Val{:pressure})
@@ -895,6 +899,7 @@ end
   # Indicator variable is p
   return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 end
+
 
 # Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
 @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
