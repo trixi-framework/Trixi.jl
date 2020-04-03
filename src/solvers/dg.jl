@@ -17,7 +17,7 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
-		      vandermonde_legendre, nodal2modal
+		      vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
@@ -528,6 +528,41 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   return dsdu_ut
 end
 
+# Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
+# TODO: optimize; this implementation is probably very slow
+function calc_solenoid_condition(dg::Dg, t::Float64)
+  # Gather necessary information
+  equation = equations(dg)
+  n_nodes = nnodes(dg)
+  # Local copy of standard derivative matrix
+  d = polynomial_derivative_matrix(dg.nodes)
+  # Quadrature weights
+  weights = dg.weights
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb   = -eps(Float64)
+  l2_divb   = 0.0
+  for element_id in 1:dg.n_elements
+	  jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndim
+	  for j in 1:n_nodes
+		  for i in 1:n_nodes
+			divb   = 0.0
+			for k in 1:n_nodes
+				divb += d[i,k]*dg.elements.u[6,k,j,element_id]
+				       + d[j,k]*dg.elements.u[7,i,k,element_id]
+			end
+			divb *= dg.elements.inverse_jacobian[element_id]
+			linf_divb = max(linf_divb,abs(divb))
+			l2_divb += jacobian_volume*weights[i]*weights[j]*divb^2
+		  end
+	  end
+  end
+  l2_divb   = sqrt(l2_divb/dg.analysis_total_volume)
+
+  return l2_divb, linf_divb
+end
+
+
+
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
@@ -535,6 +570,7 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
+
   n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
   println()
@@ -569,6 +605,16 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
   println()
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
+
+  if equation.name == "mhd"
+	l2_divb, linf_divb = calc_solenoid_condition(dg, time)
+    println()
+    print(" L2 ∇⋅B:    ")
+    @printf("    % 10.8e", l2_divb)
+    println()
+    print(" Linf ∇⋅B:    ")
+    @printf("  % 10.8e", linf_divb)
+  end
 
   println()
   println()
