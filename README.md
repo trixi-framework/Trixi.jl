@@ -5,6 +5,20 @@
        src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/doc/images/trixi.png">
 </p>
 
+*Trixi* is a flexible DG/SBP framework written in the Julia programming
+language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
+to be easy to use and extend.
+
+**Table of contents**
+
+*   [Installation](#installation)
+*   [Usage](#usage)
+*   [Development](#development)
+*   [Visualization and postprocessing](#visualization-and-postprocessing)
+*   [Style guide](#style-guide)
+*   [Authors](#authors)
+
+
 ## Installation
 Strictly speaking, no installation is necessary to run Trixi. However, the
 simulation program and the postprocessing tools rely on a number of Julia
