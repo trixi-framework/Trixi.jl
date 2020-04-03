@@ -81,8 +81,10 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   shock_indicator_variable::Symbol
   shock_alpha_max::Float64
+  shock_alpha_min::Float64
   amr_indicator::Symbol
   amr_alpha_max::Float64
+  amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 end
@@ -154,15 +156,17 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   if amr_indicator === :khi || amr_indicator === :blob
     element_variables[:amr_indicator_values] = zeros(n_elements)
   end
-  # maximum alpha for shock capturing
+  # maximum and minimum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
+  shock_alpha_min = parameter("shock_alpha_min", 0.001)
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
                                           valid=["density", "density_pressure", "pressure"]))
 
-  # maximum alpha for amr control
+  # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
+  amr_alpha_min = parameter("amr_alpha_min", 0.001)
 
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === :shock_capturing
@@ -185,7 +189,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      shock_indicator_variable, shock_alpha_max, amr_indicator, amr_alpha_max,
+      shock_indicator_variable, shock_alpha_max, shock_alpha_min,
+      amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables)
       
 
@@ -763,7 +768,9 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # properly and causes a huge increase in memory allocations.
   out = Any[]
   @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,
-                                                           dg.shock_alpha_max, true,
+                                                           dg.shock_alpha_max,
+                                                           dg.shock_alpha_min,
+                                                           true,
                                                            Val(dg.shock_indicator_variable))
   element_ids_dg, element_ids_dgfv = out
 
@@ -1414,12 +1421,12 @@ end
 
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
-                               alpha_max::Float64, do_smoothing::Bool, indicator_variable)
+                               alpha_max::Float64, alpha_min::Float64, do_smoothing::Bool,
+                               indicator_variable)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
-  alpha_min = 0.001
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
