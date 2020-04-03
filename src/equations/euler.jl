@@ -856,12 +856,12 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
                                            cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int, which_indicator_var)
+                                           element_id::Int, n_nodes::Int, indicator_variable)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
                                           cons[1, i, j, element_id], cons[2, i, j, element_id],
-					  cons[3, i, j, element_id], cons[4, i, j, element_id], which_indicator_var)
+					  cons[3, i, j, element_id], cons[4, i, j, element_id], indicator_variable)
     end
   end
 end

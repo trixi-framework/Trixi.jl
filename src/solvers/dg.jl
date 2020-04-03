@@ -185,7 +185,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      shock_indicator_variable,shock_alpha_max,amr_indicator,amr_alpha_max,
+      shock_indicator_variable, shock_alpha_max, amr_indicator, amr_alpha_max,
       element_variables)
       
 
@@ -1412,7 +1412,7 @@ end
 
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
-                               alpha_max::Float64, do_smoothing::Bool, which_indicator_var)
+                               alpha_max::Float64, do_smoothing::Bool, indicator_variable)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
@@ -1421,7 +1421,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), which_indicator_var)
+    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), indicator_variable)
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
