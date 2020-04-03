@@ -35,7 +35,7 @@ struct Euler <: AbstractEquation{4}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_e"]
     varnames_prim = ["rho", "v1", "v2", "p"]
-    gamma = 1.4
+    gamma = parameter("gamma", 1.4)
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
                                          valid=["hllc", "laxfriedrichs","central", 
                                                 "kennedygruber", "chandrashekar_ec","yuichi"]))
@@ -226,25 +226,37 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     return prim2cons(equation, [rho, v1, v2, p])
   elseif name == "blob" 
     # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
     # change discontinuity to tanh 
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
     # resolution 128^2, 256^2
-    # parameters
-    # domain size is [-0.5,0.5]^2
-    dens0 = 1.0 
-    dens1 = 2.0
-    velx0 = -0.5
-    velx1 = 0.5
-    slope = 50
-    # pressure equilibrium
-    p     = 2.5
-    #  y velocity is only white noise
-    v2  = 0.01*(rand(Float64,1)[1]-0.5)
-    # density
-    rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-    #  x velocity
-    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-    return prim2cons(equation, [rho, v1, v2, p])
+    # domain size is [-20.0,20.0]^2
+    # gamma = 5/3 for this test case
+    R = 1.0 # radius of the blob
+    # background density
+    dens0 = 1.0
+    Chi = 10.0 # density contrast
+    # reference time of characteristic growth of KH instability equal to 1.0
+    tau_kh = 1.0
+    tau_cr = tau_kh/1.6 # crushing time
+    # determine background velocity 
+    velx0 = 2*R*sqrt(Chi)/tau_cr
+    vely0 = 0.0
+    Ma0 = 2.7 # background flow Mach number Ma=v/c
+    c = velx0/Ma0 # sound speed
+    # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+    p0 = c*c*dens0/equation.gamma
+    # initial center of the blob
+    inicenter = [-15,0]
+    x_rel = x-inicenter
+    r = sqrt(x_rel[1]^2 + x_rel[2]^2)
+    # steepness of the tanh transition zone
+    slope = 5
+    # density blob
+    dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+    # velocity blob is zero
+    velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+    return prim2cons(equation, [dens, velx, vely0, p0])
   else
     error("Unknown initial condition '$name'")
   end

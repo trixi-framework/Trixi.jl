@@ -1,6 +1,7 @@
 ####################################################################################################
 # Simulation
 equations = "euler"
+gamma = 1.66667
 # equations = "linearscalaradvection"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 # initial_conditions = "convergence_test"
@@ -9,10 +10,10 @@ equations = "euler"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
 #initial_conditions = "weak_blast_wave"
-initial_conditions = "khi"
+initial_conditions = "blob"
 # sources = 
 t_start = 0.0
-t_end   = 5.0
+t_end   = 3.75
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
@@ -20,10 +21,10 @@ t_end   = 5.0
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.7
+cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
-shock_alpha_max = 0.002
+shock_alpha_max = 0.05
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
 #volume_integral_type = "split_form"
@@ -40,12 +41,19 @@ volume_flux_type = "chandrashekar_ec"
 ####################################################################################################
 # Mesh
 n_cells_max = 100000
-coordinates_min = [-0.5, -0.5]
-coordinates_max =  [0.5, 0.5]
-initial_refinement_level = 5
-# refinement_patches = [
-#   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
-# ]
+coordinates_min = [-40.0, -40.0]
+coordinates_max =  [40.0, 40.0]
+initial_refinement_level = 4
+ refinement_patches = [
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
+ ]
+####################################################################################################
+# AMR
+#amr_indicator = "khi"
+#amr_interval = 1
+#amr_alpha_max = 1.0 #0.0031
 
 ####################################################################################################
 # I/O

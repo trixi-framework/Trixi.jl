@@ -3,7 +3,6 @@
 equations = "euler"
 # equations = "linearscalaradvection"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
-
 # initial_conditions = "convergence_test"
 # initial_conditions = "isentropic_vortex"
 # initial_conditions = "linear-x-y"
@@ -11,20 +10,11 @@ equations = "euler"
 # initial_conditions = "constant"
 #initial_conditions = "weak_blast_wave"
 initial_conditions = "khi"
-surface_flux_type = "laxfriedrichs"
-#surface_flux_type = "chandrashekar_ec"
-#surface_flux_type = "yuichi"
-#volume_flux_type = "yuichi"
-volume_flux_type = "chandrashekar_ec"
-#volume_flux_type = "secret"
-# volume_flux_type = "central"
 # sources = 
 t_start = 0.0
 t_end   = 5.0
-
 # restart = true
 # restart_filename = "out/restart_000100.h5"
-
 
 ####################################################################################################
 # Solver
@@ -34,27 +24,33 @@ cfl = 0.7
 n_steps_max = 10000
 analysis_interval = 100
 shock_alpha_max = 0.002
-amr_alpha_max = 1.0 #0.0031
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
 #volume_integral_type = "split_form"
 #volume_integral_type = "weak_form"
 #volume_integral_type = "entropy_fix"
 #volume_integral_type = "entropy_fix2"
-
+surface_flux_type = "laxfriedrichs"
+#surface_flux_type = "chandrashekar_ec"
+#surface_flux_type = "yuichi"
+#volume_flux_type = "yuichi"
+volume_flux_type = "chandrashekar_ec"
+# volume_flux_type = "central"
 
 ####################################################################################################
 # Mesh
-amr_indicator = "khi"
 n_cells_max = 100000
 coordinates_min = [-0.5, -0.5]
 coordinates_max =  [0.5, 0.5]
 initial_refinement_level = 5
-amr_interval = 1
 # refinement_patches = [
 #   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
 # ]
-
+####################################################################################################
+# AMR
+amr_indicator = "khi"
+amr_interval = 1
+amr_alpha_max = 1.0 #0.0031
 
 ####################################################################################################
 # I/O
