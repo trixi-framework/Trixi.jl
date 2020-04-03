@@ -13,7 +13,7 @@ gamma = 1.66667
 initial_conditions = "blob"
 # sources = 
 t_start = 0.0
-t_end   = 3.75
+t_end   = 4.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
@@ -24,6 +24,7 @@ N = 3
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
+shock_indicator_variable = "pressure"
 shock_alpha_max = 0.05
 volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
@@ -41,8 +42,8 @@ volume_flux_type = "chandrashekar_ec"
 ####################################################################################################
 # Mesh
 n_cells_max = 100000
-coordinates_min = [-40.0, -40.0]
-coordinates_max =  [40.0, 40.0]
+coordinates_min = [-32.0, -32.0]
+coordinates_max =  [32.0, 32.0]
 initial_refinement_level = 4
  refinement_patches = [
    {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},

@@ -79,6 +79,7 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
 
+  shock_indicator_variable::Symbol
   shock_alpha_max::Float64
   amr_indicator::Symbol
   amr_alpha_max::Float64
@@ -156,6 +157,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # maximum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
 
+  # variable used to compute the shock capturing indicator
+  shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
+                                          valid=["density", "density_pressure", "pressure"]))
+
   # maximum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
 
@@ -180,7 +185,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      shock_alpha_max,amr_indicator,amr_alpha_max,
+      shock_indicator_variable,shock_alpha_max,amr_indicator,amr_alpha_max,
       element_variables)
       
 
@@ -757,7 +762,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,dg.shock_alpha_max,true, Val(:density_pressure))
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,dg.shock_alpha_max,true, Val(dg.shock_indicator_variable))
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience

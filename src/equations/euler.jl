@@ -883,6 +883,15 @@ end
   # Indicator variable is rho * p
   return rho * p
 end
+#
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e, ::Val{:pressure})
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+
+  # Indicator variable is p
+  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+end
 
 # Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
 @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
