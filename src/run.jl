@@ -85,6 +85,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
+  adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -99,12 +100,14 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,only_refine=true)
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+          only_refine=adapt_initial_conditions_only_refine)
 
       # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions(solver, time)
-        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,only_refine=true)
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+            only_refine=adapt_initial_conditions_only_refine)
       end
 
       # Save mesh file
