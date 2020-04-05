@@ -1,5 +1,9 @@
 # Trixi API
 
-```@docs
-Trixi.run
+```@meta
+CurrentModule = Trixi
+```
+
+```@autodocs
+Modules = [Trixi]
 ```

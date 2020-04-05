@@ -1,5 +1,9 @@
 # Trixi2Img API
 
-```@docs
-Trixi2Img.run
+```@meta
+CurrentModule = Trixi2Img
+```
+
+```@autodocs
+Modules = [Trixi2Img]
 ```

@@ -1,5 +1,9 @@
 # Trixi2Vtk API
 
-```@docs
-Trixi2Vtk.run
+```@meta
+CurrentModule = Trixi2Vtk
+```
+
+```@autodocs
+Modules = [Trixi2Vtk]
 ```

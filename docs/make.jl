@@ -33,7 +33,10 @@ makedocs(
     ),
     # Explicitly specify documentation structure
     pages = [
-        "Home" => "index.md"
+        "Home" => "index.md",
+        "Development" => "development.md",
+        "Visualization and postprocessing" => "visualization_postprocessing.md",
+        "Style guide" => "styleguide.md",
         "APIs" => [
             "Trixi" => "api/trixi.md",
             "Trixi2Img" => "api/trixi2img.md",
