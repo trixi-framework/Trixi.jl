@@ -1,18 +1,15 @@
 # Trixi: A tree-based flexible DG/SBP framework written in Julia
 
-<p align="center">
-  <img width="300px"
-       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/docs/src/assets/logo.png">
-</p>
-
 *Trixi* is a flexible DG/SBP framework written in the Julia programming
 language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
 to be easy to use and extend.
 
 
 ## Installation
-Install Trixi, the postprocessing tools, and the respective dependencies by
-performing the following steps:
+Strictly speaking, no installation is necessary to run Trixi. However, the
+simulation program and the postprocessing tools rely on a number of Julia
+packages, which need to be available on the respective machine. This can most
+easily be achieved by performing the following steps:
 
 1.  Clone the repository:
     ```bash
@@ -24,6 +21,23 @@ performing the following steps:
     julia utils/install.jl
     ```
 
+Afterwards you are able to use Trixi and the postprocessing tools without
+repeating these steps. In case the execution of the `install.jl` script fails,
+you can also install the dependencies manually:
+```bash
+# Enter the Trixi root directory
+cd path/to/Trixi.jl
+
+# Install Trixi dependencies
+julia --project=. -e 'import Pkg; Pkg.instantiate()'
+
+# Install Trixi2Img dependencies
+julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
+
+# Install Trixi2Vtk dependencies
+julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
+```
+
 
 ## Usage
 Enter the root directory `Trixi.jl/` and run
@@ -33,13 +47,6 @@ bin/trixi parameters.toml
 
 To change the simulation setup, edit `parameters.toml`. You can also pass a different
 parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
-
-
-## Documentation
-If you are on GitLab, you can browse the documentation
-[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/). If
-you are in your terminal, you will find all documentation under
-[`docs/src`](docs/src).
 
 
 ## Authors
