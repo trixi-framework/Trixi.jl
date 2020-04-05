@@ -37,7 +37,7 @@ parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 ## Documentation
 If you are on GitLab, you can browse the documentation
-[online](https://numsim.gitlab-pages.sloede.com/personal/mschlott/Trixi.jl/). If
+[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/). If
 you are in your terminal, you will find all documentation under
 [`docs/src`](docs/src).
 

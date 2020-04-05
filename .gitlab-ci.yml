@@ -7,6 +7,6 @@ pages:
     paths:
       - public
   only:
-  - documenter
+  - master
   tags:
     - latex

@@ -33,7 +33,7 @@ makedocs(
         # Explicitly add favicon as asset
         assets = ["assets/favicon.ico"],
         # Set canonical URL to GitLab pages URL
-        canonical = "https://numsim.gitlab-pages.sloede.com/personal/mschlott/Trixi.jl/"
+        canonical = "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/"
     ),
     # Explicitly specify documentation structure
     pages = [
@@ -48,5 +48,5 @@ makedocs(
         ]
     ],
     # Set repo to GitLab
-    repo = "https://gitlab.mi.uni-koeln.de/numsim/personal/mschlott/Trixi.jl/blob/{commit}{path}#{line}"
+    repo = "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/blob/{commit}{path}#{line}"
 )
