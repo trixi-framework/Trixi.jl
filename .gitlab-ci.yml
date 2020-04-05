@@ -1,0 +1,12 @@
+pages:
+  stage: deploy
+  script:
+    - julia --color=yes docs/make.jl
+    - mv docs/build public # move to the directory picked up by Gitlab pages
+  artifacts:
+    paths:
+      - public
+  only:
+  - documenter
+  tags:
+    - latex
