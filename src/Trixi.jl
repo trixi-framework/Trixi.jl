@@ -2,6 +2,13 @@ module Trixi
 
 # Set ndim as a short, module-wide constant.
 # Rationale: This makes code easier to understand than using hardcoded dimension values.
+"""
+Specify the number of spatial dimensions.
+
+Always use `ndim` instead of hard-coding the literal `2` when referring to the
+number of dimensions. This makes code easier to understand, since it adds a
+meaning to the number.
+"""
 const ndim = 2
 export ndim
 
