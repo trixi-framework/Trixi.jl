@@ -2,7 +2,7 @@
 
 <p align="center">
   <img width="300px"
-       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/doc/images/trixi.png">
+       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/docs/images/trixi.png">
 </p>
 
 *Trixi* is a flexible DG/SBP framework written in the Julia programming
