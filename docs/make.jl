@@ -29,7 +29,11 @@ makedocs(
     # Provide additional formatting options
     format = Documenter.HTML(
         # Disable pretty URLs during manual testing
-        prettyurls = get(ENV, "CI", nothing) == "true"
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        # Explicitly add favicon as asset
+        assets = ["assets/favicon.ico"],
+        # Set canonical URL to GitLab pages URL
+        canonical = "https://numsim.gitlab-pages.sloede.com/personal/mschlott/Trixi.jl/"
     ),
     # Explicitly specify documentation structure
     pages = [
