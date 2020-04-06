@@ -37,7 +37,7 @@ struct Euler <: AbstractEquation{4}
     varnames_prim = ["rho", "v1", "v2", "p"]
     gamma = parameter("gamma", 1.4)
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs","central", 
+                                         valid=["hllc", "laxfriedrichs","central",
                                                 "kennedygruber", "chandrashekar_ec", "yuichi"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
                               valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
@@ -58,7 +58,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     rho_v2 = rho * v2
     p = 1
     rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e] 
+    return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "pressure_pulse"
     rho = 1
     v1 = 1
@@ -67,7 +67,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     rho_v2 = rho * v2
     p = 1 + exp(-(x[1]^2 + x[2]^2))/2
     rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e] 
+    return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "density_pressure_pulse"
     rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
     v1 = 1
@@ -76,19 +76,19 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     rho_v2 = rho * v2
     p = 1 + exp(-x^2)/2
     rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e] 
+    return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "constant"
     rho = 1.0
     rho_v1 = 0.1
     rho_v2 = -0.2
     rho_e = 10.0
-    return [rho, rho_v1, rho_v2, rho_e] 
+    return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "convergence_test"
     c = 1.0
     A = 0.5
     a1 = 1.0
     a2 = 1.0
-    L = 2 
+    L = 2
     f = 1/L
     omega = 2 * pi * f
     p = 1.0
@@ -119,15 +119,15 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
     # cross product with iniaxis = [0,0,1]
     helper =  cent[1]
-    cent[1] = -cent[2]               
+    cent[1] = -cent[2]
     cent[2] = helper
-    r2=cent[1]^2+cent[2]^2 
+    r2=cent[1]^2+cent[2]^2
     du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
     dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-    prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))     
+    prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
     prim[2:3]=prim[2:3]+du*cent #v
-    prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))     
-    rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim) 
+    prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
+    rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
     return [rho,rho_v1,rho_v2,rho_e]
   elseif name == "weak_blast_wave"
     # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
@@ -205,12 +205,12 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "khi" 
+  elseif name == "khi"
     # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
-    # change discontinuity to tanh 
+    # change discontinuity to tanh
     # typical resolution 128^2, 256^2
     # domain size is [-0.5,0.5]^2
-    dens0 = 1.0 # outside density 
+    dens0 = 1.0 # outside density
     dens1 = 2.0 # inside density
     velx0 = -0.5 # outside velocity
     velx1 = 0.5 # inside velocity
@@ -224,10 +224,10 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     #  x velocity is also augmented with noise
     v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
     return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "blob" 
+  elseif name == "blob"
     # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
     # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # change discontinuity to tanh 
+    # change discontinuity to tanh
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
     # resolution 128^2, 256^2
     # domain size is [-20.0,20.0]^2
@@ -239,7 +239,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     # reference time of characteristic growth of KH instability equal to 1.0
     tau_kh = 1.0
     tau_cr = tau_kh/1.6 # crushing time
-    # determine background velocity 
+    # determine background velocity
     velx0 = 2*R*sqrt(Chi)/tau_cr
     vely0 = 0.0
     Ma0 = 2.7 # background flow Mach number Ma=v/c
@@ -348,7 +348,7 @@ end
         @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
                                         equation, 1, # 1-> x-direction
                                         u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id], 
+                                        u[3, i, j, element_id], u[4, i, j, element_id],
                                         u[1, l, j, element_id], u[2, l, j, element_id],
                                         u[3, l, j, element_id], u[4, l, j, element_id])
         for v in 1:nvariables(equation)
@@ -361,7 +361,7 @@ end
         @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
                                         equation, 2, # 2 -> y-direction
                                         u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id], 
+                                        u[3, i, j, element_id], u[4, i, j, element_id],
                                         u[1, i, l, element_id], u[2, i, l, element_id],
                                         u[3, i, l, element_id], u[4, i, l, element_id])
         for v in 1:nvariables(equation)
@@ -426,13 +426,13 @@ end
     f[1]  = rho_avg * v1_avg
     f[2]  = rho_avg * v1_avg * v1_avg + p_avg
     f[3]  = rho_avg * v1_avg * v2_avg
-    f[4]  = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg 
+    f[4]  = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
   else
     pv2_avg = 1/2 * ( p_ll*v2_ll + p_rr*v2_rr)
     f[1]  = rho_avg * v2_avg
     f[2]  = rho_avg * v2_avg * v1_avg
     f[3]  = rho_avg * v2_avg * v2_avg + p_avg
-    f[4]  = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg 
+    f[4]  = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
   end
 end
 
@@ -498,7 +498,7 @@ end
   beta_rr = 0.5*rho_rr/p_rr
   specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2)
   specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2)
-     
+
   # Compute the necessary mean values
   rho_avg  = 0.5*(rho_ll+rho_rr)
   rho_mean = ln_mean(rho_ll,rho_rr)
@@ -514,12 +514,12 @@ end
     f[1]  = rho_mean * v1_avg
     f[2]  = f[1] * v1_avg + p_mean
     f[3]  = f[1] * v2_avg
-    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg
   else
     f[1]  = rho_mean * v2_avg
     f[2]  = f[1] * v1_avg
     f[3]  = f[1] * v2_avg + p_mean
-    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg 
+    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg
   end
 end
 
@@ -539,7 +539,7 @@ function ln_mean(value1::Float64,value2::Float64)
   epsilon_f2 = 1.0e-4
   ratio = value2/value1
   # f2 = f^2
-  f2=(ratio*(ratio-2.)+1.)/(ratio*(ratio+2.)+1.) 
+  f2=(ratio*(ratio-2.)+1.)/(ratio*(ratio+2.)+1.)
   if (f2<epsilon_f2)
     return (value1+value2)*52.5/(105.0 + f2*(35.0 + f2*(21.0 +f2*15.0)))
   else
@@ -653,7 +653,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   f_rr = zeros(MVector{4})
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
- 
+
   if equation.surface_flux_type == :laxfriedrichs
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -665,7 +665,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
                              equation, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-     
+
   elseif equation.surface_flux_type == :hllc
     error("not yet implemented or tested")
     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
@@ -718,29 +718,29 @@ end
 #                             equation::Euler, n_nodes::Int)
 #   u_ll     = u_surfaces[1, :, surface_id]
 #   u_rr     = u_surfaces[2, :, surface_id]
-# 
+#
 #   rho_ll   = u_ll[1]
 #   rho_v_ll = u_ll[2]
 #   rho_e_ll = u_ll[3]
 #   rho_rr   = u_rr[1]
 #   rho_v_rr = u_rr[2]
 #   rho_e_rr = u_rr[3]
-# 
+#
 #   v_ll = rho_v_ll / rho_ll
 #   p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
 #   c_ll = sqrt(equation.gamma * p_ll / rho_ll)
 #   v_rr = rho_v_rr / rho_rr
 #   p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
 #   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
-# 
+#
 #   f_ll = zeros(MVector{3})
 #   f_rr = zeros(MVector{3})
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
-# 
+#
 #   if equation.surface_flux_type == :laxfriedrichs
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
-# 
+#
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
 #   elseif equation.surface_flux_type == :hllc
 #     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
@@ -750,7 +750,7 @@ end
 #     c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
 #     s_ll = v_tilde - c_tilde
 #     s_rr = v_tilde + c_tilde
-# 
+#
 #     if s_ll > 0
 #       @. surface_flux[:, surface_id] = f_ll
 #     elseif s_rr < 0
@@ -823,18 +823,17 @@ function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_node
   s = zeros(n_nodes,n_nodes,n_elements)
   rho_p = zeros(n_nodes,n_nodes,n_elements)
 
-  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :] 
-  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :] 
+  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
+  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
   @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
   @. p[ :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 
-		     1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
+                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
                             cons[3, :, :, :] * v[2, :, :, :])))
   @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
-  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :] 
+  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :]
 
   @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
-                           0.5*rho_p[:,:,:]*v_square[:,:,:] 
+                           0.5*rho_p[:,:,:]*v_square[:,:,:]
   @. entropy[2, :, :, :] = rho_p[:,:,:]*v[1,:,:,:]
   @. entropy[3, :, :, :] = rho_p[:,:,:]*v[2,:,:,:]
   @. entropy[4, :, :, :] = -rho_p[:,:,:]
@@ -862,7 +861,7 @@ end
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
                                           cons[1, i, j, element_id], cons[2, i, j, element_id],
-					  cons[3, i, j, element_id], cons[4, i, j, element_id], indicator_variable)
+                                          cons[3, i, j, element_id], cons[4, i, j, element_id], indicator_variable)
     end
   end
 end
@@ -871,8 +870,8 @@ end
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
                                           ::Val{:density})
-  # Indicator variable is rho 
-  return rho 
+  # Indicator variable is rho
+  return rho
 end
 
 
@@ -902,25 +901,25 @@ end
 
 
 # Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
-@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
+@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)
   entropy = MVector{4, Float64}(undef)
-  v = (cons[2] / cons[1] , cons[3] / cons[1]) 
+  v = (cons[2] / cons[1] , cons[3] / cons[1])
   v_square= v[1]*v[1]+v[2]*v[2]
   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-  rho_p = cons[1] / p 
+  rho_p = cons[1] / p
   # thermodynamic entropy
   s = log(p) - gamma*log(cons[1])
   # mathematical entropy
   S = - s*cons[1]/(gamma-1)
   # entropy variables
-  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square 
+  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
   entropy[2] = rho_p*v[1]
   entropy[3] = rho_p*v[2]
   entropy[4] = -rho_p
   # entropy flux
   entropy_flux = S*v[orientation]
   return entropy, entropy_flux
-end       
+end
 
 
 end # module
