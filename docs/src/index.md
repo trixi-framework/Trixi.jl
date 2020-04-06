@@ -1,4 +1,4 @@
-# Trixi: A tree-based flexible DG/SBP framework written in Julia
+# Trixi
 
 *Trixi* is a flexible DG/SBP framework written in the Julia programming
 language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
@@ -12,12 +12,14 @@ packages, which need to be available on the respective machine. This can most
 easily be achieved by performing the following steps:
 
 1.  Clone the repository:
-    ```bash
+
+    ```
     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
     ```
 2.  Enter the cloned directory and run the following command to install all
     required dependencies:
-    ```bash
+
+    ```
     julia utils/install.jl
     ```
 
@@ -50,4 +52,6 @@ parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 
 ## Authors
-Trixi was created by Michael Schlottke-Lakemper and Gregor Gassner.
+Trixi was created by
+[Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gassner).
