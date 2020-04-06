@@ -195,7 +195,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       analysis_vandermonde, analysis_total_volume,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
-      element_variables)
+      element_variables,
+      level_info_elements)
       
 
   return dg

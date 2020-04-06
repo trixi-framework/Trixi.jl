@@ -11,11 +11,63 @@ using TimerOutputs: @timeit
 export timestep!
 
 
-# Integrate solution by repeatedly calling the rhs! method on the solver solution.
-function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
-  time_integration_scheme = Symbol(parameter("time_integration_scheme", "carpenter_4_5",
-                                             valid=("carpenter_4_5", "paired_rk_2_s")))
-  timestep!(solver, Val(time_integration_scheme), t, dt)
+
+# Second-order paired Runge-Kutta method (multilevel version)
+function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_multi}, t::Float64, dt::Float64)
+  # Get parameters
+  n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
+  derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
+
+  # Determine Runge-Kutta coefficients
+  a, c = calc_coefficients(n_stages, derivative_evaluations)
+
+  # Store for convenience
+  u   = solver.elements.u
+  k   = solver.elements.u_t
+  k1 = solver.elements.u_rungekutta
+  un  = similar(k)
+
+  # Implement general Runge-Kutta method (not storage-optimized) for paired RK schemes, where
+  # aᵢⱼ= 0 except for j = 1 or j = i - 1
+  # bₛ = 1, bᵢ = 0  for i ≠ s
+  # c₁ = 0
+  #
+  #                 s
+  # uⁿ⁺¹ = uⁿ + Δt  ∑ bᵢkᵢ = uⁿ + Δt kₛ
+  #                i=1
+  # k₁ = rhs(tⁿ, uⁿ)
+  # k₂ = rhs(tⁿ + c₂Δt, uⁿ + Δt(a₂₁ k₁))
+  # k₃ = rhs(tⁿ + c₃Δt, uⁿ + Δt(a₃₁ k₁ + a₃₂ k₂))
+  # k₄ = rhs(tⁿ + c₄Δt, uⁿ + Δt(a₄₁ k₁ + a₄₃ k₃))
+  # ...
+  # kₛ = rhs(tⁿ + cₛΔt, uⁿ + Δt(aₛ₁ k₁ + aₛ,ₛ₋₁ kₛ₋₁))
+
+  # Stage 1
+  stage = 1
+  t_stage = t + dt * c[stage]
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+
+  # Store permanently
+  @timeit timer() "Runge-Kutta step" begin
+    @. un = u
+    @. k1 = k
+  end
+
+  # Stage 2
+  stage = 2
+  t_stage = t + dt * c[stage]
+  @timeit timer() "Runge-Kutta step" @. u = un + dt * a[ 2, 1] * k1
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+
+  # Stages 3-n_stages
+  for stage in 3:n_stages
+    t_stage = t + dt * c[stage]
+    @timeit timer() "Runge-Kutta step" @. u = un + dt * (a[stage, 1] * k1 + a[stage, stage-1] * k)
+    @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+  end
+
+  # Final update to u
+  @timeit timer() "Runge-Kutta step" @. u = un + dt * k
 end
 
 

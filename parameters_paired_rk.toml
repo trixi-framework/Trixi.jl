@@ -8,6 +8,8 @@ initial_conditions = "sin-sin"
 surface_flux_type = "laxfriedrichs"
 t_start = 0.0
 t_end   = 1.0
+time_integration_scheme = "paired_rk_2_multi"
+n_stages = 16
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -25,8 +27,6 @@ cfl = 3.0 # e =  8
 n_steps_max = 10000
 analysis_interval = 100
 alive_interval = 1
-time_integration_scheme = "paired_rk_2_s"
-n_stages = 16
 
 
 ####################################################################################################
