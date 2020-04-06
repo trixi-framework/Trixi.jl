@@ -238,7 +238,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
     end
 
     # Evolve solution by one time step
-    timestep!(solver, Val(time_integration_scheme), time, dt)
+    timestep!(solver, mesh, Val(time_integration_scheme), time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1

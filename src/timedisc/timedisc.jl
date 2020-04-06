@@ -5,6 +5,7 @@ include("pairedrk.jl")
 using ..Trixi
 using ..Solvers: AbstractSolver, rhs!
 using ..Auxiliary: timer, parameter
+using ..Mesh: TreeMesh
 using .PairedRk: calc_coefficients
 using TimerOutputs: @timeit
 
@@ -13,7 +14,8 @@ export timestep!
 
 
 # Second-order paired Runge-Kutta method (multilevel version)
-function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_multi}, t::Float64, dt::Float64)
+function timestep!(solver::AbstractSolver, mesh::TreeMesh,
+                   ::Val{:paired_rk_2_multi}, t::Float64, dt::Float64)
   # Get parameters
   n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
   derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
@@ -72,7 +74,8 @@ end
 
 
 # Second-order paired Runge-Kutta method
-function timestep!(solver::AbstractSolver, ::Val{:paired_rk_2_s}, t::Float64, dt::Float64)
+function timestep!(solver::AbstractSolver, mesh::TreeMesh,
+                   ::Val{:paired_rk_2_s}, t::Float64, dt::Float64)
   # Get parameters
   n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
   derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
@@ -131,7 +134,8 @@ end
 
 
 # Carpenter's 4th-order 5-stage low-storage Runge-Kutta method
-function timestep!(solver::AbstractSolver, ::Val{:carpenter_4_5}, t::Float64, dt::Float64)
+function timestep!(solver::AbstractSolver, mesh::TreeMesh,
+                   ::Val{:carpenter_4_5}, t::Float64, dt::Float64)
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
   b = [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
