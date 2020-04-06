@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
 equations = "mhd"
-
+gamma = 1.4
 initial_conditions = "rotor"
 surface_flux_type = "laxfriedrichs"
 volume_flux_type = "central"

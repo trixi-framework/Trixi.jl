@@ -36,7 +36,7 @@ mutable struct Mhd <: AbstractEquation{9}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
-    gamma = 0.0 # MUST be set in the initial conditions
+    gamma = parmeter("gamma", 1.4)
     c_h = 0.0   # GLM cleaning wave speed
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
@@ -52,7 +52,6 @@ end
 function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, t::Real)
   name = equation.initial_conditions
   if name == "constant"
-    equation.gamma = 1.4
     rho = 1.0
     rho_v1 = 0.1
     rho_v2 = -0.2
@@ -62,28 +61,26 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B2 = -1.2
     B3 = 0.4
     psi = 0.0
-    ini_vec = [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
+    return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
   elseif name == "convergence_test"
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-    equation.gamma = 5.0/3.0
-    α = 0.25*pi
-    x_perp = x[1]*cos(α) + x[2]*sin(α)
+    alpha = 0.25*pi
+    x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
     B_perp = 0.1*sin(2.0*pi*x_perp)
     rho = 1.0
-    v1 = -B_perp*sin(α)
-    v2 = B_perp*cos(α)
+    v1 = -B_perp*sin(alpha)
+    v2 = B_perp*cos(alpha)
     v3 = 0.1*cos(2.0*pi*x_perp)
     p = 0.1
     B1 = cos(α) + v1
     B2 = sin(α) + v2
     B3 = v3
     psi = 0.0
-    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   elseif name == "orszag_tang"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [0, 1] x [0, 1], γ = 5/3
-    equation.gamma = 5.0/3.0
     rho = 1.0
     v1 = -sin(2.0*pi*x[2])
     v2 = sin(2.0*pi*x[1])
@@ -93,27 +90,26 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B2 = sin(4.0*pi*x[1])/equation.gamma
     B3 = 0.0
     psi = 0.0
-    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   elseif name == "rotor"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [0, 1] x [0, 1], γ = 1.4
-    equation.gamma = 1.4
-    Δx = x[1] - 0.5
-    Δy = x[2] - 0.5
-    r = sqrt(Δx^2 + Δy^2)
+    dx = x[1] - 0.5
+    dy = x[2] - 0.5
+    r = sqrt(dx^2 + dy^2)
     f = (0.115 - r)/0.015
     if r <= 0.1
       rho = 10.0
-      v1 = -20.0*Δy
-      v2 = 20.0*Δx
+      v1 = -20.0*dy
+      v2 = 20.0*dx
     elseif r >= 0.115
       rho = 1.0
       v1 = 0.0
       v2 = 0.0
     else
       rho = 1.0 + 9.0*f
-      v1 = -20.0*f*Δy
-      v2 = 20.0*f*Δx
+      v1 = -20.0*f*dy
+      v2 = 20.0*f*dx
     end
     v3 = 0.0
     p = 1.0
@@ -121,11 +117,10 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B2 = 0.0
     B3 = 0.0
     psi = 0.0
-    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   elseif name == "mhd_blast"
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-    equation.gamma = 1.4
     r = sqrt(x[1]^2 + x[2]^2)
     f = (0.1 - r)/0.01
     if r <= 0.09
@@ -143,16 +138,11 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B2 = 0.0
     B3 = 0.0
     psi = 0.0
-    ini_vec =  prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   else
     error("Unknown initial condition '$name'")
   end
 
-  if equation.gamma == 0.0
-    error("Forgot to set adiabatic constant γ in initial setup!")
-  end
-
-  return ini_vec
 end
 
 
