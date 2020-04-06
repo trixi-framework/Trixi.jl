@@ -35,12 +35,12 @@ struct Euler <: AbstractEquation{4}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_e"]
     varnames_prim = ["rho", "v1", "v2", "p"]
-    gamma = 1.4
+    gamma = parameter("gamma", 1.4)
     surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
                                          valid=["hllc", "laxfriedrichs","central", 
-                                                "kennedygruber", "chandrashekar_ec"]))
+                                                "kennedygruber", "chandrashekar_ec", "yuichi"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "kennedygruber", "chandrashekar_ec"]))
+                              valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type)
   end
@@ -205,6 +205,58 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "khi" 
+    # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+    # change discontinuity to tanh 
+    # typical resolution 128^2, 256^2
+    # domain size is [-0.5,0.5]^2
+    dens0 = 1.0 # outside density 
+    dens1 = 2.0 # inside density
+    velx0 = -0.5 # outside velocity
+    velx1 = 0.5 # inside velocity
+    slope = 50 # used for tanh instead of discontinuous initial condition
+    # pressure equilibrium
+    p     = 2.5
+    #  y velocity v2 is only white noise
+    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+    # density
+    rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+    #  x velocity is also augmented with noise
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+    return prim2cons(equation, [rho, v1, v2, p])
+  elseif name == "blob" 
+    # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # change discontinuity to tanh 
+    # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+    # resolution 128^2, 256^2
+    # domain size is [-20.0,20.0]^2
+    # gamma = 5/3 for this test case
+    R = 1.0 # radius of the blob
+    # background density
+    dens0 = 1.0
+    Chi = 10.0 # density contrast
+    # reference time of characteristic growth of KH instability equal to 1.0
+    tau_kh = 1.0
+    tau_cr = tau_kh/1.6 # crushing time
+    # determine background velocity 
+    velx0 = 2*R*sqrt(Chi)/tau_cr
+    vely0 = 0.0
+    Ma0 = 2.7 # background flow Mach number Ma=v/c
+    c = velx0/Ma0 # sound speed
+    # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+    p0 = c*c*dens0/equation.gamma
+    # initial center of the blob
+    inicenter = [-15,0]
+    x_rel = x-inicenter
+    r = sqrt(x_rel[1]^2 + x_rel[2]^2)
+    # steepness of the tanh transition zone
+    slope = 5
+    # density blob
+    dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+    # velocity blob is zero
+    velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+    return prim2cons(equation, [dens, velx, vely0, p0])
   else
     error("Unknown initial condition '$name'")
   end
@@ -340,6 +392,48 @@ end
 
   # Average regular fluxes
   @. f[:] = 1/2 * (f_ll + f_rr)
+end
+
+# Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:yuichi},
+                                          equation::Euler, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_e_rr::Float64)
+  # Unpack left and right state
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  # Average each factor of products in flux
+  rho_avg = 1/2 * (rho_ll + rho_rr)
+  v1_avg = 1/2 * (v1_ll + v1_rr)
+  v2_avg = 1/2 * (v2_ll + v2_rr)
+  p_avg = 1/2 * (p_ll + p_rr)
+  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    pv1_avg = 1/2 * ( p_ll*v1_ll + p_rr*v1_rr)
+    f[1]  = rho_avg * v1_avg
+    f[2]  = rho_avg * v1_avg * v1_avg + p_avg
+    f[3]  = rho_avg * v1_avg * v2_avg
+    f[4]  = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg 
+  else
+    pv2_avg = 1/2 * ( p_ll*v2_ll + p_rr*v2_rr)
+    f[1]  = rho_avg * v2_avg
+    f[2]  = rho_avg * v2_avg * v1_avg
+    f[3]  = rho_avg * v2_avg * v2_avg + p_avg
+    f[4]  = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg 
+  end
 end
 
 
@@ -566,7 +660,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
     surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type in (:central,:kennedygruber,:chandrashekar_ec)
+  elseif equation.surface_flux_type in (:central, :kennedygruber, :chandrashekar_ec, :yuichi)
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
@@ -748,6 +842,7 @@ function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_node
   return entropy
 end
 
+
 # Convert primitive to conservative variables
 function prim2cons(equation::Euler, prim::AbstractArray{Float64})
   cons = similar(prim)
@@ -762,19 +857,28 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
                                            cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int)
+                                           element_id::Int, n_nodes::Int, indicator_variable)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
                                           cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id])
+					  cons[3, i, j, element_id], cons[4, i, j, element_id], indicator_variable)
     end
   end
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
+                                          ::Val{:density})
+  # Indicator variable is rho 
+  return rho 
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
+                                          ::Val{:density_pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -785,6 +889,38 @@ end
   return rho * p
 end
 
-       
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
+                                          ::Val{:pressure})
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+
+  # Indicator variable is p
+  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+end
+
+
+# Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
+@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)  
+  entropy = MVector{4, Float64}(undef)
+  v = (cons[2] / cons[1] , cons[3] / cons[1]) 
+  v_square= v[1]*v[1]+v[2]*v[2]
+  p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
+  rho_p = cons[1] / p 
+  # thermodynamic entropy
+  s = log(p) - gamma*log(cons[1])
+  # mathematical entropy
+  S = - s*cons[1]/(gamma-1)
+  # entropy variables
+  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square 
+  entropy[2] = rho_p*v[1]
+  entropy[3] = rho_p*v[2]
+  entropy[4] = -rho_p
+  # entropy flux
+  entropy_flux = S*v[orientation]
+  return entropy, entropy_flux
+end       
+
 
 end # module
