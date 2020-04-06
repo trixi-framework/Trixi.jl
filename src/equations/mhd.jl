@@ -36,7 +36,7 @@ mutable struct Mhd <: AbstractEquation{9}
     sources = parameter("sources", "none")
     varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
-    gamma = parmeter("gamma", 1.4)
+    gamma = parameter("gamma", 1.4)
     c_h = 0.0   # GLM cleaning wave speed
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
@@ -597,7 +597,7 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Mhd,
                                            cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int)
+                                           element_id::Int, n_nodes::Int, indicator_variable)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
@@ -605,15 +605,39 @@ end
                                           cons[3, i, j, element_id], cons[4, i, j, element_id],
                                           cons[5, i, j, element_id], cons[6, i, j, element_id],
                                           cons[7, i, j, element_id], cons[8, i, j, element_id],
-                                          cons[9, i, j, element_id])
+                                          cons[9, i, j, element_id], indicator_variable)
     end
   end
 end
 
 
+
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                          B1, B2, B3, psi)
+                                          B1, B2, B3, psi, ::Val{:density})
+  # Indicator variable is rho
+  return rho
+end
+
+
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
+                                          B1, B2, B3, psi, ::Val{:pressure})
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  v3 = rho_v3/rho
+  # Indicator variable is p
+  p = (equation.gamma - 1)*(rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2)
+                                  - 0.5*(B1^2 + B2^2 + B3^2)
+                                  - 0.5*psi^2)
+  return p
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (pointwise version)
+@inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
+                                          B1, B2, B3, psi, ::Val{:density_pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho

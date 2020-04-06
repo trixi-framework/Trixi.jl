@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
 equations = "mhd"
-gamma = 5.0/3.0
+gamma = 1.6666666666666667
 initial_conditions = "convergence_test"
 surface_flux_type = "laxfriedrichs"
 
