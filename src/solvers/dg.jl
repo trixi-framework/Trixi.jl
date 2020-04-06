@@ -14,7 +14,8 @@ import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
 using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
-                     opposite_direction, has_coarse_neighbor, has_child, has_children
+                     opposite_direction, has_coarse_neighbor, has_child, has_children,
+                     minimum_level, maximum_level
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
 		      vandermonde_legendre, nodal2modal
@@ -87,6 +88,7 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
+  level_info_elements::Vector{Vector{Int}}
 end
 
 
@@ -173,6 +175,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
+  # Initialize storage for level-wise information
+  level_info_elements = Vector{Vector{Int}}()
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -1547,6 +1551,31 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
 
   push!(out, element_ids_dg)
   push!(out, element_ids_dgfv)
+end
+
+
+function Solvers.update_level_info!(dg::Dg, mesh::TreeMesh)
+  # Get minimum and maximum level
+  min_level = minimum_level(mesh.tree)
+  max_level = maximum_level(mesh.tree)
+  n_levels = max_level - min_level + 1
+
+  # Reset level info for elements
+  dg.level_info_elements = [Vector{Int}() for _ in 1:n_levels]
+
+  # Determine level for each element
+  tmp = BitArray(undef, n_levels, dg.n_elements)
+  for element_id in 1:dg.n_elements
+    level = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+    # level_id:
+    # level = max_level:   1
+    # level = max_level-1: 2
+    # level = max_level-2: 3
+    # ...
+    # level = min_level:   n_levels
+    level_id = max_level + 1 - level
+    push!(dg.level_info_elements[level_id], element_id)
+  end
 end
 
 
