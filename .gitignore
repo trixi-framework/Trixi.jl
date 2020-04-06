@@ -8,3 +8,5 @@
 *.avi
 *.ogv
 out/
+docs/build
+public/

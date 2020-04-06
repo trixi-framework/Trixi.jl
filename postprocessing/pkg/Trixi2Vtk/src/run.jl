@@ -7,7 +7,24 @@ using TimerOutputs
 using ProgressMeter: @showprogress, Progress, next!
 
 
-function run(;args=nothing, kwargs...)
+"""
+    run(; args=nothing, kwargs...)
+
+Convert Trixi-generated output files to VTK files (VTU or VTI).
+
+If `args` is given, it should be an `ARGS`-like array of strings that holds
+command line arguments, and will be interpreted by the `ArgParse` module. If
+`args` is omitted, you can supply all command line arguments via keyword
+arguments. In this case, you have to provide at least one input file path in
+the `filename` variable.
+
+# Examples
+```julia
+julia> Trixi2Vtk.run(filename="out/solution_000000.h5")
+[...]
+```
+"""
+function run(; args=nothing, kwargs...)
   # Reset timer
   reset_timer!()
 

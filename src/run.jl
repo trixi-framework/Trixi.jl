@@ -14,7 +14,24 @@ using TimerOutputs: @timeit, print_timer, reset_timer!
 using Profile: clear_malloc_data
 
 
-function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
+"""
+    run(parameters_file=nothing; verbose=false, args=nothing)
+
+Run a Trixi simulation with the parameters in `parameters_file`.
+
+If `verbose` is `true`, additional output will be generated on the terminal
+that may help with debugging.  If `args` is given, it should be an
+`ARGS`-like array of strings that holds command line arguments, and will be
+interpreted by the `ArgParse` module. In this case, the values of
+`parameters_file` and `verbose` are ignored.
+
+# Examples
+```julia
+julia> Trixi.run("parameters.toml", verbose=true)
+[...]
+```
+"""
+function run(parameters_file=nothing; verbose=false, args=nothing)
   # Reset timer
   reset_timer!(timer())
 
@@ -30,9 +47,6 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
     end
     args["parameters_file"] = parameters_file
     args["verbose"] = verbose
-    for (key, value) in kwargs
-      args[string(key)] = value
-    end
   end
 
   # Set global verbosity
