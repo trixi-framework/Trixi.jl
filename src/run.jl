@@ -221,7 +221,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(solver, time, 0, step, 0, 0)
+    analyze_solution(solver, mesh, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -266,7 +266,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(
-          solver, time, dt, step, runtime_absolute, runtime_relative)
+          solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
