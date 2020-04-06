@@ -492,6 +492,7 @@ function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
                                element_id::Int, n_nodes::Int,
                                invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
+  equation.c_h = 0.0
   for j = 1:n_nodes
     for i = 1:n_nodes
       v1 = u[2, i, j, element_id]/u[1, i, j, element_id]
@@ -501,11 +502,10 @@ function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
       cf_x_direction = calc_fast_wavespeed(equation, 1, u[:,i, j, element_id])
       cf_y_direction = calc_fast_wavespeed(equation, 2, u[:,i, j, element_id])
       cf_max = max(cf_x_direction,cf_y_direction)
+      equation.c_h = max(equation.c_h,cf_max) # GLM cleaning speed = c_f
       λ_max = max(λ_max, v_mag + cf_max)
     end
   end
-  # Set the GLM cleaning speed to be the same size as the fastest wavespeed.
-  equation.c_h = max(equation.c_h,λ_max)
 
   dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
 
