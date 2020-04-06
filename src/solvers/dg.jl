@@ -552,30 +552,46 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   return dsdu_ut
 end
 
+
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
+function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
-  n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
+  # General information
   println()
   println("-"^80)
   println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
-          "                 " *
-          " #elements:      " * @sprintf("% 14d", dg.n_elements))
+          "               " *
+          " run time:       " * @sprintf("%10.8e s", runtime_absolute))
   println(" dt:             " * @sprintf("%10.8e", dt) *
-          "                 " *
-          " #surfaces:      " * @sprintf("% 14d", dg.n_surfaces))
-  println(" sim. time:      " * @sprintf("%10.8e", time) *
-          "                 " *
-          " #mortars:       " * @sprintf("% 14d", n_mortars))
-  println(" run time:       " * @sprintf("%10.8e s", runtime_absolute))
-  println(" Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+          "               " *
+          " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+  println(" sim. time:      " * @sprintf("%10.8e", time))
+
+  # Level information (only show for AMR)
+  if parameter("amr_interval", 0) > 0
+    levels = Vector{Int}(undef, dg.n_elements)
+    for element_id in 1:dg.n_elements
+      levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+    end
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+    for level = max_level:-1:min_level+1
+      println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+    end
+    println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
+  end
+  println()
+
+  # Derived quantities (error norms, entropy etc.)
   print(" Variable:    ")
   for v in 1:nvariables(equation)
     @printf("   %-14s", equation.varnames_cons[v])
@@ -593,8 +609,9 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
   println()
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
-
   println()
+
+  println("-"^80)
   println()
 end
 

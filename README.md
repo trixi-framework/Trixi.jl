@@ -15,12 +15,14 @@ Install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:
 
 1.  Clone the repository:
-    ```bash
+
+    ```
     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
     ```
 2.  Enter the cloned directory and run the following command to install all
     required dependencies:
-    ```bash
+
+    ```
     julia utils/install.jl
     ```
 
@@ -43,4 +45,6 @@ you are in your terminal, you will find all documentation under
 
 
 ## Authors
-Trixi was created by Michael Schlottke-Lakemper and Gregor Gassner.
+Trixi was created by
+[Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gassner).
