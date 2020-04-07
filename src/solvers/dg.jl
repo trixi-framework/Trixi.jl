@@ -8,8 +8,7 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt,
-	                  cons2entropy, cons2indicator!, cons2prim
+                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -17,7 +16,7 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
-		      vandermonde_legendre, nodal2modal
+                      vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
@@ -192,7 +191,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables)
-      
+
 
   return dg
 end
@@ -393,7 +392,7 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
-      
+
       # Skip if neighbor has children
       neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_cell_id)
@@ -552,6 +551,39 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   return dsdu_ut
 end
 
+# Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
+# TODO: optimize; this implementation is probably very slow
+function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
+  # Gather necessary information
+  equation = equations(dg)
+  # Local copy of standard derivative matrix
+  d = polynomial_derivative_matrix(dg.nodes)
+  # Quadrature weights
+  weights = dg.weights
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = 0.0
+  l2_divb   = 0.0
+  for element_id in 1:dg.n_elements
+    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        divb   = 0.0
+        for k in 1:nnodes(dg)
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
+                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+        end
+        divb *= dg.elements.inverse_jacobian[element_id]
+        linf_divb = max(linf_divb,abs(divb))
+        l2_divb += jacobian_volume*weights[i]*weights[j]*divb^2
+      end
+    end
+  end
+  l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
+
+  return l2_divb, linf_divb
+end
+
+
 
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
@@ -609,6 +641,17 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   println()
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
+
+  if equation.name == "mhd"
+    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+    println()
+    print(" L2 ∇⋅B:    ")
+    @printf("    % 10.8e", l2_divb)
+    println()
+    print(" Linf ∇⋅B:    ")
+    @printf("  % 10.8e", linf_divb)
+  end
+
   println()
 
   println("-"^80)
@@ -913,10 +956,20 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 1)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 1)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 1)
+      end
       for v in 1:nvariables(equation)
         fstar1[v,i,j] = fstarnode[v]
       end
@@ -934,10 +987,20 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 2)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 2)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 2)
+      end
       for v in 1:nvariables(equation)
         fstar2[v,i,j] = fstarnode[v]
       end
@@ -1507,7 +1570,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
       alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
     end
- 
+
     # Loop over L2 mortars
     for l2mortar_id in 1:dg.n_l2mortars
       # Get neighboring element ids
@@ -1521,7 +1584,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
- 
+
     # Loop over EC mortars
     for ecmortar_id in 1:dg.n_ecmortars
       # Get neighboring element ids

@@ -477,7 +477,8 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    calc_blending_factors(alpha, out, dg, dg.elements.u)
+    calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                          Val(:density_pressure))
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

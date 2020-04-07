@@ -79,7 +79,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -347,4 +347,3 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
 end
-
