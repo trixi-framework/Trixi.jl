@@ -45,7 +45,7 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # kₛ = rhs(tⁿ + cₛΔt, uⁿ + Δt(aₛ₁ k₁ + aₛ,ₛ₋₁ kₛ₋₁))
 
   # Update level info for each element
-  update_level_info!(solver, mesh)
+  @timeit timer() "update level info" update_level_info!(solver, mesh)
 
   # Stage 1
   stage = 1
@@ -61,8 +61,11 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Stage 2
   stage = 2
   t_stage = t + dt * c[stage]
-  a_1, _ = calc_a_multilevel(n_stages, stage, derivative_evaluations,
-                             solver.n_elements, solver.level_info_elements)
+  @timeit timer() "calc_a_multilevel" a_1, _ = calc_a_multilevel(n_stages,
+                                                                 stage,
+                                                                 derivative_evaluations,
+                                                                 solver.n_elements,
+                                                                 solver.level_info_elements)
   a_1_rs = reshape(a_1, 1, 1, 1, :)
   @timeit timer() "Runge-Kutta step" @. u = un + dt * a_1_rs * k1
   @timeit timer() "rhs" rhs!(solver, t_stage, stage)
@@ -70,8 +73,11 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Stages 3-n_stages
   for stage in 3:n_stages
     t_stage = t + dt * c[stage]
-    a_1, a_2 = calc_a_multilevel(n_stages, stage, derivative_evaluations,
-                                 solver.n_elements, solver.level_info_elements)
+    @timeit timer() "calc_a_multilevel" a_1, a_2 = calc_a_multilevel(n_stages,
+                                                                     stage,
+                                                                     derivative_evaluations,
+                                                                     solver.n_elements,
+                                                                     solver.level_info_elements)
     a_1_rs = reshape(a_1, 1, 1, 1, :)
     a_2_rs = reshape(a_2, 1, 1, 1, :)
     @timeit timer() "Runge-Kutta step" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)
