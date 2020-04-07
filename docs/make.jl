@@ -39,7 +39,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Development" => "development.md",
-        "Visualization and postprocessing" => "visualization_postprocessing.md",
+        "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
         "APIs" => [
             "Trixi" => "api/trixi.md",
