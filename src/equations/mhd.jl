@@ -487,7 +487,10 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
 end
 
 
-# Determine maximum stable time step based on polynomial degree and CFL number
+# 1) Determine maximum stable time step based on polynomial degree and CFL number
+# 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
+#    magnetoacoustic over the entire domain (note this routine is called in a loop
+#    over all elements in dg.jl)
 function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
                                element_id::Int, n_nodes::Int,
                                invjacobian::Float64, cfl::Float64)
@@ -649,7 +652,7 @@ end
   return rho * p
 end
 
-# Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetosonic eigenvalue
+# Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
 @inline function calc_fast_wavespeed(equation::Mhd, direction::Int, cons::AbstractArray{Float64})
   rho    = cons[1]
   rho_v1 = cons[2]
