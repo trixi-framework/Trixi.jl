@@ -1,6 +1,8 @@
 module PairedRk
 
 export calc_coefficients
+export calc_c
+export calc_a_multilevel
 
 function calc_coefficients(n_stages, n_derivative_evaluations)
   if !haskey(rk_a, (n_stages, n_derivative_evaluations))
@@ -8,16 +10,13 @@ function calc_coefficients(n_stages, n_derivative_evaluations)
           "n_derivative_evaluations=$n_derivative_evaluations")
   end
 
-  # c is equidistant from zero to 1/2
-  c = zeros(n_stages)
-  for i in 1:n_stages
-    c[i] = (i - 1)/(2 * (n_stages - 1))
-  end
+  # Get c
+  c = calc_c(n_stages)
 
   # Calculate a
   a = zeros(n_stages, n_stages)
 
-  # First, store get the pre-computed coefficients
+  # First, get the pre-computed coefficients
   for i in (2 + n_stages - n_derivative_evaluations + 1):n_stages
     a[i, i-1] = rk_a[n_stages, n_derivative_evaluations][i, i-1]
   end
@@ -28,6 +27,54 @@ function calc_coefficients(n_stages, n_derivative_evaluations)
   end
 
   return a, c
+end
+
+
+function calc_c(n_stages::Integer)
+  # c is equidistant from zero to 1/2
+  c = zeros(n_stages)
+  for i in 1:n_stages
+    c[i] = (i - 1)/(2 * (n_stages - 1))
+  end
+
+  return c
+end
+
+
+function calc_a_multilevel(n_stages, stage, n_derivative_evaluations_max,
+                           n_elements, level_info_elements)
+  # Determine number of levels
+  n_levels = length(level_info_elements)
+
+  # Use at least two derivative evaluations
+  n_derivative_evaluations_min = 2
+
+  # Sanity check
+  @assert n_derivative_evaluations_max in (2, 4, 8, 16) "maximum number of derivative evaluations" *
+      "is not in (2, 4, 8, 16)"
+
+  # Store number of derivative evaluations for each level id
+  e_by_level_id = Vector{Int}(undef, n_levels)
+  e = n_derivative_evaluations_max
+  for level_id in 1:n_levels
+    e_by_level_id[level_id] = e
+    if e > 2
+      e = div(e, 2)
+    end
+  end
+
+  # Allocate storage for coefficients (a_1 = aₛ₁, a_2 = aₛ,ₛ₋₁)
+  a_1 = fill(NaN, n_elements)
+  a_2 = fill(NaN, n_elements)
+
+  # Determine coefficients for each element by level
+  for level_id in 1:n_levels
+    a, _ = calc_coefficients(n_stages, e_by_level_id[level_id])
+    a_1[level_info_elements[level_id]] .= a[stage, 1]
+    a_2[level_info_elements[level_id]] .= a[stage, stage-1]
+  end
+
+  return a_1, a_2
 end
 
 

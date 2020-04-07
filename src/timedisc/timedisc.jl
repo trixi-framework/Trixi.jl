@@ -3,14 +3,14 @@ module TimeDisc
 include("pairedrk.jl")
 
 using ..Trixi
-using ..Solvers: AbstractSolver, rhs!
+using ..Solvers: AbstractSolver, rhs!, update_level_info!
 using ..Auxiliary: timer, parameter
 using ..Mesh: TreeMesh
-using .PairedRk: calc_coefficients
+using ..Mesh.Trees: minimum_level, maximum_level
+using .PairedRk: calc_coefficients, calc_c, calc_a_multilevel
 using TimerOutputs: @timeit
 
 export timestep!
-
 
 
 # Second-order paired Runge-Kutta method (multilevel version)
@@ -20,8 +20,8 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
   derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
 
-  # Determine Runge-Kutta coefficients
-  a, c = calc_coefficients(n_stages, derivative_evaluations)
+  # Determine Runge-Kutta coefficients "c"
+  c = calc_c(n_stages)
 
   # Store for convenience
   u   = solver.elements.u
@@ -44,6 +44,9 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # ...
   # kₛ = rhs(tⁿ + cₛΔt, uⁿ + Δt(aₛ₁ k₁ + aₛ,ₛ₋₁ kₛ₋₁))
 
+  # Update level info for each element
+  update_level_info!(solver, mesh)
+
   # Stage 1
   stage = 1
   t_stage = t + dt * c[stage]
@@ -58,13 +61,20 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Stage 2
   stage = 2
   t_stage = t + dt * c[stage]
-  @timeit timer() "Runge-Kutta step" @. u = un + dt * a[ 2, 1] * k1
+  a_1, _ = calc_a_multilevel(n_stages, stage, derivative_evaluations,
+                             solver.n_elements, solver.level_info_elements)
+  a_1_rs = reshape(a_1, 1, 1, 1, :)
+  @timeit timer() "Runge-Kutta step" @. u = un + dt * a_1_rs * k1
   @timeit timer() "rhs" rhs!(solver, t_stage, stage)
 
   # Stages 3-n_stages
   for stage in 3:n_stages
     t_stage = t + dt * c[stage]
-    @timeit timer() "Runge-Kutta step" @. u = un + dt * (a[stage, 1] * k1 + a[stage, stage-1] * k)
+    a_1, a_2 = calc_a_multilevel(n_stages, stage, derivative_evaluations,
+                                 solver.n_elements, solver.level_info_elements)
+    a_1_rs = reshape(a_1, 1, 1, 1, :)
+    a_2_rs = reshape(a_2, 1, 1, 1, :)
+    @timeit timer() "Runge-Kutta step" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)
     @timeit timer() "rhs" rhs!(solver, t_stage, stage)
   end
 
