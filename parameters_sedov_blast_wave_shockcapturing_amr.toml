@@ -27,7 +27,7 @@ t_end   = 12.5
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.1
+cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "shock_capturing"
