@@ -89,6 +89,17 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   level_info_elements::Vector{Vector{Int}}
+  level_info_elements_acc::Vector{Vector{Int}}
+  level_info_surfaces_acc::Vector{Vector{Int}}
+  level_info_mortars_acc::Vector{Vector{Int}}
+
+  current_element_ids::Any
+  current_surface_ids::Any
+  current_mortar_ids::Any
+
+  element_evaluations::Int
+  surface_evaluations::Int
+  mortar_evaluations::Int
 end
 
 
@@ -177,6 +188,20 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize storage for level-wise information
   level_info_elements = Vector{Vector{Int}}()
+  level_info_elements_acc = Vector{Vector{Int}}()
+  level_info_surfaces_acc = Vector{Vector{Int}}()
+  level_info_mortars_acc = Vector{Vector{Int}}()
+
+  # Set current ids
+  current_element_ids = 1:n_elements
+  current_surface_ids = 1:n_surfaces
+  n_mortars = mortar_type === :l2 ? n_l2mortars : n_ecmortars
+  current_mortar_ids = 1:n_mortars
+
+  # Store total number of evaluations
+  element_evaluations = 0
+  surface_evaluations = 0
+  mortar_evaluations = 0
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -196,7 +221,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables,
-      level_info_elements)
+      level_info_elements,
+      level_info_elements_acc, level_info_surfaces_acc, level_info_mortars_acc,
+      current_element_ids, current_surface_ids, current_mortar_ids,
+      element_evaluations, surface_evaluations, mortar_evaluations)
       
 
   return dg
@@ -558,7 +586,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
 end
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
+function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
@@ -581,6 +609,21 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
           " #mortars:       " * @sprintf("% 14d", n_mortars))
   println(" run time:       " * @sprintf("%10.8e s", runtime_absolute))
   println(" Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+
+  levels = Vector{Int}(undef, dg.n_elements)
+  for element_id in 1:dg.n_elements
+    levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+  end
+  min_level = minimum(levels)
+  max_level = maximum(levels)
+
+  println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+  for level = max_level:-1:min_level+1
+    println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+  end
+  println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
+  println()
+
   print(" Variable:    ")
   for v in 1:nvariables(equation)
     @printf("   %-14s", equation.varnames_cons[v])
@@ -621,16 +664,16 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage, stage=0; disable_timers=false)
-  n_stages = parameter("n_stages")
-  derivative_evaluations = parameter("derivative_evaluations")
+function Solvers.rhs!(dg::Dg, t_stage, stage=0, acc_level_id=0; disable_timers=false)
+  #=n_stages = parameter("n_stages")=#
+  #=derivative_evaluations = parameter("derivative_evaluations")=#
   # Run rhs! without timing the individual contributions
   # FIXME: This should be done properly, e.g., by a macro call
   if disable_timers
     dg.elements.u_t .= 0.0
-    if stage > 1 && stage < n_stages + 2 - derivative_evaluations
-      return
-    end
+    #=if stage > 1 && stage < n_stages + 2 - derivative_evaluations=#
+    #=  return=#
+    #=end=#
     calc_volume_integral!(dg)
     prolong2surfaces!(dg)
     calc_surface_flux!(dg)
@@ -644,9 +687,9 @@ function Solvers.rhs!(dg::Dg, t_stage, stage=0; disable_timers=false)
 
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
-  if stage > 1 && stage < n_stages + 2 - derivative_evaluations
-    return
-  end
+  #=if stage > 1 && stage < n_stages + 2 - derivative_evaluations=#
+  #=  return=#
+  #=end=#
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -671,13 +714,18 @@ function Solvers.rhs!(dg::Dg, t_stage, stage=0; disable_timers=false)
 
   # Calculate source terms
   @timeit timer() "source terms" calc_sources!(dg, t_stage)
+
+  # Update number of evaluations
+  dg.element_evaluations += length(dg.current_element_ids)
+  dg.surface_evaluations += length(dg.current_surface_ids)
+  dg.mortar_evaluations += length(dg.current_mortar_ids)
 end
 
 
 # Calculate volume integral and update u_t
 function calc_volume_integral!(dg)
   if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), 1:dg.n_elements, dg.elements.u_t, dg.dhat)
+    calc_volume_integral!(dg, Val(:weak_form), dg.current_element_ids, dg.elements.u_t, dg.dhat)
   elseif dg.volume_integral_type == :split_form
     calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
   elseif dg.volume_integral_type == :shock_capturing
@@ -945,7 +993,7 @@ end
 
 # Prolong solution to surfaces (for GL nodes: just a copy)
 function prolong2surfaces!(dg)
-  prolong2surfaces!(dg, 1:dg.n_surfaces)
+  prolong2surfaces!(dg, dg.current_surface_ids)
 end
 function prolong2surfaces!(dg, surface_ids)
   equation = equations(dg)
@@ -971,13 +1019,13 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
+prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type), dg.current_mortar_ids)
 
 # Prolong solution to mortars (l2mortar version)
-function prolong2mortars!(dg, ::Val{:l2})
+function prolong2mortars!(dg, ::Val{:l2}, mortar_ids)
   equation = equations(dg)
 
-  for m in 1:dg.n_l2mortars
+  for m in mortar_ids
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1117,7 +1165,7 @@ end
 
 # Calculate and store fluxes across surfaces
 calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
-                                            1:dg.n_surfaces,
+                                            dg.current_surface_ids,
                                             dg.surfaces.neighbor_ids,
                                             dg.surfaces.u, dg,
                                             dg.surfaces.orientations)
@@ -1164,16 +1212,16 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type), dg.current_mortar_ids)
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg, ::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2),
-                                                      dg.l2mortars.neighbor_ids,
-                                                      dg.l2mortars.u_lower,
-                                                      dg.l2mortars.u_upper,
-                                                      dg.l2mortars.orientations)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
+function calc_mortar_flux!(dg, ::Val{:l2}, current_mortar_ids)
+  calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2), current_mortar_ids,
+                    dg.l2mortars.neighbor_ids, dg.l2mortars.u_lower,
+                    dg.l2mortars.u_upper, dg.l2mortars.orientations)
+end
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2}, current_mortar_ids,
                            neighbor_ids::Matrix{Int}, u_lower::Array{Float64, 4},
                            u_upper::Array{Float64, 4}, orientations::Vector{Int})
   # Type alias only for convenience
@@ -1187,7 +1235,7 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
   fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
-  Threads.@threads for m = 1:dg.n_l2mortars
+  Threads.@threads for m in current_mortar_ids
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1252,13 +1300,13 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg, ::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec),
-                                                      dg.ecmortars.neighbor_ids,
-                                                      dg.ecmortars.u_lower,
-                                                      dg.ecmortars.u_upper,
-                                                      dg.ecmortars.u_large,
-                                                      dg.ecmortars.orientations)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
+function calc_mortar_flux!(dg, ::Val{:ec}, current_mortar_ids)
+  calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec), current_mortar_ids,
+                    dg.ecmortars.neighbor_ids, dg.ecmortars.u_lower,
+                    dg.ecmortars.u_upper, dg.ecmortars.u_large,
+                    dg.ecmortars.orientations)
+end
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec}, current_mortar_ids,
                            neighbor_ids::Matrix{Int},
                            u_lower::Array{Float64, 3},
                            u_upper::Array{Float64, 3},
@@ -1282,7 +1330,7 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
   PL2R_lower = dg.ecmortar_reverse_lower
 
   #=@inbounds Threads.@threads for m = 1:dg.n_ecmortars=#
-  Threads.@threads for m = 1:dg.n_ecmortars
+  Threads.@threads for m in current_mortar_ids
     large_element_id = dg.ecmortars.neighbor_ids[3, m]
     upper_element_id = dg.ecmortars.neighbor_ids[2, m]
     lower_element_id = dg.ecmortars.neighbor_ids[1, m]
@@ -1377,7 +1425,7 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, 1:dg.n_elements, dg,
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg.current_element_ids, dg,
                                                     dg.elements.surface_flux, dg.lhat)
 function calc_surface_integral!(u_t::Array{Float64, 4}, element_ids, dg,
                                 surface_flux::Array{Float64, 4}, lhat::SMatrix)
@@ -1400,7 +1448,7 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  apply_jacobian!(dg, 1:dg.n_elements)
+  apply_jacobian!(dg, dg.current_element_ids)
 end
 function apply_jacobian!(dg, element_ids)
   for element_id in element_ids
@@ -1417,7 +1465,7 @@ end
 
 # Calculate source terms and apply them to u_t
 function calc_sources!(dg::Dg, t)
-  calc_sources!(dg, 1:dg.n_elements, t)
+  calc_sources!(dg, dg.current_element_ids, t)
 end
 function calc_sources!(dg::Dg, element_ids, t)
   equation = equations(dg)
@@ -1561,22 +1609,98 @@ function Solvers.update_level_info!(dg::Dg, mesh::TreeMesh)
   max_level = maximum_level(mesh.tree)
   n_levels = max_level - min_level + 1
 
+  # level_id counts the existing refinement levels in decreasing order:
+  # level = max_level:   level_id = 1
+  # level = max_level-1: level_id = 2
+  # level = max_level-2: level_id = 3
+  # ...
+  # level = min_level:   level_id = n_levels
+
   # Reset level info for elements
   dg.level_info_elements = [Vector{Int}() for _ in 1:n_levels]
+  dg.level_info_elements_acc = [Vector{Int}() for _ in 1:n_levels]
+
+  # TODO: For the accumulated values, we should not store the min_level since
+  # it contains all cell ids by definition. It is left for the moment to
+  # simplify the implementation.
 
   # Determine level for each element
   tmp = BitArray(undef, n_levels, dg.n_elements)
   for element_id in 1:dg.n_elements
+    # Determine level
     level = mesh.tree.levels[dg.elements.cell_ids[element_id]]
-    # level_id:
-    # level = max_level:   1
-    # level = max_level-1: 2
-    # level = max_level-2: 3
-    # ...
-    # level = min_level:   n_levels
+    # Convert to level id
     level_id = max_level + 1 - level
     push!(dg.level_info_elements[level_id], element_id)
+
+    # Add to accumulated container
+    for l in level_id:n_levels
+      push!(dg.level_info_elements_acc[l], element_id)
+    end
   end
+  @assert length(dg.level_info_elements_acc[end]) == dg.n_elements "highest level should contain all elements"
+
+  # Reset level info for surfaces
+  dg.level_info_surfaces_acc = [Vector{Int}() for _ in 1:n_levels]
+
+  # Determine level for each surface
+  # Note: Since surfaces are by definition between same-sized elements, i.e.,
+  # elements at the same refinement level, we need to consider only one of the
+  # neighbor elements (here: the left one) in determining to which level this
+  # surface belongs.
+  for surface_id in 1:dg.n_surfaces
+    # Get element ids
+    element_id_left = dg.surfaces.neighbor_ids[1, surface_id]
+
+    # Determine level
+    level_left = mesh.tree.levels[dg.elements.cell_ids[element_id_left]]
+
+    # Convert to level id
+    level_id_left = max_level + 1 - level_left
+
+    # Add to accumulated container
+    for l in level_id_left:n_levels
+      push!(dg.level_info_surfaces_acc[l], surface_id)
+    end
+  end
+  @assert length(dg.level_info_surfaces_acc[end]) == dg.n_surfaces "highest level should contain all surfaces"
+
+  # Reset level info for mortars
+  dg.level_info_mortars_acc = [Vector{Int}() for _ in 1:n_levels]
+
+  # Store for convenience
+  n_mortars = dg.mortar_type === :l2 ? dg.n_l2mortars : dg.n_ecmortars
+  mortars = dg.mortar_type === :l2 ? dg.l2mortars : dg.ecmortars
+
+  # Determine level for each mortar
+  # Since mortars belong by definition to two levels, theoretically we have to
+  # add them twice: Once for each level of its neighboring elements. However,
+  # as we store the accumulated mortar ids, we only need to consider the one of
+  # the small neighbors (here: the lower one), is it has the higher level and
+  # thus the lower level id.
+  for mortar_id in 1:n_mortars
+    # Get element ids
+    element_id_lower = mortars.neighbor_ids[1, mortar_id]
+
+    # Determine level
+    level_lower = mesh.tree.levels[dg.elements.cell_ids[element_id_lower]]
+
+    # Convert to level id
+    level_id_lower = max_level + 1 - level_lower
+
+    # Add to accumulated container
+    for l in level_id_lower:n_levels
+      push!(dg.level_info_mortars_acc[l], mortar_id)
+    end
+  end
+  @assert length(dg.level_info_mortars_acc[end]) == n_mortars "highest level should contain all mortars"
+end
+
+
+function Solvers.set_acc_level_id!(dg::Dg, acc_level_id::Int)
+  dg.current_element_ids = dg.level_info_elements_acc[acc_level_id]
+  dg.current_surface_ids = dg.level_info_surfaces_acc[acc_level_id]
+  dg.current_mortar_ids = dg.level_info_mortars_acc[acc_level_id]
 end
 
 

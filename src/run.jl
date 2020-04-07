@@ -175,7 +175,8 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
           | | volume flux:      $(string(equations.volume_flux_type))
           | | surface flux:     $(string(equations.surface_flux_type))
           | | #elements:        $(solver.n_elements)
-          | | #surfaces:        $(solver.n_surfaces)
+          """
+  s *= """| | #surfaces:        $(solver.n_surfaces)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
@@ -212,7 +213,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(solver, time, 0, step, 0, 0)
+    analyze_solution(solver, mesh, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -257,7 +258,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(
-          solver, time, dt, step, runtime_absolute, runtime_relative)
+          solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
@@ -268,6 +269,9 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
         println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
         println("-"^80)
         println()
+        @printf("#element evaluations:  %8d\n", solver.element_evaluations)
+        @printf("#surface evaluations:  %8d\n", solver.surface_evaluations)
+        @printf("#mortar evaluations:   %8d\n", solver.mortar_evaluations)
       end
     elseif alive_interval > 0 && step % alive_interval == 0
       runtime_absolute = (time_ns() - loop_start_time) / 10^9

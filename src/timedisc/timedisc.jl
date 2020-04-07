@@ -3,7 +3,7 @@ module TimeDisc
 include("pairedrk.jl")
 
 using ..Trixi
-using ..Solvers: AbstractSolver, rhs!, update_level_info!
+using ..Solvers: AbstractSolver, rhs!, update_level_info!, set_acc_level_id!
 using ..Auxiliary: timer, parameter
 using ..Mesh: TreeMesh
 using ..Mesh.Trees: minimum_level, maximum_level
@@ -17,8 +17,10 @@ export timestep!
 function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                    ::Val{:paired_rk_2_multi}, t::Float64, dt::Float64)
   # Get parameters
+  @timeit timer() "time integration" begin
   n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
   derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
+  optimized_paired_rk = parameter("optimized_paired_rk", true)
 
   # Determine Runge-Kutta coefficients "c"
   c = calc_c(n_stages)
@@ -50,19 +52,26 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Determine number of levels and obtain accumulated level id for each stage
   n_levels = length(solver.level_info_elements)
   acc_level_ids = acc_level_ids_by_stage(n_stages, n_levels)
+  end
 
   # Stage 1
+  @timeit timer() "time integration" begin
   stage = 1
   t_stage = t + dt * c[stage]
+  optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
+  end
   @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
 
   # Store permanently
+  @timeit timer() "time integration" begin
   @timeit timer() "Runge-Kutta step" begin
     @. un = u
     @. k1 = k
   end
+  end
 
   # Stage 2
+  @timeit timer() "time integration" begin
   stage = 2
   t_stage = t + dt * c[stage]
   @timeit timer() "calc_a_multilevel" a_1, _ = calc_a_multilevel(n_stages,
@@ -72,10 +81,13 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                                                                  solver.level_info_elements)
   a_1_rs = reshape(a_1, 1, 1, 1, :)
   @timeit timer() "Runge-Kutta step" @. u = un + dt * a_1_rs * k1
+  optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
+  end
   @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
 
   # Stages 3-n_stages
   for stage in 3:n_stages
+    @timeit timer() "time integration" begin
     t_stage = t + dt * c[stage]
     @timeit timer() "calc_a_multilevel" a_1, a_2 = calc_a_multilevel(n_stages,
                                                                      stage,
@@ -85,11 +97,15 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
     a_1_rs = reshape(a_1, 1, 1, 1, :)
     a_2_rs = reshape(a_2, 1, 1, 1, :)
     @timeit timer() "Runge-Kutta step" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)
+    optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
+    end
     @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
   end
 
   # Final update to u
+  @timeit timer() "time integration" begin
   @timeit timer() "Runge-Kutta step" @. u = un + dt * k
+  end
 end
 
 
