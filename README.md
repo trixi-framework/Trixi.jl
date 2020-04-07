@@ -47,4 +47,4 @@ you are in your terminal, you will find all documentation under
 ## Authors
 Trixi was created by
 [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gassner).
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner).
