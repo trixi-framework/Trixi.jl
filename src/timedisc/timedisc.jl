@@ -7,7 +7,7 @@ using ..Solvers: AbstractSolver, rhs!, update_level_info!
 using ..Auxiliary: timer, parameter
 using ..Mesh: TreeMesh
 using ..Mesh.Trees: minimum_level, maximum_level
-using .PairedRk: calc_coefficients, calc_c, calc_a_multilevel
+using .PairedRk: calc_coefficients, calc_c, calc_a_multilevel, acc_level_ids_by_stage
 using TimerOutputs: @timeit
 
 export timestep!
@@ -47,10 +47,14 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Update level info for each element
   @timeit timer() "update level info" update_level_info!(solver, mesh)
 
+  # Determine number of levels and obtain accumulated level id for each stage
+  n_levels = length(solver.level_info_elements)
+  acc_level_ids = acc_level_ids_by_stage(n_stages, n_levels)
+
   # Stage 1
   stage = 1
   t_stage = t + dt * c[stage]
-  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
 
   # Store permanently
   @timeit timer() "Runge-Kutta step" begin
@@ -68,7 +72,7 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                                                                  solver.level_info_elements)
   a_1_rs = reshape(a_1, 1, 1, 1, :)
   @timeit timer() "Runge-Kutta step" @. u = un + dt * a_1_rs * k1
-  @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+  @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
 
   # Stages 3-n_stages
   for stage in 3:n_stages
@@ -81,7 +85,7 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
     a_1_rs = reshape(a_1, 1, 1, 1, :)
     a_2_rs = reshape(a_2, 1, 1, 1, :)
     @timeit timer() "Runge-Kutta step" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)
-    @timeit timer() "rhs" rhs!(solver, t_stage, stage)
+    @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
   end
 
   # Final update to u

@@ -3,6 +3,8 @@ module PairedRk
 export calc_coefficients
 export calc_c
 export calc_a_multilevel
+export acc_level_ids_by_stage
+
 
 function calc_coefficients(n_stages, n_derivative_evaluations)
   if !haskey(rk_a, (n_stages, n_derivative_evaluations))
@@ -78,7 +80,39 @@ function calc_a_multilevel(n_stages, stage, n_derivative_evaluations_max,
 end
 
 
-# `a[s, e]` stores the Runge-Kutta coefficients `a` for a given combination of
+function acc_level_ids_by_stage(n_stages, n_levels)
+  # Init storage
+  acc_level_ids = Vector{Int}(undef, n_stages)
+
+  # Fill storage depending on number of stages
+  if n_stages == 16
+    acc_level_ids[ 1] = n_levels
+    acc_level_ids[ 2] = 1
+    acc_level_ids[ 3] = 1
+    acc_level_ids[ 4] = 1
+    acc_level_ids[ 5] = 1
+    acc_level_ids[ 6] = 1
+    acc_level_ids[ 7] = 1
+    acc_level_ids[ 8] = 1
+    acc_level_ids[ 9] = 1
+    acc_level_ids[10] = 2
+    acc_level_ids[11] = 2
+    acc_level_ids[12] = 2
+    acc_level_ids[13] = 2
+    acc_level_ids[14] = 3
+    acc_level_ids[15] = 3
+    acc_level_ids[16] = n_levels
+  else
+    error("number of stages '$n_stages' not supported")
+  end
+
+  # Return minimum of calculated level and number of levels to account for
+  # cases where more levels are supported than currently exist
+  return min.(acc_level_ids, n_levels)
+end
+
+
+# `rk_a[s, e]` stores the Runge-Kutta coefficients `a` for a given combination of
 # stages `s` and derivative evaluations `e`. Only the coefficients determined
 # by the optimization routines are stored, e.g., for a (s,e) = (8,4) scheme,
 # the stored coefficients are `a(6,5)`, `a(7,6)`, and `a(8,7)`.
