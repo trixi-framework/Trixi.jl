@@ -38,13 +38,15 @@ parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 
 ## Documentation
-If you are on GitLab, you can browse the documentation
-[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/). If
-you are in your terminal, you will find all documentation under
+Additional documentation is available that contains more information on how to
+use Trixi interactively, how to visualize output files etc. It also includes a
+section on our preferred development workflow and some tips for using Git. The
+documentation can be accessed either
+[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/) or under
 [`docs/src`](docs/src).
 
 
 ## Authors
 Trixi was created by
 [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gassner).
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner).
