@@ -47,6 +47,8 @@ bin/trixi parameters.toml
 
 To change the simulation setup, edit `parameters.toml`. You can also pass a different
 parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
+For more information on how to use Trixi, especially during code development,
+please see the [Development](@ref) section.
 
 
 ## Authors
