@@ -108,10 +108,9 @@ make sure that all the latest changes have been pushed. Then, go
 to the merge request page on GitLab and and click on **Resolve WIP status**.
 This will remove the `WIP:` in front of the merge request title and enable the
 **Merge** button, which was grayed out before. Make sure the option "Delete
-source branch when merge request is accepted." is checked and **do not** enable
-"Squash commits when merge request is accepted.". Then, click **Merge** and,
-voilá, you are done! The your branch will have been merged to `master` and the
-source branch will have been deleted in the GitLab repository.
+source branch" is checked and **do not** enable "Squash commits". Then, click
+**Merge** and, voilá, you are done! The your branch will have been merged to
+`master` and the source branch will have been deleted in the GitLab repository.
 
 !!! info "Outdated branch"
     If you cannot click **Resolve WIP status** or the **Merge** button remains
