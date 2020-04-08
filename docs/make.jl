@@ -41,6 +41,7 @@ makedocs(
         "Development" => "development.md",
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
+        "GitLab and Git" => "gitlab_git.md",
         "Reference" => [
             "Trixi" => "reference/trixi.md",
             "Trixi2Img" => "reference/trixi2img.md",
