@@ -6,6 +6,10 @@ to be easy to use and extend.
 
 
 ## Installation
+If you have not yet installed Julia, please follow the instructions for your
+operating system found [here](https://julialang.org/downloads/platform/).
+Official binaries are available for Windows, macOS, Linux, and FreeBSD.
+
 Strictly speaking, no installation is necessary to run Trixi. However, the
 simulation program and the postprocessing tools rely on a number of Julia
 packages, which need to be available on the respective machine. This can most
