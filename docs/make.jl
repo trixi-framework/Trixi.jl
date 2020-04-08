@@ -41,10 +41,10 @@ makedocs(
         "Development" => "development.md",
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
-        "APIs" => [
-            "Trixi" => "api/trixi.md",
-            "Trixi2Img" => "api/trixi2img.md",
-            "Trixi2Vtk" => "api/trixi2vtk.md",
+        "Reference" => [
+            "Trixi" => "reference/trixi.md",
+            "Trixi2Img" => "reference/trixi2img.md",
+            "Trixi2Vtk" => "reference/trixi2vtk.md",
         ]
     ],
     # Set repo to GitLab
