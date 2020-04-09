@@ -22,13 +22,13 @@ Pkg.instantiate()
 # Install Trixi2Img dependencies
 println("*"^80)
 println("Installing dependencies for Trixi2Img...")
-Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "TrixiImg"))
+Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "Trixi2Img"))
 Pkg.instantiate()
 
 # Install Trixi2Vtk dependencies
 println("*"^80)
 println("Installing dependencies for Trixi2Vtk...")
-Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "TrixiVtk"))
+Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "Trixi2Vtk"))
 Pkg.instantiate()
 
 println("*"^80)
