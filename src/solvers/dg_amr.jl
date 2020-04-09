@@ -424,7 +424,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     end
   elseif dg.amr_indicator === :blob
     base_level = 4
-    max_level = 6
+    max_level = 7
     # to make the simulation smaller and quicker wall clock time, choose super_max_level = 6
     super_max_level = 7
     blending_factor_threshold0 = 0.3
@@ -442,11 +442,26 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
                           Val(:density))
 
+    # (Re-)initialize element variable storage for blending factor
+    if (!haskey(dg.element_variables, :blending_factor) ||
+        length(dg.element_variables[:blending_factor]) != dg.n_elements)
+      dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+    end
+
+    alpha1 = dg.element_variables[:blending_factor]
+    out = Any[]
+    calc_blending_factors(alpha1, out, dg, dg.elements.u,
+                                                dg.shock_alpha_max,
+                                                dg.shock_alpha_min,
+                                                true,
+                                                Val(dg.shock_indicator_variable))
+
     # Iterate over all elements
     for element_id in 1:dg.n_elements
       cell_id = dg.elements.cell_ids[element_id]
       actual_level = mesh.tree.levels[cell_id]
       target_level = actual_level
+      # adapt for the amr indicator
       if alpha[element_id] >= blending_factor_threshold0
         target_level = super_max_level
       elseif alpha[element_id] >= blending_factor_threshold1
@@ -454,7 +469,10 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
       elseif alpha[element_id] <= blending_factor_threshold2
         target_level = base_level
       end
-
+      # make sure that a highly troubled shock cell is not coarsened
+      if isapprox.(dg.shock_alpha_max, alpha1[element_id], atol=1e-12)
+        target_level = max_level 
+      end
       # Compare target level with actual level to set indicator
       if actual_level < target_level
         lambda[element_id] = 1.0

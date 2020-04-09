@@ -251,7 +251,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     x_rel = x-inicenter
     r = sqrt(x_rel[1]^2 + x_rel[2]^2)
     # steepness of the tanh transition zone
-    slope = 5
+    slope = 2
     # density blob
     dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
     # velocity blob is zero
