@@ -20,7 +20,7 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
 import .L2Projection # Import to satisfy Gregor
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit
+using TimerOutputs: @timeit, @notimeit
 using Printf: @sprintf, @printf
 using Random: seed!
 
@@ -533,7 +533,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
   duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
   # Compute ut = rhs(u) with current solution u
-  Solvers.rhs!(dg, t, disable_timers=true)
+  @notimeit timer() Solvers.rhs!(dg, t)
   # Quadrature weights
   weights = dg.weights
   # Integrate over all elements to get the total semi-discrete entropy update
@@ -676,22 +676,7 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
-  # Run rhs! without timing the individual contributions
-  # FIXME: This should be done properly, e.g., by a macro call
-  if disable_timers
-    dg.elements.u_t .= 0.0
-    calc_volume_integral!(dg)
-    prolong2surfaces!(dg)
-    calc_surface_flux!(dg)
-    prolong2mortars!(dg)
-    calc_mortar_flux!(dg)
-    calc_surface_integral!(dg)
-    apply_jacobian!(dg)
-    calc_sources!(dg, t_stage)
-    return
-  end
-
+function Solvers.rhs!(dg::Dg, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
