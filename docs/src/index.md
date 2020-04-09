@@ -7,7 +7,8 @@ to be easy to use and extend.
 
 ## Installation
 If you have not yet installed Julia, please follow the instructions for your
-operating system found [here](https://julialang.org/downloads/platform/).
+operating system found [here](https://julialang.org/downloads/platform/). Trixi
+works with Julia v1.3 or higher.
 Official binaries are available for Windows, macOS, Linux, and FreeBSD.
 
 Strictly speaking, no installation is necessary to run Trixi. However, the
@@ -41,6 +42,8 @@ julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()
 # Install Trixi2Vtk dependencies
 julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
 ```
+The `install.jl` script can also be used to *update* the dependencies if they have
+changed since you installed Trixi.
 
 
 ## Usage

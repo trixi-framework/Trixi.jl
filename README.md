@@ -1,8 +1,7 @@
 # Trixi: A tree-based flexible DG/SBP framework written in Julia
 
 <p align="center">
-  <img width="300px"
-       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/docs/src/assets/logo.png">
+  <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
 *Trixi* is a flexible DG/SBP framework written in the Julia programming
@@ -12,7 +11,9 @@ to be easy to use and extend.
 
 ## Installation
 If you have not yet installed Julia, please follow the instructions for your
-operating system found [here](https://julialang.org/downloads/platform/).
+operating system found [here](https://julialang.org/downloads/platform/). Trixi
+works with Julia v1.3 or higher.
+
 You can then install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:
 
