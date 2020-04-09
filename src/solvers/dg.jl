@@ -8,8 +8,7 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt,
-	                  cons2entropy, cons2indicator!, cons2prim
+                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -18,11 +17,11 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      minimum_level, maximum_level
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
-		      vandermonde_legendre, nodal2modal
+                      vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit
+using TimerOutputs: @timeit, @notimeit
 using Printf: @sprintf, @printf
 using Random: seed!
 
@@ -225,7 +224,6 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       level_info_elements_acc, level_info_surfaces_acc, level_info_mortars_acc,
       current_element_ids, current_surface_ids, current_mortar_ids,
       element_evaluations, surface_evaluations, mortar_evaluations)
-      
 
   return dg
 end
@@ -426,7 +424,7 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
-      
+
       # Skip if neighbor has children
       neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_cell_id)
@@ -567,7 +565,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
   duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
   # Compute ut = rhs(u) with current solution u
-  Solvers.rhs!(dg, t, disable_timers=true)
+  @notimeit timer() Solvers.rhs!(dg, t)
   # Quadrature weights
   weights = dg.weights
   # Integrate over all elements to get the total semi-discrete entropy update
@@ -585,6 +583,40 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   return dsdu_ut
 end
 
+# Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
+# TODO: optimize; this implementation is probably very slow
+function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
+  # Gather necessary information
+  equation = equations(dg)
+  # Local copy of standard derivative matrix
+  d = polynomial_derivative_matrix(dg.nodes)
+  # Quadrature weights
+  weights = dg.weights
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = 0.0
+  l2_divb   = 0.0
+  for element_id in 1:dg.n_elements
+    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        divb   = 0.0
+        for k in 1:nnodes(dg)
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
+                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+        end
+        divb *= dg.elements.inverse_jacobian[element_id]
+        linf_divb = max(linf_divb,abs(divb))
+        l2_divb += jacobian_volume*weights[i]*weights[j]*divb^2
+      end
+    end
+  end
+  l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
+
+  return l2_divb, linf_divb
+end
+
+
+
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
@@ -592,38 +624,38 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
-  n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
+  # General information
   println()
   println("-"^80)
   println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
-          "                 " *
-          " #elements:      " * @sprintf("% 14d", dg.n_elements))
+          "               " *
+          " run time:       " * @sprintf("%10.8e s", runtime_absolute))
   println(" dt:             " * @sprintf("%10.8e", dt) *
-          "                 " *
-          " #surfaces:      " * @sprintf("% 14d", dg.n_surfaces))
-  println(" sim. time:      " * @sprintf("%10.8e", time) *
-          "                 " *
-          " #mortars:       " * @sprintf("% 14d", n_mortars))
-  println(" run time:       " * @sprintf("%10.8e s", runtime_absolute))
-  println(" Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+          "               " *
+          " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+  println(" sim. time:      " * @sprintf("%10.8e", time))
 
-  levels = Vector{Int}(undef, dg.n_elements)
-  for element_id in 1:dg.n_elements
-    levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
-  end
-  min_level = minimum(levels)
-  max_level = maximum(levels)
+  # Level information (only show for AMR)
+  if parameter("amr_interval", 0) > 0
+    levels = Vector{Int}(undef, dg.n_elements)
+    for element_id in 1:dg.n_elements
+      levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+    end
+    min_level = minimum(levels)
+    max_level = maximum(levels)
 
-  println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
-  for level = max_level:-1:min_level+1
-    println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+    println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+    for level = max_level:-1:min_level+1
+      println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+    end
+    println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
   end
-  println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
   println()
 
+  # Derived quantities (error norms, entropy etc.)
   print(" Variable:    ")
   for v in 1:nvariables(equation)
     @printf("   %-14s", equation.varnames_cons[v])
@@ -642,7 +674,19 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
 
+  if equation.name == "mhd"
+    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+    println()
+    print(" L2 ∇⋅B:    ")
+    @printf("    % 10.8e", l2_divb)
+    println()
+    print(" Linf ∇⋅B:    ")
+    @printf("  % 10.8e", linf_divb)
+  end
+
   println()
+
+  println("-"^80)
   println()
 end
 
@@ -664,27 +708,7 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage, stage=0, acc_level_id=0; disable_timers=false)
-  #=n_stages = parameter("n_stages")=#
-  #=derivative_evaluations = parameter("derivative_evaluations")=#
-  # Run rhs! without timing the individual contributions
-  # FIXME: This should be done properly, e.g., by a macro call
-  if disable_timers
-    dg.elements.u_t .= 0.0
-    #=if stage > 1 && stage < n_stages + 2 - derivative_evaluations=#
-    #=  return=#
-    #=end=#
-    calc_volume_integral!(dg)
-    prolong2surfaces!(dg)
-    calc_surface_flux!(dg)
-    prolong2mortars!(dg)
-    calc_mortar_flux!(dg)
-    calc_surface_integral!(dg)
-    apply_jacobian!(dg)
-    calc_sources!(dg, t_stage)
-    return
-  end
-
+function Solvers.rhs!(dg::Dg, t_stage, stage=0, acc_level_id=0)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
   #=if stage > 1 && stage < n_stages + 2 - derivative_evaluations=#
@@ -716,9 +740,12 @@ function Solvers.rhs!(dg::Dg, t_stage, stage=0, acc_level_id=0; disable_timers=f
   @timeit timer() "source terms" calc_sources!(dg, t_stage)
 
   # Update number of evaluations
-  dg.element_evaluations += length(dg.current_element_ids)
-  dg.surface_evaluations += length(dg.current_surface_ids)
-  dg.mortar_evaluations += length(dg.current_mortar_ids)
+  to = timer()
+  if to.enabled
+    dg.element_evaluations += length(dg.current_element_ids)
+    dg.surface_evaluations += length(dg.current_surface_ids)
+    dg.mortar_evaluations += length(dg.current_mortar_ids)
+  end
 end
 
 
@@ -958,10 +985,20 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 1)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 1)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 1)
+      end
       for v in 1:nvariables(equation)
         fstar1[v,i,j] = fstarnode[v]
       end
@@ -979,10 +1016,20 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 2)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 2)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 2)
+      end
       for v in 1:nvariables(equation)
         fstar2[v,i,j] = fstarnode[v]
       end
@@ -1563,7 +1610,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
       alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
     end
- 
+
     # Loop over L2 mortars
     for l2mortar_id in 1:dg.n_l2mortars
       # Get neighboring element ids
@@ -1577,7 +1624,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
- 
+
     # Loop over EC mortars
     for ecmortar_id in 1:dg.n_ecmortars
       # Get neighboring element ids

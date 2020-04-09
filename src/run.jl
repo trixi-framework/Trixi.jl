@@ -10,11 +10,28 @@ using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_f
 using .AMR: adapt!
 
 using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer, reset_timer!
+using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
 using Profile: clear_malloc_data
 
 
-function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
+"""
+    run(parameters_file=nothing; verbose=false, args=nothing)
+
+Run a Trixi simulation with the parameters in `parameters_file`.
+
+If `verbose` is `true`, additional output will be generated on the terminal
+that may help with debugging.  If `args` is given, it should be an
+`ARGS`-like array of strings that holds command line arguments, and will be
+interpreted by the `ArgParse` module. In this case, the values of
+`parameters_file` and `verbose` are ignored.
+
+# Examples
+```julia
+julia> Trixi.run("parameters.toml", verbose=true)
+[...]
+```
+"""
+function run(parameters_file=nothing; verbose=false, args=nothing)
   # Reset timer
   reset_timer!(timer())
 
@@ -30,9 +47,6 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
     end
     args["parameters_file"] = parameters_file
     args["verbose"] = verbose
-    for (key, value) in kwargs
-      args[string(key)] = value
-    end
   end
 
   # Set global verbosity
@@ -65,7 +79,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -207,7 +221,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   if !restart && parameter("save_initial_solution", true)
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
-    rhs!(solver, time, disable_timers=true)
+    @notimeit timer() rhs!(solver, time)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -342,4 +356,3 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
 end
-
