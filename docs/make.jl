@@ -20,6 +20,10 @@ Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "Trixi2Vtk"))
 Pkg.instantiate()
 import Trixi2Vtk
 
+# Set paths based on availability of CI variables
+canonical = get(ENV, "CI_PAGES_URL", "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/")
+repo_url = get(ENV, "CI_PROJECT_URL", "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl")
+
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
@@ -33,20 +37,21 @@ makedocs(
         # Explicitly add favicon as asset
         assets = ["assets/favicon.ico"],
         # Set canonical URL to GitLab pages URL
-        canonical = "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/"
+        canonical = canonical
     ),
     # Explicitly specify documentation structure
     pages = [
         "Home" => "index.md",
         "Development" => "development.md",
-        "Visualization and postprocessing" => "visualization_postprocessing.md",
+        "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
-        "APIs" => [
-            "Trixi" => "api/trixi.md",
-            "Trixi2Img" => "api/trixi2img.md",
-            "Trixi2Vtk" => "api/trixi2vtk.md",
+        "GitLab & Git" => "gitlab-git.md",
+        "Reference" => [
+            "Trixi" => "reference/trixi.md",
+            "Trixi2Img" => "reference/trixi2img.md",
+            "Trixi2Vtk" => "reference/trixi2vtk.md",
         ]
     ],
     # Set repo to GitLab
-    repo = "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/blob/{commit}{path}#{line}"
+    repo = "$(repo_url)/blob/{commit}{path}#{line}"
 )

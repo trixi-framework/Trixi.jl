@@ -1,4 +1,4 @@
-# Visualization and postprocessing
+# Visualization
 There are two tools provided with Trixi that allow to visualize Trixi's output
 files, both of which can be found in `postprocessing/`: `trixi2vtk` and
 `trixi2img`. `

@@ -10,7 +10,7 @@ using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_f
 using .AMR: adapt!
 
 using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer, reset_timer!
+using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
 using Profile: clear_malloc_data
 
 
@@ -79,7 +79,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -215,7 +215,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   if !restart && parameter("save_initial_solution", true)
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
-    rhs!(solver, time, disable_timers=true)
+    @notimeit timer() rhs!(solver, time)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -347,4 +347,3 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
 end
-

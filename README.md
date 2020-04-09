@@ -1,8 +1,7 @@
 # Trixi: A tree-based flexible DG/SBP framework written in Julia
 
 <p align="center">
-  <img width="300px"
-       src="https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/raw/master/docs/src/assets/logo.png">
+  <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
 *Trixi* is a flexible DG/SBP framework written in the Julia programming
@@ -11,7 +10,11 @@ to be easy to use and extend.
 
 
 ## Installation
-Install Trixi, the postprocessing tools, and the respective dependencies by
+If you have not yet installed Julia, please follow the instructions for your
+operating system found [here](https://julialang.org/downloads/platform/). Trixi
+works with Julia v1.3 or higher.
+
+You can then install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:
 
 1.  Clone the repository:
@@ -38,13 +41,15 @@ parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 
 ## Documentation
-If you are on GitLab, you can browse the documentation
-[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/). If
-you are in your terminal, you will find all documentation under
+Additional documentation is available that contains more information on how to
+use Trixi interactively, how to visualize output files etc. It also includes a
+section on our preferred development workflow and some tips for using Git. The
+documentation can be accessed either
+[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/) or under
 [`docs/src`](docs/src).
 
 
 ## Authors
 Trixi was created by
 [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gassner).
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner).
