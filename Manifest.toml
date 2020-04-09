@@ -188,9 +188,11 @@ version = "1.0.1"
 
 [[TimerOutputs]]
 deps = ["Printf"]
-git-tree-sha1 = "311765af81bbb48d7bad01fb016d9c328c6ede03"
+git-tree-sha1 = "808c4db0ea7c2f568cacc2cbbee7c8abfd5aabbc"
+repo-rev = "ec6de33"
+repo-url = "https://github.com/KristofferC/TimerOutputs.jl.git"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
-version = "0.5.3"
+version = "0.5.5"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
