@@ -73,8 +73,8 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     v2 = B_perp*cos(alpha)
     v3 = 0.1*cos(2.0*pi*x_perp)
     p = 0.1
-    B1 = cos(α) + v1
-    B2 = sin(α) + v2
+    B1 = cos(alpha) + v1
+    B2 = sin(alpha) + v2
     B3 = v3
     psi = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
