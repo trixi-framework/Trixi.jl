@@ -22,7 +22,7 @@ Run a Trixi simulation with the parameters in `parameters_file`.
 If `verbose` is `true`, additional output will be generated on the terminal
 that may help with debugging.  If `args` is given, it should be an
 `ARGS`-like array of strings that holds command line arguments, and will be
-interpreted by the `ArgParse` module. In this case, the values of
+interpreted by the `parse_commandline_arguments` function. In this case, the values of
 `parameters_file` and `verbose` are ignored.
 
 # Examples
