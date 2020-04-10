@@ -552,7 +552,8 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
 end
 
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
-# TODO: optimize; this implementation is probably very slow
+# OBS! This works only when the problem setup is designed such that ∂B_1/∂x + ∂B_2/∂y = 0. Cannot
+#      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
   # Gather necessary information
   equation = equations(dg)
