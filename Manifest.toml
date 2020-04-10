@@ -1,11 +1,5 @@
 # This file is machine-generated - editing it directly is not advised
 
-[[ArgParse]]
-deps = ["Logging", "TextWrap"]
-git-tree-sha1 = "a8fc2e149cd6db276c76faebe197ccd3a92fb9ff"
-uuid = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
-version = "1.1.0"
-
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
@@ -45,12 +39,6 @@ git-tree-sha1 = "ed2c4abadf84c53d9e58510b5fc48912c2336fbb"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
 version = "2.2.0"
 
-[[CompilerSupportLibraries_jll]]
-deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "7c4f882c41faa72118841185afc58a2eb00ef612"
-uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "0.3.3+0"
-
 [[Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -62,12 +50,6 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
-
-[[GaussQuadrature]]
-deps = ["SpecialFunctions"]
-git-tree-sha1 = "ff30c61ad1ff425d0d8bac6b77833216741c2e68"
-uuid = "d54b0c1a-921d-58e0-8e36-89d8069c0969"
-version = "0.5.4"
 
 [[HDF5]]
 deps = ["Blosc", "HDF5_jll", "Libdl", "Mmap", "Random"]
@@ -105,12 +87,6 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
-
-[[OpenSpecFun_jll]]
-deps = ["CompilerSupportLibraries_jll", "Libdl", "Pkg"]
-git-tree-sha1 = "d51c416559217d974a1113522d5919235ae67a87"
-uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
-version = "0.5.3+3"
 
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
@@ -161,12 +137,6 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
-[[SpecialFunctions]]
-deps = ["OpenSpecFun_jll"]
-git-tree-sha1 = "e19b98acb182567bcb7b75bb5d9eedf3a3b5ec6c"
-uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "0.10.0"
-
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
 git-tree-sha1 = "5a3bcb6233adabde68ebc97be66e95dcb787424c"
@@ -180,11 +150,6 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[TextWrap]]
-git-tree-sha1 = "9250ef9b01b66667380cf3275b3f7488d0e25faf"
-uuid = "b718987f-49a8-5099-9789-dcd902bef87d"
-version = "1.0.1"
 
 [[TimerOutputs]]
 deps = ["Printf"]
