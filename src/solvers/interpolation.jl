@@ -1,7 +1,5 @@
 module Interpolation
 
-using GaussQuadrature: legendre, both, neither
-
 export interpolate_nodes
 export calc_dhat
 export calc_dsplit
@@ -204,15 +202,147 @@ function lagrange_interpolating_polynomials(x::Float64, nodes, wbary)
 end
 
 
-# Calculate nodes and weights for Legendre-Gauss-Lobatto quadratue.
+# From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(n_nodes::Integer)
-  return legendre(n_nodes, both)
+  # From Kopriva's book
+  n_iterations = 10
+  tolerance = 1e-15
+
+  # Initialize output
+  nodes = zeros(n_nodes)
+  weights = zeros(n_nodes)
+
+  # Get polynomial degree for convenience
+  N = n_nodes - 1
+
+  # Calculate values at boundary
+  nodes[1] = -1.0
+  nodes[end] = 1.0
+  weights[1] = 2 / (N * (N + 1))
+  weights[end] = weights[1]
+
+  # Calculate interior values
+  if N > 1
+    cont1 = pi/N
+    cont2 = 3/(8 * N * pi)
+
+    # Use symmetry -> only left side is computed
+    for i in 1:(div(N + 1, 2) - 1)
+      # Calculate node
+      # Initial guess for Newton method
+      nodes[i+1] = -cos(cont1*(i+0.25) - cont2/(i+0.25))
+
+      # Newton iteration to find root of Legendre polynomial (= integration node)
+      for k in 0:n_iterations
+        q, qder, _ = calc_q_and_l(N, nodes[i+1])
+        dx = -q/qder
+        nodes[i+1] += dx
+        if abs(dx) < tolerance * abs(nodes[i+1])
+          break
+        end
+      end
+
+      # Calculate weight
+      _, _, L = calc_q_and_l(N, nodes[i+1])
+      weights[i+1] = weights[1] / L^2
+
+      # Set nodes and weights according to symmetry properties
+      nodes[N+1-i] = -nodes[i+1]
+      weights[N+1-i] = weights[i+1]
+    end
+  end
+
+  # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
+  if n_nodes % 2 == 1
+    _, _, L = calc_q_and_l(N, 0)
+    nodes[div(N, 2) + 1] = 0.0
+    weights[div(N, 2) + 1] = weights[1] / L^2
+  end
+
+  return nodes, weights
 end
 
 
-# Calculate nodes and weights for Legendre-Gauss quadratue.
+# From FLUXO (but really from blue book by Kopriva)
+function calc_q_and_l(N::Integer, x::Float64)
+  L_Nm2 = 1.0
+  L_Nm1 = x
+  Lder_Nm2 = 0.0
+  Lder_Nm1 = 1.0
+
+  local L
+  for i in 2:N
+    L = ((2 * i - 1) * x * L_Nm1 - (i - 1) * L_Nm2) / i
+    Lder = Lder_Nm2 + (2 * i - 1) * L_Nm1
+    L_Nm2 = L_Nm1
+    L_Nm1 = L
+    Lder_Nm2 = Lder_Nm1
+    Lder_Nm1 = Lder
+  end
+
+  q = (2 * N + 1)/(N + 1) * (x * L - L_Nm2)
+  qder = (2 * N + 1) * L
+
+  return q, qder, L
+end
+calc_q_and_l(N::Integer, x::Real) = calc_q_and_l(N, convert(Float64, x))
+
+
+# From FLUXO (but really from blue book by Kopriva)
 function gauss_nodes_weights(n_nodes::Integer)
-  return legendre(n_nodes, neither)
+  # From Kopriva's book
+  n_iterations = 10
+  tolerance = 1e-15
+
+  # Initialize output
+  nodes = ones(n_nodes) * 1000
+  weights = zeros(n_nodes)
+
+  # Get polynomial degree for convenience
+  N = n_nodes - 1
+  if N == 0
+    nodes .= 0.0
+    weights .= 2.0
+    return nodes, weights
+  elseif N == 1
+    nodes[1] = -sqrt(1/3)
+    nodes[end] = -nodes[1]
+    weights .= 1.0
+    return nodes, weights
+  else # N > 1
+    # Use symmetry property of the roots of the Legendre polynomials
+    for i in 0:(div(N + 1, 2) - 1)
+      # Starting guess for Newton method
+      nodes[i+1] = -cos(pi / (2 * N + 2) * (2 * i + 1))
+
+      # Newton iteration to find root of Legendre polynomial (= integration node)
+      for k in 0:n_iterations
+        poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i+1])
+        dx = -poly / deriv
+        nodes[i+1] += dx
+        if abs(dx) < tolerance * abs(nodes[i+1])
+          break
+        end
+      end
+
+      # Calculate weight
+      poly, deriv = legendre_polynomial_and_derivative(N + 1, nodes[i+1])
+      weights[i+1] = (2 * N + 3) / ((1 - nodes[i+1]^2) * deriv^2)
+
+      # Set nodes and weights according to symmetry properties
+      nodes[N+1-i] = -nodes[i+1]
+      weights[N+1-i] = weights[i+1]
+    end
+
+    # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
+    if n_nodes % 2 == 1
+      poly, deriv = legendre_polynomial_and_derivative(N + 1, 0.0)
+      nodes[div(N, 2) + 1] = 0.0
+      weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
+    end
+
+    return nodes, weights
+  end
 end
 
 
