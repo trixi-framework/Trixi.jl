@@ -2,7 +2,6 @@ module Auxiliary
 
 include("containers.jl")
 
-using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 using TimerOutputs: TimerOutput
 using Pkg.TOML: parsefile
 
@@ -63,18 +62,78 @@ parameter_exists(name::String) = haskey(parameters["default"], name)
 
 # Parse command line arguments and return as dict
 function parse_commandline_arguments(args=ARGS)
-  s = ArgParseSettings()
-  @add_arg_table! s begin
-    "parameters_file"
-      help = "Name of file with runtime parameters."
-      arg_type = String
-      required = true
-    "--verbose", "-v"
-      help = "Enable verbose output, which might help with debugging."
-      action = :store_true
+  # Copy arguments such that we can modify them without changing the function argument
+  myargs = copy(args)
+
+  # Initialize dictionary with parsed arguments
+  parsed = Dict{String, Any}()
+  
+  # Verbose if disabled by default
+  parsed["verbose"] = false
+
+  # The output was bravely copied and pasted by using the ArgParse settings below
+  while !isempty(myargs)
+    current = popfirst!(myargs)
+    if current in ("-h", "--help")
+      println("""
+              usage: trixi [-v] [-h] parameters_file
+
+              positional arguments:
+                parameters_file  Name of file with runtime parameters.
+
+              optional arguments:
+                -v, --verbose    Enable verbose output, which might help with
+                                debugging.
+                -h, --help       show this help message and exit
+                """)
+      exit(0)
+    elseif current in ("-v", "--verbose")
+      # Enable verbose output
+      parsed["verbose"] = true
+    elseif startswith(current, "-")
+      # Unknown option
+      println(stderr, """
+              unrecognized option $current
+              usage: trixi [-v] parameters_file
+              """)
+      exit(1)
+    else
+      # Must be non-option argument -> parameters file
+      # If a parameters file was already given, throw error
+      if haskey(parsed, "parameters_file")
+        println(stderr, """
+                too many arguments
+                usage: trixi [-v] parameters_file
+                """)
+        exit(1)
+      end
+
+      # Otherwise store parameters file
+      parsed["parameters_file"] = current
+    end
   end
 
-  return parse_args(args, s)
+  # Error if no parameters file was given
+  if !haskey(parsed, "parameters_file")
+    println(stderr, """
+            required argument parameters_file was not provided
+            usage: trixi [-v] parameters_file
+            """)
+    exit(1)
+  end
+
+  #=s = ArgParseSettings()=#
+  #=@add_arg_table! s begin=#
+  #=  "parameters_file"=#
+  #=    help = "Name of file with runtime parameters."=#
+  #=    arg_type = String=#
+  #=    required = true=#
+  #=  "--verbose", "-v"=#
+  #=    help = "Enable verbose output, which might help with debugging."=#
+  #=    action = :store_true=#
+  #=end=#
+
+  return parsed
 end
 
 
