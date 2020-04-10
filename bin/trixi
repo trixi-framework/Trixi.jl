@@ -26,7 +26,7 @@ if [ $interactive -eq 0 ]; then
   exec julia --color=yes --project="$PROJECT_DIR" \
       -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
-  init_revise='
+  init='
     try
       @eval using Revise
       iter = 0
@@ -67,11 +67,13 @@ else
                 
                Trixi.run(\"parameters.toml\")
                """
-    end'
+    end
+    
+    # Load Trixi
+    import Trixi
+    '
 
-  exec julia --banner=no --project="$PROJECT_DIR" --color=yes -i \
-      -e "$init_revise" \
-      -e 'import Trixi'
+  exec julia --banner=no --project="$PROJECT_DIR" --color=yes -i -e "$init"
 fi
 =#
 

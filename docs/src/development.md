@@ -58,8 +58,8 @@ This will start the Julia REPL with the following output:
 └ Trixi.run("parameters.toml")
 julia>
 ```
-Proceed by running the last line (you probably want to change
-`parameters.toml` to the parameters file you intend to use):
+Proceed by copy-pasting and then executing the last line (you probably want to
+change `parameters.toml` to the parameters file you intend to use):
 ```bash
 julia> Trixi.run("parameters.toml")
 ```
