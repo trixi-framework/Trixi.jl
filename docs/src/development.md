@@ -49,21 +49,16 @@ bin/trixi -i
 ```
 This will start the Julia REPL with the following output:
 ```bash
-# Note: project directory set to '.'. Changes to packages will only affect current project.
-# Execute the first line below once at the beginning of an interactive session.
-# Start a Trixi simulation by running the second line.
-
-using Revise; import Trixi
-Trixi.run("parameters.toml")
+[ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
+┌ Info: Revise initialized: changes to Trixi source code are tracked.
+│ Project directory set to '.'. Adding/removing packages will only affect this project.
+│
+│ Execute the following line to start a Trixi simulation:
+│
+└ Trixi.run("parameters.toml")
 julia>
 ```
-Copy-pasting and then executing the first line yields:
-```bash
-julia> using Revise; import Trixi
-[ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
-
-```
-You can then proceed by running the second line (you probably want to change
+Proceed by running the last line (you probably want to change
 `parameters.toml` to the parameters file you intend to use):
 ```bash
 julia> Trixi.run("parameters.toml")
