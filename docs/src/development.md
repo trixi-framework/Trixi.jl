@@ -19,7 +19,8 @@ julia -e 'import Pkg; Pkg.add("Revise")'
 ```
 
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
-**and** enjoy the advantages of the compilation cache!
+**and** enjoy the advantages of the compilation cache! However, before you start using
+Revise regularly, please be aware of some of the [Pitfalls when using Revise](@ref).
 
 
 ## Automatically starting in interactive mode
@@ -49,29 +50,23 @@ bin/trixi -i
 ```
 This will start the Julia REPL with the following output:
 ```bash
-# Note: project directory set to '.'. Changes to packages will only affect current project.
-# Execute the first line below once at the beginning of an interactive session.
-# Start a Trixi simulation by running the second line.
-
-using Revise; import Trixi
-Trixi.run("parameters.toml")
+[ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
+┌ Info: Revise initialized: changes to Trixi source code are tracked.
+│ Project directory set to '.'. Adding/removing packages will only affect this project.
+│
+│ Execute the following line to start a Trixi simulation:
+│
+└ Trixi.run("parameters.toml")
 julia>
 ```
-Copy-pasting and then executing the first line yields:
-```bash
-julia> using Revise; import Trixi
-[ Info: Precompiling Trixi [a7f1ee26-1774-49b1-8366-f1abc58fbfcb]
-
-```
-You can then proceed by running the second line (you probably want to change
-`parameters.toml` to the parameters file you intend to use):
+Proceed by copy-pasting and then executing the last line (you probably want to
+change `parameters.toml` to the parameters file you intend to use):
 ```bash
 julia> Trixi.run("parameters.toml")
 ```
 
 
 ## Manually starting in interactive mode
-
 To manually start in interactive mode (e.g., to supply additional arguments to
 the `julia` executable at startup`), execute Julia with the project directory
 set to the package directory of the program/tool you want to use:
@@ -87,3 +82,23 @@ Then you can just proceed with the usual commands to load and run Trixi as in
 the example [above](#example). The `--project` flag is required such that Julia
 can properly load Trixi and all her dependencies.
 
+
+## Pitfalls when using Revise
+There are (at least) two common situations to watch out for when using Revise:
+
+1. Revise cannot handle changes to type definitions, e.g., when modifying
+   the fields in a `struct`.
+2. Revise does not stop on syntax errors, e.g., when you accidentally write
+   `a[i)` instead of `a[i]`.
+
+In the first case, Revise reports an error and refuses to run your code unless
+you undo the modifications. In the second case, however, Revise reports an error
+and **continues to use the old version of your files**! This is especially
+problematic for syntax errors, as they are detected while Revise reloads changed
+code, which happens in the beginning of a new execution. Thus, the error message
+quickly disappears from the terminal once Trixi starts writing output to the
+screen and you might not even have noticed that an error occurred at all.
+
+Therefore, when you are deep in a coding/debugging session and wonder why your
+code modifications do not seem to have any effect, scroll up in your terminal to
+check if you missed earlier errors, or - just to be sure - restart your REPL.
