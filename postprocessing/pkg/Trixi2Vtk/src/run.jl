@@ -29,7 +29,7 @@ function run(; args=nothing, kwargs...)
   reset_timer!()
 
   # Handle command line or keyword arguments
-  args = get_arguments(args, kwargs...)
+  args = get_arguments(args; kwargs...)
 
   # Store for convenience
   verbose = args["verbose"]
