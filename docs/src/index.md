@@ -16,15 +16,18 @@ simulation program and the postprocessing tools rely on a number of Julia
 packages, which need to be available on the respective machine. This can most
 easily be achieved by performing the following steps:
 
-1. Clone the repository:
-   ```
-   git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
-   ```
-2. Enter the cloned directory and run the following command to install all
-   required dependencies:
-   ```
-   julia utils/install.jl
-   ```
+  1. Clone the repository:
+
+     ```
+     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+     ```
+
+  2. Enter the cloned directory and run the following command to install all
+     required dependencies:
+
+     ```
+     julia utils/install.jl
+     ```
 
 Afterwards you are able to use Trixi and the postprocessing tools without
 repeating these steps. In case the execution of the `install.jl` script fails,

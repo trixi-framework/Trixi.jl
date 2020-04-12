@@ -17,17 +17,17 @@ works with Julia v1.3 or higher.
 You can then install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:
 
-1.  Clone the repository:
+  1. Clone the repository:
 
-    ```
-    git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
-    ```
-2.  Enter the cloned directory and run the following command to install all
-    required dependencies:
+     ```
+     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+     ```
+  2. Enter the cloned directory and run the following command to install all
+     required dependencies:
 
-    ```
-    julia utils/install.jl
-    ```
+     ```
+     julia utils/install.jl
+     ```
 
 
 ## Usage

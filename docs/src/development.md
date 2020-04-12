@@ -73,9 +73,9 @@ julia> Trixi.run("parameters.toml")
 To manually start in interactive mode (e.g., to supply additional arguments to
 the `julia` executable at startup`), execute Julia with the project directory
 set to the package directory of the program/tool you want to use:
-*   Trixi: `Trixi.jl/`
-*   `trixi2vtk`: `Trixi.jl/postprocessing/pgk/Trixi2Vtk`
-*   `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
+  * Trixi: `Trixi.jl/`
+  * `trixi2vtk`: `Trixi.jl/postprocessing/pgk/Trixi2Vtk`
+  * `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
 
 For example, to run Trixi this way, you need to start the REPL with
 ```bash
@@ -94,7 +94,7 @@ incomplete.  Further information on limitations and possible issues with Revise
 can be found in the official [documentation](https://timholy.github.io/Revise.jl/stable/).
 
 !!! tip "If in doubt, restart the REPL"
-    Oftentimes it is possible to recover from issues with Revise by fixing the
+    Oftentimes, it is possible to recover from issues with Revise by fixing the
     offending code. Sometimes, however, this is not possible or you might have
     troubles finding out what exactly caused the problems. Therefore, in these
     cases, or if in doubt, restart the REPL to get a fresh start.
@@ -128,7 +128,7 @@ will usually continue to work as expected again. However, if you want to keep
 your type modifications, you need to restart the REPL.
 
 
-## Editor
+## Text editor
 When writing code, the choice of text editor can have a significant impact on
 productivity and developer satisfaction. While using the default text editor
 of the operating system has its own benefits (specifically the lack of an explicit
@@ -136,22 +136,23 @@ installation procure), usually it makes sense to switch to a more
 programming-friendly tool. In the following, a few of the many options are
 listed and discussed:
 
-1. **Juno**  
-   If you are new to programming or do not have a preference for a text editor
-   yet, [Juno](https://junolab.org) is a good choice for developing Julia code.
-   It is based on *Atom*, a sophisticated and widely used editor for software
-   developers, and is enhanced with several Julia-specific features. Furthermore
-   and especially helpful for novice programmers, it has a MATLAB-like
-   appearance with easy and interactive access to the current variables, the
-   help system, and a debugger.
-2. **Vim** or **Emacs**  
-   Vim and Emacs are both very popular editors that work great with Julia. One
-   of their advantages is that they are text editors without a GUI and as such
-   are available for almost any operating system. They also come preinstalled on
-   virtually all Unix-like systems.  However, Vim and Emacs come with their own,
-   steep learning curve if they have never been used before. Therfore, if in doubt, it
-   is probably easier to get started with a classic GUI-based text edito (like
-   Juno). If you decide to use Vim or Emacs, make sure that you install the
-   corresponding Vim plugin
-   [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
-   mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
+### Juno
+If you are new to programming or do not have a preference for a text editor
+yet, [Juno](https://junolab.org) is a good choice for developing Julia code.
+It is based on *Atom*, a sophisticated and widely used editor for software
+developers, and is enhanced with several Julia-specific features. Furthermore
+and especially helpful for novice programmers, it has a MATLAB-like
+appearance with easy and interactive access to the current variables, the
+help system, and a debugger.
+
+### Vim or Emacs
+Vim and Emacs are both very popular editors that work great with Julia. One
+of their advantages is that they are text editors without a GUI and as such
+are available for almost any operating system. They also are preinstalled on
+virtually all Unix-like systems.  However, Vim and Emacs come with their own,
+steep learning curve if they have never been used before. Therfore, if in doubt, it
+is probably easier to get started with a classic GUI-based text edito (like
+Juno). If you decide to use Vim or Emacs, make sure that you install the
+corresponding Vim plugin
+[julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
+mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
