@@ -45,6 +45,19 @@ julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()
 The `install.jl` script can also be used to *update* the dependencies if they have
 changed since you installed Trixi.
 
+### Example: Installing Trixi from scratch
+```@raw html
+  <script id="asciicast-pGwc6GpZ5AFlb8Dk9gsACMR24"
+          src="https://asciinema.org/a/pGwc6GpZ5AFlb8Dk9gsACMR24.js"
+          async
+          data-cols=90
+          data-rows=20
+          data-speed=4></script>
+```
+Please note that the playback speed is set to 4x, thus the entire installation
+procedure lasts around 4 minutes in real time (depending on the performance of
+your computer and on how many dependencies had already been installed before).
+
 
 ## Usage
 Enter the root directory `Trixi.jl/` and run
@@ -56,6 +69,15 @@ To change the simulation setup, edit `parameters.toml`. You can also pass a diff
 parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 For more information on how to use Trixi interactively, which especially helpful
 during code development, please see the [Development](@ref) section.
+
+### Example: Running Trixi from the command line
+```@raw html
+  <script id="asciicast-QD0zLca3zof4p3T8l4v4GGMSD"
+          src="https://asciinema.org/a/QD0zLca3zof4p3T8l4v4GGMSD.js"
+          async
+          data-cols=90
+          data-rows=20></script>
+```
 
 
 ## Authors

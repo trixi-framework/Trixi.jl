@@ -46,7 +46,7 @@ environment. Therefore, to add new packages (such as `Revise`) to your Julia
 installation and not just to Trixi, you need to start the REPL manually and
 without providing the `--project` flag.
 
-#### Example
+#### Example: Running Trixi interactively
 Begin by executing:
 ```bash
 bin/trixi -i
@@ -67,6 +67,24 @@ change `parameters.toml` to the parameters file you intend to use):
 ```bash
 julia> Trixi.run("parameters.toml")
 ```
+
+The following screencast shows the above commands in action:
+```@raw html
+  <script id="asciicast-i7OX8QpEvbcYfjvWT9M8uY73s"
+          src="https://asciinema.org/a/i7OX8QpEvbcYfjvWT9M8uY73s.js"
+          async
+          data-cols=90
+          ata-rows=20></script>
+```
+As can be seen, in this example it takes about 13 seconds from the invocation of
+`bin/trixi -i` until Trixi is fully loaded. This startup time is only required
+once per REPL session and is the first benefit of using Trixi (and Julia in
+general) interactively. Then, two simulations with the parameters file
+`parameters.toml` are started in succession. While the first run requires 7.37
+seconds, the second run takes only 126 milliseconds. This demonstrates the
+second benefit of using the REPL: the compilation cache. That is, those parts of
+the code that do not change between two Trixi runs do not need to be recompiled
+and thus execute much faster after the first run.
 
 
 ### Manually starting Trixi in interactive mode
