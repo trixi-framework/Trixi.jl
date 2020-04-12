@@ -17,14 +17,11 @@ packages, which need to be available on the respective machine. This can most
 easily be achieved by performing the following steps:
 
   1. Clone the repository:
-
      ```
      git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
      ```
-
   2. Enter the cloned directory and run the following command to install all
      required dependencies:
-
      ```
      julia utils/install.jl
      ```
