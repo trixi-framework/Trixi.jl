@@ -1,4 +1,4 @@
-# GitLab and Git
+# GitLab & Git
 
 This page contains information on how to use GitLab and Git when developing Trixi.
 
