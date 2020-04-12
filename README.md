@@ -18,13 +18,11 @@ You can then install Trixi, the postprocessing tools, and the respective depende
 performing the following steps:
 
   1. Clone the repository:
-
      ```
      git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
      ```
   2. Enter the cloned directory and run the following command to install all
      required dependencies:
-
      ```
      julia utils/install.jl
      ```
