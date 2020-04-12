@@ -112,11 +112,13 @@ Therefore, when you are deep in a coding/debugging session and wonder why your
 code modifications do not seem to have any effect, scroll up in your terminal to
 check if you missed earlier syntax errors, or - if in doubt - restart your REPL.
 
-#### Files not tracked after changing branches
-Sometimes, Revise stops tracking files when changing the Git branch. This is
-particularly annoying for a developer, since it **does not come with any warning**!
-Therefore, it is good practice to always restart the REPL after changing
-branches.
+#### Files are not tracked after changing branches
+Sometimes, Revise stops tracking files when changing the Git branch. That is,
+modifications to Trixi's source files will not be reloaded by Revise and thus
+have no effect of a currently running REPL session. This issue is
+particularly annoying for a developer, since it **does not come with any
+warning**!  Therefore, it is good practice to always restart the REPL after
+changing branches.
 
 #### Changes to type definitions are not allowed
 Revise cannot handle changes to type definitions, e.g., when modifying the
