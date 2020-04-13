@@ -1,4 +1,4 @@
-# GitLab and Git
+# GitLab & Git
 
 This page contains information on how to use GitLab and Git when developing Trixi.
 
@@ -53,16 +53,16 @@ synchronize your branch with the current `master`, e.g., if there was a bug fix
 in `master` that is relevant for you. In this case, perform the following steps to
 merge the current `master` to your branch:
 
-1. Commit all your local changes to your branch and push it. This allows you to
-   delete your clone in case you make a mistake and need to abort the merge.
-2. Execute `git fetch` to get the latest changes from the repository.
-3. Make sure you are in the correct branch by checking the output of `git
-   status` or by running `git checkout yourbranch`.
-4. Merge master using `git merge master`. If there were no conflicts, hooray!,
-   you are done. Otherwise you need to resolve your merge conflicts and commit
-   the changes afterwards. A good guide for resolving merge conflicts can be
-   found
-   [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/resolving-a-merge-conflict-using-the-command-line).
+  1. Commit all your local changes to your branch and push it. This allows you to
+     delete your clone in case you make a mistake and need to abort the merge.
+  2. Execute `git fetch` to get the latest changes from the repository.
+  3. Make sure you are in the correct branch by checking the output of `git
+     status` or by running `git checkout yourbranch`.
+  4. Merge master using `git merge master`. If there were no conflicts, hooray!,
+     you are done. Otherwise you need to resolve your merge conflicts and commit
+     the changes afterwards. A good guide for resolving merge conflicts can be
+     found
+     [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/resolving-a-merge-conflict-using-the-command-line).
 
 In general, always use `git merge` and not `git rebase` to get the latest
 changes from `master`. It is less error-prone and does not create problems on
@@ -72,17 +72,17 @@ branches that are worked on collaboratively.
 If you feel like your branch is ready to be merged to master, prepare it for
 review. That is, you should
 
-* merge the current `master` to your branch
-* run tests if available, but at least ensure that you did not accidentally
-  change the results for one of the existing parameter files
-* properly comment your code
-* delete old/unused code, especially commented lines (unless they contain
-  helpful code, in which case you should add a comment on why you keep this
-  around)
-* remove debug statements
-* add a `parameters_xxx.toml` that uses your feature (only relevant for new
-  features)
-* make sure your code formatting adheres to the [Style guide](@ref)
+  * merge the current `master` to your branch
+  * run tests if available, but at least ensure that you did not accidentally
+    change the results for one of the existing parameter files
+  * properly comment your code
+  * delete old/unused code, especially commented lines (unless they contain
+    helpful code, in which case you should add a comment on why you keep this
+    around)
+  * remove debug statements
+  * add a `parameters_xxx.toml` that uses your feature (only relevant for new
+    features)
+  * make sure your code formatting adheres to the [Style guide](@ref)
 
 After you are confident that your branch is cleaned up properly, commit all
 changes and push them to the repository.
@@ -122,11 +122,11 @@ Once you have merged your branch by accepting the merge request on GitLab, you
 should clean up your local working copy of the repository by performing the
 following steps:
 
-1. Update your clone by running `git fetch`.
-2. Check out `master` using `git checkout master`.
-3. Delete merged branch locally with `git branch -d yourbranch`.
-4. Remove local references to deleted remote branch by executing `git remote
-   prune origin`.
+  1. Update your clone by running `git fetch`.
+  2. Check out `master` using `git checkout master`.
+  3. Delete merged branch locally with `git branch -d yourbranch`.
+  4. Remove local references to deleted remote branch by executing `git remote
+     prune origin`.
 
 You can now proceed with your next changes by starting again at the top.
 
@@ -137,7 +137,8 @@ You can now proceed with your next changes by starting again at the top.
 Here are a few resources for learning do use Git that at least one of us found
 helpful in the past (roughly ordered from novice to advanced to expert):
 
-* [Git Handbook by GitHub](https://guides.github.com/introduction/git-handbook/)
+  * [Git Handbook by GitHub](https://guides.github.com/introduction/git-handbook/)
+  * [Learn Git Branching](https://learngitbranching.js.org/)
 
 ### Tips and tricks
 This is an unordered collection of different tips and tricks that can be helpful
@@ -162,60 +163,60 @@ repository, please talk to one of the core developers as soon as possible so tha
 !!! danger
     You should never try to fix this yourself, as it potentially
     disrupts/destroys the work of others!
-    
+
 Based on the instructions found
 [here](https://rtyley.github.io/bfg-repo-cleaner/) and
 [here](https://docs.gitlab.com/ee/user/project/repository/reducing_the_repo_size_using_git.html#using-the-bfg-repo-cleaner),
 the following steps need to be taken (as documented in issue
 [#33](https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/issues/33)):
 
-1. Tell everyone to commit and push their changes to the repository.
-2. Fix the branch in which the file was committed by removing it and committing
-   the removal. This is especially important on `master`.
-3. Perform the following steps to clean up the Git repository:
-   ```bash
-   cd /tmp
+  1. Tell everyone to commit and push their changes to the repository.
+  2. Fix the branch in which the file was committed by removing it and committing
+     the removal. This is especially important on `master`.
+  3. Perform the following steps to clean up the Git repository:
+     ```bash
+     cd /tmp
 
-   # Download bfg-1.13.0.jar from https://rtyley.github.io/bfg-repo-cleaner/
+     # Download bfg-1.13.0.jar from https://rtyley.github.io/bfg-repo-cleaner/
 
-   # Get fresh clone of repo (so you can throw it away in case there is a problem)
-   git clone --mirror git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+     # Get fresh clone of repo (so you can throw it away in case there is a problem)
+     git clone --mirror git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
 
-   # Clean up repo of all files larger than 10M
-   java -jar bfg-1.13.0.jar --strip-blobs-bigger-than 10M Trixi.jl.git
+     # Clean up repo of all files larger than 10M
+     java -jar bfg-1.13.0.jar --strip-blobs-bigger-than 10M Trixi.jl.git
 
-   # Enter repo
-   cd Trixi.jl.git
+     # Enter repo
+     cd Trixi.jl.git
 
-   # Clean up reflog and force aggressive garbage collection
-   git reflog expire --expire=now --all && git gc --prune=now --aggressive
+     # Clean up reflog and force aggressive garbage collection
+     git reflog expire --expire=now --all && git gc --prune=now --aggressive
 
-   # Push changes
-   git push
+     # Push changes
+     git push
 
-   # Delete clone
-   rm -rf Trixi.jl.git
-   ```
-4. Tell everyone to clean up their local working copies by performing the
-   following steps (also do this yourself):
-   ```bash
-   # Enter repo
-   cd Trixi.jl
+     # Delete clone
+     rm -rf Trixi.jl.git
+     ```
+  4. Tell everyone to clean up their local working copies by performing the
+     following steps (also do this yourself):
+     ```bash
+     # Enter repo
+     cd Trixi.jl
 
-   # Get current changes
-   git fetch
+     # Get current changes
+     git fetch
 
-   # Check out the fixed branch
-   git checkout branchname
+     # Check out the fixed branch
+     git checkout branchname
 
-   # IMPORTANT: Do a rebase instead of a pull!
-   git rebase
+     # IMPORTANT: Do a rebase instead of a pull!
+     git rebase
 
-   # Clean reflog and force garbage collection
-   git reflog expire --expire=now --all && git gc --prune=now --aggressive
-   ```
-   **IMPORTANT**: You need to do a `git rebase` instead of a `git pull` when
-   updating the fixed branch.
-5. Finally, follow the instructions found
-   [here](https://docs.gitlab.com/ee/user/project/repository/reducing_the_repo_size_using_git.html#using-the-bfg-repo-cleaner)
-   to allow GitLab to clean up its databases and caches.
+     # Clean reflog and force garbage collection
+     git reflog expire --expire=now --all && git gc --prune=now --aggressive
+     ```
+     **IMPORTANT**: You need to do a `git rebase` instead of a `git pull` when
+     updating the fixed branch.
+  5. Finally, follow the instructions found
+     [here](https://docs.gitlab.com/ee/user/project/repository/reducing_the_repo_size_using_git.html#using-the-bfg-repo-cleaner)
+     to allow GitLab to clean up its databases and caches.
