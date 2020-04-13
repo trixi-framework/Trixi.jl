@@ -20,7 +20,7 @@ it is *highly recommended* to first install Revise with the following command:
 julia -e 'import Pkg; Pkg.add("Revise")'
 ```
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
-**and** enjoy the advantages of the compilation cache! However, before you start using
+**and** enjoy the advantages of the compilation cache! Before you start using
 Revise regularly, please be aware of some of the [Pitfalls when using Revise](@ref).
 
 Another recommended package for working from the REPL is
@@ -81,7 +81,7 @@ The following screencast shows the above commands in action:
           src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
           async
           data-cols=90
-          ata-rows=20></script>
+          data-rows=48></script>
 ```
 As can be seen, in this example it takes about 14 seconds from the invocation of
 `bin/trixi` until Trixi is fully loaded. This startup time is only required
@@ -111,7 +111,7 @@ and execute
 julia> using Revise; import Trixi
 ```
 to load Revise and Trixi. You can then proceed with the usual commands and run Trixi as in
-the example [above](#example-running-trixi-interactively). The `--project` flag
+the example [above](#Example:-Running-Trixi-interactively-1). The `--project` flag
 is required such that Julia can properly load Trixi and all her dependencies.
 
 

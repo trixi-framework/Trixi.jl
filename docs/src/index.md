@@ -87,7 +87,7 @@ bin/trixi parameters.toml
           src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
           async
           data-cols=90
-          ata-rows=20></script>
+          data-rows=48></script>
 ```
 
 
