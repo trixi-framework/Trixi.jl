@@ -63,12 +63,6 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
-[[GaussQuadrature]]
-deps = ["SpecialFunctions"]
-git-tree-sha1 = "ca8ef4ecf30315e368cb630a2eb72f31270c564e"
-uuid = "d54b0c1a-921d-58e0-8e36-89d8069c0969"
-version = "0.5.3"
-
 [[HDF5]]
 deps = ["Blosc", "HDF5_jll", "Libdl", "Mmap", "Random"]
 git-tree-sha1 = "21226f2e5da02565038fc6addaed83139c3fd968"
@@ -161,12 +155,6 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 [[SparseArrays]]
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-
-[[SpecialFunctions]]
-deps = ["BinDeps", "BinaryProvider", "Libdl"]
-git-tree-sha1 = "3bdd374b6fd78faf0119b8c5d538788dbf910c6e"
-uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "0.8.0"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]

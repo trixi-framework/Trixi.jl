@@ -37,7 +37,7 @@ run `trixi2vtk --help`.
 Similarly to Trixi, `trixi2vtk` supports an interactive mode that can be invoked
 by running
 ```bash
-postprocessing/trixi2vtk -i
+postprocessing/trixi2vtk
 ```
 
 
@@ -59,6 +59,6 @@ command line.
 Similarly to Trixi, `trixi2img` supports an interactive mode that can be invoked
 by running
 ```bash
-postprocessing/trixi2img -i
+postprocessing/trixi2img
 ```
 

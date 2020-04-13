@@ -9,13 +9,13 @@
 # [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
 
 #=
-# Check if '-i' or '--interactive' was passed as an argument
-interactive=0
-for arg in "$@"; do
-  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
-    interactive=1
-  fi
-done
+# Check if any command line arguments are given - if yes, run in batch
+# mode, if not, start an interactive session
+if [ "$#" -gt "0" ]; then
+  interactive=0
+else
+  interactive=1
+fi
 
 # Get directory of script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
