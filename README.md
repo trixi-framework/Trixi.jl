@@ -29,13 +29,24 @@ performing the following steps:
 
 
 ## Usage
-Enter the root directory `Trixi.jl/` and run
+Enter the root directory `Trixi.jl/` and execute
+```bash
+bin/trixi
+```
+This will start an interactive Julia session with the Trixi module already
+loaded. To run a simulation, execute
+```julia
+Trixi.run("parameters.toml")
+```
+You can also pass a different parameters file or edit `parameters.toml` to
+modify the simulation setup. 
+
+Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., when starting
+a simulation from another script. This is possible by directly passing the
+parameters file to Trixi on the command line:
 ```bash
 bin/trixi parameters.toml
 ```
-
-To change the simulation setup, edit `parameters.toml`. You can also pass a different
-parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
 
 
 ## Documentation
@@ -43,8 +54,8 @@ Additional documentation is available that contains more information on how to
 use Trixi interactively, how to visualize output files etc. It also includes a
 section on our preferred development workflow and some tips for using Git. The
 documentation can be accessed either
-[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/) or under
-[`docs/src`](docs/src).
+[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/) (restricted
+to authorized users) or under [`docs/src`](docs/src).
 
 
 ## Authors

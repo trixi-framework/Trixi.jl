@@ -60,23 +60,34 @@ your computer and on how many dependencies had already been installed before).
 
 
 ## Usage
-Enter the root directory `Trixi.jl/` and run
+Enter the root directory `Trixi.jl/` and execute
+```bash
+bin/trixi
+```
+This will start an interactive Julia session with the Trixi module already
+loaded. To run a simulation, execute
+```julia
+Trixi.run("parameters.toml")
+```
+You can also pass a different parameters file or edit `parameters.toml` to
+modify the simulation setup.
+More information on how to use Trixi interactively can be found in the
+[Development](@ref) section.
+
+Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., when starting
+a simulation from another script. This is possible by directly passing the
+parameters file to Trixi on the command line:
 ```bash
 bin/trixi parameters.toml
 ```
 
-To change the simulation setup, edit `parameters.toml`. You can also pass a different
-parameters file on the command line, e.g., `bin/trixi awesome_parameters.toml`.
-For more information on how to use Trixi interactively, which especially helpful
-during code development, please see the [Development](@ref) section.
-
-### Example: Running Trixi from the command line
+### Example: Running Trixi interactively
 ```@raw html
-  <script id="asciicast-QD0zLca3zof4p3T8l4v4GGMSD"
-          src="https://asciinema.org/a/QD0zLca3zof4p3T8l4v4GGMSD.js"
+  <script id="asciicast-zn79qrdAfCDGWKlQgWHzc0wCB"
+          src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
           async
           data-cols=90
-          data-rows=20></script>
+          ata-rows=20></script>
 ```
 
 

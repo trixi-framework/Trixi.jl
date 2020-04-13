@@ -1,55 +1,62 @@
 # Development
 
 ## Interactive use of Julia
-When a Julia program is executed, the just-in-time compiler has to compile all
-functions at their first use, which incurs an overhead each time a program is
-run. For proper packages and commands executed in the REPL (= "return-eval-print
-loop", which is what the Julia community calls the shell prompt that opens
-when running `julia` without any files), however, the previously compiled
-functions are cached. Therefore, it can be beneficial to run Trixi from the REPL
-during development, as it allows much faster turnaround times.
+When a Julia program is executed, Julia first loads and parses all code. Then,
+the just-in-time compiler has to compile all functions at their first use, which
+incurs an overhead each time a program is run. For proper packages and commands
+executed in the REPL (= "return-eval-print loop", which is what the Julia
+community calls the interactive command-line prompt that opens when executing
+`julia` without any files as arguments), however, the previously compiled functions are
+cached. Therefore, Trixi should generally always be used interactively from the
+REPL during development, as it allows much faster turnaround times.
 
-If you naively run Trixi from the REPL by including `Trixi.jl/src/Trixi.jl`, you will not be
-able to change your Trixi source files and then run the changed code without
-restarting the REPL, which destroys any potential benefits from caching.
-However, restarting Julia can be avoided by using the
-[Revise.jl](https://github.com/timholy/Revise.jl) package, which tracks changed
-files and re-loads them automatically. Therefore, you first need to install
-Revise with the following command:
-
+If you naively run Trixi from the REPL, you will not be able to change your
+Trixi source files and then run the changed code without restarting the REPL,
+which destroys any potential benefits from caching.  However, restarting
+Julia can be avoided by using the [Revise.jl](https://github.com/timholy/Revise.jl)
+package, which tracks changed files and re-loads them automatically. Therefore,
+it is *highly recommended* to first install Revise with the following command:
 ```bash
 julia -e 'import Pkg; Pkg.add("Revise")'
 ```
-
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache! However, before you start using
 Revise regularly, please be aware of some of the [Pitfalls when using Revise](@ref).
 
+Another recommended package for working from the REPL is
+[OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
+by running
+```bash
+julia -e 'import Pkg; Pkg.add("OhMyREPL")'
+```
+and adds syntax highlighting, bracket highlighting, and other helpful
+improvements for using Julia interactively. To automatically use OhMyREPL when
+starting the REPL, follow the instructions given in the official
+[documentation](https://kristofferc.github.io/OhMyREPL.jl/latest/).
+
 
 ### Automatically starting Trixi in interactive mode
 To automatically start into an interactive session, run Trixi or one of the
-postprocessing tools with the `--interactive` (or short: `-i`) flag. This will
-open up a REPL and load everything you need to start using Trixi from the REPL.
-When using interactive mode, all command line arguments except
-`--interactive`/`-i` are ignored.  You thus have to supply all command line
-arguments via the respective `run()` method. The first run will be a little bit
-slower (i.e., as when running `bin/trixi` directly), since Julia has to compile
-all functions for the first time. Starting with the second run, only those
-functions are recompiled for which the source code has changed since the last
-invocation.
+postprocessing tools without any command line arguments. This will
+open up a REPL, load Revise if it is installed, and import the relevant modules.
+You can then proceed by executing the respective `run` method. The first
+run will be somewhat slower, since Julia has to compile all functions for the
+first time. Starting with the second run, only those functions are recompiled
+for which the source code has changed since the last invocation.
 
 Please note that `bin/trixi` and the tools in `postprocessing/` all
 start the REPL with the `--project` flag set to the respective Trixi project.
 That means that if you start in interactive mode and install/remove packages, it
 will *only* affect your local Trixi installation and *not* your general Julia
-environment. Therefore, to add new packages (such as `Revise`) to your Julia
-installation and not just to Trixi, you need to start the REPL manually and
-without providing the `--project` flag.
+environment. Therefore, to add new packages (such as Revise or OhMyREPL) to your
+Julia installation and not just to Trixi, you either need to start the REPL manually
+and without providing the `--project` flag, or use directly use the commands
+provided above.
 
 #### Example: Running Trixi interactively
 Begin by executing:
 ```bash
-bin/trixi -i
+bin/trixi
 ```
 This will start the Julia REPL with the following output:
 ```bash
@@ -70,19 +77,19 @@ julia> Trixi.run("parameters.toml")
 
 The following screencast shows the above commands in action:
 ```@raw html
-  <script id="asciicast-i7OX8QpEvbcYfjvWT9M8uY73s"
-          src="https://asciinema.org/a/i7OX8QpEvbcYfjvWT9M8uY73s.js"
+  <script id="asciicast-zn79qrdAfCDGWKlQgWHzc0wCB"
+          src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
           async
           data-cols=90
           ata-rows=20></script>
 ```
-As can be seen, in this example it takes about 13 seconds from the invocation of
-`bin/trixi -i` until Trixi is fully loaded. This startup time is only required
-once per REPL session and is the first benefit of using Trixi (and Julia in
+As can be seen, in this example it takes about 14 seconds from the invocation of
+`bin/trixi` until Trixi is fully loaded. This startup time is only required
+once per REPL session and is the first reason for using Trixi (and Julia in
 general) interactively. Then, two simulations with the parameters file
-`parameters.toml` are started in succession. While the first run requires 7.37
-seconds, the second run takes only 126 milliseconds. This demonstrates the
-second benefit of using the REPL: the compilation cache. That is, those parts of
+`parameters.toml` are started in succession. While the first run requires 7.23
+seconds, the second run takes only 104 milliseconds. This demonstrates the
+second reason for using the REPL: the compilation cache. That is, those parts of
 the code that do not change between two Trixi runs do not need to be recompiled
 and thus execute much faster after the first run.
 
@@ -99,9 +106,13 @@ For example, to run Trixi this way, you need to start the REPL with
 ```bash
 julia --project=path/to/Trixi.jl/
 ```
-Then you can just proceed with the usual commands to load and run Trixi as in
-the example [above](#example). The `--project` flag is required such that Julia
-can properly load Trixi and all her dependencies.
+and execute
+```bash
+julia> using Revise; import Trixi
+```
+to load Revise and Trixi. You can then proceed with the usual commands and run Trixi as in
+the example [above](#example-running-trixi-interactively). The `--project` flag
+is required such that Julia can properly load Trixi and all her dependencies.
 
 
 ### Pitfalls when using Revise
@@ -146,7 +157,7 @@ will usually continue to work as expected again. However, if you want to keep
 your type modifications, you need to restart the REPL.
 
 
-## Text editor
+## Text editors
 When writing code, the choice of text editor can have a significant impact on
 productivity and developer satisfaction. While using the default text editor
 of the operating system has its own benefits (specifically the lack of an explicit
