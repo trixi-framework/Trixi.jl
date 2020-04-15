@@ -296,7 +296,6 @@ function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective 
                            g::AbstractArray{Float64,4}, # y-direction advective flux
                            u::AbstractArray{Float64,3}, # solution on an element
                            n_nodes::Int)
-# possible BUG!; scale by the metric terms (i.e. 1/inverse_jacobian)?
   phi_pow   = zeros(MVector{9})
   phi_gal_x = zeros(MVector{9})
   phi_gal_y = zeros(MVector{9})
@@ -526,25 +525,51 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   end
 end
 
-#=
+
 # strong form of nonconservative flux on a side, e.g., the Powell term
 #     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
 # OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
-function noncons_surface(flux_left, # add the nonconservative flux on UL side
-                         u_left,    # solution on the left
-                         u_right,   # solution on the right
-                         normal)    # normal direction pulled from the orientation
-# direct copy from FLUXO
-  for i in 1:total_faces
-    v_L=UL(2:4,i)/UL(1,i)
-    FL(2:8,i)=FL(2:8,i) +(0.5*SUM(UR(6:8,i)*nv(:,i)))*(/UL(6:8,i),SUM(UL(6:8,i)*v_L(1:3)),v_L(1:3)/)
-    FL((/5,9/),i)=FL((/5,9/),i) +(0.5*SUM(v_L(:)*nv(:,i)))*(/UL(9,i)*UR(9,i),UR(9,i)/)
+function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
+                               u_left::AbstractArray{Float64},
+                               u_right::AbstractArray{Float64},
+                               surface_id::Int , n_nodes::Int, orientation::Vector{Int})
+  for i in 1:n_nodes
+    # extract necessary variable from the left
+    v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
+    v2_ll  = u_left[3,i,surface_id]/u_left[1,i,surface_id]
+    v3_ll  = u_left[4,i,surface_id]/u_left[1,i,surface_id]
+    B1_ll  = u_left[6,i,surface_id]
+    B2_ll  = u_left[7,i,surface_id]
+    B3_ll  = u_left[8,i,surface_id]
+    psi_ll = u_left[9,i,surface_id]
+    v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
+    # extract necessary variable from the right and normal velocity (depends on the orientation)
+    if orientations[surface_id] == 1
+      v_normal = v1_ll
+      B_normal = u_right[6,i,surface_id]
+      psi_rr   = u_right[9,i,surface_id]
+    else
+      v_normal = v2_ll
+      B_normal = u_right[7,i,surface_id]
+      psi_rr   = u_right[9,i,surface_id]
+    end
+    # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
+    noncons_flux[1,i] = 0.0
+    noncons_flux[2,i] = B_normal*B1_ll
+    noncons_flux[3,i] = B_normal*B2_ll
+    noncons_flux[4,i] = B_normal*B3_ll
+    noncons_flux[5,i] = B_normal*v_dot_B_ll + v_normal*psi_ll*psi_rr
+    noncons_flux[6,i] = B_normal*v1_ll
+    noncons_flux[7,i] = B_normal*v2_ll
+    noncons_flux[8,i] = B_normal*v3_ll
+    noncons_flux[9,i] = v_normal*psi_rr
   end
+  # scale everything by a factor of one half
+  noncons_flux *= 0.5
 end
-=#
 
 
 # 1) Determine maximum stable time step based on polynomial degree and CFL number

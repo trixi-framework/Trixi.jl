@@ -1180,15 +1180,28 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
+  noncons_diamond_master_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_slave_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
     fstarnode = fstarnode_threaded[Threads.threadid()]
 
+    noncons_diamond_master = noncons_diamond_master_threaded[Threads.threadid()]
+    noncons_diamond_slave = noncons_diamond_slave_threaded[Threads.threadid()]
+
     # Calculate flux
     riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
+    # Compute the nonconservative numerical "flux" along a surface
+    # Done twice because left/right orientation matters
+    noncons_surface_flux!(noncons_diamond_master, u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
+                          s, nnodes(dg), orientations)
+    noncons_surface_flux!(noncons_diamond_slave, u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
+                          s, nnodes(dg), orientations)
+    # where should this be added?
 #=
 #if NONCONS
   !add nonconservative fluxes
