@@ -1207,7 +1207,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
     right_neighbor_id = neighbor_ids[2, s]
-# 1.11345135e-04   5.88018891e-06   5.88018891e-06   8.43288100e-06   1.29423873e-06   1.22388203e-06   1.22388203e-06   1.83062175e-06   8.08699679e-07
+
     # Determine surface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
