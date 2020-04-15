@@ -91,7 +91,15 @@ bin/trixi parameters.toml
 ```
 
 
-## Authors
-Trixi was created by
-[Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner).
+## [Authors](@id authors-index-md)
+Trixi was initiated by [Michael
+Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner), both from
+the University of Cologne, Germany. They are also the principal developers of Trixi.
+The full list of contributors can be found under [Authors](@ref).
+
+
+## License and contributing
+Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
+an open-source project, we are very happy to accept contributions from the
+community. Please refer to [Contributing](@ref) for more details.
