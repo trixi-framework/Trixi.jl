@@ -50,7 +50,10 @@ makedocs(
             "Trixi" => "reference/trixi.md",
             "Trixi2Img" => "reference/trixi2img.md",
             "Trixi2Vtk" => "reference/trixi2vtk.md",
-        ]
+        ],
+        "Authors" => "authors.md",
+        "Contributing" => "contributing.md",
+        "License" => "license.md"
     ],
     # Set repo to GitLab
     repo = "$(repo_url)/blob/{commit}{path}#{line}"
