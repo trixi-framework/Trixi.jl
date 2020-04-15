@@ -1189,6 +1189,14 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Calculate flux
     riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
+#=
+#if NONCONS
+  !add nonconservative fluxes
+  CALL AddNonConsFlux(Flux_master(:,:,:,SideID),U_Master(:,:,:,SideID),U_Slave(:,:,:,SideID),NormVec(:,:,:,SideID))
+  CALL AddNonConsFlux(Flux_slave(:,:,:,SideID),U_Slave(:,:,:,SideID),U_Master(:,:,:,SideID),NormVec(:,:,:,SideID))
+#endif /*NONCONS*/
+=#
+
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
     right_neighbor_id = neighbor_ids[2, s]

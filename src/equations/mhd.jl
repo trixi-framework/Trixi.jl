@@ -238,8 +238,7 @@ end
                                               element_id::Int, n_nodes::Int)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
-
-
+  # split form advective fluxes
   for j = 1:n_nodes
     for i = 1:n_nodes
       # Set diagonal entries (= regular volume fluxes due to consistency)
@@ -287,6 +286,47 @@ end
       end
     end
   end
+  # add in nonconservative terms; see GLM paper from Derigs et al. 2018
+  add_noncons_flux!(f1,f2,u[:,:,:,element_id],n_nodes)
+end
+
+# Calculate the nonconservative terms from Powell and Galilean invariance
+# OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
+function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
+                           g::AbstractArray{Float64,4}, # y-direction advective flux
+                           u::AbstractArray{Float64,3}, # solution on an element
+                           n_nodes::Int)
+# possible BUG!; scale by the metric terms (i.e. 1/inverse_jacobian)?
+  phi_pow   = zeros(MVector{9})
+  phi_gal_x = zeros(MVector{9})
+  phi_gal_y = zeros(MVector{9})
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      v1 = u[2,i,j]/u[1,i,j]
+      v2 = u[3,i,j]/u[1,i,j]
+      v3 = u[4,i,j]/u[1,i,j]
+      # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+      phi_pow[2] = 0.5*u[6,i,j]
+      phi_pow[3] = 0.5*u[7,i,j]
+      phi_pow[4] = 0.5*u[8,i,j]
+      phi_pow[5] = 0.5*(v1*u[6,i,j] + v2*u[7,i,j] + v3*u[8,i,j])
+      phi_pow[6] = 0.5*v1
+      phi_pow[7] = 0.5*v2
+      phi_pow[8] = 0.5*v3
+      # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+      # x-direction
+      phi_gal_x[5] = 0.5*v1*u[9,i,j]
+      phi_gal_x[9] = 0.5*v1
+      # y-direction
+      phi_gal_y[5] = 0.5*v2*u[9,i,j]
+      phi_gal_y[9] = 0.5*v2
+      # add both nonconservative terms into the volume
+      for l in 1:n_nodes
+        f[:,l,i,j] += phi_pow * u[6,l,j] + phi_gal_x * u[9,l,j]
+        g[:,l,i,j] += phi_pow * u[7,i,l] + phi_gal_y * u[9,i,l]
+      end
+    end
+  end
 end
 
 
@@ -318,7 +358,7 @@ end
               B1_ll, B2_ll, B3_ll, psi_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
               B1_rr, B2_rr, B3_rr, psi_rr, orientation)
-  # Average regular fluxes
+  # Average state of the advective fluxes
   @. f[:] = 0.5*(f_ll + f_rr)
 end
 
@@ -485,6 +525,26 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
   end
 end
+
+#=
+# strong form of nonconservative flux on a side, e.g., the Powell term
+#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
+# OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
+#         so this routine only adds 1/2(phi^L B^R nvec)
+#         analogously for the Galilean nonconservative term
+#      2) this is non-unique along a surface! normal direction is super important
+function noncons_surface(flux_left, # add the nonconservative flux on UL side
+                         u_left,    # solution on the left
+                         u_right,   # solution on the right
+                         normal)    # normal direction pulled from the orientation
+# direct copy from FLUXO
+  for i in 1:total_faces
+    v_L=UL(2:4,i)/UL(1,i)
+    FL(2:8,i)=FL(2:8,i) +(0.5*SUM(UR(6:8,i)*nv(:,i)))*(/UL(6:8,i),SUM(UL(6:8,i)*v_L(1:3)),v_L(1:3)/)
+    FL((/5,9/),i)=FL((/5,9/),i) +(0.5*SUM(v_L(:)*nv(:,i)))*(/UL(9,i)*UR(9,i),UR(9,i)/)
+  end
+end
+=#
 
 
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
