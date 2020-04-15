@@ -11,6 +11,7 @@ export initial_conditions
 export sources
 export calcflux!
 export riemann!
+export noncons_surface_flux!
 export calc_max_dt
 export cons2prim
 export cons2entropy
@@ -287,12 +288,12 @@ end
     end
   end
   # add in nonconservative terms; see GLM paper from Derigs et al. 2018
-  add_noncons_flux!(f1,f2,u[:,:,:,element_id],n_nodes)
+  @views add_noncons_flux!(f1,f2,u[:,:,:,element_id],n_nodes)
 end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
+@inline function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
                            g::AbstractArray{Float64,4}, # y-direction advective flux
                            u::AbstractArray{Float64,3}, # solution on an element
                            n_nodes::Int)
@@ -532,10 +533,10 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
-function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
+function Equations.noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
                                u_left::AbstractArray{Float64},
                                u_right::AbstractArray{Float64},
-                               surface_id::Int , n_nodes::Int, orientation::Vector{Int})
+                               surface_id::Int , n_nodes::Int, orientations::Vector{Int})
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
@@ -546,7 +547,8 @@ function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
     B3_ll  = u_left[8,i,surface_id]
     psi_ll = u_left[9,i,surface_id]
     v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-    # extract necessary variable from the right and normal velocity (depends on the orientation)
+    # extract necessary magnetic field variable from the right and normal velocity
+    # both depend upon the orientation
     if orientations[surface_id] == 1
       v_normal = v1_ll
       B_normal = u_right[6,i,surface_id]
@@ -558,17 +560,15 @@ function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
     end
     # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
     noncons_flux[1,i] = 0.0
-    noncons_flux[2,i] = B_normal*B1_ll
-    noncons_flux[3,i] = B_normal*B2_ll
-    noncons_flux[4,i] = B_normal*B3_ll
-    noncons_flux[5,i] = B_normal*v_dot_B_ll + v_normal*psi_ll*psi_rr
-    noncons_flux[6,i] = B_normal*v1_ll
-    noncons_flux[7,i] = B_normal*v2_ll
-    noncons_flux[8,i] = B_normal*v3_ll
-    noncons_flux[9,i] = v_normal*psi_rr
+    noncons_flux[2,i] = 0.5*B_normal*B1_ll
+    noncons_flux[3,i] = 0.5*B_normal*B2_ll
+    noncons_flux[4,i] = 0.5*B_normal*B3_ll
+    noncons_flux[5,i] = 0.5*B_normal*v_dot_B_ll + 0.5*v_normal*psi_ll*psi_rr
+    noncons_flux[6,i] = 0.5*B_normal*v1_ll
+    noncons_flux[7,i] = 0.5*B_normal*v2_ll
+    noncons_flux[8,i] = 0.5*B_normal*v3_ll
+    noncons_flux[9,i] = 0.5*v_normal*psi_rr
   end
-  # scale everything by a factor of one half
-  noncons_flux *= 0.5
 end
 
 

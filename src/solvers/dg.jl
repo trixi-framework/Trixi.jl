@@ -8,7 +8,8 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim
+                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
+                    noncons_surface_flux!
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -1180,8 +1181,8 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
-  noncons_diamond_master_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_slave_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
@@ -1189,31 +1190,24 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     fstar = fstar_threaded[Threads.threadid()]
     fstarnode = fstarnode_threaded[Threads.threadid()]
 
-    noncons_diamond_master = noncons_diamond_master_threaded[Threads.threadid()]
-    noncons_diamond_slave = noncons_diamond_slave_threaded[Threads.threadid()]
+    noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
+    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
     riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Compute the nonconservative numerical "flux" along a surface
-    # Done twice because left/right orientation matters
-    noncons_surface_flux!(noncons_diamond_master, u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
+    # Done twice because left/right orientation matters så
+    # 1 -> primary element and 2 -> secondary element
+    noncons_surface_flux!(noncons_diamond_primary, u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
                           s, nnodes(dg), orientations)
-    noncons_surface_flux!(noncons_diamond_slave, u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
+    noncons_surface_flux!(noncons_diamond_secondary, u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
                           s, nnodes(dg), orientations)
-    # where should this be added?
-#=
-#if NONCONS
-  !add nonconservative fluxes
-  CALL AddNonConsFlux(Flux_master(:,:,:,SideID),U_Master(:,:,:,SideID),U_Slave(:,:,:,SideID),NormVec(:,:,:,SideID))
-  CALL AddNonConsFlux(Flux_slave(:,:,:,SideID),U_Slave(:,:,:,SideID),U_Master(:,:,:,SideID),NormVec(:,:,:,SideID))
-#endif /*NONCONS*/
-=#
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
     right_neighbor_id = neighbor_ids[2, s]
-
+# 1.11345135e-04   5.88018891e-06   5.88018891e-06   8.43288100e-06   1.29423873e-06   1.22388203e-06   1.22388203e-06   1.83062175e-06   8.08699679e-07
     # Determine surface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
@@ -1223,8 +1217,8 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Copy flux to left and right element storage
     for i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i]
-        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i]
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i] + noncons_diamond_primary[v, i]
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i] + noncons_diamond_secondary[v, i]
       end
     end
   end
