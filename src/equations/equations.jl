@@ -6,7 +6,7 @@ export make_equations
 export nvariables
 export AbstractEquation
 export initial_conditions
-export sources
+export sources!
 export calcflux!
 export calcflux_twopoint!
 export riemann!
@@ -56,7 +56,7 @@ end
 
 # First, add generic functions for which the submodules can create own methods
 function initial_conditions end
-function sources end
+function sources! end
 function calcflux! end
 function calcflux_twopoint! end
 function riemann! end

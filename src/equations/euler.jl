@@ -8,7 +8,7 @@ using StaticArrays: SVector, MVector, MMatrix, MArray
 # Export all symbols that should be available from Equations
 export Euler
 export initial_conditions
-export sources
+export sources!
 export calcflux!
 export riemann!
 export calc_max_dt
@@ -264,9 +264,19 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::Euler, ut, u, x, element_id, t, n_nodes)
+function Equations.sources!(equation::Euler, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
-  error("Unknown source term '$name'")
+  if name == "coupler_test_source"
+    # This source term just adds the current state as a source
+    for j in 1:n_nodes, i in 1:n_nodes
+      ut[1, i, j, element_id] += u[1, i, j, element_id]
+      ut[2, i, j, element_id] += u[2, i, j, element_id]
+      ut[3, i, j, element_id] += u[3, i, j, element_id]
+      ut[4, i, j, element_id] += u[4, i, j, element_id]
+    end
+  else
+    error("Unknown source term '$name'")
+  end
 end
 
 

@@ -3,19 +3,14 @@ module DgSourceCoupler
 using ...Trixi
 using ..Couplers # Use everything to allow method extension via "function <parent_module>.<method>"
 import ...Solvers
-using ...Solvers.DgSolver: polydeg
-#=using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,=#
-#=                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim=#
-#=import ...Equations: nvariables # Import to allow method extension=#
+using ...Solvers.DgSolver: polydeg, nnodes, nvariables
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
-#=using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,=#
-#=                     opposite_direction, has_coarse_neighbor, has_child, has_children=#
 
 using TimerOutputs: @timeit, @notimeit
 
 export DgSource
-export couple_post_substep
+export couple_post_rhs!
 
 
 # Main coupler data structure
@@ -31,6 +26,26 @@ function DgSource(solver_a::SolverA, solver_b::SolverB, mesh::TreeMesh) where {S
   coupler = DgSource{SolverA, SolverB, polydeg(solver_a), polydeg(solver_b)}(solver_a, solver_b)
 
   return coupler
+end
+
+
+function Couplers.couple_post_rhs!(coupler::DgSource, dg_a, dg_b)
+  @assert dg_a.n_elements == dg_b.n_elements "number of elements does not match"
+  @assert nnodes(dg_a) == nnodes(dg_b) "number of nodes does not match"
+
+  n_elements = dg_a.n_elements
+  n_nodes = nnodes(dg_a)
+  n_variables = nvariables(dg_a)
+
+  for element_id in 1:n_elements
+    for j in 1:n_nodes, i in 1:n_nodes
+      for v in 1:n_variables
+        # In combination with the "coupler_test_source", this essentially adds a numerical zero
+        dg_a.elements.u_t[v, i, j, element_id] -= dg_b.elements.u[v, i, j, element_id]
+        dg_b.elements.u_t[v, i, j, element_id] -= dg_a.elements.u[v, i, j, element_id]
+      end
+    end
+  end
 end
 
 end # module

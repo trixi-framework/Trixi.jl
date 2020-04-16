@@ -6,6 +6,7 @@ using ..Trixi.Auxiliary: parameter
 
 export AbstractCoupler
 export make_coupler
+export couple_post_rhs!
 
 # Base type from which all couplers inherit from
 abstract type AbstractCoupler end
@@ -26,7 +27,7 @@ end
 # Include files with actual implementations for different systems of couplers.
 
 # First, add generic functions for which the submodules can create own methods
-function couple_post_substep end
+function couple_post_rhs! end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.

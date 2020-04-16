@@ -8,7 +8,7 @@ using StaticArrays: SVector, MVector, MMatrix, MArray
 # Export all symbols that should be available from Equations
 export Mhd
 export initial_conditions
-export sources
+export sources!
 export calcflux!
 export riemann!
 export calc_max_dt
@@ -147,7 +147,7 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::Mhd, ut, u, x, element_id, t, n_nodes)
+function Equations.sources!(equation::Mhd, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
   error("Unknown source term '$name'")
 end
