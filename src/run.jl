@@ -3,6 +3,7 @@ using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Equations: make_equations, nvariables
 using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
                 calc_amr_indicator, rhs!
+using .Couplers: make_coupler
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
@@ -83,11 +84,23 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   equations = make_equations(equations_name)
   println("done")
 
-  # Initialize solver
-  print("Initializing solver... ")
-  solver_name = parameter("solver", valid=["dg"])
-  solver = make_solver(solver_name, equations, mesh)
+  # Initialize solvers
+  print("Initializing solvers... ")
+  solver_name_a = parameter("solver_a", valid=["dg"])
+  solver_a = make_solver(solver_name_a, equations, mesh)
+  solver_name_b = parameter("solver_b", valid=["dg"])
+  solver_b = make_solver(solver_name_a, equations, mesh)
   println("done")
+  
+  # For conveniene, make solver_a the main solver such that the most of the
+  # stuff here still does what is expected
+  solver = solver_a
+  solver_name = solver_name_a
+
+  # Initialize coupler
+  print("Initializing coupler...")
+  coupler_name = parameter("coupler", valid=["dg_source"])
+  coupler = make_coupler(coupler_name, solver_a, solver_b, mesh)
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central,
