@@ -29,7 +29,10 @@ function DgSource(solver_a::SolverA, solver_b::SolverB, mesh::TreeMesh) where {S
 end
 
 
-function Couplers.couple_post_rhs!(coupler::DgSource, dg_a, dg_b)
+function Couplers.couple_post_rhs!(coupler::DgSource)
+  dg_a = coupler.solver_a
+  dg_b = coupler.solver_b
+
   @assert dg_a.n_elements == dg_b.n_elements "number of elements does not match"
   @assert nnodes(dg_a) == nnodes(dg_b) "number of nodes does not match"
 

@@ -25,7 +25,7 @@ function timestep!(solver_a::AbstractSolver, solver_b::AbstractSolver, coupler::
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(solver_a, t_stage)
     @timeit timer() "rhs" rhs!(solver_b, t_stage)
-    @timeit timer() "coupling" couple_post_rhs!(coupler, solver_a, solver_b)
+    @timeit timer() "coupling" couple_post_rhs!(coupler)
     @timeit timer() "Runge-Kutta step" begin
       @. solver_a.elements.u_rungekutta = (solver_a.elements.u_t
                                          - solver_a.elements.u_rungekutta * a[stage])
