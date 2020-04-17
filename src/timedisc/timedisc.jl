@@ -30,7 +30,6 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
     k   = solver.elements.u_t
     k1 = solver.elements.u_rungekutta
     un  = similar(k)
-    #=n_variables, n_nodes, _, n_elements = size(u)=#
 
     # Implement general Runge-Kutta method (not storage-optimized) for paired RK schemes, where
     # aᵢⱼ= 0 except for j = 1 or j = i - 1
@@ -82,16 +81,6 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                                                                   solver.level_info_elements)
     a_1_rs = reshape(a_1, 1, 1, 1, :)
     @timeit timer() "Runge-Kutta step 1" @. u = un + dt * a_1_rs * k1
-    #=@timeit timer() "Runge-Kutta step" begin=#
-    #=  for element_id in 1:n_elements=#
-    #=    for j in 1:n_nodes, i in 1:n_nodes=#
-    #=      for v in 1:n_variables=#
-    #=        u[v, i, j, element_id] = (un[v, i, j, element_id] +=#
-    #=                                  dt * a_1[element_id] * k1[v, i, j, element_id])=#
-    #=      end=#
-    #=    end=#
-    #=  end=#
-    #=end=#
     optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
   end
   @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
@@ -105,20 +94,12 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                                                                       derivative_evaluations,
                                                                       solver.n_elements,
                                                                       solver.level_info_elements)
-      a_1_rs = reshape(a_1, 1, 1, 1, :)
-      a_2_rs = reshape(a_2, 1, 1, 1, :)
-      @timeit timer() "Runge-Kutta step 2" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)
-      #=@timeit timer() "Runge-Kutta step" begin=#
-      #=  for element_id in 1:n_elements=#
-      #=    for j in 1:n_nodes, i in 1:n_nodes=#
-      #=      for v in 1:n_variables=#
-      #=        u[v, i, j, element_id] = (un[v, i, j, element_id] + dt *=#
-      #=                                  (a_1[element_id] * k1[v, i, j, element_id] +=#
-      #=                                   a_2[element_id] * k[v, i, j, element_id]))=#
-      #=      end=#
-      #=    end=#
-      #=  end=#
-      #=end=#
+      #=a_1_rs = reshape(a_1, 1, 1, 1, :)=#
+      #=a_2_rs = reshape(a_2, 1, 1, 1, :)=#
+      #=@timeit timer() "Runge-Kutta step 2" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)=#
+      @timeit timer() "Runge-Kutta step 2" begin
+        substep!(u, un, dt, a_1, k1, a_2, k, Val(size(u, 2)), Val(size(u, 1)))
+      end
       optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
     end
     @timeit timer() "rhs" rhs!(solver, t_stage, stage, acc_level_ids[stage])
@@ -127,15 +108,20 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   # Final update to u
   @timeit timer() "time integration" begin
     @timeit timer() "Runge-Kutta step 3" @. u = un + dt * k
-    #=@timeit timer() "Runge-Kutta step" begin=#
-    #=  for element_id in 1:n_elements=#
-    #=    for j in 1:n_nodes, i in 1:n_nodes=#
-    #=      for v in 1:n_variables=#
-    #=        u[v, i, j, element_id] = un[v, i, j, element_id] + dt * k[v, i, j, element_id]=#
-    #=      end=#
-    #=    end=#
-    #=  end=#
-    #=end=#
+  end
+end
+
+# Stages 3-n
+function substep!(u, un, dt, a_1, k1, a_2, k, ::Val{NNODES}, ::Val{NVARS}) where {NNODES, NVARS}
+  n_elements = size(u, 4)
+  @inbounds for element_id in 1:n_elements
+    @inbounds for j in 1:NNODES, i in 1:NNODES
+      @inbounds @simd for v in 1:NVARS
+        u[v, i, j, element_id] = (un[v, i, j, element_id] + dt *
+                                  (a_1[element_id] * k1[v, i, j, element_id] +
+                                   a_2[element_id] * k[v, i, j, element_id]))
+      end
+    end
   end
 end
 
@@ -146,7 +132,7 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   @timeit timer() "time integration" begin
     # Get parameters
     n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
-    derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
+    derivative_evaluations = parameter("derivative_evaluations", valid=(2, 3, 4, 8, 16))
 
     # Determine Runge-Kutta coefficients
     a, c = calc_coefficients(n_stages, derivative_evaluations)

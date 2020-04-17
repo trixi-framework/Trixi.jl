@@ -60,8 +60,12 @@ function calc_a_multilevel(n_stages, stage, n_derivative_evaluations_max,
   e = n_derivative_evaluations_max
   for level_id in 1:n_levels
     e_by_level_id[level_id] = e
-    if e > 2
-      e = div(e, 2)
+    if e == 16
+      e = 8
+    elseif e == 8
+      e = 4
+    elseif e == 4
+      e = 2
     end
   end
 
@@ -158,6 +162,10 @@ rk_a[16, 8][11,10] = 3.3274816172250303E-002
 rk_a[16, 4] = Coeff()
 rk_a[16, 4][16,15] = 0.30860538993562969
 rk_a[16, 4][15,14] = 0.13495465515328439
+
+# s = 16, e = 3
+rk_a[16, 3] = Coeff()
+rk_a[16, 3][16,15] = 0.27284927666187286
 
 # s = 16, e = 2 -> no unknown coefficients necessary but included for consistency
 rk_a[16, 2] = Coeff()
