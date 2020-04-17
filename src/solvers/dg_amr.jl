@@ -57,6 +57,12 @@ function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
                                         * "n_surf must be the same as 2*n_elem")
   end
 
+  # Reset current ids
+  dg.current_element_ids = 1:n_elements
+  dg.current_surface_ids = 1:n_surfaces
+  n_mortars = dg.mortar_type === :l2 ? n_l2mortars : n_ecmortars
+  dg.current_mortar_ids = 1:n_mortars
+
   # Update DG instance with new data
   dg.elements = elements
   dg.n_elements = n_elements
@@ -211,6 +217,12 @@ function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
+
+  # Reset current ids
+  dg.current_element_ids = 1:n_elements
+  dg.current_surface_ids = 1:n_surfaces
+  n_mortars = dg.mortar_type === :l2 ? n_l2mortars : n_ecmortars
+  dg.current_mortar_ids = 1:n_mortars
 
   # Update DG instance with new data
   dg.elements = elements
@@ -527,7 +539,7 @@ end
 
 # For periodic domains, distance between two points must take into account
 # periodic extensions of the domain
-function periodic_distance(coordinates, center, domain_length)
+@inline function periodic_distance(coordinates, center, domain_length)
   dx = abs.(coordinates - center)
   dx_periodic = min.(dx, domain_length .- dx)
   return sqrt(sum(dx_periodic.^2))
