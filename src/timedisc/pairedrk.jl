@@ -43,6 +43,10 @@ function calc_c(n_stages::Integer)
 end
 
 
+# Calculate Runge-Kutta coefficients for multilevel P-ERK scheme
+#
+# Note: If at the coarsest level more stage evaluations are to be activated,
+#       you need to modify the two locations marked (**)
 function calc_a_multilevel(n_stages, stage, n_derivative_evaluations_max,
                            n_elements, level_info_elements)
   # Determine number of levels
@@ -65,7 +69,7 @@ function calc_a_multilevel(n_stages, stage, n_derivative_evaluations_max,
     elseif e == 8
       e = 4
     elseif e == 4
-      e = 2
+      e = 2 # (**) Set this to, e.g., 3 to have at least three evaluations
     end
   end
 
@@ -104,7 +108,7 @@ function acc_level_ids_by_stage(n_stages, n_levels)
     acc_level_ids[12] = 2
     acc_level_ids[13] = 2
     acc_level_ids[14] = 3
-    acc_level_ids[15] = 3
+    acc_level_ids[15] = 3 # (**) Set to `n_levels` to have three evaluations at coarsest level
     acc_level_ids[16] = n_levels
   else
     error("number of stages '$n_stages' not supported")
