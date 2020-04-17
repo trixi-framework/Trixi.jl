@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
 equations = "mhd"
-gamma = 1.666666666666666667 
+gamma = 1.4
 initial_conditions = "ec_test"
 surface_flux_type = "derigs_ec"
 
@@ -9,7 +9,7 @@ volume_flux_type = "derigs_ec"
 
 # sources = 
 t_start = 0.0
-t_end   = 0.3
+t_end   = 0.4
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -28,8 +28,8 @@ volume_integral_type = "split_form"
 ####################################################################################################
 # Mesh
 n_cells_max = 10000
-coordinates_min = [0.0,0.0]
-coordinates_max = [1.0,1.0]
+coordinates_min = [-2,-2]
+coordinates_max = [2,2]
 initial_refinement_level = 4 
 # refinement_patches = [
 #   {type = "box", coordinates_min = 0, coordinates_max = 16},

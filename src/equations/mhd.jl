@@ -141,37 +141,22 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     psi = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   elseif name == "ec_test"
-    # initial conditions adapted from Section 5.3 in Bohm et al. 2018
-    # domain: [0, 1] x [0, 1], γ = 5/3, final_time: 0.3
-    x_c = 0.3
-    y_c = 0.4
-    r = sqrt((x[1] - x_c)^2 + (x[2] - y_c)^2)
-    r0 = 0.0
-    delta0 = 0.2
-    lambda = exp(5/delta0*(r - r0))
-    # inner states
-    rho_inner = 1.2
-    v1_inner  = 0.1
-    v2_inner  = 0.0
-    v3_inner  = 0.1
-    p_inner   = 0.9
-    # outer states
-    rho_outer = 1.0
-    v1_outer  = 0.2
-    v2_outer  = -0.4
-    v3_outer  = 0.2
-    p_outer   = 0.3
-    # blend inner/outer states (magnetic fields are constant so no blending is needed)
-    rho = (rho_inner + lambda*rho_outer)/(1.0+lambda)
-    v1  = (v1_inner + lambda*v1_outer)/(1.0+lambda)
-    v2  = (v2_inner + lambda*v2_outer)/(1.0+lambda)
-    v3  = (v3_inner + lambda*v3_outer)/(1.0+lambda)
-    p   = (p_inner + lambda*p_outer)/(1.0+lambda)
-    B1  = 1.0
-    B2  = 1.0
-    B3  = 1.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+    # Same discontinuity in the velocities but with a magnetic fields
+    # Set up polar coordinates
+    inicenter = [0, 0]
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    p = r > 0.5 ? 1.0 : 1.245
+
+    return prim2cons(equation, [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
   else
     error("Unknown initial condition '$name'")
   end
@@ -426,8 +411,8 @@ end
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
-  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
+  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
   beta_ll = 0.5*rho_ll/p_ll
   beta_rr = 0.5*rho_rr/p_rr
   # for convenience store v⋅B
@@ -447,7 +432,7 @@ end
   B2_avg = 0.5*(B2_ll+B2_rr)
   B3_avg = 0.5*(B3_ll+B3_rr)
   psi_avg = 0.5*(psi_ll+psi_rr)
-  vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_ll)
+  vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_rr)
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
   vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
 
@@ -468,7 +453,7 @@ end
            f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v1_mag_avg +
            B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg
   else
-    f[1] = rho_mean * v2_avg
+    f[1] = rho_mean*v2_avg
     f[2] = f[1]*v1_avg - B1_avg*B2_avg
     f[3] = f[1]*v2_avg + p_mean + 0.5*mag_norm_avg - B2_avg*B2_avg
     f[4] = f[1]*v3_avg - B2_avg*B3_avg
@@ -765,12 +750,11 @@ function Equations.cons2entropy(equation::Mhd,cons::Array{Float64, 4},n_nodes::I
   @. B[2, :, :, :] = cons[7, :, :, :]
   @. B[3, :, :, :] = cons[8, :, :, :]
 # kinetic energy, pressure, entropy
-  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :] +
+  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :] + v[2, :, :, :]*v[2, :, :, :] +
                           v[3, :, :, :]*v[3, :, :, :]
   @. p[ :, :, :] = ((equation.gamma - 1)*(cons[5, :, :, :] - 0.5*cons[1, :, :, :]*v_square[:,:,:] -
-                            0.5*(B[1, :, :, :]*B[1, :, :, :] + B[2, :, :, :]*B[2, :, :, :] +
-                                 B[3, :, :, :]*B[3, :, :, :]) -
-                            0.5*cons[9, :, :, :]*cons[9, :, :, :]))
+                    0.5*(B[1, :, :, :]*B[1, :, :, :] + B[2, :, :, :]*B[2, :, :, :] +
+                         B[3, :, :, :]*B[3, :, :, :]) - 0.5*cons[9, :, :, :]*cons[9, :, :, :]))
   @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
   @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :]
 
