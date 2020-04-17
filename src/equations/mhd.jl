@@ -40,9 +40,9 @@ mutable struct Mhd <: AbstractEquation{9}
     gamma = parameter("gamma", 1.4)
     c_h = 0.0   # GLM cleaning wave speed
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs","central"]))
+                                         valid=["laxfriedrichs","central","derigs_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central"]))
+                                        valid=["central","derigs_ec"]))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
         surface_flux_type, volume_flux_type)
   end
@@ -57,10 +57,10 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     rho_v1 = 0.1
     rho_v2 = -0.2
     rho_v3 = -0.5
-    rho_e = 10.0
+    rho_e = 50.0
     B1 = 3.0
     B2 = -1.2
-    B3 = 0.4
+    B3 = 0.5
     psi = 0.0
     return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
   elseif name == "convergence_test"
@@ -138,6 +138,38 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     B1 = 100.0/sqrt(4.0*pi)
     B2 = 0.0
     B3 = 0.0
+    psi = 0.0
+    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  elseif name == "ec_test"
+    # initial conditions adapted from Section 5.3 in Bohm et al. 2018
+    # domain: [0, 1] x [0, 1], γ = 5/3, final_time: 0.3
+    x_c = 0.3
+    y_c = 0.4
+    r = sqrt((x[1] - x_c)^2 + (x[2] - y_c)^2)
+    r0 = 0.0
+    delta0 = 0.2
+    lambda = exp(5/delta0*(r - r0))
+    # inner states
+    rho_inner = 1.2
+    v1_inner  = 0.1
+    v2_inner  = 0.0
+    v3_inner  = 0.1
+    p_inner   = 0.9
+    # outer states
+    rho_outer = 1.0
+    v1_outer  = 0.2
+    v2_outer  = -0.4
+    v3_outer  = 0.2
+    p_outer   = 0.3
+    # blend inner/outer states (magnetic fields are constant so no blending is needed)
+    rho = (rho_inner + lambda*rho_outer)/(1.0+lambda)
+    v1  = (v1_inner + lambda*v1_outer)/(1.0+lambda)
+    v2  = (v2_inner + lambda*v2_outer)/(1.0+lambda)
+    v3  = (v3_inner + lambda*v3_outer)/(1.0+lambda)
+    p   = (p_inner + lambda*p_outer)/(1.0+lambda)
+    B1  = 1.0
+    B2  = 1.0
+    B3  = 1.0
     psi = 0.0
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   else
@@ -362,6 +394,97 @@ end
   @. f[:] = 0.5*(f_ll + f_rr)
 end
 
+# Entropy conserving two-point flux for GLM-MHD equations by Derigs et al. 2018; equation (4.43)
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:derigs_ec},
+                                          equation::Mhd, orientation::Int,
+                                          rho_ll::Float64,
+                                          rho_v1_ll::Float64,
+                                          rho_v2_ll::Float64,
+                                          rho_v3_ll::Float64,
+                                          rho_e_ll::Float64,
+                                          B1_ll::Float64,
+                                          B2_ll::Float64,
+                                          B3_ll::Float64,
+                                          psi_ll::Float64,
+                                          rho_rr::Float64,
+                                          rho_v1_rr::Float64,
+                                          rho_v2_rr::Float64,
+                                          rho_v3_rr::Float64,
+                                          rho_e_rr::Float64,
+                                          B1_rr::Float64,
+                                          B2_rr::Float64,
+                                          B3_rr::Float64,
+                                          psi_rr::Float64)
+  # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v3_ll = rho_v3_ll/rho_ll
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  v3_rr = rho_v3_rr/rho_rr
+  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
+  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
+  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll)
+  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
+  beta_ll = 0.5*rho_ll/p_ll
+  beta_rr = 0.5*rho_rr/p_rr
+  # for convenience store v⋅B
+  vel_dot_mag_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
+  vel_dot_mag_rr = v1_rr*B1_rr + v2_rr*B2_rr + v3_rr*B3_rr
+
+  # Compute the necessary mean values needed for either direction
+  rho_avg  = 0.5*(rho_ll+rho_rr)
+  rho_mean = ln_mean(rho_ll,rho_rr)
+  beta_mean = ln_mean(beta_ll,beta_rr)
+  beta_avg = 0.5*(beta_ll+beta_rr)
+  v1_avg = 0.5*(v1_ll+v1_rr)
+  v2_avg = 0.5*(v2_ll+v2_rr)
+  v3_avg = 0.5*(v3_ll+v3_rr)
+  p_mean = 0.5*rho_avg/beta_avg
+  B1_avg = 0.5*(B1_ll+B1_rr)
+  B2_avg = 0.5*(B2_ll+B2_rr)
+  B3_avg = 0.5*(B3_ll+B3_rr)
+  psi_avg = 0.5*(psi_ll+psi_rr)
+  vel_norm_avg = 0.5*(vel_norm_ll+vel_norm_ll)
+  mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
+  vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
+
+  # Calculate fluxes depending on orientation with specific direction averages
+  if orientation == 1
+    f[1] = rho_mean*v1_avg
+    f[2] = f[1]*v1_avg + p_mean + 0.5*mag_norm_avg - B1_avg*B1_avg
+    f[3] = f[1]*v2_avg - B1_avg*B2_avg
+    f[4] = f[1]*v3_avg - B1_avg*B3_avg
+    f[6] = equation.c_h*psi_avg
+    f[7] = v1_avg*B2_avg - v2_avg*B1_avg
+    f[8] = v1_avg*B3_avg - v3_avg*B1_avg
+    f[9] = equation.c_h*B1_avg
+    # total energy flux is complicated and involves the previous eight components
+    psi_B1_avg = 0.5*(B1_ll*psi_ll + B1_rr*psi_rr)
+    v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
+    f[5] = f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
+           f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v1_mag_avg +
+           B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg
+  else
+    f[1] = rho_mean * v2_avg
+    f[2] = f[1]*v1_avg - B1_avg*B2_avg
+    f[3] = f[1]*v2_avg + p_mean + 0.5*mag_norm_avg - B2_avg*B2_avg
+    f[4] = f[1]*v3_avg - B2_avg*B3_avg
+    f[6] = v2_avg*B1_avg - v1_avg*B2_avg
+    f[7] = equation.c_h*psi_avg
+    f[8] = v2_avg*B3_avg - v3_avg*B2_avg
+    f[9] = equation.c_h*B2_avg
+    # total energy flux is complicated and involves the previous eight components
+    psi_B2_avg = 0.5*(B2_ll*psi_ll + B2_rr*psi_rr)
+    v2_mag_avg = 0.5*(v2_ll*mag_norm_ll + v2_rr*mag_norm_rr)
+    f[5] = f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
+           f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v2_mag_avg +
+           B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg
+  end
+end
+
 
 # Calculate 1D flux in for a single point
 @inline function calcflux1D!(f::AbstractArray{Float64}, equation::Mhd, rho::Float64,
@@ -516,7 +639,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[7] = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
     surface_flux[8] = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
     surface_flux[9] = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
-  elseif equation.surface_flux_type in (:central)
+  elseif equation.surface_flux_type in (:central,:derigs_ec)
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
                     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,

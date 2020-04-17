@@ -1220,10 +1220,10 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Copy flux to left and right element storage
     for i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i]
-          + noncons_diamond_primary[v, i]
-        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i]
-          + noncons_diamond_secondary[v, i]
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i] +
+          noncons_diamond_primary[v, i]
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i] +
+          noncons_diamond_secondary[v, i]
       end
     end
   end
