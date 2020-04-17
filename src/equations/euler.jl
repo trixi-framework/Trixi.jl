@@ -279,11 +279,11 @@ function Equations.sources(equation::Euler, ut, u, x, element_id, t, n_nodes)
       for i in 1:n_nodes
         x1 = x[1, i, j, element_id]
         x2 = x[2, i, j, element_id]
-        momentum = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A + 5*γ - 4)*cos((x1 + x2 - t)*ω)*A*ω
+
         ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
-        ut[2, i, j, element_id] += momentum
-        ut[3, i, j, element_id] += momentum
-        ut[4, i, j, element_id] += 2*(2*sin((x1 + x2 - t)*ω)*A*γ - sin((x1 + x2 - t)*ω)*A + 5*γ - 3)*cos((x1 + x2 - t)*ω)*A*ω
+        ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A + 3*γ - 2)*cos((x1 + x2 - t)*ω)*A*ω
+        ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A + 3*γ - 2)*cos((x1 + x2 - t)*ω)*A*ω
+        ut[4, i, j, element_id] += 2*(2*sin((x1 + x2 - t)*ω)*A*γ - sin((x1 + x2 - t)*ω)*A + 3*γ - 1)*cos((x1 + x2 - t)*ω)*A*ω
       end
     end
   else
