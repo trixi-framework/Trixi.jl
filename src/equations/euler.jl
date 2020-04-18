@@ -281,11 +281,24 @@ function Equations.sources(equation::Euler, ut, u, x, element_id, t, n_nodes)
         x2 = x[2, i, j, element_id]
         tmp1 = cos((x1 + x2 - t)*ω)*A*ω
         tmp2 = sin((x1 + x2 - t)*ω)*A
+        tmp3 = γ - 1
+        tmp4 = (2*c - 1)*tmp3
+        tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
+        tmp6 = tmp2 + c
 
         ut[1, i, j, element_id] += tmp1
-        ut[2, i, j, element_id] += (2*tmp2*γ - 2*tmp2 + 2*c*γ - 2*c - γ + 2)*tmp1
-        ut[3, i, j, element_id] += (2*tmp2*γ - 2*tmp2 + 2*c*γ - 2*c - γ + 2)*tmp1
-        ut[4, i, j, element_id] += 2*((c - 1 + tmp2)*(γ - 1) + (tmp2 + c)*γ)*tmp1
+        ut[2, i, j, element_id] += tmp5
+        ut[3, i, j, element_id] += tmp5
+        ut[4, i, j, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+
+        # Original terms (without performanc enhancements)
+        # ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
+        # ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+        # ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+        # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
+        #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
       end
     end
   else
