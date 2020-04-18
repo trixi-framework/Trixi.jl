@@ -89,7 +89,7 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     L = 2
     f = 1/L
     ω = 2 * pi * f
-    ini = c + A * sin(ω * (x[1] + x[2]) - t)
+    ini = c + A * sin(ω * (x[1] + x[2] - t))
 
     rho = ini
     rho_v1 = ini
@@ -279,11 +279,13 @@ function Equations.sources(equation::Euler, ut, u, x, element_id, t, n_nodes)
       for i in 1:n_nodes
         x1 = x[1, i, j, element_id]
         x2 = x[2, i, j, element_id]
+        tmp1 = cos((x1 + x2 - t)*ω)*A*ω
+        tmp2 = sin((x1 + x2 - t)*ω)*A
 
-        ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
-        ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A + 3*γ - 2)*cos((x1 + x2 - t)*ω)*A*ω
-        ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A + 3*γ - 2)*cos((x1 + x2 - t)*ω)*A*ω
-        ut[4, i, j, element_id] += 2*(2*sin((x1 + x2 - t)*ω)*A*γ - sin((x1 + x2 - t)*ω)*A + 3*γ - 1)*cos((x1 + x2 - t)*ω)*A*ω
+        ut[1, i, j, element_id] += tmp1
+        ut[2, i, j, element_id] += (2*tmp2*γ - 2*tmp2 + 2*c*γ - 2*c - γ + 2)*tmp1
+        ut[3, i, j, element_id] += (2*tmp2*γ - 2*tmp2 + 2*c*γ - 2*c - γ + 2)*tmp1
+        ut[4, i, j, element_id] += 2*((c - 1 + tmp2)*(γ - 1) + (tmp2 + c)*γ)*tmp1
       end
     end
   else
