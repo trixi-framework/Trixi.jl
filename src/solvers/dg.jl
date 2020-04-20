@@ -1202,10 +1202,10 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
     @views noncons_surface_flux!(noncons_diamond_primary,
                                  u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
-                                 s, nnodes(dg), orientations)
+                                 s, equations(dg), nnodes(dg), orientations)
     @views noncons_surface_flux!(noncons_diamond_secondary,
                                  u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
-                                 s, nnodes(dg), orientations)
+                                 s, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]

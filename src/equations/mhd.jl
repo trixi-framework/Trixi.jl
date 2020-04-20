@@ -143,7 +143,7 @@ function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, 
     return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
   elseif name == "ec_test"
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Same discontinuity in the velocities but with a magnetic fields
+    # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
     inicenter = [0, 0]
     x_norm = x[1] - inicenter[1]
@@ -645,7 +645,8 @@ end
 function Equations.noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
                                u_left::AbstractArray{Float64},
                                u_right::AbstractArray{Float64},
-                               surface_id::Int , n_nodes::Int, orientations::Vector{Int})
+                               surface_id::Int, equation::Mhd, n_nodes::Int,
+                               orientations::Vector{Int})
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
