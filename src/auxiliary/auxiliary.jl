@@ -1,6 +1,7 @@
 module Auxiliary
 
 include("containers.jl")
+include("math.jl")
 
 using TimerOutputs: TimerOutput
 using Pkg.TOML: parsefile
