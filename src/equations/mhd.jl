@@ -452,9 +452,9 @@ end
     # total energy flux is complicated and involves the previous eight components
     psi_B1_avg = 0.5*(B1_ll*psi_ll + B1_rr*psi_rr)
     v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
-    f[5] = f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
-           f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v1_mag_avg +
-           B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg
+    f[5] = (f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
+            f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v1_mag_avg +
+            B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
   else
     f[1] = rho_mean*v2_avg
     f[2] = f[1]*v1_avg - B1_avg*B2_avg
@@ -467,9 +467,9 @@ end
     # total energy flux is complicated and involves the previous eight components
     psi_B2_avg = 0.5*(B2_ll*psi_ll + B2_rr*psi_rr)
     v2_mag_avg = 0.5*(v2_ll*mag_norm_ll + v2_rr*mag_norm_rr)
-    f[5] = f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
-           f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v2_mag_avg +
-           B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg
+    f[5] = (f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
+            f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v2_mag_avg +
+            B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg)
   end
 end
 
