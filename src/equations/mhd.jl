@@ -31,6 +31,7 @@ mutable struct Mhd <: AbstractEquation{9}
   c_h::Float64 # GLM cleaning speed
   surface_flux_type::Symbol
   volume_flux_type::Symbol
+  have_nonconservative_terms::Symbol
 
   function Mhd()
     name = "mhd"
@@ -41,11 +42,12 @@ mutable struct Mhd <: AbstractEquation{9}
     gamma = parameter("gamma", 1.4)
     c_h = 0.0   # GLM cleaning wave speed
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs","central","derigs_ec"]))
+                                         valid=["laxfriedrichs", "central", "derigs_ec"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central","derigs_ec"]))
+                                        valid=["central", "derigs_ec"]))
+    have_nonconservative_terms = Symbol(parameter("have_nonconservative_terms", "yes"))
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-        surface_flux_type, volume_flux_type)
+        surface_flux_type, volume_flux_type, have_nonconservative_terms)
   end
 end
 

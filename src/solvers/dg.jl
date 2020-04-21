@@ -1165,13 +1165,64 @@ function prolong2mortars!(dg, ::Val{:ec})
 end
 
 
-# Calculate and store fluxes across surfaces
-calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+# Calculate and the surface fluxes (standard Riemann and nonconservative parts) at an interface
+# OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
+#                                           2) only needed for the MHD equations
+calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconservative_terms))
+
+
+# Calculate and store Riemann fluxes across surfaces
+calc_surface_flux!(dg, ::Val{:no}) = calc_surface_flux!(dg.elements.surface_flux,
                                             dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg,
+                                            dg.surfaces.u, dg, Val(:no),
                                             dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg,
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{:no},
+                            orientations::Vector{Int})
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
+  #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
+  Threads.@threads for s = 1:dg.n_surfaces
+    # Choose thread-specific pre-allocated container
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
+
+    # Calculate flux
+    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+
+    # Get neighboring elements
+    left_neighbor_id  = neighbor_ids[1, s]
+    right_neighbor_id = neighbor_ids[2, s]
+
+    # Determine surface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_neighbor_direction = 2 * orientations[s]
+    right_neighbor_direction = 2 * orientations[s] - 1
+
+    # Copy flux to left and right element storage
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i]
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i]
+      end
+    end
+  end
+end
+
+# Calculate and store Riemann and nonconservative fluxes across surfaces
+calc_surface_flux!(dg, ::Val{:yes}) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg, Val(:yes),
+                                            dg.surfaces.orientations)
+function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{:yes},
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
