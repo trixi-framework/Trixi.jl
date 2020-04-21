@@ -1172,12 +1172,12 @@ calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconserv
 
 
 # Calculate and store Riemann fluxes across surfaces
-calc_surface_flux!(dg, ::Val{:no}) = calc_surface_flux!(dg.elements.surface_flux,
+calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
                                             dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, Val(:no),
+                                            dg.surfaces.u, dg, v,
                                             dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{:no},
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
@@ -1217,12 +1217,12 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
-calc_surface_flux!(dg, ::Val{:yes}) = calc_surface_flux!(dg.elements.surface_flux,
+calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
                                             dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, Val(:yes),
+                                            dg.surfaces.u, dg, v,
                                             dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{:yes},
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
@@ -1271,10 +1271,10 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Copy flux to left and right element storage
     for i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = fstar[v, i] +
-          noncons_diamond_primary[v, i]
-        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = fstar[v, i] +
-          noncons_diamond_secondary[v, i]
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i] +
+            noncons_diamond_primary[v, i])
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
+            noncons_diamond_secondary[v, i])
       end
     end
   end
@@ -1286,7 +1286,7 @@ calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg, ::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2),
+calc_mortar_flux!(dg, v::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
                                                       dg.l2mortars.neighbor_ids,
                                                       dg.l2mortars.u_lower,
                                                       dg.l2mortars.u_upper,
@@ -1370,7 +1370,7 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg, ::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec),
+calc_mortar_flux!(dg, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
                                                       dg.ecmortars.neighbor_ids,
                                                       dg.ecmortars.u_lower,
                                                       dg.ecmortars.u_upper,

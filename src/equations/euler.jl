@@ -29,7 +29,7 @@ struct Euler <: AbstractEquation{4}
   gamma::Float64
   surface_flux_type::Symbol
   volume_flux_type::Symbol
-  have_nonconservative_terms::Symbol
+  have_nonconservative_terms::Bool
 
   function Euler()
     name = "euler"
@@ -43,7 +43,7 @@ struct Euler <: AbstractEquation{4}
                                                 "kennedygruber", "chandrashekar_ec", "yuichi"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
                               valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
-    have_nonconservative_terms = Symbol(parameter("have_nonconservative_terms", "no"))
+    have_nonconservative_terms = false
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux_type, volume_flux_type,have_nonconservative_terms)
   end
