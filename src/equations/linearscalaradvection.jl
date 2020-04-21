@@ -26,6 +26,7 @@ struct LinearScalarAdvection <: AbstractEquation{1}
   advectionvelocity::SVector{2, Float64}
   surface_flux_type::Symbol
   volume_flux_type::Symbol
+  have_nonconservative_terms::Bool
 
   function LinearScalarAdvection()
     name = "linearscalaradvection"
@@ -34,7 +35,9 @@ struct LinearScalarAdvection <: AbstractEquation{1}
     varnames_cons = ["scalar"]
     varnames_prim = ["scalar"]
     a = parameter("advectionvelocity")
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, :upwind, :central)
+    have_nonconservative_terms = false
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, :upwind, :central,
+        have_nonconservative_terms)
   end
 end
 
@@ -52,7 +55,7 @@ function Equations.initial_conditions(equation::LinearScalarAdvection,
   elseif name == "convergence_test"
     c = 1.0
     A = 0.5
-    L = 2 
+    L = 2
     f = 1/L
     omega = 2 * pi * f
     scalar = c + A * sin(omega * sum(x_trans))

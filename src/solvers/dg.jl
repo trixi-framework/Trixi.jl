@@ -8,7 +8,8 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim
+                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
+                    noncons_surface_flux!
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -552,7 +553,8 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
 end
 
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
-# TODO: optimize; this implementation is probably very slow
+# OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
+#      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
   # Gather necessary information
   equation = equations(dg)
@@ -1163,13 +1165,19 @@ function prolong2mortars!(dg, ::Val{:ec})
 end
 
 
-# Calculate and store fluxes across surfaces
-calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+# Calculate and the surface fluxes (standard Riemann and nonconservative parts) at an interface
+# OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
+#                                           2) only needed for the MHD equations
+calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconservative_terms))
+
+
+# Calculate and store Riemann fluxes across surfaces
+calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
                                             dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg,
+                                            dg.surfaces.u, dg, v,
                                             dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg,
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
@@ -1208,13 +1216,77 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   end
 end
 
+# Calculate and store Riemann and nonconservative fluxes across surfaces
+calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg, v,
+                                            dg.surfaces.orientations)
+function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
+                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
+                            orientations::Vector{Int})
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
+  noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+
+  #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
+  Threads.@threads for s = 1:dg.n_surfaces
+    # Choose thread-specific pre-allocated container
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
+
+    noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
+    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
+
+    # Calculate flux
+    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+
+    # Compute the nonconservative numerical "flux" along a surface
+    # Done twice because left/right orientation matters så
+    # 1 -> primary element and 2 -> secondary element
+    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
+    @views noncons_surface_flux!(noncons_diamond_primary,
+                                 u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
+                                 s, equations(dg), nnodes(dg), orientations)
+    @views noncons_surface_flux!(noncons_diamond_secondary,
+                                 u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
+                                 s, equations(dg), nnodes(dg), orientations)
+
+    # Get neighboring elements
+    left_neighbor_id  = neighbor_ids[1, s]
+    right_neighbor_id = neighbor_ids[2, s]
+
+    # Determine surface direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    left_neighbor_direction = 2 * orientations[s]
+    right_neighbor_direction = 2 * orientations[s] - 1
+
+    # Copy flux to left and right element storage
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i] +
+            noncons_diamond_primary[v, i])
+        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
+            noncons_diamond_secondary[v, i])
+      end
+    end
+  end
+end
+
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
 calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg, ::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:l2),
+calc_mortar_flux!(dg, v::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
                                                       dg.l2mortars.neighbor_ids,
                                                       dg.l2mortars.u_lower,
                                                       dg.l2mortars.u_upper,
@@ -1298,7 +1370,7 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg, ::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, Val(:ec),
+calc_mortar_flux!(dg, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
                                                       dg.ecmortars.neighbor_ids,
                                                       dg.ecmortars.u_lower,
                                                       dg.ecmortars.u_upper,
