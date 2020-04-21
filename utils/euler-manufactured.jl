@@ -51,7 +51,7 @@ function euler2d()
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (γ - 1) * (rho_e + 1/2 * rho * (v1^2 + v2^2))
+    p = (γ - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
     source_rho    = df(rho, t)    + df(rho_v1, x)           + df(rho_v2, y)
     source_rho_v1 = df(rho_v1, t) + df(rho * v1^2 + p, x)   + df(rho * v1 * v2, y)
