@@ -9,17 +9,17 @@
 # [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
 
 #=
-# Check if '-i' or '--interactive' was passed as an argument
-interactive=0
-for arg in "$@"; do
-  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
-    interactive=1
-  fi
-done
+# Check if any command line arguments are given - if yes, run in batch
+# mode, if not, start an interactive session
+if [ "$#" -gt "0" ]; then
+  interactive=0
+else
+  interactive=1
+fi
 
 # Get directory of script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_DIR="$DIR/pkg/Trixi2Vtu"
+PROJECT_DIR="$DIR/pkg/Trixi2Vtk"
 
 # If not interactive, just run script as usual. Otherwise load REPL
 if [ $interactive -eq 0 ]; then
@@ -29,14 +29,14 @@ else
   exec julia --banner=no --project="$PROJECT_DIR" -i \
       -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")" \
       -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start Trixi2Vtu by running the second line.\n")' \
-      -e 'println("using Revise; import Trixi2Vtu")' \
-      -e 'println("Trixi2Vtu.run(datafile=\"file.h5\")")'
+      -e 'println("# Start Trixi2Vtk by running the second line.\n")' \
+      -e 'println("using Revise; import Trixi2Vtk")' \
+      -e 'println("Trixi2Vtk.run(filename=\"file.h5\")")'
 fi
 =#
 
-# Load Trixi2Vtu
-import Trixi2Vtu
+# Load Trixi2Vtk
+import Trixi2Vtk
 
-# Run Trixi2Vtu but handle user interrupts gracefully (Ctrl-c)
-@Trixi2Vtu.interruptable Trixi2Vtu.run(args=ARGS)
+# Run Trixi2Vtk but handle user interrupts gracefully (Ctrl-c)
+@Trixi2Vtk.Auxiliary.interruptable Trixi2Vtk.run(args=ARGS)

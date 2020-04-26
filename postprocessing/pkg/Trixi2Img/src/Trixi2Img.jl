@@ -17,7 +17,25 @@ using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
 using TimerOutputs
 import GR
 
-function run(;args=nothing, kwargs...)
+
+"""
+    run(; args=nothing, kwargs...)
+
+Convert Trixi-generated output files to image files (PNG or PDF).
+
+If `args` is given, it should be an `ARGS`-like array of strings that holds
+command line arguments, and will be interpreted by the `ArgParse` module. If
+`args` is omitted, you can supply all command line arguments via keyword
+arguments. In this case, you have to provide at least one input file path in
+the `datafile` variable.
+
+# Examples
+```julia
+julia> Trixi2Img.run(datafile="out/solution_000000.h5")
+[...]
+```
+"""
+function run(; args=nothing, kwargs...)
   # Reset timer
   reset_timer!()
 
@@ -100,7 +118,7 @@ function run(;args=nothing, kwargs...)
     end
     max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
     if args["nvisnodes"] == nothing
-      max_nvisnodes = 4 * n_nodes
+      max_nvisnodes = 2 * n_nodes
     elseif args["nvisnodes"] == 0
       max_nvisnodes = n_nodes
     else

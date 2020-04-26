@@ -17,12 +17,13 @@ using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
-		      vandermonde_legendre, nodal2modal
+                      vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
 using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit
+using TimerOutputs: @timeit, @notimeit
 using Printf: @sprintf, @printf
+using Random: seed!
 
 export Dg
 export set_initial_conditions
@@ -78,7 +79,12 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   analysis_vandermonde::SMatrix{NAnap1, Np1}
   analysis_total_volume::Float64
 
+  shock_indicator_variable::Symbol
+  shock_alpha_max::Float64
+  shock_alpha_min::Float64
   amr_indicator::Symbol
+  amr_alpha_max::Float64
+  amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 end
@@ -143,14 +149,30 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi","blob"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
+  if amr_indicator === :khi || amr_indicator === :blob
+    element_variables[:amr_indicator_values] = zeros(n_elements)
+  end
+  # maximum and minimum alpha for shock capturing
+  shock_alpha_max = parameter("shock_alpha_max", 0.5)
+  shock_alpha_min = parameter("shock_alpha_min", 0.001)
+
+  # variable used to compute the shock capturing indicator
+  shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
+                                          valid=["density", "density_pressure", "pressure"]))
+
+  # maximum and minimum alpha for amr control
+  amr_alpha_max = parameter("amr_alpha_max", 0.5)
+  amr_alpha_min = parameter("amr_alpha_min", 0.001)
+
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === :shock_capturing
     element_variables[:blending_factor] = zeros(n_elements)
   end
+
 
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
@@ -167,8 +189,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       ecmortar_reverse_upper, ecmortar_reverse_lower,
       analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
-      amr_indicator,
+      shock_indicator_variable, shock_alpha_max, shock_alpha_min,
+      amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables)
+
 
   return dg
 end
@@ -369,7 +393,7 @@ function init_surface_connectivity!(elements, surfaces, mesh)
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
-      
+
       # Skip if neighbor has children
       neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
       if has_children(mesh.tree, neighbor_cell_id)
@@ -511,7 +535,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
   duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
   # Compute ut = rhs(u) with current solution u
-  Solvers.rhs!(dg, t, disable_timers=true)
+  @notimeit timer() Solvers.rhs!(dg, t)
   # Quadrature weights
   weights = dg.weights
   # Integrate over all elements to get the total semi-discrete entropy update
@@ -552,8 +576,41 @@ function calc_total_math_entropy(dg::Dg)
 end
 
 
+# Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
+# TODO: optimize; this implementation is probably very slow
+function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
+  # Gather necessary information
+  equation = equations(dg)
+  # Local copy of standard derivative matrix
+  d = polynomial_derivative_matrix(dg.nodes)
+  # Quadrature weights
+  weights = dg.weights
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = 0.0
+  l2_divb   = 0.0
+  for element_id in 1:dg.n_elements
+    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        divb   = 0.0
+        for k in 1:nnodes(dg)
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
+                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+        end
+        divb *= dg.elements.inverse_jacobian[element_id]
+        linf_divb = max(linf_divb,abs(divb))
+        l2_divb += jacobian_volume*weights[i]*weights[j]*divb^2
+      end
+    end
+  end
+  l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
+
+  return l2_divb, linf_divb
+end
+
+
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
+function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                                   runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
@@ -562,21 +619,37 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
   math_entropy = calc_total_math_entropy(dg)
   n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
+  # General information
   println()
   println("-"^80)
   println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
-          "                 " *
-          " #elements:      " * @sprintf("% 14d", dg.n_elements))
+          "               " *
+          " run time:       " * @sprintf("%10.8e s", runtime_absolute))
   println(" dt:             " * @sprintf("%10.8e", dt) *
-          "                 " *
-          " #surfaces:      " * @sprintf("% 14d", dg.n_surfaces))
-  println(" sim. time:      " * @sprintf("%10.8e", time) *
-          "                 " *
-          " #mortars:       " * @sprintf("% 14d", n_mortars))
-  println(" run time:       " * @sprintf("%10.8e s", runtime_absolute))
-  println(" Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+          "               " *
+          " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+  println(" sim. time:      " * @sprintf("%10.8e", time))
+
+  # Level information (only show for AMR)
+  if parameter("amr_interval", 0) > 0
+    levels = Vector{Int}(undef, dg.n_elements)
+    for element_id in 1:dg.n_elements
+      levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+    end
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+    for level = max_level:-1:min_level+1
+      println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+    end
+    println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
+  end
+  println()
+
+  # Derived quantities (error norms, entropy etc.)
   print(" Variable:    ")
   for v in 1:nvariables(equation)
     @printf("   %-14s", equation.varnames_cons[v])
@@ -596,6 +669,19 @@ function Solvers.analyze_solution(dg::Dg, time::Real, dt::Real, step::Integer,
           "                 " *
           " ∑S:            " * @sprintf("% 10.8e", math_entropy))
 
+  if equation.name == "mhd"
+    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+    println()
+    print(" L2 ∇⋅B:    ")
+    @printf("    % 10.8e", l2_divb)
+    println()
+    print(" Linf ∇⋅B:    ")
+    @printf("  % 10.8e", linf_divb)
+  end
+
+  println()
+
+  println("-"^80)
   println()
 end
 
@@ -603,7 +689,8 @@ end
 # Call equation-specific initial conditions functions and apply to all elements
 function Solvers.set_initial_conditions(dg::Dg, time::Float64)
   equation = equations(dg)
-
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
@@ -616,22 +703,7 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage; disable_timers=false)
-  # Run rhs! without timing the individual contributions
-  # FIXME: This should be done properly, e.g., by a macro call
-  if disable_timers
-    dg.elements.u_t .= 0.0
-    calc_volume_integral!(dg)
-    prolong2surfaces!(dg)
-    calc_surface_flux!(dg)
-    prolong2mortars!(dg)
-    calc_mortar_flux!(dg)
-    calc_surface_integral!(dg)
-    apply_jacobian!(dg)
-    calc_sources!(dg, t_stage)
-    return
-  end
-
+function Solvers.rhs!(dg::Dg, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
@@ -767,7 +839,11 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u)
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,
+                                                           dg.shock_alpha_max,
+                                                           dg.shock_alpha_min,
+                                                           true,
+                                                           Val(dg.shock_indicator_variable))
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
@@ -892,10 +968,20 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 1)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 1)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 1)
+      end
       for v in 1:nvariables(equation)
         fstar1[v,i,j] = fstarnode[v]
       end
@@ -913,10 +999,20 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      riemann!(fstarnode,
-               u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-               u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-               equation, 2)
+      if equation.name == "euler"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 equation, 2)
+      elseif equation.name == "mhd"
+        riemann!(fstarnode,
+                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                 u_leftright[1, 9],
+                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                 u_leftright[2, 9], equation, 2)
+      end
       for v in 1:nvariables(equation)
         fstar2[v,i,j] = fstarnode[v]
       end
@@ -1415,19 +1511,18 @@ function Solvers.calc_dt(dg::Dg, cfl)
   return min_dt
 end
 
-
-# Calculate blending factors for shock capturing
-function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64})
+# Calculate blending factors used for shock capturing, or amr control
+function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
+                               alpha_max::Float64, alpha_min::Float64, do_smoothing::Bool,
+                               indicator_variable)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
-  alpha_min = 0.001
-  alpha_max = 0.5
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg))
+    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), indicator_variable)
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
@@ -1472,47 +1567,49 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
 
-  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-  # Copy alpha values such that smoothing is indpedenent of the element access order
-  alpha_pre_smooth = copy(alpha)
+  if (do_smoothing)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_pre_smooth = copy(alpha)
 
-  # Loop over surfaces
-  for surface_id in 1:dg.n_surfaces
-    # Get neighboring element ids
-    left  = dg.surfaces.neighbor_ids[1, surface_id]
-    right = dg.surfaces.neighbor_ids[2, surface_id]
+    # Loop over surfaces
+    for surface_id in 1:dg.n_surfaces
+      # Get neighboring element ids
+      left  = dg.surfaces.neighbor_ids[1, surface_id]
+      right = dg.surfaces.neighbor_ids[2, surface_id]
 
-    # Apply smoothing
-    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-  end
- 
-  # Loop over L2 mortars
-  for l2mortar_id in 1:dg.n_l2mortars
-    # Get neighboring element ids
-    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+      # Apply smoothing
+      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+    end
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-  end
- 
-  # Loop over EC mortars
-  for ecmortar_id in 1:dg.n_ecmortars
-    # Get neighboring element ids
-    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+    # Loop over L2 mortars
+    for l2mortar_id in 1:dg.n_l2mortars
+      # Get neighboring element ids
+      lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+      upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+      large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-    # Apply smoothing
-    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+      # Apply smoothing
+      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+    end
+
+    # Loop over EC mortars
+    for ecmortar_id in 1:dg.n_ecmortars
+      # Get neighboring element ids
+      lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+      upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+      large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+
+      # Apply smoothing
+      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+    end
   end
 
   # Clip blending factor for values close to zero (-> pure DG)

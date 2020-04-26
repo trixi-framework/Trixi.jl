@@ -1,7 +1,8 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Equations: make_equations, nvariables
-using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs
+using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
+                calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
@@ -9,11 +10,28 @@ using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_f
 using .AMR: adapt!
 
 using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer, reset_timer!
+using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
 using Profile: clear_malloc_data
 
 
-function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
+"""
+    run(parameters_file=nothing; verbose=false, args=nothing)
+
+Run a Trixi simulation with the parameters in `parameters_file`.
+
+If `verbose` is `true`, additional output will be generated on the terminal
+that may help with debugging.  If `args` is given, it should be an
+`ARGS`-like array of strings that holds command line arguments, and will be
+interpreted by the `parse_commandline_arguments` function. In this case, the values of
+`parameters_file` and `verbose` are ignored.
+
+# Examples
+```julia
+julia> Trixi.run("parameters.toml", verbose=true)
+[...]
+```
+"""
+function run(parameters_file=nothing; verbose=false, args=nothing)
   # Reset timer
   reset_timer!(timer())
 
@@ -29,9 +47,6 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
     end
     args["parameters_file"] = parameters_file
     args["verbose"] = verbose
-    for (key, value) in kwargs
-      args[string(key)] = value
-    end
   end
 
   # Set global verbosity
@@ -64,7 +79,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -84,6 +99,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
+  adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -98,12 +114,14 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time)
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+          only_refine=adapt_initial_conditions_only_refine)
 
       # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions(solver, time)
-        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time)
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+            only_refine=adapt_initial_conditions_only_refine)
       end
 
       # Save mesh file
@@ -195,12 +213,15 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
   # Save initial conditions if desired
   if !restart && parameter("save_initial_solution", true)
+    # we need to make sure, that derived quantities, such as e.g. blending
+    # factor is already computed for the initial condition
+    @notimeit timer() rhs!(solver, time)
     save_solution_file(solver, mesh, time, 0, step)
   end
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(solver, time, 0, step, 0, 0)
+    analyze_solution(solver, mesh, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -245,7 +266,7 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(
-          solver, time, dt, step, runtime_absolute, runtime_relative)
+          solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
       analysis_start_time = time_ns()
@@ -268,6 +289,12 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
       @timeit timer() "I/O" begin
+        # Compute current AMR indicator values such that it can be written to
+        # the solution file for the current number of elements
+        if amr_interval > 0
+          calc_amr_indicator(solver, mesh, time)
+        end
+
         # If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, step)
@@ -320,4 +347,3 @@ function run(parameters_file=nothing; args=nothing, verbose=false, kwargs...)
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
 end
-

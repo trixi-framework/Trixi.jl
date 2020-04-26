@@ -45,6 +45,8 @@ function make_equations(name::String)
     return LinearScalarAdvection()
   elseif name == "euler"
     return Euler()
+  elseif name == "mhd"
+    return Mhd()
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -77,5 +79,9 @@ using .LinearScalarAdvectionEquations
 # Euler
 include("euler.jl")
 using .EulerEquations
+
+# Ideal MHD
+include("mhd.jl")
+using .MhdEquations
 
 end # module

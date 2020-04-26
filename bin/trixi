@@ -9,13 +9,13 @@
 # [1]: https://docs.julialang.org/en/v1/manual/faq/#How-do-I-pass-options-to-julia-using-#!/usr/bin/env?-1
 
 #=
-# Check if '-i' or '--interactive' was passed as an argument
-interactive=0
-for arg in "$@"; do
-  if [ "$arg" = "-i" ] || [ "$arg" = "--interactive" ]; then
-    interactive=1
-  fi
-done
+# Check if any command line arguments are given - if yes, run in batch
+# mode, if not, start an interactive session
+if [ "$#" -gt "0" ]; then
+  interactive=0
+else
+  interactive=1
+fi
 
 # Get directory of script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -26,12 +26,54 @@ if [ $interactive -eq 0 ]; then
   exec julia --color=yes --project="$PROJECT_DIR" \
       -e 'include(popfirst!(ARGS))' "${BASH_SOURCE[0]}" "$@"
 else
-  exec julia --banner=no --project="$PROJECT_DIR" -i \
-      -e "println(\"# Note: project directory set to '$PROJECT_DIR'. Changes to packages will only affect current project.\")" \
-      -e 'println("# Execute the first line below once at the beginning of an interactive session.")' \
-      -e 'println("# Start a Trixi simulation by running the second line.\n")' \
-      -e 'println("using Revise; import Trixi")' \
-      -e 'println("Trixi.run(\"parameters.toml\")")'
+  init='
+    try
+      @eval using Revise
+      iter = 0
+      @async begin
+        # Wait until REPL is initialized but limit to 5 seconds (= 100 * 0.05 seconds)
+        while !isdefined(Base, :active_repl_backend) && iter < 100
+          sleep(0.05)
+          iter += 1
+        end
+
+        if isdefined(Base, :active_repl_backend)
+          # If REPL is initialized, steal backend (whatever that means) to enable Revise
+          Revise.steal_repl_backend(Base.active_repl_backend)
+          @info """Revise initialized: changes to Trixi source code are tracked.
+                   Project directory set to '"'"$PROJECT_DIR"'"'. Adding/removing packages will only affect this project.
+
+                   Execute the following line to start a Trixi simulation:
+
+                   Trixi.run(\"parameters.toml\")
+                   """
+        else
+          # If REPL is still not initialized, show warning
+          @warn "Revise *NOT* initialized: Changes to Trixi source code are *NOT* tracked."
+          @info """Project directory set to '"'"$PROJECT_DIR"'"'. Adding/removing packages will only affect this project.
+
+                   Execute the following line to start a Trixi simulation:
+
+                   Trixi.run(\"parameters.toml\")
+                   """
+        end
+      end
+    catch
+      # Do nothing... it probably means that Revise is not installed
+      @info """Revise not found (exit interactive session and run `julia -e '"'"'import Pkg; Pkg.add("Revise")'"'"'` to install).
+               Project directory set to '"'"$PROJECT_DIR"'"'. Adding/removing packages will only affect this project.
+
+               Execute the following line to start a Trixi simulation:
+
+               Trixi.run(\"parameters.toml\")
+               """
+    end
+
+    # Load Trixi
+    import Trixi
+    '
+
+  exec julia --banner=no --project="$PROJECT_DIR" --color=yes -i -e "$init"
 fi
 =#
 
