@@ -664,9 +664,8 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
     @printf("  % 10.8e", linf_error[v])
   end
   println()
-  println(" ∑dUdS*Ut:      " * @sprintf("% 10.8e", duds_ut) *
-          "                 " *
-          " ∑S:            " * @sprintf("% 10.8e", math_entropy))
+  println(" ∑dUdS*Ut:      " * @sprintf("% 10.8e", duds_ut))
+  println(" ∑S:            " * @sprintf("% 10.8e", math_entropy))
 
   if equation.name == "mhd"
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
