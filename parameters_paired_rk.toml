@@ -29,7 +29,8 @@ N = 4
 # cfl = 1.3 # e =  4
 # cfl = 3.0 # e =  8
 # cfl = 6.1 # e = 16
-cfl = 5.3 # e = 16, multi
+cfl = 5.3 # e = 16, multi, lowest e = 2
+# cfl = 6.1 # e = 16, multi
 n_steps_max = 10000
 analysis_interval = 100
 # alive_interval = 1
