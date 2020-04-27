@@ -52,9 +52,6 @@ function timestep!(solver::AbstractSolver, ::Val{:rk_4_4}, t::Float64, dt::Float
 
     # Store initial solution
     @. u0 = u
-
-    # Get parameter that enables EC/ES time discretization
-    timedisc_relaxation = parameter("timedisc_relaxation", "off", valid=("off", "ec", "es"))
   end
 
   # Calculate RK stages
@@ -83,25 +80,51 @@ function timestep!(solver::AbstractSolver, ::Val{:rk_4_4}, t::Float64, dt::Float
     @. u = u0 + dt * (b[1]*k1 + b[2]*k2 + b[3]*k3 + b[4]*k4)
   end
 
-  # Run relaxation if enabled
+  # Get parameter that enables EC/ES time discretization
+  timedisc_relaxation = parameter("timedisc_relaxation", "off", valid=("off", "ec", "es"))
+
+  # Apply relaxation if enabled
+  # Based on: Ranocha, Sayyari et al., Relaxation Runge-Kutta Methods: Fully Discreete Explicit
+  #           Entropy-Stable Schemes for the Compressible Euler and Navier-Stokes Equations,
+  #           SIAM J. Sci. Comput., Vol. 42, No. 2, 2020.
+  # Note: The paper describes two approaches, one referred to as 'incremental
+  #       direction technique' (IDT) and the other to 'relaxation Runge-Kutta'
+  #       (RRK). The version currently implemented is the IDT approach, which
+  #       reduces a p-th order RK scheme to p-1 order of accuracy. To retain
+  #       p-th order accuracy, one would have to update the actual dt taken.
   if timedisc_relaxation in ("ec", "es")
+    if timedisc_relaxation == "es"
+      error("ES-type relaxation scheme not yet implemented")
+    end
+
     @timeit timer() "Runge-Kutta step" begin
       @timeit timer() "relaxation" begin
+        # Calculate "direction" of Runge-Kutta update
         d = similar(u)
         @. d = b[1]*k1 + b[2]*k2 + b[3]*k3 + b[4]*k4
-        e = 0.0
 
+        # Reset solution and calculate entropy at beginning of timestep
         @. u = u0
         initial_entropy = calc_total_math_entropy(solver)
 
+        # Implement `r(γ)` from Eq. (2.7) of Ranocha paper
         function r(gamma)
+          # Reset solution and calculate new total entropy
           @. u = u0 + gamma * dt * d
           new_entropy = calc_total_math_entropy(solver)
-          return new_entropy - initial_entropy
+
+          # Estimate entropy change due to spatial discretization
+          e = 0.0 # = zero for EC scheme
+
+          # Return entropy change of RK method minus approximate entropy change
+          # of semi-discrete part
+          return new_entropy - initial_entropy - e
         end
 
+        # Find gamma for which time disc entropy production is zero
         gamma = find_zero(r, 1, Order0())
 
+        # Update solution with relaxation-type scheme
         @. u = u0 + gamma * dt * d
       end
     end
