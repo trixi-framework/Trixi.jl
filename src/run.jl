@@ -146,6 +146,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   domain_length = mesh.tree.length_level_0
   min_dx = domain_length / 2^max_level
   max_dx = domain_length / 2^min_level
+  time_integration_scheme = Symbol(parameter("time_integration_scheme", "carpenter_4_5",
+                                             valid=("carpenter_4_5", "rk_4_4")))
   s = ""
   s *= """| Simulation setup
           | ----------------
@@ -172,6 +174,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
   end
   s *= """| n_steps_max:        $n_steps_max
+          | time integration:   $(string(time_integration_scheme))
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
           | #parallel threads:  $(Threads.nthreads())
@@ -247,7 +250,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     end
 
     # Evolve solution by one time step
-    timestep!(solver, time, dt)
+    timestep!(solver, Val(time_integration_scheme), time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1
