@@ -8,6 +8,7 @@ export AbstractSolver
 export make_solver
 export set_initial_conditions
 export analyze_solution
+export calc_total_math_entropy
 export calc_dt
 export equations
 export rhs!
@@ -37,6 +38,7 @@ end
 # First, add generic functions for which the submodules can create own methods
 function set_initial_conditions end
 function analyze_solution end
+function calc_total_math_entropy end
 function calc_dt end
 function equations end
 function rhs! end

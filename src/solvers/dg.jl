@@ -587,7 +587,7 @@ end
 
 
 # Integrate mathematical entropy over entire domain
-function calc_total_math_entropy(dg::Dg)
+function Solvers.calc_total_math_entropy(dg::Dg)
   # Compute mathematical entropy
   s = math_entropy(equations(dg), dg.elements.u)
 
@@ -615,7 +615,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
 
   l2_error, linf_error = calc_error_norms(dg, time)
   duds_ut = calc_entropy_timederivative(dg, time)
-  math_entropy = calc_total_math_entropy(dg)
+  math_entropy = Solvers.calc_total_math_entropy(dg)
   n_mortars = dg.mortar_type == :l2 ? dg.n_l2mortars : dg.n_ecmortars
 
   # General information
@@ -665,7 +665,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   end
   println()
   println(" ∑dUdS*Ut:      " * @sprintf("% 10.8e", duds_ut))
-  println(" ∑S:            " * @sprintf("% 10.8e", math_entropy))
+  println(" ∑S:            " * @sprintf("% 16.14e", math_entropy))
 
   if equation.name == "mhd"
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
