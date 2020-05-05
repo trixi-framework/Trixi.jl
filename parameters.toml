@@ -20,7 +20,7 @@ t_end   = 1.0
 # Solver
 solver = "dg"
 N = 3
-cfl = 1.0
+cfl = 0.8
 n_steps_max = 10000
 analysis_interval = 100
 
