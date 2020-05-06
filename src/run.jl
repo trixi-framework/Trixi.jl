@@ -79,7 +79,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd",
+                                                 "hyperbolicdiffusion"])
   equations = make_equations(equations_name)
   println("done")
 
