@@ -80,8 +80,22 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
   if name == "laplace"
     for j in 1:n_nodes
       for i in 1:n_nodes
-        ut[2, i, j, element_id] += u[2, i, j, element_id]/equation.Tr
-        ut[3, i, j, element_id] += u[3, i, j, element_id]/equation.Tr
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
+      end
+    end
+  elseif name == "poisson"
+  # analytical solution: phi = sin(πx)*sin(πy) and f = -2*ν*π*π*sin(πx)*sin(πy)
+    C = -2.0*equation.nu*pi*pi
+    for j in 1:n_nodes
+      for i in 1:n_nodes
+        x1 = x[1, i, j, element_id]
+        x2 = x[2, i, j, element_id]
+        tmp1 = sin(pi*x1)
+        tmp2 = sin(pi*x2)
+        ut[1, i, j, element_id] += C*tmp1*tmp2
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end
     end
   else
