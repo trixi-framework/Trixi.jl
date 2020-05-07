@@ -61,9 +61,12 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
                                       t::Real)
   name = equation.initial_conditions
   if name == "constant"
-    phi = 1.0
-    p   = 1.0
-    q   = 1.0
+  # elliptic equation: νΔϕ = f
+  # depending on initial constant state, c, for phi this converges to the solution ϕ + c
+    c = 0.0
+    phi = c
+    p   = 0.0
+    q   = 0.0
     return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
@@ -73,9 +76,6 @@ end
 
 # Apply source terms
 function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, t, n_nodes)
-  # this portion of the source term is always present got the hyperbolic diffusion system
-  # TODO: add other source terms to solve Poisson type equations
-  # TODO: check if sign needs swapped because sources are added last in time derivative assembly
   name = equation.sources
   if name == "laplace"
     for j in 1:n_nodes
@@ -85,14 +85,15 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
       end
     end
   elseif name == "poisson"
-  # analytical solution: phi = sin(πx)*sin(πy) and f = -2*ν*π*π*sin(πx)*sin(πy)
-    C = -2.0*equation.nu*pi*pi
+  # elliptic equation: νΔϕ = f
+  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+    C = -8.0*equation.nu*pi*pi
     for j in 1:n_nodes
       for i in 1:n_nodes
         x1 = x[1, i, j, element_id]
         x2 = x[2, i, j, element_id]
-        tmp1 = sin(pi*x1)
-        tmp2 = sin(pi*x2)
+        tmp1 = sin(2.0*pi*x1)
+        tmp2 = sin(2.0*pi*x2)
         ut[1, i, j, element_id] += C*tmp1*tmp2
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
@@ -255,7 +256,6 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 3},
                u_surfaces_right[2, j, surface_id],
                u_surfaces_right[3, j, surface_id],
                equation, orientations[surface_id])
-
       # Copy flux back to actual flux array
       for v in 1:nvariables(equation)
         surface_flux[v, i, j] = fstarnode[v]
@@ -283,7 +283,6 @@ function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
              u_surfaces[2, 2, i, surface_id],
              u_surfaces[2, 3, i, surface_id],
              equation, orientations[surface_id])
-
     # Copy flux back to actual flux array
     for v in 1:nvariables(equation)
       surface_flux[v, i] = fstarnode[v]
