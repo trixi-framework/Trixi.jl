@@ -57,6 +57,15 @@ function parameter(name::String, default=nothing; valid=nothing)
   return value
 end
 
+"""
+    setparameter(name::String, value)
+
+Set parameter with the specified name to the specified value.
+"""
+function setparameter(name::String, value)
+  parameters["default"][name] = value
+end
+
 # Return true if parameter exists.
 parameter_exists(name::String) = haskey(parameters["default"], name)
 
