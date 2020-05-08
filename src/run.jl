@@ -5,7 +5,7 @@ using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, 
                 calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                  parameter, timer, print_startup_message
+                  parameter, setparameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 using .AMR: adapt!
 
@@ -15,7 +15,7 @@ using Profile: clear_malloc_data
 
 
 """
-    run(parameters_file=nothing; verbose=false, args=nothing)
+    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
 
 Run a Trixi simulation with the parameters in `parameters_file`.
 
@@ -23,7 +23,9 @@ If `verbose` is `true`, additional output will be generated on the terminal
 that may help with debugging.  If `args` is given, it should be an
 `ARGS`-like array of strings that holds command line arguments, and will be
 interpreted by the `parse_commandline_arguments` function. In this case, the values of
-`parameters_file` and `verbose` are ignored.
+`parameters_file` and `verbose` are ignored. If a value for
+`refinement_level_increment` is given, `initial_refinement_level` will be
+ increased by this value before running the simulation (mostly used by EOC analysis).
 
 # Examples
 ```julia
@@ -31,7 +33,7 @@ julia> Trixi.run("parameters.toml", verbose=true)
 [...]
 ```
 """
-function run(parameters_file=nothing; verbose=false, args=nothing)
+function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
   # Reset timer
   reset_timer!(timer())
 
@@ -57,6 +59,11 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Parse parameters file
   @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+
+  if refinement_level_increment != 0
+    setparameter("initial_refinement_level",
+      parameter("initial_refinement_level") + refinement_level_increment)
+  end
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
