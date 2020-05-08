@@ -235,6 +235,9 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   output_time = 0.0
   n_analysis_timesteps = 0
 
+  # Declare variables to return error norms calculated in main loop
+  local l2_error, linf_error
+
   # Start main loop (loop until final time step is reached)
   finalstep = false
   first_loop_iteration = true
@@ -272,7 +275,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
-      @timeit timer() "analyze solution" analyze_solution(
+      l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
           solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
@@ -353,4 +356,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   # Print timer information
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
+
+  # Return error norms for EOC calculation
+  return l2_error[1], linf_error[1]
 end
