@@ -360,3 +360,34 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   # Return error norms for EOC calculation
   return l2_error[1], linf_error[1]
 end
+
+function convtest(parameters_file=nothing, iterations=4)
+  l2_errors = zeros(iterations)
+  linf_errors = zeros(iterations)
+
+  for i = 1:iterations
+    l2_errors[i], linf_errors[i] = run(parameters_file, refinement_level_increment = i - 1)
+  end
+
+  EOC_l2 = zeros(iterations - 1)
+  EOC_linf = zeros(iterations - 1)
+
+  EOC_l2 = round.(log.(l2_errors[2:end] ./ l2_errors[1:end-1]) ./ log(1 / 2),
+    digits = 2)
+  EOC_linf = round.(log.(linf_errors[2:end] ./ linf_errors[1:end-1]) ./ log(1 / 2),
+    digits = 2)
+
+  println()
+  println()
+  println()
+  println("EOC L2:")
+  for EOC in EOC_l2
+    println(EOC)
+  end
+
+  println()
+  println("EOC Linf:")
+  for EOC in EOC_linf
+    println(EOC)
+  end
+end
