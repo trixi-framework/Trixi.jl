@@ -361,6 +361,14 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   return l2_error[1], linf_error[1]
 end
 
+"""
+    convtest(parameters_file=nothing, iterations=4)
+
+Run multiple Trixi simulations with the parameters in `parameters_file` and compute
+the experimental convergence order (EOC) in the ``L^2`` and ``L^\\infty`` norm.
+The number of runs is specified by `iterations` and in each run the initial
+refinement level will be increased by 1.
+"""
 function convtest(parameters_file=nothing, iterations=4)
   l2_errors = zeros(iterations)
   linf_errors = zeros(iterations)
