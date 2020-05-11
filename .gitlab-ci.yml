@@ -1,15 +1,18 @@
-image: julia:1.4
+# I get "This job is stuck because the project doesn't have any runners online assigned to it."
+# If this is resolved, we can run tests automatically.
 
-before_script:
-  # workaround for https://github.com/JuliaDocs/Documenter.jl/issues/686
-  - apt-get -qq update; apt-get -y install git
-  - julia --project=@. -e "import Pkg; Pkg.build()"
+# image: julia:1.4
 
-default:
-  script:
-    - julia --project=@. -e "import Pkg; Pkg.test(; coverage = true)"
-    - julia --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
-    - julia --project=test/coverage test/coverage/coverage-summary.jl
+# before_script:
+#   # workaround for https://github.com/JuliaDocs/Documenter.jl/issues/686
+#   - apt-get -qq update; apt-get -y install git
+#   - julia --project=@. -e "import Pkg; Pkg.build()"
+
+# default:
+#   script:
+#     - julia --project=@. -e "import Pkg; Pkg.test(; coverage = true)"
+#     - julia --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
+#     - julia --project=test/coverage test/coverage/coverage-summary.jl
 
 pages:
   stage: deploy
