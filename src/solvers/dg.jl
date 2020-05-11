@@ -703,17 +703,6 @@ function Solvers.rhs!(dg::Dg, t_stage)
   # Apply Jacobian from mapping to reference element
   @timeit timer() "Jacobian" apply_jacobian!(dg)
 
-  #= I think this check should occur before sources are added
-    if dg.equations.name == "hyperbolicdiffusion"
-      # Check residual to stop the time integration
-      # TODO: make this into a function called "check_residual!(dg)"
-      if maximum(abs.(dg.elements.u_t[1, :, :, :])) <= dg.equations.resid_tol
-        # TODO: save the last solution file state here and exit the program
-        error("done!!")
-      end
-    end
-  =#
-
   # Calculate source terms
   @timeit timer() "source terms" calc_sources!(dg, t_stage)
 

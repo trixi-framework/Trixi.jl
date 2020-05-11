@@ -342,6 +342,15 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
       clear_malloc_data()
       first_loop_iteration = false
     end
+
+    # Check steady-state integration residual
+    if solver.equations.name == "hyperbolicdiffusion"
+      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println()
+        finalstep = true
+      end
+    end
   end
 
   # Print timer information

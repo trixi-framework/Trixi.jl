@@ -45,7 +45,7 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
     # diffusion coefficient
     nu = parameter("nu", 1.0)
     # stopping tolerance for the pseudotime "steady-state"
-    resid_tol = parameter("resid_tol", 1e-12)
+    resid_tol = parameter("resid_tol", 5e-12)
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs","central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central", valid=["central"]))
@@ -63,7 +63,11 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
   if name == "constant"
   # elliptic equation: νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
-    c = 0.0
+    if t == 0.0
+      c = 0.0
+    else
+      c = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
+    end
     phi = c
     p   = 0.0
     q   = 0.0
@@ -94,7 +98,7 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
         x2 = x[2, i, j, element_id]
         tmp1 = sin(2.0*pi*x1)
         tmp2 = sin(2.0*pi*x2)
-        ut[1, i, j, element_id] += C*tmp1*tmp2
+        ut[1, i, j, element_id] -= C*tmp1*tmp2
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end
