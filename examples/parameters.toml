@@ -7,8 +7,8 @@ advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 initial_conditions = "convergence_test"
 # initial_conditions = "constant"
 # initial_conditions = "linear-x-y"
-surface_flux_type = "laxfriedrichs"
-# sources = 
+surface_flux_type = "lax_friedrichs_flux"
+# sources =
 t_start = 0.0
 t_end   = 1.0
 

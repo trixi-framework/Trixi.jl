@@ -6,8 +6,8 @@ equations = "euler"
 
 initial_conditions = "isentropic_vortex"
 # initial_conditions = "constant"
-surface_flux_type = "laxfriedrichs"
-# sources = 
+surface_flux_type = "lax_friedrichs_flux"
+# sources =
 t_start = 0.0
 t_end   = 20.0
 

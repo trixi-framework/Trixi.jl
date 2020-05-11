@@ -36,7 +36,7 @@ struct LinearScalarAdvection <: AbstractEquation{1}
     varnames_prim = ["scalar"]
     a = parameter("advectionvelocity")
     have_nonconservative_terms = false
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, :upwind, :central,
+    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, :upwind, :central_flux,
         have_nonconservative_terms)
   end
 end

@@ -41,10 +41,10 @@ mutable struct Mhd <: AbstractEquation{9}
     varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
     gamma = parameter("gamma", 1.4)
     c_h = 0.0   # GLM cleaning wave speed
-    surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs", "central", "derigs_ec"]))
-    volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "derigs_ec"]))
+    surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
+                                         valid=["lax_friedrichs_flux", "central_flux", "derigs_ec"]))
+    volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
+                                        valid=["central_flux", "derigs_ec"]))
     have_nonconservative_terms = true
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
         surface_flux_type, volume_flux_type, have_nonconservative_terms)
@@ -351,7 +351,7 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central_flux},
                                           equation::Mhd, orientation::Int,
                                           rho_ll::Float64,
                                           rho_v1_ll::Float64,
@@ -616,7 +616,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
               B1_ll, B2_ll, B3_ll, psi_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
               B1_rr, B2_rr, B3_rr, psi_rr, orientation)
-  if equation.surface_flux_type == :laxfriedrichs
+  if equation.surface_flux_type == :lax_friedrichs_flux
     λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
@@ -627,7 +627,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[7] = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
     surface_flux[8] = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
     surface_flux[9] = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
-  elseif equation.surface_flux_type in (:central,:derigs_ec)
+  elseif equation.surface_flux_type in (:central_flux,:derigs_ec)
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
                     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,

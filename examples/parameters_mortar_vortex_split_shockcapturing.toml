@@ -9,10 +9,10 @@ initial_conditions = "isentropic_vortex"
 # initial_conditions = "linear-x-y"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
-surface_flux_type = "laxfriedrichs"
+surface_flux_type = "lax_friedrichs_flux"
 volume_flux_type = "kennedygruber"
-# volume_flux_type = "central"
-# sources = 
+# volume_flux_type = "central_flux"
+# sources =
 t_start = 0.0
 t_end   = 1.0
 

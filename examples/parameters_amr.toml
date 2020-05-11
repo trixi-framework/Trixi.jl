@@ -9,8 +9,8 @@ advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 # initial_conditions = "linear-x-y"
 initial_conditions = "gauss"
 amr_indicator = "gauss"
-# surface_flux_type = "laxfriedrichs"
-# sources = 
+# surface_flux_type = "lax_friedrichs_flux"
+# sources =
 t_start = 0.0
 t_end   = 10.0
 

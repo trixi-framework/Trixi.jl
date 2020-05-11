@@ -4,7 +4,7 @@ using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
 using ...Auxiliary.Math: ln_mean
-using StaticArrays: SVector, MVector, MMatrix, MArray
+using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
 # Export all symbols that should be available from Equations
 export Euler
@@ -20,33 +20,38 @@ export cons2indicator!
 
 
 # Main data structure for system of equations "Euler"
-struct Euler <: AbstractEquation{4}
+struct Euler{SurfaceFlux} <: AbstractEquation{4}
   name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{4, String}
   varnames_prim::SVector{4, String}
   gamma::Float64
-  surface_flux_type::Symbol
+  surface_flux_type::Symbol #TODO Don't all the fluxes belong to the DG struct?
+  surface_flux::SurfaceFlux
   volume_flux_type::Symbol
   have_nonconservative_terms::Bool
+end
 
-  function Euler()
-    name = "euler"
-    initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "none")
-    varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_e"]
-    varnames_prim = ["rho", "v1", "v2", "p"]
-    gamma = parameter("gamma", 1.4)
-    surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                         valid=["hllc", "laxfriedrichs","central",
-                                                "kennedygruber", "chandrashekar_ec", "yuichi"]))
-    volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                              valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
-    have_nonconservative_terms = false
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux_type, volume_flux_type,have_nonconservative_terms)
-  end
+function Euler()
+  name = "euler"
+  initial_conditions = parameter("initial_conditions")
+  sources = parameter("sources", "none")
+  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
+  varnames_prim = @SVector ["rho", "v1", "v2", "p"]
+  gamma = parameter("gamma", 1.4)
+  surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
+                                       valid=["hllc", "lax_friedrichs_flux","central_flux",
+                                              "kennedygruber", "chandrashekar_flux", "yuichi"]))
+  # "eval is evil"
+  # This is a emporary hack untill we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  surface_flux = eval(surface_flux_type)
+  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
+                            valid=["central_flux", "kennedygruber", "chandrashekar_flux", "yuichi"]))
+  have_nonconservative_terms = false
+  Euler(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
+        surface_flux_type, surface_flux, volume_flux_type,have_nonconservative_terms)
 end
 
 
@@ -414,7 +419,7 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central_flux},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
                                           rho_v1_ll::Float64,
@@ -424,6 +429,21 @@ end
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
                                           rho_e_rr::Float64)
+  flux = central_flux(equation, orientation,
+                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+  for i in 1:4
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+# Central two-point flux (identical to weak form volume integral, except for floating point errors)
+@inline function central_flux(equation::Euler, orientation,
+                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{4, Float64}(undef)
   f_rr = MVector{4, Float64}(undef)
@@ -431,10 +451,12 @@ end
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
   # Average regular fluxes
-  @. f[:] = 1/2 * (f_ll + f_rr)
+  return @. 0.5 * (f_ll + f_rr)
 end
 
+
 # Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
+# TODO: DOI
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:yuichi},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
@@ -445,6 +467,22 @@ end
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
                                           rho_e_rr::Float64)
+  flux = yuichi_flux(equation, orientation,
+                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+  for i in 1:4
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+# Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
+# TODO: DOI
+@inline function yuichi_flux(equation::Euler, orientation,
+                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -463,21 +501,24 @@ end
   # Calculate fluxes depending on orientation
   if orientation == 1
     pv1_avg = 1/2 * ( p_ll*v1_ll + p_rr*v1_rr)
-    f[1]  = rho_avg * v1_avg
-    f[2]  = rho_avg * v1_avg * v1_avg + p_avg
-    f[3]  = rho_avg * v1_avg * v2_avg
-    f[4]  = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
+    f1 = rho_avg * v1_avg
+    f2 = rho_avg * v1_avg * v1_avg + p_avg
+    f3 = rho_avg * v1_avg * v2_avg
+    f4 = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
   else
     pv2_avg = 1/2 * ( p_ll*v2_ll + p_rr*v2_rr)
-    f[1]  = rho_avg * v2_avg
-    f[2]  = rho_avg * v2_avg * v1_avg
-    f[3]  = rho_avg * v2_avg * v2_avg + p_avg
-    f[4]  = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
+    f1 = rho_avg * v2_avg
+    f2 = rho_avg * v2_avg * v1_avg
+    f3 = rho_avg * v2_avg * v2_avg + p_avg
+    f4 = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
   end
+
+  return (f1, f2, f3, f4)
 end
 
 
 # Kinetic energy preserving two-point flux by Kennedy and Gruber
+# TODO: DOI
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
@@ -488,6 +529,22 @@ end
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
                                           rho_e_rr::Float64)
+  flux = kennedy_gruber_flux(equation, orientation,
+                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+  for i in 1:4
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+# Kinetic energy preserving two-point flux by Kennedy and Gruber
+# TODO: DOI
+@inline function kennedy_gruber_flux(equation::Euler, orientation,
+                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -504,20 +561,23 @@ end
 
   # Calculate fluxes depending on orientation
   if orientation == 1
-    f[1]  = rho_avg * v1_avg
-    f[2]  = rho_avg * v1_avg * v1_avg + p_avg
-    f[3]  = rho_avg * v1_avg * v2_avg
-    f[4]  = (rho_avg * e_avg + p_avg) * v1_avg
+    f1 = rho_avg * v1_avg
+    f2 = rho_avg * v1_avg * v1_avg + p_avg
+    f3 = rho_avg * v1_avg * v2_avg
+    f4 = (rho_avg * e_avg + p_avg) * v1_avg
   else
-    f[1]  = rho_avg * v2_avg
-    f[2]  = rho_avg * v2_avg * v1_avg
-    f[3]  = rho_avg * v2_avg * v2_avg + p_avg
-    f[4]  = (rho_avg * e_avg + p_avg) * v2_avg
+    f1 = rho_avg * v2_avg
+    f2 = rho_avg * v2_avg * v1_avg
+    f3 = rho_avg * v2_avg * v2_avg + p_avg
+    f4 = (rho_avg * e_avg + p_avg) * v2_avg
   end
+
+  return (f1, f2, f3, f4)
 end
 
 # Entropy conserving two-point flux by Chandrashekar
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_ec},
+# DOI: 10.4208/cicp.170712.010313a
+@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_flux},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
                                           rho_v1_ll::Float64,
@@ -527,6 +587,30 @@ end
                                           rho_v1_rr::Float64,
                                           rho_v2_rr::Float64,
                                           rho_e_rr::Float64)
+  flux = chandrashekar_flux(equation, orientation,
+                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+  for i in 1:4
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+"""
+    chandrashekar_flux(equation::Euler, orientation,
+                       rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                       rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+Entropy conserving two-point flux by Chandrashekar (2013)
+  Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
+  for Compressible Euler and Navier-Stokes Equations
+DOI: 10.4208/cicp.170712.010313a
+"""
+@inline function chandrashekar_flux(equation::Euler, orientation,
+                                    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -551,16 +635,18 @@ end
 
   # Calculate fluxes depending on orientation
   if orientation == 1
-    f[1]  = rho_mean * v1_avg
-    f[2]  = f[1] * v1_avg + p_mean
-    f[3]  = f[1] * v2_avg
-    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_mean
+    f3 = f1 * v2_avg
+    f4 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg + f3*v2_avg
   else
-    f[1]  = rho_mean * v2_avg
-    f[2]  = f[1] * v1_avg
-    f[3]  = f[1] * v2_avg + p_mean
-    f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_mean
+    f4 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg + f3*v2_avg
   end
+
+  return (f1, f2, f3, f4)
 end
 
 
@@ -652,6 +738,24 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
                             equation::Euler, orientation::Int)
+
+  # I'm not really sure where to hook into the call chain. This is just a first
+  # implementation as proof of concept and should be discussed and improved.
+  flux = equation.surface_flux(equation, orientation,
+                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+  for i in 1:4
+    surface_flux[i] = flux[i]
+  end
+
+  return nothing
+end
+
+
+function lax_friedrichs_flux(equation::Euler, orientation,
+                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
@@ -670,63 +774,15 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
   calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
 
-  if equation.surface_flux_type == :laxfriedrichs
-    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-    surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-    surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-    surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  elseif equation.surface_flux_type in (:central, :kennedygruber, :chandrashekar_ec, :yuichi)
-    symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
-                             equation, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
+  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
+  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
+  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
 
-  elseif equation.surface_flux_type == :hllc
-    error("not yet implemented or tested")
-    v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-    h_ll = (rho_e_ll + p_ll) / rho_ll
-    h_rr = (rho_e_rr + p_rr) / rho_rr
-    h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-    c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
-    s_ll = v_tilde - c_tilde
-    s_rr = v_tilde + c_tilde
-
-    if s_ll > 0
-      surface_flux[1, surface_id] = f_ll[1]
-      surface_flux[2, surface_id] = f_ll[2]
-      surface_flux[3, surface_id] = f_ll[3]
-    elseif s_rr < 0
-      surface_flux[1, surface_id] = f_rr[1]
-      surface_flux[2, surface_id] = f_rr[2]
-      surface_flux[3, surface_id] = f_rr[3]
-    else
-      s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
-                / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
-      if s_ll <= 0 && 0 <= s_star
-        surface_flux[1, surface_id] = (f_ll[1] + s_ll *
-            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) - rho_ll))
-        surface_flux[2, surface_id] = (f_ll[2] + s_ll *
-            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) * s_star - rho_v_ll))
-        surface_flux[3, surface_id] = (f_ll[3] + s_ll *
-            (rho_ll * (s_ll - v_ll)/(s_ll - s_star) *
-            (rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll))))
-            - rho_e_ll))
-      else
-        surface_flux[1, surface_id] = (f_rr[1] + s_rr *
-            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) - rho_rr))
-        surface_flux[2, surface_id] = (f_rr[2] + s_rr *
-            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) * s_star - rho_v_rr))
-        surface_flux[3, surface_id] = (f_rr[3] + s_rr *
-            (rho_rr * (s_rr - v_rr)/(s_rr - s_star) *
-            (rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr))))
-            - rho_e_rr))
-      end
-    end
-  else
-    error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
-  end
+  return (f1, f2, f3, f4)
 end
+
 
 # Original riemann! implementation, non-optimized but easier to understand
 # function Equations.riemann!(surface_flux::Array{Float64, 2},
@@ -754,7 +810,7 @@ end
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 #
-#   if equation.surface_flux_type == :laxfriedrichs
+#   if equation.surface_flux_type == :lax_friedrichs_flux
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 #
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)

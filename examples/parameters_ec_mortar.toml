@@ -10,12 +10,12 @@ equations = "euler"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
 initial_conditions = "weak_blast_wave"
-#surface_flux_type = "laxfriedrichs"
-surface_flux_type = "chandrashekar_ec"
-volume_flux_type = "chandrashekar_ec"
+#surface_flux_type = "lax_friedrichs_flux"
+surface_flux_type = "chandrashekar_flux"
+volume_flux_type = "chandrashekar_flux"
 mortar_type = "ec"
-# volume_flux_type = "central"
-# sources = 
+# volume_flux_type = "central_flux"
+# sources =
 t_start = 0.0
 t_end   = 0.2
 

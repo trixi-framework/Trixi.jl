@@ -4,7 +4,7 @@ equations = "euler"
 
 initial_conditions = "convergence_test"
 # initial_conditions = "constant"
-surface_flux_type = "laxfriedrichs"
+surface_flux_type = "lax_friedrichs_flux"
 sources = "convergence_test"
 t_start = 0.0
 t_end   = 2.0
