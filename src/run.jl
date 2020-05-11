@@ -346,7 +346,10 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     # Check steady-state integration residual
     if solver.equations.name == "hyperbolicdiffusion"
       if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
         println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
         println()
         finalstep = true
       end

@@ -47,7 +47,7 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
     # stopping tolerance for the pseudotime "steady-state"
     resid_tol = parameter("resid_tol", 5e-12)
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs","central"]))
+                                         valid=["laxfriedrichs", "upwind", "central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central", valid=["central"]))
     have_nonconservative_terms = false
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
@@ -311,6 +311,17 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
+  elseif equation.surface_flux_type == :upwind
+    # this is an optimized version of the application of the upwind dissipation matrix
+    λ_max = sqrt(equation.nu/equation.Tr)
+    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
+    if orientation == 1 # x-direction
+      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
+      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3])
+    else # y-direciton
+      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2])
+      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
+    end
   elseif equation.surface_flux_type == :central
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
                              equation, orientation,
