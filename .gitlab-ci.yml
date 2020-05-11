@@ -1,3 +1,16 @@
+image: julia:1.4
+
+before_script:
+  # workaround for https://github.com/JuliaDocs/Documenter.jl/issues/686
+  - apt-get -qq update; apt-get -y install git
+  - julia --project=@. -e "import Pkg; Pkg.build()"
+
+default:
+  script:
+    - julia --project=@. -e "import Pkg; Pkg.test(; coverage = true)"
+    - julia --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
+    - julia --project=test/coverage test/coverage/coverage-summary.jl
+
 pages:
   stage: deploy
   script:
