@@ -5,7 +5,7 @@ nu = 1.0
 
 initial_conditions = "constant"
 
-surface_flux_type = "laxfriedrichs"
+surface_flux_type = "upwind"
 sources = "poisson" 
 t_start = 0.0
 t_end   = 2.0
@@ -29,7 +29,7 @@ analysis_interval = 20
 n_cells_max = 100000
 coordinates_min = [0, 0]
 coordinates_max = [1, 1]
-initial_refinement_level = 3 
+initial_refinement_level = 5 
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
 #   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
