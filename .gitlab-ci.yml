@@ -3,6 +3,7 @@
 # Source: https://docs.gitlab.com/ee/ci/merge_request_pipelines/index.html#enable-pipelines-for-merge-requests-for-specific-jobs
 
 
+# Test Trixi
 test:
   stage: test
   before_script:
@@ -19,6 +20,7 @@ test:
     - latex
 
 
+# Generate GitLab Pages
 pages:
   stage: deploy
   script:
@@ -27,8 +29,8 @@ pages:
   artifacts:
     paths:
       - public
-  when: always # Always generate pages regardless of previous stages status
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'    # Execute jobs when a new commit is pushed to master branch
+      when: always # Always generate Pages regardless of previous stages' status
   tags:
     - latex
