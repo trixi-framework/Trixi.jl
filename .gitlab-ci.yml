@@ -7,7 +7,8 @@
 test:
   stage: test
   before_script:
-    - '[ "$CI_COMMIT_BRANCH" = "master" ] && export TRIXI_TEST_EXTENDED=1' # Enable extended tests on master
+    # Currently, the extended tests take too much time -> re-enable once they are cleaned up
+    # - '[ "$CI_COMMIT_BRANCH" = "master" ] && export TRIXI_TEST_EXTENDED=1' # Enable extended tests on master
     - julia --color=yes --project=. -e "import Pkg; Pkg.build()"
   script:
     - julia --color=yes --project=. -e "import Pkg; Pkg.test(; coverage = true)"
