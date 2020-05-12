@@ -13,14 +13,14 @@ isdir(outdir) && rm(outdir, recursive=true)
   @test_nowarn Trixi.run("../examples/parameters_amr.toml")
   @test_nowarn Trixi.run("../examples/parameters_amr_vortex.toml")
   @test_nowarn Trixi.run("../examples/parameters_blast_wave_shockcapturing.toml")
-  @test_skip Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
+  @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
   @test_nowarn Trixi.run("../examples/parameters_ec.toml")
   @test_nowarn Trixi.run("../examples/parameters_ec_mhd.toml")
   @test_nowarn Trixi.run("../examples/parameters_mortar.toml")
   @test_nowarn Trixi.run("../examples/parameters_mortar_vortex.toml")
   @test_nowarn Trixi.run("../examples/parameters_mortar_vortex_split.toml")
   @test_nowarn Trixi.run("../examples/parameters_mortar_vortex_split_shockcapturing.toml")
-  @test_skip Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
+  @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
   @test_nowarn Trixi.run("../examples/parameters_source_terms.toml")
   @test_nowarn Trixi.run("../examples/parameters_vortex.toml")
   @test_nowarn Trixi.run("../examples/parameters_vortex_split_shockcapturing.toml")
@@ -29,16 +29,16 @@ end
 
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
-    @testset "Examples (long execution time)" begin
-        Trixi.run("../examples/parameters_blob.toml")
-        Trixi.run("../examples/parameters_blob_amr.toml")
-        Trixi.run("../examples/parameters_khi.toml")
-        Trixi.run("../examples/parameters_ec_mortar.toml")
-        Trixi.run("../examples/parameters_khi_amr.toml")
-        Trixi.run("../examples/parameters_mhd_blast_wave.toml")
-        Trixi.run("../examples/parameters_orszag_tang.toml")
-        Trixi.run("../examples/parameters_rotor.toml")
-    end
+  @testset "Examples (long execution time)" begin
+    @test_nowarn Trixi.run("../examples/parameters_blob.toml")
+    @test_nowarn Trixi.run("../examples/parameters_blob_amr.toml")
+    @test_nowarn Trixi.run("../examples/parameters_khi.toml")
+    @test_nowarn Trixi.run("../examples/parameters_ec_mortar.toml")
+    @test_nowarn Trixi.run("../examples/parameters_khi_amr.toml")
+    @test_nowarn Trixi.run("../examples/parameters_mhd_blast_wave.toml")
+    @test_nowarn Trixi.run("../examples/parameters_orszag_tang.toml")
+    @test_nowarn Trixi.run("../examples/parameters_rotor.toml")
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
