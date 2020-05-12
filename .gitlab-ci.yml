@@ -23,6 +23,7 @@ pages:
     paths:
       - public
   only:
-  - master
+    - master
   tags:
     - latex
+  when: always # Always generate pages regardless of previous stages status
