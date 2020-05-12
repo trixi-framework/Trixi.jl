@@ -12,7 +12,7 @@ test:
   script:
     - julia --color=yes --project=. -e "import Pkg; Pkg.test(; coverage = true)"
     - julia --color=yes --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
-    - julia --color=yes --project=test/coverage test/coverage/coverage-summary.jl
+    - julia --color=yes --project=test/coverage test/coverage/coverage.jl
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'   # Execute jobs when a new commit is pushed to master branch
     - if: $CI_MERGE_REQUEST_ID            # Execute jobs in merge request context
