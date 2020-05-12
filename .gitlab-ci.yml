@@ -16,14 +16,14 @@
 
 pages:
   stage: deploy
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'master'    # Execute jobs when a new commit is pushed to master branch
   script:
     - julia --color=yes docs/make.jl
     - mv docs/build public # move to the directory picked up by Gitlab pages
   artifacts:
     paths:
       - public
+  when: always # Always generate pages regardless of previous stages status
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'    # Execute jobs when a new commit is pushed to master branch
   tags:
     - latex
-  when: always # Always generate pages regardless of previous stages status
