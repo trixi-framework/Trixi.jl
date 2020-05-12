@@ -67,9 +67,9 @@ bin/trixi
 This will start an interactive Julia session with the Trixi module already
 loaded. To run a simulation, execute
 ```julia
-Trixi.run("parameters.toml")
+Trixi.run("examples/parameters.toml")
 ```
-You can also pass a different parameters file or edit `parameters.toml` to
+You can also pass a different parameters file or edit `examples/parameters.toml` to
 modify the simulation setup.
 More information on how to use Trixi interactively can be found in the
 [Development](@ref) section.
@@ -78,7 +78,7 @@ Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., 
 a simulation from another script. This is possible by directly passing the
 parameters file to Trixi on the command line:
 ```bash
-bin/trixi parameters.toml
+bin/trixi examples/parameters.toml
 ```
 
 ### Example: Running Trixi interactively

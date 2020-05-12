@@ -45,7 +45,7 @@ else
 
                    Execute the following line to start a Trixi simulation:
 
-                   Trixi.run(\"parameters.toml\")
+                   Trixi.run(\"examples/parameters.toml\")
                    """
         else
           # If REPL is still not initialized, show warning
@@ -54,7 +54,7 @@ else
 
                    Execute the following line to start a Trixi simulation:
 
-                   Trixi.run(\"parameters.toml\")
+                   Trixi.run(\"examples/parameters.toml\")
                    """
         end
       end
@@ -65,7 +65,7 @@ else
 
                Execute the following line to start a Trixi simulation:
 
-               Trixi.run(\"parameters.toml\")
+               Trixi.run(\"examples/parameters.toml\")
                """
     end
 
