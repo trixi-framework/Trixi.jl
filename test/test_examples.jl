@@ -28,7 +28,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 end
 
 # Only run extended tests if environment variable is set
-if haskey(ENV, "TRIXI_TEST_LONG") && ENV["TRIXI_TEST_LONG"] == "1"
+if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
     @testset "Examples (long execution time)" begin
         Trixi.run("../examples/parameters_blob.toml")
         Trixi.run("../examples/parameters_blob_amr.toml")
