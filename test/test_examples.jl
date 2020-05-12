@@ -1,10 +1,11 @@
-
 using Test
-using Trixi
+import Trixi
 
+# Start with a clean environment: remove Trixi output directory if it exists
 outdir = joinpath(@__DIR__, "out")
 isdir(outdir) && rm(outdir, recursive=true)
 
+# Run basic tests
 @testset "Examples (short execution time)" begin
   # when #41 is merged, we can test final errors here as @test final_error ≈ expected_error
   @test_nowarn Trixi.run("../examples/parameters.toml")
@@ -26,6 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @test_nowarn Trixi.run("../examples/parameters_weak_blast_wave_shockcapturing.toml")
 end
 
+# Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_LONG") && ENV["TRIXI_TEST_LONG"] == "1"
     @testset "Examples (long execution time)" begin
         Trixi.run("../examples/parameters_blob.toml")
@@ -39,4 +41,5 @@ if haskey(ENV, "TRIXI_TEST_LONG") && ENV["TRIXI_TEST_LONG"] == "1"
     end
 end
 
+# Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
