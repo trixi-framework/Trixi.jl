@@ -1,18 +1,23 @@
-# I get "This job is stuck because the project doesn't have any runners online assigned to it."
-# If this is resolved, we can run tests automatically.
+# Note on rules setup: `pages` should be run for each push to `master`, while
+# `test` should be run for both `master` and any merge request
+# Source: https://docs.gitlab.com/ee/ci/merge_request_pipelines/index.html#enable-pipelines-for-merge-requests-for-specific-jobs
 
-# image: julia:1.4
 
-# before_script:
-#   # workaround for https://github.com/JuliaDocs/Documenter.jl/issues/686
-#   - apt-get -qq update; apt-get -y install git
-#   - julia --project=@. -e "import Pkg; Pkg.build()"
+test:
+  stage: test
+  before_script:
+    - '[ "$CI_COMMIT_BRANCH" = "master" ] && export TRIXI_TEST_EXTENDED=1' # Enable extended tests on master
+    - julia --color=yes --project=. -e "import Pkg; Pkg.build()"
+  script:
+    - julia --color=yes --project=. -e "import Pkg; Pkg.test(; coverage = true)"
+    - julia --color=yes --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=test/coverage test/coverage/coverage-summary.jl
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'   # Execute jobs when a new commit is pushed to master branch
+    - if: $CI_MERGE_REQUEST_ID            # Execute jobs in merge request context
+  tags:
+    - latex
 
-# default:
-#   script:
-#     - julia --project=@. -e "import Pkg; Pkg.test(; coverage = true)"
-#     - julia --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
-#     - julia --project=test/coverage test/coverage/coverage-summary.jl
 
 pages:
   stage: deploy
