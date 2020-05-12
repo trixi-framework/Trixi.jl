@@ -38,14 +38,14 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
     sources = parameter("sources", "laplace")
     varnames_cons = ["phi", "p", "q"]
     varnames_prim = ["phi", "p", "q"]
+    # diffusion coefficient
+    nu = parameter("nu", 1.0)
     # relaxation length scale
     Lr = parameter("Lr", 1.0/(2.0*pi))
     # relaxation time
-    Tr = Lr*Lr
-    # diffusion coefficient
-    nu = parameter("nu", 1.0)
+    Tr = Lr*Lr/nu
     # stopping tolerance for the pseudotime "steady-state"
-    resid_tol = parameter("resid_tol", 5e-12)
+    resid_tol = parameter("resid_tol", 1e-12)
     surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
                                          valid=["laxfriedrichs", "upwind", "central"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central", valid=["central"]))
@@ -312,15 +312,16 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
     surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
     surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
   elseif equation.surface_flux_type == :upwind
-    # this is an optimized version of the application of the upwind dissipation matrix
+    # this is an optimized version of the application of the upwind dissipation matrix:
+    #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
     λ_max = sqrt(equation.nu/equation.Tr)
     surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
     if orientation == 1 # x-direction
-      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
+      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
       surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3])
     else # y-direciton
       surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2])
-      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
+      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
     end
   elseif equation.surface_flux_type == :central
     symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
@@ -347,11 +348,16 @@ function Equations.cons2prim(equation::HyperbolicDiffusion, cons::Array{Float64,
   return cons
 end
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
 function Equations.cons2entropy(equation::HyperbolicDiffusion,
                                 cons::Array{Float64, 4}, n_nodes::Int,
                                 n_elements::Int)
-  return cons
+  entropy = similar(cons)
+  @. entropy[1, :, :, :] = cons[1, :, :, :]
+  @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]
+  @. entropy[3, :, :, :] = equation.Lr*equation.Lr*cons[3, :, :, :]
+
+  return entropy
 end
 
 end # module
