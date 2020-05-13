@@ -372,10 +372,13 @@ The number of runs is specified by `iterations` and in each run the initial
 refinement level will be increased by 1.
 """
 function convtest(parameters_file, iterations)
+  @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
+
   errors = [[], []]
 
   local variables
   for i = 1:iterations
+    println(string("Running convtest iteration ", i, "/", iterations))
     l2_error, linf_error, variables = run(parameters_file, refinement_level_increment = i - 1)
     append!(errors[1], l2_error)
     append!(errors[2], linf_error)
