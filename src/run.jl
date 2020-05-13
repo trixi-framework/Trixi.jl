@@ -236,6 +236,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   n_analysis_timesteps = 0
 
   # Declare variables to return error norms calculated in main loop
+  # (needed such that the values are accessible outside of the main loop)
   local l2_error, linf_error
 
   # Start main loop (loop until final time step is reached)
@@ -358,44 +359,65 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   println()
 
   # Return error norms for EOC calculation
-  return l2_error[1], linf_error[1]
+  return l2_error, linf_error, equations.varnames_cons
 end
 
+
 """
-    convtest(parameters_file=nothing, iterations=4)
+    convtest(parameters_file, iterations)
 
 Run multiple Trixi simulations with the parameters in `parameters_file` and compute
-the experimental convergence order (EOC) in the ``L^2`` and ``L^\\infty`` norm.
+the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
 The number of runs is specified by `iterations` and in each run the initial
 refinement level will be increased by 1.
 """
-function convtest(parameters_file=nothing, iterations=4)
-  l2_errors = zeros(iterations)
-  linf_errors = zeros(iterations)
+function convtest(parameters_file, iterations)
+  errors = [[], []]
 
+  local variables
   for i = 1:iterations
-    l2_errors[i], linf_errors[i] = run(parameters_file, refinement_level_increment = i - 1)
+    l2_error, linf_error, variables = run(parameters_file, refinement_level_increment = i - 1)
+    append!(errors[1], l2_error)
+    append!(errors[2], linf_error)
   end
+  nvariables = length(variables)
 
-  EOC_l2 = zeros(iterations - 1)
-  EOC_linf = zeros(iterations - 1)
+  errors = [transpose(reshape(errors[1], (nvariables, iterations))),
+            transpose(reshape(errors[2], (nvariables, iterations)))];
 
-  EOC_l2 = round.(log.(l2_errors[2:end] ./ l2_errors[1:end-1]) ./ log(1 / 2),
-    digits = 2)
-  EOC_linf = round.(log.(linf_errors[2:end] ./ linf_errors[1:end-1]) ./ log(1 / 2),
-    digits = 2)
+  eocs = [log.(errors[i][2:end, :] ./ errors[i][1:end-1, :]) ./ log(1 / 2) for i=1:2]
 
-  println()
-  println()
-  println()
-  println("EOC L2:")
-  for EOC in EOC_l2
-    println(EOC)
-  end
 
-  println()
-  println("EOC Linf:")
-  for EOC in EOC_linf
-    println(EOC)
+  for i = 1:2
+    println(i == 1 ? "L2" : "Linf")
+
+    for v in variables
+      @printf("%-20s", v)
+    end
+    println("")
+    for k = 1:nvariables
+      @printf("%-10s", "error")
+      @printf("%-10s", "EOC")
+    end
+    println("")
+    for k = 1:nvariables
+      @printf("%-10.2e", errors[i][1, k])
+      @printf("%-10s", "-")
+    end
+    println("")
+    for j = 2:iterations
+      for k = 1:nvariables
+        @printf("%-10.2e", errors[i][j, k])
+        @printf("%-10.2f", eocs[i][j-1, k])
+      end
+      println("")
+    end
+    println("")
+    for k = 1:nvariables
+      @printf("%-10s", "mean")
+      @printf("%-10.2f", sum(eocs[i][:, k]) ./ length(eocs[i][:, k]))
+    end
+    println("")
+    println("-"^80)
   end
 end
