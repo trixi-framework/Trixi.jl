@@ -1,3 +1,27 @@
+# Note on rules setup: `pages` should be run for each push to `master`, while
+# `test` should be run for both `master` and any merge request
+# Source: https://docs.gitlab.com/ee/ci/merge_request_pipelines/index.html#enable-pipelines-for-merge-requests-for-specific-jobs
+
+
+# Test Trixi
+test:
+  stage: test
+  before_script:
+    # Currently, the extended tests take too much time -> re-enable once they are cleaned up
+    # - '[ "$CI_COMMIT_BRANCH" = "master" ] && export TRIXI_TEST_EXTENDED=1' # Enable extended tests on master
+    - julia --color=yes --project=. -e "import Pkg; Pkg.build()"
+  script:
+    - julia --color=yes --project=. -e "import Pkg; Pkg.test(; coverage = true)"
+    - julia --color=yes --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=test/coverage test/coverage/coverage.jl
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'   # Execute jobs when a new commit is pushed to master branch
+    - if: $CI_MERGE_REQUEST_ID            # Execute jobs in merge request context
+  tags:
+    - latex
+
+
+# Generate GitLab Pages
 pages:
   stage: deploy
   script:
@@ -6,7 +30,8 @@ pages:
   artifacts:
     paths:
       - public
-  only:
-  - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'master'    # Execute jobs when a new commit is pushed to master branch
+      when: always # Always generate Pages regardless of previous stages' status
   tags:
     - latex

@@ -66,13 +66,13 @@ This will start the Julia REPL with the following output:
 │
 │ Execute the following line to start a Trixi simulation:
 │
-└ Trixi.run("parameters.toml")
+└ Trixi.run("examples/parameters.toml")
 julia>
 ```
 Proceed by copy-pasting and then executing the last line (you probably want to
-change `parameters.toml` to the parameters file you intend to use):
+change `examples/parameters.toml` to the parameters file you intend to use):
 ```bash
-julia> Trixi.run("parameters.toml")
+julia> Trixi.run("examples/parameters.toml")
 ```
 
 The following screencast shows the above commands in action:
@@ -87,7 +87,7 @@ As can be seen, in this example it takes about 14 seconds from the invocation of
 `bin/trixi` until Trixi is fully loaded. This startup time is only required
 once per REPL session and is the first reason for using Trixi (and Julia in
 general) interactively. Then, two simulations with the parameters file
-`parameters.toml` are started in succession. While the first run requires 7.23
+`examples/parameters.toml` are started in succession. While the first run requires 7.23
 seconds, the second run takes only 104 milliseconds. This demonstrates the
 second reason for using the REPL: the compilation cache. That is, those parts of
 the code that do not change between two Trixi runs do not need to be recompiled
