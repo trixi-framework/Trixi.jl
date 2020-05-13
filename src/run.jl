@@ -60,6 +60,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   # Parse parameters file
   @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
 
+  # Start simulation with an increased initial refinement level if specified
+  # for convergence analysis
   if refinement_level_increment != 0
     setparameter("initial_refinement_level",
       parameter("initial_refinement_level") + refinement_level_increment)
