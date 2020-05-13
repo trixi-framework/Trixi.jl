@@ -25,6 +25,6 @@ let trixi_root_dir
 
            Execute the following line to start a Trixi simulation:
 
-           Trixi.run("parameters.toml")
+           Trixi.run("examples/parameters.toml")
            """
 end
