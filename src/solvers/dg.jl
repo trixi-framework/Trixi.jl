@@ -660,7 +660,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   println()
 
   # Return errors for EOC analysis
-  return l2_error, linf_error;
+  return l2_error, linf_error
 end
 
 

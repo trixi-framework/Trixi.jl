@@ -374,51 +374,69 @@ refinement level will be increased by 1.
 function convtest(parameters_file, iterations)
   @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
 
-  errors = [[], []]
+  # Types of errors to be calcuated
+  errors = Dict(:L2 => Float64[], :Linf => Float64[])
 
-  local variables
+  # Declare variable to access variable names after for loop
+  local variablenames
+
+  # Run trixi and extract errors
   for i = 1:iterations
     println(string("Running convtest iteration ", i, "/", iterations))
-    l2_error, linf_error, variables = run(parameters_file, refinement_level_increment = i - 1)
-    append!(errors[1], l2_error)
-    append!(errors[2], linf_error)
+    l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
+
+    # Collect errors as one vector to reshape later
+    append!(errors[:L2], l2_error)
+    append!(errors[:Linf], linf_error)
   end
-  nvariables = length(variables)
 
-  errors = [transpose(reshape(errors[1], (nvariables, iterations))),
-            transpose(reshape(errors[2], (nvariables, iterations)))];
+  # Number of variables
+  nvariables = length(variablenames)
 
-  eocs = [log.(errors[i][2:end, :] ./ errors[i][1:end-1, :]) ./ log(1 / 2) for i=1:2]
+  # Reshape errors to get a matrix where the i-th row represents the i-th iteration
+  # and the j-th column represents the j-th variable
+  errorsmatrix = Dict(kind => transpose(reshape(error, (nvariables, iterations))) for (kind, error) in errors)
+
+  # Calculate EOCs where the columns represent the variables
+  # As dx halves in every iteration the denominator needs to be log(1/2)
+  eocs = Dict(kind => log.(error[2:end, :] ./ error[1:end-1, :]) ./ log(1 / 2) for (kind, error) in errorsmatrix)
 
 
-  for i = 1:2
-    println(i == 1 ? "L2" : "Linf")
+  for (kind, error) in errorsmatrix
+    println(kind)
 
-    for v in variables
+    for v in variablenames
       @printf("%-20s", v)
     end
     println("")
+
     for k = 1:nvariables
       @printf("%-10s", "error")
       @printf("%-10s", "EOC")
     end
     println("")
+
+    # Print errors for the first iteration
     for k = 1:nvariables
-      @printf("%-10.2e", errors[i][1, k])
+      @printf("%-10.2e", error[1, k])
       @printf("%-10s", "-")
     end
     println("")
+
+    # For the following iterations print errors and EOCs
     for j = 2:iterations
       for k = 1:nvariables
-        @printf("%-10.2e", errors[i][j, k])
-        @printf("%-10.2f", eocs[i][j-1, k])
+        @printf("%-10.2e", error[j, k])
+        @printf("%-10.2f", eocs[kind][j-1, k])
       end
       println("")
     end
     println("")
+
+    # Print mean EOCs
     for k = 1:nvariables
       @printf("%-10s", "mean")
-      @printf("%-10.2f", sum(eocs[i][:, k]) ./ length(eocs[i][:, k]))
+      @printf("%-10.2f", sum(eocs[kind][:, k]) ./ length(eocs[kind][:, k]))
     end
     println("")
     println("-"^80)
