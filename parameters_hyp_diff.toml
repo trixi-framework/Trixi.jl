@@ -8,7 +8,9 @@ initial_conditions = "constant"
 surface_flux_type = "upwind"
 sources = "poisson" 
 t_start = 0.0
-t_end   = 2.0
+t_end   = 5.0
+
+resid_tol = 5.0e-12
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -20,16 +22,16 @@ solver = "dg"
 N = 4 
 cfl = 0.5
 n_steps_max = 10000
-analysis_interval = 20 
+analysis_interval = 200 
 
-#volume_integral_type = "split_form"
+volume_integral_type = "split_form"
 
 ####################################################################################################
 # Mesh
 n_cells_max = 100000
 coordinates_min = [0, 0]
 coordinates_max = [1, 1]
-initial_refinement_level = 5 
+initial_refinement_level = 4
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
 #   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
