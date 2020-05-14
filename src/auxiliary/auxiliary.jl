@@ -60,7 +60,7 @@ end
 """
     setparameter(name::String, value)
 
-Set parameter with the specified name to the specified value.
+Set parameter with the specified `name` to the specified `value`.
 """
 function setparameter(name::String, value)
   parameters["default"][name] = value
