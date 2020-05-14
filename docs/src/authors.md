@@ -17,5 +17,6 @@ The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
 * Gregor Gassner
+* Hendrik Ranocha
 * Michael Schlottke-Lakemper
 * Andrew Winters
