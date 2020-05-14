@@ -15,15 +15,11 @@ function test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001)
   # Run basic test to ensure that there is no output to STDERR
   @test_nowarn l2_measured, linf_measured, _ = Trixi.run(parameters_file)
 
-  # If present, compare L2 and Linf errors against reference values. Use
-  # `collect` to promote both reference and measured values to arrays, such
-  # that they can be specified in any collection type. Use dot syntax on
-  # `isapprox`, as by default it will compare arrays using a norm and not
-  # component-wise.
+  # If present, compare L2 and Linf errors against reference values
   if !isnothing(l2)
-    @test all(isapprox.(collect(l2), collect(l2_measured), rtol=rtol))
+    @test all(isapprox(a, b, rtol=rtol) for (a, b) in zip(l2, l2_measured))
   end
   if !isnothing(linf)
-    @test all(isapprox.(collect(linf), collect(linf_measured), rtol=rtol))
+    @test all(isapprox(a, b, rtol=rtol) for (a, b) in zip(linf, linf_measured))
   end
 end
