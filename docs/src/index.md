@@ -67,9 +67,9 @@ bin/trixi
 This will start an interactive Julia session with the Trixi module already
 loaded. To run a simulation, execute
 ```julia
-Trixi.run("parameters.toml")
+Trixi.run("examples/parameters.toml")
 ```
-You can also pass a different parameters file or edit `parameters.toml` to
+You can also pass a different parameters file or edit `examples/parameters.toml` to
 modify the simulation setup.
 More information on how to use Trixi interactively can be found in the
 [Development](@ref) section.
@@ -78,7 +78,7 @@ Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., 
 a simulation from another script. This is possible by directly passing the
 parameters file to Trixi on the command line:
 ```bash
-bin/trixi parameters.toml
+bin/trixi examples/parameters.toml
 ```
 
 ### Example: Running Trixi interactively
@@ -91,7 +91,15 @@ bin/trixi parameters.toml
 ```
 
 
-## Authors
-Trixi was created by
-[Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
-[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner).
+## [Authors](@id authors-index-md)
+Trixi was initiated by [Michael
+Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
+[Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner), both from
+the University of Cologne, Germany. They are also the principal developers of Trixi.
+The full list of contributors can be found under [Authors](@ref).
+
+
+## License and contributing
+Trixi is licensed under the MIT license (see [License](@ref)). Since Trixi is
+an open-source project, we are very happy to accept contributions from the
+community. Please refer to [Contributing](@ref) for more details.

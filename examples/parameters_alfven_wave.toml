@@ -5,6 +5,8 @@ gamma = 1.6666666666666667
 initial_conditions = "convergence_test"
 surface_flux_type = "laxfriedrichs"
 
+volume_flux_type = "central"
+
 # sources = 
 t_start = 0.0
 t_end   = 2.0
@@ -21,6 +23,7 @@ cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
 
+volume_integral_type = "split_form"
 
 ####################################################################################################
 # Mesh
