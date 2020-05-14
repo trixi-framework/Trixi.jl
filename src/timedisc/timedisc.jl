@@ -18,8 +18,8 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
                    ::Val{:paired_rk_2_multi}, t::Float64, dt::Float64)
   @timeit timer() "time integration" begin
     # Get parameters
-    n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
-    derivative_evaluations = parameter("derivative_evaluations", valid=(2, 4, 8, 16))
+    n_stages = parameter("n_stages", 16, valid=(2, 4, 8, 16))
+    derivative_evaluations = parameter("derivative_evaluations", n_stages, valid=(2, 4, 8, 16))
     optimized_paired_rk = parameter("optimized_paired_rk", true)
 
     # Determine Runge-Kutta coefficients "c"
