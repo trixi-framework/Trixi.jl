@@ -20,9 +20,9 @@ t_end   = 1.2#5.0
 # Solver
 solver = "dg"
 N = 3
-# cfl = 0.7
+# cfl = 0.8
 # time_integration_scheme = "carpenter_4_5"
-cfl = 1.0
+cfl = 1.9
 time_integration_scheme = "paired_rk_2_multi"
 n_steps_max = 10000
 analysis_interval = 100
