@@ -3,14 +3,15 @@ import Trixi
 
 
 """
-    test_trixi_run(parameters_file; l2=nothing, linf=nothing)
+    test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001)
 
 Test Trixi by calling `Trixi.run` with `parameters_file` as the parameters
 file. By default, only the absence of error output is checked. If
 `l2` or `linf` are specified, in addition the resulting L2/Linf errors
-are compared approximately against these reference values.
+are compared approximately against these reference values, using `rtol` for
+the relative tolerance.
 """
-function test_trixi_run(parameters_file; l2=nothing, linf=nothing)
+function test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001)
   # Run basic test to ensure that there is no output to STDERR
   @test_nowarn l2_measured, linf_measured, _ = Trixi.run(parameters_file)
 
@@ -20,9 +21,9 @@ function test_trixi_run(parameters_file; l2=nothing, linf=nothing)
   # `isapprox`, as by default it will compare arrays using a norm and not
   # component-wise.
   if !isnothing(l2)
-    @test all(isapprox.(collect(l2), collect(l2_measured)))
+    @test all(isapprox.(collect(l2), collect(l2_measured), rtol=rtol))
   end
   if !isnothing(linf)
-    @test all(isapprox.(collect(linf), collect(linf_measured)))
+    @test all(isapprox.(collect(linf), collect(linf_measured), rtol=rtol))
   end
 end
