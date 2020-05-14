@@ -1,13 +1,28 @@
 using Test
 import Trixi
 
+if false
+include("test_trixi.jl")
+end
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = joinpath(@__DIR__, "out")
 isdir(outdir) && rm(outdir, recursive=true)
 
 # Run basic tests
 @testset "Examples (short execution time)" begin
-  # when #41 is merged, we can test final errors here as @test final_error ≈ expected_error
+  if false
+  @testset "../examples/parameters.toml" begin
+    test_trixi_run("../examples/parameters.toml",
+                   l2   = 2.32847750e-03,
+                   linf = 4.99201998e-02)
+  end
+  @testset "../examples/parameters_alfven_wave.toml" begin
+    test_trixi_run("../examples/parameters_alfven_wave.toml",
+                   l2   = [1.11345135e-04, 5.88018891e-06, 5.88018891e-06, 8.43288100e-06, 1.29423873e-06, 1.22388203e-06, 1.22388203e-06, 1.83062175e-06, 8.08699679e-07],
+                   linf = [2.56327902e-04, 1.63790212e-05, 1.63790212e-05, 2.58759953e-05, 5.32773229e-06, 8.11852027e-06, 8.11852027e-06, 1.21073548e-05, 4.17370701e-06])
+  end
+  end
   @test_nowarn Trixi.run("../examples/parameters.toml")
   @test_nowarn Trixi.run("../examples/parameters_alfven_wave.toml")
   @test_nowarn Trixi.run("../examples/parameters_amr.toml")
