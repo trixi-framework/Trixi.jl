@@ -10,7 +10,7 @@ amr_indicator = "isentropic_vortex"
 surface_flux_type = "laxfriedrichs"
 # sources = 
 t_start = 0.0
-t_end   = 20.0
+t_end   = 120.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -20,9 +20,37 @@ t_end   = 20.0
 # Solver
 solver = "dg"
 N = 3
-# cfl = 0.7
+
+################################################################################
+# Carpenter
+# cfl = 0.7#0.6
+################################################################################
+# Paired RK/multi
 cfl = 1.9
 time_integration_scheme = "paired_rk_2_multi"
+# alive_interval = 1
+# optimized_paired_rk = false
+################################################################################
+# Paired RK/single
+# time_integration_scheme = "paired_rk_2_s"
+
+# cfl = 3.1
+# n_stages = 16
+# derivative_evaluations = 16
+
+# cfl = 1.5
+# n_stages = 16
+# derivative_evaluations = 8
+
+# cfl = 0.75
+# n_stages = 16
+# derivative_evaluations = 4
+
+# cfl = 0.35
+# n_stages = 16
+# derivative_evaluations = 2
+################################################################################
+
 n_steps_max = 10000
 analysis_interval = 200
 
