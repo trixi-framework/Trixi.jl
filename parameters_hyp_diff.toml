@@ -8,7 +8,7 @@ initial_conditions = "constant"
 surface_flux_type = "upwind"
 sources = "poisson" 
 t_start = 0.0
-t_end   = 5.0
+t_end   = 2.0
 
 resid_tol = 5.0e-12
 
@@ -24,7 +24,7 @@ cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 200 
 
-volume_integral_type = "split_form"
+#volume_integral_type = "split_form"
 
 ####################################################################################################
 # Mesh
