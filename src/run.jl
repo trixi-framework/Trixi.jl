@@ -28,7 +28,7 @@ interpreted by the `parse_commandline_arguments` function. In this case, the val
 
 # Examples
 ```julia
-julia> Trixi.run("parameters.toml", verbose=true)
+julia> Trixi.run("examples/parameters.toml", verbose=true)
 [...]
 ```
 """

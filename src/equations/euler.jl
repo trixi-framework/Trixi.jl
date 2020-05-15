@@ -3,6 +3,7 @@ module EulerEquations
 using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
+using ...Auxiliary.Math: ln_mean
 using StaticArrays: SVector, MVector, MMatrix, MArray
 
 # Export all symbols that should be available from Equations
@@ -28,6 +29,7 @@ struct Euler <: AbstractEquation{4}
   gamma::Float64
   surface_flux_type::Symbol
   volume_flux_type::Symbol
+  have_nonconservative_terms::Bool
 
   function Euler()
     name = "euler"
@@ -41,8 +43,9 @@ struct Euler <: AbstractEquation{4}
                                                 "kennedygruber", "chandrashekar_ec", "yuichi"]))
     volume_flux_type = Symbol(parameter("volume_flux_type", "central",
                               valid=["central", "kennedygruber", "chandrashekar_ec", "yuichi"]))
+    have_nonconservative_terms = false
     new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux_type, volume_flux_type)
+        surface_flux_type, volume_flux_type,have_nonconservative_terms)
   end
 end
 
@@ -84,18 +87,18 @@ function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}
     rho_e = 10.0
     return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "convergence_test"
-    c = 1.0
-    A = 0.5
-    a1 = 1.0
-    a2 = 1.0
+    c = 2
+    A = 0.1
     L = 2
     f = 1/L
-    omega = 2 * pi * f
-    p = 1.0
-    rho = c + A * sin(omega * (x[1] + x[2] - (a1 + a2) * t))
-    rho_v1 = rho * a1
-    rho_v2 = rho * a2
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (a1^2 + a2^2)
+    ω = 2 * pi * f
+    ini = c + A * sin(ω * (x[1] + x[2] - t))
+
+    rho = ini
+    rho_v1 = ini
+    rho_v2 = ini
+    rho_e = ini^2
+
     return [rho, rho_v1, rho_v2, rho_e]
   elseif name == "sod"
     if x < 0.0
@@ -266,7 +269,42 @@ end
 # Apply source terms
 function Equations.sources!(equation::Euler, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
-  if name == "coupler_test_source"
+  if name == "convergence_test"
+    # Same settings as in `initial_conditions`
+    c = 2
+    A = 0.1
+    L = 2
+    f = 1/L
+    ω = 2 * pi * f
+    γ = equation.gamma
+
+    for j in 1:n_nodes
+      for i in 1:n_nodes
+        x1 = x[1, i, j, element_id]
+        x2 = x[2, i, j, element_id]
+        tmp1 = cos((x1 + x2 - t)*ω)*A*ω
+        tmp2 = sin((x1 + x2 - t)*ω)*A
+        tmp3 = γ - 1
+        tmp4 = (2*c - 1)*tmp3
+        tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
+        tmp6 = tmp2 + c
+
+        ut[1, i, j, element_id] += tmp1
+        ut[2, i, j, element_id] += tmp5
+        ut[3, i, j, element_id] += tmp5
+        ut[4, i, j, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+
+        # Original terms (without performanc enhancements)
+        # ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
+        # ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+        # ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+        # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
+        #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+      end
+    end
+  elseif name == "coupler_test_source"
     # This source term just adds the current state as a source
     for j in 1:n_nodes, i in 1:n_nodes
       ut[1, i, j, element_id] += u[1, i, j, element_id]
@@ -530,30 +568,6 @@ end
     f[2]  = f[1] * v1_avg
     f[3]  = f[1] * v2_avg + p_mean
     f[4]  = f[1] *0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f[2]*v1_avg + f[3]*v2_avg
-  end
-end
-
-# Computes the logarithmic mean: (aR-aL)/(LOG(aR)-LOG(aL)) = (aR-aL)/LOG(aR/aL)
-# Problem: if aL~= aR, then 0/0, but should tend to --> 0.5*(aR+aL)
-#
-# introduce xi=aR/aL and f=(aR-aL)/(aR+aL) = (xi-1)/(xi+1)
-# => xi=(1+f)/(1-f)
-# => Log(xi) = log(1+f)-log(1-f), and for small f (f^2<1.0E-02) :
-#
-#    Log(xi) ~=     (f - 1/2 f^2 + 1/3 f^3 - 1/4 f^4 + 1/5 f^5 - 1/6 f^6 + 1/7 f^7)
-#                  +(f + 1/2 f^2 + 1/3 f^3 + 1/4 f^4 + 1/5 f^5 + 1/6 f^6 + 1/7 f^7)
-#             = 2*f*(1           + 1/3 f^2           + 1/5 f^4           + 1/7 f^6)
-#  (aR-aL)/Log(xi) = (aR+aL)*f/(2*f*(1 + 1/3 f^2 + 1/5 f^4 + 1/7 f^6)) = (aR+aL)/(2 + 2/3 f^2 + 2/5 f^4 + 2/7 f^6)
-#  (aR-aL)/Log(xi) = 0.5*(aR+aL)*(105/ (105+35 f^2+ 21 f^4 + 15 f^6)
-function ln_mean(value1::Float64,value2::Float64)
-  epsilon_f2 = 1.0e-4
-  ratio = value2/value1
-  # f2 = f^2
-  f2=(ratio*(ratio-2.)+1.)/(ratio*(ratio+2.)+1.)
-  if (f2<epsilon_f2)
-    return (value1+value2)*52.5/(105.0 + f2*(35.0 + f2*(21.0 +f2*15.0)))
-  else
-    return (value2-value1)/log(ratio)
   end
 end
 
