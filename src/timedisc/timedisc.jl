@@ -21,6 +21,7 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
     n_stages = parameter("n_stages", 16, valid=(2, 4, 8, 16))
     derivative_evaluations = parameter("derivative_evaluations", n_stages, valid=(2, 4, 8, 16))
     optimized_paired_rk = parameter("optimized_paired_rk", true)
+    polyDeg = parameter("N")
 
     # Determine Runge-Kutta coefficients "c"
     c = calc_c(n_stages)
@@ -74,11 +75,11 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   @timeit timer() "time integration" begin
     stage = 2
     t_stage = t + dt * c[stage]
-    @timeit timer() "calc_a_multilevel" a_1, _ = calc_a_multilevel(n_stages,
-                                                                  stage,
-                                                                  derivative_evaluations,
-                                                                  solver.n_elements,
-                                                                  solver.level_info_elements)
+    @timeit timer() "calc_a_multilevel" a_1, _ = calc_a_multilevel(polyDeg, n_stages,
+                                                                   stage,
+                                                                   derivative_evaluations,
+                                                                   solver.n_elements,
+                                                                   solver.level_info_elements)
     a_1_rs = reshape(a_1, 1, 1, 1, :)
     @timeit timer() "Runge-Kutta step 1" @. u = un + dt * a_1_rs * k1
     optimized_paired_rk && set_acc_level_id!(solver, acc_level_ids[stage])
@@ -89,11 +90,11 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
   for stage in 3:n_stages
     @timeit timer() "time integration" begin
       t_stage = t + dt * c[stage]
-      @timeit timer() "calc_a_multilevel" a_1, a_2 = calc_a_multilevel(n_stages,
-                                                                      stage,
-                                                                      derivative_evaluations,
-                                                                      solver.n_elements,
-                                                                      solver.level_info_elements)
+      @timeit timer() "calc_a_multilevel" a_1, a_2 = calc_a_multilevel(polyDeg, n_stages,
+                                                                       stage,
+                                                                       derivative_evaluations,
+                                                                       solver.n_elements,
+                                                                       solver.level_info_elements)
       #=a_1_rs = reshape(a_1, 1, 1, 1, :)=#
       #=a_2_rs = reshape(a_2, 1, 1, 1, :)=#
       #=@timeit timer() "Runge-Kutta step 2" @. u = un + dt * (a_1_rs * k1 + a_2_rs * k)=#
@@ -133,9 +134,10 @@ function timestep!(solver::AbstractSolver, mesh::TreeMesh,
     # Get parameters
     n_stages = parameter("n_stages", valid=(2, 4, 8, 16))
     derivative_evaluations = parameter("derivative_evaluations", valid=(2, 3, 4, 8, 16))
+    polyDeg = parameter("N")
 
     # Determine Runge-Kutta coefficients
-    a, c = calc_coefficients(n_stages, derivative_evaluations)
+    a, c = calc_coefficients(polyDeg, n_stages, derivative_evaluations)
 
     # Store for convenience
     u   = solver.elements.u
