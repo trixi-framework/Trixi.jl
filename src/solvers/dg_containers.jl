@@ -66,7 +66,7 @@ nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
-# Positions/directions for large_sides = 1, orientations = 1:
+# Positions/directions for large_sides = 2, orientations = 1:
 #           |    |
 # upper = 2 |    |
 #           |    |

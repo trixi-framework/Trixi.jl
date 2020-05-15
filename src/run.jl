@@ -131,7 +131,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   end
   t_end = parameter("t_end")
 
-  # Print setup information
+  # Gather setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
@@ -146,6 +146,10 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   domain_length = mesh.tree.length_level_0
   min_dx = domain_length / 2^max_level
   max_dx = domain_length / 2^min_level
+  time_integration_scheme = Symbol(parameter("time_integration_scheme", "carpenter_4_5",
+      valid=("carpenter_4_5", "paired_rk_2_s", "paired_rk_2_multi")))
+
+  # Print setup information
   s = ""
   s *= """| Simulation setup
           | ----------------
@@ -172,6 +176,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
   end
   s *= """| n_steps_max:        $n_steps_max
+          | time integration:   $(string(time_integration_scheme))
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
           | #parallel threads:  $(Threads.nthreads())
@@ -184,7 +189,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
           | | volume flux:      $(string(equations.volume_flux_type))
           | | surface flux:     $(string(equations.surface_flux_type))
           | | #elements:        $(solver.n_elements)
-          | | #surfaces:        $(solver.n_surfaces)
+          """
+  s *= """| | #surfaces:        $(solver.n_surfaces)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
@@ -247,7 +253,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     end
 
     # Evolve solution by one time step
-    timestep!(solver, time, dt)
+    timestep!(solver, mesh, Val(time_integration_scheme), time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1
@@ -277,6 +283,9 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
         println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
         println("-"^80)
         println()
+        @printf("#element evaluations:  %8d\n", solver.element_evaluations)
+        @printf("#surface evaluations:  %8d\n", solver.surface_evaluations)
+        @printf("#mortar evaluations:   %8d\n", solver.mortar_evaluations)
       end
     elseif alive_interval > 0 && step % alive_interval == 0
       runtime_absolute = (time_ns() - loop_start_time) / 10^9

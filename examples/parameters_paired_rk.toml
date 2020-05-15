@@ -1,0 +1,64 @@
+####################################################################################################
+# Simulation
+# equations = "euler"
+equations = "linearscalaradvection"
+advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+
+initial_conditions = "sin-sin"
+surface_flux_type = "laxfriedrichs"
+t_start = 0.0
+t_end   = 1.0
+# time_integration_scheme = "carpenter_4_5"
+# time_integration_scheme = "paired_rk_2_s"
+time_integration_scheme = "paired_rk_2_multi"
+n_stages = 16
+derivative_evaluations = 16 # = e
+optimized_paired_rk = true
+# optimized_paired_rk = false
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
+
+####################################################################################################
+# Solver
+solver = "dg"
+N = 4
+# cfl = 0.5 # e =  2
+# cfl = 0.9 # e = 3
+# cfl = 1.3 # e =  4
+# cfl = 3.0 # e =  8
+# cfl = 6.1 # e = 16
+cfl = 5.3 # e = 16, multi, lowest e = 2
+# cfl = 6.1 # e = 16, multi
+n_steps_max = 10000
+analysis_interval = 100
+# alive_interval = 1
+
+
+####################################################################################################
+# Mesh
+n_cells_max = 10000
+coordinates_min = [0, 0]
+coordinates_max =  [1, 1]
+# initial_refinement_level = 4
+# refinement_patches = [
+#   {type = "box", coordinates_min = [0.0, 0.75], coordinates_max = [1.0, 1.0]},
+#   {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [1.0, 0.5]},
+#   {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [1.0, 0.25]},
+#   # {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
+# ]
+initial_refinement_level = 5
+refinement_patches = [
+  {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [0.125, 0.125]},
+  {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [0.0625, 0.0625]},
+  {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [0.03125, 0.03125]},
+  # {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
+]
+
+
+####################################################################################################
+# I/O
+solution_interval = 100
+solution_variables = "primitive"
+restart_interval = 0
