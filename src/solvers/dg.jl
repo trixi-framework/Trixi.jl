@@ -705,7 +705,6 @@ function Solvers.rhs!(dg::Dg, t_stage)
 
   # Calculate source terms
   @timeit timer() "source terms" calc_sources!(dg, t_stage)
-
 end
 
 
