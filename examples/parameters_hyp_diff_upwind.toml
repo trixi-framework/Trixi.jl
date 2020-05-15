@@ -3,7 +3,7 @@
 equations = "hyperbolicdiffusion"
 nu = 1.0
 
-initial_conditions = "constant"
+initial_conditions = "poisson"
 
 surface_flux_type = "upwind"
 sources = "poisson" 
@@ -24,7 +24,7 @@ cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 200 
 
-#volume_integral_type = "split_form"
+volume_integral_type = "split_form"
 
 ####################################################################################################
 # Mesh
