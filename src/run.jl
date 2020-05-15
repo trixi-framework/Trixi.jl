@@ -3,6 +3,7 @@ using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
 using .Equations: make_equations, nvariables
 using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
                 calc_amr_indicator, rhs!
+using .Couplers: make_coupler
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
                   parameter, timer, print_startup_message
@@ -83,10 +84,23 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   equations = make_equations(equations_name)
   println("done")
 
-  # Initialize solver
-  print("Initializing solver... ")
-  solver_name = parameter("solver", valid=["dg"])
-  solver = make_solver(solver_name, equations, mesh)
+  # Initialize solvers
+  print("Initializing solvers... ")
+  solver_name_a = parameter("solver_a", valid=["dg"])
+  solver_a = make_solver(solver_name_a, equations, mesh)
+  solver_name_b = parameter("solver_b", valid=["dg"])
+  solver_b = make_solver(solver_name_b, equations, mesh)
+  println("done")
+  
+  # For conveniene, make solver_a the main solver such that the most of the
+  # stuff here still does what is expected
+  solver = solver_a
+  solver_name = solver_name_a
+
+  # Initialize coupler
+  print("Initializing coupler...")
+  coupler_name = parameter("coupler", valid=["dg_source"])
+  coupler = make_coupler(coupler_name, solver_a, solver_b, mesh)
   println("done")
 
   # Sanity checks
@@ -101,6 +115,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
+    error("restarting not implemented for coupled simulations")
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
     println("done")
@@ -109,11 +124,13 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     t_start = parameter("t_start")
     time = t_start
     step = 0
-    set_initial_conditions(solver, time)
+    set_initial_conditions(solver_a, time)
+    set_initial_conditions(solver_b, time)
     println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
+      error("AMR not implemented for coupled simulations")
       @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
           only_refine=adapt_initial_conditions_only_refine)
 
@@ -221,7 +238,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(solver, mesh, time, 0, step, 0, 0)
+    analyze_solution(solver_a, mesh, time, 0, step, 0, 0)
+    analyze_solution(solver_b, mesh, time, 0, step, 0, 0)
   end
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -233,7 +251,11 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calc_dt" begin
+      dt_a = calc_dt(solver_a, cfl)
+      dt_b = calc_dt(solver_b, cfl)
+      dt = min(dt_a, dt_b)
+    end
 
     # Abort if time step size is NaN
     if isnan(dt)
@@ -247,7 +269,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     end
 
     # Evolve solution by one time step
-    timestep!(solver, time, dt)
+    timestep!(solver_a, solver_b, coupler, time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1
@@ -266,7 +288,9 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
 
       # Analyze solution
       @timeit timer() "analyze solution" analyze_solution(
-          solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
+          solver_a, mesh, time, dt, step, runtime_absolute, runtime_relative, "solver_a")
+      @timeit timer() "analyze solution" analyze_solution(
+          solver_b, mesh, time, dt, step, runtime_absolute, runtime_relative, "solver_b")
 
       # Reset time and counters
       analysis_start_time = time_ns()

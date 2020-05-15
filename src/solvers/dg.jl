@@ -8,7 +8,7 @@ include("l2projection.jl")
 using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
+                    riemann!, sources!, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
                     noncons_surface_flux!
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
@@ -589,7 +589,8 @@ end
 
 # Calculate error norms and print information for user
 function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                                  runtime_absolute::Real, runtime_relative::Real)
+                                  runtime_absolute::Real, runtime_relative::Real,
+                                  solver_name::String="solver")
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
@@ -598,7 +599,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
+  println(" Simulation running solver '$(solver_name)' with '$(equation.name)' and N = $(polydeg(dg))")
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *
@@ -1538,8 +1539,8 @@ function calc_sources!(dg::Dg, t)
   end
 
   for element_id = 1:dg.n_elements
-    sources(equations(dg), dg.elements.u_t, dg.elements.u,
-            dg.elements.node_coordinates, element_id, t, nnodes(dg))
+    sources!(equations(dg), dg.elements.u_t, dg.elements.u,
+             dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end
 end
 

@@ -1,0 +1,50 @@
+####################################################################################################
+# Simulation
+equations = "euler"
+# equations = "linearscalaradvection"
+# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+
+initial_conditions = "isentropic_vortex"
+# initial_conditions = "constant"
+surface_flux_type = "laxfriedrichs"
+# sources = 
+t_start = 0.0
+t_end   = 20.0
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
+
+####################################################################################################
+# Solver
+solver_a = "dg"
+solver_b = "dg"
+N = 3
+cfl = 0.6
+n_steps_max = 10000
+analysis_interval = 100
+
+
+####################################################################################################
+# Coupler
+coupler = "dg_source"
+sources = "coupler_test_source"
+
+
+####################################################################################################
+# Mesh
+n_cells_max = 10000
+coordinates_min = [-10, -10]
+coordinates_max =  [10, 10]
+initial_refinement_level = 4
+# refinement_patches = [
+#   {type = "box", coordinates_min = 0, coordinates_max = 16},
+# ]
+
+
+####################################################################################################
+# I/O
+# save_initial_solution = false
+solution_interval = 100
+solution_variables = "primitive"
+restart_interval = 100
