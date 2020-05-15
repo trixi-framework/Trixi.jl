@@ -100,6 +100,9 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   element_evaluations::Int
   surface_evaluations::Int
   mortar_evaluations::Int
+
+  initial_state_integrals::Vector{Float64}
+  is_initial_state_integrals_set::Bool
 end
 
 
@@ -203,6 +206,10 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   surface_evaluations = 0
   mortar_evaluations = 0
 
+  # Store initial state integrals for conservation error calculation
+  initial_state_integrals = Vector{Float64}()
+  is_initial_state_integrals_set = false
+
   # Create actual DG solver instance
   dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
       equation,
@@ -224,7 +231,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       level_info_elements,
       level_info_elements_acc, level_info_surfaces_acc, level_info_mortars_acc,
       current_element_ids, current_surface_ids, current_mortar_ids,
-      element_evaluations, surface_evaluations, mortar_evaluations)
+      element_evaluations, surface_evaluations, mortar_evaluations,
+      initial_state_integrals, is_initial_state_integrals_set)
 
   return dg
 end
@@ -657,6 +665,13 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   state_integrals = calc_state_integrals(dg)
   duds_ut = calc_entropy_timederivative(dg, time)
 
+  # Store initial state integrals if not set
+  if !dg.is_initial_state_integrals_set
+    dg.initial_state_integrals = zeros(nvariables(equation))
+    dg.initial_state_integrals .= state_integrals
+    dg.is_initial_state_integrals_set = true
+  end
+
   # General information
   println()
   println("-"^80)
@@ -703,9 +718,9 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
     @printf("  % 10.8e", linf_error[v])
   end
   println()
-  print(" ∑U:          ")
+  print(" |∑U - ∑U₀|:  ")
   for v in 1:nvariables(equation)
-    @printf("  % 10.8e", state_integrals[v])
+    @printf("  % 10.8e", abs(state_integrals[v] - dg.initial_state_integrals[v]))
   end
   println()
   print(" ∑dUdS*Ut:    ")
