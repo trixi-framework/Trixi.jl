@@ -61,16 +61,17 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
                                       t::Real)
   name = equation.initial_conditions
   if name == "constant"
-  # elliptic equation: νΔϕ = f
+  # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
     if t == 0.0
-      c = 0.0
+      phi = 0.0
+      p   = 0.0
+      q   = 0.0
     else
-      c = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
+      phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
+      p   = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
+      q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
     end
-    phi = c
-    p   = 0.0
-    q   = 0.0
     return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
@@ -89,7 +90,7 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
       end
     end
   elseif name == "poisson"
-  # elliptic equation: νΔϕ = f
+  # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
     C = -8.0*equation.nu*pi*pi
     for j in 1:n_nodes
