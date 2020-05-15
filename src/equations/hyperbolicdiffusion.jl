@@ -60,7 +60,7 @@ end
 function Equations.initial_conditions(equation::HyperbolicDiffusion, x::AbstractArray{Float64},
                                       t::Real)
   name = equation.initial_conditions
-  if name == "constant"
+  if name == "poisson"
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
     if t == 0.0
@@ -82,14 +82,7 @@ end
 # Apply source terms
 function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
-  if name == "laplace"
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
-        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
-      end
-    end
-  elseif name == "poisson"
+  if name == "poisson"
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
     C = -8.0*equation.nu*pi*pi
