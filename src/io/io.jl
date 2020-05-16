@@ -206,6 +206,7 @@ function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
     attrs(file)["maximum_level"] = maximum_level(mesh.tree)
     attrs(file)["center_level_0"] = mesh.tree.center_level_0
     attrs(file)["length_level_0"] = mesh.tree.length_level_0
+    attrs(file)["periodicity"] = collect(mesh.tree.periodicity)
 
     # Add tree data
     file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
