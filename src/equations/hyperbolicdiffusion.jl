@@ -73,6 +73,18 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
       q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
     end
     return [phi, p, q]
+  elseif name == "poisson_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+    if t == 0.0
+      phi = 0.0
+      p   = 0.0
+      q   = 0.0
+    else
+      phi = x[2] * (1 - x[2]) * x[1]^3     # ϕ   = y(1-y)x³
+      p   = 3 * x[2] * (1 - x[2]) * x[1]^2 # ϕ_x = 3y(1-y)x²
+      q   = (1 - 2 * x[2]) * x[1]^3        # ϕ_y = (1-2y)x³
+    end
+    return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
   end
@@ -93,6 +105,18 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
         tmp1 = sin(2.0*pi*x1)
         tmp2 = sin(2.0*pi*x2)
         ut[1, i, j, element_id] -= C*tmp1*tmp2
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
+      end
+    end
+  elseif name == "poisson_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: ϕ = y(1-y)x³ and f = 6xy(1-y)-2x³
+    for j in 1:n_nodes
+      for i in 1:n_nodes
+        x1 = x[1, i, j, element_id]
+        x2 = x[2, i, j, element_id]
+        ut[1, i, j, element_id] -= -6 * x1 * x2 * (1 - x2) - 2 * x1 ^ 3
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end
