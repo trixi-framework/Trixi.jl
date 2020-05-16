@@ -498,21 +498,20 @@ function init_boundary_connectivity!(elements, boundaries, mesh)
       # Create boundary
       count += 1
 
-      # Attach boundary to neighbor element
-      boundaries.neighbor_ids[count] = element_id
+      # Set neighbor ids and neighbor side, which denotes the direction
+      # (1 -> negative, 2 -> positive) of the element
+      if direction in (2, 4)
+        boundaries.neighbor_ids[1, count] = element_id
+        boundaries.neighbor_ids[2, count] = 0
+        boundaries.neighbor_sides[count] = 1
+      else
+        boundaries.neighbor_ids[1, count] = 0
+        boundaries.neighbor_ids[2, count] = element_id
+        boundaries.neighbor_sides[count] = 2
+      end
 
       # Set orientation (x -> 1, y -> 2)
       boundaries.orientations[count] = div(direction, 2)
-
-      # Store side of neighbor element (1 -> "left" of boundary, 2 -> "right" of boundary)
-      boundaries.neighbor_sides[count] = div(direction, 2)
-
-      # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
-      if direction in (2, 4)
-        boundaries.neighbor_sides[count] = 1
-      else
-        boundaries.neighbor_sides[count] = 2
-      end
 
       # Store node coordinates
       enc = elements.node_coordinates
