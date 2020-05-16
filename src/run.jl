@@ -166,7 +166,6 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
-          | boundary condition: $(string(solver.boundary_conditions))
           | AMR:                $(amr_interval > 0 ? "yes" : "no")
           """
   if amr_interval > 0
