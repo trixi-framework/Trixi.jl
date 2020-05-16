@@ -498,20 +498,22 @@ function init_boundary_connectivity!(elements, boundaries, mesh)
       # Create boundary
       count += 1
 
-      # Set neighbor ids and neighbor side, which denotes the direction
-      # (1 -> negative, 2 -> positive) of the element
+      # Set neighbor element id
+      boundaries.neighbor_ids[count] = element_id
+
+      # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
       if direction in (2, 4)
-        boundaries.neighbor_ids[1, count] = element_id
-        boundaries.neighbor_ids[2, count] = 0
         boundaries.neighbor_sides[count] = 1
       else
-        boundaries.neighbor_ids[1, count] = 0
-        boundaries.neighbor_ids[2, count] = element_id
         boundaries.neighbor_sides[count] = 2
       end
 
       # Set orientation (x -> 1, y -> 2)
-      boundaries.orientations[count] = div(direction, 2)
+      if direction in (1, 2)
+        boundaries.orientations[count] = 1
+      else
+        boundaries.orientations[count] = 2
+      end
 
       # Store node coordinates
       enc = elements.node_coordinates
@@ -809,6 +811,12 @@ function Solvers.rhs!(dg::Dg, t_stage)
 
   # Calculate surface fluxes
   @timeit timer() "surface flux" calc_surface_flux!(dg)
+
+  # Prolong solution to boundaries
+  @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
+
+  # Calculate boundary fluxes
+  @timeit timer() "boundary flux" calc_boundary_flux!(dg)
 
   # Prolong solution to mortars
   @timeit timer() "prolong2mortars" prolong2mortars!(dg)
@@ -1139,6 +1147,33 @@ function prolong2surfaces!(dg)
 end
 
 
+# Prolong solution to boundaries (for GL nodes: just a copy)
+function prolong2boundaries!(dg)
+  equation = equations(dg)
+
+  for b = 1:dg.n_boundaries
+    element_id = dg.boundaries.neighbor_ids[b]
+    for l = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
+          if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
+            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
+          else # Element in +x direction of boundary
+            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
+          end
+        else # Boundary in y-direction
+          if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
+            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
+          else # Element in +y direction of boundary
+            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
+          end
+        end
+      end
+    end
+  end
+end
+
+
 # Prolong solution to mortars (select correct method based on mortar type)
 prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
 
@@ -1394,6 +1429,62 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
             noncons_diamond_primary[v, i])
         surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
             noncons_diamond_secondary[v, i])
+      end
+    end
+  end
+end
+
+
+# Calculate and store boundary flux across domain boundaries
+calc_boundary_flux!(dg) = calc_boundary_flux!(dg.elements.surface_flux,
+                                              dg.boundaries.neighbor_ids,
+                                              dg.boundaries.neighbor_sides,
+                                              dg.boundaries.u, dg,
+                                              dg.boundaries.orientations)
+function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vector{Int},
+                             neighbor_sides::Vector{Int}, u_boundaries::Array{Float64, 4}, dg::Dg,
+                             orientations::Vector{Int})
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
+  #=@inbounds Threads.@threads for b = 1:dg.n_boundaries=#
+  Threads.@threads for b = 1:dg.n_boundaries
+    # Choose thread-specific pre-allocated container
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
+
+    # Calculate flux
+    riemann!(fstar, fstarnode, u_boundaries, b, equations(dg), nnodes(dg), orientations)
+
+    # Get neighboring element
+    neighbor_id = neighbor_ids[b]
+
+    # Determine boundary direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    if orientations[b] == 1 # Boundary in x-direction
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        direction = 2
+      else # Element is on the right, boundary on the left
+        direction = 1
+      end
+    else # Boundary in y-direction
+      if neighbor_sides[b] == 1 # Element is below, boundary is above
+        direction = 4
+      else # Element is above, boundary is below
+        direction = 3
+      end
+    end
+
+    # Copy flux to neighbor element storage
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, direction,  neighbor_id]  = fstar[v, i]
       end
     end
   end

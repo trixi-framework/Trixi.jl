@@ -70,7 +70,7 @@ struct BoundaryContainer{V, N} <: AbstractContainer
   u::Array{Float64, 4}                # [leftright, variables, i, surfaces]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
-  neighbor_sides::Matrix{Int}         # [leftright, boundaries]
+  neighbor_sides::Vector{Int}         # [boundaries]
   node_coordinates::Array{Float64, 3} # [orientation, i, elements]
 end
 
@@ -79,7 +79,7 @@ function BoundaryContainer{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u = fill(NaN, 2, V, n_nodes, capacity)
-  neighbor_ids = fill(typemin(Int), 2, capacity)
+  neighbor_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
   node_coordinates = fill(NaN, ndim, n_nodes, capacity)
