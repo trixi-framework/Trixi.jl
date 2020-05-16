@@ -65,6 +65,36 @@ end
 nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
 
 
+# Container data structure (structure-of-arrays style) for DG boundary surfaces
+struct BoundaryContainer{V, N} <: AbstractContainer
+  u::Array{Float64, 3}                # [variables, i, surfaces]
+  neighbor_ids::Vector{Int}           # [surfaces]
+  orientations::Vector{Int}           # [surfaces]
+  neighbor_sides::Vector{Int}         # [surfaces]
+  node_coordinates::Array{Float64, 3} # [orientation, i, elements]
+end
+
+
+function BoundaryContainer{V, N}(capacity::Integer) where {V, N}
+  # Initialize fields with defaults
+  n_nodes = N + 1
+  u = fill(NaN, V, n_nodes, capacity)
+  neighbor_ids = fill(typemin(Int), capacity)
+  orientations = fill(typemin(Int), capacity)
+  neighbor_sides = fill(typemin(Int), capacity)
+  node_coordinates = fill(NaN, ndim, n_nodes, capacity)
+
+  boundaries = BoundaryContainer{V, N}(u, neighbor_ids, orientations, neighbor_sides,
+                                       node_coordinates)
+
+  return boundaries
+end
+
+
+# Return number of boundaries
+nboundaries(boundaries::BoundaryContainer) = length(boundaries.orientations)
+
+
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 # Positions/directions for large_sides = 1, orientations = 1:
 #           |    |

@@ -5,6 +5,7 @@ equations = "linearscalaradvection"
 advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 initial_conditions = "convergence_test"
+boundary_conditions = "exact"
 # initial_conditions = "constant"
 # initial_conditions = "linear-x-y"
 surface_flux_type = "laxfriedrichs"
@@ -30,7 +31,7 @@ analysis_interval = 100
 n_cells_max = 10000
 coordinates_min = [-1, -1]
 coordinates_max =  [1, 1]
-initial_refinement_level = 4
+initial_refinement_level = 1
 periodicity = [false, true]
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},

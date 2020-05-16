@@ -166,6 +166,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
+          | boundary condition: $(string(solver.boundary_conditions))
           | AMR:                $(amr_interval > 0 ? "yes" : "no")
           """
   if amr_interval > 0
@@ -186,6 +187,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
           | | surface flux:     $(string(equations.surface_flux_type))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
+          | | #boundaries:      $(solver.n_boundaries)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |

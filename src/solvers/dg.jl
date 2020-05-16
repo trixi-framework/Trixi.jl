@@ -13,7 +13,7 @@ using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_tw
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
-using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
+using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor, isperiodic,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
@@ -48,6 +48,10 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
+
+  boundaries::BoundaryContainer{V, N}
+  n_boundaries::Int
+  boundary_conditions::Symbol
 
   mortar_type::Symbol
   l2mortars::L2MortarContainer{V, N}
@@ -103,14 +107,25 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
   n_surfaces = nsurfaces(surfaces)
 
+  # Initialize boundaries
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_boundaries = nboundaries(boundaries)
+  boundary_conditions = Symbol(parameter("boundary_conditions", "none", valid=("none", "exact")))
+
   # Initialize mortar containers
   mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
-  # Sanity check
-  if n_l2mortars == 0 && n_ecmortars == 0
+  # Sanity checks
+  if n_boundaries > 0
+    @assert boundary_conditions != :none "No boundary condition set"
+  end
+  if boundary_conditions != :none
+    @assert n_boundaries > 0 "Boundary condition set but no boundaries identified"
+  end
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -179,6 +194,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
+      boundaries, n_boundaries, boundary_conditions,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
@@ -230,7 +246,7 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
         continue
       end
 
-      # If no neighbor exists, current cell is small and thus we need a mortar
+      # If no neighbor exists, current cell is small or at boundary and thus we need a mortar
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
@@ -249,6 +265,32 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
 end
 
 
+# Count the number of boundaries that need to be created
+function count_required_boundaries(mesh::TreeMesh, cell_ids)
+  count = 0
+
+  # Iterate over all cells
+  for cell_id in cell_ids
+    for direction in 1:n_directions(mesh.tree)
+      # If neighbor exists, current cell is not at a boundary
+      if has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If coarse neighbor exists, current cell is not at a boundary
+      if has_coarse_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # No neighbor exists in this direction -> must be a boundary
+      count += 1
+    end
+  end
+
+  return count
+end
+
+
 # Count the number of mortars that need to be created
 function count_required_mortars(mesh::TreeMesh, cell_ids)
   count = 0
@@ -256,7 +298,7 @@ function count_required_mortars(mesh::TreeMesh, cell_ids)
   # Iterate over all cells and count mortars from perspective of coarse cells
   for cell_id in cell_ids
     for direction in 1:n_directions(mesh.tree)
-      # If no neighbor exists, cell is small with large neighbor -> do nothing
+      # If no neighbor exists, cell is small with large neighbor or at boundary -> do nothing
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
@@ -330,6 +372,22 @@ function init_surfaces(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N
   init_surface_connectivity!(elements, surfaces, mesh)
 
   return surfaces
+end
+
+
+# Create boundaries container, initialize boundary data, and return boundaries container
+#
+# V: number of variables
+# N: polynomial degree
+function init_boundaries(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N}
+  # Initialize container
+  n_boundaries = count_required_boundaries(mesh, cell_ids)
+  boundaries = BoundaryContainer{V, N}(n_boundaries)
+
+  # Connect elements with boundaries
+  init_boundary_connectivity!(elements, boundaries, mesh)
+
+  return boundaries
 end
 
 
@@ -412,6 +470,68 @@ function init_surface_connectivity!(elements, surfaces, mesh)
 
   @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
                                         "expectations $(nsurfaces(surfaces))")
+end
+
+
+# Initialize connectivity between elements and boundaries
+function init_boundary_connectivity!(elements, boundaries, mesh)
+  # Reset boundaries count
+  count = 0
+
+  # Iterate over all elements to find missing neighbors and to connect to boundaries
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # If neighbor exists, current cell is not at a boundary
+      if has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If coarse neighbor exists, current cell is not at a boundary
+      if has_coarse_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Create boundary
+      count += 1
+
+      # Attach boundary to neighbor element
+      boundaries.neighbor_ids[count] = element_id
+
+      # Set orientation (x -> 1, y -> 2)
+      boundaries.orientations[count] = div(direction, 2)
+
+      # Store side of neighbor element (1 -> "left" of boundary, 2 -> "right" of boundary)
+      boundaries.neighbor_sides[count] = div(direction, 2)
+
+      # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
+      if direction in (2, 4)
+        boundaries.neighbor_sides[count] = 1
+      else
+        boundaries.neighbor_sides[count] = 2
+      end
+
+      # Store node coordinates
+      enc = elements.node_coordinates
+      if direction == 1 # -x direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,   element_id]
+      elseif direction == 2 # +x direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,   element_id]
+      elseif direction == 3 # -y direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,   element_id]
+      elseif direction == 4 # +y direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end, element_id]
+      else
+        error("should not happen")
+      end
+    end
+  end
+
+  @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
+                                            "expectations $(nboundaries(boundaries))")
 end
 
 
