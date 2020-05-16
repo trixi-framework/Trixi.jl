@@ -816,7 +816,7 @@ function Solvers.rhs!(dg::Dg, t_stage)
   @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
 
   # Calculate boundary fluxes
-  @timeit timer() "boundary flux" calc_boundary_flux!(dg)
+  @timeit timer() "boundary flux" calc_boundary_flux!(dg, t_stage)
 
   # Prolong solution to mortars
   @timeit timer() "prolong2mortars" prolong2mortars!(dg)
@@ -1436,14 +1436,18 @@ end
 
 
 # Calculate and store boundary flux across domain boundaries
-calc_boundary_flux!(dg) = calc_boundary_flux!(dg.elements.surface_flux,
-                                              dg.boundaries.neighbor_ids,
-                                              dg.boundaries.neighbor_sides,
-                                              dg.boundaries.u, dg,
-                                              dg.boundaries.orientations)
+calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux,
+                                                    dg.boundaries.neighbor_ids,
+                                                    dg.boundaries.neighbor_sides,
+                                                    dg.boundaries.node_coordinates,
+                                                    dg.boundaries.u, dg,
+                                                    dg.boundaries.orientations, time)
 function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vector{Int},
-                             neighbor_sides::Vector{Int}, u_boundaries::Array{Float64, 4}, dg::Dg,
-                             orientations::Vector{Int})
+                             neighbor_sides::Vector{Int}, node_coordinates::Array{Float64, 3},
+                             u_boundaries::Array{Float64, 4}, dg::Dg,
+                             orientations::Vector{Int}, time)
+  equation = equations(dg)
+
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1457,6 +1461,13 @@ function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vect
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
     fstarnode = fstarnode_threaded[Threads.threadid()]
+
+    # Fill outer boundary state
+    # FIXME: This should be replaced by a proper boundary condition
+    for i in 1:nnodes(dg)
+      u_boundaries[3 - neighbor_sides[b], :, i, b] .= initial_conditions(
+          equation, node_coordinates[:, i, b], time)
+    end
 
     # Calculate flux
     riemann!(fstar, fstarnode, u_boundaries, b, equations(dg), nnodes(dg), orientations)

@@ -67,7 +67,7 @@ nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
 
 # Container data structure (structure-of-arrays style) for DG boundaries
 struct BoundaryContainer{V, N} <: AbstractContainer
-  u::Array{Float64, 4}                # [leftright, variables, i, surfaces]
+  u::Array{Float64, 4}                # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
   neighbor_sides::Vector{Int}         # [boundaries]
