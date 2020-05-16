@@ -111,7 +111,7 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
     end
   elseif name == "poisson_nonperiodic"
   # elliptic equation: -νΔϕ = f
-  # analytical solution: ϕ = y(1-y)x³ and f = 6xy(1-y)-2x³
+  # analytical solution: ϕ = y(1-y)x³ and f = -6xy(1-y)-2x³
     for j in 1:n_nodes
       for i in 1:n_nodes
         x1 = x[1, i, j, element_id]
