@@ -35,7 +35,7 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
   function HyperbolicDiffusion()
     name = "hyperbolicdiffusion"
     initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "laplace")
+    sources = parameter("sources", "harmonic")
     varnames_cons = ["phi", "p", "q"]
     varnames_prim = ["phi", "p", "q"]
     # diffusion coefficient
@@ -85,6 +85,19 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
       q   = (1 - 2 * x[2]) * x[1]^3        # ϕ_y = (1-2y)x³
     end
     return [phi, p, q]
+  elseif name == "harmonic_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+    if t == 0.0
+      phi = 1.0
+      p   = 1.0
+      q   = 1.0
+    else
+      C   = 1.0/sinh(pi)
+      phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
+      p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+      q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    end
+    return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
   end
@@ -117,6 +130,14 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
         x1 = x[1, i, j, element_id]
         x2 = x[2, i, j, element_id]
         ut[1, i, j, element_id] -= -6 * x1 * x2 * (1 - x2) - 2 * x1 ^ 3
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
+      end
+    end
+  elseif name == "harmonic"
+    # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+    for j in 1:n_nodes
+      for i in 1:n_nodes
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end

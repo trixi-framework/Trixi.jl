@@ -16,6 +16,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
   @test_nowarn Trixi.run("../examples/parameters_ec.toml")
   @test_nowarn Trixi.run("../examples/parameters_ec_mhd.toml")
+  @test_nowarn Trixi.run("../examples/parameters_hyp_diff_harmonic_nonperiodic.toml")
   @test_nowarn Trixi.run("../examples/parameters_hyp_diff_llf.toml")
   @test_nowarn Trixi.run("../examples/parameters_hyp_diff_nonperiodic.toml")
   @test_nowarn Trixi.run("../examples/parameters_hyp_diff_upwind.toml")
