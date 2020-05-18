@@ -33,7 +33,7 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 ```
 """
 function run(parameters_file=nothing; verbose=false, args=nothing)
-  mesh, solver, time_parameters = init_simulation(parameters_file, verbose=verbose, args=nothing)
+  mesh, solver, time_parameters = init_simulation(parameters_file, verbose=verbose, args=args)
   run_simulation(mesh, solver, time_parameters)
 end
 
