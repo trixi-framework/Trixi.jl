@@ -190,7 +190,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing)
           | | CFL:              $cfl
           | | volume integral:  $(string(solver.volume_integral_type))
           | | volume flux:      $(string(equations.volume_flux_type))
-          | | surface flux:     $(string(equations.surface_flux_type))
+          | | surface flux:     $(string(equations.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #boundaries:      $(solver.n_boundaries)

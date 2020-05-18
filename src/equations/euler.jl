@@ -27,8 +27,7 @@ struct Euler{SurfaceFlux} <: AbstractEquation{4}
   varnames_cons::SVector{4, String}
   varnames_prim::SVector{4, String}
   gamma::Float64
-  surface_flux_type::Symbol #TODO Don't all the fluxes belong to the DG struct?
-  surface_flux::SurfaceFlux
+  surface_flux::SurfaceFlux #TODO Don't all the fluxes belong to the DG struct?
   volume_flux_type::Symbol
   have_nonconservative_terms::Bool
 end
@@ -40,8 +39,8 @@ function Euler()
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
   varnames_prim = @SVector ["rho", "v1", "v2", "p"]
   gamma = parameter("gamma", 1.4)
-  surface_flux_type = Symbol(parameter("surface_flux_type", "hllc",
-                                       valid=["hllc", "lax_friedrichs_flux","central_flux",
+  surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
+                                       valid=["lax_friedrichs_flux","central_flux",
                                               "kennedygruber", "chandrashekar_flux", "yuichi"]))
   # "eval is evil"
   # This is a emporary hack untill we have switched to a library based approach
@@ -51,7 +50,7 @@ function Euler()
                             valid=["central_flux", "kennedygruber", "chandrashekar_flux", "yuichi"]))
   have_nonconservative_terms = false
   Euler(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux_type, surface_flux, volume_flux_type,have_nonconservative_terms)
+        surface_flux, volume_flux_type,have_nonconservative_terms)
 end
 
 
@@ -540,8 +539,16 @@ end
   return nothing
 end
 
-# Kinetic energy preserving two-point flux by Kennedy and Gruber
-# TODO: DOI
+"""
+    kennedy_gruber_flux(equation::Euler, orientation,
+                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
+  Reduced aliasing formulations of the convective terms within the
+  Navier-Stokes equations for a compressible fluid
+DOI: 10.1016/j.jcp.2007.09.020
+"""
 @inline function kennedy_gruber_flux(equation::Euler, orientation,
                                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)

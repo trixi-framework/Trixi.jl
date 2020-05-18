@@ -3,7 +3,7 @@
 equations = "mhd"
 gamma = 1.6666666666666667
 initial_conditions = "convergence_test"
-surface_flux_type = "lax_friedrichs_flux"
+surface_flux = "lax_friedrichs_flux"
 
 volume_flux_type = "central_flux"
 
