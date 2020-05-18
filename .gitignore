@@ -10,6 +10,4 @@
 out/
 docs/build
 public/
-src/*.jl.*.cov
-src/*/*.jl.*.cov
-
+src/**/*.jl.*.cov
