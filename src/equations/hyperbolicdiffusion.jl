@@ -60,7 +60,7 @@ end
 function Equations.initial_conditions(equation::HyperbolicDiffusion, x::AbstractArray{Float64},
                                       t::Real)
   name = equation.initial_conditions
-  if name == "poisson"
+  if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
     if t == 0.0
@@ -76,13 +76,13 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
   elseif name == "poisson_nonperiodic"
   # elliptic equation: -νΔϕ = f
     if t == 0.0
-      phi = 0.0
-      p   = 0.0
-      q   = 0.0
+      phi = 1.0
+      p   = 1.0
+      q   = 1.0
     else
-      phi = x[2] * (1 - x[2]) * x[1]^3     # ϕ   = y(1-y)x³
-      p   = 3 * x[2] * (1 - x[2]) * x[1]^2 # ϕ_x = 3y(1-y)x²
-      q   = (1 - 2 * x[2]) * x[1]^3        # ϕ_y = (1-2y)x³
+      phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
+      p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+      q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
     end
     return [phi, p, q]
   elseif name == "harmonic_nonperiodic"
@@ -107,7 +107,7 @@ end
 # Apply source terms
 function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
-  if name == "poisson"
+  if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
     C = -8.0*equation.nu*pi*pi
@@ -124,12 +124,12 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
     end
   elseif name == "poisson_nonperiodic"
   # elliptic equation: -νΔϕ = f
-  # analytical solution: ϕ = y(1-y)x³ and f = -6xy(1-y)-2x³
+  # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
     for j in 1:n_nodes
       for i in 1:n_nodes
         x1 = x[1, i, j, element_id]
         x2 = x[2, i, j, element_id]
-        ut[1, i, j, element_id] -= -6 * x1 * x2 * (1 - x2) - 2 * x1 ^ 3
+        ut[1, i, j, element_id] += 10.0*pi*pi*cos(pi*x1)sin(2.0*pi*x2)
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end
