@@ -3,10 +3,10 @@
 equations = "hyperbolicdiffusion"
 nu = 1.0
 
-initial_conditions = "poisson"
+initial_conditions = "poisson_periodic"
 
 surface_flux_type = "upwind"
-sources = "poisson" 
+sources = "poisson_periodic" 
 t_start = 0.0
 t_end   = 2.0
 
