@@ -38,6 +38,7 @@ if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) i
   @testset "Examples (long execution time)" begin
     @test_nowarn Trixi.run("../examples/parameters_blob.toml")
     @test_nowarn Trixi.run("../examples/parameters_blob_amr.toml")
+    @test_nowarn Trixi.run("../examples/parameters_ec_performance_test.toml")
     @test_nowarn Trixi.run("../examples/parameters_khi.toml")
     @test_nowarn Trixi.run("../examples/parameters_ec_mortar.toml")
     @test_nowarn Trixi.run("../examples/parameters_khi_amr.toml")
