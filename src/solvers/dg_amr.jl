@@ -46,6 +46,10 @@ function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
   n_surfaces = nsurfaces(surfaces)
 
+  # Initialize boundaries
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_boundaries = nboundaries(boundaries)
+
   # Initialize new mortar containers
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
@@ -62,6 +66,8 @@ function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   dg.n_elements = n_elements
   dg.surfaces = surfaces
   dg.n_surfaces = n_surfaces
+  dg.boundaries = boundaries
+  dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
   dg.ecmortars = ecmortars
@@ -201,6 +207,10 @@ function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
   n_surfaces = nsurfaces(surfaces)
 
+  # Initialize boundaries
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_boundaries = nboundaries(boundaries)
+
   # Initialize new mortar containers
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
@@ -217,6 +227,8 @@ function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   dg.n_elements = n_elements
   dg.surfaces = surfaces
   dg.n_surfaces = n_surfaces
+  dg.boundaries = boundaries
+  dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
   dg.ecmortars = ecmortars
