@@ -186,6 +186,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
           | | surface flux:     $(string(equations.surface_flux_type))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
+          | | #boundaries:      $(solver.n_boundaries)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
@@ -256,6 +257,18 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     # Check if we reached the maximum number of time steps
     if step == n_steps_max
       finalstep = true
+    end
+
+    # Check steady-state integration residual
+    if solver.equations.name == "hyperbolicdiffusion"
+      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
     end
 
     # Analyze solution errors
@@ -341,18 +354,6 @@ function run(parameters_file=nothing; verbose=false, args=nothing)
     if first_loop_iteration
       clear_malloc_data()
       first_loop_iteration = false
-    end
-
-    # Check steady-state integration residual
-    if solver.equations.name == "hyperbolicdiffusion"
-      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-        println("-"^80)
-        println()
-        finalstep = true
-      end
     end
   end
 
