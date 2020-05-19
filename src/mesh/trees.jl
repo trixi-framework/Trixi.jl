@@ -41,6 +41,7 @@ mutable struct Tree{D} <: AbstractContainer
 
   center_level_0::MVector{D, Float64}
   length_level_0::Float64
+  periodicity::NTuple{D, Bool}
 
   function Tree{D}(capacity::Integer) where D
     # Verify that D is an integer
@@ -74,22 +75,23 @@ end
 Tree(::Val{D}, args...) where D = Tree{D}(args...)
 
 # Create and initialize tree
-function Tree{D}(capacity::Int, center::AbstractArray{Float64}, length::Real) where D
+function Tree{D}(capacity::Int, center::AbstractArray{Float64},
+                 length::Real, periodicity=true) where D
   # Create instance
   t = Tree{D}(capacity)
 
   # Initialize root cell
-  init!(t, center, length)
+  init!(t, center, length, periodicity)
 
   return t
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-Tree{1}(cap::Int, center::Real, len::Real) = Tree{1}(cap, [convert(Float64, center)], len)
+Tree{1}(cap::Int, center::Real, len::Real, periodicity=true) = Tree{1}(cap, [convert(Float64, center)], len, periodicity)
 
 
 # Clear tree with deleting data structures, store center and length, and create root cell
-function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
+function init!(t::Tree, center::AbstractArray{Float64}, length::Real, periodicity=true)
   clear!(t)
 
   # Set domain information
@@ -100,10 +102,33 @@ function init!(t::Tree, center::AbstractArray{Float64}, length::Real)
   t.length += 1
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
-  t.neighbor_ids[:, 1] .= 1 # Special case: For periodicity, the level-0 cell is its own neighbor
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
   t.original_cell_ids[1] = 0
+
+  # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
+  if all(periodicity)
+    # Also catches case where periodicity = true
+    t.neighbor_ids[:, 1] .= 1
+    t.periodicity = ntuple(x->true, ndims(t))
+  elseif !any(periodicity)
+    # Also catches case where periodicity = false
+    t.neighbor_ids[:, 1] .= 0
+    t.periodicity = ntuple(x->false, ndims(t))
+  else
+    # Default case if periodicity is an iterable
+    for dimension in 1:ndims(t)
+      if periodicity[dimension]
+        t.neighbor_ids[2 * dimension - 1, 1] = 1
+        t.neighbor_ids[2 * dimension - 0, 1] = 1
+      else
+        t.neighbor_ids[2 * dimension - 1, 1] = 0
+        t.neighbor_ids[2 * dimension - 0, 1] = 0
+      end
+    end
+
+    t.periodicity = Tuple(periodicity)
+  end
 end
 
 
@@ -170,6 +195,10 @@ minimum_level(t::Tree) = minimum(t.levels[leaf_cells(t)])
 
 # Return maximum level of any leaf cell
 maximum_level(t::Tree) = maximum(t.levels[leaf_cells(t)])
+
+# Check if tree is periodic
+isperiodic(t::Tree) = all(t.periodicity)
+isperiodic(t::Tree, dimension) = t.periodicity[dimension]
 
 
 # Auxiliary methods for often-required calculations

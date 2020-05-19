@@ -10,7 +10,7 @@ equations = "euler"
 # initial_conditions = "constant"
 #initial_conditions = "weak_blast_wave"
 initial_conditions = "khi"
-# sources = 
+# sources =
 t_start = 0.0
 t_end   = 5.0
 # restart = true
@@ -31,12 +31,12 @@ volume_integral_type = "shock_capturing"
 #volume_integral_type = "weak_form"
 #volume_integral_type = "entropy_fix"
 #volume_integral_type = "entropy_fix2"
-surface_flux_type = "laxfriedrichs"
-#surface_flux_type = "chandrashekar_ec"
-#surface_flux_type = "yuichi"
+surface_flux = "lax_friedrichs_flux"
+#surface_flux = "chandrashekar_flux"
+#surface_flux = "yuichi"
 #volume_flux_type = "yuichi"
-volume_flux_type = "chandrashekar_ec"
-# volume_flux_type = "central"
+volume_flux_type = "chandrashekar_flux"
+# volume_flux_type = "central_flux"
 
 ####################################################################################################
 # Mesh

@@ -33,14 +33,14 @@ mutable struct TreeMesh{D}
     return m
   end
 
-  function TreeMesh{D}(n_cells_max::Integer,
-                       domain_center::AbstractArray{Float64}, domain_length) where D
+  function TreeMesh{D}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
+                       domain_length, periodicity=true) where D
     # Verify that D is an integer
     @assert D isa Integer
 
     # Create mesh
     m = new()
-    m.tree = Tree{D}(n_cells_max, domain_center, domain_length)
+    m.tree = Tree{D}(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = false
 
@@ -52,7 +52,7 @@ end
 TreeMesh(::Val{D}, args...) where D = TreeMesh{D}(args...)
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-TreeMesh{1}(n::Int, center::Real, len::Real) = TreeMesh{1}(n, [convert(Float64, center)], len)
+TreeMesh{1}(n::Int, center::Real, len::Real, periodicity=true) = TreeMesh{1}(n, [convert(Float64, center)], len, periodicity)
 
 
 # Generate initial mesh
@@ -68,8 +68,12 @@ function generate_mesh()
   domain_center = @. (coordinates_min + coordinates_max) / 2
   domain_length = maximum(coordinates_max .- coordinates_min)
 
+  # By default, mesh is periodic in all dimensions
+  periodicity = parameter("periodicity", true)
+
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndim}(), n_cells_max, domain_center, domain_length)
+  @timeit timer() "creation" mesh = TreeMesh(Val{ndim}(), n_cells_max, domain_center,
+                                             domain_length, periodicity)
 
   # Create initial refinement
   initial_refinement_level = parameter("initial_refinement_level")
@@ -117,6 +121,7 @@ function load_mesh(restart_filename::String)
     # Set domain information
     mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
     mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
+    mesh.tree.periodicity    = Tuple(read(attrs(file)["periodicity"]))
 
     # Set length
     n_cells = read(attrs(file)["n_cells"])

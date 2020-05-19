@@ -16,7 +16,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
-* Gregor Gassner
-* Hendrik Ranocha
-* Michael Schlottke-Lakemper
-* Andrew Winters
+* [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
+* [Hendrik Ranocha](https://ranocha.de)
+* [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper)
+* [Andrew Winters](https://liu.se/en/employee/andwi94)

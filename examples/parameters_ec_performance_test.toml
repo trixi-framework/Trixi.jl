@@ -5,15 +5,20 @@ equations = "euler"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 # initial_conditions = "convergence_test"
-initial_conditions = "isentropic_vortex"
+# initial_conditions = "isentropic_vortex"
 # initial_conditions = "linear-x-y"
 # initial_conditions = "linear-x"
 # initial_conditions = "constant"
-surface_flux = "lax_friedrichs_flux"
-volume_flux_type = "kennedygruber"
+initial_conditions = "weak_blast_wave"
+#surface_flux = "lax_friedrichs_flux"
+surface_flux = "chandrashekar_flux"
+volume_flux_type = "chandrashekar_flux"
+#surface_flux = "yuichi"
+#volume_flux_type = "yuichi"
+# volume_flux_type = "central_flux"
 # sources =
 t_start = 0.0
-t_end   = 1.0
+t_end   = 2.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -23,21 +28,23 @@ t_end   = 1.0
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.8
+cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
+#volume_integral_type = "shock_capturing"
 volume_integral_type = "split_form"
+# volume_integral_type = "entropy_fix"
 
 
 ####################################################################################################
 # Mesh
 n_cells_max = 100000
-coordinates_min = [-10, -10]
-coordinates_max =  [10, 10]
-initial_refinement_level = 4
-refinement_patches = [
-  {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
-]
+coordinates_min = [-2, -2]
+coordinates_max =  [2, 2]
+initial_refinement_level = 5
+# refinement_patches = [
+#   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
+# ]
 
 
 ####################################################################################################
@@ -46,3 +53,4 @@ refinement_patches = [
 solution_interval = 100
 solution_variables = "primitive"
 restart_interval = 10
+output_format = "hdf5"

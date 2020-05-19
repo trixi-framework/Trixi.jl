@@ -34,7 +34,7 @@ name(equation::AbstractEquation) = equation.name
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquation)
-  print("name = $(equation.name), n_vars = $(nvariables(equation))")
+  print(io, "name = $(equation.name), n_vars = $(nvariables(equation))")
 end
 
 
@@ -46,6 +46,8 @@ function make_equations(name::String)
     return Euler()
   elseif name == "mhd"
     return Mhd()
+  elseif name == "hyperbolicdiffusion"
+    return HyperbolicDiffusion()
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -82,5 +84,9 @@ using .EulerEquations
 # Ideal MHD
 include("mhd.jl")
 using .MhdEquations
+
+# Diffusion equation: first order hyperbolic system
+include("hyperbolicdiffusion.jl")
+using .HyperbolicDiffusionEquations
 
 end # module

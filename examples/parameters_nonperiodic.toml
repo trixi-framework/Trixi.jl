@@ -28,8 +28,17 @@ n_cells_max = 10000
 coordinates_min = [0, 0]
 coordinates_max =  [2, 2]
 initial_refinement_level = 4
+# Fully periodic (default; can be omitted)
+# periodicity = true
+# No periodic boundaries: on all boundaries the initial conditions are weakly
+# enforced as a Dirichlet BCs
+periodicity = false
+# Periodic in x-direction, BCs in y-direction
+# periodicity = [true, false]
+# BCs in x-direction, periodic in y-direction
+# periodicity = [false, true]
 # refinement_patches = [
-#   {type = "box", coordinates_min = 0, coordinates_max = 16},
+#   {type = "box", coordinates_min = [0.0, 0.0], coordinates_max = [1.0, 1.0]},
 # ]
 
 
