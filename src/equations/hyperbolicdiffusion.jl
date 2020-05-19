@@ -35,7 +35,7 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
   function HyperbolicDiffusion()
     name = "hyperbolicdiffusion"
     initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "laplace")
+    sources = parameter("sources", "harmonic")
     varnames_cons = ["phi", "p", "q"]
     varnames_prim = ["phi", "p", "q"]
     # diffusion coefficient
@@ -60,7 +60,7 @@ end
 function Equations.initial_conditions(equation::HyperbolicDiffusion, x::AbstractArray{Float64},
                                       t::Real)
   name = equation.initial_conditions
-  if name == "poisson"
+  if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
     if t == 0.0
@@ -73,6 +73,31 @@ function Equations.initial_conditions(equation::HyperbolicDiffusion, x::Abstract
       q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
     end
     return [phi, p, q]
+  elseif name == "poisson_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+    if t == 0.0
+      phi = 1.0
+      p   = 1.0
+      q   = 1.0
+    else
+      phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
+      p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+      q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+    end
+    return [phi, p, q]
+  elseif name == "harmonic_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+    if t == 0.0
+      phi = 1.0
+      p   = 1.0
+      q   = 1.0
+    else
+      C   = 1.0/sinh(pi)
+      phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
+      p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+      q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    end
+    return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
   end
@@ -82,7 +107,7 @@ end
 # Apply source terms
 function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
-  if name == "poisson"
+  if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
     C = -8.0*equation.nu*pi*pi
@@ -93,6 +118,26 @@ function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, 
         tmp1 = sin(2.0*pi*x1)
         tmp2 = sin(2.0*pi*x2)
         ut[1, i, j, element_id] -= C*tmp1*tmp2
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
+      end
+    end
+  elseif name == "poisson_nonperiodic"
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
+    for j in 1:n_nodes
+      for i in 1:n_nodes
+        x1 = x[1, i, j, element_id]
+        x2 = x[2, i, j, element_id]
+        ut[1, i, j, element_id] += 10.0*pi*pi*cos(pi*x1)sin(2.0*pi*x2)
+        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
+        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
+      end
+    end
+  elseif name == "harmonic"
+    # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+    for j in 1:n_nodes
+      for i in 1:n_nodes
         ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
         ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
       end
