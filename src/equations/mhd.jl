@@ -409,6 +409,18 @@ end
   return nothing
 end
 
+"""
+    derigs_et_al_flux(equation::Mhd, orientation,
+                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                      B1_ll, B2_ll, B3_ll, psi_ll,
+                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                      B1_rr, B2_rr, B3_rr, psi_rr)
+
+Entropy conserving two-point flux by Derigs et al. (2018)
+  Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
+  divergence diminishing ideal magnetohydrodynamics equations
+[DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
+"""
 function derigs_et_al_flux(equation::Mhd, orientation,
                            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                            B1_ll, B2_ll, B3_ll, psi_ll,

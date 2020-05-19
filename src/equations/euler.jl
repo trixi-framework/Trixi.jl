@@ -476,8 +476,17 @@ end
   return nothing
 end
 
-# Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
-# DOI: [doi:10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+"""
+    function yuichi_flux(equation::Euler, orientation,
+                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                         rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+
+Kinetic energy preserving two-point flux with pressure oscillation fix
+by Kuya, Totani and Kawai (2018)
+  Kinetic energy and entropy preserving schemes for compressible flows
+  by split convective forms
+[DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+"""
 @inline function yuichi_flux(equation::Euler, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
@@ -516,7 +525,6 @@ end
 
 
 # Kinetic energy preserving two-point flux by Kennedy and Gruber
-# TODO: DOI
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
@@ -546,7 +554,7 @@ end
 Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
-DOI: 10.1016/j.jcp.2007.09.020
+[DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function kennedy_gruber_flux(equation::Euler, orientation,
                                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
@@ -582,7 +590,6 @@ DOI: 10.1016/j.jcp.2007.09.020
 end
 
 # Entropy conserving two-point flux by Chandrashekar
-# DOI: 10.4208/cicp.170712.010313a
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_flux},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
@@ -612,7 +619,7 @@ end
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
-DOI: 10.4208/cicp.170712.010313a
+[DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function chandrashekar_flux(equation::Euler, orientation,
                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
