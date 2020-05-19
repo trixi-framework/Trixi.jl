@@ -33,6 +33,7 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 ```
 """
 function run(parameters_file=nothing; verbose=false, args=nothing)
+  # Separate initialization and execution into two functions such that Julia can specialize the code in `run_simulation` for the actual type of `solver` and `mesh`
   mesh, solver, time_parameters = init_simulation(parameters_file, verbose=verbose, args=args)
   run_simulation(mesh, solver, time_parameters)
 end
