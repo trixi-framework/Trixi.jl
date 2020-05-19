@@ -5,7 +5,7 @@ nu = 1.0
 
 initial_conditions = "poisson_nonperiodic"
 
-surface_flux_type = "upwind"
+surface_flux = "upwind_flux"
 sources = "poisson_nonperiodic"
 t_start = 0.0
 t_end   = 5.0
@@ -19,10 +19,10 @@ resid_tol = 5.0e-12
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 4 
+N = 4
 cfl = 0.5
 n_steps_max = 10000
-analysis_interval = 200 
+analysis_interval = 200
 
 #volume_integral_type = "split_form"
 
@@ -31,7 +31,7 @@ analysis_interval = 200
 n_cells_max = 100000
 coordinates_min = [0, 0]
 coordinates_max = [1, 1]
-initial_refinement_level = 3 
+initial_refinement_level = 3
 periodicity = [false, true]
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},

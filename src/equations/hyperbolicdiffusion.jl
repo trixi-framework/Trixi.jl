@@ -48,7 +48,7 @@ function HyperbolicDiffusion()
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
   surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "upwind", "central_flux"]))
+                                       valid=["lax_friedrichs_flux", "upwind_flux", "central_flux"]))
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux", valid=["central_flux"]))
   have_nonconservative_terms = false
