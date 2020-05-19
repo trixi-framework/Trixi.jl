@@ -477,7 +477,7 @@ end
 end
 
 # Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
-# TODO: DOI
+# DOI: [doi:10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 @inline function yuichi_flux(equation::Euler, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
