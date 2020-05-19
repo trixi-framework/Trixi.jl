@@ -51,7 +51,6 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   boundaries::BoundaryContainer{V, N}
   n_boundaries::Int
-  # boundary_conditions::Symbol
 
   mortar_type::Symbol
   l2mortars::L2MortarContainer{V, N}
@@ -110,7 +109,6 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   # Initialize boundaries
   boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
   n_boundaries = nboundaries(boundaries)
-  # boundary_conditions = Symbol(parameter("boundary_conditions", "none", valid=("none", "exact")))
 
   # Initialize mortar containers
   mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
@@ -119,12 +117,6 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity checks
-  # if n_boundaries > 0
-  #   @assert boundary_conditions != :none "No boundary condition set"
-  # end
-  # if boundary_conditions != :none
-  #   @assert n_boundaries > 0 "Boundary condition set but no boundaries identified"
-  # end
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
@@ -194,7 +186,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
-      boundaries, n_boundaries, # boundary_conditions,
+      boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
