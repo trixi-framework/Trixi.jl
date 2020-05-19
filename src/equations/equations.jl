@@ -34,7 +34,7 @@ name(equation::AbstractEquation) = equation.name
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquation)
-  print("name = $(equation.name), n_vars = $(nvariables(equation))")
+  print(io, "name = $(equation.name), n_vars = $(nvariables(equation))")
 end
 
 

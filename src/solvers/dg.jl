@@ -13,7 +13,7 @@ using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_tw
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
-using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor,
+using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor, isperiodic,
                      opposite_direction, has_coarse_neighbor, has_child, has_children
 using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
@@ -48,6 +48,9 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
 
   surfaces::SurfaceContainer{V, N}
   n_surfaces::Int
+
+  boundaries::BoundaryContainer{V, N}
+  n_boundaries::Int
 
   mortar_type::Symbol
   l2mortars::L2MortarContainer{V, N}
@@ -103,14 +106,18 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
   n_surfaces = nsurfaces(surfaces)
 
+  # Initialize boundaries
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_boundaries = nboundaries(boundaries)
+
   # Initialize mortar containers
   mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
-  # Sanity check
-  if n_l2mortars == 0 && n_ecmortars == 0
+  # Sanity checks
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -179,6 +186,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
+      boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
@@ -230,7 +238,7 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
         continue
       end
 
-      # If no neighbor exists, current cell is small and thus we need a mortar
+      # If no neighbor exists, current cell is small or at boundary and thus we need a mortar
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
@@ -249,6 +257,32 @@ function count_required_surfaces(mesh::TreeMesh, cell_ids)
 end
 
 
+# Count the number of boundaries that need to be created
+function count_required_boundaries(mesh::TreeMesh, cell_ids)
+  count = 0
+
+  # Iterate over all cells
+  for cell_id in cell_ids
+    for direction in 1:n_directions(mesh.tree)
+      # If neighbor exists, current cell is not at a boundary
+      if has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If coarse neighbor exists, current cell is not at a boundary
+      if has_coarse_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # No neighbor exists in this direction -> must be a boundary
+      count += 1
+    end
+  end
+
+  return count
+end
+
+
 # Count the number of mortars that need to be created
 function count_required_mortars(mesh::TreeMesh, cell_ids)
   count = 0
@@ -256,7 +290,7 @@ function count_required_mortars(mesh::TreeMesh, cell_ids)
   # Iterate over all cells and count mortars from perspective of coarse cells
   for cell_id in cell_ids
     for direction in 1:n_directions(mesh.tree)
-      # If no neighbor exists, cell is small with large neighbor -> do nothing
+      # If no neighbor exists, cell is small with large neighbor or at boundary -> do nothing
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
       end
@@ -330,6 +364,22 @@ function init_surfaces(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N
   init_surface_connectivity!(elements, surfaces, mesh)
 
   return surfaces
+end
+
+
+# Create boundaries container, initialize boundary data, and return boundaries container
+#
+# V: number of variables
+# N: polynomial degree
+function init_boundaries(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N}
+  # Initialize container
+  n_boundaries = count_required_boundaries(mesh, cell_ids)
+  boundaries = BoundaryContainer{V, N}(n_boundaries)
+
+  # Connect elements with boundaries
+  init_boundary_connectivity!(elements, boundaries, mesh)
+
+  return boundaries
 end
 
 
@@ -412,6 +462,69 @@ function init_surface_connectivity!(elements, surfaces, mesh)
 
   @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
                                         "expectations $(nsurfaces(surfaces))")
+end
+
+
+# Initialize connectivity between elements and boundaries
+function init_boundary_connectivity!(elements, boundaries, mesh)
+  # Reset boundaries count
+  count = 0
+
+  # Iterate over all elements to find missing neighbors and to connect to boundaries
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # If neighbor exists, current cell is not at a boundary
+      if has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # If coarse neighbor exists, current cell is not at a boundary
+      if has_coarse_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Create boundary
+      count += 1
+
+      # Set neighbor element id
+      boundaries.neighbor_ids[count] = element_id
+
+      # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
+      if direction in (2, 4)
+        boundaries.neighbor_sides[count] = 1
+      else
+        boundaries.neighbor_sides[count] = 2
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      if direction in (1, 2)
+        boundaries.orientations[count] = 1
+      else
+        boundaries.orientations[count] = 2
+      end
+
+      # Store node coordinates
+      enc = elements.node_coordinates
+      if direction == 1 # -x direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,   element_id]
+      elseif direction == 2 # +x direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,   element_id]
+      elseif direction == 3 # -y direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,   element_id]
+      elseif direction == 4 # +y direction
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end, element_id]
+      else
+        error("should not happen")
+      end
+    end
+  end
+
+  @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
+                                            "expectations $(nboundaries(boundaries))")
 end
 
 
@@ -693,6 +806,12 @@ function Solvers.rhs!(dg::Dg, t_stage)
 
   # Calculate surface fluxes
   @timeit timer() "surface flux" calc_surface_flux!(dg)
+
+  # Prolong solution to boundaries
+  @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
+
+  # Calculate boundary fluxes
+  @timeit timer() "boundary flux" calc_boundary_flux!(dg, t_stage)
 
   # Prolong solution to mortars
   @timeit timer() "prolong2mortars" prolong2mortars!(dg)
@@ -1023,6 +1142,33 @@ function prolong2surfaces!(dg)
 end
 
 
+# Prolong solution to boundaries (for GL nodes: just a copy)
+function prolong2boundaries!(dg)
+  equation = equations(dg)
+
+  for b = 1:dg.n_boundaries
+    element_id = dg.boundaries.neighbor_ids[b]
+    for l = 1:nnodes(dg)
+      for v = 1:nvariables(dg)
+        if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
+          if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
+            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
+          else # Element in +x direction of boundary
+            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
+          end
+        else # Boundary in y-direction
+          if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
+            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
+          else # Element in +y direction of boundary
+            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
+          end
+        end
+      end
+    end
+  end
+end
+
+
 # Prolong solution to mortars (select correct method based on mortar type)
 prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
 
@@ -1278,6 +1424,73 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
             noncons_diamond_primary[v, i])
         surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
             noncons_diamond_secondary[v, i])
+      end
+    end
+  end
+end
+
+
+# Calculate and store boundary flux across domain boundaries
+calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux,
+                                                    dg.boundaries.neighbor_ids,
+                                                    dg.boundaries.neighbor_sides,
+                                                    dg.boundaries.node_coordinates,
+                                                    dg.boundaries.u, dg,
+                                                    dg.boundaries.orientations, time)
+function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vector{Int},
+                             neighbor_sides::Vector{Int}, node_coordinates::Array{Float64, 3},
+                             u_boundaries::Array{Float64, 4}, dg::Dg,
+                             orientations::Vector{Int}, time)
+  equation = equations(dg)
+
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  A1d = MArray{Tuple{nvariables(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
+
+  #=@inbounds Threads.@threads for b = 1:dg.n_boundaries=#
+  Threads.@threads for b = 1:dg.n_boundaries
+    # Choose thread-specific pre-allocated container
+    fstar = fstar_threaded[Threads.threadid()]
+    fstarnode = fstarnode_threaded[Threads.threadid()]
+
+    # Fill outer boundary state
+    # FIXME: This should be replaced by a proper boundary condition
+    for i in 1:nnodes(dg)
+      u_boundaries[3 - neighbor_sides[b], :, i, b] .= initial_conditions(
+          equation, node_coordinates[:, i, b], time)
+    end
+
+    # Calculate flux
+    riemann!(fstar, fstarnode, u_boundaries, b, equations(dg), nnodes(dg), orientations)
+
+    # Get neighboring element
+    neighbor_id = neighbor_ids[b]
+
+    # Determine boundary direction with respect to elements:
+    # orientation = 1: left -> 2, right -> 1
+    # orientation = 2: left -> 4, right -> 3
+    if orientations[b] == 1 # Boundary in x-direction
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        direction = 2
+      else # Element is on the right, boundary on the left
+        direction = 1
+      end
+    else # Boundary in y-direction
+      if neighbor_sides[b] == 1 # Element is below, boundary is above
+        direction = 4
+      else # Element is above, boundary is below
+        direction = 3
+      end
+    end
+
+    # Copy flux to neighbor element storage
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        surface_flux[v, i, direction,  neighbor_id]  = fstar[v, i]
       end
     end
   end

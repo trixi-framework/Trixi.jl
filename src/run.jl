@@ -12,6 +12,7 @@ using .AMR: adapt!
 using Printf: println, @printf
 using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
 using Profile: clear_malloc_data
+using UnPack: @unpack
 
 
 """
@@ -34,6 +35,13 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 ```
 """
 function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+  # Separate initialization and execution into two functions such that Julia can specialize the code in `run_simulation` for the actual type of `solver` and `mesh`
+  mesh, solver, time_parameters = init_simulation(parameters_file, verbose=verbose, args=args)
+  run_simulation(mesh, solver, time_parameters)
+end
+
+
+function init_simulation(parameters_file; verbose=false, args=nothing)
   # Reset timer
   reset_timer!(timer())
 
@@ -100,10 +108,10 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   println("done")
 
   # Sanity checks
-  # If DG volume integral type is weak form, volume flux type must be central,
+  # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
-  if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central
-    error("using the weak formulation with a volume flux other than 'central' does not make sense")
+  if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
+    error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
   end
 
   # Initialize solution
@@ -192,9 +200,10 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
           | | CFL:              $cfl
           | | volume integral:  $(string(solver.volume_integral_type))
           | | volume flux:      $(string(equations.volume_flux_type))
-          | | surface flux:     $(string(equations.surface_flux_type))
+          | | surface flux:     $(string(equations.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
+          | | #boundaries:      $(solver.n_boundaries)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
@@ -233,6 +242,27 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   if analysis_interval > 0
     analyze_solution(solver, mesh, time, 0, step, 0, 0)
   end
+
+  time_parameters = (time=time, step=step, t_end=t_end, cfl=cfl,
+                    n_steps_max=n_steps_max,
+                    save_final_solution=save_final_solution,
+                    save_final_restart=save_final_restart,
+                    analysis_interval=analysis_interval,
+                    alive_interval=alive_interval,
+                    solution_interval=solution_interval,
+                    amr_interval=amr_interval,
+                    restart_interval=restart_interval)
+  return mesh, solver, time_parameters
+end
+
+
+function run_simulation(mesh, solver, time_parameters)
+  @unpack time, step, t_end, cfl, n_steps_max,
+          save_final_solution, save_final_restart,
+          analysis_interval, alive_interval,
+          solution_interval, amr_interval,
+          restart_interval = time_parameters
+
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
   output_time = 0.0
@@ -269,6 +299,18 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
     # Check if we reached the maximum number of time steps
     if step == n_steps_max
       finalstep = true
+    end
+
+    # Check steady-state integration residual
+    if solver.equations.name == "hyperbolicdiffusion"
+      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
     end
 
     # Analyze solution errors
@@ -354,18 +396,6 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
     if first_loop_iteration
       clear_malloc_data()
       first_loop_iteration = false
-    end
-
-    # Check steady-state integration residual
-    if solver.equations.name == "hyperbolicdiffusion"
-      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-        println("-"^80)
-        println()
-        finalstep = true
-      end
     end
   end
 

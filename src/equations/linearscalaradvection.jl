@@ -17,28 +17,33 @@ export cons2prim
 
 
 # Main data structure for system of equations "linear scalar advection"
-struct LinearScalarAdvection <: AbstractEquation{1}
+struct LinearScalarAdvection{SurfaceFlux} <: AbstractEquation{1}
   name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{1, String}
   varnames_prim::SVector{1, String}
   advectionvelocity::SVector{2, Float64}
-  surface_flux_type::Symbol
+  surface_flux::SurfaceFlux
   volume_flux_type::Symbol
   have_nonconservative_terms::Bool
+end
 
-  function LinearScalarAdvection()
-    name = "linearscalaradvection"
-    initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "none")
-    varnames_cons = ["scalar"]
-    varnames_prim = ["scalar"]
-    a = parameter("advectionvelocity")
-    have_nonconservative_terms = false
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, a, :upwind, :central,
-        have_nonconservative_terms)
-  end
+function LinearScalarAdvection()
+  name = "linearscalaradvection"
+  initial_conditions = parameter("initial_conditions")
+  sources = parameter("sources", "none")
+  varnames_cons = SVector("scalar")
+  varnames_prim = SVector("scalar")
+  a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
+                                       valid=["lax_friedrichs_flux", "central_flux"]))
+  surface_flux = eval(surface_flux_type)
+  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
+                                      valid=["central_flux"]))
+  have_nonconservative_terms = false
+  LinearScalarAdvection(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux_type,
+                        have_nonconservative_terms)
 end
 
 
@@ -124,9 +129,14 @@ end
 function Equations.riemann!(surface_flux::AbstractArray{Float64},
                             u_surfaces::AbstractArray{Float64},
                             equation::LinearScalarAdvection, orientation::Int)
+  surface_flux[1] = equation.surface_flux(equation, orientation, u_surfaces[1, 1], u_surfaces[2, 1])
+  return nothing
+end
+
+
+function lax_friedrichs_flux(equation::LinearScalarAdvection, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
-  surface_flux[1] = 1/2 * (
-      (a + abs(a)) * u_surfaces[1, 1] + (a - abs(a)) * u_surfaces[2, 1])
+  0.5 * (a + abs(a)) * u_ll + (a - abs(a)) * u_rr
 end
 
 
