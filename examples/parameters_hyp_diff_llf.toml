@@ -5,8 +5,8 @@ nu = 1.0
 
 initial_conditions = "poisson_periodic"
 
-surface_flux_type = "laxfriedrichs"
-sources = "poisson_periodic" 
+surface_flux = "lax_friedrichs_flux"
+sources = "poisson_periodic"
 t_start = 0.0
 t_end   = 2.0
 
@@ -19,10 +19,10 @@ resid_tol = 5.0e-12
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 4 
+N = 4
 cfl = 0.5
 n_steps_max = 10000
-analysis_interval = 200 
+analysis_interval = 200
 
 #volume_integral_type = "split_form"
 
