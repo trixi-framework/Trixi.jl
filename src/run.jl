@@ -88,7 +88,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd"])
+  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd",
+                                                 "hyperbolicdiffusion"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -353,6 +354,18 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
     if first_loop_iteration
       clear_malloc_data()
       first_loop_iteration = false
+    end
+
+    # Check steady-state integration residual
+    if solver.equations.name == "hyperbolicdiffusion"
+      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
     end
   end
 
