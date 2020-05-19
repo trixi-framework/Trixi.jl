@@ -19,4 +19,4 @@ are listed in alphabetical order:
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 * [Hendrik Ranocha](https://ranocha.de)
 * [Michael Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper)
-* Andrew Winters
+* [Andrew Winters](https://liu.se/en/employee/andwi94)
