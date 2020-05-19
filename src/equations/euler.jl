@@ -455,7 +455,6 @@ end
 
 
 # Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
-# TODO: DOI
 @inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:yuichi},
                                           equation::Euler, orientation::Int,
                                           rho_ll::Float64,
