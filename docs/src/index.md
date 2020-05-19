@@ -90,15 +90,21 @@ bin/trixi examples/parameters.toml
           data-rows=48></script>
 ```
 
-### Running a convergence analysis in Trixi
-To run a simple converence test, execute
+### Performing a convergence analysis
+To automatically determine the experimental order of convergence (EOC) for a
+given setup, execute
 ```julia
 Trixi.convtest("examples/parameters.toml", 4)
 ```
-This will run a convergence test with the parameters file `examples/parameters.toml`
-running 4 iterations with different initial refinement levels
-and display ``L^2`` and ``L^\infty`` errors and EOCs like this:
-```L2
+This will run a convergence test with the parameters file `examples/parameters.toml`,
+using four iterations with different initial refinement levels. The initial
+iteration will use the parameters file unchanged, while for each subsequent
+iteration the `initial_refinement_level` parameter is incremented by one.
+Finally, the measured ``L^2`` and ``L^\infty`` errors and the determined EOCs
+will be displayed like this:
+```
+[...]
+L2
 scalar
 error     EOC
 9.14e-06  -
@@ -124,7 +130,9 @@ An example with multiple variables looks like this:
 ```julia
 julia> Trixi.convtest("examples/parameters_source_terms.toml", 3)
 ```
-```L2
+```
+[...]
+L2
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
 8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
