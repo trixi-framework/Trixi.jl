@@ -3,7 +3,7 @@ module HyperbolicDiffusionEquations
 using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
-using StaticArrays: SVector, MVector, MMatrix, MArray
+using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
 # Export all symbols that should be available from Equations
 export HyperbolicDiffusion
@@ -18,7 +18,7 @@ export cons2prim
 
 # Main data structure for system of equations "Diffusion equation: first-order hyperbolic system"
 # Equation system description can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1"
-struct HyperbolicDiffusion <: AbstractEquation{3}
+struct HyperbolicDiffusion{SurfaceFlux} <: AbstractEquation{3}
   name::String
   initial_conditions::String
   sources::String
@@ -28,31 +28,32 @@ struct HyperbolicDiffusion <: AbstractEquation{3}
   Tr::Float64
   nu::Float64
   resid_tol::Float64
-  surface_flux_type::Symbol
+  surface_flux::SurfaceFlux
   volume_flux_type::Symbol
   have_nonconservative_terms::Bool
+end
 
-  function HyperbolicDiffusion()
-    name = "hyperbolicdiffusion"
-    initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "harmonic")
-    varnames_cons = ["phi", "p", "q"]
-    varnames_prim = ["phi", "p", "q"]
-    # diffusion coefficient
-    nu = parameter("nu", 1.0)
-    # relaxation length scale
-    Lr = parameter("Lr", 1.0/(2.0*pi))
-    # relaxation time
-    Tr = Lr*Lr/nu
-    # stopping tolerance for the pseudotime "steady-state"
-    resid_tol = parameter("resid_tol", 1e-12)
-    surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs", "upwind", "central"]))
-    volume_flux_type = Symbol(parameter("volume_flux_type", "central", valid=["central"]))
-    have_nonconservative_terms = false
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
-        surface_flux_type, volume_flux_type, have_nonconservative_terms)
-  end
+function HyperbolicDiffusion()
+  name = "hyperbolicdiffusion"
+  initial_conditions = parameter("initial_conditions")
+  sources = parameter("sources", "harmonic")
+  varnames_cons = @SVector ["phi", "p", "q"]
+  varnames_prim = @SVector ["phi", "p", "q"]
+  # diffusion coefficient
+  nu = parameter("nu", 1.0)
+  # relaxation length scale
+  Lr = parameter("Lr", 1.0/(2.0*pi))
+  # relaxation time
+  Tr = Lr*Lr/nu
+  # stopping tolerance for the pseudotime "steady-state"
+  resid_tol = parameter("resid_tol", 1e-12)
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
+                                       valid=["lax_friedrichs_flux", "upwind_flux", "central_flux"]))
+  surface_flux = eval(surface_flux_type)
+  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux", valid=["central_flux"]))
+  have_nonconservative_terms = false
+  HyperbolicDiffusion(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
+                      surface_flux, volume_flux_type, have_nonconservative_terms)
 end
 
 
@@ -244,14 +245,24 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
-                                          equation::HyperbolicDiffusion, orientation::Int,
-                                          phi_ll::Float64,
-                                          p_ll::Float64,
-                                          q_ll::Float64,
-                                          phi_rr::Float64,
-                                          p_rr::Float64,
-                                          q_rr::Float64)
+@inline function symmetric_twopoint_flux!(f, ::Val{:central_flux},
+                                          equation::HyperbolicDiffusion, orientation,
+                                          phi_ll, p_ll, q_ll,
+                                          phi_rr, p_rr, q_rr)
+  flux = central_flux(equation, orientation,
+                      phi_ll, p_ll, q_ll,
+                      phi_rr, p_rr, q_rr)
+
+  for i in 1:3
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+function central_flux(equation::HyperbolicDiffusion, orientation,
+                      phi_ll, p_ll, q_ll,
+                      phi_rr, p_rr, q_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{3, Float64}(undef)
   f_rr = MVector{3, Float64}(undef)
@@ -259,7 +270,7 @@ end
   calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
 
   # Average regular fluxes
-  @. f[:] = 1/2 * (f_ll + f_rr)
+  @. 0.5 * (f_ll + f_rr)
 end
 
 
@@ -335,41 +346,65 @@ end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
+function Equations.riemann!(surface_flux,
                             phi_ll, p_ll, q_ll,
                             phi_rr, p_rr, q_rr,
-                            equation::HyperbolicDiffusion, orientation::Int)
+                            equation::HyperbolicDiffusion, orientation)
+
+  # I'm not really sure where to hook into the call chain. This is just a first
+  # implementation as proof of concept and should be discussed and improved.
+  flux = equation.surface_flux(equation, orientation,
+                               phi_ll, p_ll, q_ll,
+                               phi_rr, p_rr, q_rr,)
+
+  for i in 1:3
+    surface_flux[i] = flux[i]
+  end
+
+  return nothing
+end
+
+
+function lax_friedrichs_flux(equation::HyperbolicDiffusion, orientation,
+                             phi_ll, p_ll, q_ll,
+                             phi_rr, p_rr, q_rr,)
   # Obtain left and right fluxes
   f_ll = zeros(MVector{3})
   f_rr = zeros(MVector{3})
   calcflux1D!(f_ll, equation, phi_ll, p_ll, q_ll, orientation)
   calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
 
-  if equation.surface_flux_type == :laxfriedrichs
-    λ_max = sqrt(equation.nu/equation.Tr)
-    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
-    surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
-    surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
-  elseif equation.surface_flux_type == :upwind
-    # this is an optimized version of the application of the upwind dissipation matrix:
-    #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
-    λ_max = sqrt(equation.nu/equation.Tr)
-    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
-    if orientation == 1 # x-direction
-      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
-      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3])
-    else # y-direciton
-      surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2])
-      surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
-    end
-  elseif equation.surface_flux_type == :central
-    symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
-                             equation, orientation,
-                             phi_ll, p_ll, q_ll,
-                             phi_rr, p_rr, q_rr)
-  else
-    error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
+  λ_max = sqrt(equation.nu/equation.Tr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
+  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
+  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
+
+  return (f1, f2, f3)
+end
+
+
+function upwind_flux(equation::HyperbolicDiffusion, orientation,
+                     phi_ll, p_ll, q_ll,
+                     phi_rr, p_rr, q_rr,)
+  # Obtain left and right fluxes
+  f_ll = zeros(MVector{3})
+  f_rr = zeros(MVector{3})
+  calcflux1D!(f_ll, equation, phi_ll, p_ll, q_ll, orientation)
+  calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
+
+  # this is an optimized version of the application of the upwind dissipation matrix:
+  #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
+  λ_max = sqrt(equation.nu/equation.Tr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
+  if orientation == 1 # x-direction
+    f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
+    f3 = 1/2 * (f_ll[3] + f_rr[3])
+  else # y-direction
+    f2 = 1/2 * (f_ll[2] + f_rr[2])
+    f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
   end
+
+  return (f1, f2, f3)
 end
 
 

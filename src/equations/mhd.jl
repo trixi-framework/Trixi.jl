@@ -4,7 +4,7 @@ using ...Trixi
 using ..Equations # Use everything to allow method extension via "function Equations.<method>"
 using ...Auxiliary: parameter
 using ...Auxiliary.Math: ln_mean
-using StaticArrays: SVector, MVector, MMatrix, MArray
+using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
 # Export all symbols that should be available from Equations
 export Mhd
@@ -21,7 +21,7 @@ export cons2indicator!
 
 
 # Main data structure for system of equations "Mhd"
-mutable struct Mhd <: AbstractEquation{9}
+mutable struct Mhd{SurfaceFlux} <: AbstractEquation{9}
   name::String
   initial_conditions::String
   sources::String
@@ -29,26 +29,27 @@ mutable struct Mhd <: AbstractEquation{9}
   varnames_prim::SVector{9, String}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
-  surface_flux_type::Symbol
+  surface_flux::SurfaceFlux
   volume_flux_type::Symbol
   have_nonconservative_terms::Bool
+end
 
-  function Mhd()
-    name = "mhd"
-    initial_conditions = parameter("initial_conditions")
-    sources = parameter("sources", "none")
-    varnames_cons = ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-    varnames_prim = ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
-    gamma = parameter("gamma", 1.4)
-    c_h = 0.0   # GLM cleaning wave speed
-    surface_flux_type = Symbol(parameter("surface_flux_type", "laxfriedrichs",
-                                         valid=["laxfriedrichs", "central", "derigs_ec"]))
-    volume_flux_type = Symbol(parameter("volume_flux_type", "central",
-                                        valid=["central", "derigs_ec"]))
-    have_nonconservative_terms = true
-    new(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-        surface_flux_type, volume_flux_type, have_nonconservative_terms)
-  end
+function Mhd()
+  name = "mhd"
+  initial_conditions = parameter("initial_conditions")
+  sources = parameter("sources", "none")
+  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+  varnames_prim = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+  gamma = parameter("gamma", 1.4)
+  c_h = 0.0   # GLM cleaning wave speed
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
+                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_et_al_flux"]))
+  surface_flux = eval(surface_flux_type)
+  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
+                                      valid=["central_flux", "derigs_et_al_flux"]))
+  have_nonconservative_terms = true
+  Mhd(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
+      surface_flux, volume_flux_type, have_nonconservative_terms)
 end
 
 
@@ -232,6 +233,8 @@ end
   f2[7] = equation.c_h*psi
   f2[8] = v2*B3 - v3*B2
   f2[9] = equation.c_h*B2
+
+  return nothing
 end
 
 
@@ -314,9 +317,9 @@ end
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
-                           g::AbstractArray{Float64,4}, # y-direction advective flux
-                           u::AbstractArray{Float64,3}, # solution on an element
-                           n_nodes::Int)
+                                   g::AbstractArray{Float64,4}, # y-direction advective flux
+                                   u::AbstractArray{Float64,3}, # solution on an element
+                                   n_nodes::Int)
   phi_pow   = zeros(MVector{9})
   phi_gal_x = zeros(MVector{9})
   phi_gal_y = zeros(MVector{9})
@@ -351,26 +354,30 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central},
-                                          equation::Mhd, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_v3_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          B1_ll::Float64,
-                                          B2_ll::Float64,
-                                          B3_ll::Float64,
-                                          psi_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_v3_rr::Float64,
-                                          rho_e_rr::Float64,
-                                          B1_rr::Float64,
-                                          B2_rr::Float64,
-                                          B3_rr::Float64,
-                                          psi_rr::Float64)
+@inline function symmetric_twopoint_flux!(f, ::Val{:central_flux},
+                                          equation::Mhd, orientation,
+                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                                          B1_ll, B2_ll, B3_ll, psi_ll,
+                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                                          B1_rr, B2_rr, B3_rr, psi_rr)
+  flux = central_flux(equation, orientation,
+                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                      B1_ll, B2_ll, B3_ll, psi_ll,
+                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                      B1_rr, B2_rr, B3_rr, psi_rr)
+
+  for i in 1:9
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+function central_flux(equation::Mhd, orientation,
+                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                      B1_ll, B2_ll, B3_ll, psi_ll,
+                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                      B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{9, Float64}(undef)
   f_rr = MVector{9, Float64}(undef)
@@ -379,30 +386,46 @@ end
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
               B1_rr, B2_rr, B3_rr, psi_rr, orientation)
   # Average state of the advective fluxes
-  @. f[:] = 0.5*(f_ll + f_rr)
+  @. 0.5 * (f_ll + f_rr)
 end
 
 # Entropy conserving two-point flux for GLM-MHD equations by Derigs et al. 2018; equation (4.43)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:derigs_ec},
-                                          equation::Mhd, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_v3_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          B1_ll::Float64,
-                                          B2_ll::Float64,
-                                          B3_ll::Float64,
-                                          psi_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_v3_rr::Float64,
-                                          rho_e_rr::Float64,
-                                          B1_rr::Float64,
-                                          B2_rr::Float64,
-                                          B3_rr::Float64,
-                                          psi_rr::Float64)
+@inline function symmetric_twopoint_flux!(f, ::Val{:derigs_et_al_flux},
+                                          equation::Mhd, orientation,
+                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                                          B1_ll, B2_ll, B3_ll, psi_ll,
+                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                                          B1_rr, B2_rr, B3_rr, psi_rr)
+  flux = derigs_et_al_flux(equation, orientation,
+                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                           B1_ll, B2_ll, B3_ll, psi_ll,
+                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                           B1_rr, B2_rr, B3_rr, psi_rr)
+
+  for i in 1:9
+    f[i] = flux[i]
+  end
+
+  return nothing
+end
+
+"""
+    derigs_et_al_flux(equation::Mhd, orientation,
+                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                      B1_ll, B2_ll, B3_ll, psi_ll,
+                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                      B1_rr, B2_rr, B3_rr, psi_rr)
+
+Entropy conserving two-point flux by Derigs et al. (2018)
+  Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
+  divergence diminishing ideal magnetohydrodynamics equations
+[DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
+"""
+function derigs_et_al_flux(equation::Mhd, orientation,
+                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                           B1_ll, B2_ll, B3_ll, psi_ll,
+                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                           B1_rr, B2_rr, B3_rr, psi_rr)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -441,36 +464,38 @@ end
 
   # Calculate fluxes depending on orientation with specific direction averages
   if orientation == 1
-    f[1] = rho_mean*v1_avg
-    f[2] = f[1]*v1_avg + p_mean + 0.5*mag_norm_avg - B1_avg*B1_avg
-    f[3] = f[1]*v2_avg - B1_avg*B2_avg
-    f[4] = f[1]*v3_avg - B1_avg*B3_avg
-    f[6] = equation.c_h*psi_avg
-    f[7] = v1_avg*B2_avg - v2_avg*B1_avg
-    f[8] = v1_avg*B3_avg - v3_avg*B1_avg
-    f[9] = equation.c_h*B1_avg
+    f1 = rho_mean*v1_avg
+    f2 = f1*v1_avg + p_mean + 0.5*mag_norm_avg - B1_avg*B1_avg
+    f3 = f1*v2_avg - B1_avg*B2_avg
+    f4 = f1*v3_avg - B1_avg*B3_avg
+    f6 = equation.c_h*psi_avg
+    f7 = v1_avg*B2_avg - v2_avg*B1_avg
+    f8 = v1_avg*B3_avg - v3_avg*B1_avg
+    f9 = equation.c_h*B1_avg
     # total energy flux is complicated and involves the previous eight components
     psi_B1_avg = 0.5*(B1_ll*psi_ll + B1_rr*psi_rr)
     v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
-    f[5] = (f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
-            f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v1_mag_avg +
+    f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
+          f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v1_mag_avg +
             B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
   else
-    f[1] = rho_mean*v2_avg
-    f[2] = f[1]*v1_avg - B1_avg*B2_avg
-    f[3] = f[1]*v2_avg + p_mean + 0.5*mag_norm_avg - B2_avg*B2_avg
-    f[4] = f[1]*v3_avg - B2_avg*B3_avg
-    f[6] = v2_avg*B1_avg - v1_avg*B2_avg
-    f[7] = equation.c_h*psi_avg
-    f[8] = v2_avg*B3_avg - v3_avg*B2_avg
-    f[9] = equation.c_h*B2_avg
+    f1 = rho_mean*v2_avg
+    f2 = f1*v1_avg - B1_avg*B2_avg
+    f3 = f1*v2_avg + p_mean + 0.5*mag_norm_avg - B2_avg*B2_avg
+    f4 = f1*v3_avg - B2_avg*B3_avg
+    f6 = v2_avg*B1_avg - v1_avg*B2_avg
+    f7 = equation.c_h*psi_avg
+    f8 = v2_avg*B3_avg - v3_avg*B2_avg
+    f9 = equation.c_h*B2_avg
     # total energy flux is complicated and involves the previous eight components
     psi_B2_avg = 0.5*(B2_ll*psi_ll + B2_rr*psi_rr)
     v2_mag_avg = 0.5*(v2_ll*mag_norm_ll + v2_rr*mag_norm_rr)
-    f[5] = (f[1]*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f[2]*v1_avg + f[3]*v2_avg +
-            f[4]*v3_avg + f[6]*B1_avg + f[7]*B2_avg + f[8]*B3_avg + f[9]*psi_avg - 0.5*v2_mag_avg +
-            B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg)
+    f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
+          f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v2_mag_avg +
+          B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg)
   end
+
+  return (f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
 
@@ -590,10 +615,28 @@ end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
-                    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr,
-                            equation::Mhd, orientation::Int)
+function Equations.riemann!(surface_flux,
+                            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
+                            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr,
+                            equation::Mhd, orientation)
+
+  # I'm not really sure where to hook into the call chain. This is just a first
+  # implementation as proof of concept and should be discussed and improved.
+  flux = equation.surface_flux(equation, orientation,
+                               rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
+                               rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
+
+  for i in 1:9
+    surface_flux[i] = flux[i]
+  end
+
+  return nothing
+end
+
+
+function lax_friedrichs_flux(equation::Mhd, orientation,
+                             rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
+                             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate velocities and fast magnetoacoustic wave speeds
   # left
   v1_ll = rho_v1_ll / rho_ll
@@ -616,25 +659,19 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
               B1_ll, B2_ll, B3_ll, psi_ll, orientation)
   calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
               B1_rr, B2_rr, B3_rr, psi_rr, orientation)
-  if equation.surface_flux_type == :laxfriedrichs
-    λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
-    surface_flux[1] = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-    surface_flux[2] = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-    surface_flux[3] = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-    surface_flux[4] = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
-    surface_flux[5] = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-    surface_flux[6] = 1/2 * (f_ll[6] + f_rr[6]) - 1/2 * λ_max * (B1_rr     - B1_ll)
-    surface_flux[7] = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
-    surface_flux[8] = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
-    surface_flux[9] = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
-  elseif equation.surface_flux_type in (:central,:derigs_ec)
-    symmetric_twopoint_flux!(surface_flux, Val(equation.surface_flux_type),
-                             equation, orientation,
-                    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
-  else
-    error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
-  end
+
+  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
+  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
+  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
+  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
+  f5 = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
+  f6 = 1/2 * (f_ll[6] + f_rr[6]) - 1/2 * λ_max * (B1_rr     - B1_ll)
+  f7 = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
+  f8 = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
+  f9 = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
+
+  return (f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
 
@@ -645,10 +682,10 @@ end
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
 function Equations.noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
-                               u_left::AbstractArray{Float64},
-                               u_right::AbstractArray{Float64},
-                               surface_id::Int, equation::Mhd, n_nodes::Int,
-                               orientations::Vector{Int})
+                                         u_left::AbstractArray{Float64},
+                                         u_right::AbstractArray{Float64},
+                                         surface_id::Int, equation::Mhd, n_nodes::Int,
+                                         orientations::Vector{Int})
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
@@ -737,7 +774,7 @@ end
 
 
 # Convert conservative variables to entropy
-function Equations.cons2entropy(equation::Mhd,cons::Array{Float64, 4},n_nodes::Int,n_elements::Int)
+function Equations.cons2entropy(equation::Mhd, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)
@@ -745,15 +782,15 @@ function Equations.cons2entropy(equation::Mhd,cons::Array{Float64, 4},n_nodes::I
   p = zeros(n_nodes,n_nodes,n_elements)
   s = zeros(n_nodes,n_nodes,n_elements)
   rho_p = zeros(n_nodes,n_nodes,n_elements)
-# velocities
+  # velocities
   @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
   @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
   @. v[3, :, :, :] = cons[4, :, :, :] / cons[1, :, :, :]
-# magnetic fields
+  # magnetic fields
   @. B[1, :, :, :] = cons[6, :, :, :]
   @. B[2, :, :, :] = cons[7, :, :, :]
   @. B[3, :, :, :] = cons[8, :, :, :]
-# kinetic energy, pressure, entropy
+  # kinetic energy, pressure, entropy
   @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :] + v[2, :, :, :]*v[2, :, :, :] +
                           v[3, :, :, :]*v[3, :, :, :]
   @. p[ :, :, :] = ((equation.gamma - 1)*(cons[5, :, :, :] - 0.5*cons[1, :, :, :]*v_square[:,:,:] -

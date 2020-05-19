@@ -12,10 +12,10 @@ equations = "euler"
 # initial_conditions = "blast_wave"
 initial_conditions = "sedov_blast_wave"
 amr_indicator = "blast_wave"
-surface_flux_type = "laxfriedrichs"
-volume_flux_type = "chandrashekar_ec"
-# volume_flux_type = "central"
-# sources = 
+surface_flux = "lax_friedrichs_flux"
+volume_flux_type = "chandrashekar_flux"
+# volume_flux_type = "central_flux"
+# sources =
 t_start = 0.0
 t_end   = 12.5
 
