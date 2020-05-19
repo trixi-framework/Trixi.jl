@@ -36,7 +36,7 @@ function LinearScalarAdvection()
   varnames_cons = SVector("scalar")
   varnames_prim = SVector("scalar")
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
-  surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux", "central_flux"]))
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",

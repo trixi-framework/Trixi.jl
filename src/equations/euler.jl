@@ -39,7 +39,7 @@ function Euler()
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
   varnames_prim = @SVector ["rho", "v1", "v2", "p"]
   gamma = parameter("gamma", 1.4)
-  surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux","central_flux",
                                               "kennedygruber", "chandrashekar_flux", "yuichi"]))
   # "eval is evil"

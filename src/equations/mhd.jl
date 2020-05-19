@@ -42,7 +42,7 @@ function Mhd()
   varnames_prim = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  surface_flux_type = Symbol(parameter("surface_flux_type", "lax_friedrichs_flux",
+  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux", "central_flux", "derigs_et_al_flux"]))
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
