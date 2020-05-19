@@ -56,7 +56,7 @@ function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -217,7 +217,7 @@ function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
