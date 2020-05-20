@@ -1,13 +1,14 @@
 # Style guide
-The following lists a few conventions that have been used so far:
+The following lists a few coding conventions for Trixi:
 
   * Modules, types, structs with `CamelCase`
   * Functions, variables with lowercase `snake_case`
-  * Indentation with 2 spaces (never tabs!), line continuations indented with 4
-    spaces
+  * Indentation with 2 spaces (*never* tabs!), line continuations indented with 4 spaces
   * Maximum line length (strictly): **100**
-  * Prefer `for i in ...` to `for i = ...` for better semantic clarity and
-  greater flexibility
+  * Prefer `for i in ...` to `for i = ...` for better semantic clarity and greater flexibility
+  * Executable code should only use ASCII characters
+  * Docstrings and comments can and should use Unicode characters where it helps understanding
+
 
 Based on that, and personal experience, a formatting tool with a few helpful
 options is included in `utils/julia-format.jl`. Note, however, that this tool is
