@@ -90,6 +90,67 @@ bin/trixi examples/parameters.toml
           data-rows=48></script>
 ```
 
+### Performing a convergence analysis
+To automatically determine the experimental order of convergence (EOC) for a
+given setup, execute
+```julia
+Trixi.convtest("examples/parameters.toml", 4)
+```
+This will run a convergence test with the parameters file `examples/parameters.toml`,
+using four iterations with different initial refinement levels. The initial
+iteration will use the parameters file unchanged, while for each subsequent
+iteration the `initial_refinement_level` parameter is incremented by one.
+Finally, the measured ``L^2`` and ``L^\infty`` errors and the determined EOCs
+will be displayed like this:
+```
+[...]
+L2
+scalar
+error     EOC
+9.14e-06  -
+5.69e-07  4.01
+3.55e-08  4.00
+2.22e-09  4.00
+
+mean      4.00
+--------------------------------------------------------------------------------
+Linf
+scalar
+error     EOC
+6.44e-05  -
+4.11e-06  3.97
+2.58e-07  3.99
+1.62e-08  4.00
+
+mean      3.99
+--------------------------------------------------------------------------------
+```
+
+An example with multiple variables looks like this:
+```julia
+julia> Trixi.convtest("examples/parameters_source_terms.toml", 3)
+```
+```
+[...]
+L2
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC
+8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
+6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85      
+4.33e-09  3.91      5.39e-09  3.96      5.39e-09  3.96      1.93e-08  3.94
+
+mean      3.81      mean      3.92      mean      3.92      mean      3.90
+--------------------------------------------------------------------------------
+Linf
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC       
+8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
+5.58e-07  3.90      6.58e-07  3.97      6.58e-07  3.97      2.92e-06  3.94
+3.77e-08  3.89      4.42e-08  3.90      4.42e-08  3.90      1.91e-07  3.93
+
+mean      3.90      mean      3.93      mean      3.93      mean      3.94
+--------------------------------------------------------------------------------
+```
 
 ## [Authors](@id authors-index-md)
 Trixi was initiated by [Michael
