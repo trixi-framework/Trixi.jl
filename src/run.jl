@@ -407,7 +407,7 @@ function run_simulation(mesh, solver, time_parameters)
   println()
 
   # Return error norms for EOC calculation
-  return l2_error, linf_error, equations.varnames_cons
+  return l2_error, linf_error, solver.equations.varnames_cons
 end
 
 
