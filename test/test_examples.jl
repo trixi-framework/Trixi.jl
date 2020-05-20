@@ -46,6 +46,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @test_nowarn Trixi.run("../examples/parameters_vortex.toml")
   @test_nowarn Trixi.run("../examples/parameters_vortex_split_shockcapturing.toml")
   @test_nowarn Trixi.run("../examples/parameters_weak_blast_wave_shockcapturing.toml")
+  @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
 end
 
 # Only run extended tests if environment variable is set

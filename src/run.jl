@@ -5,7 +5,7 @@ using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, 
                 calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                  parameter, timer, print_startup_message
+                  parameter, setparameter, timer, print_startup_message
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 using .AMR: adapt!
 
@@ -16,7 +16,7 @@ using UnPack: @unpack
 
 
 """
-    run(parameters_file=nothing; verbose=false, args=nothing)
+    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
 
 Run a Trixi simulation with the parameters in `parameters_file`.
 
@@ -24,7 +24,9 @@ If `verbose` is `true`, additional output will be generated on the terminal
 that may help with debugging.  If `args` is given, it should be an
 `ARGS`-like array of strings that holds command line arguments, and will be
 interpreted by the `parse_commandline_arguments` function. In this case, the values of
-`parameters_file` and `verbose` are ignored.
+`parameters_file` and `verbose` are ignored. If a value for
+`refinement_level_increment` is given, `initial_refinement_level` will be
+ increased by this value before running the simulation (mostly used by EOC analysis).
 
 # Examples
 ```julia
@@ -32,14 +34,17 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 [...]
 ```
 """
-function run(parameters_file=nothing; verbose=false, args=nothing)
-  # Separate initialization and execution into two functions such that Julia can specialize the code in `run_simulation` for the actual type of `solver` and `mesh`
-  mesh, solver, time_parameters = init_simulation(parameters_file, verbose=verbose, args=args)
+function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+  # Separate initialization and execution into two functions such that Julia can specialize
+  # the code in `run_simulation` for the actual type of `solver` and `mesh`
+  mesh, solver, time_parameters = init_simulation(
+      parameters_file, verbose=verbose, args=args,
+      refinement_level_increment=refinement_level_increment)
   run_simulation(mesh, solver, time_parameters)
 end
 
 
-function init_simulation(parameters_file; verbose=false, args=nothing)
+function init_simulation(parameters_file; verbose=false, args=nothing, refinement_level_increment=0)
   # Reset timer
   reset_timer!(timer())
 
@@ -65,6 +70,13 @@ function init_simulation(parameters_file; verbose=false, args=nothing)
 
   # Parse parameters file
   @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+
+  # Start simulation with an increased initial refinement level if specified
+  # for convergence analysis
+  if refinement_level_increment != 0
+    setparameter("initial_refinement_level",
+      parameter("initial_refinement_level") + refinement_level_increment)
+  end
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
@@ -259,6 +271,10 @@ function run_simulation(mesh, solver, time_parameters)
   output_time = 0.0
   n_analysis_timesteps = 0
 
+  # Declare variables to return error norms calculated in main loop
+  # (needed such that the values are accessible outside of the main loop)
+  local l2_error, linf_error
+
   # Start main loop (loop until final time step is reached)
   finalstep = false
   first_loop_iteration = true
@@ -308,7 +324,7 @@ function run_simulation(mesh, solver, time_parameters)
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
-      @timeit timer() "analyze solution" analyze_solution(
+      l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
           solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
@@ -389,4 +405,88 @@ function run_simulation(mesh, solver, time_parameters)
   # Print timer information
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
+
+  # Return error norms for EOC calculation
+  return l2_error, linf_error, solver.equations.varnames_cons
+end
+
+
+"""
+    convtest(parameters_file, iterations)
+
+Run multiple Trixi simulations with the parameters in `parameters_file` and compute
+the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
+The number of runs is specified by `iterations` and in each run the initial
+refinement level will be increased by 1.
+"""
+function convtest(parameters_file, iterations)
+  @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
+
+  # Types of errors to be calcuated
+  errors = Dict(:L2 => Float64[], :Linf => Float64[])
+
+  # Declare variable to access variable names after for loop
+  local variablenames
+
+  # Run trixi and extract errors
+  for i = 1:iterations
+    println(string("Running convtest iteration ", i, "/", iterations))
+    l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
+
+    # Collect errors as one vector to reshape later
+    append!(errors[:L2], l2_error)
+    append!(errors[:Linf], linf_error)
+  end
+
+  # Number of variables
+  nvariables = length(variablenames)
+
+  # Reshape errors to get a matrix where the i-th row represents the i-th iteration
+  # and the j-th column represents the j-th variable
+  errorsmatrix = Dict(kind => transpose(reshape(error, (nvariables, iterations))) for (kind, error) in errors)
+
+  # Calculate EOCs where the columns represent the variables
+  # As dx halves in every iteration the denominator needs to be log(1/2)
+  eocs = Dict(kind => log.(error[2:end, :] ./ error[1:end-1, :]) ./ log(1 / 2) for (kind, error) in errorsmatrix)
+
+
+  for (kind, error) in errorsmatrix
+    println(kind)
+
+    for v in variablenames
+      @printf("%-20s", v)
+    end
+    println("")
+
+    for k = 1:nvariables
+      @printf("%-10s", "error")
+      @printf("%-10s", "EOC")
+    end
+    println("")
+
+    # Print errors for the first iteration
+    for k = 1:nvariables
+      @printf("%-10.2e", error[1, k])
+      @printf("%-10s", "-")
+    end
+    println("")
+
+    # For the following iterations print errors and EOCs
+    for j = 2:iterations
+      for k = 1:nvariables
+        @printf("%-10.2e", error[j, k])
+        @printf("%-10.2f", eocs[kind][j-1, k])
+      end
+      println("")
+    end
+    println("")
+
+    # Print mean EOCs
+    for k = 1:nvariables
+      @printf("%-10s", "mean")
+      @printf("%-10.2f", sum(eocs[kind][:, k]) ./ length(eocs[kind][:, k]))
+    end
+    println("")
+    println("-"^80)
+  end
 end
