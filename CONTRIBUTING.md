@@ -7,7 +7,7 @@ beneficial to get in contact with one of the principal developers first (see
 [AUTHORS.md](AUTHORS.md)).
 
 Trixi and its contributions are licensed under the MIT license (see
-[LICENSE](LICENSE)). As a contributor, you certify that all your
+[LICENSE.md](LICENSE.md)). As a contributor, you certify that all your
 contributions are in conformance with the *Developer Certificate of Origin
 (Version 1.1)*, which is reproduced below.
 
