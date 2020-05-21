@@ -67,6 +67,6 @@ The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
 
 ## License and contributing
-Trixi is licensed under the MIT license (see [LICENSE](LICENSE)). Since Trixi is
+Trixi is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi is
 an open-source project, we are very happy to accept contributions from the
 community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
