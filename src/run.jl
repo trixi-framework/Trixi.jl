@@ -100,21 +100,35 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # Initialize system of equations
   print("Initializing system of equations... ")
   equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd",
-                                                 "hyperbolicdiffusion"])
-  equations = make_equations(equations_name)
+                                                 "hyperbolicdiffusion", "euler_gravity"])
+  if equations_name == "euler_gravity"
+    globals[:euler_gravity] = true
+    equations_euler = make_equations("euler")
+    equations_gravity = make_equations("hyperbolicdiffusion")
+  else
+    globals[:euler_gravity] = false
+    equations = make_equations(equations_name)
+  end
   println("done")
 
   # Initialize solver
   print("Initializing solver... ")
   solver_name = parameter("solver", valid=["dg"])
-  solver = make_solver(solver_name, equations, mesh)
+  if globals[:euler_gravity]
+    solver_euler = make_solver(solver_name, equations_euler, mesh)
+    solver_gravity = make_solver(solver_name, equations_gravity, mesh)
+  else
+    solver = make_solver(solver_name, equations, mesh)
+  end
   println("done")
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
-  if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
-    error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+  if !globals[:euler_gravity]
+    if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
+      error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+    end
   end
 
   # Initialize solution
@@ -122,6 +136,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
+    @assert !globals[:euler_gravity] "Not yet supported for coupled Euler-gravity simulations"
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
     println("done")
@@ -130,11 +145,17 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     t_start = parameter("t_start")
     time = t_start
     step = 0
-    set_initial_conditions(solver, time)
+    if globals[:euler_gravity]
+      set_initial_conditions(solver_euler, time)
+      set_initial_conditions(solver_gravity, time)
+    else
+      set_initial_conditions(solver, time)
+    end
     println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
+      @assert !globals[:euler_gravity] "Not yet supported for coupled Euler-gravity simulations"
       @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
           only_refine=adapt_initial_conditions_only_refine)
 
