@@ -125,7 +125,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
-  if !globals[:euler_gravity]
+  if globals[:euler_gravity]
+    if solver_euler.volume_integral_type == :weak_form && equations_euler.volume_flux_type != :central_flux
+      error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+    end
+    if solver_gravity.volume_integral_type == :weak_form && equations_gravity.volume_flux_type != :central_flux
+      error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+    end
+  else
     if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
@@ -259,12 +266,21 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
     @notimeit timer() rhs!(solver, time)
-    save_solution_file(solver, mesh, time, 0, step)
+    if globals[:euler_gravity]
+      save_solution_file(solver_euler, mesh, time, 0, step, "euler")
+      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
+    else
+      save_solution_file(solver, mesh, time, 0, step)
+    end
   end
 
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    analyze_solution(solver, mesh, time, 0, step, 0, 0)
+    if globals[:euler_gravity]
+      analyze_solution(solver_euler, mesh, time, 0, step, 0, 0)
+    else
+      analyze_solution(solver, mesh, time, 0, step, 0, 0)
+    end
   end
 
   time_parameters = (time=time, step=step, t_end=t_end, cfl=cfl,
@@ -276,16 +292,27 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
                     solution_interval=solution_interval,
                     amr_interval=amr_interval,
                     restart_interval=restart_interval)
-  return mesh, solver, time_parameters
+  if globals[:euler_gravity]
+    return mesh, solver_euler, solver_gravity, time_parameters
+  else
+    return mesh, solver, time_parameters
+  end
 end
 
 
-function run_simulation(mesh, solver, time_parameters)
+function run_simulation(mesh, solvers, time_parameters)
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,
           analysis_interval, alive_interval,
           solution_interval, amr_interval,
           restart_interval = time_parameters
+
+  if isa(solvers, Tuple)
+    solver_euler, solver_gravity = solvers
+    solver = solver_euler
+  else
+    solver = solvers
+  end
 
   loop_start_time = time_ns()
   analysis_start_time = time_ns()
@@ -315,7 +342,11 @@ function run_simulation(mesh, solver, time_parameters)
     end
 
     # Evolve solution by one time step
-    timestep!(solver, time, dt)
+    if globals[:euler_gravity]
+      timestep!(solver_euler, solver_gravity, time, dt)
+    else
+      timestep!(solver, time, dt)
+    end
     step += 1
     time += dt
     n_analysis_timesteps += 1
@@ -382,7 +413,12 @@ function run_simulation(mesh, solver, time_parameters)
         end
 
         # Then write solution file
-        save_solution_file(solver, mesh, time, dt, step)
+        if globals[:euler_gravity]
+          save_solution_file(solver_euler, mesh, time, dt, step, "euler")
+          save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
+        else
+          save_solution_file(solver, mesh, time, dt, step)
+        end
       end
       output_time += time_ns() - output_start_time
     end
