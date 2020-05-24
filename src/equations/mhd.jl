@@ -21,7 +21,7 @@ export cons2indicator!
 
 
 # Main data structure for system of equations "Mhd"
-mutable struct Mhd{SurfaceFlux} <: AbstractEquation{9}
+mutable struct Mhd{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
   name::String
   initial_conditions::String
   sources::String
@@ -30,7 +30,7 @@ mutable struct Mhd{SurfaceFlux} <: AbstractEquation{9}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
   surface_flux::SurfaceFlux
-  volume_flux_type::Symbol
+  volume_flux::VolumeFlux
   have_nonconservative_terms::Bool
 end
 
@@ -45,11 +45,12 @@ function Mhd()
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux", "central_flux", "derigs_et_al_flux"]))
   surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
+  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
                                       valid=["central_flux", "derigs_et_al_flux"]))
+  volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = true
   Mhd(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-      surface_flux, volume_flux_type, have_nonconservative_terms)
+      surface_flux, volume_flux, have_nonconservative_terms)
 end
 
 
@@ -238,30 +239,12 @@ end
 end
 
 
-# Calculate 2D two-point flux (decide which volume flux type to use)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              equation::Mhd,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
-  calcflux_twopoint!(f1, f2, f1_diag, f2_diag, Val(equation.volume_flux_type),
-                     equation, u, element_id, n_nodes)
-end
-
-
 # Calculate 2D two-point flux (element version)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              twopoint_flux_type::Val,
-                                              equation::Mhd,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
+@inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                              volume_flux, equation::Mhd, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
+
   # split form advective fluxes
   for j = 1:n_nodes
     for i = 1:n_nodes
@@ -273,45 +256,36 @@ end
 
       # Flux in x-direction
       for l = i + 1:n_nodes
-        @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
-                                        equation, 1, # 1-> x-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[5, i, j, element_id], u[6, i, j, element_id],
-                                        u[7, i, j, element_id], u[8, i, j, element_id],
-                                        u[9, i, j, element_id],
-                                        u[1, l, j, element_id], u[2, l, j, element_id],
-                                        u[3, l, j, element_id], u[4, l, j, element_id],
-                                        u[5, l, j, element_id], u[6, l, j, element_id],
-                                        u[7, l, j, element_id], u[8, l, j, element_id],
-                                        u[9, l, j, element_id])
+        flux = volume_flux(equation, 1, # 1-> x-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
+                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
+                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
+                           u[1, l, j, element_id], u[2, l, j, element_id], u[3, l, j, element_id],
+                           u[4, l, j, element_id], u[5, l, j, element_id], u[6, l, j, element_id],
+                           u[7, l, j, element_id], u[8, l, j, element_id], u[9, l, j, element_id])
         for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j]
+          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
       end
 
       # Flux in y-direction
       for l = j + 1:n_nodes
-        @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
-                                        equation, 2, # 2 -> y-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[5, i, j, element_id], u[6, i, j, element_id],
-                                        u[7, i, j, element_id], u[8, i, j, element_id],
-                                        u[9, i, j, element_id],
-                                        u[1, i, l, element_id], u[2, i, l, element_id],
-                                        u[3, i, l, element_id], u[4, i, l, element_id],
-                                        u[5, i, l, element_id], u[6, i, l, element_id],
-                                        u[7, i, l, element_id], u[8, i, l, element_id],
-                                        u[9, i, l, element_id])
+        flux = volume_flux(equation, 2, # 2 -> y-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
+                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
+                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
+                           u[1, i, l, element_id], u[2, i, l, element_id], u[3, i, l, element_id],
+                           u[4, i, l, element_id], u[5, i, l, element_id], u[6, i, l, element_id],
+                           u[7, i, l, element_id], u[8, i, l, element_id], u[9, i, l, element_id])
         for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j]
+          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
       end
     end
   end
+
   # add in nonconservative terms; see GLM paper from Derigs et al. 2018
-  @views add_noncons_flux!(f1,f2,u[:,:,:,element_id],n_nodes)
+  @views add_noncons_flux!(f1, f2, u[:,:,:,element_id], n_nodes)
 end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
@@ -353,31 +327,11 @@ end
 end
 
 
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f, ::Val{:central_flux},
-                                          equation::Mhd, orientation,
-                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                                          B1_ll, B2_ll, B3_ll, psi_ll,
-                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                                          B1_rr, B2_rr, B3_rr, psi_rr)
-  flux = central_flux(equation, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
-
-  for i in 1:9
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
-
-function central_flux(equation::Mhd, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
+function Equations.central_flux(equation::Mhd, orientation,
+                                rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                                B1_ll, B2_ll, B3_ll, psi_ll,
+                                rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                                B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{9, Float64}(undef)
   f_rr = MVector{9, Float64}(undef)
@@ -389,25 +343,6 @@ function central_flux(equation::Mhd, orientation,
   @. 0.5 * (f_ll + f_rr)
 end
 
-# Entropy conserving two-point flux for GLM-MHD equations by Derigs et al. 2018; equation (4.43)
-@inline function symmetric_twopoint_flux!(f, ::Val{:derigs_et_al_flux},
-                                          equation::Mhd, orientation,
-                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                                          B1_ll, B2_ll, B3_ll, psi_ll,
-                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                                          B1_rr, B2_rr, B3_rr, psi_rr)
-  flux = derigs_et_al_flux(equation, orientation,
-                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                           B1_ll, B2_ll, B3_ll, psi_ll,
-                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                           B1_rr, B2_rr, B3_rr, psi_rr)
-
-  for i in 1:9
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
 
 """
     derigs_et_al_flux(equation::Mhd, orientation,

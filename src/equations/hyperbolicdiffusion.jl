@@ -182,24 +182,11 @@ end
 end
 
 
-# Calculate 2D two-point flux (decide which volume flux type to use)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              equation::HyperbolicDiffusion,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
-  calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equation.volume_flux,
-                     equation, u, element_id, n_nodes)
-end
-
 # Calculate 2D two-point flux (element version)
 @inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
                                               volume_flux, equation::HyperbolicDiffusion, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
-
 
   for j = 1:n_nodes
     for i = 1:n_nodes

@@ -72,6 +72,14 @@ function cons2indicator! end
 function cons2entropy end
 function central_flux end
 
+# Calculate 2D two-point flux (decide which volume flux type to use)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                    equation, u, element_id, n_nodes)
+  calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                     equation.volume_flux, equation, u, element_id, n_nodes)
+end
+
+
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.
 
