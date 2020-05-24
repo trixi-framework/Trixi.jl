@@ -20,10 +20,11 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
-using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit, @notimeit
 using Printf: @sprintf, @printf
 using Random: seed!
+using StaticArrays: SVector, SMatrix, MMatrix, MArray
+using TimerOutputs: @timeit, @notimeit
+using UnPack: @unpack
 
 export Dg
 export set_initial_conditions
@@ -41,7 +42,7 @@ export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -156,7 +157,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi","blob"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -834,11 +835,11 @@ end
 # Calculate volume integral and update u_t
 function calc_volume_integral!(dg)
   if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
+    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t)
   elseif dg.volume_integral_type == :split_form
-    calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
+    calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t)
   elseif dg.volume_integral_type == :shock_capturing
-    calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t, dg.dsplit_transposed)
+    calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t)
   else
     error("unknown volume integral type")
   end
@@ -846,7 +847,9 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
+function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+  @unpack dhat = dg
+
   # Type alias only for convenience
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
@@ -878,8 +881,9 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix)
+function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
+  @unpack dsplit_transposed = dg
+
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
@@ -918,21 +922,19 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix)
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
 
-  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
-                        dg.inverse_weights, dg.element_variables[:blending_factor])
+  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dg.element_variables[:blending_factor])
 end
 
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix, inverse_weights::SVector,
-                               alpha::Vector{Float64})
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
+  @unpack dsplit_transposed, inverse_weights = dg
+
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
@@ -1066,7 +1068,7 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "euler"
+      if equation.name == "euler" #FIXME this doesn't look good (type stability, efficiency, ...)
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
@@ -1323,9 +1325,9 @@ calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconserv
 
 # Calculate and store Riemann fluxes across surfaces
 calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, v,
-                                            dg.surfaces.orientations)
+                                                           dg.surfaces.neighbor_ids,
+                                                           dg.surfaces.u, dg, v,
+                                                           dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
@@ -1368,9 +1370,9 @@ end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
 calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, v,
-                                            dg.surfaces.orientations)
+                                                          dg.surfaces.neighbor_ids,
+                                                          dg.surfaces.u, dg, v,
+                                                          dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
                             orientations::Vector{Int})
