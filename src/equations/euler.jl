@@ -20,7 +20,7 @@ export cons2indicator!
 
 
 # Main data structure for system of equations "Euler"
-struct Euler{SurfaceFlux} <: AbstractEquation{4}
+struct Euler{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
   name::String
   initial_conditions::String
   sources::String
@@ -28,7 +28,7 @@ struct Euler{SurfaceFlux} <: AbstractEquation{4}
   varnames_prim::SVector{4, String}
   gamma::Float64
   surface_flux::SurfaceFlux #TODO Don't all the fluxes belong to the DG struct?
-  volume_flux_type::Symbol
+  volume_flux::VolumeFlux
   have_nonconservative_terms::Bool
 end
 
@@ -41,16 +41,17 @@ function Euler()
   gamma = parameter("gamma", 1.4)
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux","central_flux",
-                                              "kennedygruber", "chandrashekar_flux", "yuichi"]))
+                                              "kennedy_gruber_flux", "chandrashekar_flux", "yuichi_flux"]))
   # "eval is evil"
   # This is a emporary hack untill we have switched to a library based approach
   # with pure Julia code instead of parameter files.
   surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
-                            valid=["central_flux", "kennedygruber", "chandrashekar_flux", "yuichi"]))
+  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
+                            valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "yuichi_flux"]))
+  volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = false
   Euler(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux, volume_flux_type,have_nonconservative_terms)
+        surface_flux, volume_flux, have_nonconservative_terms)
 end
 
 
@@ -355,26 +356,15 @@ end
 
 
 # Calculate 2D two-point flux (decide which volume flux type to use)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              equation::Euler,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
-  calcflux_twopoint!(f1, f2, f1_diag, f2_diag, Val(equation.volume_flux_type),
-                     equation, u, element_id, n_nodes)
+@inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                              equation::Euler, u, element_id, n_nodes)
+  calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                     equation.volume_flux, equation, u, element_id, n_nodes)
 end
 
 # Calculate 2D two-point flux (element version)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              twopoint_flux_type::Val,
-                                              equation::Euler,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
+@inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                              volume_flux, equation::Euler, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
 
@@ -389,55 +379,31 @@ end
 
       # Flux in x-direction
       for l = i + 1:n_nodes
-        @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
-                                        equation, 1, # 1-> x-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[1, l, j, element_id], u[2, l, j, element_id],
-                                        u[3, l, j, element_id], u[4, l, j, element_id])
+        flux = volume_flux(equation, 1, # 1-> x-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id],
+                           u[3, i, j, element_id], u[4, i, j, element_id],
+                           u[1, l, j, element_id], u[2, l, j, element_id],
+                           u[3, l, j, element_id], u[4, l, j, element_id])
         for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j]
+          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
       end
 
       # Flux in y-direction
       for l = j + 1:n_nodes
-        @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
-                                        equation, 2, # 2 -> y-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[1, i, l, element_id], u[2, i, l, element_id],
-                                        u[3, i, l, element_id], u[4, i, l, element_id])
+        flux = volume_flux(equation, 2, # 2 -> y-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id],
+                           u[3, i, j, element_id], u[4, i, j, element_id],
+                           u[1, i, l, element_id], u[2, i, l, element_id],
+                           u[3, i, l, element_id], u[4, i, l, element_id])
         for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j]
+          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
       end
     end
   end
 end
 
-
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:central_flux},
-                                          equation::Euler, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
-  flux = central_flux(equation, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 @inline function central_flux(equation::Euler, orientation,
@@ -453,28 +419,6 @@ end
   return @. 0.5 * (f_ll + f_rr)
 end
 
-
-# Kinetic energy preserving two-point flux by Yuichi et al. with pressure oscillation fix
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:yuichi},
-                                          equation::Euler, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
-  flux = yuichi_flux(equation, orientation,
-                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
 
 """
     function yuichi_flux(equation::Euler, orientation,
@@ -524,28 +468,6 @@ by Kuya, Totani and Kawai (2018)
 end
 
 
-# Kinetic energy preserving two-point flux by Kennedy and Gruber
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:kennedygruber},
-                                          equation::Euler, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
-  flux = kennedy_gruber_flux(equation, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
-
 """
     kennedy_gruber_flux(equation::Euler, orientation,
                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
@@ -589,27 +511,6 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   return (f1, f2, f3, f4)
 end
 
-# Entropy conserving two-point flux by Chandrashekar
-@inline function symmetric_twopoint_flux!(f::AbstractArray{Float64}, ::Val{:chandrashekar_flux},
-                                          equation::Euler, orientation::Int,
-                                          rho_ll::Float64,
-                                          rho_v1_ll::Float64,
-                                          rho_v2_ll::Float64,
-                                          rho_e_ll::Float64,
-                                          rho_rr::Float64,
-                                          rho_v1_rr::Float64,
-                                          rho_v2_rr::Float64,
-                                          rho_e_rr::Float64)
-  flux = chandrashekar_flux(equation, orientation,
-                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
 
 """
     chandrashekar_flux(equation::Euler, orientation,
