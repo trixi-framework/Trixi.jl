@@ -42,7 +42,7 @@ export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -53,7 +53,7 @@ struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorN
   boundaries::BoundaryContainer{V, N}
   n_boundaries::Int
 
-  mortar_type::Symbol
+  mortar_type::MortarType
   l2mortars::L2MortarContainer{V, N}
   n_l2mortars::Int
   ecmortars::EcMortarContainer{V, N}
@@ -65,7 +65,7 @@ struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorN
   inverse_vandermonde_legendre::MatrixNp1
   lhat::MatrixNp12
 
-  volume_integral_type::Symbol
+  volume_integral_type::VolumeIntegralType
   dhat::MatrixNp1
   dsplit::MatrixNp1
   dsplit_transposed::MatrixNp1
@@ -112,7 +112,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
-  mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
+  mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
@@ -133,8 +133,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
 
   # Initialize differentiation operator
-  volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
-                                          valid=["weak_form", "split_form", "shock_capturing"]))
+  volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
+                                              valid=["weak_form", "split_form", "shock_capturing"])))
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
@@ -177,7 +177,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
 
   # Initialize element variables such that they are available in the first solution file
-  if volume_integral_type === :shock_capturing
+  if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
@@ -392,10 +392,10 @@ end
 function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  if mortar_type === :l2
+  if mortar_type === Val(:l2)
     n_l2mortars = n_mortars
     n_ecmortars = 0
-  elseif mortar_type === :ec
+  elseif mortar_type === Val(:ec)
     n_l2mortars = 0
     n_ecmortars = n_mortars
   else
@@ -405,9 +405,9 @@ function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type)
   ecmortars = EcMortarContainer{V, N}(n_ecmortars)
 
   # Connect elements with surfaces and l2mortars
-  if mortar_type === :l2
+  if mortar_type === Val(:l2)
     init_mortar_connectivity!(elements, l2mortars, mesh)
-  elseif mortar_type === :ec
+  elseif mortar_type === Val(:ec)
     init_mortar_connectivity!(elements, ecmortars, mesh)
   else
     error("unknown mortar type '$(mortar_type)'")
@@ -833,17 +833,7 @@ end
 
 
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg)
-  if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t)
-  elseif dg.volume_integral_type == :split_form
-    calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t)
-  elseif dg.volume_integral_type == :shock_capturing
-    calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t)
-  else
-    error("unknown volume integral type")
-  end
-end
+calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, dg.elements.u_t)
 
 
 # Calculate volume integral (DGSEM in weak form)
@@ -1173,7 +1163,7 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
+prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
 
 # Prolong solution to mortars (l2mortar version)
 function prolong2mortars!(dg, ::Val{:l2})
@@ -1501,7 +1491,7 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
