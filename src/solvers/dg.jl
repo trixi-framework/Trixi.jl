@@ -41,7 +41,7 @@ export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -58,28 +58,28 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   ecmortars::EcMortarContainer{V, N}
   n_ecmortars::Int
 
-  nodes::SVector{Np1}
-  weights::SVector{Np1}
-  inverse_weights::SVector{Np1}
-  inverse_vandermonde_legendre::SMatrix{Np1, Np1}
-  lhat::SMatrix{Np1, 2}
+  nodes::VectorNp1
+  weights::VectorNp1
+  inverse_weights::VectorNp1
+  inverse_vandermonde_legendre::MatrixNp1
+  lhat::MatrixNp12
 
   volume_integral_type::Symbol
-  dhat::SMatrix{Np1, Np1}
-  dsplit::SMatrix{Np1, Np1}
-  dsplit_transposed::SMatrix{Np1, Np1}
+  dhat::MatrixNp1
+  dsplit::MatrixNp1
+  dsplit_transposed::MatrixNp1
 
-  mortar_forward_upper::SMatrix{Np1, Np1}
-  mortar_forward_lower::SMatrix{Np1, Np1}
-  l2mortar_reverse_upper::SMatrix{Np1, Np1}
-  l2mortar_reverse_lower::SMatrix{Np1, Np1}
-  ecmortar_reverse_upper::SMatrix{Np1, Np1}
-  ecmortar_reverse_lower::SMatrix{Np1, Np1}
+  mortar_forward_upper::MatrixNp1
+  mortar_forward_lower::MatrixNp1
+  l2mortar_reverse_upper::MatrixNp1
+  l2mortar_reverse_lower::MatrixNp1
+  ecmortar_reverse_upper::MatrixNp1
+  ecmortar_reverse_lower::MatrixNp1
 
-  analysis_nodes::SVector{NAnap1}
-  analysis_weights::SVector{NAnap1}
-  analysis_weights_volume::SVector{NAnap1}
-  analysis_vandermonde::SMatrix{NAnap1, Np1}
+  analysis_nodes::VectorNAnap1
+  analysis_weights::VectorNAnap1
+  analysis_weights_volume::VectorNAnap1
+  analysis_vandermonde::MatrixNAnap1Np1
   analysis_total_volume::Float64
 
   shock_indicator_variable::Symbol
@@ -182,7 +182,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
 
   # Create actual DG solver instance
-  dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
+  dg = Dg(
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
@@ -190,17 +190,18 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, dhat, dsplit, dsplit_transposed,
-      mortar_forward_upper, mortar_forward_lower,
-      l2mortar_reverse_upper, l2mortar_reverse_lower,
-      ecmortar_reverse_upper, ecmortar_reverse_lower,
-      analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume,
+      SVector{N+1}(nodes), SVector{N+1}(weights), SVector{N+1}(inverse_weights),
+      SMatrix{N+1,N+1}(inverse_vandermonde_legendre), SMatrix{N+1,2}(lhat),
+      volume_integral_type,
+      SMatrix{N+1,N+1}(dhat), SMatrix{N+1,N+1}(dsplit), SMatrix{N+1,N+1}(dsplit_transposed),
+      SMatrix{N+1,N+1}(mortar_forward_upper), SMatrix{N+1,N+1}(mortar_forward_lower),
+      SMatrix{N+1,N+1}(l2mortar_reverse_upper), SMatrix{N+1,N+1}(l2mortar_reverse_lower),
+      SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
+      SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
+      SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables)
-
 
   return dg
 end
