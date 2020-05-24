@@ -1,6 +1,6 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Equations: make_equations, nvariables
+using .Equations: make_equations, nvariables, central_flux
 using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
                 calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
@@ -113,7 +113,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
-  if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
+  if solver.volume_integral_type == :weak_form && equations.volume_flux != central_flux
     error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
   end
 
@@ -202,7 +202,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | | N:                $N
           | | CFL:              $cfl
           | | volume integral:  $(string(solver.volume_integral_type))
-          | | volume flux:      $(string(equations.volume_flux_type))
+          | | volume flux:      $(string(equations.volume_flux))
           | | surface flux:     $(string(equations.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)

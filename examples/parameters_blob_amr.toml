@@ -35,10 +35,10 @@ volume_integral_type = "shock_capturing"
 #volume_integral_type = "entropy_fix2"
 surface_flux = "lax_friedrichs_flux"
 #surface_flux = "chandrashekar_flux"
-#surface_flux = "yuichi"
-#volume_flux_type = "yuichi"
-volume_flux_type = "chandrashekar_flux"
-# volume_flux_type = "central_flux"
+#surface_flux = "yuichi_flux"
+#volume_flux = "yuichi_flux"
+volume_flux = "chandrashekar_flux"
+# volume_flux = "central_flux"
 
 ####################################################################################################
 # Mesh
