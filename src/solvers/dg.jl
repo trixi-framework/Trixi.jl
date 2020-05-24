@@ -1713,10 +1713,10 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg,
-                                                    dg.elements.surface_flux, dg.lhat)
-function calc_surface_integral!(u_t::Array{Float64, 4}, dg, surface_flux::Array{Float64, 4},
-                                lhat::SMatrix)
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg, dg.elements.surface_flux)
+function calc_surface_integral!(u_t, dg, surface_flux)
+  @unpack lhat = dg
+
   for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
