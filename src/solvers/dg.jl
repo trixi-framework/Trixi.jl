@@ -1717,7 +1717,7 @@ calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg, dg.elem
 function calc_surface_integral!(u_t, dg, surface_flux)
   @unpack lhat = dg
 
-  for element_id = 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         # surface at -x
@@ -1736,7 +1736,7 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  for element_id = 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
@@ -1755,7 +1755,7 @@ function calc_sources!(dg::Dg, t)
     return
   end
 
-  for element_id = 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
     sources(equations(dg), dg.elements.u_t, dg.elements.u,
             dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end
