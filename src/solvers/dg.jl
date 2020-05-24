@@ -860,9 +860,11 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+            acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -900,10 +902,11 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -980,10 +983,11 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -1006,11 +1010,12 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += ((1 - alpha[element_id]) *
-                                         (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                          dsplit_transposed[l, j] * f2[v, l, i, j]))
+            acc += (1 - alpha[element_id]) *
+                    (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j])
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
