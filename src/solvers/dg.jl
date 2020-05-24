@@ -1123,17 +1123,17 @@ function prolong2surfaces!(dg)
   for s = 1:dg.n_surfaces
     left_element_id = dg.surfaces.neighbor_ids[1, s]
     right_element_id = dg.surfaces.neighbor_ids[2, s]
-    for l = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        if dg.surfaces.orientations[s] == 1
-          # Surface in x-direction
-          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
-          dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
-        else
-          # Surface in y-direction
-          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
-          dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
-        end
+    if dg.surfaces.orientations[s] == 1
+      # Surface in x-direction
+      for l in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
+        dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+      end
+    else
+      # Surface in y-direction
+      for l in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
+        dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
       end
     end
   end
@@ -1146,20 +1146,24 @@ function prolong2boundaries!(dg)
 
   for b = 1:dg.n_boundaries
     element_id = dg.boundaries.neighbor_ids[b]
-    for l = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
-          if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
-            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
-          else # Element in +x direction of boundary
-            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
-          end
-        else # Boundary in y-direction
-          if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
-            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
-          else # Element in +y direction of boundary
-            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
-          end
+    if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
+      if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
+        end
+      else # Element in +x direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
+        end
+      end
+    else # Boundary in y-direction
+      if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
+        end
+      else # Element in +y direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
         end
       end
     end
