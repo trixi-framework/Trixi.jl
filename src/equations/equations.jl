@@ -15,6 +15,7 @@ export calc_max_dt
 export cons2prim
 export cons2indicator
 export cons2indicator!
+export central_flux
 
 
 # Base type from which all systems of equations types inherit from
@@ -69,6 +70,7 @@ function cons2prim end
 function cons2indicator end
 function cons2indicator! end
 function cons2entropy end
+function central_flux end
 
 # Next, include module files and make symbols available. Here we employ an
 # unqualified "using" to avoid boilerplate code.
