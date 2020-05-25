@@ -903,6 +903,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
             acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
@@ -984,6 +985,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
             acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
@@ -1011,6 +1013,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
             acc += (1 - alpha[element_id]) *
