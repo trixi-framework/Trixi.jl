@@ -41,13 +41,13 @@ function Euler()
   gamma = parameter("gamma", 1.4)
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux","central_flux",
-                                              "kennedy_gruber_flux", "chandrashekar_flux", "yuichi_flux"]))
+                                              "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   # "eval is evil"
   # This is a emporary hack untill we have switched to a library based approach
   # with pure Julia code instead of parameter files.
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
-                            valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "yuichi_flux"]))
+                            valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = false
   Euler(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
@@ -413,7 +413,7 @@ end
 
 
 """
-    function yuichi_flux(equation::Euler, orientation,
+    function kuya_etal_flux(equation::Euler, orientation,
                          rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                          rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -423,7 +423,7 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function yuichi_flux(equation::Euler, orientation,
+@inline function kuya_etal_flux(equation::Euler, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state

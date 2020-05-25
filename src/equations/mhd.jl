@@ -43,10 +43,10 @@ function Mhd()
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_et_al_flux"]))
+                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_etal_flux"]))
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
-                                      valid=["central_flux", "derigs_et_al_flux"]))
+                                      valid=["central_flux", "derigs_etal_flux"]))
   volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = true
   Mhd(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
@@ -345,22 +345,22 @@ end
 
 
 """
-    derigs_et_al_flux(equation::Mhd, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
+    derigs_etal_flux(equation::Mhd, orientation,
+                     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                     B1_ll, B2_ll, B3_ll, psi_ll,
+                     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                     B1_rr, B2_rr, B3_rr, psi_rr)
 
 Entropy conserving two-point flux by Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function derigs_et_al_flux(equation::Mhd, orientation,
-                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                           B1_ll, B2_ll, B3_ll, psi_ll,
-                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                           B1_rr, B2_rr, B3_rr, psi_rr)
+function derigs_etal_flux(equation::Mhd, orientation,
+                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                          B1_ll, B2_ll, B3_ll, psi_ll,
+                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                          B1_rr, B2_rr, B3_rr, psi_rr)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -412,7 +412,7 @@ function derigs_et_al_flux(equation::Mhd, orientation,
     v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
     f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
           f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v1_mag_avg +
-            B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
+          B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
   else
     f1 = rho_mean*v2_avg
     f2 = f1*v1_avg - B1_avg*B2_avg
