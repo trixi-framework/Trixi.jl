@@ -860,6 +860,7 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
             acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
