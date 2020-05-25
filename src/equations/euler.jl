@@ -1,26 +1,16 @@
-module EulerEquations
 
 using ...Trixi
-using ..Equations # Use everything to allow method extension via "function Equations.<method>"
-using ...Auxiliary: parameter
-using ...Auxiliary.Math: ln_mean
+using ..Auxiliary: parameter
+using ..Auxiliary.Math: ln_mean
 using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
-# Export all symbols that should be available from Equations
-export Euler
-export initial_conditions
-export sources
-export calcflux!
-export riemann!
-export calc_max_dt
-export cons2prim
-export cons2entropy
-export cons2indicator
-export cons2indicator!
 
+@doc raw"""
+    CompressibleEulerEquations
 
-# Main data structure for system of equations "Euler"
-struct Euler{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
+The compressible Euler equations for an ideal gas in two space dimensions.
+"""
+struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
   name::String
   initial_conditions::String
   sources::String
@@ -32,7 +22,7 @@ struct Euler{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
   have_nonconservative_terms::Bool
 end
 
-function Euler()
+function CompressibleEulerEquations()
   name = "euler"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
@@ -50,13 +40,13 @@ function Euler()
                             valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = false
-  Euler(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
+  CompressibleEulerEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
         surface_flux, volume_flux, have_nonconservative_terms)
 end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initial_conditions(equation::Euler, x::AbstractArray{Float64}, t::Real)
+function initial_conditions(equation::CompressibleEulerEquations, x, t)
   name = equation.initial_conditions
   if name == "density_pulse"
     rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
@@ -272,7 +262,7 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::Euler, ut, u, x, element_id, t, n_nodes)
+function sources(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
   if name == "convergence_test"
     # Same settings as in `initial_conditions`
@@ -316,11 +306,11 @@ end
 
 
 # Calculate 2D flux (element version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::Euler,
-                                     u::AbstractArray{Float64}, element_id::Int,
-                                     n_nodes::Int)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::CompressibleEulerEquations,
+                           u::AbstractArray{Float64}, element_id::Int,
+                           n_nodes::Int)
   for j = 1:n_nodes
     for i = 1:n_nodes
       rho    = u[1, i, j, element_id]
@@ -334,11 +324,11 @@ end
 
 
 # Calculate 2D flux (pointwise version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::Euler,
-                                     rho::Float64, rho_v1::Float64,
-                                     rho_v2::Float64, rho_e::Float64)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::CompressibleEulerEquations,
+                           rho::Float64, rho_v1::Float64,
+                           rho_v2::Float64, rho_e::Float64)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
@@ -356,8 +346,8 @@ end
 
 
 # Calculate 2D two-point flux (element version)
-@inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                              volume_flux, equation::Euler, u, element_id, n_nodes)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                    volume_flux, equation::CompressibleEulerEquations, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
 
@@ -398,9 +388,9 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function Equations.central_flux(equation::Euler, orientation,
-                                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+@inline function central_flux(equation::CompressibleEulerEquations, orientation,
+                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{4, Float64}(undef)
   f_rr = MVector{4, Float64}(undef)
@@ -413,9 +403,9 @@ end
 
 
 """
-    function kuya_etal_flux(equation::Euler, orientation,
-                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                         rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+    function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
 Kinetic energy preserving two-point flux with pressure oscillation fix
 by Kuya, Totani and Kawai (2018)
@@ -423,9 +413,9 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function kuya_etal_flux(equation::Euler, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+@inline function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+                                rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -461,7 +451,7 @@ end
 
 
 """
-    kennedy_gruber_flux(equation::Euler, orientation,
+    kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                         rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -470,7 +460,7 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function kennedy_gruber_flux(equation::Euler, orientation,
+@inline function kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
                                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -505,16 +495,16 @@ end
 
 
 """
-    chandrashekar_flux(equation::Euler, orientation,
+    chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
-  for Compressible Euler and Navier-Stokes Equations
+  for Compressible CompressibleEulerEquations and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function chandrashekar_flux(equation::Euler, orientation,
+@inline function chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -557,7 +547,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::Euler, rho::Float64,
+@inline function calcflux1D!(f::AbstractArray{Float64}, equation::CompressibleEulerEquations, rho::Float64,
                              rho_v1::Float64, rho_v2::Float64,
                              rho_e::Float64, orientation::Int)
   v1 = rho_v1/rho
@@ -578,13 +568,13 @@ end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 3},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces_left::AbstractArray{Float64, 3},
-                            u_surfaces_right::AbstractArray{Float64, 3},
-                            surface_id::Int,
-                            equation::Euler, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractArray{Float64, 3},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces_left::AbstractArray{Float64, 3},
+                  u_surfaces_right::AbstractArray{Float64, 3},
+                  surface_id::Int,
+                  equation::CompressibleEulerEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   # i -> left, j -> right
   for j = 1:n_nodes
@@ -611,12 +601,12 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces::AbstractArray{Float64, 4},
-                            surface_id::Int,
-                            equation::Euler, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractMatrix{Float64},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces::AbstractArray{Float64, 4},
+                  surface_id::Int,
+                  equation::CompressibleEulerEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   for i = 1:n_nodes
     # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
@@ -640,10 +630,10 @@ end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
-                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
-                            equation::Euler, orientation::Int)
+function riemann!(surface_flux::AbstractArray{Float64, 1},
+                  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
+                  equation::CompressibleEulerEquations, orientation::Int)
 
   # I'm not really sure where to hook into the call chain. This is just a first
   # implementation as proof of concept and should be discussed and improved.
@@ -659,7 +649,7 @@ function Equations.riemann!(surface_flux::AbstractArray{Float64, 1},
 end
 
 
-function lax_friedrichs_flux(equation::Euler, orientation,
+function lax_friedrichs_flux(equation::CompressibleEulerEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate primitive variables and speed of sound
@@ -693,7 +683,7 @@ end
 # Original riemann! implementation, non-optimized but easier to understand
 # function Equations.riemann!(surface_flux::Array{Float64, 2},
 #                             u_surfaces::Array{Float64, 3}, surface_id::Int,
-#                             equation::Euler, n_nodes::Int)
+#                             equation::CompressibleEulerEquations, n_nodes::Int)
 #   u_ll     = u_surfaces[1, :, surface_id]
 #   u_rr     = u_surfaces[2, :, surface_id]
 #
@@ -755,9 +745,9 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.calc_max_dt(equation::Euler, u::Array{Float64, 4},
-                               element_id::Int, n_nodes::Int,
-                               invjacobian::Float64, cfl::Float64)
+function calc_max_dt(equation::CompressibleEulerEquations, u::Array{Float64, 4},
+                     element_id::Int, n_nodes::Int,
+                     invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
   for j = 1:n_nodes
     for i = 1:n_nodes
@@ -781,7 +771,7 @@ end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
+function cons2prim(equation::CompressibleEulerEquations, cons::Array{Float64, 4})
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -793,7 +783,7 @@ function Equations.cons2prim(equation::Euler, cons::Array{Float64, 4})
 end
 
 # Convert conservative variables to entropy
-function Equations.cons2entropy(equation::Euler, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+function cons2entropy(equation::CompressibleEulerEquations, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
   entropy = similar(cons)
   v = zeros(2,n_nodes,n_nodes,n_elements)
   v_square = zeros(n_nodes,n_nodes,n_elements)
@@ -821,7 +811,7 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(equation::Euler, prim::AbstractArray{Float64})
+function prim2cons(equation::CompressibleEulerEquations, prim::AbstractArray{Float64})
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -832,9 +822,9 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Euler,
-                                           cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int, indicator_variable)
+@inline function cons2indicator!(indicator::AbstractArray{Float64}, equation::CompressibleEulerEquations,
+                                 cons::AbstractArray{Float64},
+                                 element_id::Int, n_nodes::Int, indicator_variable)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
@@ -846,16 +836,14 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
-                                          ::Val{:density})
+@inline function cons2indicator(equation::CompressibleEulerEquations, rho, rho_v1, rho_v2, rho_e, ::Val{:density})
   # Indicator variable is rho
   return rho
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
-                                          ::Val{:density_pressure})
+@inline function cons2indicator(equation::CompressibleEulerEquations, rho, rho_v1, rho_v2, rho_e, ::Val{:density_pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -868,8 +856,7 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Euler, rho, rho_v1, rho_v2, rho_e,
-                                          ::Val{:pressure})
+@inline function cons2indicator(equation::CompressibleEulerEquations, rho, rho_v1, rho_v2, rho_e, ::Val{:pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -898,6 +885,3 @@ end
   entropy_flux = S*v[orientation]
   return entropy, entropy_flux
 end
-
-
-end # module
