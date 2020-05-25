@@ -4,7 +4,7 @@ equations = "mhd"
 gamma = 1.4
 initial_conditions = "rotor"
 surface_flux = "lax_friedrichs_flux"
-volume_flux_type = "central_flux"
+volume_flux = "central_flux"
 
 amr_indicator = "blast_wave" # for now just for testing
 

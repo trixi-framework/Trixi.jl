@@ -17,7 +17,7 @@ export cons2prim
 
 
 # Main data structure for system of equations "linear scalar advection"
-struct LinearScalarAdvection{SurfaceFlux} <: AbstractEquation{1}
+struct LinearScalarAdvection{SurfaceFlux, VolumeFlux} <: AbstractEquation{1}
   name::String
   initial_conditions::String
   sources::String
@@ -25,7 +25,7 @@ struct LinearScalarAdvection{SurfaceFlux} <: AbstractEquation{1}
   varnames_prim::SVector{1, String}
   advectionvelocity::SVector{2, Float64}
   surface_flux::SurfaceFlux
-  volume_flux_type::Symbol
+  volume_flux::VolumeFlux
   have_nonconservative_terms::Bool
 end
 
@@ -39,10 +39,10 @@ function LinearScalarAdvection()
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
                                        valid=["lax_friedrichs_flux", "central_flux"]))
   surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
-                                      valid=["central_flux"]))
+  volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
+  volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = false
-  LinearScalarAdvection(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux_type,
+  LinearScalarAdvection(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux,
                         have_nonconservative_terms)
 end
 
