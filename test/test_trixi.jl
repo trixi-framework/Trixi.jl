@@ -13,13 +13,17 @@ the relative tolerance.
 """
 function test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001)
   # Run basic test to ensure that there is no output to STDERR
-  @test_nowarn l2_measured, linf_measured, _ = Trixi.run(parameters_file)
+  l2_measured, linf_measured, _ = @test_nowarn Trixi.run(parameters_file)
 
   # If present, compare L2 and Linf errors against reference values
   if !isnothing(l2)
-    @test all(isapprox(a, b, rtol=rtol) for (a, b) in zip(l2, l2_measured))
+    for (l2_expected, l2_actual) in zip(l2, l2_measured)
+      @test isapprox(l2_expected, l2_actual, rtol=rtol)
+    end
   end
   if !isnothing(linf)
-    @test all(isapprox(a, b, rtol=rtol) for (a, b) in zip(linf, linf_measured))
+    for (linf_expected, linf_actual) in zip(linf, linf_measured)
+      @test isapprox(linf_expected, linf_actual, rtol=rtol)
+    end
   end
 end
