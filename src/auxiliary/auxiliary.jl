@@ -78,7 +78,7 @@ function parse_commandline_arguments(args=ARGS)
 
   # Initialize dictionary with parsed arguments
   parsed = Dict{String, Any}()
-  
+
   # Verbose if disabled by default
   parsed["verbose"] = false
 
@@ -184,6 +184,25 @@ function print_startup_message()
     """
   println(s)
 end
+
+
+"""
+    strip_val(x)
+
+Return `y` if `x isa Val{y}` and return `x` otherwise.
+
+## Examples
+
+```jldoctest
+julia> strip_val("test")
+"test"
+
+julia> strip_val(Val(:test))
+:test
+```
+"""
+strip_val(x) = x
+strip_val(::Val{x}) where x = x
 
 
 end
