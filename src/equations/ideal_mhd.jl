@@ -24,7 +24,7 @@ mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
 end
 
 function IdealMhdEquations()
-  name = "mhd"
+  name = "IdealMhd"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]

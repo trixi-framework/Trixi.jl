@@ -759,7 +759,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
 
-  if equation.name == "mhd"
+  if equation.name == "IdealMhd"
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
     println()
     print(" L2 ∇⋅B:    ")
@@ -1067,12 +1067,12 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "euler" #FIXME this doesn't look good (type stability, efficiency, ...)
+      if equation.name == "CompressibleEuler" #FIXME this doesn't look good (type stability, efficiency, ...)
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 1)
-      elseif equation.name == "mhd"
+      elseif equation.name == "IdealMhd"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
@@ -1098,12 +1098,12 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "euler"
+      if equation.name == "CompressibleEuler"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 2)
-      elseif equation.name == "mhd"
+      elseif equation.name == "IdealMhd"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],

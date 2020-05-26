@@ -26,7 +26,7 @@ struct LinearScalarAdvectionEquation{SurfaceFlux, VolumeFlux} <: AbstractEquatio
 end
 
 function LinearScalarAdvectionEquation()
-  name = "linearscalaradvection"
+  name = "LinearScalarAdvection"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = SVector("scalar")

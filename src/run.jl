@@ -99,8 +99,8 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd",
-                                                 "hyperbolicdiffusion"])
+  equations_name = parameter("equations", valid=["LinearScalarAdvection", "CompressibleEuler", "IdealMhd",
+                                                 "HyperbolicDiffusion"])
   equations = make_equations(equations_name)
   println("done")
 
@@ -305,7 +305,7 @@ function run_simulation(mesh, solver, time_parameters)
     end
 
     # Check steady-state integration residual
-    if solver.equations.name == "hyperbolicdiffusion"
+    if solver.equations.name == "HyperbolicDiffusion"
       if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
         println()
         println("-"^80)

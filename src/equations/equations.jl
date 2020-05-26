@@ -41,13 +41,13 @@ end
 
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String)
-  if name == "linearscalaradvection"
+  if name == "LinearScalarAdvection"
     return LinearScalarAdvectionEquation()
-  elseif name == "euler"
+  elseif name == "CompressibleEuler"
     return CompressibleEulerEquations()
-  elseif name == "mhd"
+  elseif name == "IdealMhd"
     return IdealMhdEquations()
-  elseif name == "hyperbolicdiffusion"
+  elseif name == "HyperbolicDiffusion"
     return HyperbolicDiffusionEquations()
   else
     error("'$name' does not name a valid system of equations")
@@ -67,15 +67,15 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
-include("linearscalaradvection.jl")
+include("linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
-include("euler.jl")
+include("compressible_euler.jl")
 
 # Ideal MHD
-include("mhd.jl")
+include("ideal_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
-include("hyperbolicdiffusion.jl")
+include("hyperbolic_diffusion.jl")
 
 end # module

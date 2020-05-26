@@ -26,7 +26,7 @@ struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation
 end
 
 function HyperbolicDiffusionEquations()
-  name = "hyperbolicdiffusion"
+  name = "HyperbolicDiffusion"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "harmonic")
   varnames_cons = @SVector ["phi", "p", "q"]

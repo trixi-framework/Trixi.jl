@@ -23,7 +23,7 @@ struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4
 end
 
 function CompressibleEulerEquations()
-  name = "euler"
+  name = "CompressibleEuler"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
