@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "hyperbolicdiffusion"
+equations = "HyperbolicDiffusion"
 nu = 1.0
 
 initial_conditions = "poisson_periodic"

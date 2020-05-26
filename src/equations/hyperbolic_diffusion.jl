@@ -1,24 +1,16 @@
-module HyperbolicDiffusionEquations
 
-using ...Trixi
-using ..Equations # Use everything to allow method extension via "function Equations.<method>"
-using ...Auxiliary: parameter
+using ..Trixi
+using ..Auxiliary: parameter
 using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
-# Export all symbols that should be available from Equations
-export HyperbolicDiffusion
-export initial_conditions
-export sources
-export calcflux!
-export riemann!
-export calc_max_dt
-export cons2entropy
-export cons2prim
 
+@doc raw"""
+    HyperbolicDiffusionEquations
 
-# Main data structure for system of equations "Diffusion equation: first-order hyperbolic system"
-# Equation system description can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1"
-struct HyperbolicDiffusion{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
+The linear hyperbolic diffusion equations in two space dimensions.
+A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
+""" #TODO: DOI
+struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
   name::String
   initial_conditions::String
   sources::String
@@ -33,8 +25,8 @@ struct HyperbolicDiffusion{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
   have_nonconservative_terms::Bool
 end
 
-function HyperbolicDiffusion()
-  name = "hyperbolicdiffusion"
+function HyperbolicDiffusionEquations()
+  name = "HyperbolicDiffusion"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "harmonic")
   varnames_cons = @SVector ["phi", "p", "q"]
@@ -53,14 +45,13 @@ function HyperbolicDiffusion()
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = false
-  HyperbolicDiffusion(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
+  HyperbolicDiffusionEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
                       surface_flux, volume_flux, have_nonconservative_terms)
 end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function Equations.initial_conditions(equation::HyperbolicDiffusion, x::AbstractArray{Float64},
-                                      t::Real)
+function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
   name = equation.initial_conditions
   if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
@@ -107,7 +98,7 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::HyperbolicDiffusion, ut, u, x, element_id, t, n_nodes)
+function sources(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
   if name == "poisson_periodic"
   # elliptic equation: -νΔϕ = f
@@ -151,11 +142,11 @@ end
 
 
 # Calculate 2D flux (element version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::HyperbolicDiffusion,
-                                     u::AbstractArray{Float64}, element_id::Int,
-                                     n_nodes::Int)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::HyperbolicDiffusionEquations,
+                           u::AbstractArray{Float64}, element_id::Int,
+                           n_nodes::Int)
   for j = 1:n_nodes
     for i = 1:n_nodes
       phi = u[1, i, j, element_id]
@@ -168,10 +159,10 @@ end
 
 
 # Calculate 2D flux (pointwise version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::HyperbolicDiffusion,
-                                     phi::Float64, p::Float64, q::Float64)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::HyperbolicDiffusionEquations,
+                           phi::Float64, p::Float64, q::Float64)
   f1[1]  = -equation.nu*p
   f1[2]  = -phi/equation.Tr
   f1[3]  = 0.0
@@ -183,8 +174,8 @@ end
 
 
 # Calculate 2D two-point flux (element version)
-@inline function Equations.calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                              volume_flux, equation::HyperbolicDiffusion, u, element_id, n_nodes)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                    volume_flux, equation::HyperbolicDiffusionEquations, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
 
@@ -221,9 +212,9 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-function Equations.central_flux(equation::HyperbolicDiffusion, orientation,
-                                phi_ll, p_ll, q_ll,
-                                phi_rr, p_rr, q_rr)
+function central_flux(equation::HyperbolicDiffusionEquations, orientation,
+                      phi_ll, p_ll, q_ll,
+                      phi_rr, p_rr, q_rr)
   # Calculate regular 1D fluxes
   f_ll = MVector{3, Float64}(undef)
   f_rr = MVector{3, Float64}(undef)
@@ -236,8 +227,8 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::HyperbolicDiffusion,
-                             phi::Float64, p::Float64, q::Float64, orientation::Int)
+@inline function calcflux1D!(f, equation::HyperbolicDiffusionEquations,
+                             phi, p, q, orientation)
   if orientation == 1
     f[1]  = -equation.nu*p
     f[2]  = -phi/equation.Tr
@@ -251,13 +242,13 @@ end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 3},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces_left::AbstractArray{Float64, 3},
-                            u_surfaces_right::AbstractArray{Float64, 3},
-                            surface_id::Int,
-                            equation::HyperbolicDiffusion, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractArray{Float64, 3},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces_left::AbstractArray{Float64, 3},
+                  u_surfaces_right::AbstractArray{Float64, 3},
+                  surface_id::Int,
+                  equation::HyperbolicDiffusionEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   # i -> left, j -> right
   for j = 1:n_nodes
@@ -281,12 +272,12 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces::AbstractArray{Float64, 4},
-                            surface_id::Int,
-                            equation::HyperbolicDiffusion, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractMatrix{Float64},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces::AbstractArray{Float64, 4},
+                  surface_id::Int,
+                  equation::HyperbolicDiffusionEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   for i = 1:n_nodes
     # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
@@ -307,10 +298,10 @@ end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(surface_flux,
-                            phi_ll, p_ll, q_ll,
-                            phi_rr, p_rr, q_rr,
-                            equation::HyperbolicDiffusion, orientation)
+function riemann!(surface_flux,
+                  phi_ll, p_ll, q_ll,
+                  phi_rr, p_rr, q_rr,
+                  equation::HyperbolicDiffusionEquations, orientation)
 
   # I'm not really sure where to hook into the call chain. This is just a first
   # implementation as proof of concept and should be discussed and improved.
@@ -326,7 +317,7 @@ function Equations.riemann!(surface_flux,
 end
 
 
-function lax_friedrichs_flux(equation::HyperbolicDiffusion, orientation,
+function lax_friedrichs_flux(equation::HyperbolicDiffusionEquations, orientation,
                              phi_ll, p_ll, q_ll,
                              phi_rr, p_rr, q_rr,)
   # Obtain left and right fluxes
@@ -344,7 +335,7 @@ function lax_friedrichs_flux(equation::HyperbolicDiffusion, orientation,
 end
 
 
-function upwind_flux(equation::HyperbolicDiffusion, orientation,
+function upwind_flux(equation::HyperbolicDiffusionEquations, orientation,
                      phi_ll, p_ll, q_ll,
                      phi_rr, p_rr, q_rr,)
   # Obtain left and right fluxes
@@ -370,21 +361,21 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function Equations.calc_max_dt(equation::HyperbolicDiffusion, u::Array{Float64, 4},
-                               element_id::Int, n_nodes::Int,
-                               invjacobian::Float64, cfl::Float64)
+function calc_max_dt(equation::HyperbolicDiffusionEquations, u::Array{Float64, 4},
+                     element_id::Int, n_nodes::Int,
+                     invjacobian::Float64, cfl::Float64)
   dt = cfl * 2 / (invjacobian * sqrt(equation.nu/equation.Tr)) / n_nodes
 
   return dt
 end
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::HyperbolicDiffusion, cons::Array{Float64, 4})
+function cons2prim(equation::HyperbolicDiffusionEquations, cons::Array{Float64, 4})
   return cons
 end
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function Equations.cons2entropy(equation::HyperbolicDiffusion,
+function Equations.cons2entropy(equation::HyperbolicDiffusionEquations,
                                 cons::Array{Float64, 4}, n_nodes::Int,
                                 n_elements::Int)
   entropy = similar(cons)
@@ -394,5 +385,3 @@ function Equations.cons2entropy(equation::HyperbolicDiffusion,
 
   return entropy
 end
-
-end # module

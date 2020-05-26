@@ -21,7 +21,7 @@ julia> euler3d()
 using Reduce
 @force using Reduce.Algebra
 
-# Original Reduce code (Euler 2D)
+# Original Reduce code (CompressibleEulerEquations 2D)
 #=
 clear(γ,f,A,ω,c,ini,rho,rho_v1,rho_v2,rho_v3,rho_e,v1,v2,p,x,y,t,u1,u2,u3,u4);
 
@@ -61,7 +61,7 @@ function euler2d()
 end
 
 
-# Original Reduce code (Euler 3D)
+# Original Reduce code (CompressibleEulerEquations 3D)
 #=
 clear(γ,f,A,ω,c,a1,a2,a3,ini,rho,rho_v1,rho_v2,rho_v3,rho_e,v1,v2,v3,p,x,y,z,t);
 
