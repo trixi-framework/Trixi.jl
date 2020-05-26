@@ -19,7 +19,6 @@ struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4
   gamma::Float64
   surface_flux::SurfaceFlux #TODO Don't all the fluxes belong to the DG struct?
   volume_flux::VolumeFlux
-  have_nonconservative_terms::Bool
 end
 
 function CompressibleEulerEquations()
@@ -33,16 +32,18 @@ function CompressibleEulerEquations()
                                        valid=["lax_friedrichs_flux","central_flux",
                                               "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   # "eval is evil"
-  # This is a emporary hack untill we have switched to a library based approach
+  # This is a emporary hack (used for all equations) until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
                             valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   volume_flux = eval(volume_flux_type)
-  have_nonconservative_terms = false
   CompressibleEulerEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux, volume_flux, have_nonconservative_terms)
+        surface_flux, volume_flux)
 end
+
+
+have_nonconservative_terms(::CompressibleEulerEquations) = Val(false)
 
 
 # Set initial conditions at physical location `x` for time `t`

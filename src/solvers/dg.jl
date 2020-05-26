@@ -9,7 +9,7 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
-                    noncons_surface_flux!
+                    noncons_surface_flux!, have_nonconservative_terms
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -1323,14 +1323,14 @@ end
 # Calculate and the surface fluxes (standard Riemann and nonconservative parts) at an interface
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
-calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconservative_terms))
+calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg,
+                                            have_nonconservative_terms(dg.equations),
+                                            dg.surfaces.orientations)
 
 
 # Calculate and store Riemann fluxes across surfaces
-calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
-                                                           dg.surfaces.neighbor_ids,
-                                                           dg.surfaces.u, dg, v,
-                                                           dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
@@ -1372,10 +1372,6 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
-calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
-                                                          dg.surfaces.neighbor_ids,
-                                                          dg.surfaces.u, dg, v,
-                                                          dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
                             orientations::Vector{Int})
