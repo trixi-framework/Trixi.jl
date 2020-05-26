@@ -1,8 +1,8 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function Solvers.refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
-                         cells_to_refine::AbstractArray{Int}) where {Eqn, V, N}
+function refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
+                 cells_to_refine::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -150,8 +150,8 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function Solvers.coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
-                          child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, V, N}
+function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
+                  child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -320,7 +320,7 @@ end
 #
 # FIXME: This is currently implemented for each test case - we need something
 # appropriate that is both equation and test case independent
-function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
+function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
   lambda = zeros(dg.n_elements)
 
   if dg.amr_indicator === :gauss
@@ -483,7 +483,7 @@ function Solvers.calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
       end
       # make sure that a highly troubled shock cell is not coarsened
       if isapprox.(dg.shock_alpha_max, alpha1[element_id], atol=1e-12)
-        target_level = max_level 
+        target_level = max_level
       end
       # Compare target level with actual level to set indicator
       if actual_level < target_level

@@ -1,19 +1,3 @@
-using .Mesh: generate_mesh, load_mesh
-using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Equations: make_equations, nvariables, central_flux, HyperbolicDiffusionEquations
-using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
-                calc_amr_indicator, rhs!
-using .TimeDisc: timestep!
-using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                  parameter, setparameter, timer, print_startup_message, strip_val
-using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
-using .AMR: adapt!
-
-using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
-using Profile: clear_malloc_data
-using UnPack: @unpack
-
 
 """
     run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
@@ -434,8 +418,8 @@ function convtest(parameters_file, iterations)
     l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
 
     # Collect errors as one vector to reshape later
-    append!(errors[:L2], l2_error)
-    append!(errors[:Linf], linf_error)
+    Base.append!(errors[:L2], l2_error)
+    Base.append!(errors[:Linf], linf_error)
   end
 
   # Number of variables

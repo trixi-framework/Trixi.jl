@@ -1,18 +1,10 @@
-module Trees
-
-using StaticArrays: MVector, @MVector
-import ...Auxiliary.Containers: invalidate!, raw_copy!, move_connectivity!, delete_connectivity!
-using ...Auxiliary.Containers: AbstractContainer, clear!, insert!, copy_data!, remove_shift!
-import Base
-
-export Tree
 
 # Composite type that represents a D-dimensional tree.
 #
 # Implements everything required for AbstractContainer.
 #
 # Note: The way the data structures are set up and the way most algorithms
-# work, it is *always* assumed that 
+# work, it is *always* assumed that
 #   a) we have a balanced tree (= at most one level difference between
 #                                 neighboring cells, or 2:1 rule)
 #   b) we may not have all children (= some children may not exist)
@@ -233,7 +225,7 @@ opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 #
 # Essentially calculates the following
 #         dim=1 dim=2 dim=3
-# child     x     y     z  
+# child     x     y     z
 #   1       -     -     -
 #   2       +     -     -
 #   3       -     +     -
@@ -648,7 +640,7 @@ function coarsen_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
 
   # Get list of unique parent ids for all leaf cells
   parent_ids = unique(t.parent_ids[leaves])
-  
+
   # Filter parent ids to be within box
   parents = filter(parent_ids) do cell_id
     return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
@@ -671,7 +663,7 @@ function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number,
   child_length = parent_length / 2
   coordinates = MVector{D, Float64}(undef)
 
-  # For each dimension, calculate coordinate as parent coordinate + relative position x length/2 
+  # For each dimension, calculate coordinate as parent coordinate + relative position x length/2
   for d in 1:D
     coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
   end
@@ -808,8 +800,7 @@ end
 # Raw copy operation for ranges of cells.
 #
 # This method is used by the higher-level copy operations for AbstractContainer
-function raw_copy!(target::Tree, source::Tree, first::Int,
-                                        last::Int, destination::Int)
+function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
              n_children_per_cell(target))
@@ -819,12 +810,10 @@ function raw_copy!(target::Tree, source::Tree, first::Int,
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
 end
-function raw_copy!(c::AbstractContainer, first::Int,
-                                        last::Int, destination::Int)
+function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   raw_copy!(c, c, first, last, destination)
 end
-function raw_copy!(target::AbstractContainer,
-                                        source::AbstractContainer, from::Int, destination::Int)
+function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
   raw_copy!(target, source, from, from, destination)
 end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
@@ -842,6 +831,4 @@ function reset_data_structures!(t::Tree{D}) where D
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
-end
-
 end

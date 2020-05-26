@@ -1,10 +1,4 @@
 
-using ..Trixi
-using ..Auxiliary: parameter
-using ..Auxiliary.Math: ln_mean
-using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
-
-
 @doc raw"""
     IdealMhdEquations
 

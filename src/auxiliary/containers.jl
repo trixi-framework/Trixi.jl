@@ -1,22 +1,8 @@
-module Containers
-
-export AbstractContainer
-export append!
-export shring!
-export copy!
-export move!
-export swap!
-export insert!
-export erase!
-export remove_shift!
-export remove_fill!
-export reset!
-export clear!
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
 
-# Add generic functions for which concrete containers must add implementations
+# Generic functions for which concrete containers must add implementations
 function invalidate! end
 function raw_copy! end
 function move_connectivity! end
@@ -48,6 +34,8 @@ Base.size(c::AbstractContainer) = (length(c),)
 
 
 # Increase container length by `count` elements
+# TODO: This looks similar to Base.resize!
+#       Shall we just use that?
 function append!(c::AbstractContainer, count::Int)
   @assert count >= 0 "Count must be non-negative"
   @assert count + length(c) <= capacity(c) "New length would exceed capacity"
@@ -58,10 +46,10 @@ function append!(c::AbstractContainer, count::Int)
   # Then, increase container length
   c.length += count
 end
-append!(c::AbstractContainer) = append(c, 1)
 
 
 # Decrease container length by `count` elements
+# TODO: Is this used at all? In Base, resize! provides this functionality
 function shrink!(c::AbstractContainer, count::Int)
   @assert count >= 0
   @assert length(c) >= count
@@ -76,6 +64,7 @@ shrink!(c::AbstractContainer) = shrink(c, 1)
 #
 # Calls `raw_copy` internally, which must be implemented for each concrete type
 # inheriting from AbstractContainer.
+# TODO: Shall we extend Base.copyto! ?
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
   @assert 1 <= first <= length(source) "First cell out of range"
@@ -171,6 +160,7 @@ end
 # Insert blank elements in container, shifting the following elements back.
 #
 # After a call to insert!, the range `position:position + count - 1` will be available for use.
+# TODO: Shall we extend Base.insert! ?
 function insert!(c::AbstractContainer, position::Int, count::Int)
   @assert 1 <= position <= length(c) + 1 "Insert position out of range"
   @assert count >= 0 "Count must be non-negative"
@@ -200,6 +190,7 @@ insert!(c) = insert!(c, position, 1)
 
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
+# TODO: Shall we extend Base.deleteat! or Base.delete! ?
 function erase!(c::AbstractContainer, first::Int, last::Int)
   @assert 1 <= first <= length(c) "First cell out of range"
   @assert 1 <= last <= length(c) "Last cell out of range"
@@ -285,5 +276,3 @@ function clear!(c::AbstractContainer)
   invalidate!(c)
   c.length = 0
 end
-
-end # module Containers

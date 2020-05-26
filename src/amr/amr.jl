@@ -1,21 +1,3 @@
-module AMR
-
-using ..Trixi
-using ..Auxiliary: parameter, timer
-using ..Auxiliary.Containers: append!
-using ..Mesh: TreeMesh
-using ..Mesh.Trees: leaf_cells, n_children_per_cell, has_parent, is_leaf
-using ..Solvers: AbstractSolver, calc_amr_indicator
-import ..Mesh # to use refine!
-import ..Mesh.Trees # to use refine!
-import ..Solvers # to use refine!
-
-using TimerOutputs: @timeit, print_timer
-using HDF5: h5open, attrs
-
-
-export adapt!
-
 
 # Obtain AMR indicators from solver, then adapt mesh, and finally adapt solver
 #
@@ -23,7 +5,7 @@ export adapt!
 # If `only_coarsen` is true, no refinement will be performed, independent of the indicator values.
 #
 # Return true if anything was changed, false if no cells where coarsened/refined
-function adapt!(mesh::TreeMesh, solver::AbstractSolver, time::Float64;
+function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
                 only_refine=false, only_coarsen=false)
   # Debug output
   globals[:verbose] && print("Begin adaptation...")
@@ -50,10 +32,10 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time::Float64;
   # Start by refining cells
   @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
     # Refine mesh
-    refined_original_cells = @timeit timer() "mesh" Mesh.Trees.refine!(tree, to_refine)
+    refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
 
     # Refine solver
-     @timeit timer() "solver" Solvers.refine!(solver, mesh, refined_original_cells)
+     @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
   else
     # If there is nothing to refine, create empty array for later use
     refined_original_cells = Int[]
@@ -96,7 +78,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time::Float64;
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndim]
 
     # Finally, coarsen mesh
-    coarsened_original_cells = @timeit timer() "mesh" Mesh.Trees.coarsen!(tree, to_coarsen)
+    coarsened_original_cells = @timeit timer() "mesh" coarsen!(tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -108,7 +90,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time::Float64;
     end
 
     # Coarsen solver
-    @timeit timer() "solver" Solvers.coarsen!(solver, mesh, removed_child_cells)
+    @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
   else
     # If there is nothing to coarsen, create empty array for later use
     coarsened_original_cells = Int[]
@@ -150,6 +132,3 @@ function original2refined(original_cell_ids::AbstractVector{Int},
   # Convert original cell ids to their shifted values
   return shifted_cell_ids[original_cell_ids]
 end
-
-
-end # module AMR
