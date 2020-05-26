@@ -1,11 +1,11 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Equations: make_equations, nvariables
+using .Equations: make_equations, nvariables, central_flux
 using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
                 calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
 using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                  parameter, setparameter, timer, print_startup_message
+                  parameter, setparameter, timer, print_startup_message, strip_val
 using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
 using .AMR: adapt!
 
@@ -99,12 +99,12 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["linearscalaradvection", "euler", "mhd",
-                                                 "hyperbolicdiffusion", "euler_gravity"])
+  equations_name = parameter("equations", valid=["LinearScalarAdvection", "CompressibleEuler", "IdealMhd",
+                                                 "HyperbolicDiffusion", "euler_gravity"])
   if equations_name == "euler_gravity"
     globals[:euler_gravity] = true
-    equations_euler = make_equations("euler")
-    equations_gravity = make_equations("hyperbolicdiffusion")
+    equations_euler = make_equations("CompressibleEuler")
+    equations_gravity = make_equations("HyperbolicDiffusion")
   else
     globals[:euler_gravity] = false
     equations = make_equations(equations_name)
@@ -126,14 +126,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
   if globals[:euler_gravity]
-    if solver_euler.volume_integral_type == :weak_form && equations_euler.volume_flux_type != :central_flux
+    if solver_euler.volume_integral_type == Val(:weak_form) && equations_euler.volume_flux_type != Val(:central_flux)
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
-    if solver_gravity.volume_integral_type == :weak_form && equations_gravity.volume_flux_type != :central_flux
+    if solver_gravity.volume_integral_type == Val(:weak_form) && equations_gravity.volume_flux_type != Val(:central_flux)
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   else
-    if solver.volume_integral_type == :weak_form && equations.volume_flux_type != :central_flux
+    if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux_type != Val(:central_flux)
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   end
@@ -229,8 +229,8 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | | solver:           $solver_name
           | | N:                $N
           | | CFL:              $cfl
-          | | volume integral:  $(string(solver.volume_integral_type))
-          | | volume flux:      $(string(equations.volume_flux_type))
+          | | volume integral:  $(strip_val(solver.volume_integral_type))
+          | | volume flux:      $(string(equations.volume_flux))
           | | surface flux:     $(string(equations.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
@@ -357,7 +357,7 @@ function run_simulation(mesh, solvers, time_parameters)
     end
 
     # Check steady-state integration residual
-    if solver.equations.name == "hyperbolicdiffusion"
+    if solver.equations.name == "HyperbolicDiffusion"
       if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
         println()
         println("-"^80)

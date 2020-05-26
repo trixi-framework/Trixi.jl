@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "euler"
+equations = "CompressibleEuler"
 
 initial_conditions = "convergence_test"
 # initial_conditions = "constant"

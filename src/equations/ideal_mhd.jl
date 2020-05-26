@@ -1,27 +1,16 @@
-module MhdEquations
 
-using ...Trixi
-using ..Equations # Use everything to allow method extension via "function Equations.<method>"
-using ...Auxiliary: parameter
-using ...Auxiliary.Math: ln_mean
+using ..Trixi
+using ..Auxiliary: parameter
+using ..Auxiliary.Math: ln_mean
 using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
 
-# Export all symbols that should be available from Equations
-export Mhd
-export initial_conditions
-export sources
-export calcflux!
-export riemann!
-export noncons_surface_flux!
-export calc_max_dt
-export cons2prim
-export cons2entropy
-export cons2indicator
-export cons2indicator!
 
+@doc raw"""
+    IdealMhdEquations
 
-# Main data structure for system of equations "Mhd"
-mutable struct Mhd{SurfaceFlux} <: AbstractEquation{9}
+The ideal compressible MHD equations in two space dimensions.
+"""
+mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
   name::String
   initial_conditions::String
   sources::String
@@ -30,12 +19,12 @@ mutable struct Mhd{SurfaceFlux} <: AbstractEquation{9}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
   surface_flux::SurfaceFlux
-  volume_flux_type::Symbol
+  volume_flux::VolumeFlux
   have_nonconservative_terms::Bool
 end
 
-function Mhd()
-  name = "mhd"
+function IdealMhdEquations()
+  name = "IdealMhd"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
@@ -43,18 +32,19 @@ function Mhd()
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
   surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_et_al_flux"]))
+                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_etal_flux"]))
   surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux_type", "central_flux",
-                                      valid=["central_flux", "derigs_et_al_flux"]))
+  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
+                                      valid=["central_flux", "derigs_etal_flux"]))
+  volume_flux = eval(volume_flux_type)
   have_nonconservative_terms = true
-  Mhd(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-      surface_flux, volume_flux_type, have_nonconservative_terms)
+  IdealMhdEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
+      surface_flux, volume_flux, have_nonconservative_terms)
 end
 
 
 # Set initial conditions at physical location `x` for time `t`
-function Equations.initial_conditions(equation::Mhd, x::AbstractArray{Float64}, t::Real)
+function initial_conditions(equation::IdealMhdEquations, x, t)
   name = equation.initial_conditions
   if name == "constant"
     rho = 1.0
@@ -169,18 +159,18 @@ end
 
 
 # Apply source terms
-function Equations.sources(equation::Mhd, ut, u, x, element_id, t, n_nodes)
+function sources(equation::IdealMhdEquations, ut, u, x, element_id, t, n_nodes)
   name = equation.sources
   error("Unknown source term '$name'")
 end
 
 
 # Calculate 2D flux (element version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::Mhd,
-                                     u::AbstractArray{Float64}, element_id::Int,
-                                     n_nodes::Int)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::IdealMhdEquations,
+                           u::AbstractArray{Float64}, element_id::Int,
+                           n_nodes::Int)
   for j = 1:n_nodes
     for i = 1:n_nodes
       rho    = u[1, i, j, element_id]
@@ -200,13 +190,13 @@ end
 
 
 # Calculate 2D flux (pointwise version)
-@inline function Equations.calcflux!(f1::AbstractArray{Float64},
-                                     f2::AbstractArray{Float64},
-                                     equation::Mhd,
-                                     rho::Float64, rho_v1::Float64,
-                                     rho_v2::Float64, rho_v3::Float64,
-                                     rho_e::Float64, B1::Float64,
-                                     B2::Float64, B3::Float64, psi::Float64)
+@inline function calcflux!(f1::AbstractArray{Float64},
+                           f2::AbstractArray{Float64},
+                           equation::IdealMhdEquations,
+                           rho::Float64, rho_v1::Float64,
+                           rho_v2::Float64, rho_v3::Float64,
+                           rho_e::Float64, B1::Float64,
+                           B2::Float64, B3::Float64, psi::Float64)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -238,30 +228,12 @@ end
 end
 
 
-# Calculate 2D two-point flux (decide which volume flux type to use)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              equation::Mhd,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
-  calcflux_twopoint!(f1, f2, f1_diag, f2_diag, Val(equation.volume_flux_type),
-                     equation, u, element_id, n_nodes)
-end
-
-
 # Calculate 2D two-point flux (element version)
-@inline function Equations.calcflux_twopoint!(f1::AbstractArray{Float64},
-                                              f2::AbstractArray{Float64},
-                                              f1_diag::AbstractArray{Float64},
-                                              f2_diag::AbstractArray{Float64},
-                                              twopoint_flux_type::Val,
-                                              equation::Mhd,
-                                              u::AbstractArray{Float64},
-                                              element_id::Int, n_nodes::Int)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                    volume_flux, equation::IdealMhdEquations, u, element_id, n_nodes)
   # Calculate regular volume fluxes
   calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
+
   # split form advective fluxes
   for j = 1:n_nodes
     for i = 1:n_nodes
@@ -273,45 +245,36 @@ end
 
       # Flux in x-direction
       for l = i + 1:n_nodes
-        @views symmetric_twopoint_flux!(f1[:, l, i, j], twopoint_flux_type,
-                                        equation, 1, # 1-> x-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[5, i, j, element_id], u[6, i, j, element_id],
-                                        u[7, i, j, element_id], u[8, i, j, element_id],
-                                        u[9, i, j, element_id],
-                                        u[1, l, j, element_id], u[2, l, j, element_id],
-                                        u[3, l, j, element_id], u[4, l, j, element_id],
-                                        u[5, l, j, element_id], u[6, l, j, element_id],
-                                        u[7, l, j, element_id], u[8, l, j, element_id],
-                                        u[9, l, j, element_id])
+        flux = volume_flux(equation, 1, # 1-> x-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
+                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
+                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
+                           u[1, l, j, element_id], u[2, l, j, element_id], u[3, l, j, element_id],
+                           u[4, l, j, element_id], u[5, l, j, element_id], u[6, l, j, element_id],
+                           u[7, l, j, element_id], u[8, l, j, element_id], u[9, l, j, element_id])
         for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j]
+          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
       end
 
       # Flux in y-direction
       for l = j + 1:n_nodes
-        @views symmetric_twopoint_flux!(f2[:, l, i, j], twopoint_flux_type,
-                                        equation, 2, # 2 -> y-direction
-                                        u[1, i, j, element_id], u[2, i, j, element_id],
-                                        u[3, i, j, element_id], u[4, i, j, element_id],
-                                        u[5, i, j, element_id], u[6, i, j, element_id],
-                                        u[7, i, j, element_id], u[8, i, j, element_id],
-                                        u[9, i, j, element_id],
-                                        u[1, i, l, element_id], u[2, i, l, element_id],
-                                        u[3, i, l, element_id], u[4, i, l, element_id],
-                                        u[5, i, l, element_id], u[6, i, l, element_id],
-                                        u[7, i, l, element_id], u[8, i, l, element_id],
-                                        u[9, i, l, element_id])
+        flux = volume_flux(equation, 2, # 2 -> y-direction
+                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
+                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
+                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
+                           u[1, i, l, element_id], u[2, i, l, element_id], u[3, i, l, element_id],
+                           u[4, i, l, element_id], u[5, i, l, element_id], u[6, i, l, element_id],
+                           u[7, i, l, element_id], u[8, i, l, element_id], u[9, i, l, element_id])
         for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j]
+          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
       end
     end
   end
+
   # add in nonconservative terms; see GLM paper from Derigs et al. 2018
-  @views add_noncons_flux!(f1,f2,u[:,:,:,element_id],n_nodes)
+  @views add_noncons_flux!(f1, f2, u[:,:,:,element_id], n_nodes)
 end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
@@ -353,27 +316,7 @@ end
 end
 
 
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function symmetric_twopoint_flux!(f, ::Val{:central_flux},
-                                          equation::Mhd, orientation,
-                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                                          B1_ll, B2_ll, B3_ll, psi_ll,
-                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                                          B1_rr, B2_rr, B3_rr, psi_rr)
-  flux = central_flux(equation, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
-
-  for i in 1:9
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
-
-function central_flux(equation::Mhd, orientation,
+function central_flux(equation::IdealMhdEquations, orientation,
                       rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                       B1_ll, B2_ll, B3_ll, psi_ll,
                       rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -389,43 +332,24 @@ function central_flux(equation::Mhd, orientation,
   @. 0.5 * (f_ll + f_rr)
 end
 
-# Entropy conserving two-point flux for GLM-MHD equations by Derigs et al. 2018; equation (4.43)
-@inline function symmetric_twopoint_flux!(f, ::Val{:derigs_et_al_flux},
-                                          equation::Mhd, orientation,
-                                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                                          B1_ll, B2_ll, B3_ll, psi_ll,
-                                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                                          B1_rr, B2_rr, B3_rr, psi_rr)
-  flux = derigs_et_al_flux(equation, orientation,
-                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                           B1_ll, B2_ll, B3_ll, psi_ll,
-                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                           B1_rr, B2_rr, B3_rr, psi_rr)
-
-  for i in 1:9
-    f[i] = flux[i]
-  end
-
-  return nothing
-end
 
 """
-    derigs_et_al_flux(equation::Mhd, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
+    derigs_etal_flux(equation::IdealMhdEquations, orientation,
+                     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                     B1_ll, B2_ll, B3_ll, psi_ll,
+                     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                     B1_rr, B2_rr, B3_rr, psi_rr)
 
 Entropy conserving two-point flux by Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function derigs_et_al_flux(equation::Mhd, orientation,
-                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                           B1_ll, B2_ll, B3_ll, psi_ll,
-                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                           B1_rr, B2_rr, B3_rr, psi_rr)
+function derigs_etal_flux(equation::IdealMhdEquations, orientation,
+                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
+                          B1_ll, B2_ll, B3_ll, psi_ll,
+                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
+                          B1_rr, B2_rr, B3_rr, psi_rr)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
@@ -477,7 +401,7 @@ function derigs_et_al_flux(equation::Mhd, orientation,
     v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
     f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
           f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v1_mag_avg +
-            B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
+          B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
   else
     f1 = rho_mean*v2_avg
     f2 = f1*v1_avg - B1_avg*B2_avg
@@ -500,7 +424,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::Mhd, rho::Float64,
+@inline function calcflux1D!(f::AbstractArray{Float64}, equation::IdealMhdEquations, rho::Float64,
                              rho_v1::Float64, rho_v2::Float64, rho_v3::Float64, rho_e::Float64,
                              B1::Float64, B2::Float64, B3::Float64, psi::Float64, orientation::Int)
   v1 = rho_v1/rho
@@ -533,13 +457,13 @@ end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
-function Equations.riemann!(surface_flux::AbstractArray{Float64, 3},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces_left::AbstractArray{Float64, 3},
-                            u_surfaces_right::AbstractArray{Float64, 3},
-                            surface_id::Int,
-                            equation::Mhd, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractArray{Float64, 3},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces_left::AbstractArray{Float64, 3},
+                  u_surfaces_right::AbstractArray{Float64, 3},
+                  surface_id::Int,
+                  equation::IdealMhdEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   # i -> left, j -> right
   for j = 1:n_nodes
@@ -576,12 +500,12 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function Equations.riemann!(surface_flux::AbstractMatrix{Float64},
-                            fstarnode::AbstractVector{Float64},
-                            u_surfaces::AbstractArray{Float64, 4},
-                            surface_id::Int,
-                            equation::Mhd, n_nodes::Int,
-                            orientations::Vector{Int})
+function riemann!(surface_flux::AbstractMatrix{Float64},
+                  fstarnode::AbstractVector{Float64},
+                  u_surfaces::AbstractArray{Float64, 4},
+                  surface_id::Int,
+                  equation::IdealMhdEquations, n_nodes::Int,
+                  orientations::Vector{Int})
   # Call pointwise Riemann solver
   for i = 1:n_nodes
     # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
@@ -615,10 +539,10 @@ end
 
 
 # Calculate flux across interface with different states on both sides (pointwise version)
-function Equations.riemann!(surface_flux,
-                            rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                            rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr,
-                            equation::Mhd, orientation)
+function riemann!(surface_flux,
+                  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
+                  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr,
+                  equation::IdealMhdEquations, orientation)
 
   # I'm not really sure where to hook into the call chain. This is just a first
   # implementation as proof of concept and should be discussed and improved.
@@ -634,7 +558,7 @@ function Equations.riemann!(surface_flux,
 end
 
 
-function lax_friedrichs_flux(equation::Mhd, orientation,
+function lax_friedrichs_flux(equation::IdealMhdEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate velocities and fast magnetoacoustic wave speeds
@@ -681,11 +605,11 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
-function Equations.noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
-                                         u_left::AbstractArray{Float64},
-                                         u_right::AbstractArray{Float64},
-                                         surface_id::Int, equation::Mhd, n_nodes::Int,
-                                         orientations::Vector{Int})
+function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
+                               u_left::AbstractArray{Float64},
+                               u_right::AbstractArray{Float64},
+                               surface_id::Int, equation::IdealMhdEquations, n_nodes::Int,
+                               orientations::Vector{Int})
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
@@ -725,9 +649,9 @@ end
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
-function Equations.calc_max_dt(equation::Mhd, u::Array{Float64, 4},
-                               element_id::Int, n_nodes::Int,
-                               invjacobian::Float64, cfl::Float64)
+function calc_max_dt(equation::IdealMhdEquations, u::Array{Float64, 4},
+                     element_id::Int, n_nodes::Int,
+                     invjacobian::Float64, cfl::Float64)
   λ_max = 0.0
   equation.c_h = 0.0
   for j = 1:n_nodes
@@ -751,7 +675,7 @@ end
 
 
 # Convert conservative variables to primitive
-function Equations.cons2prim(equation::Mhd, cons::Array{Float64, 4})
+function cons2prim(equation::IdealMhdEquations, cons::Array{Float64, 4})
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -774,7 +698,7 @@ end
 
 
 # Convert conservative variables to entropy
-function Equations.cons2entropy(equation::Mhd, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+function cons2entropy(equation::IdealMhdEquations, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)
@@ -814,7 +738,7 @@ function Equations.cons2entropy(equation::Mhd, cons::Array{Float64, 4}, n_nodes:
 end
 
 # Convert primitive to conservative variables
-function prim2cons(equation::Mhd, prim::AbstractArray{Float64})
+function prim2cons(equation::IdealMhdEquations, prim::AbstractArray{Float64})
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -831,9 +755,9 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function Equations.cons2indicator!(indicator::AbstractArray{Float64}, equation::Mhd,
-                                           cons::AbstractArray{Float64},
-                                           element_id::Int, n_nodes::Int, indicator_variable)
+@inline function cons2indicator!(indicator::AbstractArray{Float64}, equation::IdealMhdEquations,
+                                 cons::AbstractArray{Float64},
+                                 element_id::Int, n_nodes::Int, indicator_variable)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(equation,
@@ -849,8 +773,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                          B1, B2, B3, psi, ::Val{:density})
+@inline function cons2indicator(equation::IdealMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
+                                B1, B2, B3, psi, ::Val{:density})
   # Indicator variable is rho
   return rho
 end
@@ -858,8 +782,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                          B1, B2, B3, psi, ::Val{:pressure})
+@inline function cons2indicator(equation::IdealMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
+                                B1, B2, B3, psi, ::Val{:pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -872,8 +796,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function Equations.cons2indicator(equation::Mhd, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                          B1, B2, B3, psi, ::Val{:density_pressure})
+@inline function cons2indicator(equation::IdealMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
+                                B1, B2, B3, psi, ::Val{:density_pressure})
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -886,7 +810,7 @@ end
 end
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(equation::Mhd, direction::Int, cons::AbstractArray{Float64})
+@inline function calc_fast_wavespeed(equation::IdealMhdEquations, direction::Int, cons::AbstractArray{Float64})
   rho    = cons[1]
   rho_v1 = cons[2]
   rho_v2 = cons[3]
@@ -913,6 +837,3 @@ end
   end
   return c_f
 end
-
-
-end # module

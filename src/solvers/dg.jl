@@ -20,10 +20,11 @@ using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
                       vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
 import .L2Projection # Import to satisfy Gregor
 
-using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit, @notimeit
 using Printf: @sprintf, @printf
 using Random: seed!
+using StaticArrays: SVector, SMatrix, MMatrix, MArray
+using TimerOutputs: @timeit, @notimeit
+using UnPack: @unpack
 
 export Dg
 export set_initial_conditions
@@ -41,7 +42,7 @@ export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -52,34 +53,34 @@ mutable struct Dg{Eqn <: AbstractEquation, V, N, Np1, NAna, NAnap1} <: AbstractS
   boundaries::BoundaryContainer{V, N}
   n_boundaries::Int
 
-  mortar_type::Symbol
+  mortar_type::MortarType
   l2mortars::L2MortarContainer{V, N}
   n_l2mortars::Int
   ecmortars::EcMortarContainer{V, N}
   n_ecmortars::Int
 
-  nodes::SVector{Np1}
-  weights::SVector{Np1}
-  inverse_weights::SVector{Np1}
-  inverse_vandermonde_legendre::SMatrix{Np1, Np1}
-  lhat::SMatrix{Np1, 2}
+  nodes::VectorNp1
+  weights::VectorNp1
+  inverse_weights::VectorNp1
+  inverse_vandermonde_legendre::MatrixNp1
+  lhat::MatrixNp12
 
-  volume_integral_type::Symbol
-  dhat::SMatrix{Np1, Np1}
-  dsplit::SMatrix{Np1, Np1}
-  dsplit_transposed::SMatrix{Np1, Np1}
+  volume_integral_type::VolumeIntegralType
+  dhat::MatrixNp1
+  dsplit::MatrixNp1
+  dsplit_transposed::MatrixNp1
 
-  mortar_forward_upper::SMatrix{Np1, Np1}
-  mortar_forward_lower::SMatrix{Np1, Np1}
-  l2mortar_reverse_upper::SMatrix{Np1, Np1}
-  l2mortar_reverse_lower::SMatrix{Np1, Np1}
-  ecmortar_reverse_upper::SMatrix{Np1, Np1}
-  ecmortar_reverse_lower::SMatrix{Np1, Np1}
+  mortar_forward_upper::MatrixNp1
+  mortar_forward_lower::MatrixNp1
+  l2mortar_reverse_upper::MatrixNp1
+  l2mortar_reverse_lower::MatrixNp1
+  ecmortar_reverse_upper::MatrixNp1
+  ecmortar_reverse_lower::MatrixNp1
 
-  analysis_nodes::SVector{NAnap1}
-  analysis_weights::SVector{NAnap1}
-  analysis_weights_volume::SVector{NAnap1}
-  analysis_vandermonde::SMatrix{NAnap1, Np1}
+  analysis_nodes::VectorNAnap1
+  analysis_weights::VectorNAnap1
+  analysis_weights_volume::VectorNAnap1
+  analysis_vandermonde::MatrixNAnap1Np1
   analysis_total_volume::Float64
 
   shock_indicator_variable::Symbol
@@ -111,7 +112,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
-  mortar_type = Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"]))
+  mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
@@ -132,8 +133,8 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   lhat[:, 2] = calc_lhat( 1.0, nodes, weights)
 
   # Initialize differentiation operator
-  volume_integral_type = Symbol(parameter("volume_integral_type", "weak_form",
-                                          valid=["weak_form", "split_form", "shock_capturing"]))
+  volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
+                                              valid=["weak_form", "split_form", "shock_capturing"])))
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
@@ -156,7 +157,7 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave","khi","blob"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -176,13 +177,13 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
 
   # Initialize element variables such that they are available in the first solution file
-  if volume_integral_type === :shock_capturing
+  if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
 
   # Create actual DG solver instance
-  dg = Dg{typeof(equation), V, N, n_nodes, NAna, NAna + 1}(
+  dg = Dg(
       equation,
       elements, n_elements,
       surfaces, n_surfaces,
@@ -190,17 +191,18 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      nodes, weights, inverse_weights, inverse_vandermonde_legendre, lhat,
-      volume_integral_type, dhat, dsplit, dsplit_transposed,
-      mortar_forward_upper, mortar_forward_lower,
-      l2mortar_reverse_upper, l2mortar_reverse_lower,
-      ecmortar_reverse_upper, ecmortar_reverse_lower,
-      analysis_nodes, analysis_weights, analysis_weights_volume,
-      analysis_vandermonde, analysis_total_volume,
+      SVector{N+1}(nodes), SVector{N+1}(weights), SVector{N+1}(inverse_weights),
+      SMatrix{N+1,N+1}(inverse_vandermonde_legendre), SMatrix{N+1,2}(lhat),
+      volume_integral_type,
+      SMatrix{N+1,N+1}(dhat), SMatrix{N+1,N+1}(dsplit), SMatrix{N+1,N+1}(dsplit_transposed),
+      SMatrix{N+1,N+1}(mortar_forward_upper), SMatrix{N+1,N+1}(mortar_forward_lower),
+      SMatrix{N+1,N+1}(l2mortar_reverse_upper), SMatrix{N+1,N+1}(l2mortar_reverse_lower),
+      SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
+      SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
+      SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables)
-
 
   return dg
 end
@@ -390,10 +392,10 @@ end
 function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  if mortar_type === :l2
+  if mortar_type === Val(:l2)
     n_l2mortars = n_mortars
     n_ecmortars = 0
-  elseif mortar_type === :ec
+  elseif mortar_type === Val(:ec)
     n_l2mortars = 0
     n_ecmortars = n_mortars
   else
@@ -403,9 +405,9 @@ function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type)
   ecmortars = EcMortarContainer{V, N}(n_ecmortars)
 
   # Connect elements with surfaces and l2mortars
-  if mortar_type === :l2
+  if mortar_type === Val(:l2)
     init_mortar_connectivity!(elements, l2mortars, mesh)
-  elseif mortar_type === :ec
+  elseif mortar_type === Val(:ec)
     init_mortar_connectivity!(elements, ecmortars, mesh)
   else
     error("unknown mortar type '$(mortar_type)'")
@@ -757,7 +759,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
 
-  if equation.name == "mhd"
+  if equation.name == "IdealMhd"
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
     println()
     print(" L2 ∇⋅B:    ")
@@ -831,21 +833,13 @@ end
 
 
 # Calculate volume integral and update u_t
-function calc_volume_integral!(dg)
-  if dg.volume_integral_type == :weak_form
-    calc_volume_integral!(dg, Val(:weak_form), dg.elements.u_t, dg.dhat)
-  elseif dg.volume_integral_type == :split_form
-    calc_volume_integral!(dg, Val(:split_form), dg.elements.u_t, dg.dsplit_transposed)
-  elseif dg.volume_integral_type == :shock_capturing
-    calc_volume_integral!(dg, Val(:shock_capturing), dg.elements.u_t, dg.dsplit_transposed)
-  else
-    error("unknown volume integral type")
-  end
-end
+calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, dg.elements.u_t)
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dhat::SMatrix)
+function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+  @unpack dhat = dg
+
   # Type alias only for convenience
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
@@ -866,9 +860,12 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t::Array{Float64, 4}, dh
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+            acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -877,8 +874,9 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix)
+function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
+  @unpack dsplit_transposed = dg
+
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
@@ -905,10 +903,12 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t::Array{Float64, 4},
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -917,21 +917,19 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix)
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
 
-  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dsplit_transposed,
-                        dg.inverse_weights, dg.element_variables[:blending_factor])
+  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dg.element_variables[:blending_factor])
 end
 
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 4},
-                               dsplit_transposed::SMatrix, inverse_weights::SVector,
-                               alpha::Vector{Float64})
+function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
+  @unpack dsplit_transposed, inverse_weights = dg
+
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
@@ -987,10 +985,12 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                         dsplit_transposed[l, j] * f2[v, l, i, j])
+            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -1013,11 +1013,13 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t::Array{Float64, 
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
+          # Use local accumulator to improve performance
+          acc = zero(eltype(u_t))
           for l = 1:nnodes(dg)
-            u_t[v, i, j, element_id] += ((1 - alpha[element_id]) *
-                                         (dsplit_transposed[l, i] * f1[v, l, i, j] +
-                                          dsplit_transposed[l, j] * f2[v, l, i, j]))
+            acc += (1 - alpha[element_id]) *
+                    (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j])
           end
+          u_t[v, i, j, element_id] += acc
         end
       end
     end
@@ -1065,12 +1067,12 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "euler"
+      if equation.name == "CompressibleEuler" #FIXME this doesn't look good (type stability, efficiency, ...)
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 1)
-      elseif equation.name == "mhd"
+      elseif equation.name == "IdealMhd"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
@@ -1096,12 +1098,12 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "euler"
+      if equation.name == "CompressibleEuler"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 2)
-      elseif equation.name == "mhd"
+      elseif equation.name == "IdealMhd"
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
@@ -1125,17 +1127,17 @@ function prolong2surfaces!(dg)
   for s = 1:dg.n_surfaces
     left_element_id = dg.surfaces.neighbor_ids[1, s]
     right_element_id = dg.surfaces.neighbor_ids[2, s]
-    for l = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        if dg.surfaces.orientations[s] == 1
-          # Surface in x-direction
-          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
-          dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
-        else
-          # Surface in y-direction
-          dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
-          dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
-        end
+    if dg.surfaces.orientations[s] == 1
+      # Surface in x-direction
+      for l in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
+        dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+      end
+    else
+      # Surface in y-direction
+      for l in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
+        dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
       end
     end
   end
@@ -1148,20 +1150,24 @@ function prolong2boundaries!(dg)
 
   for b = 1:dg.n_boundaries
     element_id = dg.boundaries.neighbor_ids[b]
-    for l = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
-        if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
-          if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
-            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
-          else # Element in +x direction of boundary
-            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
-          end
-        else # Boundary in y-direction
-          if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
-            dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
-          else # Element in +y direction of boundary
-            dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
-          end
+    if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
+      if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[1, v, l, b] = dg.elements.u[v, nnodes(dg), l, element_id]
+        end
+      else # Element in +x direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[2, v, l, b] = dg.elements.u[v, 1,          l, element_id]
+        end
+      end
+    else # Boundary in y-direction
+      if dg.boundaries.neighbor_sides[b] == 1 # Element in -y direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[1, v, l, b] = dg.elements.u[v, l, nnodes(dg), element_id]
+        end
+      else # Element in +y direction of boundary
+        for l in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.boundaries.u[2, v, l, b] = dg.elements.u[v, l, 1,          element_id]
         end
       end
     end
@@ -1170,7 +1176,7 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg) = prolong2mortars!(dg, Val(dg.mortar_type))
+prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
 
 # Prolong solution to mortars (l2mortar version)
 function prolong2mortars!(dg, ::Val{:l2})
@@ -1322,9 +1328,9 @@ calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconserv
 
 # Calculate and store Riemann fluxes across surfaces
 calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, v,
-                                            dg.surfaces.orientations)
+                                                           dg.surfaces.neighbor_ids,
+                                                           dg.surfaces.u, dg, v,
+                                                           dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
@@ -1367,9 +1373,9 @@ end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
 calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg.surfaces.neighbor_ids,
-                                            dg.surfaces.u, dg, v,
-                                            dg.surfaces.orientations)
+                                                          dg.surfaces.neighbor_ids,
+                                                          dg.surfaces.u, dg, v,
+                                                          dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
                             orientations::Vector{Int})
@@ -1498,7 +1504,7 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-calc_mortar_flux!(dg) = calc_mortar_flux!(dg, Val(dg.mortar_type))
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
@@ -1711,11 +1717,11 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg,
-                                                    dg.elements.surface_flux, dg.lhat)
-function calc_surface_integral!(u_t::Array{Float64, 4}, dg, surface_flux::Array{Float64, 4},
-                                lhat::SMatrix)
-  for element_id = 1:dg.n_elements
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg, dg.elements.surface_flux)
+function calc_surface_integral!(u_t, dg, surface_flux)
+  @unpack lhat = dg
+
+  Threads.@threads for element_id = 1:dg.n_elements
     for l = 1:nnodes(dg)
       for v = 1:nvariables(dg)
         # surface at -x
@@ -1734,7 +1740,7 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  for element_id = 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         for v = 1:nvariables(dg)
@@ -1753,7 +1759,7 @@ function calc_sources!(dg::Dg, t)
     return
   end
 
-  for element_id = 1:dg.n_elements
+  Threads.@threads for element_id = 1:dg.n_elements
     sources(equations(dg), dg.elements.u_t, dg.elements.u,
             dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end

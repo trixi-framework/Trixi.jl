@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
-equations = "euler"
-# equations = "linearscalaradvection"
+equations = "CompressibleEuler"
+# equations = "LinearScalarAdvection"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 # initial_conditions = "convergence_test"
@@ -13,8 +13,8 @@ equations = "euler"
 initial_conditions = "sedov_blast_wave"
 amr_indicator = "blast_wave"
 surface_flux = "lax_friedrichs_flux"
-volume_flux_type = "chandrashekar_flux"
-# volume_flux_type = "central_flux"
+volume_flux = "chandrashekar_flux"
+# volume_flux = "central_flux"
 # sources =
 t_start = 0.0
 t_end   = 12.5

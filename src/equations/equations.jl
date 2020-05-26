@@ -15,6 +15,7 @@ export calc_max_dt
 export cons2prim
 export cons2indicator
 export cons2indicator!
+export central_flux
 
 
 # Base type from which all systems of equations types inherit from
@@ -40,53 +41,41 @@ end
 
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String)
-  if name == "linearscalaradvection"
-    return LinearScalarAdvection()
-  elseif name == "euler"
-    return Euler()
-  elseif name == "mhd"
-    return Mhd()
-  elseif name == "hyperbolicdiffusion"
-    return HyperbolicDiffusion()
+  if name == "LinearScalarAdvection"
+    return LinearScalarAdvectionEquation()
+  elseif name == "CompressibleEuler"
+    return CompressibleEulerEquations()
+  elseif name == "IdealMhd"
+    return IdealMhdEquations()
+  elseif name == "HyperbolicDiffusion"
+    return HyperbolicDiffusionEquations()
   else
     error("'$name' does not name a valid system of equations")
   end
 end
 
 
+# Calculate 2D two-point flux (decide which volume flux type to use)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                                    equation, u, element_id, n_nodes)
+  calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                     equation.volume_flux, equation, u, element_id, n_nodes)
+end
+
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
-# First, add generic functions for which the submodules can create own methods
-function initial_conditions end
-function sources end
-function calcflux! end
-function calcflux_twopoint! end
-function riemann! end
-function noncons_surface_flux! end
-function calc_max_dt end
-function cons2prim end
-function cons2indicator end
-function cons2indicator! end
-function cons2entropy end
-
-# Next, include module files and make symbols available. Here we employ an
-# unqualified "using" to avoid boilerplate code.
-
 # Linear scalar advection
-include("linearscalaradvection.jl")
-using .LinearScalarAdvectionEquations
+include("linear_scalar_advection.jl")
 
-# Euler
-include("euler.jl")
-using .EulerEquations
+# CompressibleEulerEquations
+include("compressible_euler.jl")
 
 # Ideal MHD
-include("mhd.jl")
-using .MhdEquations
+include("ideal_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
-include("hyperbolicdiffusion.jl")
-using .HyperbolicDiffusionEquations
+include("hyperbolic_diffusion.jl")
 
 end # module
