@@ -113,7 +113,7 @@ function load_mesh(restart_filename)
 
     # Set length
     n_cells = read(attrs(file)["n_cells"])
-    append!(mesh.tree, n_cells)
+    resize!(mesh.tree, n_cells)
 
     # Read in data
     mesh.tree.parent_ids[1:n_cells] = read(file["parent_ids"])

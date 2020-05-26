@@ -418,8 +418,8 @@ function convtest(parameters_file, iterations)
     l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
 
     # Collect errors as one vector to reshape later
-    Base.append!(errors[:L2], l2_error)
-    Base.append!(errors[:Linf], linf_error)
+    append!(errors[:L2], l2_error)
+    append!(errors[:Linf], linf_error)
   end
 
   # Number of variables
