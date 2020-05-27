@@ -14,7 +14,7 @@ function load_restart_file!(dg::Dg, restart_filename)
     if read(attrs(file)["ndim"]) != ndim
       error("restart mismatch: ndim in solver differs from value in restart file")
     end
-    if read(attrs(file)["equations"]) != equation.name
+    if read(attrs(file)["equations"]) != get_name(equation)
       error("restart mismatch: equations in solver differs from value in restart file")
     end
     if read(attrs(file)["N"]) != N
@@ -68,7 +68,7 @@ function save_restart_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
-    attrs(file)["equations"] = equation.name
+    attrs(file)["equations"] = get_name(equation)
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
@@ -115,7 +115,7 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
 
     # Add context information as attributes
     attrs(file)["ndim"] = ndim
-    attrs(file)["equations"] = equation.name
+    attrs(file)["equations"] = get_name(equation)
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements

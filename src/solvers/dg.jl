@@ -677,7 +677,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
+  println(" Simulation running '", get_name(equation), "' with N = ", polydeg(dg))
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *

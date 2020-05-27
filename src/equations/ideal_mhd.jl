@@ -5,7 +5,6 @@
 The ideal compressible MHD equations in two space dimensions.
 """
 mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
-  name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{9, String}
@@ -17,7 +16,6 @@ mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
 end
 
 function IdealMhdEquations()
-  name = "IdealMhd"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
@@ -30,11 +28,12 @@ function IdealMhdEquations()
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
                                       valid=["central_flux", "derigs_etal_flux"]))
   volume_flux = eval(volume_flux_type)
-  IdealMhdEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
+  IdealMhdEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
                     surface_flux, volume_flux)
 end
 
 
+get_name(::IdealMhdEquations) = "IdealMhd"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
 
 

@@ -6,7 +6,6 @@ The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
 """ #TODO: DOI or something similar
 struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
-  name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{3, String}
@@ -20,7 +19,6 @@ struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation
 end
 
 function HyperbolicDiffusionEquations()
-  name = "HyperbolicDiffusion"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "harmonic")
   varnames_cons = @SVector ["phi", "p", "q"]
@@ -38,9 +36,12 @@ function HyperbolicDiffusionEquations()
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
-  HyperbolicDiffusionEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
-                      surface_flux, volume_flux)
+  HyperbolicDiffusionEquations(initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
+                               surface_flux, volume_flux)
 end
+
+
+get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusion"
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`

@@ -177,19 +177,20 @@ end
 
 
 """
-    strip_val(x)
+    get_name(x)
 
-Return `y` if `x isa Val{y}` and return `x` otherwise.
+Returns a name of `x` ready for pretty printing.
+By default, return `y` if `x isa Val{y}` and return `x` otherwise.
 
 ## Examples
 
 ```jldoctest
-julia> Trixi.strip_val("test")
+julia> Trixi.get_name("test")
 "test"
 
-julia> Trixi.strip_val(Val(:test))
+julia> Trixi.get_name(Val(:test))
 :test
 ```
 """
-strip_val(x) = x
-strip_val(::Val{x}) where x = x
+get_name(x) = x
+get_name(::Val{x}) where x = x

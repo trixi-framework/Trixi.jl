@@ -9,7 +9,6 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation{SurfaceFlux, VolumeFlux} <: AbstractEquation{1}
-  name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{1, String}
@@ -20,7 +19,6 @@ struct LinearScalarAdvectionEquation{SurfaceFlux, VolumeFlux} <: AbstractEquatio
 end
 
 function LinearScalarAdvectionEquation()
-  name = "LinearScalarAdvection"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = SVector("scalar")
@@ -31,8 +29,11 @@ function LinearScalarAdvectionEquation()
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
-  LinearScalarAdvectionEquation(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux)
+  LinearScalarAdvectionEquation(initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux)
 end
+
+
+get_name(::LinearScalarAdvectionEquation) = "LinearScalarAdvection"
 
 
 # Set initial conditions at physical location `x` for time `t`

@@ -156,7 +156,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | ----------------
           | working directory:  $(pwd())
           | parameters file:    $(args["parameters_file"])
-          | equations:          $equations_name
+          | equations:          $(get_name(equations))
           | | #variables:       $(nvariables(equations))
           | | variable names:   $(join(equations.varnames_cons, ", "))
           | sources:            $sources
@@ -166,7 +166,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
-    s *= "| initial conditions: $initial_conditions\n"
+    s *= "| initial conditions: $(get_name(initial_conditions))\n"
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
@@ -185,9 +185,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | | solver:           $solver_name
           | | N:                $N
           | | CFL:              $cfl
-          | | volume integral:  $(strip_val(solver.volume_integral_type))
-          | | volume flux:      $(string(equations.volume_flux))
-          | | surface flux:     $(string(equations.surface_flux))
+          | | volume integral:  $(get_name(solver.volume_integral_type))
+          | | volume flux:      $(get_name(equations.volume_flux))
+          | | surface flux:     $(get_name(equations.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #boundaries:      $(solver.n_boundaries)

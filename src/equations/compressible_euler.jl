@@ -5,7 +5,6 @@
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
-  name::String
   initial_conditions::String
   sources::String
   varnames_cons::SVector{4, String}
@@ -16,7 +15,6 @@ struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4
 end
 
 function CompressibleEulerEquations()
-  name = "CompressibleEuler"
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
@@ -32,9 +30,12 @@ function CompressibleEulerEquations()
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
                             valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   volume_flux = eval(volume_flux_type)
-  CompressibleEulerEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux, volume_flux)
+  CompressibleEulerEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma,
+                             surface_flux, volume_flux)
 end
+
+
+get_name(::CompressibleEulerEquations) = "CompressibleEuler"
 
 
 # Set initial conditions at physical location `x` for time `t`
