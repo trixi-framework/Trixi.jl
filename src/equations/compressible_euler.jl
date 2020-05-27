@@ -43,9 +43,6 @@ function CompressibleEulerEquations()
 end
 
 
-have_nonconservative_terms(::CompressibleEulerEquations) = Val(false)
-
-
 # Set initial conditions at physical location `x` for time `t`
 function initial_conditions(equation::CompressibleEulerEquations, x, t)
   name = equation.initial_conditions

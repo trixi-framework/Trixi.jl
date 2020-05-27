@@ -48,9 +48,6 @@ function HyperbolicDiffusionEquations()
 end
 
 
-have_nonconservative_terms(::HyperbolicDiffusionEquations) = Val(false)
-
-
 # Set initial conditions at physical location `x` for pseudo-time `t`
 function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
   name = equation.initial_conditions

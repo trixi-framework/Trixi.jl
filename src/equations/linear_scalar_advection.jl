@@ -40,9 +40,6 @@ function LinearScalarAdvectionEquation()
 end
 
 
-have_nonconservative_terms(::LinearScalarAdvectionEquation) = Val(false)
-
-
 # Set initial conditions at physical location `x` for time `t`
 function initial_conditions(equation::LinearScalarAdvectionEquation, x, t)
   name = equation.initial_conditions
