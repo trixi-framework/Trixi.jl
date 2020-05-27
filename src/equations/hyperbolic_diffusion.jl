@@ -84,6 +84,13 @@ function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
       q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
     end
     return [phi, p, q]
+  elseif name == "jeans_instability"
+  # gravity equation: -Δϕ = -4πGρ
+  # TODO: better initial condition than constant?
+    phi = 1.0
+    p   = 1.0
+    q   = 1.0
+    return [phi, p, q]
   else
     error("Unknown initial condition '$name'")
   end
