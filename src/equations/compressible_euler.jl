@@ -32,7 +32,7 @@ function CompressibleEulerEquations()
                                        valid=["lax_friedrichs_flux","central_flux",
                                               "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
   # "eval is evil"
-  # This is a emporary hack (used for all equations) until we have switched to a library based approach
+  # This is a temporary hack (used for all equations) until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
