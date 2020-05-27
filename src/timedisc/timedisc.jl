@@ -97,6 +97,3 @@ function update_gravity!(solver, u_euler)
     end
   end
 end
-
-
-end

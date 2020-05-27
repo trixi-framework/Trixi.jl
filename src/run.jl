@@ -110,14 +110,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
   if globals[:euler_gravity]
-    if solver_euler.volume_integral_type == Val(:weak_form) && equations_euler.volume_flux_type != Val(:central_flux)
+    if solver_euler.volume_integral_type == Val(:weak_form) && equations_euler.volume_flux != central_flux
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
-    if solver_gravity.volume_integral_type == Val(:weak_form) && equations_gravity.volume_flux_type != Val(:central_flux)
+    if solver_gravity.volume_integral_type == Val(:weak_form) && equations_gravity.volume_flux != central_flux
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   else
-    if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux_type != Val(:central_flux)
+    if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux != central_flux
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   end

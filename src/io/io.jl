@@ -102,11 +102,7 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
   mkpath(output_directory)
 
   # Filename without extension based on current time step
-  if isempty(system)
-    filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
-  else
-    filename = joinpath(output_directory, @sprintf("solution_$(system)_%06d", timestep))
-  end
+  filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
 
   # Convert time and time step size to floats
   time = convert(Float64, time)
