@@ -1,6 +1,6 @@
 using .Mesh: generate_mesh, load_mesh
 using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Equations: make_equations, nvariables, central_flux
+using .Equations: make_equations, nvariables, central_flux, HyperbolicDiffusionEquations
 using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
                 calc_amr_indicator, rhs!
 using .TimeDisc: timestep!
@@ -305,7 +305,7 @@ function run_simulation(mesh, solver, time_parameters)
     end
 
     # Check steady-state integration residual
-    if solver.equations.name == "HyperbolicDiffusion"
+    if solver.equations isa HyperbolicDiffusionEquations
       if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
         println()
         println("-"^80)

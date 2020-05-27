@@ -55,6 +55,9 @@ function make_equations(name::String)
 end
 
 
+have_nonconservative_terms(::AbstractEquation) = Val(false)
+
+
 # Calculate 2D two-point flux (decide which volume flux type to use)
 @inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
                                     equation, u, element_id, n_nodes)

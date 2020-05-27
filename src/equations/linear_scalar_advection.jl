@@ -22,7 +22,6 @@ struct LinearScalarAdvectionEquation{SurfaceFlux, VolumeFlux} <: AbstractEquatio
   advectionvelocity::SVector{2, Float64}
   surface_flux::SurfaceFlux
   volume_flux::VolumeFlux
-  have_nonconservative_terms::Bool
 end
 
 function LinearScalarAdvectionEquation()
@@ -37,9 +36,7 @@ function LinearScalarAdvectionEquation()
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
-  have_nonconservative_terms = false
-  LinearScalarAdvectionEquation(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux,
-                        have_nonconservative_terms)
+  LinearScalarAdvectionEquation(name, initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux)
 end
 
 

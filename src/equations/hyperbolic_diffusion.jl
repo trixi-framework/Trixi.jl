@@ -22,7 +22,6 @@ struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation
   resid_tol::Float64
   surface_flux::SurfaceFlux
   volume_flux::VolumeFlux
-  have_nonconservative_terms::Bool
 end
 
 function HyperbolicDiffusionEquations()
@@ -44,9 +43,8 @@ function HyperbolicDiffusionEquations()
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
-  have_nonconservative_terms = false
   HyperbolicDiffusionEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
-                      surface_flux, volume_flux, have_nonconservative_terms)
+                      surface_flux, volume_flux)
 end
 
 

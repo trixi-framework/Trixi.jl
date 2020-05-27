@@ -9,7 +9,8 @@ using ...Trixi
 using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
 using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
                     riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
-                    noncons_surface_flux!
+                    noncons_surface_flux!, have_nonconservative_terms,
+                    CompressibleEulerEquations, IdealMhdEquations
 import ...Equations: nvariables # Import to allow method extension
 using ...Auxiliary: timer, parameter
 using ...Mesh: TreeMesh
@@ -759,7 +760,7 @@ function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, 
   print(" ∑dUdS*Ut:    ")
   @printf("  % 10.8e", duds_ut)
 
-  if equation.name == "IdealMhd"
+  if equation isa IdealMhdEquations
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
     println()
     print(" L2 ∇⋅B:    ")
@@ -1067,12 +1068,12 @@ end
         u_leftright[1,v] = u[v,i-1,j,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "CompressibleEuler" #FIXME this doesn't look good (type stability, efficiency, ...)
+      if equation isa CompressibleEulerEquations #FIXME this doesn't look good (type stability, efficiency, ...)
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 1)
-      elseif equation.name == "IdealMhd"
+      elseif equation isa IdealMhdEquations
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
@@ -1098,12 +1099,12 @@ end
         u_leftright[1,v] = u[v,i,j-1,element_id]
         u_leftright[2,v] = u[v,i,j,element_id]
       end
-      if equation.name == "CompressibleEuler"
+      if equation isa CompressibleEulerEquations
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
                  equation, 2)
-      elseif equation.name == "IdealMhd"
+      elseif equation isa IdealMhdEquations
         riemann!(fstarnode,
                  u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
                  u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
@@ -1323,14 +1324,14 @@ end
 # Calculate and the surface fluxes (standard Riemann and nonconservative parts) at an interface
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
-calc_surface_flux!(dg) = calc_surface_flux!(dg, Val(dg.equations.have_nonconservative_terms))
+calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
+                                            dg.surfaces.neighbor_ids,
+                                            dg.surfaces.u, dg,
+                                            have_nonconservative_terms(dg.equations),
+                                            dg.surfaces.orientations)
 
 
 # Calculate and store Riemann fluxes across surfaces
-calc_surface_flux!(dg, v::Val{false}) = calc_surface_flux!(dg.elements.surface_flux,
-                                                           dg.surfaces.neighbor_ids,
-                                                           dg.surfaces.u, dg, v,
-                                                           dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{false},
                             orientations::Vector{Int})
@@ -1372,10 +1373,6 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
-calc_surface_flux!(dg, v::Val{true}) = calc_surface_flux!(dg.elements.surface_flux,
-                                                          dg.surfaces.neighbor_ids,
-                                                          dg.surfaces.u, dg, v,
-                                                          dg.surfaces.orientations)
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
                             u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
                             orientations::Vector{Int})
