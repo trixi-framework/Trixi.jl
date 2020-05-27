@@ -1,8 +1,6 @@
 module Interpolate
 
 include("../../../../src/solvers/interpolation.jl")
-using .Interpolation: gauss_lobatto_nodes_weights,
-                      polynomial_interpolation_matrix, interpolate_nodes
 using ..Trixi2Vtk
 
 
