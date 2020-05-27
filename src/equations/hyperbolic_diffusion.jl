@@ -87,9 +87,9 @@ function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
   elseif name == "jeans_instability"
   # gravity equation: -Δϕ = -4πGρ
   # TODO: better initial condition than constant?
-    phi = 1.0
-    p   = 1.0
-    q   = 1.0
+    phi = 1.5e7
+    p   = 0.0 # 1.5e7
+    q   = 0.0 # 1.5e7
     return [phi, p, q]
   else
     error("Unknown initial condition '$name'")

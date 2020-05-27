@@ -23,7 +23,9 @@ end
 
 
 # Integrate solution by repeatedly calling the rhs! method on the solver solution.
-function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64)
+function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_parameters)
+  @unpack cfl = time_parameters
+
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
@@ -38,14 +40,22 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64)
 
   for stage = 1:5
     # Update gravity
-    @timeit "gravity" update_gravity!(solver_gravity, solver_euler.elements.u)
+    @timeit "gravity" update_gravity!(solver_gravity, solver_euler.elements.u, cfl)
 
     # Update stage time
     t_stage = t + dt * c[stage]
 
-    # FIXME: Update gravity in Euler solver
-
+    # computes compressible Euler w/o any sources
     @timeit timer() "rhs" rhs!(solver, t_stage)
+    # add in gravitational source terms from update_gravity! call
+    u_euler = solver_euler.elements.u
+    u_t_euler = solver_euler.elements.u_t
+    u_gravity = solver_gravity.elements.u
+    @views @. u_t_euler[2,:,:,:] -= u_euler[1,:,:,:]*u_gravity[2,:,:,:]
+    @views @. u_t_euler[3,:,:,:] -= u_euler[1,:,:,:]*u_gravity[3,:,:,:]
+    @views @. u_t_euler[4,:,:,:] -= (u_euler[2,:,:,:]*u_gravity[2,:,:,:]
+                                    +u_euler[3,:,:,:]*u_gravity[3,:,:,:])
+    # take RK step for compressible Euler
     @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_rungekutta = (solver.elements.u_t
                                          - solver.elements.u_rungekutta * a[stage])
@@ -55,12 +65,11 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64)
 end
 
 
-function update_gravity!(solver, u_euler)
+function update_gravity!(solver, u_euler, cfl)
   # FIXME: Update sources in gravity solver with density from Euler solver
 
   # Set up main loop
   finalstep = false
-  first_loop_iteration = true
   n_iterations_max = parameter("n_iterations_max", 0)
   iteration = 0
   time = 0.0
@@ -71,7 +80,7 @@ function update_gravity!(solver, u_euler)
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
     # Evolve solution by one pseudo-time step
-    timestep!(solver, time, dt, u_euler[1,:,:,:])
+    timestep!(solver, time, dt, u_euler)
     time += dt
 
     # Update iteration counter
@@ -83,24 +92,17 @@ function update_gravity!(solver, u_euler)
     end
 
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-      println()
-      println("-"^80)
-      println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-      println("-"^80)
-      println()
+      println("  Steady state tolerance of ",solver.equations.resid_tol,
+              " reached with iterations ",iteration)
       finalstep = true
     end
 
-    if first_loop_iteration
-      clear_malloc_data()
-      first_loop_iteration = false
-    end
   end
 end
 
-#=
+
 # Integrate solution by repeatedly calling the rhs! method on the solver solution.
-function timestep!(solver::AbstractSolver, t, dt, fixed_dens)
+function timestep!(solver::AbstractSolver, t, dt, u_euler)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
@@ -117,7 +119,8 @@ function timestep!(solver::AbstractSolver, t, dt, fixed_dens)
     # rhs! has the source term for the harmonic problem
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # put in gravity source term proportional to Euler density
-    @views solver.elements.u_t[1,:,:,:] -= 4*pi*G*fixed_dens
+    @views solver.elements.u_t[1,:,:,:] .-= 4.0*pi*G*u_euler[1,:,:,:]
+    # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_rungekutta = (solver.elements.u_t
                                          - solver.elements.u_rungekutta * a[stage])
@@ -125,4 +128,3 @@ function timestep!(solver::AbstractSolver, t, dt, fixed_dens)
     end
   end
 end
-=#

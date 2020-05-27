@@ -381,7 +381,6 @@ function run_simulation(mesh, solvers, time_parameters)
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    println()
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
@@ -397,7 +396,7 @@ function run_simulation(mesh, solvers, time_parameters)
 
     # Evolve solution by one time step
     if globals[:euler_gravity]
-      timestep!(solver_euler, solver_gravity, time, dt)
+      timestep!(solver_euler, solver_gravity, time, dt, time_parameters)
     else
       timestep!(solver, time, dt)
     end
