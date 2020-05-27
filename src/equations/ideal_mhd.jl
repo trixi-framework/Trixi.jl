@@ -20,7 +20,6 @@ mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
   c_h::Float64 # GLM cleaning speed
   surface_flux::SurfaceFlux
   volume_flux::VolumeFlux
-  have_nonconservative_terms::Bool
 end
 
 function IdealMhdEquations()
@@ -37,10 +36,12 @@ function IdealMhdEquations()
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
                                       valid=["central_flux", "derigs_etal_flux"]))
   volume_flux = eval(volume_flux_type)
-  have_nonconservative_terms = true
   IdealMhdEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-      surface_flux, volume_flux, have_nonconservative_terms)
+                    surface_flux, volume_flux)
 end
+
+
+have_nonconservative_terms(::IdealMhdEquations) = Val(true)
 
 
 # Set initial conditions at physical location `x` for time `t`
