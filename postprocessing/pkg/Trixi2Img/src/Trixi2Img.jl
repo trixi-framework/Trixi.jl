@@ -9,8 +9,6 @@ const ndim = 2
 # Maximum level of cells supported for plotting
 const max_supported_level = 11 # -> at most 2^11 = 2048 visualization nodes
 
-using .Interpolation: gauss_lobatto_nodes_weights,
-                      polynomial_interpolation_matrix, interpolate_nodes
 using ArgParse: ArgParseSettings, @add_arg_table!, parse_args
 using HDF5: h5open, attrs
 using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
