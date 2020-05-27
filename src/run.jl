@@ -180,58 +180,120 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   min_dx = domain_length / 2^max_level
   max_dx = domain_length / 2^min_level
   s = ""
-  s *= """| Simulation setup
-          | ----------------
-          | working directory:  $(pwd())
-          | parameters file:    $(args["parameters_file"])
-          | equations:          $equations_name
-          | | #variables:       $(nvariables(equations))
-          | | variable names:   $(join(equations.varnames_cons, ", "))
-          | sources:            $sources
-          | restart:            $(restart ? "yes" : "no")
-          """
-  if restart
-    s *= "| | restart timestep: $step\n"
-    s *= "| | restart time:     $time\n"
+  if globals[:euler_gravity]
+    s *= """| Simulation setup (Euler + Gravity)
+            | ----------------
+            | working directory:  $(pwd())
+            | parameters file:    $(args["parameters_file"])
+            | equations:          $equations_name
+            | | #variables:       $(nvariables(equations_euler))
+            | | variable names:   $(join(equations_euler.varnames_cons, ", "))
+            | | #variables:       $(nvariables(equations_gravity))
+            | | variable names:   $(join(equations_gravity.varnames_cons, ", "))
+            | sources:            $sources
+            | restart:            $(restart ? "yes" : "no")
+            """
+    if restart
+      s *= "| | restart timestep: $step\n"
+      s *= "| | restart time:     $time\n"
+    else
+      s *= "| initial conditions: $initial_conditions\n"
+      s *= "| t_start:            $t_start\n"
+    end
+    s *= """| t_end:              $t_end
+            | AMR:                $(amr_interval > 0 ? "yes" : "no")
+            """
+    if amr_interval > 0
+      s *= "| | AMR interval:     $amr_interval\n"
+      s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
+    end
+    s *= """| n_steps_max:        $n_steps_max
+            | restart interval:   $restart_interval
+            | solution interval:  $solution_interval
+            | #parallel threads:  $(Threads.nthreads())
+            |
+            | Solver
+            | | solver:           $solver_name
+            | | N:                $N
+            | | CFL:              $cfl
+            | | Euler solver:
+            | | | volume integral:  $(strip_val(solver_euler.volume_integral_type))
+            | | | volume flux:      $(string(equations_euler.volume_flux))
+            | | | surface flux:     $(string(equations_euler.surface_flux))
+            | | Gravity solver:
+            | | | volume integral:  $(strip_val(solver_gravity.volume_integral_type))
+            | | | volume flux:      $(string(equations_gravity.volume_flux))
+            | | | surface flux:     $(string(equations_gravity.surface_flux))
+            | | #elements:        $(solver_euler.n_elements)
+            | | #surfaces:        $(solver_euler.n_surfaces)
+            | | #boundaries:      $(solver_euler.n_boundaries)
+            | | #l2mortars:       $(solver_euler.n_l2mortars)
+            | | #DOFs:            $(ndofs(solver_euler)) + $(ndofs(solver_gravity))
+            |
+            | Mesh
+            | | #cells:           $(length(mesh.tree))
+            | | #leaf cells:      $n_leaf_cells
+            | | minimum level:    $min_level
+            | | maximum level:    $max_level
+            | | domain center:    $(join(domain_center, ", "))
+            | | domain length:    $domain_length
+            | | minimum dx:       $min_dx
+            | | maximum dx:       $max_dx
+            """
   else
-    s *= "| initial conditions: $initial_conditions\n"
-    s *= "| t_start:            $t_start\n"
+    s *= """| Simulation setup
+            | ----------------
+            | working directory:  $(pwd())
+            | parameters file:    $(args["parameters_file"])
+            | equations:          $equations_name
+            | | #variables:       $(nvariables(equations))
+            | | variable names:   $(join(equations.varnames_cons, ", "))
+            | sources:            $sources
+            | restart:            $(restart ? "yes" : "no")
+            """
+    if restart
+      s *= "| | restart timestep: $step\n"
+      s *= "| | restart time:     $time\n"
+    else
+      s *= "| initial conditions: $initial_conditions\n"
+      s *= "| t_start:            $t_start\n"
+    end
+    s *= """| t_end:              $t_end
+            | AMR:                $(amr_interval > 0 ? "yes" : "no")
+            """
+    if amr_interval > 0
+      s *= "| | AMR interval:     $amr_interval\n"
+      s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
+    end
+    s *= """| n_steps_max:        $n_steps_max
+            | restart interval:   $restart_interval
+            | solution interval:  $solution_interval
+            | #parallel threads:  $(Threads.nthreads())
+            |
+            | Solver
+            | | solver:           $solver_name
+            | | N:                $N
+            | | CFL:              $cfl
+            | | volume integral:  $(strip_val(solver.volume_integral_type))
+            | | volume flux:      $(string(equations.volume_flux))
+            | | surface flux:     $(string(equations.surface_flux))
+            | | #elements:        $(solver.n_elements)
+            | | #surfaces:        $(solver.n_surfaces)
+            | | #boundaries:      $(solver.n_boundaries)
+            | | #l2mortars:       $(solver.n_l2mortars)
+            | | #DOFs:            $(ndofs(solver))
+            |
+            | Mesh
+            | | #cells:           $(length(mesh.tree))
+            | | #leaf cells:      $n_leaf_cells
+            | | minimum level:    $min_level
+            | | maximum level:    $max_level
+            | | domain center:    $(join(domain_center, ", "))
+            | | domain length:    $domain_length
+            | | minimum dx:       $min_dx
+            | | maximum dx:       $max_dx
+            """
   end
-  s *= """| t_end:              $t_end
-          | AMR:                $(amr_interval > 0 ? "yes" : "no")
-          """
-  if amr_interval > 0
-    s *= "| | AMR interval:     $amr_interval\n"
-    s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
-  end
-  s *= """| n_steps_max:        $n_steps_max
-          | restart interval:   $restart_interval
-          | solution interval:  $solution_interval
-          | #parallel threads:  $(Threads.nthreads())
-          |
-          | Solver
-          | | solver:           $solver_name
-          | | N:                $N
-          | | CFL:              $cfl
-          | | volume integral:  $(strip_val(solver.volume_integral_type))
-          | | volume flux:      $(string(equations.volume_flux))
-          | | surface flux:     $(string(equations.surface_flux))
-          | | #elements:        $(solver.n_elements)
-          | | #surfaces:        $(solver.n_surfaces)
-          | | #boundaries:      $(solver.n_boundaries)
-          | | #l2mortars:       $(solver.n_l2mortars)
-          | | #DOFs:            $(ndofs(solver))
-          |
-          | Mesh
-          | | #cells:           $(length(mesh.tree))
-          | | #leaf cells:      $n_leaf_cells
-          | | minimum level:    $min_level
-          | | maximum level:    $max_level
-          | | domain center:    $(join(domain_center, ", "))
-          | | domain length:    $domain_length
-          | | minimum dx:       $min_dx
-          | | maximum dx:       $max_dx
-          """
   println()
   println(s)
 
@@ -249,11 +311,12 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   if !restart && parameter("save_initial_solution", true)
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
-    @notimeit timer() rhs!(solver, time)
     if globals[:euler_gravity]
+      @notimeit timer() rhs!(solver_euler, time)
       save_solution_file(solver_euler, mesh, time, 0, step, "euler")
-      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
+#      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
     else
+      @notimeit timer() rhs!(solver, time)
       save_solution_file(solver, mesh, time, 0, step)
     end
   end
@@ -340,15 +403,17 @@ function run_simulation(mesh, solvers, time_parameters)
       finalstep = true
     end
 
-    # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations
-      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-        println("-"^80)
-        println()
-        finalstep = true
+    if !globals[:euler_gravity]
+      # Check steady-state integration residual
+      if solver.equations isa HyperbolicDiffusionEquations
+        if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+          println()
+          println("-"^80)
+          println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+          println("-"^80)
+          println()
+          finalstep = true
+        end
       end
     end
 

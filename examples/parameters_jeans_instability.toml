@@ -5,7 +5,7 @@ equations = "euler_gravity"
 initial_conditions = "jeans_instability"
 # initial_conditions = "constant"
 surface_flux = "lax_friedrichs_flux"
-sources = "jeans_instability"
+sources = "harmonic"
 t_start = 0.0
 t_end   = 2.0
 
