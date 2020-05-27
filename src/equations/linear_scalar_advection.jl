@@ -8,14 +8,12 @@ The linear scalar advection equation
 ```
 in two space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation{SurfaceFlux, VolumeFlux} <: AbstractEquation{1}
+struct LinearScalarAdvectionEquation <: AbstractEquation{1}
   initial_conditions::String
   sources::String
   varnames_cons::SVector{1, String}
   varnames_prim::SVector{1, String}
   advectionvelocity::SVector{2, Float64}
-  surface_flux::SurfaceFlux
-  volume_flux::VolumeFlux
 end
 
 function LinearScalarAdvectionEquation()
@@ -24,12 +22,7 @@ function LinearScalarAdvectionEquation()
   varnames_cons = SVector("scalar")
   varnames_prim = SVector("scalar")
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "central_flux"]))
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
-  volume_flux = eval(volume_flux_type)
-  LinearScalarAdvectionEquation(initial_conditions, sources, varnames_cons, varnames_prim, a, surface_flux, volume_flux)
+  LinearScalarAdvectionEquation(initial_conditions, sources, varnames_cons, varnames_prim, a)
 end
 
 
@@ -98,27 +91,24 @@ end
                            u::AbstractArray{Float64})
   f1[1] = u[1] * equation.advectionvelocity[1]
   f2[1] = u[1] * equation.advectionvelocity[2]
+  nothing
 end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
-function riemann!(surface_flux::AbstractMatrix{Float64}, ::AbstractVector{Float64},
-                  u_surfaces::AbstractArray{Float64, 4}, surface_id::Int,
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
                   equation::LinearScalarAdvectionEquation, n_nodes::Int,
                   orientations::Vector{Int})
   for i = 1:n_nodes
-    @views riemann!(surface_flux[:, i], u_surfaces[:, :, i, surface_id],
-                    equation, orientations[surface_id])
+    flux = surface_flux(equation, orientations[surface_id],
+                        u_surfaces[1, 1, i, surface_id],
+                        u_surfaces[2, 1, i, surface_id])
+
+    # Copy flux back to actual flux array
+    for v in 1:nvariables(equation)
+      destination[v, i] = flux[v]
+    end
   end
-end
-
-
-# Calculate flux across interface with different states on both sides (pointwise version)
-function riemann!(surface_flux::AbstractArray{Float64},
-                  u_surfaces::AbstractArray{Float64},
-                  equation::LinearScalarAdvectionEquation, orientation::Int)
-  surface_flux[1] = equation.surface_flux(equation, orientation, u_surfaces[1, 1], u_surfaces[2, 1])
-  return nothing
 end
 
 

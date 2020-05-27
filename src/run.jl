@@ -97,7 +97,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be central_flux,
   # as everything else does not make sense
-  if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux != central_flux
+  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== central_flux
     error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
   end
 
@@ -186,8 +186,8 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | | N:                $N
           | | CFL:              $cfl
           | | volume integral:  $(get_name(solver.volume_integral_type))
-          | | volume flux:      $(get_name(equations.volume_flux))
-          | | surface flux:     $(get_name(equations.surface_flux))
+          | | volume flux:      $(get_name(solver.volume_flux))
+          | | surface flux:     $(get_name(solver.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #boundaries:      $(solver.n_boundaries)

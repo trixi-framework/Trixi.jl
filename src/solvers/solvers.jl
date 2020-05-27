@@ -17,19 +17,5 @@ end
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
-# First, add generic functions for which the submodules can create own methods
-function set_initial_conditions end
-function analyze_solution end
-function calc_dt end
-function equations end
-function rhs! end
-function ndofs end
-function refine! end
-function coarsen! end
-function calc_amr_indicator end
-
-# Next, include module files and make symbols available. Here we employ an
-# unqualified "using" to avoid boilerplate code.
-
 # DG
 include("dg.jl")

@@ -5,7 +5,7 @@
 The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
 """ #TODO: DOI or something similar
-struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
+struct HyperbolicDiffusionEquations <: AbstractEquation{3}
   initial_conditions::String
   sources::String
   varnames_cons::SVector{3, String}
@@ -14,8 +14,6 @@ struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation
   Tr::Float64
   nu::Float64
   resid_tol::Float64
-  surface_flux::SurfaceFlux
-  volume_flux::VolumeFlux
 end
 
 function HyperbolicDiffusionEquations()
@@ -31,13 +29,7 @@ function HyperbolicDiffusionEquations()
   Tr = Lr*Lr/nu
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "upwind_flux", "central_flux"]))
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
-  volume_flux = eval(volume_flux_type)
-  HyperbolicDiffusionEquations(initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
-                               surface_flux, volume_flux)
+  HyperbolicDiffusionEquations(initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol)
 end
 
 
@@ -164,6 +156,8 @@ end
   f2[1]  = -equation.nu*q
   f2[2]  = 0.0
   f2[3]  = -phi/equation.Tr
+
+  nothing
 end
 
 
@@ -232,82 +226,52 @@ end
     f[2]  = 0.0
     f[3]  = -phi/equation.Tr
   end
+
+  nothing
 end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
-function riemann!(surface_flux::AbstractArray{Float64, 3},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces_left::AbstractArray{Float64, 3},
-                  u_surfaces_right::AbstractArray{Float64, 3},
-                  surface_id::Int,
-                  equation::HyperbolicDiffusionEquations, n_nodes::Int,
-                  orientations::Vector{Int})
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::HyperbolicDiffusionEquations, n_nodes, orientations)
   # Call pointwise Riemann solver
   # i -> left, j -> right
   for j = 1:n_nodes
     for i = 1:n_nodes
-      # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-      riemann!(fstarnode,
-               u_surfaces_left[1, i, surface_id],
-               u_surfaces_left[2, i, surface_id],
-               u_surfaces_left[3, i, surface_id],
-               u_surfaces_right[1, j, surface_id],
-               u_surfaces_right[2, j, surface_id],
-               u_surfaces_right[3, j, surface_id],
-               equation, orientations[surface_id])
+      flux = surface_flux(equation, orientations[surface_id],
+                          u_surfaces_left[1, i, surface_id],
+                          u_surfaces_left[2, i, surface_id],
+                          u_surfaces_left[3, i, surface_id],
+                          u_surfaces_right[1, j, surface_id],
+                          u_surfaces_right[2, j, surface_id],
+                          u_surfaces_right[3, j, surface_id])
+
       # Copy flux back to actual flux array
       for v in 1:nvariables(equation)
-        surface_flux[v, i, j] = fstarnode[v]
+        destination[v, i, j] = flux[v]
       end
     end
   end
 end
 
-
 # Calculate flux across interface with different states on both sides (surface version)
-function riemann!(surface_flux::AbstractMatrix{Float64},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces::AbstractArray{Float64, 4},
-                  surface_id::Int,
-                  equation::HyperbolicDiffusionEquations, n_nodes::Int,
-                  orientations::Vector{Int})
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
+                  equation::HyperbolicDiffusionEquations, n_nodes, orientations)
   # Call pointwise Riemann solver
   for i = 1:n_nodes
-    # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-    riemann!(fstarnode,
-             u_surfaces[1, 1, i, surface_id],
-             u_surfaces[1, 2, i, surface_id],
-             u_surfaces[1, 3, i, surface_id],
-             u_surfaces[2, 1, i, surface_id],
-             u_surfaces[2, 2, i, surface_id],
-             u_surfaces[2, 3, i, surface_id],
-             equation, orientations[surface_id])
+    flux = surface_flux(equation, orientations[surface_id],
+                        u_surfaces[1, 1, i, surface_id],
+                        u_surfaces[1, 2, i, surface_id],
+                        u_surfaces[1, 3, i, surface_id],
+                        u_surfaces[2, 1, i, surface_id],
+                        u_surfaces[2, 2, i, surface_id],
+                        u_surfaces[2, 3, i, surface_id])
+
     # Copy flux back to actual flux array
     for v in 1:nvariables(equation)
-      surface_flux[v, i] = fstarnode[v]
+      destination[v, i] = flux[v]
     end
   end
-end
-
-
-# Calculate flux across interface with different states on both sides (pointwise version)
-function riemann!(surface_flux,
-                  phi_ll, p_ll, q_ll,
-                  phi_rr, p_rr, q_rr,
-                  equation::HyperbolicDiffusionEquations, orientation)
-
-  # I'm not really sure where to hook into the call chain. This is just a first
-  # implementation as proof of concept and should be discussed and improved.
-  flux = equation.surface_flux(equation, orientation,
-                               phi_ll, p_ll, q_ll,
-                               phi_rr, p_rr, q_rr,)
-
-  for i in 1:3
-    surface_flux[i] = flux[i]
-  end
-
-  return nothing
 end
 
 

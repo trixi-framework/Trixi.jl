@@ -4,14 +4,12 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
+struct CompressibleEulerEquations <: AbstractEquation{4}
   initial_conditions::String
   sources::String
   varnames_cons::SVector{4, String}
   varnames_prim::SVector{4, String}
   gamma::Float64
-  surface_flux::SurfaceFlux #TODO Don't all the fluxes belong to the DG struct?
-  volume_flux::VolumeFlux
 end
 
 function CompressibleEulerEquations()
@@ -20,18 +18,8 @@ function CompressibleEulerEquations()
   varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
   varnames_prim = @SVector ["rho", "v1", "v2", "p"]
   gamma = parameter("gamma", 1.4)
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux","central_flux",
-                                              "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
-  # "eval is evil"
-  # This is a temporary hack (used for all equations) until we have switched to a library based approach
-  # with pure Julia code instead of parameter files.
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
-                            valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
-  volume_flux = eval(volume_flux_type)
-  CompressibleEulerEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-                             surface_flux, volume_flux)
+
+  CompressibleEulerEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma)
 end
 
 
@@ -335,6 +323,8 @@ end
   f2[2]  = rho_v2 * v1
   f2[3]  = rho_v2 * v2 + p
   f2[4]  = (rho_e + p) * v2
+
+  nothing
 end
 
 
@@ -557,88 +547,48 @@ end
     f[3]  = rho_v2 * v2 + p
     f[4]  = (rho_e + p) * v2
   end
+
+  nothing
 end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
-function riemann!(surface_flux::AbstractArray{Float64, 3},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces_left::AbstractArray{Float64, 3},
-                  u_surfaces_right::AbstractArray{Float64, 3},
-                  surface_id::Int,
-                  equation::CompressibleEulerEquations, n_nodes::Int,
-                  orientations::Vector{Int})
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::CompressibleEulerEquations, n_nodes, orientations)
   # Call pointwise Riemann solver
   # i -> left, j -> right
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-      riemann!(fstarnode,
-               u_surfaces_left[1, i, surface_id],
-               u_surfaces_left[2, i, surface_id],
-               u_surfaces_left[3, i, surface_id],
-               u_surfaces_left[4, i, surface_id],
-               u_surfaces_right[1, j, surface_id],
-               u_surfaces_right[2, j, surface_id],
-               u_surfaces_right[3, j, surface_id],
-               u_surfaces_right[4, j, surface_id],
-               equation, orientations[surface_id])
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      flux = surface_flux(equation, orientations[surface_id],
+                          u_surfaces_left[1, i, surface_id], u_surfaces_left[2, i, surface_id],
+                          u_surfaces_left[3, i, surface_id], u_surfaces_left[4, i, surface_id],
+                          u_surfaces_right[1, j, surface_id], u_surfaces_right[2, j, surface_id],
+                          u_surfaces_right[3, j, surface_id], u_surfaces_right[4, j, surface_id])
 
       # Copy flux back to actual flux array
       for v in 1:nvariables(equation)
-        surface_flux[v, i, j] = fstarnode[v]
+        destination[v, i, j] = flux[v]
       end
     end
   end
 end
 
-
 # Calculate flux across interface with different states on both sides (surface version)
-function riemann!(surface_flux::AbstractMatrix{Float64},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces::AbstractArray{Float64, 4},
-                  surface_id::Int,
-                  equation::CompressibleEulerEquations, n_nodes::Int,
-                  orientations::Vector{Int})
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
+                  equation::CompressibleEulerEquations, n_nodes, orientations)
   # Call pointwise Riemann solver
   for i = 1:n_nodes
-    # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-    riemann!(fstarnode,
-             u_surfaces[1, 1, i, surface_id],
-             u_surfaces[1, 2, i, surface_id],
-             u_surfaces[1, 3, i, surface_id],
-             u_surfaces[1, 4, i, surface_id],
-             u_surfaces[2, 1, i, surface_id],
-             u_surfaces[2, 2, i, surface_id],
-             u_surfaces[2, 3, i, surface_id],
-             u_surfaces[2, 4, i, surface_id],
-             equation, orientations[surface_id])
+    flux = surface_flux(equation, orientations[surface_id],
+                        u_surfaces[1, 1, i, surface_id], u_surfaces[1, 2, i, surface_id],
+                        u_surfaces[1, 3, i, surface_id], u_surfaces[1, 4, i, surface_id],
+                        u_surfaces[2, 1, i, surface_id], u_surfaces[2, 2, i, surface_id],
+                        u_surfaces[2, 3, i, surface_id], u_surfaces[2, 4, i, surface_id])
 
     # Copy flux back to actual flux array
     for v in 1:nvariables(equation)
-      surface_flux[v, i] = fstarnode[v]
+      destination[v, i] = flux[v]
     end
   end
-end
-
-
-# Calculate flux across interface with different states on both sides (pointwise version)
-function riemann!(surface_flux::AbstractArray{Float64, 1},
-                  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
-                  equation::CompressibleEulerEquations, orientation::Int)
-
-  # I'm not really sure where to hook into the call chain. This is just a first
-  # implementation as proof of concept and should be discussed and improved.
-  flux = equation.surface_flux(equation, orientation,
-                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    surface_flux[i] = flux[i]
-  end
-
-  return nothing
 end
 
 
