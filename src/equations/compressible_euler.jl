@@ -4,7 +4,7 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
+mutable struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
   name::String
   initial_conditions::String
   sources::String

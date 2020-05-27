@@ -88,6 +88,8 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   if equations_name == "euler_gravity"
     globals[:euler_gravity] = true
     equations_euler = make_equations("CompressibleEuler")
+    # FIXME: Hack to set that the Euler equations have no source
+    equations_euler.sources = "none"
     equations_gravity = make_equations("HyperbolicDiffusion")
   else
     globals[:euler_gravity] = false
@@ -186,11 +188,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
             | working directory:  $(pwd())
             | parameters file:    $(args["parameters_file"])
             | equations:          $equations_name
-            | | #variables:       $(nvariables(equations_euler))
-            | | variable names:   $(join(equations_euler.varnames_cons, ", "))
-            | | #variables:       $(nvariables(equations_gravity))
-            | | variable names:   $(join(equations_gravity.varnames_cons, ", "))
-            | sources:            $sources
+            | | Euler:
+            | | | #variables:     $(nvariables(equations_euler))
+            | | | variable names: $(join(equations_euler.varnames_cons, ", "))
+            | | | sources:        $(equations_euler.sources)
+            | | Gravity:
+            | | | #variables:     $(nvariables(equations_gravity))
+            | | | variable names: $(join(equations_gravity.varnames_cons, ", "))
+            | | | sources:        $(equations_gravity.sources)
             | restart:            $(restart ? "yes" : "no")
             """
     if restart
@@ -313,7 +318,8 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     # factor is already computed for the initial condition
     if globals[:euler_gravity]
       @notimeit timer() rhs!(solver_euler, time)
-      save_solution_file(solver_euler, mesh, time, 0, step, "euler")
+      save_solution_file(solver_euler, mesh, time, 0, step)
+#      save_solution_file(solver_euler, mesh, time, 0, step, "euler")
 #      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
     else
       @notimeit timer() rhs!(solver, time)
@@ -463,8 +469,9 @@ function run_simulation(mesh, solvers, time_parameters)
 
         # Then write solution file
         if globals[:euler_gravity]
-          save_solution_file(solver_euler, mesh, time, dt, step, "euler")
-          save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
+          save_solution_file(solver_euler, mesh, time, dt, step)
+#          save_solution_file(solver_euler, mesh, time, dt, step, "euler")
+#          save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
         else
           save_solution_file(solver, mesh, time, dt, step)
         end

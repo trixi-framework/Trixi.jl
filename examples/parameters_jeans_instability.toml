@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
 equations = "euler_gravity"
-
+gamma = 1.6666666666666667
 initial_conditions = "jeans_instability"
 # initial_conditions = "constant"
 surface_flux = "lax_friedrichs_flux"
@@ -20,7 +20,6 @@ N = 3
 cfl = 0.6
 n_steps_max = 10000
 analysis_interval = 100
-
 
 ####################################################################################################
 # Mesh
