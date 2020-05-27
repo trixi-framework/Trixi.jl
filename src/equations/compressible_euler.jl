@@ -247,6 +247,28 @@ function initial_conditions(equation::CompressibleEulerEquations, x, t)
     # velocity blob is zero
     velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
     return prim2cons(equation, [dens, velx, vely0, p0])
+  elseif name == "jeans_instability"
+    # Jeans gravitational instability test case
+    # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
+    # OBS! this uses cgs (centimeter, gram, second) units
+    # periodic boundaries
+    # typical domain size is [0,1]^2 with 64x64 resolution
+    # typical final time is T = 5
+    # gamma = 5/3 for this test
+    dens0  = 1.5e7 # g/cm^3
+    pres0  = 1.5e7 # dyn/cm^2
+    delta0 = 1e-3
+    # set wave vector values for pertubation (units 1/cm)
+    # see FALSH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+    kx = 4.0*pi # 2π/λ_x, λ_x = 0.5
+    ky = 1e10   # 2π/λ_y, λ_y = 0.0
+    # perturb density and pressure away from reference states ρ_0 and p_0
+    dens = dens0*(1.0 + delta0*cos(kx*x[1] + ky*x[2]))                # g/cm^3
+    pres = pres0*(1.0 + equation.gamma*delta0*cos(kx*x[1] + ky*x[2])) # dyn/cm^2
+    # flow starts as stationary
+    velx = 0.0 # cm/s
+    vely = 0.0 # cm/s
+    return prim2cons(equation, [dens, velx, vely, pres])
   else
     error("Unknown initial condition '$name'")
   end
