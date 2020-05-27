@@ -40,7 +40,7 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_p
 
   for stage = 1:5
     # Update gravity
-    @timeit "gravity" update_gravity!(solver_gravity, solver_euler.elements.u, cfl)
+    @timeit timer() "gravity" update_gravity!(solver_gravity, solver_euler.elements.u, cfl)
 
     # Update stage time
     t_stage = t + dt * c[stage]

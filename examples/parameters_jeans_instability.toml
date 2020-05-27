@@ -12,13 +12,15 @@ t_end   = 2.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
+resid_tol = 1e-5
 
 ####################################################################################################
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.6
-n_steps_max = 10000
+cfl = 0.5
+n_steps_max = 30
+n_iterations_max = 50
 analysis_interval = 100
 
 ####################################################################################################
@@ -35,6 +37,6 @@ initial_refinement_level = 4
 ####################################################################################################
 # I/O
 # save_initial_solution = false
-solution_interval = 100
+solution_interval = 10
 solution_variables = "primitive"
 restart_interval = 100
