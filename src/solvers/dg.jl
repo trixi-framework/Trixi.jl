@@ -1,45 +1,8 @@
-module DgSolver
 
 # Note: there are more includes at the bottom that depend on DG internals
 include("interpolation.jl")
 include("dg_containers.jl")
 include("l2projection.jl")
-
-using ...Trixi
-using ..Solvers # Use everything to allow method extension via "function <parent_module>.<method>"
-using ...Equations: AbstractEquation, initial_conditions, calcflux!, calcflux_twopoint!,
-                    riemann!, sources, calc_max_dt, cons2entropy, cons2indicator!, cons2prim,
-                    noncons_surface_flux!, have_nonconservative_terms,
-                    CompressibleEulerEquations, IdealMhdEquations
-import ...Equations: nvariables # Import to allow method extension
-using ...Auxiliary: timer, parameter
-using ...Mesh: TreeMesh
-using ...Mesh.Trees: leaf_cells, length_at_cell, n_directions, has_neighbor, isperiodic,
-                     opposite_direction, has_coarse_neighbor, has_child, has_children
-using .Interpolation: interpolate_nodes, calc_dhat, calc_dsplit,
-                      polynomial_interpolation_matrix, calc_lhat, gauss_lobatto_nodes_weights,
-                      vandermonde_legendre, nodal2modal, polynomial_derivative_matrix
-import .L2Projection # Import to satisfy Gregor
-
-using Printf: @sprintf, @printf
-using Random: seed!
-using StaticArrays: SVector, SMatrix, MMatrix, MArray
-using TimerOutputs: @timeit, @notimeit
-using UnPack: @unpack
-
-export Dg
-export set_initial_conditions
-export nvariables
-export equations
-export polydeg
-export rhs!
-export calc_dt
-export calc_error_norms
-export calc_entropy_timederivative
-export analyze_solution
-export refine!
-export coarsen!
-export calc_amr_indicator
 
 
 # Main DG data structure that contains all relevant data for the DG solver
@@ -96,7 +59,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
+function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -141,12 +104,12 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N::Int) where V
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  mortar_forward_upper = L2Projection.calc_forward_upper(n_nodes)
-  mortar_forward_lower = L2Projection.calc_forward_lower(n_nodes)
-  l2mortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss))
-  l2mortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss))
-  ecmortar_reverse_upper = L2Projection.calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-  ecmortar_reverse_lower = L2Projection.calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+  mortar_forward_upper = calc_forward_upper(n_nodes)
+  mortar_forward_lower = calc_forward_lower(n_nodes)
+  l2mortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss))
+  l2mortar_reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss))
+  ecmortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
+  ecmortar_reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -218,7 +181,7 @@ end
 
 
 # Return system of equations instance for a DG solver
-@inline Solvers.equations(dg::Dg) = dg.equations
+@inline equations(dg::Dg) = dg.equations
 
 
 # Return number of variables for the system of equations in use
@@ -226,7 +189,7 @@ end
 
 
 # Return number of degrees of freedom
-@inline Solvers.ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
+@inline ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
 
 
 # Count the number of surfaces that need to be created
@@ -650,7 +613,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
   duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
   # Compute ut = rhs(u) with current solution u
-  @notimeit timer() Solvers.rhs!(dg, t)
+  @notimeit timer() rhs!(dg, t)
   # Quadrature weights
   weights = dg.weights
   # Integrate over all elements to get the total semi-discrete entropy update
@@ -704,8 +667,8 @@ end
 
 
 # Calculate error norms and print information for user
-function Solvers.analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                                  runtime_absolute::Real, runtime_relative::Real)
+function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
+                          runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
@@ -781,7 +744,7 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function Solvers.set_initial_conditions(dg::Dg, time::Float64)
+function set_initial_conditions(dg::Dg, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
@@ -797,7 +760,7 @@ end
 
 
 # Calculate time derivative
-function Solvers.rhs!(dg::Dg, t_stage)
+function rhs!(dg::Dg, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
 
@@ -1764,7 +1727,7 @@ end
 
 
 # Calculate stable time step size
-function Solvers.calc_dt(dg::Dg, cfl)
+function calc_dt(dg::Dg, cfl)
   min_dt = Inf
   for element_id = 1:dg.n_elements
     dt = calc_max_dt(equations(dg), dg.elements.u, element_id, nnodes(dg),
@@ -1888,6 +1851,3 @@ end
 
 # Note: this is included here since it depends on definitions in the DG main file
 include("dg_amr.jl")
-
-
-end # module

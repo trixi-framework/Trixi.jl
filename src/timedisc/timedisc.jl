@@ -1,15 +1,6 @@
-module TimeDisc
-
-using ..Trixi
-using ..Solvers: AbstractSolver, rhs!
-using ..Auxiliary: timer
-using TimerOutputs: @timeit
-
-export timestep!
-
 
 # Integrate solution by repeatedly calling the rhs! method on the solver solution.
-function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
+function timestep!(solver::AbstractSolver, t, dt)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
@@ -28,7 +19,4 @@ function timestep!(solver::AbstractSolver, t::Float64, dt::Float64)
       @. solver.elements.u += solver.elements.u_rungekutta * b[stage] * dt
     end
   end
-end
-
-
 end

@@ -1,17 +1,5 @@
-module Mesh
 
 include("trees.jl")
-
-using ..Trixi
-using ..Auxiliary: parameter, timer
-using ..Auxiliary.Containers: append!
-using .Trees: Tree, refine!, refine_box!, coarsen_box!
-
-using TimerOutputs: @timeit, print_timer
-using HDF5: h5open, attrs
-
-export generate_mesh
-
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
@@ -104,7 +92,7 @@ end
 
 
 # Load existing mesh from file
-function load_mesh(restart_filename::String)
+function load_mesh(restart_filename)
   # Get maximum number of cells that should be supported
   n_cells_max = parameter("n_cells_max")
 
@@ -125,7 +113,7 @@ function load_mesh(restart_filename::String)
 
     # Set length
     n_cells = read(attrs(file)["n_cells"])
-    append!(mesh.tree, n_cells)
+    resize!(mesh.tree, n_cells)
 
     # Read in data
     mesh.tree.parent_ids[1:n_cells] = read(file["parent_ids"])
@@ -140,7 +128,7 @@ end
 
 
 # Obtain the mesh filename from a restart file
-function get_restart_mesh_filename(restart_filename::String)
+function get_restart_mesh_filename(restart_filename)
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 
@@ -152,7 +140,4 @@ function get_restart_mesh_filename(restart_filename::String)
 
   # Construct and return filename
   return joinpath(dirname, mesh_file)
-end
-
-
 end

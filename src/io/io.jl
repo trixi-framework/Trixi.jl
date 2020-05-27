@@ -1,25 +1,6 @@
-module Io
-
-using ..Trixi
-using ..Solvers: AbstractSolver, polydeg, equations, Dg
-using ..Solvers.DgSolver: polydeg
-using ..Equations: nvariables, cons2prim
-using ..Auxiliary: parameter
-using ..Mesh: TreeMesh
-using ..Mesh.Trees: Tree, count_leaf_cells, minimum_level, maximum_level,
-                    n_children_per_cell, n_directions
-
-using HDF5: h5open, attrs
-using Printf: @sprintf
-
-export load_restart_file!
-export save_restart_file
-export save_solution_file
-export save_mesh_file
-
 
 # Load restart file and store solution in solver
-function load_restart_file!(dg::Dg, restart_filename::String)
+function load_restart_file!(dg::Dg, restart_filename)
   # Create variables to be returned later
   time = NaN
   step = -1
@@ -68,7 +49,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # restarting.
-function save_restart_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timestep::Integer)
+function save_restart_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -115,7 +96,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, timestep::Integer)
+function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -182,7 +163,7 @@ end
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
+function save_mesh_file(mesh::TreeMesh, timestep=-1)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -218,6 +199,3 @@ function save_mesh_file(mesh::TreeMesh, timestep::Integer=-1)
 
   return filename * ".h5"
 end
-
-
-end # module

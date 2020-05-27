@@ -1,17 +1,3 @@
-module Interpolation
-
-export interpolate_nodes
-export calc_dhat
-export calc_dsplit
-export polynomial_derivative_matrix
-export polynomial_interpolation_matrix
-export barycentric_weights
-export calc_lhat
-export lagrange_interpolating_polynomials
-export gauss_lobatto_nodes_weights
-export vandermonde_legendre
-export modal2nodal
-
 
 # Interpolate data using the given Vandermonde matrix and return interpolated values (1D version).
 function interpolate_nodes(data_in::AbstractArray{T, 2},
@@ -86,7 +72,7 @@ function calc_dsplit(nodes, weights)
   dsplit = polynomial_derivative_matrix(nodes)
   dsplit = 2 .* dsplit
 
-  # Modify to account for 
+  # Modify to account for
   dsplit[1, 1] += 1/weights[1]
   dsplit[end, end] -= 1/weights[end]
 
@@ -391,7 +377,7 @@ function vandermonde_legendre(nodes, N)
       vandermonde[i, m], _ = legendre_polynomial_and_derivative(m-1, nodes[i])
     end
   end
-  # for very high polynomial degree, this is not well conditioned    
+  # for very high polynomial degree, this is not well conditioned
   inverse_vandermonde = inv(vandermonde)
   return vandermonde, inverse_vandermonde
 end
@@ -402,7 +388,4 @@ vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 function nodal2modal(data_in::AbstractArray{Float64, 3},
                      vandermonde::AbstractArray{Float64, 2})
   interpolate_nodes(data_in, vandermonde, 1)
-end
-
-
 end
