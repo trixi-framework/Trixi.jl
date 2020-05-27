@@ -3,7 +3,7 @@
 equations = "IdealMhd"
 gamma = 1.6666666666666667
 
-initial_conditions = "orszag_tang"
+initial_conditions = "initial_conditions_orszag_tang"
 surface_flux = "lax_friedrichs_flux"
 volume_flux = "central_flux"
 

@@ -6,7 +6,6 @@ The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
 """ #TODO: DOI or something similar
 struct HyperbolicDiffusionEquations <: AbstractEquation{3}
-  initial_conditions::String
   sources::String
   Lr::Float64
   Tr::Float64
@@ -15,7 +14,6 @@ struct HyperbolicDiffusionEquations <: AbstractEquation{3}
 end
 
 function HyperbolicDiffusionEquations()
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "harmonic")
   # diffusion coefficient
   nu = parameter("nu", 1.0)
@@ -25,7 +23,7 @@ function HyperbolicDiffusionEquations()
   Tr = Lr*Lr/nu
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
-  HyperbolicDiffusionEquations(initial_conditions, sources, Lr, Tr, nu, resid_tol)
+  HyperbolicDiffusionEquations(sources, Lr, Tr, nu, resid_tol)
 end
 
 
@@ -35,50 +33,52 @@ varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
-  name = equation.initial_conditions
-  if name == "poisson_periodic"
+function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquations, x, t)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
-    if t == 0.0
-      phi = 0.0
-      p   = 0.0
-      q   = 0.0
-    else
-      phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
-      p   = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
-      q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
-    end
-    return [phi, p, q]
-  elseif name == "poisson_nonperiodic"
-  # elliptic equation: -νΔϕ = f
-    if t == 0.0
-      phi = 1.0
-      p   = 1.0
-      q   = 1.0
-    else
-      phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-      p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-      q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
-    end
-    return [phi, p, q]
-  elseif name == "harmonic_nonperiodic"
-  # elliptic equation: -νΔϕ = f
-    if t == 0.0
-      phi = 1.0
-      p   = 1.0
-      q   = 1.0
-    else
-      C   = 1.0/sinh(pi)
-      phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-      p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-      q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-    end
-    return [phi, p, q]
+  if iszero(t)
+    phi = 0.0
+    p   = 0.0
+    q   = 0.0
   else
-    error("Unknown initial condition '$name'")
+    phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
+    p   = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
+    q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
   end
+  return @SVector [phi, p, q]
 end
+get_name(::typeof(initial_conditions_poisson_periodic)) = "poisson_periodic"
+
+function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+  # elliptic equation: -νΔϕ = f
+  if t == 0.0
+    phi = 1.0
+    p   = 1.0
+    q   = 1.0
+  else
+    phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
+    p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+    q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+  end
+  return @SVector [phi, p, q]
+end
+get_name(::typeof(initial_conditions_poisson_nonperiodic)) = "poisson_nonperiodic"
+
+function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+  # elliptic equation: -νΔϕ = f
+  if t == 0.0
+    phi = 1.0
+    p   = 1.0
+    q   = 1.0
+  else
+    C   = 1.0/sinh(pi)
+    phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
+    p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+    q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+  end
+  return @SVector [phi, p, q]
+end
+get_name(::typeof(initial_conditions_harmonic_nonperiodic)) = "harmonic_nonperiodic"
 
 
 # Apply source terms

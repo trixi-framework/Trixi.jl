@@ -3,7 +3,7 @@
 equations = "HyperbolicDiffusion"
 nu = 1.0
 
-initial_conditions = "poisson_nonperiodic"
+initial_conditions = "initial_conditions_poisson_nonperiodic"
 
 surface_flux = "upwind_flux"
 sources = "poisson_nonperiodic"

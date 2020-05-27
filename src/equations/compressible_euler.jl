@@ -5,17 +5,15 @@
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerEquations <: AbstractEquation{4}
-  initial_conditions::String
   sources::String
   gamma::Float64
 end
 
 function CompressibleEulerEquations()
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   gamma = parameter("gamma", 1.4)
 
-  CompressibleEulerEquations(initial_conditions, sources, gamma)
+  CompressibleEulerEquations(sources, gamma)
 end
 
 
@@ -25,219 +23,251 @@ varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions(equation::CompressibleEulerEquations, x, t)
-  name = equation.initial_conditions
-  if name == "density_pulse"
-    rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "pressure_pulse"
-    rho = 1
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "density_pressure_pulse"
-    rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1 + exp(-x^2)/2
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "constant"
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
-    rho_e = 10.0
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "convergence_test"
-    c = 2
-    A = 0.1
-    L = 2
-    f = 1/L
-    ω = 2 * pi * f
-    ini = c + A * sin(ω * (x[1] + x[2] - t))
+function initial_conditions_density_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_density_pulse)) = "density_pulse"
 
-    rho = ini
-    rho_v1 = ini
-    rho_v2 = ini
-    rho_e = ini^2
+function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_pressure_pulse)) = "pressure_pulse"
 
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "sod"
-    if x < 0.0
-      return [1.0, 0.0, 0.0, 2.5]
-    else
-      return [0.125, 0.0, 0.0, 0.25]
-    end
-  elseif name == "isentropic_vortex"
-    # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-    # make sure that the inicenter does not exit the domain, e.g. T=10.0
-    # initial center of the vortex
-    inicenter = [0,0]
-    # size and strength of the vortex
-    iniamplitude = 0.2
-    # base flow
-    prim=[1.0,1.0,1.0,10.0]
-    vel=prim[2:3]
-    rt=prim[4]/prim[1]                      # ideal gas equation
-    cent=(inicenter+vel*t)                  # advection of center
-    cent=x-cent                             # distance to centerpoint
-    #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
-    # cross product with iniaxis = [0,0,1]
-    helper =  cent[1]
-    cent[1] = -cent[2]
-    cent[2] = helper
-    r2=cent[1]^2+cent[2]^2
-    du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-    dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-    prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
-    prim[2:3]=prim[2:3]+du*cent #v
-    prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-    rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
-    return [rho,rho_v1,rho_v2,rho_e]
-  elseif name == "weak_blast_wave"
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
+function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1 + exp(-x^2)/2
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_density_pressure_pulse)) = "density_pressure_pulse"
 
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
+  rho = 1.0
+  rho_v1 = 0.1
+  rho_v2 = -0.2
+  rho_e = 10.0
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_constant)) = "constant"
 
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "blast_wave"
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
+function initial_conditions_convergence_test(equation::CompressibleEulerEquations, x, t)
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] - t))
 
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0E-3 : 1.245
+  rho = ini
+  rho_v1 = ini
+  rho_v2 = ini
+  rho_e = ini^2
 
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "sedov_blast_wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_convergence_test)) = "convergence_test"
 
-    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-    p0_outer = 1.0e-5 # = true Sedov setup
-    # p0_outer = 1.0e-3 # = more reasonable setup
-
-    # Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    p = r > r0 ? p0_outer : p0_inner
-
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "medium_sedov_blast_wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-
-    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-    # p0_outer = 1.0e-5 # = true Sedov setup
-    p0_outer = 1.0e-3 # = more reasonable setup
-
-    # Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    p = r > r0 ? p0_outer : p0_inner
-
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "khi"
-    # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
-    # change discontinuity to tanh
-    # typical resolution 128^2, 256^2
-    # domain size is [-0.5,0.5]^2
-    dens0 = 1.0 # outside density
-    dens1 = 2.0 # inside density
-    velx0 = -0.5 # outside velocity
-    velx1 = 0.5 # inside velocity
-    slope = 50 # used for tanh instead of discontinuous initial condition
-    # pressure equilibrium
-    p     = 2.5
-    #  y velocity v2 is only white noise
-    v2  = 0.01*(rand(Float64,1)[1]-0.5)
-    # density
-    rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-    #  x velocity is also augmented with noise
-    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "blob"
-    # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # change discontinuity to tanh
-    # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-    # resolution 128^2, 256^2
-    # domain size is [-20.0,20.0]^2
-    # gamma = 5/3 for this test case
-    R = 1.0 # radius of the blob
-    # background density
-    dens0 = 1.0
-    Chi = 10.0 # density contrast
-    # reference time of characteristic growth of KH instability equal to 1.0
-    tau_kh = 1.0
-    tau_cr = tau_kh/1.6 # crushing time
-    # determine background velocity
-    velx0 = 2*R*sqrt(Chi)/tau_cr
-    vely0 = 0.0
-    Ma0 = 2.7 # background flow Mach number Ma=v/c
-    c = velx0/Ma0 # sound speed
-    # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-    p0 = c*c*dens0/equation.gamma
-    # initial center of the blob
-    inicenter = [-15,0]
-    x_rel = x-inicenter
-    r = sqrt(x_rel[1]^2 + x_rel[2]^2)
-    # steepness of the tanh transition zone
-    slope = 2
-    # density blob
-    dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-    # velocity blob is zero
-    velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-    return prim2cons(equation, [dens, velx, vely0, p0])
+function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
+  if x < 0.0
+    return @SVector [1.0, 0.0, 0.0, 2.5]
   else
-    error("Unknown initial condition '$name'")
+    return @SVector [0.125, 0.0, 0.0, 0.25]
   end
 end
+get_name(::typeof(initial_conditions_sod)) = "sod"
+
+function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquations, x, t)
+  # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
+  # make sure that the inicenter does not exit the domain, e.g. T=10.0
+  # initial center of the vortex
+  inicenter = [0,0]
+  # size and strength of the vortex
+  iniamplitude = 0.2
+  # base flow
+  prim=[1.0,1.0,1.0,10.0]
+  vel=prim[2:3]
+  rt=prim[4]/prim[1]                      # ideal gas equation
+  cent=(inicenter+vel*t)                  # advection of center
+  cent=x-cent                             # distance to centerpoint
+  #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
+  # cross product with iniaxis = [0,0,1]
+  helper =  cent[1]
+  cent[1] = -cent[2]
+  cent[2] = helper
+  r2=cent[1]^2+cent[2]^2
+  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
+  dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
+  prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
+  prim[2:3]=prim[2:3]+du*cent #v
+  prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
+  rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+get_name(::typeof(initial_conditions_isentropic_vortex)) = "isentropic_vortex"
+
+function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+get_name(::typeof(initial_conditions_weak_blast_wave)) = "weak_blast_wave"
+
+function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0E-3 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+get_name(::typeof(initial_conditions_blast_wave)) = "blast_wave"
+
+function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+  p0_outer = 1.0e-5 # = true Sedov setup
+  # p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+get_name(::typeof(initial_conditions_sedov_blast_wave)) = "sedov_blast_wave"
+
+function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+  # p0_outer = 1.0e-5 # = true Sedov setup
+  p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+get_name(::typeof(initial_conditions_medium_sedov_blast_wave)) = "medium_sedov_blast_wave"
+
+function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
+  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+  # change discontinuity to tanh
+  # typical resolution 128^2, 256^2
+  # domain size is [-0.5,0.5]^2
+  dens0 = 1.0 # outside density
+  dens1 = 2.0 # inside density
+  velx0 = -0.5 # outside velocity
+  velx1 = 0.5 # inside velocity
+  slope = 50 # used for tanh instead of discontinuous initial condition
+  # pressure equilibrium
+  p     = 2.5
+  #  y velocity v2 is only white noise
+  v2  = 0.01*(rand(Float64,1)[1]-0.5)
+  # density
+  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  #  x velocity is also augmented with noise
+  v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+get_name(::typeof(initial_conditions_khi)) = "khi"
+
+function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
+  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # change discontinuity to tanh
+  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+  # resolution 128^2, 256^2
+  # domain size is [-20.0,20.0]^2
+  # gamma = 5/3 for this test case
+  R = 1.0 # radius of the blob
+  # background density
+  dens0 = 1.0
+  Chi = 10.0 # density contrast
+  # reference time of characteristic growth of KH instability equal to 1.0
+  tau_kh = 1.0
+  tau_cr = tau_kh/1.6 # crushing time
+  # determine background velocity
+  velx0 = 2*R*sqrt(Chi)/tau_cr
+  vely0 = 0.0
+  Ma0 = 2.7 # background flow Mach number Ma=v/c
+  c = velx0/Ma0 # sound speed
+  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+  p0 = c*c*dens0/equation.gamma
+  # initial center of the blob
+  inicenter = [-15,0]
+  x_rel = x-inicenter
+  r = sqrt(x_rel[1]^2 + x_rel[2]^2)
+  # steepness of the tanh transition zone
+  slope = 2
+  # density blob
+  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  # velocity blob is zero
+  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  return prim2cons(equation, @SVector [dens, velx, vely0, p0])
+end
+get_name(::typeof(initial_conditions_blob)) = "blob"
 
 
 # Apply source terms
@@ -752,7 +782,7 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(equation::CompressibleEulerEquations, prim::AbstractArray{Float64})
+function prim2cons(equation::CompressibleEulerEquations, prim)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]

@@ -9,16 +9,14 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation <: AbstractEquation{1}
-  initial_conditions::String
   sources::String
   advectionvelocity::SVector{2, Float64}
 end
 
 function LinearScalarAdvectionEquation()
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation(initial_conditions, sources, a)
+  LinearScalarAdvectionEquation(sources, a)
 end
 
 
@@ -28,37 +26,68 @@ varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions(equation::LinearScalarAdvectionEquation, x, t)
-  name = equation.initial_conditions
-
+function initial_conditions_gauss(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  if name == "gauss"
-    return [exp(-(x_trans[1]^2 + x_trans[2]^2))]
-  elseif name == "convergence_test"
-    c = 1.0
-    A = 0.5
-    L = 2
-    f = 1/L
-    omega = 2 * pi * f
-    scalar = c + A * sin(omega * sum(x_trans))
-    return [scalar]
-  elseif name == "sin-sin"
-    scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
-    return [scalar]
-  elseif name == "constant"
-    return [2.0]
-  elseif name == "linear-x-y"
-    return [sum(x_trans)]
-  elseif name == "linear-x"
-    return [x_trans[1]]
-  elseif name == "linear-y"
-    return [x_trans[2]]
-  else
-    error("Unknown initial condition '$name'")
-  end
+  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
+get_name(::typeof(initial_conditions_gauss)) = "gauss"
+
+function initial_conditions_convergence_test(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_trans))
+  return @SVector [scalar]
+end
+# get_name(::typeof(initial_conditions_convergence_test)) implemented in compressible_euler.jl
+
+function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
+  return @SVector [scalar]
+end
+get_name(::typeof(initial_conditions_sin_sin)) = "sin_sin"
+
+function initial_conditions_constant(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [2.0]
+end
+# get_name(::typeof(initial_conditions_constant)) implemented in compressible_euler.jl
+
+function initial_conditions_linear_x_y(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [sum(x_trans)]
+end
+get_name(::typeof(initial_conditions_linear_x_y)) = "linear_x_y"
+
+function initial_conditions_linear_x(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [x_trans[1]]
+end
+get_name(::typeof(initial_conditions_linear_x)) = "linear_x"
+
+function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x, t)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [x_trans[2]]
+end
+get_name(::typeof(initial_conditions_linear_y)) = "linear_y"
 
 
 # Apply source terms

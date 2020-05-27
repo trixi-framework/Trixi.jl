@@ -4,9 +4,9 @@ equations = "CompressibleEuler"
 # equations = "LinearScalarAdvection"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-initial_conditions = "isentropic_vortex"
+initial_conditions = "initial_conditions_isentropic_vortex"
 amr_indicator = "isentropic_vortex"
-# initial_conditions = "constant"
+# initial_conditions = "initial_conditions_constant"
 surface_flux = "lax_friedrichs_flux"
 # sources =
 t_start = 0.0

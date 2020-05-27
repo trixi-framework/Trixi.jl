@@ -142,7 +142,6 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   n_leaf_cells = count_leaf_cells(mesh.tree)
   min_level = minimum_level(mesh.tree)
@@ -166,7 +165,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
-    s *= "| initial conditions: $(get_name(initial_conditions))\n"
+    s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end

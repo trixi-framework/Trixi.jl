@@ -2,7 +2,7 @@
 # Simulation
 equations = "IdealMhd"
 gamma = 1.6666666666666667
-initial_conditions = "convergence_test"
+initial_conditions = "initial_conditions_convergence_test"
 surface_flux = "lax_friedrichs_flux"
 
 volume_flux = "central_flux"

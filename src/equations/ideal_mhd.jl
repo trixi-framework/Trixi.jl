@@ -5,18 +5,16 @@
 The ideal compressible MHD equations in two space dimensions.
 """
 mutable struct IdealMhdEquations <: AbstractEquation{9}
-  initial_conditions::String
   sources::String
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
 end
 
 function IdealMhdEquations()
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  IdealMhdEquations(initial_conditions, sources, gamma, c_h)
+  IdealMhdEquations(sources, gamma, c_h)
 end
 
 
@@ -27,118 +25,128 @@ varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions(equation::IdealMhdEquations, x, t)
-  name = equation.initial_conditions
-  if name == "constant"
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
-    rho_v3 = -0.5
-    rho_e = 50.0
-    B1 = 3.0
-    B2 = -1.2
-    B3 = 0.5
-    psi = 0.0
-    return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
-  elseif name == "convergence_test"
-    # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-    # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-    alpha = 0.25*pi
-    x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
-    B_perp = 0.1*sin(2.0*pi*x_perp)
-    rho = 1.0
-    v1 = -B_perp*sin(alpha)
-    v2 = B_perp*cos(alpha)
-    v3 = 0.1*cos(2.0*pi*x_perp)
-    p = 0.1
-    B1 = cos(alpha) + v1
-    B2 = sin(alpha) + v2
-    B3 = v3
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "orszag_tang"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [0, 1] x [0, 1], γ = 5/3
-    rho = 1.0
-    v1 = -sin(2.0*pi*x[2])
-    v2 = sin(2.0*pi*x[1])
-    v3 = 0.0
-    p = 1.0/equation.gamma
-    B1 = -sin(2.0*pi*x[2])/equation.gamma
-    B2 = sin(4.0*pi*x[1])/equation.gamma
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "rotor"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [0, 1] x [0, 1], γ = 1.4
-    dx = x[1] - 0.5
-    dy = x[2] - 0.5
-    r = sqrt(dx^2 + dy^2)
-    f = (0.115 - r)/0.015
-    if r <= 0.1
-      rho = 10.0
-      v1 = -20.0*dy
-      v2 = 20.0*dx
-    elseif r >= 0.115
-      rho = 1.0
-      v1 = 0.0
-      v2 = 0.0
-    else
-      rho = 1.0 + 9.0*f
-      v1 = -20.0*f*dy
-      v2 = 20.0*f*dx
-    end
-    v3 = 0.0
-    p = 1.0
-    B1 = 5.0/sqrt(4.0*pi)
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "mhd_blast"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-    r = sqrt(x[1]^2 + x[2]^2)
-    f = (0.1 - r)/0.01
-    if r <= 0.09
-      p = 1000.0
-    elseif r >= 0.1
-      p = 0.1
-    else
-      p = 0.1 + 999.9*f
-    end
+function initial_conditions_constant(equation::IdealMhdEquations, x, t)
+  rho = 1.0
+  rho_v1 = 0.1
+  rho_v2 = -0.2
+  rho_v3 = -0.5
+  rho_e = 50.0
+  B1 = 3.0
+  B2 = -1.2
+  B3 = 0.5
+  psi = 0.0
+  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
+end
+# get_name(::typeof(initial_conditions_constant)) implemented in compressible_euler.jl
+
+function initial_conditions_convergence_test(equation::IdealMhdEquations, x, t)
+  # smooth Alfvén wave test from Derigs et al. FLASH (2016)
+  # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
+  alpha = 0.25*pi
+  x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
+  B_perp = 0.1*sin(2.0*pi*x_perp)
+  rho = 1.0
+  v1 = -B_perp*sin(alpha)
+  v2 = B_perp*cos(alpha)
+  v3 = 0.1*cos(2.0*pi*x_perp)
+  p = 0.1
+  B1 = cos(alpha) + v1
+  B2 = sin(alpha) + v2
+  B3 = v3
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+# get_name(::typeof(initial_conditions_convergence_test)) implemented in compressible_euler.jl
+
+function initial_conditions_orszag_tang(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 5/3
+  rho = 1.0
+  v1 = -sin(2.0*pi*x[2])
+  v2 = sin(2.0*pi*x[1])
+  v3 = 0.0
+  p = 1.0/equation.gamma
+  B1 = -sin(2.0*pi*x[2])/equation.gamma
+  B2 = sin(4.0*pi*x[1])/equation.gamma
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+get_name(::typeof(initial_conditions_orszag_tang)) = "orszag_tang"
+
+function initial_conditions_rotor(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 1.4
+  dx = x[1] - 0.5
+  dy = x[2] - 0.5
+  r = sqrt(dx^2 + dy^2)
+  f = (0.115 - r)/0.015
+  if r <= 0.1
+    rho = 10.0
+    v1 = -20.0*dy
+    v2 = 20.0*dx
+  elseif r >= 0.115
     rho = 1.0
     v1 = 0.0
     v2 = 0.0
-    v3 = 0.0
-    B1 = 100.0/sqrt(4.0*pi)
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "ec_test"
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Same discontinuity in the velocities but with magnetic fields
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
-
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
-
-    return prim2cons(equation, [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
   else
-    error("Unknown initial condition '$name'")
+    rho = 1.0 + 9.0*f
+    v1 = -20.0*f*dy
+    v2 = 20.0*f*dx
   end
-
+  v3 = 0.0
+  p = 1.0
+  B1 = 5.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
+get_name(::typeof(initial_conditions_rotor)) = "rotor"
+
+function initial_conditions_mhd_blast(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+  r = sqrt(x[1]^2 + x[2]^2)
+  f = (0.1 - r)/0.01
+  if r <= 0.09
+    p = 1000.0
+  elseif r >= 0.1
+    p = 0.1
+  else
+    p = 0.1 + 999.9*f
+  end
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  B1 = 100.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+get_name(::typeof(initial_conditions_mhd_blast)) = "mhd_blast"
+
+function initial_conditions_ec_test(equation::IdealMhdEquations, x, t)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
+end
+get_name(::typeof(initial_conditions_ec_test)) = "ec_test"
 
 
 # Apply source terms

@@ -2,7 +2,7 @@
 # Simulation
 equations = "IdealMhd"
 gamma = 1.4
-initial_conditions = "rotor"
+initial_conditions = "initial_conditions_rotor"
 surface_flux = "lax_friedrichs_flux"
 volume_flux = "central_flux"
 

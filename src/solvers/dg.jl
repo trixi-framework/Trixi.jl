@@ -6,11 +6,15 @@ include("l2projection.jl")
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, MortarType, VolumeIntegralType, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions,
+                  MortarType, VolumeIntegralType,
+                  VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
 
   surface_flux::SurfaceFlux
   volume_flux::VolumeFlux
+
+  initial_conditions::InitialConditions
 
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -157,10 +161,14 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux"))
   volume_flux = eval(volume_flux_type)
 
+  initial_conditions_type = Symbol(parameter("initial_conditions"))
+  initial_conditions = eval(initial_conditions_type)
+
   # Create actual DG solver instance
   dg = Dg(
       equation,
       surface_flux, volume_flux,
+      initial_conditions,
       elements, n_elements,
       surfaces, n_surfaces,
       boundaries, n_boundaries,
@@ -599,12 +607,12 @@ function calc_error_norms(dg::Dg, t::Float64)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes_analysis
       for i = 1:n_nodes_analysis
-        u_exact = initial_conditions(equation, x[:, i, j], t)
+        u_exact = @views dg.initial_conditions(equation, x[:, i, j], t)
         diff = similar(u_exact)
-        @. diff = u_exact - u[:, i, j]
+        @views @. diff = u_exact - u[:, i, j]
         @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
         @. linf_error = max(linf_error, abs(diff))
       end
@@ -631,7 +639,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Integrate over all elements to get the total semi-discrete entropy update
   dsdu_ut = 0.0
   for element_id = 1:dg.n_elements
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes
       for i = 1:n_nodes
          dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
@@ -763,7 +771,7 @@ function set_initial_conditions(dg::Dg, time)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= initial_conditions(
+        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
             equation, dg.elements.node_coordinates[:, i, j, element_id], time)
       end
     end
@@ -1421,7 +1429,7 @@ function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vect
     # Fill outer boundary state
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
-      u_boundaries[3 - neighbor_sides[b], :, i, b] .= initial_conditions(
+      u_boundaries[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
           equation, node_coordinates[:, i, b], time)
     end
 
