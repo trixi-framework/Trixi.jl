@@ -7,8 +7,6 @@ The ideal compressible MHD equations in two space dimensions.
 mutable struct IdealMhdEquations <: AbstractEquation{9}
   initial_conditions::String
   sources::String
-  varnames_cons::SVector{9, String}
-  varnames_prim::SVector{9, String}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
 end
@@ -16,16 +14,16 @@ end
 function IdealMhdEquations()
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-  varnames_prim = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  IdealMhdEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h)
+  IdealMhdEquations(initial_conditions, sources, gamma, c_h)
 end
 
 
 get_name(::IdealMhdEquations) = "IdealMhd"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
+varnames_cons(::IdealMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
 
 
 # Set initial conditions at physical location `x` for time `t`

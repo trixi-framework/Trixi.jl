@@ -158,7 +158,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | parameters file:    $(args["parameters_file"])
           | equations:          $(get_name(equations))
           | | #variables:       $(nvariables(equations))
-          | | variable names:   $(join(equations.varnames_cons, ", "))
+          | | variable names:   $(join(varnames_cons(equations), ", "))
           | sources:            $sources
           | restart:            $(restart ? "yes" : "no")
           """
@@ -391,7 +391,7 @@ function run_simulation(mesh, solver, time_parameters)
   println()
 
   # Return error norms for EOC calculation
-  return l2_error, linf_error, solver.equations.varnames_cons
+  return l2_error, linf_error, varnames_cons(solver.equations)
 end
 
 

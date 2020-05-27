@@ -8,8 +8,6 @@ A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD
 struct HyperbolicDiffusionEquations <: AbstractEquation{3}
   initial_conditions::String
   sources::String
-  varnames_cons::SVector{3, String}
-  varnames_prim::SVector{3, String}
   Lr::Float64
   Tr::Float64
   nu::Float64
@@ -19,8 +17,6 @@ end
 function HyperbolicDiffusionEquations()
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "harmonic")
-  varnames_cons = @SVector ["phi", "p", "q"]
-  varnames_prim = @SVector ["phi", "p", "q"]
   # diffusion coefficient
   nu = parameter("nu", 1.0)
   # relaxation length scale
@@ -29,11 +25,13 @@ function HyperbolicDiffusionEquations()
   Tr = Lr*Lr/nu
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
-  HyperbolicDiffusionEquations(initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol)
+  HyperbolicDiffusionEquations(initial_conditions, sources, Lr, Tr, nu, resid_tol)
 end
 
 
 get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusion"
+varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
+varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`

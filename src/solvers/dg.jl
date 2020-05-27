@@ -719,7 +719,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Derived quantities (error norms, entropy etc.)
   print(" Variable:    ")
   for v in 1:nvariables(equation)
-    @printf("   %-14s", equation.varnames_cons[v])
+    @printf("   %-14s", varnames_cons(equation)[v])
   end
   println()
   print(" L2 error:    ")

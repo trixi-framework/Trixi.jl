@@ -11,22 +11,20 @@ in two space dimensions with constant velocity `a`.
 struct LinearScalarAdvectionEquation <: AbstractEquation{1}
   initial_conditions::String
   sources::String
-  varnames_cons::SVector{1, String}
-  varnames_prim::SVector{1, String}
   advectionvelocity::SVector{2, Float64}
 end
 
 function LinearScalarAdvectionEquation()
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  varnames_cons = SVector("scalar")
-  varnames_prim = SVector("scalar")
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation(initial_conditions, sources, varnames_cons, varnames_prim, a)
+  LinearScalarAdvectionEquation(initial_conditions, sources, a)
 end
 
 
 get_name(::LinearScalarAdvectionEquation) = "LinearScalarAdvection"
+varnames_cons(::LinearScalarAdvectionEquation) = SVector("scalar")
+varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`

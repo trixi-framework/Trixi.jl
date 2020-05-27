@@ -7,23 +7,21 @@ The compressible Euler equations for an ideal gas in two space dimensions.
 struct CompressibleEulerEquations <: AbstractEquation{4}
   initial_conditions::String
   sources::String
-  varnames_cons::SVector{4, String}
-  varnames_prim::SVector{4, String}
   gamma::Float64
 end
 
 function CompressibleEulerEquations()
   initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
-  varnames_prim = @SVector ["rho", "v1", "v2", "p"]
   gamma = parameter("gamma", 1.4)
 
-  CompressibleEulerEquations(initial_conditions, sources, varnames_cons, varnames_prim, gamma)
+  CompressibleEulerEquations(initial_conditions, sources, gamma)
 end
 
 
 get_name(::CompressibleEulerEquations) = "CompressibleEuler"
+varnames_cons(::CompressibleEulerEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
+varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`

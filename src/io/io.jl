@@ -29,7 +29,7 @@ function load_restart_file!(dg::Dg, restart_filename)
     step = read(attrs(file)["timestep"])
 
     # Read data
-    varnames = equation.varnames_cons
+    varnames = varnames_cons(equation)
     for v = 1:nvariables(dg)
       # Check if variable name matches
       var = file["variables_$v"]
@@ -79,7 +79,7 @@ function save_restart_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
 
     # Restart files always store conservative variables
     data = dg.elements.u
-    varnames = equation.varnames_cons
+    varnames = varnames_cons(equation)
 
     # Store each variable of the solution
     for v = 1:nvariables(dg)
@@ -133,10 +133,10 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
                                    valid=["conservative", "primitive"])
     if solution_variables == "conservative"
       data = dg.elements.u
-      varnames = equation.varnames_cons
+      varnames = varnames_cons(equation)
     else
       data = cons2prim(equation, dg.elements.u)
-      varnames = equation.varnames_prim
+      varnames = varnames_prim(equation)
     end
 
     # Store each variable of the solution
