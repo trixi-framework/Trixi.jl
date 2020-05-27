@@ -24,6 +24,20 @@ import Trixi2Vtk
 canonical = get(ENV, "CI_PAGES_URL", "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/")
 repo_url = get(ENV, "CI_PROJECT_URL", "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl")
 
+# Define module-wide setups such that the respective modules are available in doctests
+DocMeta.setdocmeta!(Trixi,
+                    :DocTestSetup,
+                    :(push!(LOAD_PATH, ".."); using Trixi);
+                    recursive=true)
+DocMeta.setdocmeta!(Trixi2Img,
+                    :DocTestSetup,
+                    :(push!(LOAD_PATH, "../postprocessing/pkg/Trixi2Img"); using Trixi2Img);
+                    recursive=true)
+DocMeta.setdocmeta!(Trixi2Vtk,
+                    :DocTestSetup,
+                    :(push!(LOAD_PATH, "../postprocessing/pkg/Trixi2Vtk"); using Trixi2Vtk);
+                    recursive=true)
+
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown

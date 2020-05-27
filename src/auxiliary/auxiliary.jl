@@ -184,10 +184,10 @@ Return `y` if `x isa Val{y}` and return `x` otherwise.
 ## Examples
 
 ```jldoctest
-julia> strip_val("test")
+julia> Trixi.strip_val("test")
 "test"
 
-julia> strip_val(Val(:test))
+julia> Trixi.strip_val(Val(:test))
 :test
 ```
 """

@@ -1,5 +1,4 @@
-# Note on rules setup: `pages` should be run for each push to `master`, while
-# `test` should be run for both `master` and any merge request
+# Note on rules setup: jobs `test` and `pages` should be run for both `master` and any merge request
 # Source: https://docs.gitlab.com/ee/ci/merge_request_pipelines/index.html#enable-pipelines-for-merge-requests-for-specific-jobs
 
 
@@ -25,13 +24,15 @@ test:
 pages:
   stage: deploy
   script:
-    - julia --color=yes docs/make.jl
-    - mv docs/build public # move to the directory picked up by Gitlab pages
+    - julia --color=yes --project=docs/ -e 'import Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ docs/make.jl
+    - mv docs/build public # move to the directory picked up by Gitlab Pages
   artifacts:
     paths:
       - public
   rules:
-    - if: $CI_COMMIT_BRANCH == 'master'    # Execute jobs when a new commit is pushed to master branch
+    - if: $CI_COMMIT_BRANCH == 'master'   # Execute jobs when a new commit is pushed to master branch
+    - if: $CI_MERGE_REQUEST_ID            # Execute jobs in merge request context
       when: always # Always generate Pages regardless of previous stages' status
   tags:
     - latex
