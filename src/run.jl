@@ -346,7 +346,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
                     amr_interval=amr_interval,
                     restart_interval=restart_interval)
   if globals[:euler_gravity]
-    return mesh, solver_euler, solver_gravity, time_parameters
+    return mesh, (solver_euler, solver_gravity), time_parameters
   else
     return mesh, solver, time_parameters
   end
@@ -381,6 +381,7 @@ function run_simulation(mesh, solvers, time_parameters)
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
+    println(cfl)
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
