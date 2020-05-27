@@ -25,8 +25,9 @@ test:
 pages:
   stage: deploy
   script:
-    - julia --color=yes docs/make.jl
-    - mv docs/build public # move to the directory picked up by Gitlab pages
+    - julia --color=yes --project=docs/ -e 'import Pkg; Pkg.instantiate()'
+    - julia --color=yes --project=docs/ docs/make.jl
+    - mv docs/build public # move to the directory picked up by Gitlab Pages
   artifacts:
     paths:
       - public
