@@ -318,9 +318,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     # factor is already computed for the initial condition
     if globals[:euler_gravity]
       @notimeit timer() rhs!(solver_euler, time)
-      save_solution_file(solver_euler, mesh, time, 0, step)
-#      save_solution_file(solver_euler, mesh, time, 0, step, "euler")
-#      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
+      @notimeit timer() rhs!(solver_gravity, time)
+      save_solution_file(solver_euler, mesh, time, 0, step, "euler")
+      save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
     else
       @notimeit timer() rhs!(solver, time)
       save_solution_file(solver, mesh, time, 0, step)
@@ -381,7 +381,7 @@ function run_simulation(mesh, solvers, time_parameters)
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    println(cfl)
+    println()
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
@@ -470,9 +470,8 @@ function run_simulation(mesh, solvers, time_parameters)
 
         # Then write solution file
         if globals[:euler_gravity]
-          save_solution_file(solver_euler, mesh, time, dt, step)
-#          save_solution_file(solver_euler, mesh, time, dt, step, "euler")
-#          save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
+          save_solution_file(solver_euler, mesh, time, dt, step, "euler")
+          save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
         else
           save_solution_file(solver, mesh, time, dt, step)
         end

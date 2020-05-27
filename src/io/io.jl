@@ -96,17 +96,17 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)#, system="")
+function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep, system="")
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
 
   # Filename without extension based on current time step
-#  if isempty(system)
+  if isempty(system)
     filename = joinpath(output_directory, @sprintf("solution_%06d", timestep))
-#  else
-#    filename = joinpath(output_directory, @sprintf("solution_$(system)_%06d", timestep))
-#  end
+  else
+    filename = joinpath(output_directory, @sprintf("solution_%s_%06d", system, timestep))
+  end
 
   # Convert time and time step size to floats
   time = convert(Float64, time)
