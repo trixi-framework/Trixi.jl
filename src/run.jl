@@ -1,19 +1,3 @@
-using .Mesh: generate_mesh, load_mesh
-using .Mesh.Trees: length, count_leaf_cells, minimum_level, maximum_level
-using .Equations: make_equations, nvariables, central_flux
-using .Solvers: make_solver, set_initial_conditions, analyze_solution, calc_dt, ndofs,
-                calc_amr_indicator, rhs!
-using .TimeDisc: timestep!
-using .Auxiliary: parse_commandline_arguments, parse_parameters_file,
-                  parameter, setparameter, timer, print_startup_message, strip_val
-using .Io: save_restart_file, save_solution_file, save_mesh_file, load_restart_file!
-using .AMR: adapt!
-
-using Printf: println, @printf
-using TimerOutputs: @timeit, print_timer, reset_timer!, @notimeit
-using Profile: clear_malloc_data
-using UnPack: @unpack
-
 
 """
     run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
@@ -357,7 +341,7 @@ function run_simulation(mesh, solvers, time_parameters)
     end
 
     # Check steady-state integration residual
-    if solver.equations.name == "HyperbolicDiffusion"
+    if solver.equations isa HyperbolicDiffusionEquations
       if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
         println()
         println("-"^80)

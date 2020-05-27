@@ -1,15 +1,10 @@
 
-using ..Trixi
-using ..Auxiliary: parameter
-using StaticArrays: @SVector, SVector, MVector, MMatrix, MArray
-
-
 @doc raw"""
     HyperbolicDiffusionEquations
 
 The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
-""" #TODO: DOI
+""" #TODO: DOI or something similar
 struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{3}
   name::String
   initial_conditions::String
@@ -22,7 +17,6 @@ struct HyperbolicDiffusionEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation
   resid_tol::Float64
   surface_flux::SurfaceFlux
   volume_flux::VolumeFlux
-  have_nonconservative_terms::Bool
 end
 
 function HyperbolicDiffusionEquations()
@@ -44,9 +38,8 @@ function HyperbolicDiffusionEquations()
   surface_flux = eval(surface_flux_type)
   volume_flux_type = Symbol(parameter("volume_flux", "central_flux", valid=["central_flux"]))
   volume_flux = eval(volume_flux_type)
-  have_nonconservative_terms = false
   HyperbolicDiffusionEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, Lr, Tr, nu, resid_tol,
-                      surface_flux, volume_flux, have_nonconservative_terms)
+                      surface_flux, volume_flux)
 end
 
 
@@ -375,9 +368,9 @@ function cons2prim(equation::HyperbolicDiffusionEquations, cons::Array{Float64, 
 end
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function Equations.cons2entropy(equation::HyperbolicDiffusionEquations,
-                                cons::Array{Float64, 4}, n_nodes::Int,
-                                n_elements::Int)
+function cons2entropy(equation::HyperbolicDiffusionEquations,
+                      cons::Array{Float64, 4}, n_nodes::Int,
+                      n_elements::Int)
   entropy = similar(cons)
   @. entropy[1, :, :, :] = cons[1, :, :, :]
   @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]

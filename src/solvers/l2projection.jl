@@ -1,8 +1,3 @@
-module L2Projection
-
-using ..Interpolation: gauss_lobatto_nodes_weights, barycentric_weights,
-                       lagrange_interpolating_polynomials, gauss_nodes_weights,
-                       polynomial_interpolation_matrix
 
 # This diagram shows what is meant by "lower", "upper", and "large":
 #      +1   +1
@@ -154,6 +149,3 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto})
 
   return operator
 end
-
-
-end # module L2Projection

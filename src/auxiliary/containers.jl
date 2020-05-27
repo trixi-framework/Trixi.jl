@@ -1,22 +1,8 @@
-module Containers
-
-export AbstractContainer
-export append!
-export shring!
-export copy!
-export move!
-export swap!
-export insert!
-export erase!
-export remove_shift!
-export remove_fill!
-export reset!
-export clear!
 
 # Abstract base type - all containers that want to use these features must inherit from it
 abstract type AbstractContainer end
 
-# Add generic functions for which concrete containers must add implementations
+# Generic functions for which concrete containers must add implementations
 function invalidate! end
 function raw_copy! end
 function move_connectivity! end
@@ -47,35 +33,39 @@ Base.length(c::AbstractContainer) = c.length
 Base.size(c::AbstractContainer) = (length(c),)
 
 
-# Increase container length by `count` elements
-function append!(c::AbstractContainer, count::Int)
-  @assert count >= 0 "Count must be non-negative"
-  @assert count + length(c) <= capacity(c) "New length would exceed capacity"
+"""
+    resize!(c::AbstractContainer, new_length) -> AbstractContainer
+Resize `c` to contain `new_length` elements. If `new_length` is smaller than the current container
+length, the first `new_length` elements will be retained. If `new_length` is
+larger, the new elements are invalidated.
+"""
+function Base.resize!(c::AbstractContainer, new_length)
+  @assert new_length >= zero(new_length) "New length must be >= 0"
+  @assert new_length <= capacity(c) "New length would exceed capacity"
 
-  # First, invalidate range (to be sure that no sensible values are accidentally left there)
-  invalidate!(c, length(c) + 1, length(c) + count)
+  # If new length is greater than current length, append to container.
+  # If new length is less than current length, shrink container.
+  # If new length is equal to current length, do nothing.
+  if new_length > length(c)
+    # First, invalidate range (to be sure that no sensible values are accidentally left there)
+    invalidate!(c, length(c) + 1, new_length)
 
-  # Then, increase container length
-  c.length += count
+    # Then, set new container length
+    c.length = new_length
+  elseif new_length < length(c)
+    # Rely on remove&shift to do The Right Thing (`remove_shift!` also updates the length)
+    remove_shift!(c, new_length + 1, length(c))
+  end
+
+  return c
 end
-append!(c::AbstractContainer) = append(c, 1)
-
-
-# Decrease container length by `count` elements
-function shrink!(c::AbstractContainer, count::Int)
-  @assert count >= 0
-  @assert length(c) >= count
-
-  # Rely on remove&shift to do The Right Thing
-  remove_shift!(c, length(c) - count + 1, length())
-end
-shrink!(c::AbstractContainer) = shrink(c, 1)
 
 
 # Copy data range from source to target container.
 #
 # Calls `raw_copy` internally, which must be implemented for each concrete type
 # inheriting from AbstractContainer.
+# TODO: Shall we extend Base.copyto! ?
 function copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
   @assert 1 <= first <= length(source) "First cell out of range"
@@ -171,6 +161,7 @@ end
 # Insert blank elements in container, shifting the following elements back.
 #
 # After a call to insert!, the range `position:position + count - 1` will be available for use.
+# TODO: Shall we extend Base.insert! ?
 function insert!(c::AbstractContainer, position::Int, count::Int)
   @assert 1 <= position <= length(c) + 1 "Insert position out of range"
   @assert count >= 0 "Count must be non-negative"
@@ -183,7 +174,7 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
 
   # Append and return if insertion is beyond last current element
   if position == length(c) + 1
-    append!(c, count)
+    resize!(c, length(c) + count)
     return
   end
 
@@ -200,6 +191,7 @@ insert!(c) = insert!(c, position, 1)
 
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
+# TODO: Shall we extend Base.deleteat! or Base.delete! ?
 function erase!(c::AbstractContainer, first::Int, last::Int)
   @assert 1 <= first <= length(c) "First cell out of range"
   @assert 1 <= last <= length(c) "Last cell out of range"
@@ -285,5 +277,3 @@ function clear!(c::AbstractContainer)
   invalidate!(c)
   c.length = 0
 end
-
-end # module Containers

@@ -1,22 +1,3 @@
-module Equations
-
-using ..Trixi
-
-export make_equations
-export nvariables
-export AbstractEquation
-export initial_conditions
-export sources
-export calcflux!
-export calcflux_twopoint!
-export riemann!
-export noncons_surface_flux!
-export calc_max_dt
-export cons2prim
-export cons2indicator
-export cons2indicator!
-export central_flux
-
 
 # Base type from which all systems of equations types inherit from
 abstract type AbstractEquation{V} end
@@ -55,6 +36,9 @@ function make_equations(name::String)
 end
 
 
+have_nonconservative_terms(::AbstractEquation) = Val(false)
+
+
 # Calculate 2D two-point flux (decide which volume flux type to use)
 @inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
                                     equation, u, element_id, n_nodes)
@@ -77,5 +61,3 @@ include("ideal_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
 include("hyperbolic_diffusion.jl")
-
-end # module

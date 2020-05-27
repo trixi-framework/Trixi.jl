@@ -1,16 +1,6 @@
-module Auxiliary
 
 include("containers.jl")
 include("math.jl")
-
-using TimerOutputs: TimerOutput
-using Pkg.TOML: parsefile
-
-export timer
-export parse_parameters_file
-export parameter
-export parse_commandline_arguments
-export interruptable
 
 
 # Store main timer for global timing of functions
@@ -24,7 +14,7 @@ const parameters = Dict()
 
 
 # Parse parameters file into global dict
-function parse_parameters_file(filename::AbstractString)
+function parse_parameters_file(filename)
   parameters["default"] = parsefile(filename)
 end
 
@@ -203,6 +193,3 @@ julia> strip_val(Val(:test))
 """
 strip_val(x) = x
 strip_val(::Val{x}) where x = x
-
-
-end
