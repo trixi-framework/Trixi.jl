@@ -1,20 +1,3 @@
-module Solvers
-
-using ..Trixi.Mesh: TreeMesh
-using ..Trixi.Equations: AbstractEquation
-using ..Trixi.Auxiliary: parameter
-
-export AbstractSolver
-export make_solver
-export set_initial_conditions
-export analyze_solution
-export calc_dt
-export equations
-export rhs!
-export ndofs
-export refine!
-export coarsen!
-export calc_amr_indicator
 
 # Base type from which all solvers inherit from
 abstract type AbstractSolver end
@@ -50,6 +33,3 @@ function calc_amr_indicator end
 
 # DG
 include("dg.jl")
-using .DgSolver
-
-end

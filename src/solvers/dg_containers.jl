@@ -1,7 +1,3 @@
-import ...Auxiliary.Containers: invalidate!, raw_copy!, move_connectivity!, delete_connectivity!
-using ...Auxiliary.Containers: AbstractContainer
-import Base
-
 
 # Container data structure (structure-of-arrays style) for DG elements
 struct ElementContainer{V, N} <: AbstractContainer

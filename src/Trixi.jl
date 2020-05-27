@@ -1,8 +1,23 @@
 module Trixi
 
+# Include other packages that are used in Trixi
+# (standard library packages first, other packages next, all of them sorted alphabetically)
+using Pkg.TOML: parsefile
+using Printf: @printf, @sprintf, println
+using Profile: clear_malloc_data
+using Random: seed!
+
+using HDF5: h5open, attrs
+using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
+using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
+using UnPack: @unpack
+
+
 # Set ndim as a short, module-wide constant.
 # Rationale: This makes code easier to understand than using hardcoded dimension values.
 """
+    ndim
+
 Specify the number of spatial dimensions.
 
 Always use `ndim` instead of hard-coding the literal `2` when referring to the
@@ -16,7 +31,7 @@ export ndim
 const globals = Dict{Symbol, Any}()
 export globals
 
-# Include all top-level submodule files
+# Include all top-level source files
 include("auxiliary/auxiliary.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
@@ -27,5 +42,6 @@ include("amr/amr.jl")
 
 # Include top-level run method
 include("run.jl")
+
 
 end

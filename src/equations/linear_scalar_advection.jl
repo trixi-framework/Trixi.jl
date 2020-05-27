@@ -1,9 +1,4 @@
 
-using ..Trixi
-using ..Auxiliary: parameter
-using StaticArrays: SVector, MVector, MMatrix
-
-
 @doc raw"""
     LinearScalarAdvectionEquation
 
