@@ -6,8 +6,16 @@ include("l2projection.jl")
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions,
+                  MortarType, VolumeIntegralType,
+                  VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
+
+  surface_flux::SurfaceFlux
+  volume_flux::VolumeFlux
+
+  initial_conditions::InitialConditions
+
   elements::ElementContainer{V, N}
   n_elements::Int
 
@@ -59,7 +67,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -145,10 +153,11 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
-
   # Create actual DG solver instance
   dg = Dg(
       equation,
+      surface_flux, volume_flux,
+      initial_conditions,
       elements, n_elements,
       surfaces, n_surfaces,
       boundaries, n_boundaries,
@@ -587,12 +596,12 @@ function calc_error_norms(dg::Dg, t::Float64)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes_analysis
       for i = 1:n_nodes_analysis
-        u_exact = initial_conditions(equation, x[:, i, j], t)
+        u_exact = @views dg.initial_conditions(equation, x[:, i, j], t)
         diff = similar(u_exact)
-        @. diff = u_exact - u[:, i, j]
+        @views @. diff = u_exact - u[:, i, j]
         @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
         @. linf_error = max(linf_error, abs(diff))
       end
@@ -619,7 +628,7 @@ function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Integrate over all elements to get the total semi-discrete entropy update
   dsdu_ut = 0.0
   for element_id = 1:dg.n_elements
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes
       for i = 1:n_nodes
          dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
@@ -677,7 +686,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
+  println(" Simulation running '", get_name(equation), "' with N = ", polydeg(dg))
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *
@@ -707,7 +716,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Derived quantities (error norms, entropy etc.)
   print(" Variable:    ")
   for v in 1:nvariables(equation)
-    @printf("   %-14s", equation.varnames_cons[v])
+    @printf("   %-14s", varnames_cons(equation)[v])
   end
   println()
   print(" L2 error:    ")
@@ -751,7 +760,7 @@ function set_initial_conditions(dg::Dg, time)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= initial_conditions(
+        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
             equation, dg.elements.node_coordinates[:, i, j, element_id], time)
       end
     end
@@ -762,7 +771,7 @@ end
 # Calculate time derivative
 function rhs!(dg::Dg, t_stage)
   # Reset u_t
-  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
+  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -860,8 +869,8 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -911,7 +920,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
   A2d = Array{Float64, 2}
-  A1d = Array{Float64, 1}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   # Note: Prefixing the array with the type ("A4d[A4d(...") seems to be
@@ -930,7 +938,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
                             for _ in 1:Threads.nthreads()]
   u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
                              for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
@@ -942,8 +949,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -970,8 +977,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate DG volume integral contribution
     for j = 1:nnodes(dg)
@@ -992,8 +999,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
     u_leftright = u_leftright_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, u_leftright, fstarnode, equations(dg),
+    calcflux_fv!(fstar1, fstar2, dg.surface_flux, u_leftright, equations(dg),
                  dg.elements.u, element_id, nnodes(dg))
 
     # Calculate FV volume integral contribution
@@ -1011,73 +1017,81 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
 end
 
 
-# Calculate 2D two-point flux (element version)
-@inline function calcflux_fv!(fstar1::AbstractArray{Float64},
-                              fstar2::AbstractArray{Float64},
-                              u_leftright::AbstractArray{Float64},
-                              fstarnode::AbstractArray{Float64},
-                              equation::AbstractEquation,
-                              u::AbstractArray{Float64},
-                              element_id::Int, n_nodes::Int)
+"""
+    calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
+                  equation::AbstractEquation, u, element_id, n_nodes)
+
+Calculate the finite volume fluxes inside the elements.
+
+# Arguments
+- `fstar1::AbstractArray{T} where T<:Real`:
+- `fstar2::AbstractArray{T} where T<:Real`
+- `surface_flux`
+- `u_leftright::AbstractArray{T} where T<:Real`
+- `equation::AbstractEquation`
+- `u::AbstractArray{T} where T<:Real`
+- `element_id::Integer`
+- `n_nodes::Integer`
+"""
+@inline function calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
+                              equation::AbstractEquation, u, element_id, n_nodes)
   for j in 1:n_nodes
     for v in 1:nvariables(equation)
-      fstar1[v, 1,         j] = 0.0
-      fstar1[v, n_nodes+1, j] = 0.0
+      fstar1[v, 1,         j] = 0
+      fstar1[v, n_nodes+1, j] = 0
     end
   end
   for j = 1:n_nodes
     for i = 2:n_nodes
       for v in 1:nvariables(equation)
-        u_leftright[1,v] = u[v,i-1,j,element_id]
-        u_leftright[2,v] = u[v,i,j,element_id]
+        u_leftright[1, v] = u[v, i-1, j, element_id]
+        u_leftright[2, v] = u[v, i,   j, element_id]
       end
-      if equation isa CompressibleEulerEquations #FIXME this doesn't look good (type stability, efficiency, ...)
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 equation, 1)
+      if equation isa CompressibleEulerEquations #FIXME this doesn't look that nice
+        flux = surface_flux(equation, 1, # orientation 1: x direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
       elseif equation isa IdealMhdEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                 u_leftright[1, 9],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                 u_leftright[2, 9], equation, 1)
+        flux = surface_flux(equation, 1, # orientation 1: x direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                            u_leftright[1, 9],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                            u_leftright[2, 9])
       end
       for v in 1:nvariables(equation)
-        fstar1[v,i,j] = fstarnode[v]
+        fstar1[v, i, j] = flux[v]
       end
     end
   end
   for i in 1:n_nodes
     for v in 1:nvariables(equation)
-      fstar2[v,i,1]         = 0.0
-      fstar2[v,i,n_nodes+1] = 0.0
+      fstar2[v, i, 1]         = 0
+      fstar2[v, i, n_nodes+1] = 0
     end
   end
   for j = 2:n_nodes
     for i = 1:n_nodes
       for v in 1:nvariables(equation)
-        u_leftright[1,v] = u[v,i,j-1,element_id]
-        u_leftright[2,v] = u[v,i,j,element_id]
+        u_leftright[1, v] = u[v, i, j-1, element_id]
+        u_leftright[2, v] = u[v, i, j,   element_id]
       end
       if equation isa CompressibleEulerEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 equation, 2)
+        flux = surface_flux(equation, 2, # orientation 2: y direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
       elseif equation isa IdealMhdEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                 u_leftright[1, 9],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                 u_leftright[2, 9], equation, 2)
+        flux = surface_flux(equation, 2, # orientation 2: y direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                            u_leftright[1, 9],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                            u_leftright[2, 9])
       end
       for v in 1:nvariables(equation)
-        fstar2[v,i,j] = fstarnode[v]
+        fstar2[v,i,j] = flux[v]
       end
     end
   end
@@ -1300,20 +1314,17 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -1345,7 +1356,6 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
@@ -1354,13 +1364,12 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Compute the nonconservative numerical "flux" along a surface
     # Done twice because left/right orientation matters så
@@ -1415,23 +1424,21 @@ function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vect
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for b = 1:dg.n_boundaries=#
   Threads.@threads for b = 1:dg.n_boundaries
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     # Fill outer boundary state
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
-      u_boundaries[3 - neighbor_sides[b], :, i, b] .= initial_conditions(
+      u_boundaries[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
           equation, node_coordinates[:, i, b], time)
     end
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_boundaries, b, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_boundaries, b, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
@@ -1483,8 +1490,6 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_upper_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
   Threads.@threads for m = 1:dg.n_l2mortars
@@ -1495,12 +1500,10 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
-    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
-    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
-    riemann!(fstar_upper, fstarnode_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
-    riemann!(fstar_lower, fstarnode_lower, u_lower, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_upper, dg.surface_flux, u_upper, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_lower, dg.surface_flux, u_lower, m, equations(dg), nnodes(dg), orientations)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
@@ -1590,19 +1593,17 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
-    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
-    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
-      riemann!(fstar_upper, fstarnode_upper, u_large, u_upper, m,
+      riemann!(fstar_upper, dg.surface_flux, u_large, u_upper, m,
                equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, fstarnode_lower, u_large, u_lower, m,
+      riemann!(fstar_lower, dg.surface_flux, u_large, u_lower, m,
                equations(dg), nnodes(dg), orientations)
     else # large_sides[m] == 2 -> small elements on left side, large element on right
-      riemann!(fstar_upper, fstarnode_upper, u_upper, u_large, m,
+      riemann!(fstar_upper, dg.surface_flux, u_upper, u_large, m,
                equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, fstarnode_lower, u_lower, u_large, m,
+      riemann!(fstar_lower, dg.surface_flux, u_lower, u_large, m,
                equations(dg), nnodes(dg), orientations)
     end
 

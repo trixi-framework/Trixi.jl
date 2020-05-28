@@ -1,11 +1,11 @@
 ####################################################################################################
 # Simulation
-equations = "HyperbolicDiffusion"
+equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
-initial_conditions = "poisson_periodic"
+initial_conditions = "initial_conditions_poisson_periodic"
 
-surface_flux = "lax_friedrichs_flux"
+surface_flux = "flux_lax_friedrichs"
 sources = "poisson_periodic"
 t_start = 0.0
 t_end   = 2.0
