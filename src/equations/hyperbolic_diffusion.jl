@@ -47,7 +47,6 @@ function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquati
   end
   return @SVector [phi, p, q]
 end
-get_name(::typeof(initial_conditions_poisson_periodic)) = "poisson_periodic"
 
 function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
   # elliptic equation: -νΔϕ = f
@@ -62,7 +61,6 @@ function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEqu
   end
   return @SVector [phi, p, q]
 end
-get_name(::typeof(initial_conditions_poisson_nonperiodic)) = "poisson_nonperiodic"
 
 function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
   # elliptic equation: -νΔϕ = f
@@ -78,7 +76,6 @@ function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEq
   end
   return @SVector [phi, p, q]
 end
-get_name(::typeof(initial_conditions_harmonic_nonperiodic)) = "harmonic_nonperiodic"
 
 
 # Apply source terms

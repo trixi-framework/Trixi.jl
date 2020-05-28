@@ -37,7 +37,6 @@ function initial_conditions_constant(equation::IdealMhdEquations, x, t)
   psi = 0.0
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
-# get_name(::typeof(initial_conditions_constant)) implemented in compressible_euler.jl
 
 function initial_conditions_convergence_test(equation::IdealMhdEquations, x, t)
   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
@@ -56,7 +55,6 @@ function initial_conditions_convergence_test(equation::IdealMhdEquations, x, t)
   psi = 0.0
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
-# get_name(::typeof(initial_conditions_convergence_test)) implemented in compressible_euler.jl
 
 function initial_conditions_orszag_tang(equation::IdealMhdEquations, x, t)
   # setup taken from Derigs et al. DMV article (2018)
@@ -72,7 +70,6 @@ function initial_conditions_orszag_tang(equation::IdealMhdEquations, x, t)
   psi = 0.0
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
-get_name(::typeof(initial_conditions_orszag_tang)) = "orszag_tang"
 
 function initial_conditions_rotor(equation::IdealMhdEquations, x, t)
   # setup taken from Derigs et al. DMV article (2018)
@@ -102,7 +99,6 @@ function initial_conditions_rotor(equation::IdealMhdEquations, x, t)
   psi = 0.0
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
-get_name(::typeof(initial_conditions_rotor)) = "rotor"
 
 function initial_conditions_mhd_blast(equation::IdealMhdEquations, x, t)
   # setup taken from Derigs et al. DMV article (2018)
@@ -126,7 +122,6 @@ function initial_conditions_mhd_blast(equation::IdealMhdEquations, x, t)
   psi = 0.0
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
-get_name(::typeof(initial_conditions_mhd_blast)) = "mhd_blast"
 
 function initial_conditions_ec_test(equation::IdealMhdEquations, x, t)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
@@ -146,7 +141,6 @@ function initial_conditions_ec_test(equation::IdealMhdEquations, x, t)
 
   return prim2cons(equation, @SVector [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
 end
-get_name(::typeof(initial_conditions_ec_test)) = "ec_test"
 
 
 # Apply source terms

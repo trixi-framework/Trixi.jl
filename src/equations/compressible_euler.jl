@@ -33,7 +33,6 @@ function initial_conditions_density_pulse(equation::CompressibleEulerEquations, 
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_density_pulse)) = "density_pulse"
 
 function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations, x, t)
   rho = 1
@@ -45,7 +44,6 @@ function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations,
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_pressure_pulse)) = "pressure_pulse"
 
 function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEquations, x, t)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
@@ -57,7 +55,6 @@ function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEq
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_density_pressure_pulse)) = "density_pressure_pulse"
 
 function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
   rho = 1.0
@@ -66,7 +63,6 @@ function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
   rho_e = 10.0
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_constant)) = "constant"
 
 function initial_conditions_convergence_test(equation::CompressibleEulerEquations, x, t)
   c = 2
@@ -83,7 +79,6 @@ function initial_conditions_convergence_test(equation::CompressibleEulerEquation
 
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_convergence_test)) = "convergence_test"
 
 function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
   if x < 0.0
@@ -92,7 +87,6 @@ function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
     return @SVector [0.125, 0.0, 0.0, 0.25]
   end
 end
-get_name(::typeof(initial_conditions_sod)) = "sod"
 
 function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquations, x, t)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
@@ -121,7 +115,6 @@ function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquatio
   rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
-get_name(::typeof(initial_conditions_isentropic_vortex)) = "isentropic_vortex"
 
 function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations, x, t)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
@@ -140,7 +133,6 @@ function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations
 
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
-get_name(::typeof(initial_conditions_weak_blast_wave)) = "weak_blast_wave"
 
 function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, t)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
@@ -159,7 +151,6 @@ function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, 
 
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
-get_name(::typeof(initial_conditions_blast_wave)) = "blast_wave"
 
 function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
   # Set up polar coordinates
@@ -184,7 +175,6 @@ function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquation
 
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
-get_name(::typeof(initial_conditions_sedov_blast_wave)) = "sedov_blast_wave"
 
 function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
   # Set up polar coordinates
@@ -209,7 +199,6 @@ function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerE
 
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
-get_name(::typeof(initial_conditions_medium_sedov_blast_wave)) = "medium_sedov_blast_wave"
 
 function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
   # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
@@ -231,7 +220,6 @@ function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
   v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
-get_name(::typeof(initial_conditions_khi)) = "khi"
 
 function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
@@ -267,7 +255,6 @@ function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
   velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
   return prim2cons(equation, @SVector [dens, velx, vely0, p0])
 end
-get_name(::typeof(initial_conditions_blob)) = "blob"
 
 
 # Apply source terms

@@ -32,7 +32,6 @@ function initial_conditions_gauss(equation::LinearScalarAdvectionEquation, x, t)
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
-get_name(::typeof(initial_conditions_gauss)) = "gauss"
 
 function initial_conditions_convergence_test(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -46,7 +45,6 @@ function initial_conditions_convergence_test(equation::LinearScalarAdvectionEqua
   scalar = c + A * sin(omega * sum(x_trans))
   return @SVector [scalar]
 end
-# get_name(::typeof(initial_conditions_convergence_test)) implemented in compressible_euler.jl
 
 function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -55,7 +53,6 @@ function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, 
   scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
   return @SVector [scalar]
 end
-get_name(::typeof(initial_conditions_sin_sin)) = "sin_sin"
 
 function initial_conditions_constant(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -63,7 +60,6 @@ function initial_conditions_constant(equation::LinearScalarAdvectionEquation, x,
 
   return @SVector [2.0]
 end
-# get_name(::typeof(initial_conditions_constant)) implemented in compressible_euler.jl
 
 function initial_conditions_linear_x_y(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -71,7 +67,6 @@ function initial_conditions_linear_x_y(equation::LinearScalarAdvectionEquation, 
 
   return @SVector [sum(x_trans)]
 end
-get_name(::typeof(initial_conditions_linear_x_y)) = "linear_x_y"
 
 function initial_conditions_linear_x(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -79,7 +74,6 @@ function initial_conditions_linear_x(equation::LinearScalarAdvectionEquation, x,
 
   return @SVector [x_trans[1]]
 end
-get_name(::typeof(initial_conditions_linear_x)) = "linear_x"
 
 function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x, t)
   # Store translated coordinate for easy use of exact solution
@@ -87,7 +81,6 @@ function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x,
 
   return @SVector [x_trans[2]]
 end
-get_name(::typeof(initial_conditions_linear_y)) = "linear_y"
 
 
 # Apply source terms
