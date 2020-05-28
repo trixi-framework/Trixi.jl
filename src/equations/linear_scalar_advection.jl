@@ -118,7 +118,7 @@ end
                            u::AbstractArray{Float64})
   f1[1] = u[1] * equation.advectionvelocity[1]
   f2[1] = u[1] * equation.advectionvelocity[2]
-  nothing
+  return nothing
 end
 
 

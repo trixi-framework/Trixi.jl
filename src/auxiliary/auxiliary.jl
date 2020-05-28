@@ -182,7 +182,7 @@ end
 Returns a name of `x` ready for pretty printing.
 By default, return `y` if `x isa Val{y}` and return `x` otherwise.
 
-## Examples
+# Examples
 
 ```jldoctest
 julia> Trixi.get_name("test")

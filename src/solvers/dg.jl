@@ -67,7 +67,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -152,17 +152,6 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
   if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
   end
-
-  # "eval is evil"
-  # This is a temporary hack until we have switched to a library based approach
-  # with pure Julia code instead of parameter files.
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux"))
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux"))
-  volume_flux = eval(volume_flux_type)
-
-  initial_conditions_type = Symbol(parameter("initial_conditions"))
-  initial_conditions = eval(initial_conditions_type)
 
   # Create actual DG solver instance
   dg = Dg(

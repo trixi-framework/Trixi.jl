@@ -155,7 +155,7 @@ end
   f2[2]  = 0.0
   f2[3]  = -phi/equation.Tr
 
-  nothing
+  return nothing
 end
 
 
@@ -225,7 +225,7 @@ end
     f[3]  = -phi/equation.Tr
   end
 
-  nothing
+  return nothing
 end
 
 

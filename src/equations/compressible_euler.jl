@@ -352,7 +352,7 @@ end
   f2[3]  = rho_v2 * v2 + p
   f2[4]  = (rho_e + p) * v2
 
-  nothing
+  return nothing
 end
 
 
@@ -576,7 +576,7 @@ end
     f[4]  = (rho_e + p) * v2
   end
 
-  nothing
+  return nothing
 end
 
 
