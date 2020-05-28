@@ -44,4 +44,10 @@ include("amr/amr.jl")
 include("run.jl")
 
 
+# export types/functions that define the public API of Trixi
+export CompressibleEulerEquations, IdealMhdEquations, HyperbolicDiffusionEquations, LinearScalarAdvectionEquation
+export central_flux, lax_friedrichs_flux,
+       chandrashekar_flux, derigs_etal_flux, kennedy_gruber_flux, kuya_etal_flux
+
+
 end
