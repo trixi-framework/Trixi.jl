@@ -581,6 +581,17 @@ end
 
 
 # Calculate flux across interface with different states on both sides (EC mortar version)
+# - `destination::AbstractArray{T,3} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
+# - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
 function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
                   equation::CompressibleEulerEquations, n_nodes, orientations)
   # Call pointwise Riemann solver
@@ -602,6 +613,16 @@ function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, 
 end
 
 # Calculate flux across interface with different states on both sides (surface version)
+# - `destination::AbstractArray{T,2} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces::AbstractArray{T,4} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
 function riemann!(destination, surface_flux, u_surfaces, surface_id,
                   equation::CompressibleEulerEquations, n_nodes, orientations)
   # Call pointwise Riemann solver

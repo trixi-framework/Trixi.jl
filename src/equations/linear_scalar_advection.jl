@@ -123,6 +123,16 @@ end
 
 
 # Calculate flux across interface with different states on both sides (surface version)
+# - `destination::AbstractArray{T,2} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces::AbstractArray{T,4} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
 function riemann!(destination, surface_flux, u_surfaces, surface_id,
                   equation::LinearScalarAdvectionEquation, n_nodes::Int,
                   orientations::Vector{Int})
