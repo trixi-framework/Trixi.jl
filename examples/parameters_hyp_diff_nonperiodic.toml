@@ -6,7 +6,7 @@ nu = 1.0
 initial_conditions = "initial_conditions_poisson_nonperiodic"
 
 surface_flux = "flux_upwind"
-sources = "poisson_nonperiodic"
+sources = "source_terms_poisson_nonperiodic"
 t_start = 0.0
 t_end   = 5.0
 

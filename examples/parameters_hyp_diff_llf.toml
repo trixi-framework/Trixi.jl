@@ -6,7 +6,7 @@ nu = 1.0
 initial_conditions = "initial_conditions_poisson_periodic"
 
 surface_flux = "flux_lax_friedrichs"
-sources = "poisson_periodic"
+sources = "source_terms_poisson_periodic"
 t_start = 0.0
 t_end   = 2.0
 
