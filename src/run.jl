@@ -94,10 +94,10 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   println("done")
 
   # Sanity checks
-  # If DG volume integral type is weak form, volume flux type must be central_flux,
+  # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
-  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== central_flux
-    error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== flux_central
+    error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
   end
 
   # Initialize solution

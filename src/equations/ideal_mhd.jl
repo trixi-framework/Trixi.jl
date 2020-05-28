@@ -301,7 +301,7 @@ end
 end
 
 
-function central_flux(equation::IdealMhdEquations, orientation,
+function flux_central(equation::IdealMhdEquations, orientation,
                       rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                       B1_ll, B2_ll, B3_ll, psi_ll,
                       rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -319,7 +319,7 @@ end
 
 
 """
-    derigs_etal_flux(equation::IdealMhdEquations, orientation,
+    flux_derigs_etal(equation::IdealMhdEquations, orientation,
                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                      B1_ll, B2_ll, B3_ll, psi_ll,
                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -330,7 +330,7 @@ Entropy conserving two-point flux by Derigs et al. (2018)
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function derigs_etal_flux(equation::IdealMhdEquations, orientation,
+function flux_derigs_etal(equation::IdealMhdEquations, orientation,
                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                           B1_ll, B2_ll, B3_ll, psi_ll,
                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -532,7 +532,7 @@ function riemann!(destination, surface_flux, u_surfaces, surface_id,
 end
 
 
-function lax_friedrichs_flux(equation::IdealMhdEquations, orientation,
+function flux_lax_friedrichs(equation::IdealMhdEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate velocities and fast magnetoacoustic wave speeds

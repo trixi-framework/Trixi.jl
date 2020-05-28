@@ -5,7 +5,7 @@ nu = 1.0
 
 initial_conditions = "initial_conditions_harmonic_nonperiodic"
 
-surface_flux = "upwind_flux"
+surface_flux = "flux_upwind"
 sources = "harmonic"
 t_start = 0.0
 t_end   = 5.0

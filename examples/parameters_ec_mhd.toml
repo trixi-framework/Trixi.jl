@@ -3,9 +3,9 @@
 equations = "IdealMhdEquations"
 gamma = 1.4
 initial_conditions = "initial_conditions_ec_test"
-surface_flux = "derigs_etal_flux"
+surface_flux = "flux_derigs_etal"
 
-volume_flux = "derigs_etal_flux"
+volume_flux = "flux_derigs_etal"
 
 # sources =
 t_start = 0.0

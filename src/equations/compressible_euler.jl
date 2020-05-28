@@ -386,7 +386,7 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function central_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_central(equation::CompressibleEulerEquations, orientation,
                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate regular 1D fluxes
@@ -401,7 +401,7 @@ end
 
 
 """
-    function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+    function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -411,7 +411,7 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
                                 rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                 rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -449,7 +449,7 @@ end
 
 
 """
-    kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
+    flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                         rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -458,7 +458,7 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
                                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -493,7 +493,7 @@ end
 
 
 """
-    chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
+    flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -502,7 +502,7 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -628,7 +628,7 @@ function riemann!(destination, surface_flux, u_surfaces, surface_id,
 end
 
 
-function lax_friedrichs_flux(equation::CompressibleEulerEquations, orientation,
+function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate primitive variables and speed of sound
@@ -685,7 +685,7 @@ end
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 #
-#   if equation.surface_flux_type == :lax_friedrichs_flux
+#   if equation.surface_flux_type == :flux_lax_friedrichs
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 #
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)

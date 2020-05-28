@@ -46,8 +46,8 @@ include("run.jl")
 
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations, IdealMhdEquations, HyperbolicDiffusionEquations, LinearScalarAdvectionEquation
-export central_flux, lax_friedrichs_flux,
-       chandrashekar_flux, derigs_etal_flux, kennedy_gruber_flux, kuya_etal_flux
+export flux_central, flux_lax_friedrichs,
+       flux_chandrashekar, flux_derigs_etal, flux_kennedy_gruber, flux_kuya_etal
 
 
 end

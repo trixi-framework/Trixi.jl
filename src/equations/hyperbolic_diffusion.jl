@@ -195,7 +195,7 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-function central_flux(equation::HyperbolicDiffusionEquations, orientation,
+function flux_central(equation::HyperbolicDiffusionEquations, orientation,
                       phi_ll, p_ll, q_ll,
                       phi_rr, p_rr, q_rr)
   # Calculate regular 1D fluxes
@@ -291,7 +291,7 @@ function riemann!(destination, surface_flux, u_surfaces, surface_id,
 end
 
 
-function lax_friedrichs_flux(equation::HyperbolicDiffusionEquations, orientation,
+function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation,
                              phi_ll, p_ll, q_ll,
                              phi_rr, p_rr, q_rr,)
   # Obtain left and right fluxes
@@ -309,7 +309,7 @@ function lax_friedrichs_flux(equation::HyperbolicDiffusionEquations, orientation
 end
 
 
-function upwind_flux(equation::HyperbolicDiffusionEquations, orientation,
+function flux_upwind(equation::HyperbolicDiffusionEquations, orientation,
                      phi_ll, p_ll, q_ll,
                      phi_rr, p_rr, q_rr,)
   # Obtain left and right fluxes

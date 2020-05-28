@@ -142,7 +142,7 @@ function riemann!(destination, surface_flux, u_surfaces, surface_id,
 end
 
 
-function lax_friedrichs_flux(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
+function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
   0.5 * (a + abs(a)) * u_ll + (a - abs(a)) * u_rr
 end

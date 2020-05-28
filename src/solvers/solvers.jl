@@ -11,9 +11,9 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh)
     # "eval is evil"
     # This is a temporary hack until we have switched to a library based approach
     # with pure Julia code instead of parameter files.
-    surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux"))
+    surface_flux_type = Symbol(parameter("surface_flux", "flux_lax_friedrichs"))
     surface_flux = eval(surface_flux_type)
-    volume_flux_type = Symbol(parameter("volume_flux", "central_flux"))
+    volume_flux_type = Symbol(parameter("volume_flux", "flux_central"))
     volume_flux = eval(volume_flux_type)
 
     initial_conditions_type = Symbol(parameter("initial_conditions"))

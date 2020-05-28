@@ -3,9 +3,9 @@
 equations = "IdealMhdEquations"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_convergence_test"
-surface_flux = "lax_friedrichs_flux"
+surface_flux = "flux_lax_friedrichs"
 
-volume_flux = "central_flux"
+volume_flux = "flux_central"
 
 # sources =
 t_start = 0.0

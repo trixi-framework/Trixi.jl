@@ -5,7 +5,7 @@ nu = 1.0
 
 initial_conditions = "initial_conditions_poisson_periodic"
 
-surface_flux = "upwind_flux"
+surface_flux = "flux_upwind"
 sources = "poisson_periodic"
 t_start = 0.0
 t_end   = 2.0
