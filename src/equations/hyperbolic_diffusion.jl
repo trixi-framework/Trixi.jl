@@ -86,10 +86,14 @@ function initial_conditions(equation::HyperbolicDiffusionEquations, x, t)
     return [phi, p, q]
   elseif name == "jeans_instability"
   # gravity equation: -Δϕ = -4πGρ
-  # TODO: better initial condition than constant?
-    phi = 1.5e7
-    p   = 0.0 # 1.5e7
-    q   = 0.0 # 1.5e7
+  # Constants taken from the FLASH manual
+  # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+    rho0 = 1.5e7
+    delta0 = 1e-3
+    #
+    phi = rho0*delta0 # constant background pertubation magnitude
+    p   = 0.0
+    q   = 0.0
     return [phi, p, q]
   else
     error("Unknown initial condition '$name'")

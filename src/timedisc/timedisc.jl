@@ -48,6 +48,7 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_p
     # computes compressible Euler w/o any sources
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # add in gravitational source terms from update_gravity! call
+    # OBS! u_gravity[2] contains ∂ϕ/∂x and u_gravity[3] contains ∂ϕ/∂y
     u_euler = solver_euler.elements.u
     u_t_euler = solver_euler.elements.u_t
     u_gravity = solver_gravity.elements.u
@@ -64,9 +65,10 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_p
   end
 end
 
-
+# Update the gravity potential variable(s) a la hyperbolic diffusion coupled to Euler through
+# the density passed within u_euler
 function update_gravity!(solver, u_euler, cfl)
-  # FIXME: Update sources in gravity solver with density from Euler solver
+  # FIXME: Outputs a lot of data to the terminal, could be improved
 
   # Set up main loop
   finalstep = false
@@ -90,10 +92,9 @@ function update_gravity!(solver, u_euler, cfl)
     if n_iterations_max > 0 && iteration >= n_iterations_max
       finalstep = true
     end
-
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-      println("  Steady state tolerance of ",solver.equations.resid_tol,
-              " reached with iterations ",iteration)
+      println("  Gravity solution tolerance ",solver.equations.resid_tol,
+              " reached in iterations ",iteration)
       finalstep = true
     end
 
@@ -101,7 +102,8 @@ function update_gravity!(solver, u_euler, cfl)
 end
 
 
-# Integrate solution by repeatedly calling the rhs! method on the solver solution.
+# Integrate gravity solver
+# OBS! coupling source term added outside the rhs! call
 function timestep!(solver::AbstractSolver, t, dt, u_euler)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
   a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
@@ -111,15 +113,18 @@ function timestep!(solver::AbstractSolver, t, dt, u_euler)
        2277821191437.0 / 14882151754819.0]
   c = [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
        2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
+
   # Newton's gravitational constant (cgs units)
   G = 6.674e-8 # cm^3/(g⋅s^2)
-
+  rho0 = 1.5e7 # background density
+  grav_scale = -4.0*pi*G
   for stage = 1:5
     t_stage = t + dt * c[stage]
     # rhs! has the source term for the harmonic problem
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # put in gravity source term proportional to Euler density
-    @views solver.elements.u_t[1,:,:,:] .-= 4.0*pi*G*u_euler[1,:,:,:]
+    # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_rungekutta = (solver.elements.u_t
