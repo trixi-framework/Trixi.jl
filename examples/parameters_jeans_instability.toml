@@ -7,7 +7,7 @@ initial_conditions = "jeans_instability"
 surface_flux = "lax_friedrichs_flux"
 sources = "harmonic"
 t_start = 0.0
-t_end   = 2.0
+t_end   = 5.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -19,8 +19,8 @@ resid_tol = 1e-5
 solver = "dg"
 N = 3
 cfl = 0.5
-n_steps_max = 30
-n_iterations_max = 50
+n_steps_max = 10000
+n_iterations_max = 1000
 analysis_interval = 100
 
 ####################################################################################################
