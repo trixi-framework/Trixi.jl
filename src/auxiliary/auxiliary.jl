@@ -180,7 +180,7 @@ end
     get_name(x)
 
 Returns a name of `x` ready for pretty printing.
-By default, return `y` if `x isa Val{y}` and return `x` otherwise.
+By default, return `string(y)` if `x isa Val{y}` and return `string(x)` otherwise.
 
 # Examples
 
@@ -189,8 +189,8 @@ julia> Trixi.get_name("test")
 "test"
 
 julia> Trixi.get_name(Val(:test))
-:test
+"test"
 ```
 """
-get_name(x) = x
-get_name(::Val{x}) where x = x
+get_name(x) = string(x)
+get_name(::Val{x}) where x = string(x)
