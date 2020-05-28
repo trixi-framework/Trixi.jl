@@ -1017,7 +1017,22 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
 end
 
 
-# Calculate 2D two-point flux (element version)
+"""
+    calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
+                  equation::AbstractEquation, u, element_id, n_nodes)
+
+Calculate the finite volume fluxes inside the elements.
+
+# Arguments
+- `fstar1::AbstractArray{T} where T<:Real`:
+- `fstar2::AbstractArray{T} where T<:Real`
+- `surface_flux`
+- `u_leftright::AbstractArray{T} where T<:Real`
+- `equation::AbstractEquation`
+- `u::AbstractArray{T} where T<:Real`
+- `element_id::Integer`
+- `n_nodes::Integer`
+"""
 @inline function calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
                               equation::AbstractEquation, u, element_id, n_nodes)
   for j in 1:n_nodes
