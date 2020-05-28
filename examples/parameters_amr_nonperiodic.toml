@@ -1,13 +1,13 @@
 ####################################################################################################
 # Simulation
-# equations = "CompressibleEuler"
-equations = "LinearScalarAdvection"
+# equations = "CompressibleEulerEquations"
+equations = "LinearScalarAdvectionEquation"
 advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-# initial_conditions = "convergence_test"
-# initial_conditions = "constant"
-# initial_conditions = "linear-x-y"
-initial_conditions = "gauss"
+# initial_conditions = "initial_conditions_convergence_test"
+# initial_conditions = "initial_conditions_constant"
+# initial_conditions = "initial_conditions_linear_x_y"
+initial_conditions = "initial_conditions_gauss"
 amr_indicator = "gauss"
 # surface_flux = "lax_riedrichs_flux"
 # sources =

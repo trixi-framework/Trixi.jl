@@ -4,152 +4,142 @@
 
 The ideal compressible MHD equations in two space dimensions.
 """
-mutable struct IdealMhdEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{9}
-  name::String
-  initial_conditions::String
+mutable struct IdealMhdEquations <: AbstractEquation{9}
   sources::String
-  varnames_cons::SVector{9, String}
-  varnames_prim::SVector{9, String}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
-  surface_flux::SurfaceFlux
-  volume_flux::VolumeFlux
 end
 
 function IdealMhdEquations()
-  name = "IdealMhd"
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-  varnames_prim = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux", "central_flux", "derigs_etal_flux"]))
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
-                                      valid=["central_flux", "derigs_etal_flux"]))
-  volume_flux = eval(volume_flux_type)
-  IdealMhdEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma, c_h,
-                    surface_flux, volume_flux)
+  IdealMhdEquations(sources, gamma, c_h)
 end
 
 
+get_name(::IdealMhdEquations) = "IdealMhdEquations"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
+varnames_cons(::IdealMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions(equation::IdealMhdEquations, x, t)
-  name = equation.initial_conditions
-  if name == "constant"
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
-    rho_v3 = -0.5
-    rho_e = 50.0
-    B1 = 3.0
-    B2 = -1.2
-    B3 = 0.5
-    psi = 0.0
-    return [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
-  elseif name == "convergence_test"
-    # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-    # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-    alpha = 0.25*pi
-    x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
-    B_perp = 0.1*sin(2.0*pi*x_perp)
-    rho = 1.0
-    v1 = -B_perp*sin(alpha)
-    v2 = B_perp*cos(alpha)
-    v3 = 0.1*cos(2.0*pi*x_perp)
-    p = 0.1
-    B1 = cos(alpha) + v1
-    B2 = sin(alpha) + v2
-    B3 = v3
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "orszag_tang"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [0, 1] x [0, 1], γ = 5/3
-    rho = 1.0
-    v1 = -sin(2.0*pi*x[2])
-    v2 = sin(2.0*pi*x[1])
-    v3 = 0.0
-    p = 1.0/equation.gamma
-    B1 = -sin(2.0*pi*x[2])/equation.gamma
-    B2 = sin(4.0*pi*x[1])/equation.gamma
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "rotor"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [0, 1] x [0, 1], γ = 1.4
-    dx = x[1] - 0.5
-    dy = x[2] - 0.5
-    r = sqrt(dx^2 + dy^2)
-    f = (0.115 - r)/0.015
-    if r <= 0.1
-      rho = 10.0
-      v1 = -20.0*dy
-      v2 = 20.0*dx
-    elseif r >= 0.115
-      rho = 1.0
-      v1 = 0.0
-      v2 = 0.0
-    else
-      rho = 1.0 + 9.0*f
-      v1 = -20.0*f*dy
-      v2 = 20.0*f*dx
-    end
-    v3 = 0.0
-    p = 1.0
-    B1 = 5.0/sqrt(4.0*pi)
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "mhd_blast"
-    # setup taken from Derigs et al. DMV article (2018)
-    # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
-    r = sqrt(x[1]^2 + x[2]^2)
-    f = (0.1 - r)/0.01
-    if r <= 0.09
-      p = 1000.0
-    elseif r >= 0.1
-      p = 0.1
-    else
-      p = 0.1 + 999.9*f
-    end
+function initial_conditions_constant(equation::IdealMhdEquations, x, t)
+  rho = 1.0
+  rho_v1 = 0.1
+  rho_v2 = -0.2
+  rho_v3 = -0.5
+  rho_e = 50.0
+  B1 = 3.0
+  B2 = -1.2
+  B3 = 0.5
+  psi = 0.0
+  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
+end
+
+function initial_conditions_convergence_test(equation::IdealMhdEquations, x, t)
+  # smooth Alfvén wave test from Derigs et al. FLASH (2016)
+  # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
+  alpha = 0.25*pi
+  x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
+  B_perp = 0.1*sin(2.0*pi*x_perp)
+  rho = 1.0
+  v1 = -B_perp*sin(alpha)
+  v2 = B_perp*cos(alpha)
+  v3 = 0.1*cos(2.0*pi*x_perp)
+  p = 0.1
+  B1 = cos(alpha) + v1
+  B2 = sin(alpha) + v2
+  B3 = v3
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+
+function initial_conditions_orszag_tang(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 5/3
+  rho = 1.0
+  v1 = -sin(2.0*pi*x[2])
+  v2 = sin(2.0*pi*x[1])
+  v3 = 0.0
+  p = 1.0/equation.gamma
+  B1 = -sin(2.0*pi*x[2])/equation.gamma
+  B2 = sin(4.0*pi*x[1])/equation.gamma
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+
+function initial_conditions_rotor(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [0, 1] x [0, 1], γ = 1.4
+  dx = x[1] - 0.5
+  dy = x[2] - 0.5
+  r = sqrt(dx^2 + dy^2)
+  f = (0.115 - r)/0.015
+  if r <= 0.1
+    rho = 10.0
+    v1 = -20.0*dy
+    v2 = 20.0*dx
+  elseif r >= 0.115
     rho = 1.0
     v1 = 0.0
     v2 = 0.0
-    v3 = 0.0
-    B1 = 100.0/sqrt(4.0*pi)
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
-    return prim2cons(equation, [rho, v1, v2, v3, p, B1, B2, B3, psi])
-  elseif name == "ec_test"
-    # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Same discontinuity in the velocities but with magnetic fields
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
-
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
-
-    return prim2cons(equation, [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
   else
-    error("Unknown initial condition '$name'")
+    rho = 1.0 + 9.0*f
+    v1 = -20.0*f*dy
+    v2 = 20.0*f*dx
   end
+  v3 = 0.0
+  p = 1.0
+  B1 = 5.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
 
+function initial_conditions_mhd_blast(equation::IdealMhdEquations, x, t)
+  # setup taken from Derigs et al. DMV article (2018)
+  # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+  r = sqrt(x[1]^2 + x[2]^2)
+  f = (0.1 - r)/0.01
+  if r <= 0.09
+    p = 1000.0
+  elseif r >= 0.1
+    p = 0.1
+  else
+    p = 0.1 + 999.9*f
+  end
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  B1 = 100.0/sqrt(4.0*pi)
+  B2 = 0.0
+  B3 = 0.0
+  psi = 0.0
+  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+end
+
+function initial_conditions_ec_test(equation::IdealMhdEquations, x, t)
+  # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Same discontinuity in the velocities but with magnetic fields
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
 end
 
 
@@ -311,7 +301,7 @@ end
 end
 
 
-function central_flux(equation::IdealMhdEquations, orientation,
+function flux_central(equation::IdealMhdEquations, orientation,
                       rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                       B1_ll, B2_ll, B3_ll, psi_ll,
                       rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -329,7 +319,7 @@ end
 
 
 """
-    derigs_etal_flux(equation::IdealMhdEquations, orientation,
+    flux_derigs_etal(equation::IdealMhdEquations, orientation,
                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                      B1_ll, B2_ll, B3_ll, psi_ll,
                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -340,7 +330,7 @@ Entropy conserving two-point flux by Derigs et al. (2018)
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function derigs_etal_flux(equation::IdealMhdEquations, orientation,
+function flux_derigs_etal(equation::IdealMhdEquations, orientation,
                           rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
                           B1_ll, B2_ll, B3_ll, psi_ll,
                           rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
@@ -448,112 +438,101 @@ end
     f[8]  = v2*B3 - v3*B2
     f[9]  = equation.c_h*B2
   end
-end
-
-
-# Calculate flux across interface with different states on both sides (EC mortar version)
-function riemann!(surface_flux::AbstractArray{Float64, 3},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces_left::AbstractArray{Float64, 3},
-                  u_surfaces_right::AbstractArray{Float64, 3},
-                  surface_id::Int,
-                  equation::IdealMhdEquations, n_nodes::Int,
-                  orientations::Vector{Int})
-  # Call pointwise Riemann solver
-  # i -> left, j -> right
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-      riemann!(fstarnode,
-               u_surfaces_left[1, i, surface_id],
-               u_surfaces_left[2, i, surface_id],
-               u_surfaces_left[3, i, surface_id],
-               u_surfaces_left[4, i, surface_id],
-               u_surfaces_left[5, i, surface_id],
-               u_surfaces_left[6, i, surface_id],
-               u_surfaces_left[7, i, surface_id],
-               u_surfaces_left[8, i, surface_id],
-               u_surfaces_left[9, i, surface_id],
-               u_surfaces_right[1, j, surface_id],
-               u_surfaces_right[2, j, surface_id],
-               u_surfaces_right[3, j, surface_id],
-               u_surfaces_right[4, j, surface_id],
-               u_surfaces_right[5, j, surface_id],
-               u_surfaces_right[6, j, surface_id],
-               u_surfaces_right[7, j, surface_id],
-               u_surfaces_right[8, j, surface_id],
-               u_surfaces_right[9, j, surface_id],
-               equation, orientations[surface_id])
-
-      # Copy flux back to actual flux array
-      for v in 1:nvariables(equation)
-        surface_flux[v, i, j] = fstarnode[v]
-      end
-    end
-  end
-end
-
-
-# Calculate flux across interface with different states on both sides (surface version)
-function riemann!(surface_flux::AbstractMatrix{Float64},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces::AbstractArray{Float64, 4},
-                  surface_id::Int,
-                  equation::IdealMhdEquations, n_nodes::Int,
-                  orientations::Vector{Int})
-  # Call pointwise Riemann solver
-  for i = 1:n_nodes
-    # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-    riemann!(fstarnode,
-             u_surfaces[1, 1, i, surface_id],
-             u_surfaces[1, 2, i, surface_id],
-             u_surfaces[1, 3, i, surface_id],
-             u_surfaces[1, 4, i, surface_id],
-             u_surfaces[1, 5, i, surface_id],
-             u_surfaces[1, 6, i, surface_id],
-             u_surfaces[1, 7, i, surface_id],
-             u_surfaces[1, 8, i, surface_id],
-             u_surfaces[1, 9, i, surface_id],
-             u_surfaces[2, 1, i, surface_id],
-             u_surfaces[2, 2, i, surface_id],
-             u_surfaces[2, 3, i, surface_id],
-             u_surfaces[2, 4, i, surface_id],
-             u_surfaces[2, 5, i, surface_id],
-             u_surfaces[2, 6, i, surface_id],
-             u_surfaces[2, 7, i, surface_id],
-             u_surfaces[2, 8, i, surface_id],
-             u_surfaces[2, 9, i, surface_id],
-             equation, orientations[surface_id])
-
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      surface_flux[v, i] = fstarnode[v]
-    end
-  end
-end
-
-
-# Calculate flux across interface with different states on both sides (pointwise version)
-function riemann!(surface_flux,
-                  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr,
-                  equation::IdealMhdEquations, orientation)
-
-  # I'm not really sure where to hook into the call chain. This is just a first
-  # implementation as proof of concept and should be discussed and improved.
-  flux = equation.surface_flux(equation, orientation,
-                               rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                               rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
-
-  for i in 1:9
-    surface_flux[i] = flux[i]
-  end
 
   return nothing
 end
 
 
-function lax_friedrichs_flux(equation::IdealMhdEquations, orientation,
+# Calculate flux across interface with different states on both sides (EC mortar version)
+# - `destination::AbstractArray{T,3} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
+# - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::IdealMhdEquations, n_nodes, orientations)
+  # Call pointwise Riemann solver
+  # i -> left, j -> right
+  for j = 1:n_nodes
+    for i = 1:n_nodes
+      flux = surface_flux(equation, orientations[surface_id],
+                          u_surfaces_left[1, i, surface_id],
+                          u_surfaces_left[2, i, surface_id],
+                          u_surfaces_left[3, i, surface_id],
+                          u_surfaces_left[4, i, surface_id],
+                          u_surfaces_left[5, i, surface_id],
+                          u_surfaces_left[6, i, surface_id],
+                          u_surfaces_left[7, i, surface_id],
+                          u_surfaces_left[8, i, surface_id],
+                          u_surfaces_left[9, i, surface_id],
+                          u_surfaces_right[1, j, surface_id],
+                          u_surfaces_right[2, j, surface_id],
+                          u_surfaces_right[3, j, surface_id],
+                          u_surfaces_right[4, j, surface_id],
+                          u_surfaces_right[5, j, surface_id],
+                          u_surfaces_right[6, j, surface_id],
+                          u_surfaces_right[7, j, surface_id],
+                          u_surfaces_right[8, j, surface_id],
+                          u_surfaces_right[9, j, surface_id])
+
+      # Copy flux back to actual flux array
+      for v in 1:nvariables(equation)
+        destination[v, i, j] = flux[v]
+      end
+    end
+  end
+end
+
+# Calculate flux across interface with different states on both sides (surface version)
+# - `destination::AbstractArray{T,2} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces::AbstractArray{T,4} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
+                  equation::IdealMhdEquations, n_nodes, orientations)
+  # Call pointwise Riemann solver
+  for i = 1:n_nodes
+    flux = surface_flux(equation, orientations[surface_id],
+                        u_surfaces[1, 1, i, surface_id],
+                        u_surfaces[1, 2, i, surface_id],
+                        u_surfaces[1, 3, i, surface_id],
+                        u_surfaces[1, 4, i, surface_id],
+                        u_surfaces[1, 5, i, surface_id],
+                        u_surfaces[1, 6, i, surface_id],
+                        u_surfaces[1, 7, i, surface_id],
+                        u_surfaces[1, 8, i, surface_id],
+                        u_surfaces[1, 9, i, surface_id],
+                        u_surfaces[2, 1, i, surface_id],
+                        u_surfaces[2, 2, i, surface_id],
+                        u_surfaces[2, 3, i, surface_id],
+                        u_surfaces[2, 4, i, surface_id],
+                        u_surfaces[2, 5, i, surface_id],
+                        u_surfaces[2, 6, i, surface_id],
+                        u_surfaces[2, 7, i, surface_id],
+                        u_surfaces[2, 8, i, surface_id],
+                        u_surfaces[2, 9, i, surface_id])
+
+    # Copy flux back to actual flux array
+    for v in 1:nvariables(equation)
+      destination[v, i] = flux[v]
+    end
+  end
+end
+
+
+function flux_lax_friedrichs(equation::IdealMhdEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate velocities and fast magnetoacoustic wave speeds

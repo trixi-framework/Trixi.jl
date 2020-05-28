@@ -1,12 +1,12 @@
 ####################################################################################################
 # Simulation
-equations = "CompressibleEuler"
-# equations = "LinearScalarAdvection"
+equations = "CompressibleEulerEquations"
+# equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-initial_conditions = "isentropic_vortex"
-# initial_conditions = "constant"
-surface_flux = "lax_friedrichs_flux"
+initial_conditions = "initial_conditions_isentropic_vortex"
+# initial_conditions = "initial_conditions_constant"
+surface_flux = "flux_lax_friedrichs"
 # sources =
 t_start = 0.0
 t_end   = 20.0

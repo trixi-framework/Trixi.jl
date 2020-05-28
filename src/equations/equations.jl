@@ -10,25 +10,21 @@ nvariables(::Type{AbstractEquation{V}}) where V = V
 nvariables(::AbstractEquation{V}) where V = V
 
 
-# Retrieve name of system of equations
-name(equation::AbstractEquation) = equation.name
-
-
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquation)
-  print(io, "name = $(equation.name), n_vars = $(nvariables(equation))")
+  print(io, "name = ", get_name(equation), ", n_vars = ", nvariables(equation))
 end
 
 
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String)
-  if name == "LinearScalarAdvection"
+  if name == "LinearScalarAdvectionEquation"
     return LinearScalarAdvectionEquation()
-  elseif name == "CompressibleEuler"
+  elseif name == "CompressibleEulerEquations"
     return CompressibleEulerEquations()
-  elseif name == "IdealMhd"
+  elseif name == "IdealMhdEquations"
     return IdealMhdEquations()
-  elseif name == "HyperbolicDiffusion"
+  elseif name == "HyperbolicDiffusionEquations"
     return HyperbolicDiffusionEquations()
   else
     error("'$name' does not name a valid system of equations")
@@ -39,12 +35,48 @@ end
 have_nonconservative_terms(::AbstractEquation) = Val(false)
 
 
-# Calculate 2D two-point flux (decide which volume flux type to use)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                    equation, u, element_id, n_nodes)
-  calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                     equation.volume_flux, equation, u, element_id, n_nodes)
-end
+"""
+    riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+             equation::AbstractEquation, n_nodes, orientations)
+
+Calculate the `surface_flux` across interface with different states given by
+`u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
+
+# Arguments
+- `destination::AbstractArray{T,3} where T<:Real`:
+  The array of surface flux values (updated inplace).
+- `surface_flux`:
+  The surface flux as a function.
+- `u_surfaces_left::AbstractArray{T,3} where T<:Real``
+- `u_surfaces_right::AbstractArray{T,3} where T<:Real``
+- `surface_id::Integer`
+- `equation::AbstractEquations`
+- `n_nodes::Integer`
+- `orientations::Vector{T} where T<:Integer`
+"""
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::AbstractEquation, n_nodes, orientations) end
+
+"""
+    riemann!(destination, surface_flux, u_surfaces, surface_id,
+             equation::AbstractEquation, n_nodes, orientations)
+
+Calculate the `surface_flux` across interface with different states given by
+`u_surfaces_left, u_surfaces_right` on both sides (surface version).
+
+# Arguments
+- `destination::AbstractArray{T,2} where T<:Real`:
+  The array of surface flux values (updated inplace).
+- `surface_flux`:
+  The surface flux as a function.
+- `u_surfaces::AbstractArray{T,4} where T<:Real``
+- `surface_id::Integer`
+- `equation::AbstractEquations`
+- `n_nodes::Integer`
+- `orientations::Vector{T} where T<:Integer`
+"""
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
+                  equation::AbstractEquation, n_nodes, orientations) end
 
 
 ####################################################################################################

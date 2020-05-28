@@ -7,29 +7,27 @@ abstract type AbstractSolver end
 function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh)
   if name == "dg"
     N = parameter("N")
-    return Dg(equations, mesh, N)
+
+    # "eval is evil"
+    # This is a temporary hack until we have switched to a library based approach
+    # with pure Julia code instead of parameter files.
+    surface_flux_type = Symbol(parameter("surface_flux", "flux_lax_friedrichs"))
+    surface_flux = eval(surface_flux_type)
+    volume_flux_type = Symbol(parameter("volume_flux", "flux_central"))
+    volume_flux = eval(volume_flux_type)
+
+    initial_conditions_type = Symbol(parameter("initial_conditions"))
+    initial_conditions = eval(initial_conditions_type)
+
+    return Dg(equations, surface_flux, volume_flux, initial_conditions, mesh, N)
   else
-    error("'$name' does not name a valid system of equations")
+    error("'$name' does not name a valid solver")
   end
 end
 
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
-
-# First, add generic functions for which the submodules can create own methods
-function set_initial_conditions end
-function analyze_solution end
-function calc_dt end
-function equations end
-function rhs! end
-function ndofs end
-function refine! end
-function coarsen! end
-function calc_amr_indicator end
-
-# Next, include module files and make symbols available. Here we employ an
-# unqualified "using" to avoid boilerplate code.
 
 # DG
 include("dg.jl")

@@ -1,19 +1,19 @@
 ####################################################################################################
 # Simulation
-equations = "CompressibleEuler"
-# equations = "LinearScalarAdvection"
+equations = "CompressibleEulerEquations"
+# equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-# initial_conditions = "convergence_test"
-# initial_conditions = "isentropic_vortex"
-# initial_conditions = "linear-x-y"
-# initial_conditions = "linear-x"
-# initial_conditions = "constant"
-initial_conditions = "blast_wave"
+# initial_conditions = "initial_conditions_convergence_test"
+# initial_conditions = "initial_conditions_isentropic_vortex"
+# initial_conditions = "initial_conditions_linear_x_y"
+# initial_conditions = "initial_conditions_linear_x"
+# initial_conditions = "initial_conditions_constant"
+initial_conditions = "initial_conditions_blast_wave"
 amr_indicator = "blast_wave"
-surface_flux = "lax_friedrichs_flux"
-volume_flux = "chandrashekar_flux"
-# volume_flux = "central_flux"
+surface_flux = "flux_lax_friedrichs"
+volume_flux = "flux_chandrashekar"
+# volume_flux = "flux_central"
 # sources =
 t_start = 0.0
 t_end   = 12.5

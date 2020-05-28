@@ -83,8 +83,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["LinearScalarAdvection", "CompressibleEuler", "IdealMhd",
-                                                 "HyperbolicDiffusion"])
+  equations_name = parameter("equations")
   equations = make_equations(equations_name)
   println("done")
 
@@ -95,10 +94,10 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   println("done")
 
   # Sanity checks
-  # If DG volume integral type is weak form, volume flux type must be central_flux,
+  # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
-  if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux != central_flux
-    error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
+  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== flux_central
+    error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
   end
 
   # Initialize solution
@@ -142,7 +141,6 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   n_leaf_cells = count_leaf_cells(mesh.tree)
   min_level = minimum_level(mesh.tree)
@@ -156,9 +154,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | ----------------
           | working directory:  $(pwd())
           | parameters file:    $(args["parameters_file"])
-          | equations:          $equations_name
+          | equations:          $(get_name(equations))
           | | #variables:       $(nvariables(equations))
-          | | variable names:   $(join(equations.varnames_cons, ", "))
+          | | variable names:   $(join(varnames_cons(equations), ", "))
           | sources:            $sources
           | restart:            $(restart ? "yes" : "no")
           """
@@ -166,7 +164,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
-    s *= "| initial conditions: $initial_conditions\n"
+    s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
@@ -185,9 +183,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
           | | solver:           $solver_name
           | | N:                $N
           | | CFL:              $cfl
-          | | volume integral:  $(strip_val(solver.volume_integral_type))
-          | | volume flux:      $(string(equations.volume_flux))
-          | | surface flux:     $(string(equations.surface_flux))
+          | | volume integral:  $(get_name(solver.volume_integral_type))
+          | | volume flux:      $(get_name(solver.volume_flux))
+          | | surface flux:     $(get_name(solver.surface_flux))
           | | #elements:        $(solver.n_elements)
           | | #surfaces:        $(solver.n_surfaces)
           | | #boundaries:      $(solver.n_boundaries)
@@ -391,7 +389,7 @@ function run_simulation(mesh, solver, time_parameters)
   println()
 
   # Return error norms for EOC calculation
-  return l2_error, linf_error, solver.equations.varnames_cons
+  return l2_error, linf_error, varnames_cons(solver.equations)
 end
 
 

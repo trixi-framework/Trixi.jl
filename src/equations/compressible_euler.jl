@@ -4,252 +4,256 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations{SurfaceFlux, VolumeFlux} <: AbstractEquation{4}
-  name::String
-  initial_conditions::String
+struct CompressibleEulerEquations <: AbstractEquation{4}
   sources::String
-  varnames_cons::SVector{4, String}
-  varnames_prim::SVector{4, String}
   gamma::Float64
-  surface_flux::SurfaceFlux #TODO Don't all the fluxes belong to the DG struct?
-  volume_flux::VolumeFlux
 end
 
 function CompressibleEulerEquations()
-  name = "CompressibleEuler"
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
-  varnames_cons = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
-  varnames_prim = @SVector ["rho", "v1", "v2", "p"]
   gamma = parameter("gamma", 1.4)
-  surface_flux_type = Symbol(parameter("surface_flux", "lax_friedrichs_flux",
-                                       valid=["lax_friedrichs_flux","central_flux",
-                                              "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
-  # "eval is evil"
-  # This is a temporary hack (used for all equations) until we have switched to a library based approach
-  # with pure Julia code instead of parameter files.
-  surface_flux = eval(surface_flux_type)
-  volume_flux_type = Symbol(parameter("volume_flux", "central_flux",
-                            valid=["central_flux", "kennedy_gruber_flux", "chandrashekar_flux", "kuya_etal_flux"]))
-  volume_flux = eval(volume_flux_type)
-  CompressibleEulerEquations(name, initial_conditions, sources, varnames_cons, varnames_prim, gamma,
-        surface_flux, volume_flux)
+
+  CompressibleEulerEquations(sources, gamma)
 end
 
 
+get_name(::CompressibleEulerEquations) = "CompressibleEulerEquations"
+varnames_cons(::CompressibleEulerEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
+varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
+
+
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions(equation::CompressibleEulerEquations, x, t)
-  name = equation.initial_conditions
-  if name == "density_pulse"
-    rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "pressure_pulse"
-    rho = 1
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "density_pressure_pulse"
-    rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-    v1 = 1
-    v2 = 1
-    rho_v1 = rho * v1
-    rho_v2 = rho * v2
-    p = 1 + exp(-x^2)/2
-    rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "constant"
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
-    rho_e = 10.0
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "convergence_test"
-    c = 2
-    A = 0.1
-    L = 2
-    f = 1/L
-    ω = 2 * pi * f
-    ini = c + A * sin(ω * (x[1] + x[2] - t))
+function initial_conditions_density_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
 
-    rho = ini
-    rho_v1 = ini
-    rho_v2 = ini
-    rho_e = ini^2
+function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
 
-    return [rho, rho_v1, rho_v2, rho_e]
-  elseif name == "sod"
-    if x < 0.0
-      return [1.0, 0.0, 0.0, 2.5]
-    else
-      return [0.125, 0.0, 0.0, 0.25]
-    end
-  elseif name == "isentropic_vortex"
-    # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-    # make sure that the inicenter does not exit the domain, e.g. T=10.0
-    # initial center of the vortex
-    inicenter = [0,0]
-    # size and strength of the vortex
-    iniamplitude = 0.2
-    # base flow
-    prim=[1.0,1.0,1.0,10.0]
-    vel=prim[2:3]
-    rt=prim[4]/prim[1]                      # ideal gas equation
-    cent=(inicenter+vel*t)                  # advection of center
-    cent=x-cent                             # distance to centerpoint
-    #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
-    # cross product with iniaxis = [0,0,1]
-    helper =  cent[1]
-    cent[1] = -cent[2]
-    cent[2] = helper
-    r2=cent[1]^2+cent[2]^2
-    du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-    dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-    prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
-    prim[2:3]=prim[2:3]+du*cent #v
-    prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-    rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
-    return [rho,rho_v1,rho_v2,rho_e]
-  elseif name == "weak_blast_wave"
-    # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
+function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
+  v1 = 1
+  v2 = 1
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 1 + exp(-x^2)/2
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
 
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
+  rho = 1.0
+  rho_v1 = 0.1
+  rho_v2 = -0.2
+  rho_e = 10.0
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
 
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "blast_wave"
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-    phi = atan(y_norm, x_norm)
+function initial_conditions_convergence_test(equation::CompressibleEulerEquations, x, t)
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] - t))
 
-    # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0E-3 : 1.245
+  rho = ini
+  rho_v1 = ini
+  rho_v2 = ini
+  rho_e = ini^2
 
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "sedov_blast_wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
 
-    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-    p0_outer = 1.0e-5 # = true Sedov setup
-    # p0_outer = 1.0e-3 # = more reasonable setup
-
-    # Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    p = r > r0 ? p0_outer : p0_inner
-
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "medium_sedov_blast_wave"
-    # Set up polar coordinates
-    inicenter = [0, 0]
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
-
-    # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    # r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-    # p0_outer = 1.0e-5 # = true Sedov setup
-    p0_outer = 1.0e-3 # = more reasonable setup
-
-    # Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    p = r > r0 ? p0_outer : p0_inner
-
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "khi"
-    # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
-    # change discontinuity to tanh
-    # typical resolution 128^2, 256^2
-    # domain size is [-0.5,0.5]^2
-    dens0 = 1.0 # outside density
-    dens1 = 2.0 # inside density
-    velx0 = -0.5 # outside velocity
-    velx1 = 0.5 # inside velocity
-    slope = 50 # used for tanh instead of discontinuous initial condition
-    # pressure equilibrium
-    p     = 2.5
-    #  y velocity v2 is only white noise
-    v2  = 0.01*(rand(Float64,1)[1]-0.5)
-    # density
-    rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-    #  x velocity is also augmented with noise
-    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-    return prim2cons(equation, [rho, v1, v2, p])
-  elseif name == "blob"
-    # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # change discontinuity to tanh
-    # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-    # resolution 128^2, 256^2
-    # domain size is [-20.0,20.0]^2
-    # gamma = 5/3 for this test case
-    R = 1.0 # radius of the blob
-    # background density
-    dens0 = 1.0
-    Chi = 10.0 # density contrast
-    # reference time of characteristic growth of KH instability equal to 1.0
-    tau_kh = 1.0
-    tau_cr = tau_kh/1.6 # crushing time
-    # determine background velocity
-    velx0 = 2*R*sqrt(Chi)/tau_cr
-    vely0 = 0.0
-    Ma0 = 2.7 # background flow Mach number Ma=v/c
-    c = velx0/Ma0 # sound speed
-    # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-    p0 = c*c*dens0/equation.gamma
-    # initial center of the blob
-    inicenter = [-15,0]
-    x_rel = x-inicenter
-    r = sqrt(x_rel[1]^2 + x_rel[2]^2)
-    # steepness of the tanh transition zone
-    slope = 2
-    # density blob
-    dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-    # velocity blob is zero
-    velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-    return prim2cons(equation, [dens, velx, vely0, p0])
+function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
+  if x < 0.0
+    return @SVector [1.0, 0.0, 0.0, 2.5]
   else
-    error("Unknown initial condition '$name'")
+    return @SVector [0.125, 0.0, 0.0, 0.25]
   end
+end
+
+function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquations, x, t)
+  # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
+  # make sure that the inicenter does not exit the domain, e.g. T=10.0
+  # initial center of the vortex
+  inicenter = [0,0]
+  # size and strength of the vortex
+  iniamplitude = 0.2
+  # base flow
+  prim=[1.0,1.0,1.0,10.0]
+  vel=prim[2:3]
+  rt=prim[4]/prim[1]                      # ideal gas equation
+  cent=(inicenter+vel*t)                  # advection of center
+  cent=x-cent                             # distance to centerpoint
+  #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
+  # cross product with iniaxis = [0,0,1]
+  helper =  cent[1]
+  cent[1] = -cent[2]
+  cent[2] = helper
+  r2=cent[1]^2+cent[2]^2
+  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
+  dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
+  prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
+  prim[2:3]=prim[2:3]+du*cent #v
+  prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
+  rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+
+function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+
+function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  phi = atan(y_norm, x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  p = r > 0.5 ? 1.0E-3 : 1.245
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+
+function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+  p0_outer = 1.0e-5 # = true Sedov setup
+  # p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+
+function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+  # Set up polar coordinates
+  inicenter = [0, 0]
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
+  # p0_outer = 1.0e-5 # = true Sedov setup
+  p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+
+function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
+  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+  # change discontinuity to tanh
+  # typical resolution 128^2, 256^2
+  # domain size is [-0.5,0.5]^2
+  dens0 = 1.0 # outside density
+  dens1 = 2.0 # inside density
+  velx0 = -0.5 # outside velocity
+  velx1 = 0.5 # inside velocity
+  slope = 50 # used for tanh instead of discontinuous initial condition
+  # pressure equilibrium
+  p     = 2.5
+  #  y velocity v2 is only white noise
+  v2  = 0.01*(rand(Float64,1)[1]-0.5)
+  # density
+  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  #  x velocity is also augmented with noise
+  v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  return prim2cons(equation, @SVector [rho, v1, v2, p])
+end
+
+function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
+  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # change discontinuity to tanh
+  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+  # resolution 128^2, 256^2
+  # domain size is [-20.0,20.0]^2
+  # gamma = 5/3 for this test case
+  R = 1.0 # radius of the blob
+  # background density
+  dens0 = 1.0
+  Chi = 10.0 # density contrast
+  # reference time of characteristic growth of KH instability equal to 1.0
+  tau_kh = 1.0
+  tau_cr = tau_kh/1.6 # crushing time
+  # determine background velocity
+  velx0 = 2*R*sqrt(Chi)/tau_cr
+  vely0 = 0.0
+  Ma0 = 2.7 # background flow Mach number Ma=v/c
+  c = velx0/Ma0 # sound speed
+  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+  p0 = c*c*dens0/equation.gamma
+  # initial center of the blob
+  inicenter = [-15,0]
+  x_rel = x-inicenter
+  r = sqrt(x_rel[1]^2 + x_rel[2]^2)
+  # steepness of the tanh transition zone
+  slope = 2
+  # density blob
+  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  # velocity blob is zero
+  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  return prim2cons(equation, @SVector [dens, velx, vely0, p0])
 end
 
 
@@ -334,6 +338,8 @@ end
   f2[2]  = rho_v2 * v1
   f2[3]  = rho_v2 * v2 + p
   f2[4]  = (rho_e + p) * v2
+
+  return nothing
 end
 
 
@@ -380,7 +386,7 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function central_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_central(equation::CompressibleEulerEquations, orientation,
                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate regular 1D fluxes
@@ -395,7 +401,7 @@ end
 
 
 """
-    function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+    function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -405,7 +411,7 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function kuya_etal_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
                                 rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                 rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -443,7 +449,7 @@ end
 
 
 """
-    kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
+    flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
                         rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                         rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -452,7 +458,7 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function kennedy_gruber_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
                                      rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                      rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -487,7 +493,7 @@ end
 
 
 """
-    chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
+    flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 
@@ -496,7 +502,7 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function chandrashekar_flux(equation::CompressibleEulerEquations, orientation,
+@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Unpack left and right state
@@ -556,92 +562,73 @@ end
     f[3]  = rho_v2 * v2 + p
     f[4]  = (rho_e + p) * v2
   end
-end
-
-
-# Calculate flux across interface with different states on both sides (EC mortar version)
-function riemann!(surface_flux::AbstractArray{Float64, 3},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces_left::AbstractArray{Float64, 3},
-                  u_surfaces_right::AbstractArray{Float64, 3},
-                  surface_id::Int,
-                  equation::CompressibleEulerEquations, n_nodes::Int,
-                  orientations::Vector{Int})
-  # Call pointwise Riemann solver
-  # i -> left, j -> right
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-      riemann!(fstarnode,
-               u_surfaces_left[1, i, surface_id],
-               u_surfaces_left[2, i, surface_id],
-               u_surfaces_left[3, i, surface_id],
-               u_surfaces_left[4, i, surface_id],
-               u_surfaces_right[1, j, surface_id],
-               u_surfaces_right[2, j, surface_id],
-               u_surfaces_right[3, j, surface_id],
-               u_surfaces_right[4, j, surface_id],
-               equation, orientations[surface_id])
-
-      # Copy flux back to actual flux array
-      for v in 1:nvariables(equation)
-        surface_flux[v, i, j] = fstarnode[v]
-      end
-    end
-  end
-end
-
-
-# Calculate flux across interface with different states on both sides (surface version)
-function riemann!(surface_flux::AbstractMatrix{Float64},
-                  fstarnode::AbstractVector{Float64},
-                  u_surfaces::AbstractArray{Float64, 4},
-                  surface_id::Int,
-                  equation::CompressibleEulerEquations, n_nodes::Int,
-                  orientations::Vector{Int})
-  # Call pointwise Riemann solver
-  for i = 1:n_nodes
-    # Store flux in pre-allocated `fstarnode` to avoid allocations in loop
-    riemann!(fstarnode,
-             u_surfaces[1, 1, i, surface_id],
-             u_surfaces[1, 2, i, surface_id],
-             u_surfaces[1, 3, i, surface_id],
-             u_surfaces[1, 4, i, surface_id],
-             u_surfaces[2, 1, i, surface_id],
-             u_surfaces[2, 2, i, surface_id],
-             u_surfaces[2, 3, i, surface_id],
-             u_surfaces[2, 4, i, surface_id],
-             equation, orientations[surface_id])
-
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      surface_flux[v, i] = fstarnode[v]
-    end
-  end
-end
-
-
-# Calculate flux across interface with different states on both sides (pointwise version)
-function riemann!(surface_flux::AbstractArray{Float64, 1},
-                  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr,
-                  equation::CompressibleEulerEquations, orientation::Int)
-
-  # I'm not really sure where to hook into the call chain. This is just a first
-  # implementation as proof of concept and should be discussed and improved.
-  flux = equation.surface_flux(equation, orientation,
-                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-
-  for i in 1:4
-    surface_flux[i] = flux[i]
-  end
 
   return nothing
 end
 
 
-function lax_friedrichs_flux(equation::CompressibleEulerEquations, orientation,
+# Calculate flux across interface with different states on both sides (EC mortar version)
+# - `destination::AbstractArray{T,3} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
+# - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::CompressibleEulerEquations, n_nodes, orientations)
+  # Call pointwise Riemann solver
+  # i -> left, j -> right
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      flux = surface_flux(equation, orientations[surface_id],
+                          u_surfaces_left[1, i, surface_id], u_surfaces_left[2, i, surface_id],
+                          u_surfaces_left[3, i, surface_id], u_surfaces_left[4, i, surface_id],
+                          u_surfaces_right[1, j, surface_id], u_surfaces_right[2, j, surface_id],
+                          u_surfaces_right[3, j, surface_id], u_surfaces_right[4, j, surface_id])
+
+      # Copy flux back to actual flux array
+      for v in 1:nvariables(equation)
+        destination[v, i, j] = flux[v]
+      end
+    end
+  end
+end
+
+# Calculate flux across interface with different states on both sides (surface version)
+# - `destination::AbstractArray{T,2} where T<:Real`:
+#   The array of surface flux values (updated inplace).
+# - `surface_flux`:
+#   The surface flux as a function.
+# - `u_surfaces::AbstractArray{T,4} where T<:Real``
+# - `surface_id::Integer`
+# - `equation::AbstractEquations`
+# - `n_nodes::Integer`
+# - `orientations::Vector{T} where T<:Integer`
+# See equations.jl
+function riemann!(destination, surface_flux, u_surfaces, surface_id,
+                  equation::CompressibleEulerEquations, n_nodes, orientations)
+  # Call pointwise Riemann solver
+  for i = 1:n_nodes
+    flux = surface_flux(equation, orientations[surface_id],
+                        u_surfaces[1, 1, i, surface_id], u_surfaces[1, 2, i, surface_id],
+                        u_surfaces[1, 3, i, surface_id], u_surfaces[1, 4, i, surface_id],
+                        u_surfaces[2, 1, i, surface_id], u_surfaces[2, 2, i, surface_id],
+                        u_surfaces[2, 3, i, surface_id], u_surfaces[2, 4, i, surface_id])
+
+    # Copy flux back to actual flux array
+    for v in 1:nvariables(equation)
+      destination[v, i] = flux[v]
+    end
+  end
+end
+
+
+function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
   # Calculate primitive variables and speed of sound
@@ -698,7 +685,7 @@ end
 #   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
 #   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
 #
-#   if equation.surface_flux_type == :lax_friedrichs_flux
+#   if equation.surface_flux_type == :flux_lax_friedrichs
 #     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 #
 #     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
@@ -803,7 +790,7 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(equation::CompressibleEulerEquations, prim::AbstractArray{Float64})
+function prim2cons(equation::CompressibleEulerEquations, prim)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
