@@ -83,8 +83,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["LinearScalarAdvection", "CompressibleEuler", "IdealMhd",
-                                                 "HyperbolicDiffusion"])
+  equations_name = parameter("equations")
   equations = make_equations(equations_name)
   println("done")
 

@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhd"
+equations = "IdealMhdEquations"
 gamma = 1.4
 initial_conditions = "initial_conditions_ec_test"
 surface_flux = "derigs_etal_flux"

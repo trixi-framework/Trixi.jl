@@ -20,7 +20,7 @@ function LinearScalarAdvectionEquation()
 end
 
 
-get_name(::LinearScalarAdvectionEquation) = "LinearScalarAdvection"
+get_name(::LinearScalarAdvectionEquation) = "LinearScalarAdvectionEquation"
 varnames_cons(::LinearScalarAdvectionEquation) = SVector("scalar")
 varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
 

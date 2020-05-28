@@ -1,8 +1,8 @@
 ####################################################################################################
 # Simulation
-equations = "CompressibleEuler"
+equations = "CompressibleEulerEquations"
 gamma = 1.66667
-# equations = "LinearScalarAdvection"
+# equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 # initial_conditions = "initial_conditions_convergence_test"
 # initial_conditions = "initial_conditions_isentropic_vortex"

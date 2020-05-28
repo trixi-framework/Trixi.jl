@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhd"
+equations = "IdealMhdEquations"
 gamma = 1.6666666666666667
 
 initial_conditions = "initial_conditions_orszag_tang"

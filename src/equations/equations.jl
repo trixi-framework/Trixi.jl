@@ -18,13 +18,13 @@ end
 
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String)
-  if name == "LinearScalarAdvection"
+  if name == "LinearScalarAdvectionEquation"
     return LinearScalarAdvectionEquation()
-  elseif name == "CompressibleEuler"
+  elseif name == "CompressibleEulerEquations"
     return CompressibleEulerEquations()
-  elseif name == "IdealMhd"
+  elseif name == "IdealMhdEquations"
     return IdealMhdEquations()
-  elseif name == "HyperbolicDiffusion"
+  elseif name == "HyperbolicDiffusionEquations"
     return HyperbolicDiffusionEquations()
   else
     error("'$name' does not name a valid system of equations")

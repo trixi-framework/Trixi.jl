@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "HyperbolicDiffusion"
+equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
 initial_conditions = "initial_conditions_harmonic_nonperiodic"

@@ -18,7 +18,7 @@ function IdealMhdEquations()
 end
 
 
-get_name(::IdealMhdEquations) = "IdealMhd"
+get_name(::IdealMhdEquations) = "IdealMhdEquations"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
 varnames_cons(::IdealMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
 varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]

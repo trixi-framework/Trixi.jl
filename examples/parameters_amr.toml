@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
-# equations = "CompressibleEuler"
-equations = "LinearScalarAdvection"
+# equations = "CompressibleEulerEquations"
+equations = "LinearScalarAdvectionEquation"
 advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 # initial_conditions = "initial_conditions_convergence_test"

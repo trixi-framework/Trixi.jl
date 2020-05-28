@@ -17,7 +17,7 @@ function CompressibleEulerEquations()
 end
 
 
-get_name(::CompressibleEulerEquations) = "CompressibleEuler"
+get_name(::CompressibleEulerEquations) = "CompressibleEulerEquations"
 varnames_cons(::CompressibleEulerEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
 varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
 

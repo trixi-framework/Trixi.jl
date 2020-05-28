@@ -27,7 +27,7 @@ function HyperbolicDiffusionEquations()
 end
 
 
-get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusion"
+get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusionEquations"
 varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 
