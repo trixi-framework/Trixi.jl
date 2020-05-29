@@ -237,6 +237,23 @@ end
 @inline ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
 
 
+@inline get_node_vars(u, dg::Dg, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
+
+@inline function set_node_vars!(u, ::Dg, u_node, indices...)
+  for i in eachindex(u_node)
+    u[i, indices...] = u_node[i]
+  end
+  return nothing
+end
+
+@inline function add_to_node_vars!(u, ::Dg, u_node, indices...)
+  for i in eachindex(u_node)
+    u[i, indices...] += u_node[i]
+  end
+  return nothing
+end
+
+
 # Count the number of surfaces that need to be created
 function count_required_surfaces(mesh::TreeMesh, cell_ids)
   count = 0
