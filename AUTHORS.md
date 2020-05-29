@@ -11,6 +11,10 @@ provided substantial additions or modifications. Together, these two groups form
   University of Cologne, Germany
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
+* [Hendrik Ranocha](https://ranocha.de),
+  KAUST (King Abdullah University of Science and Technology), Saudi Arabia
+* [Andrew Winters](https://liu.se/en/employee/andwi94),
+  Linköping University, Sweden
 
 ## Contributors
 The following people contributed major additions or modifications to Trixi and
