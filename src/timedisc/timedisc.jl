@@ -40,13 +40,13 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_p
 
   for stage = 1:5
     # Update gravity
-    @timeit timer() "gravity" update_gravity!(solver_gravity, solver_euler.elements.u, cfl)
+    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, cfl)
 
     # Update stage time
     t_stage = t + dt * c[stage]
 
     # computes compressible Euler w/o any sources
-    @timeit timer() "rhs" rhs!(solver, t_stage)
+    @timeit timer() "Euler solver" rhs!(solver, t_stage)
     # add in gravitational source terms from update_gravity! call
     # OBS! u_gravity[2] contains ∂ϕ/∂x and u_gravity[3] contains ∂ϕ/∂y
     u_euler = solver_euler.elements.u
