@@ -13,7 +13,7 @@ initial_conditions = "initial_conditions_weak_blast_wave"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_kennedy_gruber"
 # volume_flux = "flux_central"
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 1.0
 

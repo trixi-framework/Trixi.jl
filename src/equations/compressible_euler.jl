@@ -5,15 +5,13 @@
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerEquations <: AbstractEquation{4}
-  sources::String
   gamma::Float64
 end
 
 function CompressibleEulerEquations()
-  sources = parameter("sources", "none")
   gamma = parameter("gamma", 1.4)
 
-  CompressibleEulerEquations(sources, gamma)
+  CompressibleEulerEquations(gamma)
 end
 
 
@@ -258,46 +256,43 @@ end
 
 
 # Apply source terms
-function sources(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
-  name = equation.sources
-  if name == "convergence_test"
-    # Same settings as in `initial_conditions`
-    c = 2
-    A = 0.1
-    L = 2
-    f = 1/L
-    ω = 2 * pi * f
-    γ = equation.gamma
+function source_terms_convergence_test(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
+  # Same settings as in `initial_conditions`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equation.gamma
 
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        x1 = x[1, i, j, element_id]
-        x2 = x[2, i, j, element_id]
-        tmp1 = cos((x1 + x2 - t)*ω)*A*ω
-        tmp2 = sin((x1 + x2 - t)*ω)*A
-        tmp3 = γ - 1
-        tmp4 = (2*c - 1)*tmp3
-        tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-        tmp6 = tmp2 + c
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      tmp1 = cos((x1 + x2 - t)*ω)*A*ω
+      tmp2 = sin((x1 + x2 - t)*ω)*A
+      tmp3 = γ - 1
+      tmp4 = (2*c - 1)*tmp3
+      tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
+      tmp6 = tmp2 + c
 
-        ut[1, i, j, element_id] += tmp1
-        ut[2, i, j, element_id] += tmp5
-        ut[3, i, j, element_id] += tmp5
-        ut[4, i, j, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+      ut[1, i, j, element_id] += tmp1
+      ut[2, i, j, element_id] += tmp5
+      ut[3, i, j, element_id] += tmp5
+      ut[4, i, j, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
 
-        # Original terms (without performanc enhancements)
-        # ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
-        # ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-        # ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-        #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-        # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-        #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
-      end
+      # Original terms (without performanc enhancements)
+      # ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
+      # ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+      #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+      # ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+      #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+      # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
+      #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
     end
-  else
-    error("Unknown source term '$name'")
   end
+
+  return nothing
 end
 
 

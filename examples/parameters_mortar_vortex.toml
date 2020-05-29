@@ -10,7 +10,7 @@ initial_conditions = "initial_conditions_isentropic_vortex"
 # initial_conditions = "initial_conditions_linear_x"
 # initial_conditions = "initial_conditions_constant"
 surface_flux = "flux_lax_friedrichs"
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 1.0
 
