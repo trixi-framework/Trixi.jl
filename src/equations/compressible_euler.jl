@@ -535,7 +535,15 @@ Entropy conserving two-point flux by Chandrashekar (2013)
     f4 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg + f3*v2_avg
   end
 
-  return (f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4)
+end
+
+
+@inline function flux_chandrashekar(u_ll, u_rr, equation::CompressibleEulerEquations, orientation)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  flux_chandrashekar(equation, orientation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
 end
 
 
