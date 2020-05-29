@@ -252,7 +252,8 @@ function initial_conditions(equation::CompressibleEulerEquations, x, t)
     # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
     # OBS! this uses cgs (centimeter, gram, second) units
     # periodic boundaries
-    # typical domain size is [0,1]^2 with 64x64 resolution
+    # domain size [0,L]^2 depends on the wave number chosen for the perturbation
+    # OBS! Be very careful here L must be chosen such that problem is periodic
     # typical final time is T = 5
     # gamma = 5/3 for this test
     dens0  = 1.5e7 # g/cm^3
@@ -260,9 +261,8 @@ function initial_conditions(equation::CompressibleEulerEquations, x, t)
     delta0 = 1e-3
     # set wave vector values for pertubation (units 1/cm)
     # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-    kx = 4.0*pi # 2π/λ_x, λ_x = 0.5
-    # OBS! FLASH manual says that ky = 1e10, but then this problem is not periodic...
-    ky = 4.0*pi   # 2π/λ_y, λ_y = 0.0
+    kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
+    ky = 0.0   # 2π/λ_y, λ_y = 1e10
     k_dot_x = kx*x[1] + ky*x[2]
     # perturb density and pressure away from reference states ρ_0 and p_0
     dens = dens0*(1.0 + delta0*cos(k_dot_x))                # g/cm^3
