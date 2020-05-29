@@ -5,16 +5,14 @@
 The ideal compressible MHD equations in two space dimensions.
 """
 mutable struct IdealMhdEquations <: AbstractEquation{9}
-  sources::String
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
 end
 
 function IdealMhdEquations()
-  sources = parameter("sources", "none")
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  IdealMhdEquations(sources, gamma, c_h)
+  IdealMhdEquations(gamma, c_h)
 end
 
 
@@ -143,11 +141,8 @@ function initial_conditions_ec_test(equation::IdealMhdEquations, x, t)
 end
 
 
-# Apply source terms
-function sources(equation::IdealMhdEquations, ut, u, x, element_id, t, n_nodes)
-  name = equation.sources
-  error("Unknown source term '$name'")
-end
+# Pre-defined source terms should be implemented as
+# function source_terms_WHATEVER(equation::IdealMhdEquations, ut, u, x, element_id, t, n_nodes)
 
 
 # Calculate 2D flux (element version)

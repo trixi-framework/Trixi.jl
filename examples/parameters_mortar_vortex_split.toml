@@ -11,7 +11,7 @@ initial_conditions = "initial_conditions_isentropic_vortex"
 # initial_conditions = "initial_conditions_constant"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_kennedy_gruber"
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 1.0
 

@@ -6,7 +6,6 @@ The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
 """ #TODO: DOI or something similar
 struct HyperbolicDiffusionEquations <: AbstractEquation{3}
-  sources::String
   Lr::Float64
   Tr::Float64
   nu::Float64
@@ -14,7 +13,6 @@ struct HyperbolicDiffusionEquations <: AbstractEquation{3}
 end
 
 function HyperbolicDiffusionEquations()
-  sources = parameter("sources", "harmonic")
   # diffusion coefficient
   nu = parameter("nu", 1.0)
   # relaxation length scale
@@ -23,7 +21,7 @@ function HyperbolicDiffusionEquations()
   Tr = Lr*Lr/nu
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
-  HyperbolicDiffusionEquations(sources, Lr, Tr, nu, resid_tol)
+  HyperbolicDiffusionEquations(Lr, Tr, nu, resid_tol)
 end
 
 
@@ -79,46 +77,57 @@ end
 
 
 # Apply source terms
-function sources(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
-  name = equation.sources
-  if name == "poisson_periodic"
+function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-    C = -8.0*equation.nu*pi*pi
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        x1 = x[1, i, j, element_id]
-        x2 = x[2, i, j, element_id]
-        tmp1 = sin(2.0*pi*x1)
-        tmp2 = sin(2.0*pi*x2)
-        ut[1, i, j, element_id] -= C*tmp1*tmp2
-        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
-        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
-      end
+  inv_Tr = inv(equation.Tr)
+  C = -8.0*equation.nu*pi*pi
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      tmp1 = sin(2.0*pi*x1)
+      tmp2 = sin(2.0*pi*x2)
+      ut[1, i, j, element_id] -= C*tmp1*tmp2
+      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
     end
-  elseif name == "poisson_nonperiodic"
+  end
+
+  return nothing
+end
+
+function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        x1 = x[1, i, j, element_id]
-        x2 = x[2, i, j, element_id]
-        ut[1, i, j, element_id] += 10.0*pi*pi*cos(pi*x1)sin(2.0*pi*x2)
-        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
-        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
-      end
+  inv_Tr = inv(equation.Tr)
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      ut[1, i, j, element_id] += 10 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2)
+      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
     end
-  elseif name == "harmonic"
-    # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        ut[2, i, j, element_id] -= u[2, i, j, element_id]/equation.Tr
-        ut[3, i, j, element_id] -= u[3, i, j, element_id]/equation.Tr
-      end
-    end
-  else
-    error("Unknown source term '$name'")
   end
+
+  return nothing
+end
+
+function source_terms_harmonic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  inv_Tr = inv(equation.Tr)
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
+    end
+  end
+
+  return nothing
 end
 
 

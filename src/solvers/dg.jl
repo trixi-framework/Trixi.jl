@@ -6,7 +6,7 @@ include("l2projection.jl")
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions,
+mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
                   VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
@@ -15,6 +15,7 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   volume_flux::VolumeFlux
 
   initial_conditions::InitialConditions
+  source_terms::SourceTerms
 
   elements::ElementContainer{V, N}
   n_elements::Int
@@ -67,7 +68,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, source_terms, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -157,7 +158,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   dg = Dg(
       equation,
       surface_flux, volume_flux,
-      initial_conditions,
+      initial_conditions, source_terms,
       elements, n_elements,
       surfaces, n_surfaces,
       boundaries, n_boundaries,
@@ -801,7 +802,7 @@ function rhs!(dg::Dg, t_stage)
   @timeit timer() "Jacobian" apply_jacobian!(dg)
 
   # Calculate source terms
-  @timeit timer() "source terms" calc_sources!(dg, t_stage)
+  @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
 
@@ -1714,15 +1715,14 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calc_sources!(dg::Dg, t)
-  equation = equations(dg)
-  if equation.sources == "none"
-    return
-  end
+function calc_sources!(dg::Dg, source_terms::Nothing, t)
+  return nothing
+end
 
-  Threads.@threads for element_id = 1:dg.n_elements
-    sources(equations(dg), dg.elements.u_t, dg.elements.u,
-            dg.elements.node_coordinates, element_id, t, nnodes(dg))
+function calc_sources!(dg::Dg, source_terms, t)
+  Threads.@threads for element_id in 1:dg.n_elements
+    source_terms(equations(dg), dg.elements.u_t, dg.elements.u,
+                 dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end
 end
 

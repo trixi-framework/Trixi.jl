@@ -83,11 +83,8 @@ function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x,
 end
 
 
-# Apply source terms
-function sources(equation::LinearScalarAdvectionEquation, ut, u, x, element_id, t, n_nodes)
-  name = equation.sources
-  error("Unknown source terms '$name'")
-end
+# Pre-defined source terms should be implemented as
+# function source_terms_WHATEVER(equation::LinearScalarAdvectionEquation, ut, u, x, element_id, t, n_nodes)
 
 
 # Calculate 2D flux (element version)
