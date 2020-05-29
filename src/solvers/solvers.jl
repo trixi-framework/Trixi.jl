@@ -19,7 +19,7 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh)
     initial_conditions_type = Symbol(parameter("initial_conditions"))
     initial_conditions = eval(initial_conditions_type)
 
-    source_terms_type = Symbol(parameter("sources", "nothing"))
+    source_terms_type = Symbol(parameter("source_terms", "nothing"))
     source_terms = eval(source_terms_type)
 
     return Dg(equations, surface_flux, volume_flux, initial_conditions, source_terms, mesh, N)

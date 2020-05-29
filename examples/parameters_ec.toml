@@ -16,7 +16,7 @@ volume_flux = "flux_chandrashekar"
 #surface_flux = "flux_kuya_etal"
 #volume_flux = "flux_kuya_etal"
 # volume_flux = "flux_central"
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 0.4
 
