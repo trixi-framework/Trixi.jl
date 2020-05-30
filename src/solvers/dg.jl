@@ -1668,11 +1668,12 @@ end
 # Calculate and store the surface fluxes (standard Riemann and nonconservative parts) at an interface
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
+#                                           3) not implemented for boundaries
 calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
                                             dg,
                                             have_nonconservative_terms(dg.equations))
 
-function calc_surface_flux!(destination, dg::Dg, ::Val{false})
+function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{false})
   @unpack surface_flux = dg
   @unpack u, neighbor_ids, orientations = dg.surfaces
 
@@ -1708,7 +1709,7 @@ function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{true
 end
 
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg, ::Val{true},
+                            u_surfaces::Array{Float64, 4}, dg::Dg, nonconservative_terms::Val{true},
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}

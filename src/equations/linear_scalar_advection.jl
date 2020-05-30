@@ -87,6 +87,13 @@ end
 # function source_terms_WHATEVER(equation::LinearScalarAdvectionEquation, ut, u, x, element_id, t, n_nodes)
 
 
+# Calculate 1D flux in for a single point
+@inline function calcflux(equation::LinearScalarAdvectionEquation, orientation, u)
+  a = equation.advectionvelocity[orientation]
+  a * u
+end
+
+
 # Calculate 2D flux (element version)
 @inline function calcflux!(f1::AbstractArray{Float64},
                            f2::AbstractArray{Float64},
@@ -112,36 +119,9 @@ end
 end
 
 
-# Calculate flux across interface with different states on both sides (surface version)
-# - `destination::AbstractArray{T,2} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces::AbstractArray{T,4} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::LinearScalarAdvectionEquation, n_nodes::Int,
-                  orientations::Vector{Int})
-  for i = 1:n_nodes
-    flux = surface_flux(equation, orientations[surface_id],
-                        u_surfaces[1, 1, i, surface_id],
-                        u_surfaces[2, 1, i, surface_id])
-
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      destination[v, i] = flux[v]
-    end
-  end
-end
-
-
 function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
-  return 0.5 * ((a + abs(a)) * u_ll + (a - abs(a)) * u_rr)
+  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
 end
 
 
