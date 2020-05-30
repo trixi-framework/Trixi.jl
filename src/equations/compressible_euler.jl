@@ -596,7 +596,6 @@ end
 # - `equation::AbstractEquations`
 # - `n_nodes::Integer`
 # - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
 function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
                   equation::CompressibleEulerEquations, n_nodes, orientations)
   # Call pointwise Riemann solver

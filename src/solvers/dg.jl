@@ -750,9 +750,9 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg, t::Float64)
+function calc_entropy_timederivative(dg::Dg, t)
   # Compute entropy variables for all elements and nodes with current solution u
-  dsdu = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
+  dsdu = cons2entropy(equations(dg), dg.elements.u, nnodes(dg), dg.n_elements)
 
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
@@ -1665,6 +1665,58 @@ function prolong2mortars!(dg, ::Val{:ec})
 end
 
 
+"""
+    riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+             equation::AbstractEquation, n_nodes, orientations)
+
+Calculate the `surface_flux` across interface with different states given by
+`u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
+
+# Arguments
+- `destination::AbstractArray{T,3} where T<:Real`:
+  The array of surface flux values (updated inplace).
+- `surface_flux`:
+  The surface flux as a function.
+- `u_surfaces_left::AbstractArray{T,3} where T<:Real``
+- `u_surfaces_right::AbstractArray{T,3} where T<:Real``
+- `surface_id::Integer`
+- `equation::AbstractEquations`
+- `n_nodes::Integer`
+- `orientations::Vector{T} where T<:Integer`
+"""
+function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
+                  equation::AbstractEquation, n_nodes, orientations) end
+
+"""
+    riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+
+Calculate the `surface_flux` across interface with different states given by
+`u_surfaces_left, u_surfaces_right` on both sides (surface version).
+
+# Arguments
+- `destination::AbstractArray{T,2} where T<:Real`:
+  The array of surface flux values (updated inplace).
+- `dg::Dg`
+- `u_surfaces::AbstractArray{T,4} where T<:Real``
+- `surface_id::Integer`
+- `orientations::Vector{T} where T<:Integer`
+"""
+function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+  @unpack surface_flux = dg
+
+  for i in 1:nnodes(dg)
+    # Call pointwise Riemann solver
+    u_ll, u_rr = get_surface_node_vars(u_surfaces, dg, i, surface_id)
+    flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+
+    # Copy flux to left and right element storage
+    for v in 1:nvariables(dg)
+      destination[v, i] = flux[v]
+    end
+  end
+end
+
+
 # Calculate and store the surface fluxes (standard Riemann and nonconservative parts) at an interface
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
@@ -1703,8 +1755,8 @@ end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
 function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{true})
-  # temporary workaround while implementing the other stuff
-  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u_, dg, nonconservative_terms,
+  #TODO temporary workaround while implementing the other stuff
+  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, dg, nonconservative_terms,
                      dg.surfaces.orientations)
 end
 
@@ -1730,7 +1782,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, dg.surface_flux, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg, u_surfaces, s, orientations)
 
     # Compute the nonconservative numerical "flux" along a surface
     # Done twice because left/right orientation matters så
@@ -1767,39 +1819,21 @@ end
 
 
 # Calculate and store boundary flux across domain boundaries
+#NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
 calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux,
-                                                    dg.boundaries.neighbor_ids,
-                                                    dg.boundaries.neighbor_sides,
-                                                    dg.boundaries.node_coordinates,
-                                                    dg.boundaries.u, dg,
-                                                    dg.boundaries.orientations, time)
-function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vector{Int},
-                             neighbor_sides::Vector{Int}, node_coordinates::Array{Float64, 3},
-                             u_boundaries::Array{Float64, 4}, dg::Dg,
-                             orientations::Vector{Int}, time)
-  equation = equations(dg)
+                                                    dg,
+                                                    time)
+function calc_boundary_flux!(destination, dg::Dg, time)
+  @unpack surface_flux = dg
+  @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-
-  #=@inbounds Threads.@threads for b = 1:dg.n_boundaries=#
-  Threads.@threads for b = 1:dg.n_boundaries
-    # Choose thread-specific pre-allocated container
-    fstar = fstar_threaded[Threads.threadid()]
-
+  Threads.@threads for b in 1:dg.n_boundaries
     # Fill outer boundary state
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
-      u_boundaries[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-          equation, node_coordinates[:, i, b], time)
+      @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
+        equations(dg), node_coordinates[:, i, b], time)
     end
-
-    # Calculate flux
-    riemann!(fstar, dg.surface_flux, u_boundaries, b, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
@@ -1821,10 +1855,14 @@ function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vect
       end
     end
 
-    # Copy flux to neighbor element storage
     for i in 1:nnodes(dg)
+      # Call pointwise Riemann solver
+      u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
+      flux = surface_flux(equations(dg), orientations[b], u_ll, u_rr)
+
+      # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
-        surface_flux[v, i, direction,  neighbor_id]  = fstar[v, i]
+        destination[v, i, direction, neighbor_id] = flux[v]
       end
     end
   end
@@ -1836,12 +1874,12 @@ calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg, v::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
-                                                      dg.l2mortars.neighbor_ids,
-                                                      dg.l2mortars.u_lower,
-                                                      dg.l2mortars.u_upper,
-                                                      dg.l2mortars.orientations)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
+calc_mortar_flux!(dg, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, mortar_type,
+                                                                 dg.l2mortars.neighbor_ids,
+                                                                 dg.l2mortars.u_lower,
+                                                                 dg.l2mortars.u_upper,
+                                                                 dg.l2mortars.orientations)
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val{:l2},
                            neighbor_ids::Matrix{Int}, u_lower::Array{Float64, 4},
                            u_upper::Array{Float64, 4}, orientations::Vector{Int})
   # Type alias only for convenience
@@ -1853,7 +1891,7 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
   fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
-  Threads.@threads for m = 1:dg.n_l2mortars
+  Threads.@threads for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1863,8 +1901,8 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
-    riemann!(fstar_upper, dg.surface_flux, u_upper, m, equations(dg), nnodes(dg), orientations)
-    riemann!(fstar_lower, dg.surface_flux, u_lower, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_upper, dg, u_upper, m, orientations)
+    riemann!(fstar_lower, dg, u_lower, m, orientations)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
@@ -1890,7 +1928,7 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
     end
 
     # Project small fluxes to large element
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       @views large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
                                    dg.l2mortar_reverse_lower * fstar_lower[v, :])
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
