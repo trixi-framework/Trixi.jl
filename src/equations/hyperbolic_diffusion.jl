@@ -131,6 +131,32 @@ function source_terms_harmonic(equation::HyperbolicDiffusionEquations, ut, u, x,
 end
 
 
+# Calculate 1D flux in for a single point
+@inline function calcflux(equation::HyperbolicDiffusionEquations, orientation, u)
+  phi, p, q = u
+
+  if orientation == 1
+    f1 = -equation.nu*p
+    f2 = -phi/equation.Tr
+    f3 = zero(phi)
+  else
+    f1 = -equation.nu*q
+    f2 = zero(phi)
+    f3 = -phi/equation.Tr
+  end
+
+  return SVector(f1, f2, f3)
+end
+
+@inline function calcflux1D!(f, equation::HyperbolicDiffusionEquations,
+                             phi, p, q, orientation)
+  flux = calcflux(equation, orientation, SVector(phi, p, q))
+  for v in 1:nvariables(equation)
+    f[v] = flux[v]
+  end
+end
+
+
 # Calculate 2D flux (element version)
 @inline function calcflux!(f1::AbstractArray{Float64},
                            f2::AbstractArray{Float64},
@@ -207,31 +233,9 @@ end
 function flux_central(equation::HyperbolicDiffusionEquations, orientation,
                       phi_ll, p_ll, q_ll,
                       phi_rr, p_rr, q_rr)
-  # Calculate regular 1D fluxes
-  f_ll = MVector{3, Float64}(undef)
-  f_rr = MVector{3, Float64}(undef)
-  calcflux1D!(f_ll, equation, phi_ll, p_ll, q_ll, orientation)
-  calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
-
-  # Average regular fluxes
-  @. 0.5 * (f_ll + f_rr)
-end
-
-
-# Calculate 1D flux in for a single point
-@inline function calcflux1D!(f, equation::HyperbolicDiffusionEquations,
-                             phi, p, q, orientation)
-  if orientation == 1
-    f[1]  = -equation.nu*p
-    f[2]  = -phi/equation.Tr
-    f[3]  = 0.0
-  else
-    f[1]  = -equation.nu*q
-    f[2]  = 0.0
-    f[3]  = -phi/equation.Tr
-  end
-
-  return nothing
+  flux_central(equation, orientation,
+               SVector(phi_ll, p_ll, q_ll),
+               SVector(phi_rr, p_rr, q_rr))
 end
 
 
@@ -269,63 +273,32 @@ function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, 
   end
 end
 
-# Calculate flux across interface with different states on both sides (surface version)
-# - `destination::AbstractArray{T,2} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces::AbstractArray{T,4} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::HyperbolicDiffusionEquations, n_nodes, orientations)
-  # Call pointwise Riemann solver
-  for i = 1:n_nodes
-    flux = surface_flux(equation, orientations[surface_id],
-                        u_surfaces[1, 1, i, surface_id],
-                        u_surfaces[1, 2, i, surface_id],
-                        u_surfaces[1, 3, i, surface_id],
-                        u_surfaces[2, 1, i, surface_id],
-                        u_surfaces[2, 2, i, surface_id],
-                        u_surfaces[2, 3, i, surface_id])
 
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      destination[v, i] = flux[v]
-    end
-  end
+@inline function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
+  # Obtain left and right fluxes
+  f_ll = calcflux(equation, orientation, u_ll)
+  f_rr = calcflux(equation, orientation, u_rr)
+
+  λ_max = sqrt(equation.nu / equation.Tr)
+
+  return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
+end
+
+@inline function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation,
+                                     phi_ll, p_ll, q_ll,
+                                     phi_rr, p_rr, q_rr)
+  flux_lax_friedrichs(equation, orientation,
+                      SVector(phi_ll, p_ll, q_ll),
+                      SVector(phi_rr, p_rr, q_rr))
 end
 
 
-function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation,
-                             phi_ll, p_ll, q_ll,
-                             phi_rr, p_rr, q_rr,)
+@inline function flux_upwind(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
   # Obtain left and right fluxes
-  f_ll = zeros(MVector{3})
-  f_rr = zeros(MVector{3})
-  calcflux1D!(f_ll, equation, phi_ll, p_ll, q_ll, orientation)
-  calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
-
-  λ_max = sqrt(equation.nu/equation.Tr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr   - p_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr   - q_ll)
-
-  return (f1, f2, f3)
-end
-
-
-function flux_upwind(equation::HyperbolicDiffusionEquations, orientation,
-                     phi_ll, p_ll, q_ll,
-                     phi_rr, p_rr, q_rr,)
-  # Obtain left and right fluxes
-  f_ll = zeros(MVector{3})
-  f_rr = zeros(MVector{3})
-  calcflux1D!(f_ll, equation, phi_ll, p_ll, q_ll, orientation)
-  calcflux1D!(f_rr, equation, phi_rr, p_rr, q_rr, orientation)
+  phi_ll, p_ll, q_ll = u_ll
+  phi_rr, p_rr, q_rr = u_rr
+  f_ll = calcflux(equation, orientation, u_ll)
+  f_rr = calcflux(equation, orientation, u_rr)
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
@@ -339,7 +312,15 @@ function flux_upwind(equation::HyperbolicDiffusionEquations, orientation,
     f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (q_rr - q_ll)
   end
 
-  return (f1, f2, f3)
+  return SVector(f1, f2, f3)
+end
+
+@inline function flux_upwind(equation::HyperbolicDiffusionEquations, orientation,
+                             phi_ll, p_ll, q_ll,
+                             phi_rr, p_rr, q_rr)
+  flux_upwind(equation, orientation,
+              SVector(phi_ll, p_ll, q_ll),
+              SVector(phi_rr, p_rr, q_rr))
 end
 
 

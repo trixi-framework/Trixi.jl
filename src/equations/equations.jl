@@ -37,6 +37,23 @@ default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu
 
 
 """
+    flux_central(equation::AbstractEquation, orientation, u_ll, u_rr)
+
+The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
+used as volume flux, the discretization is equivalent to the clssical weak form
+DG method (except floating point errors).
+"""
+@inline function flux_central(equation::AbstractEquation, orientation, u_ll, u_rr)
+  # Calculate regular 1D fluxes
+  f_ll = calcflux(equation, orientation, u_ll)
+  f_rr = calcflux(equation, orientation, u_rr)
+
+  # Average regular fluxes
+  return 0.5 * (f_ll + f_rr)
+end
+
+
+"""
     riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
              equation::AbstractEquation, n_nodes, orientations)
 

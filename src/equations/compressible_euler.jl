@@ -411,15 +411,6 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function flux_central(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
-  # Calculate regular 1D fluxes
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
-
-  # Average regular fluxes
-  return 0.5 * (f_ll + f_rr)
-end
-
 @inline function flux_central(equation::CompressibleEulerEquations, orientation,
                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
