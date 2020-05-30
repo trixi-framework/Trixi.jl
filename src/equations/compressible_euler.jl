@@ -296,6 +296,35 @@ function source_terms_convergence_test(equation::CompressibleEulerEquations, ut,
 end
 
 
+# Calculate 1D flux in for a single point
+@inline function calcflux(equation::CompressibleEulerEquations, orientation, u)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  if orientation == 1
+    f1 = rho_v1
+    f2 = rho_v1 * v1 + p
+    f3 = rho_v1 * v2
+    f4 = (rho_e + p) * v1
+  else
+    f1 = rho_v2
+    f2 = rho_v2 * v1
+    f3 = rho_v2 * v2 + p
+    f4 = (rho_e + p) * v2
+  end
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function calcflux1D!(f::AbstractArray{Float64}, equation::CompressibleEulerEquations,
+                             rho, rho_v1, rho_v2, rho_e, orientation::Int)
+  flux = calcflux(equation, orientation, SVector(rho, rho_v1, rho_v2, rho_e))
+  for v in 1:nvariables(equation)
+    f[v] = flux[v]
+  end
+end
+
+
 # Calculate 2D flux (element version)
 @inline function calcflux!(f1::AbstractArray{Float64},
                            f2::AbstractArray{Float64},
@@ -336,6 +365,7 @@ end
 
   return nothing
 end
+
 
 
 # Calculate 2D two-point flux (element version)
@@ -381,24 +411,26 @@ end
 
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
+@inline function flux_central(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+  # Calculate regular 1D fluxes
+  f_ll = calcflux(equation, orientation, u_ll)
+  f_rr = calcflux(equation, orientation, u_rr)
+
+  # Average regular fluxes
+  return 0.5 * (f_ll + f_rr)
+end
+
 @inline function flux_central(equation::CompressibleEulerEquations, orientation,
                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
                               rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  # Calculate regular 1D fluxes
-  f_ll = MVector{4, Float64}(undef)
-  f_rr = MVector{4, Float64}(undef)
-  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
-  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
-
-  # Average regular fluxes
-  return @. 0.5 * (f_ll + f_rr)
+  flux_central(equation, orientation,
+               SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
+               SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
 """
-    function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
-                            rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+    function flux_kuya_etal(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
 
 Kinetic energy preserving two-point flux with pressure oscillation fix
 by Kuya, Totani and Kawai (2018)
@@ -406,10 +438,11 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
-                                rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
   # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
@@ -439,24 +472,31 @@ by Kuya, Totani and Kawai (2018)
     f4 = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
   end
 
-  return (f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
+                                rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+  flux_kuya_etal(equation, orientation,
+                 SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
+                 SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
 """
-    flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
-                        rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                        rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+    flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
 
 Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
-                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
   # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
@@ -483,24 +523,31 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
     f4 = (rho_avg * e_avg + p_avg) * v2_avg
   end
 
-  return (f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
+                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+  flux_kennedy_gruber(equation, orientation,
+                      SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
+                      SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
 """
-    flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
-                       rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                       rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+    flux_chandrashekar(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
 
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
-                                    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
   # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
@@ -538,35 +585,12 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   return SVector(f1, f2, f3, f4)
 end
 
-
-@inline function flux_chandrashekar(u_ll, u_rr, equation::CompressibleEulerEquations, orientation)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-  flux_chandrashekar(equation, orientation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                            rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-end
-
-
-# Calculate 1D flux in for a single point
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::CompressibleEulerEquations, rho::Float64,
-                             rho_v1::Float64, rho_v2::Float64,
-                             rho_e::Float64, orientation::Int)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
-  if orientation == 1
-    f[1]  = rho_v1
-    f[2]  = rho_v1 * v1 + p
-    f[3]  = rho_v1 * v2
-    f[4]  = (rho_e + p) * v1
-  else
-    f[1]  = rho_v2
-    f[2]  = rho_v2 * v1
-    f[3]  = rho_v2 * v2 + p
-    f[4]  = (rho_e + p) * v2
-  end
-
-  return nothing
+@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
+                                    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+  flux_chandrashekar(equation, orientation,
+                     SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
+                     SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
@@ -602,39 +626,12 @@ function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, 
   end
 end
 
-# Calculate flux across interface with different states on both sides (surface version)
-# - `destination::AbstractArray{T,2} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces::AbstractArray{T,4} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::CompressibleEulerEquations, n_nodes, orientations)
-  # Call pointwise Riemann solver
-  for i = 1:n_nodes
-    flux = surface_flux(equation, orientations[surface_id],
-                        u_surfaces[1, 1, i, surface_id], u_surfaces[1, 2, i, surface_id],
-                        u_surfaces[1, 3, i, surface_id], u_surfaces[1, 4, i, surface_id],
-                        u_surfaces[2, 1, i, surface_id], u_surfaces[2, 2, i, surface_id],
-                        u_surfaces[2, 3, i, surface_id], u_surfaces[2, 4, i, surface_id])
 
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      destination[v, i] = flux[v]
-    end
-  end
-end
-
-
-function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
   # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
@@ -647,10 +644,8 @@ function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = zeros(MVector{4})
-  f_rr = zeros(MVector{4})
-  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, orientation)
-  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, orientation)
+  f_ll = calcflux(equation, orientation, u_ll)
+  f_rr = calcflux(equation, orientation, u_rr)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -658,7 +653,15 @@ function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
   f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
   f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
 
-  return (f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
+                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
+                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
+  flux_lax_friedrichs(equation, orientation,
+                      SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
+                      SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
