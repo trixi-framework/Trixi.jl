@@ -1666,8 +1666,7 @@ end
 
 
 """
-    riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-             equation::AbstractEquation, n_nodes, orientations)
+    riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
 
 Calculate the `surface_flux` across interface with different states given by
 `u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
@@ -1675,17 +1674,27 @@ Calculate the `surface_flux` across interface with different states given by
 # Arguments
 - `destination::AbstractArray{T,3} where T<:Real`:
   The array of surface flux values (updated inplace).
-- `surface_flux`:
-  The surface flux as a function.
 - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
 - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
 - `surface_id::Integer`
-- `equation::AbstractEquations`
-- `n_nodes::Integer`
 - `orientations::Vector{T} where T<:Integer`
 """
-function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-                  equation::AbstractEquation, n_nodes, orientations) end
+function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
+  @unpack surface_flux = dg
+
+  # Call pointwise Riemann solver
+  # i -> left, j -> right
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      u_ll = get_node_vars(u_surfaces_left,  dg, i, surface_id)
+      u_rr = get_node_vars(u_surfaces_right, dg, j, surface_id)
+      flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+
+      # Copy flux back to actual flux array
+      set_node_vars!(destination, dg, flux, i, j)
+    end
+  end
+end
 
 """
     riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
@@ -1710,9 +1719,7 @@ function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
     flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
 
     # Copy flux to left and right element storage
-    for v in 1:nvariables(dg)
-      destination[v, i] = flux[v]
-    end
+    set_node_vars!(destination, dg, flux, i)
   end
 end
 
@@ -1995,15 +2002,11 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
 
     # Calculate fluxes
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
-      riemann!(fstar_upper, dg.surface_flux, u_large, u_upper, m,
-               equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, dg.surface_flux, u_large, u_lower, m,
-               equations(dg), nnodes(dg), orientations)
+      riemann!(fstar_upper, dg, u_large, u_upper, m, orientations)
+      riemann!(fstar_lower, dg, u_large, u_lower, m, orientations)
     else # large_sides[m] == 2 -> small elements on left side, large element on right
-      riemann!(fstar_upper, dg.surface_flux, u_upper, u_large, m,
-               equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, dg.surface_flux, u_lower, u_large, m,
-               equations(dg), nnodes(dg), orientations)
+      riemann!(fstar_upper, dg, u_upper, u_large, m, orientations)
+      riemann!(fstar_lower, dg, u_lower, u_large, m, orientations)
     end
 
     # Transfer fluxes to elements

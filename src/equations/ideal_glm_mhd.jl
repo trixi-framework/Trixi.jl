@@ -445,52 +445,6 @@ function flux_derigs_etal(equation::IdealGlmMhdEquations, orientation,
 end
 
 
-# Calculate flux across interface with different states on both sides (EC mortar version)
-# - `destination::AbstractArray{T,3} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
-# - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-                  equation::IdealGlmMhdEquations, n_nodes, orientations)
-  # Call pointwise Riemann solver
-  # i -> left, j -> right
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      flux = surface_flux(equation, orientations[surface_id],
-                          u_surfaces_left[1, i, surface_id],
-                          u_surfaces_left[2, i, surface_id],
-                          u_surfaces_left[3, i, surface_id],
-                          u_surfaces_left[4, i, surface_id],
-                          u_surfaces_left[5, i, surface_id],
-                          u_surfaces_left[6, i, surface_id],
-                          u_surfaces_left[7, i, surface_id],
-                          u_surfaces_left[8, i, surface_id],
-                          u_surfaces_left[9, i, surface_id],
-                          u_surfaces_right[1, j, surface_id],
-                          u_surfaces_right[2, j, surface_id],
-                          u_surfaces_right[3, j, surface_id],
-                          u_surfaces_right[4, j, surface_id],
-                          u_surfaces_right[5, j, surface_id],
-                          u_surfaces_right[6, j, surface_id],
-                          u_surfaces_right[7, j, surface_id],
-                          u_surfaces_right[8, j, surface_id],
-                          u_surfaces_right[9, j, surface_id])
-
-      # Copy flux back to actual flux array
-      for v in 1:nvariables(equation)
-        destination[v, i, j] = flux[v]
-      end
-    end
-  end
-end
-
-
 function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation, u_ll, u_rr)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
