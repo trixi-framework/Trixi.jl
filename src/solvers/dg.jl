@@ -1242,34 +1242,59 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
+# NOTE: The first version below uses temporary storage and need to allocate.
+#       The other version does not need this temporary storage but more assignments.
+#       In preliminary tests, the second version is faster.
+# function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+#   @unpack dhat = dg
+
+#   # Type alias only for convenience
+#   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+#   # Pre-allocate data structures to speed up computation (thread-safe)
+#   f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+#   f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+
+#   Threads.@threads for element_id in 1:dg.n_elements
+#     # Choose thread-specific pre-allocated container
+#     f1 = f1_threaded[Threads.threadid()]
+#     f2 = f2_threaded[Threads.threadid()]
+
+#     # Calculate volume fluxes
+#     calcflux!(f1, f2, dg, dg.elements.u, element_id)
+
+#     # Calculate volume integral
+#     for j in 1:nnodes(dg)
+#       for i in 1:nnodes(dg)
+#         for v in 1:nvariables(dg)
+#           # Use local accumulator to improve performance
+#           acc = zero(eltype(u_t))
+#           for l in 1:nnodes(dg)
+#             acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+#           end
+#           u_t[v, i, j, element_id] += acc
+#         end
+#       end
+#     end
+#   end
+# end
 function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
   @unpack dhat = dg
 
-  # Type alias only for convenience
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-
   Threads.@threads for element_id in 1:dg.n_elements
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes
-    calcflux!(f1, f2, dg, dg.elements.u, element_id)
-
     # Calculate volume integral
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
-          end
-          u_t[v, i, j, element_id] += acc
+        u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
+
+        flux1 = calcflux(equations(dg), 1, u_node)
+        for l in 1:nnodes(dg)
+          add_to_node_vars!(u_t, dg, dhat[l, i] * flux1, l, j, element_id)
+        end
+
+        flux2 = calcflux(equations(dg), 2, u_node)
+        for l in 1:nnodes(dg)
+          add_to_node_vars!(u_t, dg, dhat[l, j] * flux2, i, l, element_id)
         end
       end
     end
@@ -1277,8 +1302,19 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
 end
 
 
-# Calculate volume integral (DGSEM in split form)
-function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
+# Calculate volume integral (DGSEM in weak form)
+# NOTE: The first version below uses temporary storage and need to allocate.
+#       The other version does not need this temporary storage but more assignments.
+#       In preliminary tests, the second version is faster.
+#       Currently, the nonconservative terms for IdealMhdEquations are only implemented
+#       for the first version. That's why we use a dispatch here.
+#       We should find a way to generalize the way we handle nonconservative terms,
+#       also for the weak form volume integral type.
+@inline function calc_volume_integral!(dg, volume_integral_type::Val{:split_form}, u_t)
+  calc_volume_integral!(dg, volume_integral_type, have_nonconservative_terms(equations(dg)), u_t)
+end
+
+function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{true}, u_t)
   @unpack dsplit_transposed = dg
 
   # Type alias only for convenience
@@ -1311,6 +1347,42 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
             acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
           u_t[v, i, j, element_id] += acc
+        end
+      end
+    end
+  end
+end
+
+function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{false}, u_t)
+  @unpack volume_flux, dsplit = dg
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Calculate volume integral
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        # x direction
+        u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
+        # use consistency of the volume flux to make this evaluation cheaper
+        flux = calcflux(equations(dg), 1, u_node)
+        add_to_node_vars!(u_t, dg, dsplit[i, i] * flux, i, j, element_id)
+        # use symmetry of the volume flux for the remaining terms
+        for l in (i+1):nnodes(dg)
+          u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
+          flux = volume_flux(equations(dg), 1, u_node, u_node_l)
+          add_to_node_vars!(u_t, dg, dsplit[i, l] * flux, i, j, element_id)
+          add_to_node_vars!(u_t, dg, dsplit[l, i] * flux, l, j, element_id)
+        end
+
+        # y direction
+        # use consistency of the volume flux to make this evaluation cheaper
+        flux = calcflux(equations(dg), 2, u_node)
+        add_to_node_vars!(u_t, dg, dsplit[j, j] * flux, i, j, element_id)
+        # use symmetry of the volume flux for the remaining terms
+        for l in (j+1):nnodes(dg)
+          u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
+          flux = volume_flux(equations(dg), 2, u_node, u_node_l)
+          add_to_node_vars!(u_t, dg, dsplit[j, l] * flux, i, j, element_id)
+          add_to_node_vars!(u_t, dg, dsplit[l, j] * flux, i, l, element_id)
         end
       end
     end
