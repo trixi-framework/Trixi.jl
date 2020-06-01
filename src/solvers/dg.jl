@@ -1498,8 +1498,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
     u_leftright = u_leftright_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, dg.surface_flux, u_leftright, equations(dg),
-                 dg.elements.u, element_id, nnodes(dg))
+    calcflux_fv!(fstar1, fstar2, dg, u_leftright,  dg.elements.u, element_id)
 
     # Calculate FV volume integral contribution
     for j = 1:nnodes(dg)
@@ -1517,81 +1516,48 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
-                  equation::AbstractEquation, u, element_id, n_nodes)
+    calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
 
 Calculate the finite volume fluxes inside the elements.
 
 # Arguments
 - `fstar1::AbstractArray{T} where T<:Real`:
 - `fstar2::AbstractArray{T} where T<:Real`
-- `surface_flux`
+- `dg::Dg`
 - `u_leftright::AbstractArray{T} where T<:Real`
-- `equation::AbstractEquation`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
-- `n_nodes::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
-                              equation::AbstractEquation, u, element_id, n_nodes)
-  for j in 1:n_nodes
-    for v in 1:nvariables(equation)
-      fstar1[v, 1,         j] = 0
-      fstar1[v, n_nodes+1, j] = 0
-    end
-  end
-  for j = 1:n_nodes
-    for i = 2:n_nodes
-      for v in 1:nvariables(equation)
+@inline function calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
+  @unpack surface_flux = dg
+
+  fstar1[:, 1,            :] .= zero(eltype(fstar1))
+  fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
+
+  for j in 1:nnodes(dg)
+    for i in 2:nnodes(dg)
+      for v in 1:nvariables(dg)
         u_leftright[1, v] = u[v, i-1, j, element_id]
         u_leftright[2, v] = u[v, i,   j, element_id]
       end
-      if equation isa CompressibleEulerEquations #FIXME this doesn't look that nice
-        flux = surface_flux(equation, 1, # orientation 1: x direction
-                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
-      elseif equation isa IdealGlmMhdEquations
-        flux = surface_flux(equation, 1, # orientation 1: x direction
-                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                            u_leftright[1, 9],
-                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                            u_leftright[2, 9])
-      end
-      for v in 1:nvariables(equation)
-        fstar1[v, i, j] = flux[v]
-      end
+      u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
+      flux = surface_flux(equations(dg), 1, u_ll, u_rr) # orientation 1: x direction
+      set_node_vars!(fstar1, dg, flux, i, j)
     end
   end
-  for i in 1:n_nodes
-    for v in 1:nvariables(equation)
-      fstar2[v, i, 1]         = 0
-      fstar2[v, i, n_nodes+1] = 0
-    end
-  end
-  for j = 2:n_nodes
-    for i = 1:n_nodes
-      for v in 1:nvariables(equation)
+
+  fstar2[:, :, 1           ] .= zero(eltype(fstar2))
+  fstar2[:, :, nnodes(dg)+1] .= zero(eltype(fstar2))
+
+  for j in 2:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
         u_leftright[1, v] = u[v, i, j-1, element_id]
         u_leftright[2, v] = u[v, i, j,   element_id]
       end
-      if equation isa CompressibleEulerEquations
-        flux = surface_flux(equation, 2, # orientation 2: y direction
-                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
-      elseif equation isa IdealGlmMhdEquations
-        flux = surface_flux(equation, 2, # orientation 2: y direction
-                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                            u_leftright[1, 9],
-                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                            u_leftright[2, 9])
-      end
-      for v in 1:nvariables(equation)
-        fstar2[v,i,j] = flux[v]
-      end
+      u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
+      flux = surface_flux(equations(dg), 2, u_ll, u_rr) # orientation 2: y direction
+      set_node_vars!(fstar2, dg, flux, i, j)
     end
   end
 end
@@ -1601,7 +1567,7 @@ end
 function prolong2surfaces!(dg)
   equation = equations(dg)
 
-  for s = 1:dg.n_surfaces
+  for s in 1:dg.n_surfaces
     left_element_id = dg.surfaces.neighbor_ids[1, s]
     right_element_id = dg.surfaces.neighbor_ids[2, s]
     if dg.surfaces.orientations[s] == 1
@@ -1625,7 +1591,7 @@ end
 function prolong2boundaries!(dg)
   equation = equations(dg)
 
-  for b = 1:dg.n_boundaries
+  for b in 1:dg.n_boundaries
     element_id = dg.boundaries.neighbor_ids[b]
     if dg.boundaries.orientations[b] == 1 # Boundary in x-direction
       if dg.boundaries.neighbor_sides[b] == 1 # Element in -x direction of boundary
@@ -1659,7 +1625,7 @@ prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
 function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
-  for m = 1:dg.n_l2mortars
+  for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1707,7 +1673,7 @@ function prolong2mortars!(dg, ::Val{:l2})
     u_large = zeros(nvariables(dg), nnodes(dg))
 
     # Interpolate large element face data to small surface locations
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction

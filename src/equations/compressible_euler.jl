@@ -316,24 +316,6 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::CompressibleEulerEquations,
-                             rho, rho_v1, rho_v2, rho_e, orientation::Int)
-  flux = calcflux(equation, orientation, SVector(rho, rho_v1, rho_v2, rho_e))
-  for v in 1:nvariables(equation)
-    f[v] = flux[v]
-  end
-end
-
-
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function flux_central(equation::CompressibleEulerEquations, orientation,
-                              rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                              rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  flux_central(equation, orientation,
-               SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
-               SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
-end
-
 
 """
     function flux_kuya_etal(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
@@ -381,14 +363,6 @@ by Kuya, Totani and Kawai (2018)
   return SVector(f1, f2, f3, f4)
 end
 
-@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation,
-                                rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  flux_kuya_etal(equation, orientation,
-                 SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
-                 SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
-end
-
 
 """
     flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
@@ -430,14 +404,6 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   end
 
   return SVector(f1, f2, f3, f4)
-end
-
-@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation,
-                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  flux_kennedy_gruber(equation, orientation,
-                      SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
-                      SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 
@@ -491,14 +457,6 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   return SVector(f1, f2, f3, f4)
 end
 
-@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation,
-                                    rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                    rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  flux_chandrashekar(equation, orientation,
-                     SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
-                     SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
-end
-
 
 function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
   # Calculate primitive variables and speed of sound
@@ -527,14 +485,6 @@ function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, 
   f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
 
   return SVector(f1, f2, f3, f4)
-end
-
-@inline function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation,
-                                     rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,
-                                     rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr)
-  flux_lax_friedrichs(equation, orientation,
-                      SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll),
-                      SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr))
 end
 
 

@@ -148,14 +148,6 @@ end
   return SVector(f1, f2, f3)
 end
 
-@inline function calcflux1D!(f, equation::HyperbolicDiffusionEquations,
-                             phi, p, q, orientation)
-  flux = calcflux(equation, orientation, SVector(phi, p, q))
-  for v in 1:nvariables(equation)
-    f[v] = flux[v]
-  end
-end
-
 
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 function flux_central(equation::HyperbolicDiffusionEquations, orientation,
@@ -175,14 +167,6 @@ end
   λ_max = sqrt(equation.nu / equation.Tr)
 
   return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
-end
-
-@inline function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation,
-                                     phi_ll, p_ll, q_ll,
-                                     phi_rr, p_rr, q_rr)
-  flux_lax_friedrichs(equation, orientation,
-                      SVector(phi_ll, p_ll, q_ll),
-                      SVector(phi_rr, p_rr, q_rr))
 end
 
 
@@ -208,14 +192,6 @@ end
   return SVector(f1, f2, f3)
 end
 
-@inline function flux_upwind(equation::HyperbolicDiffusionEquations, orientation,
-                             phi_ll, p_ll, q_ll,
-                             phi_rr, p_rr, q_rr)
-  flux_upwind(equation, orientation,
-              SVector(phi_ll, p_ll, q_ll),
-              SVector(phi_rr, p_rr, q_rr))
-end
-
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(equation::HyperbolicDiffusionEquations, u::Array{Float64, 4},
@@ -225,6 +201,7 @@ function calc_max_dt(equation::HyperbolicDiffusionEquations, u::Array{Float64, 4
 
   return dt
 end
+
 
 # Convert conservative variables to primitive
 function cons2prim(equation::HyperbolicDiffusionEquations, cons::Array{Float64, 4})

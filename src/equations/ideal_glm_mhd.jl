@@ -180,14 +180,6 @@ end
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-@inline function calcflux1D!(f::AbstractArray, equation::IdealGlmMhdEquations,
-                             rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi, orientation)
-  flux = calcflux(equation, orientation, SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi))
-  for v in 1:nvariables(equation)
-    f[v] = flux[v]
-  end
-end
-
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
@@ -222,16 +214,6 @@ end
       end
     end
   end
-end
-
-
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-@inline function flux_central(equation::IdealGlmMhdEquations, orientation,
-                              rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                              rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
-  flux_central(equation, orientation,
-               SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll),
-               SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr))
 end
 
 
@@ -319,16 +301,6 @@ function flux_derigs_etal(equation::IdealGlmMhdEquations, orientation, u_ll, u_r
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-function flux_derigs_etal(equation::IdealGlmMhdEquations, orientation,
-                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                          B1_ll, B2_ll, B3_ll, psi_ll,
-                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                          B1_rr, B2_rr, B3_rr, psi_rr)
-  flux_derigs_etal(equation, orientation,
-                  SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll),
-                  SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr))
-end
-
 
 function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation, u_ll, u_rr)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -364,16 +336,6 @@ function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation, u_ll, 
   f9 = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
-end
-
-function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                             B1_ll, B2_ll, B3_ll, psi_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                             B1_rr, B2_rr, B3_rr, psi_rr)
-  flux_lax_friedrichs(equation, orientation,
-                      SVector(rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll),
-                      SVector(rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr))
 end
 
 
@@ -586,6 +548,7 @@ end
   # Indicator variable is rho * p
   return rho * p
 end
+
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
 @inline function calc_fast_wavespeed(equation::IdealGlmMhdEquations, direction, cons)
