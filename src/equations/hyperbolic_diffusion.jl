@@ -191,44 +191,6 @@ end
 end
 
 
-# Calculate 2D two-point flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                    volume_flux, equation::HyperbolicDiffusionEquations, u, element_id, n_nodes)
-  # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
-
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Set diagonal entries (= regular volume fluxes due to consistency)
-      for v in 1:nvariables(equation)
-        f1[v, i, i, j] = f1_diag[v, i, j]
-        f2[v, j, i, j] = f2_diag[v, i, j]
-      end
-
-      # Flux in x-direction
-      for l = i + 1:n_nodes
-        flux = volume_flux(equation, 1, # 1-> x-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[1, l, j, element_id], u[2, l, j, element_id], u[3, l, j, element_id])
-        for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
-        end
-      end
-
-      # Flux in y-direction
-      for l = j + 1:n_nodes
-        flux = volume_flux(equation, 2, # 2 -> y-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[1, i, l, element_id], u[2, i, l, element_id], u[3, i, l, element_id])
-        for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
-        end
-      end
-    end
-  end
-end
-
-
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 function flux_central(equation::HyperbolicDiffusionEquations, orientation,
                       phi_ll, p_ll, q_ll,

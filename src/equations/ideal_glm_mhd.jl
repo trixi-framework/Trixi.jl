@@ -252,88 +252,36 @@ end
 end
 
 
-# Calculate 2D two-point flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                    volume_flux, equation::IdealGlmMhdEquations, u, element_id, n_nodes)
-  # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
-
-  # split form advective fluxes
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Set diagonal entries (= regular volume fluxes due to consistency)
-      for v in 1:nvariables(equation)
-        f1[v, i, i, j] = f1_diag[v, i, j]
-        f2[v, j, i, j] = f2_diag[v, i, j]
-      end
-
-      # Flux in x-direction
-      for l = i + 1:n_nodes
-        flux = volume_flux(equation, 1, # 1-> x-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
-                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
-                           u[1, l, j, element_id], u[2, l, j, element_id], u[3, l, j, element_id],
-                           u[4, l, j, element_id], u[5, l, j, element_id], u[6, l, j, element_id],
-                           u[7, l, j, element_id], u[8, l, j, element_id], u[9, l, j, element_id])
-        for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
-        end
-      end
-
-      # Flux in y-direction
-      for l = j + 1:n_nodes
-        flux = volume_flux(equation, 2, # 2 -> y-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
-                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
-                           u[1, i, l, element_id], u[2, i, l, element_id], u[3, i, l, element_id],
-                           u[4, i, l, element_id], u[5, i, l, element_id], u[6, i, l, element_id],
-                           u[7, i, l, element_id], u[8, i, l, element_id], u[9, i, l, element_id])
-        for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
-        end
-      end
-    end
-  end
-
-  # add in nonconservative terms; see GLM paper from Derigs et al. 2018
-  @views add_noncons_flux!(f1, f2, u[:,:,:,element_id], n_nodes)
-end
-
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
-                                   g::AbstractArray{Float64,4}, # y-direction advective flux
-                                   u::AbstractArray{Float64,3}, # solution on an element
-                                   n_nodes::Int)
+@inline function calcflux_twopoint_nonconservative!(f1, f2, dg, equation::IdealGlmMhdEquations, u, element_id)
   phi_pow   = zeros(MVector{9})
   phi_gal_x = zeros(MVector{9})
   phi_gal_y = zeros(MVector{9})
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      v1 = u[2,i,j]/u[1,i,j]
-      v2 = u[3,i,j]/u[1,i,j]
-      v3 = u[4,i,j]/u[1,i,j]
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      v1 = u[2,i,j,element_id] / u[1,i,j,element_id]
+      v2 = u[3,i,j,element_id] / u[1,i,j,element_id]
+      v3 = u[4,i,j,element_id] / u[1,i,j,element_id]
       # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-      phi_pow[2] = 0.5*u[6,i,j]
-      phi_pow[3] = 0.5*u[7,i,j]
-      phi_pow[4] = 0.5*u[8,i,j]
-      phi_pow[5] = 0.5*(v1*u[6,i,j] + v2*u[7,i,j] + v3*u[8,i,j])
+      phi_pow[2] = 0.5*u[6,i,j,element_id]
+      phi_pow[3] = 0.5*u[7,i,j,element_id]
+      phi_pow[4] = 0.5*u[8,i,j,element_id]
+      phi_pow[5] = 0.5*(v1*u[6,i,j,element_id] + v2*u[7,i,j,element_id] + v3*u[8,i,j,element_id])
       phi_pow[6] = 0.5*v1
       phi_pow[7] = 0.5*v2
       phi_pow[8] = 0.5*v3
       # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
       # x-direction
-      phi_gal_x[5] = 0.5*v1*u[9,i,j]
+      phi_gal_x[5] = 0.5*v1*u[9,i,j,element_id]
       phi_gal_x[9] = 0.5*v1
       # y-direction
-      phi_gal_y[5] = 0.5*v2*u[9,i,j]
+      phi_gal_y[5] = 0.5*v2*u[9,i,j,element_id]
       phi_gal_y[9] = 0.5*v2
       # add both nonconservative terms into the volume
-      for l in 1:n_nodes
-        f[:,l,i,j] += phi_pow * u[6,l,j] + phi_gal_x * u[9,l,j]
-        g[:,l,i,j] += phi_pow * u[7,i,l] + phi_gal_y * u[9,i,l]
+      for l in 1:nnodes(dg)
+        f1[:,l,i,j] += phi_pow * u[6,l,j,element_id] + phi_gal_x * u[9,l,j,element_id]
+        f2[:,l,i,j] += phi_pow * u[7,i,l,element_id] + phi_gal_y * u[9,i,l,element_id]
       end
     end
   end
