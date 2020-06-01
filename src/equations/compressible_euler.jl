@@ -325,48 +325,6 @@ end
 end
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::CompressibleEulerEquations,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      rho    = u[1, i, j, element_id]
-      rho_v1 = u[2, i, j, element_id]
-      rho_v2 = u[3, i, j, element_id]
-      rho_e  = u[4, i, j, element_id]
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, rho, rho_v1, rho_v2, rho_e)
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::CompressibleEulerEquations,
-                           rho::Float64, rho_v1::Float64,
-                           rho_v2::Float64, rho_e::Float64)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
-
-  f1[1]  = rho_v1
-  f1[2]  = rho_v1 * v1 + p
-  f1[3]  = rho_v1 * v2
-  f1[4]  = (rho_e + p) * v1
-
-  f2[1]  = rho_v2
-  f2[2]  = rho_v2 * v1
-  f2[3]  = rho_v2 * v2 + p
-  f2[4]  = (rho_e + p) * v2
-
-  return nothing
-end
-
-
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 @inline function flux_central(equation::CompressibleEulerEquations, orientation,
                               rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll,

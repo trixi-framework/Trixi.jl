@@ -157,40 +157,6 @@ end
 end
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::HyperbolicDiffusionEquations,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      phi = u[1, i, j, element_id]
-      p   = u[2, i, j, element_id]
-      q   = u[3, i, j, element_id]
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, phi, p, q)
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::HyperbolicDiffusionEquations,
-                           phi::Float64, p::Float64, q::Float64)
-  f1[1]  = -equation.nu*p
-  f1[2]  = -phi/equation.Tr
-  f1[3]  = 0.0
-
-  f2[1]  = -equation.nu*q
-  f2[2]  = 0.0
-  f2[3]  = -phi/equation.Tr
-
-  return nothing
-end
-
-
 # Central two-point flux (identical to weak form volume integral, except for floating point errors)
 function flux_central(equation::HyperbolicDiffusionEquations, orientation,
                       phi_ll, p_ll, q_ll,

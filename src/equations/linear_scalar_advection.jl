@@ -94,31 +94,6 @@ end
 end
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::LinearScalarAdvectionEquation,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, u[:, i, j, element_id])
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::LinearScalarAdvectionEquation,
-                           u::AbstractArray{Float64})
-  f1[1] = u[1] * equation.advectionvelocity[1]
-  f2[1] = u[1] * equation.advectionvelocity[2]
-  return nothing
-end
-
-
 function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
   return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )

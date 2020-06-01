@@ -189,69 +189,6 @@ end
 end
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::IdealGlmMhdEquations,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      rho    = u[1, i, j, element_id]
-      rho_v1 = u[2, i, j, element_id]
-      rho_v2 = u[3, i, j, element_id]
-      rho_v3 = u[4, i, j, element_id]
-      rho_e  = u[5, i, j, element_id]
-      B1     = u[6, i, j, element_id]
-      B2     = u[7, i, j, element_id]
-      B3     = u[8, i, j, element_id]
-      psi    = u[9, i, j, element_id]
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                       B1, B2, B3, psi)
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::IdealGlmMhdEquations,
-                           rho::Float64, rho_v1::Float64,
-                           rho_v2::Float64, rho_v3::Float64,
-                           rho_e::Float64, B1::Float64,
-                           B2::Float64, B3::Float64, psi::Float64)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  v_dot_B = v1*B1 + v2*B2 + v3*B3
-  p = (equation.gamma - 1)*(rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
-
-  f1[1] = rho_v1
-  f1[2] = rho_v1*v1 + p + mag_en - B1^2
-  f1[3] = rho_v1*v2 - B1*B2
-  f1[4] = rho_v1*v3 - B1*B3
-  f1[5] = (rho_e + p + mag_en)*v1 - B1*v_dot_B + equation.c_h*psi*B1
-  f1[6] = equation.c_h*psi
-  f1[7] = v1*B2 - v2*B1
-  f1[8] = v1*B3 - v3*B1
-  f1[9] = equation.c_h*B1
-
-  f2[1] = rho_v2
-  f2[2] = rho_v2*v1 - B1*B2
-  f2[3] = rho_v2*v2 + p + mag_en - B2^2
-  f2[4] = rho_v2*v3 - B2*B3
-  f2[5] = (rho_e + p + mag_en)*v2 - B2*v_dot_B + equation.c_h*psi*B2
-  f2[6] = v2*B1 - v1*B2
-  f2[7] = equation.c_h*psi
-  f2[8] = v2*B3 - v3*B2
-  f2[9] = equation.c_h*B2
-
-  return nothing
-end
-
-
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, dg, equation::IdealGlmMhdEquations, u, element_id)

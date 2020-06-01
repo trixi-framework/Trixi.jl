@@ -1176,48 +1176,26 @@ end
 calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, dg.elements.u_t)
 
 
-# Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
-  @unpack dhat = dg
-
-  # Type alias only for convenience
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-
-  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes
-    calcflux!(f1, f2, equations(dg), dg.elements.u, element_id, nnodes(dg))
-
-    # Calculate volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l = 1:nnodes(dg)
-            acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
-          end
-          u_t[v, i, j, element_id] += acc
-        end
-      end
+# Calculate 2D flux (element version)
+@inline function calcflux!(f1, f2, dg::Dg, u, element_id)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      u_node = get_node_vars(u, dg, i, j, element_id)
+      flux1 = calcflux(equations(dg), 1, u_node)
+      flux2 = calcflux(equations(dg), 2, u_node)
+      set_node_vars!(f1, dg, flux1, i, j)
+      set_node_vars!(f2, dg, flux2, i, j)
     end
   end
 end
 
 
+# Calculate 2D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id)
   @unpack volume_flux = dg
 
   # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, equations(dg), u, element_id, nnodes(dg))
+  calcflux!(f1_diag, f2_diag, dg, u, element_id)
 
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1263,6 +1241,42 @@ function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u,
 end
 
 
+# Calculate volume integral (DGSEM in weak form)
+function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+  @unpack dhat = dg
+
+  # Type alias only for convenience
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Choose thread-specific pre-allocated container
+    f1 = f1_threaded[Threads.threadid()]
+    f2 = f2_threaded[Threads.threadid()]
+
+    # Calculate volume fluxes
+    calcflux!(f1, f2, dg, dg.elements.u, element_id)
+
+    # Calculate volume integral
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
+          # Use local accumulator to improve performance
+          acc = zero(eltype(u_t))
+          for l in 1:nnodes(dg)
+            acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
+          end
+          u_t[v, i, j, element_id] += acc
+        end
+      end
+    end
+  end
+end
+
+
 # Calculate volume integral (DGSEM in split form)
 function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
   @unpack dsplit_transposed = dg
@@ -1277,8 +1291,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
   f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
   f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
-  #=@inbounds Threads.@threads for element_id = 1:dg.n_elements=#
-  Threads.@threads for element_id = 1:dg.n_elements
+  Threads.@threads for element_id in 1:dg.n_elements
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
@@ -1289,12 +1302,12 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
     calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
 
     # Calculate volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
           # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
-          for l = 1:nnodes(dg)
+          for l in 1:nnodes(dg)
             acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
           u_t[v, i, j, element_id] += acc
