@@ -1302,7 +1302,7 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
 end
 
 
-# Calculate volume integral (DGSEM in weak form)
+# Calculate volume integral (DGSEM in split form)
 # NOTE: The first version below uses temporary storage and need to allocate.
 #       The other version does not need this temporary storage but more assignments.
 #       In preliminary tests, the second version is faster.
