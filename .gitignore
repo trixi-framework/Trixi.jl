@@ -11,3 +11,4 @@ out/
 docs/build
 public/
 src/**/*.jl.*.cov
+test/**/*.jl.*.cov
