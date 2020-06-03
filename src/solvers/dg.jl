@@ -682,34 +682,6 @@ function calc_error_norms(dg::Dg, t::Float64)
 end
 
 
-# Calculate integrals over all conservative variables
-function calc_state_integrals(dg::Dg)
-  # Gather necessary information
-  equation = equations(dg)
-
-  # Set up data structures
-  state_integrals = zeros(nvariables(equation))
-
-  # Iterate over all elements for error calculations
-  for element_id = 1:dg.n_elements
-    # Calculate errors at each analysis node
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(equation)
-          state_integrals[v] += dg.elements.u[v, i, j, element_id] * dg.weights[i] * dg.weights[j] * jacobian_volume
-        end
-      end
-    end
-  end
-
-  # Normalize by dividing by total volume
-  @. state_integrals = state_integrals / dg.analysis_total_volume
-
-  return state_integrals
-end
-
-
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
@@ -767,7 +739,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
-  state_integrals = calc_state_integrals(dg)
+  state_integrals = integrate(dg.elements.u, dg)
   duds_ut = calc_entropy_timederivative(dg, time)
 
   # Store initial state integrals if not set
