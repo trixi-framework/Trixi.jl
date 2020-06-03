@@ -576,6 +576,64 @@ function init_mortar_connectivity!(elements, mortars, mesh)
 end
 
 
+"""
+    integrate(func, dg::Dg, q...; normalize=true)
+    integrate(dg::Dg, q...; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(i, j, element_id, dg, q...)` for each
+volume node `(i, j)` and each element `element_id`. Additional positional
+arguments `q...` are passed along as well. If `normalize` is true, the result
+is divided by the total volume of the computational domain. If `func` is
+omitted, it defaults to `identity`.
+"""
+function integrate(func, dg::Dg, q...; normalize=true)
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(1, 1, 1, dg, q...))
+
+  # Use quadrature to numerically integrate over entire domain
+  for element_id = 1:dg.n_elements
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
+    for j = 1:nnodes(dg)
+      for i = 1:nnodes(dg)
+        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, q...)
+      end
+    end
+  end
+
+  # Normalize with total volume
+  if normalize
+    integral = integral/dg.analysis_total_volume
+  end
+
+  return integral
+end
+integrate(dg::Dg, q; normalize=true) = integrate(identity, dg, q; normalize=normalize)
+
+
+"""
+    integrate(func, q, dg::Dg; normalize=true)
+    integrate(q, dg::Dg; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(q_local)` for each volume node `(i, j)`
+and each element `element_id`, where `q_local` is an `SVector`ized copy of
+`q[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
+total volume of the computational domain. If `func` is omitted, it defaults to
+`identity`.
+"""
+function integrate(func, q, dg::Dg; normalize=true)
+  func_wrapped = function(i, j, element_id, dg, q)
+    q_local = SVector(ntuple(v -> q[v, i, j, element_id], size(q, 1)))
+    return func(q_local)
+  end
+  return integrate(func_wrapped, dg, q; normalize=normalize)
+end
+integrate(q, dg::Dg; normalize=true) = integrate(identity, q, dg; normalize=normalize)
+
+
 # Calculate L2/Linf error norms based on "exact solution"
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
