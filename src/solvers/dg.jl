@@ -660,8 +660,7 @@ function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
       for i in 1:nnodes(dg)
         divb   = 0.0
         for k in 1:nnodes(dg)
-          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
-                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id] + d[j,k]*dg.elements.u[7,i,k,element_id]
         end
         divb *= dg.elements.inverse_jacobian[element_id]
         linf_divb = max(linf_divb,abs(divb))
