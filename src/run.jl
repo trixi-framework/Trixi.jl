@@ -19,20 +19,28 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 ```
 """
 function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+  # Reset timer
+  reset_timer!(timer())
+
+  # Read command line or keyword arguments and parse parameters file
+  read_parameters(parameters_file, verbose=verbose, args=args)
+
+  # Start simulation with an increased initial refinement level if specified
+  # for convergence analysis
+  if refinement_level_increment != 0
+    setparameter("initial_refinement_level",
+      parameter("initial_refinement_level") + refinement_level_increment)
+  end
+
   # Separate initialization and execution into two functions such that Julia can specialize
   # the code in `run_simulation` for the actual type of `solver` and `mesh`
-  mesh, solver, time_parameters = init_simulation(
-      parameters_file, verbose=verbose, args=args,
-      refinement_level_increment=refinement_level_increment)
+  mesh, solver, time_parameters = init_simulation()
   run_simulation(mesh, solver, time_parameters)
 end
 
 
-function init_simulation(parameters_file; verbose=false, args=nothing, refinement_level_increment=0)
-  # Reset timer
-  reset_timer!(timer())
-
-  # Handle command line arguments
+function read_parameters(parameters_file=nothing; verbose=false, args=nothing)
+  # Read command line or keyword arguments
   @timeit timer() "parse command line" if !isnothing(args)
     # If args are given explicitly, parse command line arguments
     args = parse_commandline_arguments(args)
@@ -49,18 +57,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # Set global verbosity
   globals[:verbose] = args["verbose"]
 
-  # Print starup message
-  print_startup_message()
-
   # Parse parameters file
   @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+end
 
-  # Start simulation with an increased initial refinement level if specified
-  # for convergence analysis
-  if refinement_level_increment != 0
-    setparameter("initial_refinement_level",
-      parameter("initial_refinement_level") + refinement_level_increment)
-  end
+
+function init_simulation()
+  # Print starup message
+  print_startup_message()
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
@@ -153,7 +157,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   s *= """| Simulation setup
           | ----------------
           | working directory:  $(pwd())
-          | parameters file:    $(args["parameters_file"])
+          | parameters file:    $(parameter("parameters_file"))
           | equations:          $(get_name(equations))
           | | #variables:       $(nvariables(equations))
           | | variable names:   $(join(varnames_cons(equations), ", "))

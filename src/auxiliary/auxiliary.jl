@@ -16,6 +16,7 @@ const parameters = Dict()
 # Parse parameters file into global dict
 function parse_parameters_file(filename)
   parameters["default"] = parsefile(filename)
+  parameters["default"]["parameters_file"] = filename
 end
 
 
