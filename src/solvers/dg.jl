@@ -64,6 +64,9 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
+
+  initial_state_integrals::Vector{Float64}
+  is_initial_state_integrals_set::Bool
 end
 
 
@@ -154,6 +157,10 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
+  # Store initial state integrals for conservation error calculation
+  initial_state_integrals = Vector{Float64}()
+  is_initial_state_integrals_set = false
+
   # Create actual DG solver instance
   dg = Dg(
       equation,
@@ -176,7 +183,8 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
-      element_variables)
+      element_variables,
+      initial_state_integrals, is_initial_state_integrals_set)
 
   return dg
 end
@@ -674,6 +682,34 @@ function calc_error_norms(dg::Dg, t::Float64)
 end
 
 
+# Calculate integrals over all conservative variables
+function calc_state_integrals(dg::Dg)
+  # Gather necessary information
+  equation = equations(dg)
+
+  # Set up data structures
+  state_integrals = zeros(nvariables(equation))
+
+  # Iterate over all elements for error calculations
+  for element_id = 1:dg.n_elements
+    # Calculate errors at each analysis node
+    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(equation)
+          state_integrals[v] += dg.elements.u[v, i, j, element_id] * dg.weights[i] * dg.weights[j] * jacobian_volume
+        end
+      end
+    end
+  end
+
+  # Normalize by dividing by total volume
+  @. state_integrals = state_integrals / dg.analysis_total_volume
+
+  return state_integrals
+end
+
+
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
@@ -731,7 +767,15 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   equation = equations(dg)
 
   l2_error, linf_error = calc_error_norms(dg, time)
+  state_integrals = calc_state_integrals(dg)
   duds_ut = calc_entropy_timederivative(dg, time)
+
+  # Store initial state integrals if not set
+  if !dg.is_initial_state_integrals_set
+    dg.initial_state_integrals = zeros(nvariables(equation))
+    dg.initial_state_integrals .= state_integrals
+    dg.is_initial_state_integrals_set = true
+  end
 
   # General information
   println()
@@ -777,6 +821,11 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   print(" Linf error:  ")
   for v in 1:nvariables(equation)
     @printf("  % 10.8e", linf_error[v])
+  end
+  println()
+  print(" |∑U - ∑U₀|:  ")
+  for v in 1:nvariables(equation)
+    @printf("  % 10.8e", abs(state_integrals[v] - dg.initial_state_integrals[v]))
   end
   println()
   print(" ∑dUdS*Ut:    ")
