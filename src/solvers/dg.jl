@@ -673,31 +673,23 @@ function calc_error_norms(dg::Dg, t::Float64)
   return l2_error, linf_error
 end
 
-# Calculate L2/Linf error norms based on "exact solution"
+
+# Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
-  n_nodes = nnodes(dg)
   # Compute entropy variables for all elements and nodes with current solution u
-  duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
+  duds = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
+
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
-  # Quadrature weights
-  weights = dg.weights
-  # Integrate over all elements to get the total semi-discrete entropy update
-  dsdu_ut = 0.0
-  for element_id = 1:dg.n_elements
-    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-         dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
-      end
-    end
+
+  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+  dsdu_ut = integrate(dg, duds, dg.elements.u_t) do i, j, element_id, dg, duds, u_t
+    sum(duds[:,i,j,element_id].*u_t[:,i,j,element_id])
   end
-  # Normalize with total volume
-  dsdu_ut = dsdu_ut/dg.analysis_total_volume
+
   return dsdu_ut
 end
+
 
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
