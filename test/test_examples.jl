@@ -14,6 +14,12 @@ isdir(outdir) && rm(outdir, recursive=true)
             l2   = [9.144681765639205e-6],
             linf = [6.437440532547356e-5])
   end
+  @testset "../examples/parameters.toml with N=1" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.05264106093598111],
+            linf = [0.08754218386076518],
+            N=1)
+  end
   @testset "../examples/parameters_alfven_wave.toml" begin
     test_trixi_run("../examples/parameters_alfven_wave.toml",
             l2   = [0.00011134513490658689, 5.880188909157728e-6, 5.880188909159547e-6, 8.432880997656317e-6, 1.2942387343501909e-6, 1.2238820298971968e-6, 1.2238820298896402e-6, 1.830621754702352e-6, 8.086996786269551e-7],
