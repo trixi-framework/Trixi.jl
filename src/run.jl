@@ -1,8 +1,9 @@
 
 """
-    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
 
 Run a Trixi simulation with the parameters in `parameters_file`.
+Parameters can be overriden by specifying them as keyword arguments (see examples).
 
 If `verbose` is `true`, additional output will be generated on the terminal
 that may help with debugging.  If `args` is given, it should be an
@@ -17,13 +18,25 @@ interpreted by the `parse_commandline_arguments` function. In this case, the val
 julia> Trixi.run("examples/parameters.toml", verbose=true)
 [...]
 ```
+
+Without changing the parameters file we can start a simulation with `N = 1` and
+`t_end = 0.5` as follows:
+```julia
+julia> Trixi.run("examples/parameters.toml", N=1, t_end=0.5)
+[...]
+```
 """
-function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
   # Reset timer
   reset_timer!(timer())
 
   # Read command line or keyword arguments and parse parameters file
   read_parameters(parameters_file, verbose=verbose, args=args)
+
+  # Override specified parameters
+  for (parameter, value) in parameters
+    setparameter(string(parameter), value)
+  end
 
   # Start simulation with an increased initial refinement level if specified
   # for convergence analysis
