@@ -120,6 +120,24 @@ isdir(outdir) && rm(outdir, recursive=true)
             l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
             linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
+  @testset "../examples/parameters_khi_amr.toml with t_end=0.2" begin
+    test_trixi_run("../examples/parameters_khi_amr.toml",
+            l2   = [0.0016901662212296502, 0.005064145650514081, 0.004794017657493158, 0.0039877996168673525],
+            linf = [0.027437774935491266, 0.02344577999610231, 0.016129408502293267, 0.018237901415986357],
+            t_end = 0.2)
+  end
+  @testset "../examples/parameters_blob_amr.toml with t_end=0.12" begin
+    test_trixi_run("../examples/parameters_blob_amr.toml",
+            l2   = [0.20167272820008805, 1.1836133229138053, 0.10165112533393011, 5.237361125542303],
+            linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
+            t_end = 0.12)
+  end
+  @testset "../examples/parameters_orszag_tang.toml with t_end=0.09" begin
+    test_trixi_run("../examples/parameters_orszag_tang.toml",
+            l2   = [0.22092878274261832, 0.26603025757015414, 0.31894245202569665, 0.0, 0.5232272243127627, 0.23339944630591253, 0.34777865111745, 0.0, 0.01475575698061458],
+            linf = [1.3440153848990444, 0.6695453040530135, 0.8883866154398539, 0.0, 2.9725753256238696, 0.7228314117312579, 1.0384211822702207, 0.0, 0.14362546843006319],
+            t_end = 0.09)
+  end
   @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
   @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
   @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
