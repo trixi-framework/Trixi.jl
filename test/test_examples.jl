@@ -90,6 +90,12 @@ isdir(outdir) && rm(outdir, recursive=true)
             l2   = [2.1203040671963692e-6, 2.8053312800289536e-5, 3.761758762899687e-5, 8.840565162128428e-5],
             linf = [5.900575985384737e-5, 0.0007547236106317801, 0.000817616344069072, 0.0022090204216524967])
   end
+  @testset "../examples/parameters_mortar_vortex_split.toml with flux_central" begin
+    test_trixi_run("../examples/parameters_mortar_vortex_split.toml",
+            l2   = [2.1202421512026147e-6, 2.7929028341288412e-5, 3.759306531457842e-5, 8.813423453452753e-5],
+            linf = [5.932055097812583e-5, 0.0007486675478027838, 0.0008175405566221983, 0.0022122678889928693],
+            volume_flux = "flux_central")
+  end
   @testset "../examples/parameters_mortar_vortex_split.toml with flux_kuya_etal" begin
     test_trixi_run("../examples/parameters_mortar_vortex_split.toml",
             l2   = [2.1179157511237394e-6, 2.805652962710273e-5, 3.7597878575795916e-5, 8.8405400202012e-5],
