@@ -827,6 +827,8 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Calculate L2/Linf errors
   if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
     l2_error, linf_error = calc_error_norms(dg, time)
+  else
+    error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
   end
 
   # L2 error
