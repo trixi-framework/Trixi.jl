@@ -714,14 +714,14 @@ end
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
   # Compute entropy variables for all elements and nodes with current solution u
-  duds = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
+  dsdu = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
 
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, duds, dg.elements.u_t) do i, j, element_id, dg, duds, u_t
-    sum(duds[:,i,j,element_id].*u_t[:,i,j,element_id])
+  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, element_id, dg, dsdu, u_t
+    sum(dsdu[:,i,j,element_id].*u_t[:,i,j,element_id])
   end
 
   return dsdu_ut
@@ -900,6 +900,17 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
+  # Kinetic energy
+  if :kinetic_energy in dg.analysis_quantities
+    ekin = integrate(dg.elements.u, dg) do u
+      0.5 * (u[2]^2 + u[3]^2)/u[1]
+    end
+    print(" ∑eₖᵢₙ:       ")
+    @printf("  % 10.8e", ekin)
+    dg.save_analysis && @printf(f, "  % 10.8e", ekin)
+    println()
+  end
+
   println("-"^80)
   println()
 
@@ -950,6 +961,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :linf_divb in quantities
       @printf(f, "   %-14s", "linf_divb")
+    end
+    if :kinetic_energy in quantities
+      @printf(f, "   %-14s", "kinetic_energy")
     end
     println(f)
   end
