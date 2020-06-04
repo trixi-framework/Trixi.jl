@@ -612,27 +612,27 @@ end
 
 
 """
-    integrate(func, dg::Dg, q...; normalize=true)
-    integrate(dg::Dg, q...; normalize=true)
+    integrate(func, dg::Dg, args...; normalize=true)
+    integrate(dg::Dg, args...; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
-The function `func` is called as `func(i, j, element_id, dg, q...)` for each
+The function `func` is called as `func(i, j, element_id, dg, args...)` for each
 volume node `(i, j)` and each `element_id`. Additional positional
-arguments `q...` are passed along as well. If `normalize` is true, the result
+arguments `args...` are passed along as well. If `normalize` is true, the result
 is divided by the total volume of the computational domain. If `func` is
 omitted, it defaults to `identity`.
 """
-function integrate(func, dg::Dg, q...; normalize=true)
+function integrate(func, dg::Dg, args...; normalize=true)
   # Initialize integral with zeros of the right shape
-  integral = zero(func(1, 1, 1, dg, q...))
+  integral = zero(func(1, 1, 1, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
   for element_id = 1:dg.n_elements
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
-        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, q...)
+        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
       end
     end
   end
@@ -644,7 +644,7 @@ function integrate(func, dg::Dg, q...; normalize=true)
 
   return integral
 end
-integrate(dg::Dg, q; normalize=true) = integrate(identity, dg, q; normalize=normalize)
+integrate(dg::Dg, args...; normalize=true) = integrate(identity, dg, args...; normalize=normalize)
 
 
 """
