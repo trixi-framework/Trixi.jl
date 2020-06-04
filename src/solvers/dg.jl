@@ -69,7 +69,6 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 
   initial_state_integrals::Vector{Float64}
-  is_initial_state_integrals_set::Bool
 end
 
 
@@ -187,7 +186,6 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
-  is_initial_state_integrals_set = false
 
   # Create actual DG solver instance
   dg = Dg(
@@ -213,7 +211,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables,
-      initial_state_integrals, is_initial_state_integrals_set)
+      initial_state_integrals)
 
   return dg
 end
@@ -857,10 +855,9 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     state_integrals = integrate(dg.elements.u, dg)
 
     # Store initial state integrals at first invocation
-    if !dg.is_initial_state_integrals_set
+    if isempty(dg.initial_state_integrals)
       dg.initial_state_integrals = zeros(nvariables(equation))
       dg.initial_state_integrals .= state_integrals
-      dg.is_initial_state_integrals_set = true
     end
 
     print(" |∑U - ∑U₀|:  ")
