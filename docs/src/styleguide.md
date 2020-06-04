@@ -8,7 +8,7 @@ The following lists a few coding conventions for Trixi:
   * Prefer `for i in ...` to `for i = ...` for better semantic clarity and greater flexibility.
   * Executable code should only use ASCII characters.
   * Docstrings and comments can and should use Unicode characters where it helps understanding.
-  * Multiline expressions should be explicitly grouped by parentheses and not.
+  * Multiline expressions should be explicitly grouped by parentheses and not
     rely on Julia's implicit line continuation syntax.
 
 Based on that, and personal experience, a formatting tool with a few helpful
