@@ -23,7 +23,6 @@ end
 get_name(::LinearScalarAdvectionEquation) = "LinearScalarAdvectionEquation"
 varnames_cons(::LinearScalarAdvectionEquation) = SVector("scalar")
 varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
-default_analysis_quantities(::LinearScalarAdvectionEquation) = (:l2_error, :linf_error)
 
 
 # Set initial conditions at physical location `x` for time `t`
