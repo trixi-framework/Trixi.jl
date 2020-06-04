@@ -18,7 +18,6 @@ end
 get_name(::CompressibleEulerEquations) = "CompressibleEulerEquations"
 varnames_cons(::CompressibleEulerEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
 varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
-default_analysis_quantities(::CompressibleEulerEquations) = (:l2_error, :linf_error, :dsdu_ut)
 
 
 # Set initial conditions at physical location `x` for time `t`
