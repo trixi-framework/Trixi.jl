@@ -887,9 +887,9 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
   # L2 norm of ∇ ⋅ B
   if :l2_divb in dg.analysis_quantities
-    print(" L2 ∇ ⋅B:   ")
-    @printf("    % 10.8e", l2_divb)
-    dg.save_analysis && @printf(f, "    % 10.8e", l2_divb)
+    print(" L2 ∇ ⋅B:     ")
+    @printf("  % 10.8e", l2_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
     println()
   end
   # Linf norm of ∇ ⋅ B
