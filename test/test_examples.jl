@@ -150,6 +150,14 @@ isdir(outdir) && rm(outdir, recursive=true)
             linf = [1.3440153848990444, 0.6695453040530135, 0.8883866154398539, 0.0, 2.9725753256238696, 0.7228314117312579, 1.0384211822702207, 0.0, 0.14362546843006319],
             t_end = 0.09)
   end
+  @testset "../examples/parameters.toml with restart and t_end=2" begin
+    Trixi.run("../examples/parameters.toml")
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [1.2148032444677485e-5],
+            linf = [6.495644794757283e-5],
+            t_end = 2,
+            restart = true, restart_filename = "out/restart_000040.h5")
+  end
   @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
   @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
   @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
