@@ -55,6 +55,9 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   analysis_weights_volume::VectorNAnap1
   analysis_vandermonde::MatrixNAnap1Np1
   analysis_total_volume::Float64
+  analysis_quantities::Vector{Symbol}
+  save_analysis::Bool
+  analysis_filename::String
 
   shock_indicator_variable::Symbol
   shock_alpha_max::Float64
@@ -131,6 +134,31 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Store which quantities should be analyzed in `analyze_solution`
+  if parameter_exists("extra_analysis_quantities")
+    extra_analysis_quantities = Symbol.(parameter("extra_analysis_quantities"))
+  else
+    extra_analysis_quantities = Symbol[]
+  end
+  analysis_quantities = vcat(collect(Symbol.(default_analysis_quantities(equation))),
+                             extra_analysis_quantities)
+
+  # If analysis should be saved to file, create file with header
+  save_analysis = parameter("save_analysis", false)
+  if save_analysis
+    # Create output directory (if it does not exist)
+    output_directory = parameter("output_directory", "out")
+    mkpath(output_directory)
+
+    # Determine filename
+    analysis_filename = joinpath(output_directory, "analysis.dat")
+
+    # Open file and write header
+    save_analysis_header(analysis_filename, analysis_quantities, equation)
+  else
+    analysis_filename = ""
+  end
+
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
@@ -181,6 +209,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
       SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
+      analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
       element_variables,
@@ -747,17 +776,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
                           runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
-  l2_error, linf_error = calc_error_norms(dg, time)
-  state_integrals = integrate(dg.elements.u, dg)
-  duds_ut = calc_entropy_timederivative(dg, time)
-
-  # Store initial state integrals if not set
-  if !dg.is_initial_state_integrals_set
-    dg.initial_state_integrals = zeros(nvariables(equation))
-    dg.initial_state_integrals .= state_integrals
-    dg.is_initial_state_integrals_set = true
-  end
-
   # General information
   println()
   println("-"^80)
@@ -788,47 +806,151 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
   println()
 
-  # Derived quantities (error norms, entropy etc.)
-  print(" Variable:    ")
-  for v in 1:nvariables(equation)
-    @printf("   %-14s", varnames_cons(equation)[v])
+  # Open file for appending and store time step and time information
+  if dg.save_analysis
+    f = open(dg.analysis_filename, "a")
+    @printf(f, "% 8d", step)
+    @printf(f, "  %10.8e", time)
+    @printf(f, "  %10.8e", dt)
   end
-  println()
-  print(" L2 error:    ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", l2_error[v])
-  end
-  println()
-  print(" Linf error:  ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", linf_error[v])
-  end
-  println()
-  print(" |∑U - ∑U₀|:  ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", abs(state_integrals[v] - dg.initial_state_integrals[v]))
-  end
-  println()
-  print(" ∑dUdS*Ut:    ")
-  @printf("  % 10.8e", duds_ut)
 
-  if equation isa IdealMhdEquations
+  # Calculate and print derived quantities (error norms, entropy etc.)
+  # Variable names required for L2 error, Linf error, and conservation error
+  if any(q in dg.analysis_quantities for q in (:l2_error, :linf_error, :conservation_error))
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_cons(equation)[v])
+    end
+    println()
+  end
+
+  # Calculate L2/Linf errors
+  if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
+    l2_error, linf_error = calc_error_norms(dg, time)
+  end
+
+  # L2 error
+  if :l2_error in dg.analysis_quantities
+    print(" L2 error:    ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", l2_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+    end
+    println()
+  end
+
+  # Linf error
+  if :linf_error in dg.analysis_quantities
+    print(" Linf error:  ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", linf_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+    end
+    println()
+  end
+
+  # Conservation errror
+  if :conservation_error in dg.analysis_quantities
+    # Calculate state integrals
+    state_integrals = integrate(dg.elements.u, dg)
+
+    # Store initial state integrals at first invocation
+    if !dg.is_initial_state_integrals_set
+      dg.initial_state_integrals = zeros(nvariables(equation))
+      dg.initial_state_integrals .= state_integrals
+      dg.is_initial_state_integrals_set = true
+    end
+
+    print(" |∑U - ∑U₀|:  ")
+    for v in 1:nvariables(equation)
+      err = abs(state_integrals[v] - dg.initial_state_integrals[v])
+      @printf("  % 10.8e", err)
+      dg.save_analysis && @printf(f, "  % 10.8e", err)
+    end
+    println()
+  end
+
+  # Entropy time derivative
+  if :dsdu_ut in dg.analysis_quantities
+    duds_ut = calc_entropy_timederivative(dg, time)
+    print(" ∑dUdS*Ut:    ")
+    @printf("  % 10.8e", duds_ut)
+    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
+    println()
+  end
+
+  # Solenoidal condition ∇ ⋅ B = 0
+  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
-    println()
-    print(" L2 ∇⋅B:    ")
-    @printf("    % 10.8e", l2_divb)
-    println()
-    print(" Linf ∇⋅B:    ")
-    @printf("  % 10.8e", linf_divb)
   end
-
-  println()
+  # L2 norm of ∇ ⋅ B
+  if :l2_divb in dg.analysis_quantities
+    print(" L2 ∇ ⋅B:   ")
+    @printf("    % 10.8e", l2_divb)
+    dg.save_analysis && @printf(f, "    % 10.8e", l2_divb)
+    println()
+  end
+  # Linf norm of ∇ ⋅ B
+  if :linf_divb in dg.analysis_quantities
+    print(" Linf ∇ ⋅B:   ")
+    @printf("  % 10.8e", linf_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+    println()
+  end
 
   println("-"^80)
   println()
 
+  # Add line break and close analysis file if it was opened
+  if dg.save_analysis
+    println(f)
+    close(f)
+  end
+
   # Return errors for EOC analysis
   return l2_error, linf_error
+end
+
+
+"""
+    save_analysis_header(filename, quantities, equation)
+
+Truncate file `filename` and save a header with the names of the quantities
+`quantities` that will subsequently written to `filename` by
+[`analyze_solution`](@ref). Since some quantities are equation-specific, the
+system of equations instance is passed in `equation`.
+"""
+function save_analysis_header(filename, quantities, equation)
+  open(filename, "w") do f
+    @printf(f, "%-8s", "timestep")
+    @printf(f, "  %-14s", "time")
+    @printf(f, "  %-14s", "dt")
+    if :l2_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "linf_" * v)
+      end
+    end
+    if :conservation_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "cons_" * v)
+      end
+    end
+    if :dsdu_ut in quantities
+      @printf(f, "   %-14s", "dsdu_ut")
+    end
+    if :l2_divb in quantities
+      @printf(f, "   %-14s", "l2_divb")
+    end
+    if :linf_divb in quantities
+      @printf(f, "   %-14s", "linf_divb")
+    end
+    println(f)
+  end
 end
 
 
