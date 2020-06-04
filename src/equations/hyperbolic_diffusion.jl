@@ -369,3 +369,7 @@ function cons2entropy(equation::HyperbolicDiffusionEquations,
 
   return entropy
 end
+
+
+# Calculate entropy for a conservative state `cons`
+@inline entropy(cons, ::HyperbolicDiffusionEquations) = cons[1]

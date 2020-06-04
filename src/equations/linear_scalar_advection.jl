@@ -165,3 +165,8 @@ function cons2entropy(equation::LinearScalarAdvectionEquation,
                       n_elements::Int)
   return cons
 end
+
+
+# Calculate entropy for a conservative state `cons`
+@inline entropy(cons::Real, ::LinearScalarAdvectionEquation) = cons
+@inline entropy(cons, equation::LinearScalarAdvectionEquation) = entropy(cons[1], equation)

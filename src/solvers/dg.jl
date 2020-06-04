@@ -872,7 +872,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
     duds_ut = calc_entropy_timederivative(dg, time)
-    print(" ∑dUdS*Ut:    ")
+    print(" ∑∂S/∂U ⋅ Uₜ: ")
     @printf("  % 10.8e", duds_ut)
     dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
     println()
@@ -913,17 +913,10 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-      equation = equations(dg)
 
-      # Calculate thermodynamic entropy
-      v = (cons[2] / cons[1], cons[3] / cons[1])
-      v_square = v[1]^2 + v[2]^2
-      p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-      s = log(p) - equation.gamma*log(cons[1])
-
-      return s
+      return entropy(cons, equations(dg))
     end
-    print(" ∑s:          ")
+    print(" ∑S:          ")
     @printf("  % 10.8e", s)
     dg.save_analysis && @printf(f, "  % 10.8e", s)
     println()
