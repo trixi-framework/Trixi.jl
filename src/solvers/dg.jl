@@ -628,10 +628,10 @@ function integrate(func, dg::Dg, args...; normalize=true)
   integral = zero(func(1, 1, 1, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
-  for element_id = 1:dg.n_elements
+  for element_id in 1:dg.n_elements
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
         integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
       end
     end
