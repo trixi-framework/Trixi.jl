@@ -733,7 +733,16 @@ end
 
 
 
-# Calculate error norms and print information for user
+"""
+    analyze_solution(dg::Dg, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
+
+Calculate error norms and other analysis quantities to analyze the solution
+during a simulation, and return the L2 and Linf errors. `dg` and `mesh` are the
+DG and the mesh instance, respectively. `time`, `dt`, and `step` refer to the
+current simulation time, the last time step size, and the current time step
+count. The run time (in seconds) is given in `runtime_absolute`, while the
+performance index is specified in `runtime_relative`.
+"""
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
