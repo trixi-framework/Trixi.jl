@@ -28,6 +28,7 @@ end
 get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusionEquations"
 varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
+default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_error)
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`

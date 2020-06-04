@@ -20,6 +20,8 @@ get_name(::IdealMhdEquations) = "IdealMhdEquations"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
 varnames_cons(::IdealMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
 varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+default_analysis_quantities(::IdealMhdEquations) = (:l2_error, :linf_error, :duds_dt,
+                                                    :l2_divb, :linf_divb)
 
 
 # Set initial conditions at physical location `x` for time `t`
