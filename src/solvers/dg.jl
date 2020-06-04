@@ -703,8 +703,8 @@ end
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
+  @assert equations(dg) isa IdealMhdEquations "Only relevant for MHD"
+
   # Local copy of standard derivative matrix
   d = polynomial_derivative_matrix(dg.nodes)
   # Quadrature weights
