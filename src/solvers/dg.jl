@@ -911,6 +911,27 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
+  # Entropy
+  if :entropy in dg.analysis_quantities
+    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      equation = equations(dg)
+
+      # Calculate thermodynamic entropy
+      v = (cons[2] / cons[1], cons[3] / cons[1])
+      v_square = v[1]^2 + v[2]^2
+      p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
+      s = log(p) - equation.gamma*log(cons[1])
+
+      return s
+    end
+    print(" ∑s:          ")
+    @printf("  % 10.8e", s)
+    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    println()
+  end
+
   println("-"^80)
   println()
 
@@ -964,6 +985,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :kinetic_energy in quantities
       @printf(f, "   %-14s", "kinetic_energy")
+    end
+    if :entropy in quantities
+      @printf(f, "   %-14s", "entropy")
     end
     println(f)
   end
