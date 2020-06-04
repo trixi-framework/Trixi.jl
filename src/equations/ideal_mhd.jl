@@ -813,7 +813,9 @@ end
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equation::IdealMhdEquations)
   # Pressure
-  p = (equation.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1])
+  p = (equation.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+                                      - 1/2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+                                      - 1/2 * cons[9]^2)
 
   # Thermodynamic entropy
   s = log(p) - equation.gamma*log(cons[1])
