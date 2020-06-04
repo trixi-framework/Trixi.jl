@@ -141,7 +141,7 @@ end
 
 function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
-  0.5 * (a + abs(a)) * u_ll + (a - abs(a)) * u_rr
+  return 0.5 * ((a + abs(a)) * u_ll + (a - abs(a)) * u_rr)
 end
 
 
