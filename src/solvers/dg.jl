@@ -618,7 +618,7 @@ end
 Call function `func` for each DG node and integrate the result over the computational domain.
 
 The function `func` is called as `func(i, j, element_id, dg, q...)` for each
-volume node `(i, j)` and each element `element_id`. Additional positional
+volume node `(i, j)` and each `element_id`. Additional positional
 arguments `q...` are passed along as well. If `normalize` is true, the result
 is divided by the total volume of the computational domain. If `func` is
 omitted, it defaults to `identity`.
@@ -654,7 +654,7 @@ integrate(dg::Dg, q; normalize=true) = integrate(identity, dg, q; normalize=norm
 Call function `func` for each DG node and integrate the result over the computational domain.
 
 The function `func` is called as `func(q_local)` for each volume node `(i, j)`
-and each element `element_id`, where `q_local` is an `SVector`ized copy of
+and each `element_id`, where `q_local` is an `SVector`ized copy of
 `q[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
 total volume of the computational domain. If `func` is omitted, it defaults to
 `identity`.
