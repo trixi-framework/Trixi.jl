@@ -648,25 +648,25 @@ integrate(dg::Dg, args...; normalize=true) = integrate(identity, dg, args...; no
 
 
 """
-    integrate(func, q, dg::Dg; normalize=true)
-    integrate(q, dg::Dg; normalize=true)
+    integrate(func, u, dg::Dg; normalize=true)
+    integrate(u, dg::Dg; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
-The function `func` is called as `func(q_local)` for each volume node `(i, j)`
-and each `element_id`, where `q_local` is an `SVector`ized copy of
-`q[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
+The function `func` is called as `func(u_local)` for each volume node `(i, j)`
+and each `element_id`, where `u_local` is an `SVector`ized copy of
+`u[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
 total volume of the computational domain. If `func` is omitted, it defaults to
 `identity`.
 """
-function integrate(func, q, dg::Dg; normalize=true)
-  func_wrapped = function(i, j, element_id, dg, q)
-    q_local = SVector(ntuple(v -> q[v, i, j, element_id], size(q, 1)))
+function integrate(func, u, dg::Dg; normalize=true)
+  func_wrapped = function(i, j, element_id, dg, u)
+    q_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
     return func(q_local)
   end
-  return integrate(func_wrapped, dg, q; normalize=normalize)
+  return integrate(func_wrapped, dg, u; normalize=normalize)
 end
-integrate(q, dg::Dg; normalize=true) = integrate(identity, q, dg; normalize=normalize)
+integrate(u, dg::Dg; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
 
 # Calculate L2/Linf error norms based on "exact solution"
