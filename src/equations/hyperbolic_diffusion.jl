@@ -371,11 +371,11 @@ end
 
 
 # Calculate entropy for a conservative state `cons` (here: same as total energy)
-@inline entropy(cons, equation::HyperbolicDiffusionEquations) = total_energy(cons, equation)
+@inline entropy(cons, equation::HyperbolicDiffusionEquations) = energy_total(cons, equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline function total_energy(cons, ::HyperbolicDiffusionEquations)
+@inline function energy_total(cons, ::HyperbolicDiffusionEquations)
   # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
   return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
 end

@@ -173,5 +173,5 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline total_energy(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
-@inline total_energy(cons, ::LinearScalarAdvectionEquation) = total_energy(cons[1], equation)
+@inline energy_total(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
+@inline energy_total(cons, ::LinearScalarAdvectionEquation) = energy_total(cons[1], equation)

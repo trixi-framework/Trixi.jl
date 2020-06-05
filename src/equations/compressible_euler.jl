@@ -887,16 +887,16 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline total_energy(cons, ::CompressibleEulerEquations) = cons[4]
+@inline energy_total(cons, ::CompressibleEulerEquations) = cons[4]
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function kinetic_energy(cons, equation::CompressibleEulerEquations)
+@inline function energy_kinetic(cons, equation::CompressibleEulerEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function internal_energy(cons, equation::CompressibleEulerEquations)
-  return total_energy(cons, equation) - kinetic_energy(cons, equation)
+@inline function energy_internal(cons, equation::CompressibleEulerEquations)
+  return energy_total(cons, equation) - energy_kinetic(cons, equation)
 end

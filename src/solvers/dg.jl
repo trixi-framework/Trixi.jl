@@ -893,12 +893,12 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
 
   # Total energy
-  if :total_energy in dg.analysis_quantities
+  if :energy_total in dg.analysis_quantities
     e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return total_energy(cons, equations(dg))
+      return energy_total(cons, equations(dg))
     end
     print(" ∑e_total:    ")
     @printf("  % 10.8e", e_total)
@@ -907,12 +907,12 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
 
   # Kinetic energy
-  if :kinetic_energy in dg.analysis_quantities
+  if :energy_kinetic in dg.analysis_quantities
     e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return kinetic_energy(cons, equations(dg))
+      return energy_kinetic(cons, equations(dg))
     end
     print(" ∑e_kinetic:  ")
     @printf("  % 10.8e", e_kinetic)
@@ -921,12 +921,12 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
 
   # Internal energy
-  if :internal_energy in dg.analysis_quantities
+  if :energy_internal in dg.analysis_quantities
     e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return internal_energy(cons, equations(dg))
+      return energy_internal(cons, equations(dg))
     end
     print(" ∑e_internal  ")
     @printf("  % 10.8e", e_internal)
@@ -935,12 +935,12 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
 
   # Magnetic energy
-  if :magnetic_energy in dg.analysis_quantities
+  if :energy_magnetic in dg.analysis_quantities
     e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return magnetic_energy(cons, equations(dg))
+      return energy_magnetic(cons, equations(dg))
     end
     print(" ∑e_magnetic: ")
     @printf("  % 10.8e", e_magnetic)
@@ -1029,16 +1029,16 @@ function save_analysis_header(filename, quantities, equation)
     if :entropy in quantities
       @printf(f, "   %-14s", "entropy")
     end
-    if :total_energy in quantities
+    if :energy_total in quantities
       @printf(f, "   %-14s", "e_total")
     end
-    if :kinetic_energy in quantities
+    if :energy_kinetic in quantities
       @printf(f, "   %-14s", "e_kinetic")
     end
-    if :internal_energy in quantities
+    if :energy_internal in quantities
       @printf(f, "   %-14s", "e_internal")
     end
-    if :magnetic_energy in quantities
+    if :energy_magnetic in quantities
       @printf(f, "   %-14s", "e_magnetic")
     end
     if :l2_divb in quantities

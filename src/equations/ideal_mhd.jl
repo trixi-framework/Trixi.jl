@@ -837,27 +837,27 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline total_energy(cons, ::IdealMhdEquations) = cons[5]
+@inline energy_total(cons, ::IdealMhdEquations) = cons[5]
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function kinetic_energy(cons, equation::IdealMhdEquations)
+@inline function energy_kinetic(cons, equation::IdealMhdEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
 end
 
 
 # Calculate the magnetic energy for a conservative state `cons'.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
-@inline function magnetic_energy(cons, ::IdealMhdEquations)
+@inline function energy_magnetic(cons, ::IdealMhdEquations)
   return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function internal_energy(cons, equation::IdealMhdEquations)
-  return (total_energy(cons, equation)
-          - kinetic_energy(cons, equation)
-          - magnetic_energy(cons, equation)
+@inline function energy_internal(cons, equation::IdealMhdEquations)
+  return (energy_total(cons, equation)
+          - energy_kinetic(cons, equation)
+          - energy_magnetic(cons, equation)
           - cons[9]^2 / 2)
 end
 
