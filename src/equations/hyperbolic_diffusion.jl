@@ -375,7 +375,7 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline function energy_total(cons, ::HyperbolicDiffusionEquations)
+@inline function energy_total(cons, equation::HyperbolicDiffusionEquations)
   # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
   return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
 end
