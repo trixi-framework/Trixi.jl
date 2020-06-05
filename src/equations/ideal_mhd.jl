@@ -840,3 +840,19 @@ end
 @inline function kinetic_energy(cons, equation::IdealMhdEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
 end
+
+# Calculate the magnetic energy for a conservative state `cons'
+@inline function magnetic_energy(cons, equation::IdealMhdEquations)
+  return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+end
+
+
+# Calculate the magnetic pressure for a conservative state `cons'
+#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
+@inline mangetic_pressure(cons, equation::IdealMhdEquations) = magnetic_energy(cons, equation)
+
+
+# Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+@inline function cross_helicity(cons, equation::IdealMhdEquations)
+  return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
+end
