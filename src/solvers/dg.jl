@@ -934,6 +934,20 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
+  # Magnetic energy
+  if :magnetic_energy in dg.analysis_quantities
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return magnetic_energy(cons, equations(dg))
+    end
+    print(" ∑e_magnetic: ")
+    @printf("  % 10.8e", e_magnetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    println()
+  end
+
   # Solenoidal condition ∇ ⋅ B = 0
   if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
@@ -950,20 +964,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     print(" Linf ∇ ⋅B:   ")
     @printf("  % 10.8e", linf_divb)
     dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
-    println()
-  end
-
-  # Magnetic energy
-  if :magnetic_energy in dg.analysis_quantities
-    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
-      return magnetic_energy(cons, equations(dg))
-    end
-    print(" ∑e_magnetic: ")
-    @printf("  % 10.8e", e_magnetic)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
     println()
   end
 
@@ -1038,14 +1038,14 @@ function save_analysis_header(filename, quantities, equation)
     if :internal_energy in quantities
       @printf(f, "   %-14s", "e_internal")
     end
+    if :magnetic_energy in quantities
+      @printf(f, "   %-14s", "e_magnetic")
+    end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")
     end
     if :linf_divb in quantities
       @printf(f, "   %-14s", "linf_divb")
-    end
-    if :magnetic_energy in quantities
-      @printf(f, "   %-14s", "e_magnetic")
     end
     if :cross_helicity in quantities
       @printf(f, "   %-14s", "cross_helicity")
