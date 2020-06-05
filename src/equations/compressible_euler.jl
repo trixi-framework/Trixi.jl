@@ -890,3 +890,9 @@ end
 @inline function kinetic_energy(cons, equation::CompressibleEulerEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
 end
+
+
+# Calculate internal energy for a conservative state `cons`
+@inline function internal_energy(cons, equation::CompressibleEulerEquations)
+  return cons[4] - kinetic_energy(cons, equation)
+end

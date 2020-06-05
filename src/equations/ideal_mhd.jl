@@ -849,6 +849,13 @@ end
 end
 
 
+# Calculate internal energy for a conservative state `cons`
+@inline function internal_energy(cons, equation::CompressibleEulerEquations)
+  # e_internal = e_total - e_kinetic - e_magnetic - e_psi
+  return cons[5] - kinetic_energy(cons, equation) - magnetic_energy(cons, equation) - cons[9]^2 / 2
+end
+
+
 # Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
 @inline function cross_helicity(cons, ::IdealMhdEquations)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]

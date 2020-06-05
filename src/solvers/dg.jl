@@ -894,15 +894,29 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
 
   # Kinetic energy
   if :kinetic_energy in dg.analysis_quantities
-    ekin = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+    e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
       return kinetic_energy(cons, equations(dg))
     end
-    print(" ∑e_kin:      ")
-    @printf("  % 10.8e", ekin)
-    dg.save_analysis && @printf(f, "  % 10.8e", ekin)
+    print(" ∑e_kinetic:  ")
+    @printf("  % 10.8e", e_kinetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
+    println()
+  end
+
+  # Internal energy
+  if :internal_energy in dg.analysis_quantities
+    e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return internal_energy(cons, equations(dg))
+    end
+    print(" ∑e_internal  ")
+    @printf("  % 10.8e", e_internal)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
     println()
   end
 
@@ -927,15 +941,15 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
 
   # Magnetic energy
   if :magnetic_energy in dg.analysis_quantities
-    emag = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
       return magnetic_energy(cons, equations(dg))
     end
-    print(" ∑e_mag:      ")
-    @printf("  % 10.8e", emag)
-    dg.save_analysis && @printf(f, "  % 10.8e", emag)
+    print(" ∑e_magnetic: ")
+    @printf("  % 10.8e", e_magnetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
     println()
   end
 
@@ -1003,6 +1017,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :kinetic_energy in quantities
       @printf(f, "   %-14s", "e_kinetic")
+    end
+    if :internal_energy in quantities
+      @printf(f, "   %-14s", "e_internal")
     end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")
