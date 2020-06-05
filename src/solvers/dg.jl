@@ -814,7 +814,8 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
 
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if any(q in dg.analysis_quantities for q in (:l2_error, :linf_error, :conservation_error))
+  if any(q in dg.analysis_quantities for q in
+         (:l2_error, :linf_error, :conservation_error, :residual))
     print(" Variable:    ")
     for v in 1:nvariables(equation)
       @printf("   %-14s", varnames_cons(equation)[v])
@@ -865,6 +866,18 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       err = abs(state_integrals[v] - dg.initial_state_integrals[v])
       @printf("  % 10.8e", err)
       dg.save_analysis && @printf(f, "  % 10.8e", err)
+    end
+    println()
+  end
+
+  # Residual
+  if :residual in dg.analysis_quantities
+    print(" max(|Uₜ|):   ")
+    for v in 1:nvariables(equation)
+      # Calculate maximum absolute value of Uₜ
+      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
+      @printf("  % 10.8e", res)
+      dg.save_analysis && @printf(f, "  % 10.8e", res)
     end
     println()
   end
@@ -1021,6 +1034,11 @@ function save_analysis_header(filename, quantities, equation)
     if :conservation_error in quantities
       for v in varnames_cons(equation)
         @printf(f, "   %-14s", "cons_" * v)
+      end
+    end
+    if :residual in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "res_" * v)
       end
     end
     if :dsdu_ut in quantities
