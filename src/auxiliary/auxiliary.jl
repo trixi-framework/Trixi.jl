@@ -197,6 +197,21 @@ get_name(::Val{x}) where x = string(x)
 
 
 
+"""
+    Tee
+
+Struct that holds multiple `IO` instances to allow printing to several streams
+at once, mimicking the functionality of the Unix tool `tee`.
+
+# Examples
+```jldoctest
+julia> tee = Tee([stdout, stdout]);
+
+julia> println(tee, "wololo")
+wololo
+wololo
+```
+"""
 struct Tee{Ios <: NTuple{N,IO} where N} <: IO
   ios::Ios
 end
