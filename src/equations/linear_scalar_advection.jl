@@ -159,7 +159,7 @@ function cons2prim(equation::LinearScalarAdvectionEquation, cons::Array{Float64,
   return cons
 end
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy variables
 function cons2entropy(equation::LinearScalarAdvectionEquation,
                       cons::Array{Float64, 4}, n_nodes::Int,
                       n_elements::Int)
@@ -168,5 +168,5 @@ end
 
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(cons::Real, ::LinearScalarAdvectionEquation) = cons
+@inline entropy(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
 @inline entropy(cons, equation::LinearScalarAdvectionEquation) = entropy(cons[1], equation)
