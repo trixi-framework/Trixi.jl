@@ -810,6 +810,9 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     @printf(f, "% 8d", step)
     @printf(f, "  %10.8e", time)
     @printf(f, "  %10.8e", dt)
+    tee = Tee((stdout, f))
+  else
+    tee = Tee((stdout,))
   end
 
   # Calculate and print derived quantities (error norms, entropy etc.)
@@ -834,8 +837,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :l2_error in dg.analysis_quantities
     print(" L2 error:    ")
     for v in 1:nvariables(equation)
-      @printf("  % 10.8e", l2_error[v])
-      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+      @printf(tee, "  % 10.8e", l2_error[v])
     end
     println()
   end
@@ -844,8 +846,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :linf_error in dg.analysis_quantities
     print(" Linf error:  ")
     for v in 1:nvariables(equation)
-      @printf("  % 10.8e", linf_error[v])
-      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+      @printf(tee, "  % 10.8e", linf_error[v])
     end
     println()
   end
@@ -864,8 +865,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     print(" |∑U - ∑U₀|:  ")
     for v in 1:nvariables(equation)
       err = abs(state_integrals[v] - dg.initial_state_integrals[v])
-      @printf("  % 10.8e", err)
-      dg.save_analysis && @printf(f, "  % 10.8e", err)
+      @printf(tee, "  % 10.8e", err)
     end
     println()
   end
@@ -876,8 +876,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     for v in 1:nvariables(equation)
       # Calculate maximum absolute value of Uₜ
       @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
-      @printf("  % 10.8e", res)
-      dg.save_analysis && @printf(f, "  % 10.8e", res)
+      @printf(tee, "  % 10.8e", res)
     end
     println()
   end
@@ -886,8 +885,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :dsdu_ut in dg.analysis_quantities
     duds_ut = calc_entropy_timederivative(dg, time)
     print(" ∑∂S/∂U ⋅ Uₜ: ")
-    @printf("  % 10.8e", duds_ut)
-    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
+    @printf(tee, "  % 10.8e", duds_ut)
     println()
   end
 
@@ -900,8 +898,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return entropy(cons, equations(dg))
     end
     print(" ∑S:          ")
-    @printf("  % 10.8e", s)
-    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    @printf(tee, "  % 10.8e", s)
     println()
   end
 
@@ -914,8 +911,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return energy_total(cons, equations(dg))
     end
     print(" ∑e_total:    ")
-    @printf("  % 10.8e", e_total)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_total)
+    @printf(tee, "  % 10.8e", e_total)
     println()
   end
 
@@ -928,8 +924,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return energy_kinetic(cons, equations(dg))
     end
     print(" ∑e_kinetic:  ")
-    @printf("  % 10.8e", e_kinetic)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
+    @printf(tee, "  % 10.8e", e_kinetic)
     println()
   end
 
@@ -942,8 +937,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return energy_internal(cons, equations(dg))
     end
     print(" ∑e_internal  ")
-    @printf("  % 10.8e", e_internal)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
+    @printf(tee, "  % 10.8e", e_internal)
     println()
   end
 
@@ -956,8 +950,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return energy_magnetic(cons, equations(dg))
     end
     print(" ∑e_magnetic: ")
-    @printf("  % 10.8e", e_magnetic)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    @printf(tee, "  % 10.8e", e_magnetic)
     println()
   end
 
@@ -968,15 +961,13 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # L2 norm of ∇ ⋅ B
   if :l2_divb in dg.analysis_quantities
     print(" L2 ∇ ⋅B:     ")
-    @printf("  % 10.8e", l2_divb)
-    dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
+    @printf(tee, "  % 10.8e", l2_divb)
     println()
   end
   # Linf norm of ∇ ⋅ B
   if :linf_divb in dg.analysis_quantities
     print(" Linf ∇ ⋅B:   ")
-    @printf("  % 10.8e", linf_divb)
-    dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+    @printf(tee, "  % 10.8e", linf_divb)
     println()
   end
 
@@ -989,8 +980,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       return cross_helicity(cons, equations(dg))
     end
     print(" ∑H_c:        ")
-    @printf("  % 10.8e", h_c)
-    dg.save_analysis && @printf(f, "  % 10.8e", h_c)
+    @printf(tee, "  % 10.8e", h_c)
     println()
   end
 

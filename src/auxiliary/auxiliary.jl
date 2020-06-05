@@ -194,3 +194,37 @@ julia> Trixi.get_name(Val(:test))
 """
 get_name(x) = string(x)
 get_name(::Val{x}) where x = string(x)
+
+
+
+struct Tee{Ios <: NTuple{N,IO} where N} <: IO
+  ios::Ios
+end
+
+function Base.unsafe_write(tee::Tee, p::Ptr{UInt8}, n::UInt)
+  written = 0
+  for (i,io) in enumerate(tee.ios)
+    w = unsafe_write(io, p, n)
+    if i == 1
+      written = w
+    end
+    if w != written
+      @warn("Possible error")
+    end
+  end
+  written
+end
+
+function Base.write(tee::Tee, n::UInt8)
+  written = 0
+  for (i,io) in enumerate(tee.ios)
+    w = write(io, n)
+    if i == 1
+      written = w
+    end
+    if w != written
+      @warn("Possible error")
+    end
+  end
+  written
+end
