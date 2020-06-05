@@ -5,6 +5,8 @@ The following lists a few coding conventions for Trixi:
   * Functions, variables with lowercase `snake_case`.
   * Indentation with 2 spaces (*never* tabs!), line continuations indented with 4 spaces.
   * Maximum line length (strictly): **100**.
+  * Functions that mutate their *input* are named with a trailing `!`.
+  * Functions order their parameters [similar to Julia Base](https://docs.julialang.org/en/v1/manual/style-guide/#Write-functions-with-argument-ordering-similar-to-Julia-Base-1).
   * Prefer `for i in ...` to `for i = ...` for better semantic clarity and greater flexibility.
   * Executable code should only use ASCII characters.
   * Docstrings and comments can and should use Unicode characters where it helps understanding.
