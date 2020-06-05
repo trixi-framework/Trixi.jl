@@ -886,6 +886,10 @@ end
 @inline entropy(cons, equation::CompressibleEulerEquations) = entropy_math(cons, equation)
 
 
+# Calculate total energy for a conservative state `cons`
+@inline total_energy(cons, ::CompressibleEulerEquations) = cons[4]
+
+
 # Calculate kinetic energy for a conservative state `cons`
 @inline function kinetic_energy(cons, equation::CompressibleEulerEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
@@ -894,5 +898,5 @@ end
 
 # Calculate internal energy for a conservative state `cons`
 @inline function internal_energy(cons, equation::CompressibleEulerEquations)
-  return cons[4] - kinetic_energy(cons, equation)
+  return total_energy(cons, equation) - kinetic_energy(cons, equation)
 end

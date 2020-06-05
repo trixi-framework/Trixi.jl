@@ -170,3 +170,8 @@ end
 # Calculate entropy for a conservative state `cons`
 @inline entropy(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
 @inline entropy(cons, equation::LinearScalarAdvectionEquation) = entropy(cons[1], equation)
+
+
+# Calculate total energy for a conservative state `cons`
+@inline total_energy(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
+@inline total_energy(cons, ::LinearScalarAdvectionEquation) = total_energy(cons[1], equation)

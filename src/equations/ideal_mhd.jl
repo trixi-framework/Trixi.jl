@@ -836,6 +836,10 @@ end
 @inline entropy(cons, equation::IdealMhdEquations) = entropy_math(cons, equation)
 
 
+# Calculate total energy for a conservative state `cons`
+@inline total_energy(cons, ::IdealMhdEquations) = cons[5]
+
+
 # Calculate kinetic energy for a conservative state `cons`
 @inline function kinetic_energy(cons, equation::IdealMhdEquations)
   return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
@@ -850,9 +854,11 @@ end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function internal_energy(cons, equation::CompressibleEulerEquations)
-  # e_internal = e_total - e_kinetic - e_magnetic - e_psi
-  return cons[5] - kinetic_energy(cons, equation) - magnetic_energy(cons, equation) - cons[9]^2 / 2
+@inline function internal_energy(cons, equation::IdealMhdEquations)
+  return (total_energy(cons, equation)
+          - kinetic_energy(cons, equation)
+          - magnetic_energy(cons, equation)
+          - cons[9]^2 / 2)
 end
 
 

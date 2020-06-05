@@ -892,6 +892,20 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
+  # Total energy
+  if :total_energy in dg.analysis_quantities
+    e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return total_energy(cons, equations(dg))
+    end
+    print(" ∑e_total:    ")
+    @printf("  % 10.8e", e_total)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_total)
+    println()
+  end
+
   # Kinetic energy
   if :kinetic_energy in dg.analysis_quantities
     e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
@@ -1014,6 +1028,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :entropy in quantities
       @printf(f, "   %-14s", "entropy")
+    end
+    if :total_energy in quantities
+      @printf(f, "   %-14s", "e_total")
     end
     if :kinetic_energy in quantities
       @printf(f, "   %-14s", "e_kinetic")
