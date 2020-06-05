@@ -878,6 +878,34 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
+  # Entropy
+  if :entropy in dg.analysis_quantities
+    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return entropy(cons, equations(dg))
+    end
+    print(" ∑S:          ")
+    @printf("  % 10.8e", s)
+    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    println()
+  end
+
+  # Kinetic energy
+  if :kinetic_energy in dg.analysis_quantities
+    ekin = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return kinetic_energy(cons, equations(dg))
+    end
+    print(" ∑e_kin:      ")
+    @printf("  % 10.8e", ekin)
+    dg.save_analysis && @printf(f, "  % 10.8e", ekin)
+    println()
+  end
+
   # Solenoidal condition ∇ ⋅ B = 0
   if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
@@ -897,31 +925,31 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
-  # Kinetic energy
-  if :kinetic_energy in dg.analysis_quantities
-    ekin = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+  # Magnetic energy
+  if :magnetic_energy in dg.analysis_quantities
+    emag = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return kinetic_energy(cons, equations(dg))
+      return magnetic_energy(cons, equations(dg))
     end
-    print(" ∑eₖᵢₙ:       ")
-    @printf("  % 10.8e", ekin)
-    dg.save_analysis && @printf(f, "  % 10.8e", ekin)
+    print(" ∑e_mag:      ")
+    @printf("  % 10.8e", emag)
+    dg.save_analysis && @printf(f, "  % 10.8e", emag)
     println()
   end
 
-  # Entropy
-  if :entropy in dg.analysis_quantities
-    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+  # Cross helicity
+  if :cross_helicity in dg.analysis_quantities
+    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
 
-      return entropy(cons, equations(dg))
+      return cross_helicity(cons, equations(dg))
     end
-    print(" ∑S:          ")
-    @printf("  % 10.8e", s)
-    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    print(" ∑H_c:        ")
+    @printf("  % 10.8e", h_c)
+    dg.save_analysis && @printf(f, "  % 10.8e", h_c)
     println()
   end
 
@@ -970,17 +998,23 @@ function save_analysis_header(filename, quantities, equation)
     if :dsdu_ut in quantities
       @printf(f, "   %-14s", "dsdu_ut")
     end
+    if :entropy in quantities
+      @printf(f, "   %-14s", "entropy")
+    end
+    if :kinetic_energy in quantities
+      @printf(f, "   %-14s", "e_kinetic")
+    end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")
     end
     if :linf_divb in quantities
       @printf(f, "   %-14s", "linf_divb")
     end
-    if :kinetic_energy in quantities
-      @printf(f, "   %-14s", "kinetic_energy")
+    if :magnetic_energy in quantities
+      @printf(f, "   %-14s", "e_magnetic")
     end
-    if :entropy in quantities
-      @printf(f, "   %-14s", "entropy")
+    if :cross_helicity in quantities
+      @printf(f, "   %-14s", "cross_helicity")
     end
     println(f)
   end
