@@ -150,6 +150,12 @@ isdir(outdir) && rm(outdir, recursive=true)
             linf = [1.3440153848990444, 0.6695453040530135, 0.8883866154398539, 0.0, 2.9725753256238696, 0.7228314117312579, 1.0384211822702207, 0.0, 0.14362546843006319],
             t_end = 0.09)
   end
+  @testset "../examples/parameters_ec_mortar.toml with shock_capturing" begin
+    test_trixi_run("../examples/parameters_ec_mortar.toml",
+            l2   = [0.04816136246215661, 0.03713041026830962, 0.03713130328181323, 0.1777051166244772],
+            linf = [0.3118606868100966, 0.34614370128998007, 0.3460122144359348, 1.1085840270633454],
+            volume_integral_type = "shock_capturing")
+  end
   @testset "../examples/parameters.toml with restart and t_end=2" begin
     Trixi.run("../examples/parameters.toml")
     test_trixi_run("../examples/parameters.toml",
