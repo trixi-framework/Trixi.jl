@@ -370,13 +370,9 @@ function cons2entropy(equation::HyperbolicDiffusionEquations,
   return entropy
 end
 
-# Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::HyperbolicDiffusionEquations)
-  # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
-  E = 1/2 * (cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
-
-  return E
-end
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(cons, ::HyperbolicDiffusionEquations) = entropy_math(cons, equation)
+@inline entropy(cons, equation::HyperbolicDiffusionEquations)
+  # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
+  return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
+end
