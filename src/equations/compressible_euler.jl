@@ -884,3 +884,9 @@ end
 
 # Default entropy is the mathematical entropy
 @inline entropy(cons, equation::CompressibleEulerEquations) = entropy_math(cons, equation)
+
+
+# Calculate kinetic energy for a conservative state `cons`
+@inline function kinetic_energy(cons, equation::CompressibleEulerEquations)
+  return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
+end

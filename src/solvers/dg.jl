@@ -899,8 +899,11 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
 
   # Kinetic energy
   if :kinetic_energy in dg.analysis_quantities
-    ekin = integrate(dg.elements.u, dg) do u
-      0.5 * (u[2]^2 + u[3]^2)/u[1]
+    ekin = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+
+      return kinetic_energy(cons, equations(dg))
     end
     print(" ∑eₖᵢₙ:       ")
     @printf("  % 10.8e", ekin)

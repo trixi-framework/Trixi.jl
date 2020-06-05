@@ -834,3 +834,9 @@ end
 
 # Default entropy is the mathematical entropy
 @inline entropy(cons, equation::IdealMhdEquations) = entropy_math(cons, equation)
+
+
+# Calculate kinetic energy for a conservative state `cons`
+@inline function kinetic_energy(cons, equation::IdealMhdEquations)
+  return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
+end
