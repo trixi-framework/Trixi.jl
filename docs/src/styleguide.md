@@ -12,6 +12,10 @@ The following lists a few coding conventions for Trixi:
   * Docstrings and comments can and should use Unicode characters where it helps understanding.
   * Multiline expressions should be explicitly grouped by parentheses and not
     rely on Julia's implicit line continuation syntax.
+  * When naming multiple functions of a single or similar category, prefer to put the
+    *general classification* first and the *specialization* second. Example: Use `flux_central`
+    instead of `central_flux`. This helps when searching for available functions on the REPL
+    (e.g., when trying to find all flux functions).
 
 Based on that, and personal experience, a formatting tool with a few helpful
 options is included in `utils/julia-format.jl`. Note, however, that this tool is
