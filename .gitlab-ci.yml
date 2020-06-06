@@ -13,6 +13,9 @@ test:
     - julia --color=yes --project=. -e "import Pkg; Pkg.test(; coverage = true)"
     - julia --color=yes --project=test/coverage -e 'import Pkg; Pkg.instantiate()'
     - julia --color=yes --project=test/coverage test/coverage/coverage.jl
+  artifacts:
+    paths:
+      - coverage_report
   rules:
     - if: $CI_COMMIT_BRANCH == 'master'   # Execute jobs when a new commit is pushed to master branch
     - if: $CI_MERGE_REQUEST_ID            # Execute jobs in merge request context
@@ -26,7 +29,7 @@ pages:
   script:
     - julia --color=yes --project=docs/ -e 'import Pkg; Pkg.instantiate()'
     - julia --color=yes --project=docs/ docs/make.jl
-    - mv docs/build public # move to the directory picked up by Gitlab Pages
+    - mv docs/build public # Move to the directory picked up by Gitlab Pages
   artifacts:
     paths:
       - public
