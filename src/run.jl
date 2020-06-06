@@ -31,7 +31,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   reset_timer!(timer())
 
   # Read command line or keyword arguments and parse parameters file
-  init_parameters(parameters_file, verbose=verbose, args=args,
+  init_parameters(parameters_file; verbose=verbose, args=args,
       refinement_level_increment=refinement_level_increment, parameters...)
 
   # Separate initialization and execution into two functions such that Julia can specialize
