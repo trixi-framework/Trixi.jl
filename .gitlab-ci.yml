@@ -26,7 +26,8 @@ pages:
   script:
     - julia --color=yes --project=docs/ -e 'import Pkg; Pkg.instantiate()'
     - julia --color=yes --project=docs/ docs/make.jl
-    - mv docs/build public # move to the directory picked up by Gitlab Pages
+    - mv docs/build public # Move to the directory picked up by Gitlab Pages
+    - mv coverage_report public/ # Add coverage report
   artifacts:
     paths:
       - public
