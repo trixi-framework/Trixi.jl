@@ -31,19 +31,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
   reset_timer!(timer())
 
   # Read command line or keyword arguments and parse parameters file
-  read_parameters(parameters_file, verbose=verbose, args=args)
-
-  # Override specified parameters
-  for (parameter, value) in parameters
-    setparameter(string(parameter), value)
-  end
-
-  # Start simulation with an increased initial refinement level if specified
-  # for convergence analysis
-  if refinement_level_increment != 0
-    setparameter("initial_refinement_level",
-      parameter("initial_refinement_level") + refinement_level_increment)
-  end
+  init_parameters(parameters_file, verbose=verbose, args=args,
+      refinement_level_increment=refinement_level_increment, parameters...)
 
   # Separate initialization and execution into two functions such that Julia can specialize
   # the code in `run_simulation` for the actual type of `solver` and `mesh`
@@ -52,7 +41,7 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 end
 
 
-function read_parameters(parameters_file=nothing; verbose=false, args=nothing)
+function init_parameters(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
   # Read command line or keyword arguments
   @timeit timer() "parse command line" if !isnothing(args)
     # If args are given explicitly, parse command line arguments
@@ -72,6 +61,18 @@ function read_parameters(parameters_file=nothing; verbose=false, args=nothing)
 
   # Parse parameters file
   @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+
+  # Override specified parameters
+  for (parameter, value) in parameters
+    setparameter(string(parameter), value)
+  end
+
+  # Start simulation with an increased initial refinement level if specified
+  # for convergence analysis
+  if refinement_level_increment != 0
+    setparameter("initial_refinement_level",
+      parameter("initial_refinement_level") + refinement_level_increment)
+  end
 end
 
 
