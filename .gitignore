@@ -9,5 +9,8 @@
 *.ogv
 out/
 docs/build
+docs/Manifest.toml
+test/coverage/Manifest.toml
 public/
+coverage_report/
 src/**/*.jl.*.cov
