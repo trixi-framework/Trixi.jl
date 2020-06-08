@@ -620,6 +620,19 @@ The function `func` is called as `func(i, j, element_id, dg, args...)` for each
 volume node `(i, j)` and each `element_id`. Additional positional
 arguments `args...` are passed along as well. If `normalize` is true, the result
 is divided by the total volume of the computational domain.
+
+# Examples
+Calculate the integral of the time derivative of the entropy, i.e.,
+∫(∂S/∂t)dΩ = ∫(∂S/∂u ⋅ ∂u/∂t)dΩ:
+```julia
+# Compute entropy variables
+entropy_vars = cons2entropy(...)
+
+# Calculate integral of entropy time derivative
+dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, entropy_vars, u_t
+  sum(entropy_vars[:, i, j, element_id] .* u_t[:, i, j, element_id])
+end
+```
 """
 function integrate(func, dg::Dg, args...; normalize=true)
   # Initialize integral with zeros of the right shape
@@ -655,6 +668,12 @@ and each `element_id`, where `u_local` is an `SVector`ized copy of
 `u[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
 total volume of the computational domain. If `func` is omitted, it defaults to
 `identity`.
+
+# Examples
+Calculate the integral over all conservative variables:
+```julia
+state_integrals = integrate(dg.elements.u, dg)
+```
 """
 function integrate(func, u, dg::Dg; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
