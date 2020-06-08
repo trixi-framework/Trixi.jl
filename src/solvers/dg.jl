@@ -659,8 +659,8 @@ total volume of the computational domain. If `func` is omitted, it defaults to
 function integrate(func, u, dg::Dg; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     # TODO: Replace by `get_node_vars` once !59 is merged
-    q_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
-    return func(q_local)
+    u_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
+    return func(u_local)
   end
   return integrate(func_wrapped, dg, u; normalize=normalize)
 end
