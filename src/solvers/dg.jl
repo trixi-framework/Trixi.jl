@@ -613,15 +613,13 @@ end
 
 """
     integrate(func, dg::Dg, args...; normalize=true)
-    integrate(dg::Dg, args...; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
 The function `func` is called as `func(i, j, element_id, dg, args...)` for each
 volume node `(i, j)` and each `element_id`. Additional positional
 arguments `args...` are passed along as well. If `normalize` is true, the result
-is divided by the total volume of the computational domain. If `func` is
-omitted, it defaults to `identity`.
+is divided by the total volume of the computational domain.
 """
 function integrate(func, dg::Dg, args...; normalize=true)
   # Initialize integral with zeros of the right shape
@@ -644,7 +642,6 @@ function integrate(func, dg::Dg, args...; normalize=true)
 
   return integral
 end
-integrate(dg::Dg, args...; normalize=true) = integrate(identity, dg, args...; normalize=normalize)
 
 
 """
