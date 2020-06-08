@@ -786,6 +786,9 @@ DG and the mesh instance, respectively. `time`, `dt`, and `step` refer to the
 current simulation time, the last time step size, and the current time step
 count. The run time (in seconds) is given in `runtime_absolute`, while the
 performance index is specified in `runtime_relative`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`save_analysis_header`](@ref) when adding or changing quantities.
 """
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real)
@@ -887,7 +890,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     println()
   end
 
-  # Residual
+  # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
   if :residual in dg.analysis_quantities
     print(" max(|Uₜ|):   ")
     for v in 1:nvariables(equation)
@@ -914,7 +917,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return entropy(cons, equations(dg))
     end
     print(" ∑S:          ")
@@ -929,7 +931,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return energy_total(cons, equations(dg))
     end
     print(" ∑e_total:    ")
@@ -944,7 +945,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return energy_kinetic(cons, equations(dg))
     end
     print(" ∑e_kinetic:  ")
@@ -959,7 +959,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return energy_internal(cons, equations(dg))
     end
     print(" ∑e_internal  ")
@@ -974,7 +973,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return energy_magnetic(cons, equations(dg))
     end
     print(" ∑e_magnetic: ")
@@ -1008,7 +1006,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       # Extract pointwise state
       # TODO: Replace by `get_node_vars` once !59 is merged
       cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
-
       return cross_helicity(cons, equations(dg))
     end
     print(" ∑H_c:        ")
@@ -1038,6 +1035,9 @@ Truncate file `filename` and save a header with the names of the quantities
 `quantities` that will subsequently written to `filename` by
 [`analyze_solution`](@ref). Since some quantities are equation-specific, the
 system of equations instance is passed in `equation`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`analyze_solution`](@ref) when adding or changing quantities.
 """
 function save_analysis_header(filename, quantities, equation)
   open(filename, "w") do f
