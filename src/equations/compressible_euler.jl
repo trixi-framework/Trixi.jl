@@ -859,3 +859,44 @@ end
   entropy_flux = S*v[orientation]
   return entropy, entropy_flux
 end
+
+
+# Calculate thermodynamic entropy for a conservative state `cons`
+@inline function entropy_thermodynamic(cons, equation::CompressibleEulerEquations)
+  # Pressure
+  p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
+
+  # Thermodynamic entropy
+  s = log(p) - equation.gamma*log(cons[1])
+
+  return s
+end
+
+
+# Calculate mathematical entropy for a conservative state `cons`
+@inline function entropy_math(cons, equation::CompressibleEulerEquations)
+  # Mathematical entropy
+  S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+
+  return S
+end
+
+
+# Default entropy is the mathematical entropy
+@inline entropy(cons, equation::CompressibleEulerEquations) = entropy_math(cons, equation)
+
+
+# Calculate total energy for a conservative state `cons`
+@inline energy_total(cons, ::CompressibleEulerEquations) = cons[4]
+
+
+# Calculate kinetic energy for a conservative state `cons`
+@inline function energy_kinetic(cons, equation::CompressibleEulerEquations)
+  return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
+end
+
+
+# Calculate internal energy for a conservative state `cons`
+@inline function energy_internal(cons, equation::CompressibleEulerEquations)
+  return energy_total(cons, equation) - energy_kinetic(cons, equation)
+end
