@@ -23,6 +23,7 @@ N = 4
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 200
+extra_analysis_quantities = ["entropy", "energy_total"]
 
 #volume_integral_type = "split_form"
 

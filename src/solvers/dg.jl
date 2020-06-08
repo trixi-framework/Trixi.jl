@@ -55,6 +55,9 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   analysis_weights_volume::VectorNAnap1
   analysis_vandermonde::MatrixNAnap1Np1
   analysis_total_volume::Float64
+  analysis_quantities::Vector{Symbol}
+  save_analysis::Bool
+  analysis_filename::String
 
   shock_indicator_variable::Symbol
   shock_alpha_max::Float64
@@ -64,6 +67,8 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
+
+  initial_state_integrals::Vector{Float64}
 end
 
 
@@ -128,6 +133,31 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Store which quantities should be analyzed in `analyze_solution`
+  if parameter_exists("extra_analysis_quantities")
+    extra_analysis_quantities = Symbol.(parameter("extra_analysis_quantities"))
+  else
+    extra_analysis_quantities = Symbol[]
+  end
+  analysis_quantities = vcat(collect(Symbol.(default_analysis_quantities(equation))),
+                             extra_analysis_quantities)
+
+  # If analysis should be saved to file, create file with header
+  save_analysis = parameter("save_analysis", false)
+  if save_analysis
+    # Create output directory (if it does not exist)
+    output_directory = parameter("output_directory", "out")
+    mkpath(output_directory)
+
+    # Determine filename
+    analysis_filename = joinpath(output_directory, "analysis.dat")
+
+    # Open file and write header
+    save_analysis_header(analysis_filename, analysis_quantities, equation)
+  else
+    analysis_filename = ""
+  end
+
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
@@ -154,6 +184,9 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
+  # Store initial state integrals for conservation error calculation
+  initial_state_integrals = Vector{Float64}()
+
   # Create actual DG solver instance
   dg = Dg(
       equation,
@@ -174,9 +207,11 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
       SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
+      analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
-      element_variables)
+      element_variables,
+      initial_state_integrals)
 
   return dg
 end
@@ -576,6 +611,81 @@ function init_mortar_connectivity!(elements, mortars, mesh)
 end
 
 
+"""
+    integrate(func, dg::Dg, args...; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(i, j, element_id, dg, args...)` for each
+volume node `(i, j)` and each `element_id`. Additional positional
+arguments `args...` are passed along as well. If `normalize` is true, the result
+is divided by the total volume of the computational domain.
+
+# Examples
+Calculate the integral of the time derivative of the entropy, i.e.,
+∫(∂S/∂t)dΩ = ∫(∂S/∂u ⋅ ∂u/∂t)dΩ:
+```julia
+# Compute entropy variables
+entropy_vars = cons2entropy(...)
+
+# Calculate integral of entropy time derivative
+dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, entropy_vars, u_t
+  sum(entropy_vars[:, i, j, element_id] .* u_t[:, i, j, element_id])
+end
+```
+"""
+function integrate(func, dg::Dg, args...; normalize=true)
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(1, 1, 1, dg, args...))
+
+  # Use quadrature to numerically integrate over entire domain
+  for element_id in 1:dg.n_elements
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
+      end
+    end
+  end
+
+  # Normalize with total volume
+  if normalize
+    integral = integral/dg.analysis_total_volume
+  end
+
+  return integral
+end
+
+
+"""
+    integrate(func, u, dg::Dg; normalize=true)
+    integrate(u, dg::Dg; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(u_local)` for each volume node `(i, j)`
+and each `element_id`, where `u_local` is an `SVector`ized copy of
+`u[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
+total volume of the computational domain. If `func` is omitted, it defaults to
+`identity`.
+
+# Examples
+Calculate the integral over all conservative variables:
+```julia
+state_integrals = integrate(dg.elements.u, dg)
+```
+"""
+function integrate(func, u, dg::Dg; normalize=true)
+  func_wrapped = function(i, j, element_id, dg, u)
+    # TODO: Replace by `get_node_vars` once !59 is merged
+    u_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
+    return func(u_local)
+  end
+  return integrate(func_wrapped, dg, u; normalize=normalize)
+end
+integrate(u, dg::Dg; normalize=true) = integrate(identity, u, dg; normalize=normalize)
+
+
 # Calculate L2/Linf error norms based on "exact solution"
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
@@ -615,38 +725,30 @@ function calc_error_norms(dg::Dg, t::Float64)
   return l2_error, linf_error
 end
 
-# Calculate L2/Linf error norms based on "exact solution"
+
+# Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
-  n_nodes = nnodes(dg)
   # Compute entropy variables for all elements and nodes with current solution u
-  duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
+  dsdu = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
+
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
-  # Quadrature weights
-  weights = dg.weights
-  # Integrate over all elements to get the total semi-discrete entropy update
-  dsdu_ut = 0.0
-  for element_id = 1:dg.n_elements
-    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-         dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
-      end
-    end
+
+  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, element_id, dg, dsdu, u_t
+    sum(dsdu[:,i,j,element_id].*u_t[:,i,j,element_id])
   end
-  # Normalize with total volume
-  dsdu_ut = dsdu_ut/dg.analysis_total_volume
+
   return dsdu_ut
 end
+
 
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
+  @assert equations(dg) isa IdealMhdEquations "Only relevant for MHD"
+
   # Local copy of standard derivative matrix
   d = polynomial_derivative_matrix(dg.nodes)
   # Quadrature weights
@@ -660,8 +762,7 @@ function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
       for i in 1:nnodes(dg)
         divb   = 0.0
         for k in 1:nnodes(dg)
-          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
-                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id] + d[j,k]*dg.elements.u[7,i,k,element_id]
         end
         divb *= dg.elements.inverse_jacobian[element_id]
         linf_divb = max(linf_divb,abs(divb))
@@ -676,13 +777,22 @@ end
 
 
 
-# Calculate error norms and print information for user
+"""
+    analyze_solution(dg::Dg, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
+
+Calculate error norms and other analysis quantities to analyze the solution
+during a simulation, and return the L2 and Linf errors. `dg` and `mesh` are the
+DG and the mesh instance, respectively. `time`, `dt`, and `step` refer to the
+current simulation time, the last time step size, and the current time step
+count. The run time (in seconds) is given in `runtime_absolute`, while the
+performance index is specified in `runtime_relative`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`save_analysis_header`](@ref) when adding or changing quantities.
+"""
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
-
-  l2_error, linf_error = calc_error_norms(dg, time)
-  duds_ut = calc_entropy_timederivative(dg, time)
 
   # General information
   println()
@@ -714,42 +824,275 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
   println()
 
-  # Derived quantities (error norms, entropy etc.)
-  print(" Variable:    ")
-  for v in 1:nvariables(equation)
-    @printf("   %-14s", varnames_cons(equation)[v])
+  # Open file for appending and store time step and time information
+  if dg.save_analysis
+    f = open(dg.analysis_filename, "a")
+    @printf(f, "% 8d", step)
+    @printf(f, "  %10.8e", time)
+    @printf(f, "  %10.8e", dt)
   end
-  println()
-  print(" L2 error:    ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", l2_error[v])
-  end
-  println()
-  print(" Linf error:  ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", linf_error[v])
-  end
-  println()
-  print(" ∑dUdS*Ut:    ")
-  @printf("  % 10.8e", duds_ut)
 
-  if equation isa IdealMhdEquations
+  # Calculate and print derived quantities (error norms, entropy etc.)
+  # Variable names required for L2 error, Linf error, and conservation error
+  if any(q in dg.analysis_quantities for q in
+         (:l2_error, :linf_error, :conservation_error, :residual))
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_cons(equation)[v])
+    end
+    println()
+  end
+
+  # Calculate L2/Linf errors
+  if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
+    l2_error, linf_error = calc_error_norms(dg, time)
+  else
+    error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
+  end
+
+  # L2 error
+  if :l2_error in dg.analysis_quantities
+    print(" L2 error:    ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", l2_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+    end
+    println()
+  end
+
+  # Linf error
+  if :linf_error in dg.analysis_quantities
+    print(" Linf error:  ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", linf_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+    end
+    println()
+  end
+
+  # Conservation errror
+  if :conservation_error in dg.analysis_quantities
+    # Calculate state integrals
+    state_integrals = integrate(dg.elements.u, dg)
+
+    # Store initial state integrals at first invocation
+    if isempty(dg.initial_state_integrals)
+      dg.initial_state_integrals = zeros(nvariables(equation))
+      dg.initial_state_integrals .= state_integrals
+    end
+
+    print(" |∑U - ∑U₀|:  ")
+    for v in 1:nvariables(equation)
+      err = abs(state_integrals[v] - dg.initial_state_integrals[v])
+      @printf("  % 10.8e", err)
+      dg.save_analysis && @printf(f, "  % 10.8e", err)
+    end
+    println()
+  end
+
+  # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
+  if :residual in dg.analysis_quantities
+    print(" max(|Uₜ|):   ")
+    for v in 1:nvariables(equation)
+      # Calculate maximum absolute value of Uₜ
+      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
+      @printf("  % 10.8e", res)
+      dg.save_analysis && @printf(f, "  % 10.8e", res)
+    end
+    println()
+  end
+
+  # Entropy time derivative
+  if :dsdu_ut in dg.analysis_quantities
+    duds_ut = calc_entropy_timederivative(dg, time)
+    print(" ∑∂S/∂U ⋅ Uₜ: ")
+    @printf("  % 10.8e", duds_ut)
+    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
+    println()
+  end
+
+  # Entropy
+  if :entropy in dg.analysis_quantities
+    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return entropy(cons, equations(dg))
+    end
+    print(" ∑S:          ")
+    @printf("  % 10.8e", s)
+    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    println()
+  end
+
+  # Total energy
+  if :energy_total in dg.analysis_quantities
+    e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_total(cons, equations(dg))
+    end
+    print(" ∑e_total:    ")
+    @printf("  % 10.8e", e_total)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_total)
+    println()
+  end
+
+  # Kinetic energy
+  if :energy_kinetic in dg.analysis_quantities
+    e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_kinetic(cons, equations(dg))
+    end
+    print(" ∑e_kinetic:  ")
+    @printf("  % 10.8e", e_kinetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
+    println()
+  end
+
+  # Internal energy
+  if :energy_internal in dg.analysis_quantities
+    e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_internal(cons, equations(dg))
+    end
+    print(" ∑e_internal  ")
+    @printf("  % 10.8e", e_internal)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
+    println()
+  end
+
+  # Magnetic energy
+  if :energy_magnetic in dg.analysis_quantities
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_magnetic(cons, equations(dg))
+    end
+    print(" ∑e_magnetic: ")
+    @printf("  % 10.8e", e_magnetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    println()
+  end
+
+  # Solenoidal condition ∇ ⋅ B = 0
+  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+  end
+  # L2 norm of ∇ ⋅ B
+  if :l2_divb in dg.analysis_quantities
+    print(" L2 ∇ ⋅B:     ")
+    @printf("  % 10.8e", l2_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
     println()
-    print(" L2 ∇⋅B:    ")
-    @printf("    % 10.8e", l2_divb)
-    println()
-    print(" Linf ∇⋅B:    ")
+  end
+  # Linf norm of ∇ ⋅ B
+  if :linf_divb in dg.analysis_quantities
+    print(" Linf ∇ ⋅B:   ")
     @printf("  % 10.8e", linf_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+    println()
   end
 
-  println()
+  # Cross helicity
+  if :cross_helicity in dg.analysis_quantities
+    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return cross_helicity(cons, equations(dg))
+    end
+    print(" ∑H_c:        ")
+    @printf("  % 10.8e", h_c)
+    dg.save_analysis && @printf(f, "  % 10.8e", h_c)
+    println()
+  end
 
   println("-"^80)
   println()
 
+  # Add line break and close analysis file if it was opened
+  if dg.save_analysis
+    println(f)
+    close(f)
+  end
+
   # Return errors for EOC analysis
   return l2_error, linf_error
+end
+
+
+"""
+    save_analysis_header(filename, quantities, equation)
+
+Truncate file `filename` and save a header with the names of the quantities
+`quantities` that will subsequently written to `filename` by
+[`analyze_solution`](@ref). Since some quantities are equation-specific, the
+system of equations instance is passed in `equation`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`analyze_solution`](@ref) when adding or changing quantities.
+"""
+function save_analysis_header(filename, quantities, equation)
+  open(filename, "w") do f
+    @printf(f, "%-8s", "timestep")
+    @printf(f, "  %-14s", "time")
+    @printf(f, "  %-14s", "dt")
+    if :l2_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "linf_" * v)
+      end
+    end
+    if :conservation_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "cons_" * v)
+      end
+    end
+    if :residual in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "res_" * v)
+      end
+    end
+    if :dsdu_ut in quantities
+      @printf(f, "   %-14s", "dsdu_ut")
+    end
+    if :entropy in quantities
+      @printf(f, "   %-14s", "entropy")
+    end
+    if :energy_total in quantities
+      @printf(f, "   %-14s", "e_total")
+    end
+    if :energy_kinetic in quantities
+      @printf(f, "   %-14s", "e_kinetic")
+    end
+    if :energy_internal in quantities
+      @printf(f, "   %-14s", "e_internal")
+    end
+    if :energy_magnetic in quantities
+      @printf(f, "   %-14s", "e_magnetic")
+    end
+    if :l2_divb in quantities
+      @printf(f, "   %-14s", "l2_divb")
+    end
+    if :linf_divb in quantities
+      @printf(f, "   %-14s", "linf_divb")
+    end
+    if :cross_helicity in quantities
+      @printf(f, "   %-14s", "cross_helicity")
+    end
+    println(f)
+  end
 end
 
 

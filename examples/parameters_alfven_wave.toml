@@ -22,6 +22,8 @@ N = 3
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
+extra_analysis_quantities = ["entropy", "energy_total", "energy_kinetic", "energy_magnetic",
+                             "energy_internal", "cross_helicity"]
 
 volume_integral_type = "split_form"
 

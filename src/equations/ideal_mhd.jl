@@ -20,6 +20,8 @@ get_name(::IdealMhdEquations) = "IdealMhdEquations"
 have_nonconservative_terms(::IdealMhdEquations) = Val(true)
 varnames_cons(::IdealMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
 varnames_prim(::IdealMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+default_analysis_quantities(::IdealMhdEquations) = (:l2_error, :linf_error, :duds_dt,
+                                                    :l2_divb, :linf_divb)
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -805,4 +807,62 @@ end
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b2^2))
   end
   return c_f
+end
+
+
+# Calculate thermodynamic entropy for a conservative state `cons`
+@inline function entropy_thermodynamic(cons, equation::IdealMhdEquations)
+  # Pressure
+  p = (equation.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+                                      - 1/2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+                                      - 1/2 * cons[9]^2)
+
+  # Thermodynamic entropy
+  s = log(p) - equation.gamma*log(cons[1])
+
+  return s
+end
+
+
+# Calculate mathematical entropy for a conservative state `cons`
+@inline function entropy_math(cons, equation::IdealMhdEquations)
+  S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+
+  return S
+end
+
+
+# Default entropy is the mathematical entropy
+@inline entropy(cons, equation::IdealMhdEquations) = entropy_math(cons, equation)
+
+
+# Calculate total energy for a conservative state `cons`
+@inline energy_total(cons, ::IdealMhdEquations) = cons[5]
+
+
+# Calculate kinetic energy for a conservative state `cons`
+@inline function energy_kinetic(cons, equation::IdealMhdEquations)
+  return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
+end
+
+
+# Calculate the magnetic energy for a conservative state `cons'.
+#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
+@inline function energy_magnetic(cons, ::IdealMhdEquations)
+  return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+end
+
+
+# Calculate internal energy for a conservative state `cons`
+@inline function energy_internal(cons, equation::IdealMhdEquations)
+  return (energy_total(cons, equation)
+          - energy_kinetic(cons, equation)
+          - energy_magnetic(cons, equation)
+          - cons[9]^2 / 2)
+end
+
+
+# Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
+@inline function cross_helicity(cons, ::IdealMhdEquations)
+  return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end

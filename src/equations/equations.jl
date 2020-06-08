@@ -33,6 +33,7 @@ end
 
 
 have_nonconservative_terms(::AbstractEquation) = Val(false)
+default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu_ut)
 
 
 """

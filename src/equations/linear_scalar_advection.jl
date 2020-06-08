@@ -141,7 +141,7 @@ end
 
 function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
   a = equation.advectionvelocity[orientation]
-  0.5 * (a + abs(a)) * u_ll + (a - abs(a)) * u_rr
+  return 0.5 * ((a + abs(a)) * u_ll + (a - abs(a)) * u_rr)
 end
 
 
@@ -159,9 +159,19 @@ function cons2prim(equation::LinearScalarAdvectionEquation, cons::Array{Float64,
   return cons
 end
 
-# Convert conservative variables to entropy
+# Convert conservative variables to entropy variables
 function cons2entropy(equation::LinearScalarAdvectionEquation,
                       cons::Array{Float64, 4}, n_nodes::Int,
                       n_elements::Int)
   return cons
 end
+
+
+# Calculate entropy for a conservative state `cons`
+@inline entropy(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
+@inline entropy(cons, equation::LinearScalarAdvectionEquation) = entropy(cons[1], equation)
+
+
+# Calculate total energy for a conservative state `cons`
+@inline energy_total(cons::Real, ::LinearScalarAdvectionEquation) = cons^2 / 2
+@inline energy_total(cons, equation::LinearScalarAdvectionEquation) = energy_total(cons[1], equation)

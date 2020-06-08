@@ -1,4 +1,3 @@
-
 @doc raw"""
     HyperbolicDiffusionEquations
 
@@ -28,6 +27,7 @@ end
 get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusionEquations"
 varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
 varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
+default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_error, :residual)
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -367,4 +367,15 @@ function cons2entropy(equation::HyperbolicDiffusionEquations,
   @. entropy[3, :, :, :] = equation.Lr*equation.Lr*cons[3, :, :, :]
 
   return entropy
+end
+
+
+# Calculate entropy for a conservative state `cons` (here: same as total energy)
+@inline entropy(cons, equation::HyperbolicDiffusionEquations) = energy_total(cons, equation)
+
+
+# Calculate total energy for a conservative state `cons`
+@inline function energy_total(cons, equation::HyperbolicDiffusionEquations)
+  # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
+  return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
 end
