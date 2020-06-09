@@ -42,12 +42,18 @@ function timestep!(solver_euler, solver_gravity, t::Float64, dt::Float64, time_p
   # Store for convenience
   solver = solver_euler
 
+  # Update gravity in every time step
+  # FIXME: Hack to use different CFL number for the gravity solver
+  # gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve)
+  gravity_cfl = 0.435 # works for Williamson LSRK3 (≈95% of solve)
+  @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
+
   for stage = 1:5
-    # Update gravity
+    # Update gravity in every RK stage
     # FIXME: Hack to use different CFL number for the gravity solver
-#    gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve)
-    gravity_cfl = 0.435 # works for Williamson LSRK3 (≈95% of solve)
-    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
+   # gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve)
+   # gravity_cfl = 0.435 # works for Williamson LSRK3 (≈95% of solve)
+   # @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
     # Update stage time
     t_stage = t + dt * c[stage]
