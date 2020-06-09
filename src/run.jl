@@ -83,14 +83,11 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
 
   # Initialize system of equations
   print("Initializing system of equations... ")
-  equations_name = parameter("equations", valid=["LinearScalarAdvection", "CompressibleEuler", "IdealMhd",
-                                                 "HyperbolicDiffusion", "euler_gravity"])
+  equations_name = parameter("equations")
   if equations_name == "euler_gravity"
     globals[:euler_gravity] = true
-    equations_euler = make_equations("CompressibleEuler")
-    # FIXME: Hack to set that the Euler equations have no source
-    equations_euler.sources = "none"
-    equations_gravity = make_equations("HyperbolicDiffusion")
+    equations_euler = make_equations("CompressibleEulerEquations")
+    equations_gravity = make_equations("HyperbolicDiffusionEquations")
   else
     globals[:euler_gravity] = false
     equations = make_equations(equations_name)
@@ -102,6 +99,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   solver_name = parameter("solver", valid=["dg"])
   if globals[:euler_gravity]
     solver_euler = make_solver(solver_name, equations_euler, mesh)
+    # FIXME: Hack there is a fictitious source term in the Euler equations to trick it into
+    #        having no source term
+#    solver_euler.source_terms = "none"
     solver_gravity = make_solver(solver_name, equations_gravity, mesh)
   else
     solver = make_solver(solver_name, equations, mesh)
@@ -112,14 +112,14 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
   if globals[:euler_gravity]
-    if solver_euler.volume_integral_type == Val(:weak_form) && equations_euler.volume_flux != central_flux
+    if solver_euler.volume_integral_type == Val(:weak_form) && solver_euler.volume_flux != flux_central
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
-    if solver_gravity.volume_integral_type == Val(:weak_form) && equations_gravity.volume_flux != central_flux
+    if solver_gravity.volume_integral_type == Val(:weak_form) && solver_gravity.volume_flux != flux_central
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   else
-    if solver.volume_integral_type == Val(:weak_form) && equations.volume_flux != central_flux
+    if solver.volume_integral_type == Val(:weak_form) && solver.volume_flux != flux_central
       error("using the weak formulation with a volume flux other than 'central_flux' does not make sense")
     end
   end
@@ -186,22 +186,22 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
             | ----------------
             | working directory:  $(pwd())
             | parameters file:    $(args["parameters_file"])
-            | equations:          $equations_name
+            | equations:          $(equations_name)
             | | Euler:
             | | | #variables:     $(nvariables(equations_euler))
-            | | | variable names: $(join(equations_euler.varnames_cons, ", "))
-            | | | sources:        $(equations_euler.sources)
+            | | | variable names: $(join(varnames_cons(equations_euler), ", "))
+            | | | sources:        $sources
             | | Gravity:
             | | | #variables:     $(nvariables(equations_gravity))
-            | | | variable names: $(join(equations_gravity.varnames_cons, ", "))
-            | | | sources:        $(equations_gravity.sources)
+            | | | variable names: $(join(varnames_cons(equations_gravity), ", "))
+            | | | sources:        $sources
             | restart:            $(restart ? "yes" : "no")
             """
     if restart
       s *= "| | restart timestep: $step\n"
       s *= "| | restart time:     $time\n"
     else
-      s *= "| initial conditions: $initial_conditions\n"
+      s *= "| initial conditions: $(get_name(solver_euler.initial_conditions))\n"
       s *= "| t_start:            $t_start\n"
     end
     s *= """| t_end:              $t_end
@@ -221,13 +221,13 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
             | | N:                $N
             | | CFL:              $cfl
             | | Euler solver:
-            | | | volume integral:  $(strip_val(solver_euler.volume_integral_type))
-            | | | volume flux:      $(string(equations_euler.volume_flux))
-            | | | surface flux:     $(string(equations_euler.surface_flux))
+            | | | volume integral:  $(get_name(solver_euler.volume_integral_type))
+            | | | volume flux:      $(get_name(solver_euler.volume_flux))
+            | | | surface flux:     $(get_name(solver_euler.surface_flux))
             | | Gravity solver:
-            | | | volume integral:  $(strip_val(solver_gravity.volume_integral_type))
-            | | | volume flux:      $(string(equations_gravity.volume_flux))
-            | | | surface flux:     $(string(equations_gravity.surface_flux))
+            | | | volume integral:  $(get_name(solver_gravity.volume_integral_type))
+            | | | volume flux:      $(get_name(solver_gravity.volume_flux))
+            | | | surface flux:     $(get_name(solver_gravity.surface_flux))
             | | #elements:        $(solver_euler.n_elements)
             | | #surfaces:        $(solver_euler.n_surfaces)
             | | #boundaries:      $(solver_euler.n_boundaries)
@@ -249,9 +249,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
             | ----------------
             | working directory:  $(pwd())
             | parameters file:    $(args["parameters_file"])
-            | equations:          $equations_name
+            | equations:          $(get_name(equations))
             | | #variables:       $(nvariables(equations))
-            | | variable names:   $(join(equations.varnames_cons, ", "))
+            | | variable names:   $(join(varnames_cons(equations), ", "))
             | sources:            $sources
             | restart:            $(restart ? "yes" : "no")
             """
@@ -259,7 +259,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
       s *= "| | restart timestep: $step\n"
       s *= "| | restart time:     $time\n"
     else
-      s *= "| initial conditions: $initial_conditions\n"
+      s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
       s *= "| t_start:            $t_start\n"
     end
     s *= """| t_end:              $t_end
@@ -278,9 +278,9 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
             | | solver:           $solver_name
             | | N:                $N
             | | CFL:              $cfl
-            | | volume integral:  $(strip_val(solver.volume_integral_type))
-            | | volume flux:      $(string(equations.volume_flux))
-            | | surface flux:     $(string(equations.surface_flux))
+            | | volume integral:  $(get_name(solver.volume_integral_type))
+            | | volume flux:      $(get_name(solver.volume_flux))
+            | | surface flux:     $(get_name(solver.surface_flux))
             | | #elements:        $(solver.n_elements)
             | | #surfaces:        $(solver.n_surfaces)
             | | #boundaries:      $(solver.n_boundaries)
