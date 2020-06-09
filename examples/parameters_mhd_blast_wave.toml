@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhdEquations"
+equations = "IdealGlmMhdEquations"
 gamma = 1.4
 initial_conditions = "initial_conditions_mhd_blast"
 surface_flux = "flux_lax_friedrichs"

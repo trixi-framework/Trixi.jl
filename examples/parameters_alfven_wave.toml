@@ -1,6 +1,6 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhdEquations"
+equations = "IdealGlmMhdEquations"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_convergence_test"
 surface_flux = "flux_lax_friedrichs"
