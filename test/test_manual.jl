@@ -65,4 +65,59 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.interpolate_nodes(data_in, vdm, 1) == [3.0 4.0 5.0 6.0]
     end
   end
+
+  @testset "containers" begin
+    # Set up mock container
+    mutable struct MyContainer <: Trixi.AbstractContainer
+      capacity::Int
+      length::Int
+      dummy::Int
+    end
+    Trixi.invalidate!(c::MyContainer, first, last) = nothing
+    Trixi.raw_copy!(target::MyContainer, source::MyContainer, first, last, destination) = nothing
+    Trixi.move_connectivity!(c::MyContainer, first, last, destination) = nothing
+    Trixi.delete_connectivity!(c::MyContainer, first, last) = nothing
+    Trixi.reset_data_structures!(c::MyContainer) = nothing
+
+    @testset "size" begin
+      c = MyContainer(20, 5, 0)
+      @test size(c) == (5,)
+    end
+
+    @testset "resize!" begin
+      c = MyContainer(20, 8, 0)
+      @test length(resize!(c, 5)) == 5
+    end
+
+    @testset "copy!" begin
+      c1 = MyContainer(20, 5, 0)
+      c2 = MyContainer(20, 10, 0)
+      @test_nowarn Trixi.copy!(c1, c2, 1, 5, 1)
+    end
+
+    @testset "move!" begin
+      c = MyContainer(20, 5, 0)
+      @test_nowarn Trixi.move!(c, 1, 1)
+    end
+
+    @testset "swap!" begin
+      c = MyContainer(20, 5, 0)
+      @test_nowarn Trixi.swap!(c, 1, 2)
+    end
+
+    @testset "erase!" begin
+      c = MyContainer(20, 5, 0)
+      @test_nowarn Trixi.erase!(c, 1)
+    end
+
+    @testset "remove_fill!" begin
+      c = MyContainer(20, 5, 0)
+      @test_nowarn Trixi.remove_fill!(c, 1, 2)
+    end
+
+    @testset "reset!" begin
+      c = MyContainer(20, 5, 0)
+      @test_nowarn Trixi.reset!(c, 10)
+    end
+  end
 end
