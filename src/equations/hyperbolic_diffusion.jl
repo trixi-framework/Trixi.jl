@@ -1,3 +1,4 @@
+
 @doc raw"""
     HyperbolicDiffusionEquations
 
@@ -77,6 +78,19 @@ function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEq
   return @SVector [phi, p, q]
 end
 
+function initial_conditions_jeans_instability(equation::HyperbolicDiffusionEquations, x, t)
+  # gravity equation: -Δϕ = -4πGρ
+  # Constants taken from the FLASH manual
+  # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+  rho0 = 1.5e7
+  delta0 = 1e-3
+  #
+  phi = rho0*delta0 # constant background pertubation magnitude
+  p   = 0.0
+  q   = 0.0
+  return @SVector [phi, p, q]
+end
+
 
 # Apply source terms
 function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
@@ -119,7 +133,7 @@ function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations
 end
 
 function source_terms_harmonic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
-  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  # harmonic solution, e.g., ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 
   for j in 1:n_nodes

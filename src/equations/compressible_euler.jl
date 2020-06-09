@@ -254,6 +254,31 @@ function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
   return prim2cons(equation, @SVector [dens, velx, vely0, p0])
 end
 
+function initial_conditions_jeans_instability(equation::CompressibleEulerEquations, x, t)
+  # Jeans gravitational instability test case
+  # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
+  # OBS! this uses cgs (centimeter, gram, second) units
+  # periodic boundaries
+  # domain size [0,L]^2 depends on the wave number chosen for the perturbation
+  # OBS! Be very careful here L must be chosen such that problem is periodic
+  # typical final time is T = 5
+  # gamma = 5/3
+  dens0  = 1.5e7 # g/cm^3
+  pres0  = 1.5e7 # dyn/cm^2
+  delta0 = 1e-3
+  # set wave vector values for pertubation (units 1/cm)
+  # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+  kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
+  ky = 0.0   # 2π/λ_y, λ_y = 1e10
+  k_dot_x = kx*x[1] + ky*x[2]
+  # perturb density and pressure away from reference states ρ_0 and p_0
+  dens = dens0*(1.0 + delta0*cos(k_dot_x))                # g/cm^3
+  pres = pres0*(1.0 + equation.gamma*delta0*cos(k_dot_x)) # dyn/cm^2
+  # flow starts as stationary
+  velx = 0.0 # cm/s
+  vely = 0.0 # cm/s
+  return prim2cons(equation, @SVector [dens, velx, vely, pres])
+end
 
 # Apply source terms
 function source_terms_convergence_test(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
@@ -295,6 +320,11 @@ function source_terms_convergence_test(equation::CompressibleEulerEquations, ut,
   return nothing
 end
 
+function source_terms_harmonic(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
+  # just an empty routine for the coupled simulation
+  # TODO: make this cleaner and let each solver have a different source term name
+  return nothing
+end
 
 # Calculate 2D flux (element version)
 @inline function calcflux!(f1::AbstractArray{Float64},
