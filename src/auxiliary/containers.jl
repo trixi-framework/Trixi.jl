@@ -166,6 +166,8 @@ function swap!(c::AbstractContainer, a::Int, b::Int)
 
   # Invalidate dummy to be sure
   invalidate!(c, c.dummy)
+
+  return c
 end
 
 

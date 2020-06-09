@@ -78,6 +78,11 @@ isdir(outdir) && rm(outdir, recursive=true)
     Trixi.move_connectivity!(c::MyContainer, first, last, destination) = nothing
     Trixi.delete_connectivity!(c::MyContainer, first, last) = nothing
     Trixi.reset_data_structures!(c::MyContainer) = nothing
+    function Base.:(==)(c1::MyContainer, c2::MyContainer)
+      return (c1.capacity == c2.capacity &&
+              c1.length == c2.length &&
+              c1.dummy == c2.dummy)
+    end
 
     @testset "size" begin
       c = MyContainer(20, 5, 0)
@@ -102,7 +107,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "swap!" begin
       c = MyContainer(20, 5, 0)
-      @test_nowarn Trixi.swap!(c, 1, 2)
+      @test Trixi.swap!(c, 1, 2) == MyContainer(20, 5, 0)
     end
 
     @testset "erase!" begin
