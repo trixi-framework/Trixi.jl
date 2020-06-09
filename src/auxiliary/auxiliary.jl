@@ -63,7 +63,7 @@ parameter_exists(name::String) = haskey(parameters["default"], name)
 
 
 # Parse command line arguments and return as dict
-function parse_commandline_arguments(args=ARGS)
+function parse_commandline_arguments(args=ARGS; testing=false)
   # Copy arguments such that we can modify them without changing the function argument
   myargs = copy(args)
 
@@ -88,7 +88,11 @@ function parse_commandline_arguments(args=ARGS)
                                 debugging.
                 -h, --help       show this help message and exit
                 """)
-      exit(0)
+      if testing
+        return 1
+      else
+        exit(0)
+      end
     elseif current in ("-v", "--verbose")
       # Enable verbose output
       parsed["verbose"] = true
@@ -98,7 +102,11 @@ function parse_commandline_arguments(args=ARGS)
               unrecognized option $current
               usage: trixi [-v] parameters_file
               """)
-      exit(1)
+      if testing
+        return 2
+      else
+        exit(1)
+      end
     else
       # Must be non-option argument -> parameters file
       # If a parameters file was already given, throw error
@@ -107,7 +115,11 @@ function parse_commandline_arguments(args=ARGS)
                 too many arguments
                 usage: trixi [-v] parameters_file
                 """)
-        exit(1)
+        if testing
+          return 3
+        else
+          exit(1)
+        end
       end
 
       # Otherwise store parameters file
@@ -121,19 +133,12 @@ function parse_commandline_arguments(args=ARGS)
             required argument parameters_file was not provided
             usage: trixi [-v] parameters_file
             """)
-    exit(1)
+    if testing
+      return 4
+    else
+      exit(1)
+    end
   end
-
-  #=s = ArgParseSettings()=#
-  #=@add_arg_table! s begin=#
-  #=  "parameters_file"=#
-  #=    help = "Name of file with runtime parameters."=#
-  #=    arg_type = String=#
-  #=    required = true=#
-  #=  "--verbose", "-v"=#
-  #=    help = "Enable verbose output, which might help with debugging."=#
-  #=    action = :store_true=#
-  #=end=#
 
   return parsed
 end
