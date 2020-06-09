@@ -6,8 +6,17 @@ include("l2projection.jl")
 
 
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
+                  MortarType, VolumeIntegralType,
+                  VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
+
+  surface_flux::SurfaceFlux
+  volume_flux::VolumeFlux
+
+  initial_conditions::InitialConditions
+  source_terms::SourceTerms
+
   elements::ElementContainer{V, N}
   n_elements::Int
 
@@ -46,6 +55,9 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, V
   analysis_weights_volume::VectorNAnap1
   analysis_vandermonde::MatrixNAnap1Np1
   analysis_total_volume::Float64
+  analysis_quantities::Vector{Symbol}
+  save_analysis::Bool
+  analysis_filename::String
 
   shock_indicator_variable::Symbol
   shock_alpha_max::Float64
@@ -55,11 +67,13 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, MortarType, VolumeIntegralType, V
   amr_alpha_min::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
+
+  initial_state_integrals::Vector{Float64}
 end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, source_terms, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -119,6 +133,31 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndim
 
+  # Store which quantities should be analyzed in `analyze_solution`
+  if parameter_exists("extra_analysis_quantities")
+    extra_analysis_quantities = Symbol.(parameter("extra_analysis_quantities"))
+  else
+    extra_analysis_quantities = Symbol[]
+  end
+  analysis_quantities = vcat(collect(Symbol.(default_analysis_quantities(equation))),
+                             extra_analysis_quantities)
+
+  # If analysis should be saved to file, create file with header
+  save_analysis = parameter("save_analysis", false)
+  if save_analysis
+    # Create output directory (if it does not exist)
+    output_directory = parameter("output_directory", "out")
+    mkpath(output_directory)
+
+    # Determine filename
+    analysis_filename = joinpath(output_directory, "analysis.dat")
+
+    # Open file and write header
+    save_analysis_header(analysis_filename, analysis_quantities, equation)
+  else
+    analysis_filename = ""
+  end
+
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
@@ -145,10 +184,14 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
+  # Store initial state integrals for conservation error calculation
+  initial_state_integrals = Vector{Float64}()
 
   # Create actual DG solver instance
   dg = Dg(
       equation,
+      surface_flux, volume_flux,
+      initial_conditions, source_terms,
       elements, n_elements,
       surfaces, n_surfaces,
       boundaries, n_boundaries,
@@ -164,9 +207,11 @@ function Dg(equation::AbstractEquation{V}, mesh::TreeMesh, N) where V
       SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
       SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
+      analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min,
       amr_indicator, amr_alpha_max, amr_alpha_min,
-      element_variables)
+      element_variables,
+      initial_state_integrals)
 
   return dg
 end
@@ -566,6 +611,81 @@ function init_mortar_connectivity!(elements, mortars, mesh)
 end
 
 
+"""
+    integrate(func, dg::Dg, args...; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(i, j, element_id, dg, args...)` for each
+volume node `(i, j)` and each `element_id`. Additional positional
+arguments `args...` are passed along as well. If `normalize` is true, the result
+is divided by the total volume of the computational domain.
+
+# Examples
+Calculate the integral of the time derivative of the entropy, i.e.,
+∫(∂S/∂t)dΩ = ∫(∂S/∂u ⋅ ∂u/∂t)dΩ:
+```julia
+# Compute entropy variables
+entropy_vars = cons2entropy(...)
+
+# Calculate integral of entropy time derivative
+dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, entropy_vars, u_t
+  sum(entropy_vars[:, i, j, element_id] .* u_t[:, i, j, element_id])
+end
+```
+"""
+function integrate(func, dg::Dg, args...; normalize=true)
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(1, 1, 1, dg, args...))
+
+  # Use quadrature to numerically integrate over entire domain
+  for element_id in 1:dg.n_elements
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
+      end
+    end
+  end
+
+  # Normalize with total volume
+  if normalize
+    integral = integral/dg.analysis_total_volume
+  end
+
+  return integral
+end
+
+
+"""
+    integrate(func, u, dg::Dg; normalize=true)
+    integrate(u, dg::Dg; normalize=true)
+
+Call function `func` for each DG node and integrate the result over the computational domain.
+
+The function `func` is called as `func(u_local)` for each volume node `(i, j)`
+and each `element_id`, where `u_local` is an `SVector`ized copy of
+`u[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
+total volume of the computational domain. If `func` is omitted, it defaults to
+`identity`.
+
+# Examples
+Calculate the integral over all conservative variables:
+```julia
+state_integrals = integrate(dg.elements.u, dg)
+```
+"""
+function integrate(func, u, dg::Dg; normalize=true)
+  func_wrapped = function(i, j, element_id, dg, u)
+    # TODO: Replace by `get_node_vars` once !59 is merged
+    u_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
+    return func(u_local)
+  end
+  return integrate(func_wrapped, dg, u; normalize=normalize)
+end
+integrate(u, dg::Dg; normalize=true) = integrate(identity, u, dg; normalize=normalize)
+
+
 # Calculate L2/Linf error norms based on "exact solution"
 function calc_error_norms(dg::Dg, t::Float64)
   # Gather necessary information
@@ -587,12 +707,12 @@ function calc_error_norms(dg::Dg, t::Float64)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes_analysis
       for i = 1:n_nodes_analysis
-        u_exact = initial_conditions(equation, x[:, i, j], t)
+        u_exact = @views dg.initial_conditions(equation, x[:, i, j], t)
         diff = similar(u_exact)
-        @. diff = u_exact - u[:, i, j]
+        @views @. diff = u_exact - u[:, i, j]
         @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
         @. linf_error = max(linf_error, abs(diff))
       end
@@ -605,38 +725,30 @@ function calc_error_norms(dg::Dg, t::Float64)
   return l2_error, linf_error
 end
 
-# Calculate L2/Linf error norms based on "exact solution"
+
+# Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
-  n_nodes = nnodes(dg)
   # Compute entropy variables for all elements and nodes with current solution u
-  duds = cons2entropy(equation,dg.elements.u,n_nodes,dg.n_elements)
+  dsdu = cons2entropy(equations(dg),dg.elements.u,nnodes(dg),dg.n_elements)
+
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
-  # Quadrature weights
-  weights = dg.weights
-  # Integrate over all elements to get the total semi-discrete entropy update
-  dsdu_ut = 0.0
-  for element_id = 1:dg.n_elements
-    jacobian_volume = (1 / dg.elements.inverse_jacobian[element_id])^ndim
-    for j = 1:n_nodes
-      for i = 1:n_nodes
-         dsdu_ut += jacobian_volume*weights[i]*weights[j]*sum(duds[:,i,j,element_id].*dg.elements.u_t[:,i,j,element_id])
-      end
-    end
+
+  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, element_id, dg, dsdu, u_t
+    sum(dsdu[:,i,j,element_id].*u_t[:,i,j,element_id])
   end
-  # Normalize with total volume
-  dsdu_ut = dsdu_ut/dg.analysis_total_volume
+
   return dsdu_ut
 end
+
 
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
-  # Gather necessary information
-  equation = equations(dg)
+  @assert equations(dg) isa IdealMhdEquations "Only relevant for MHD"
+
   # Local copy of standard derivative matrix
   d = polynomial_derivative_matrix(dg.nodes)
   # Quadrature weights
@@ -650,8 +762,7 @@ function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
       for i in 1:nnodes(dg)
         divb   = 0.0
         for k in 1:nnodes(dg)
-          divb += d[i,k]*dg.elements.u[6,k,j,element_id]
-                  + d[j,k]*dg.elements.u[7,i,k,element_id]
+          divb += d[i,k]*dg.elements.u[6,k,j,element_id] + d[j,k]*dg.elements.u[7,i,k,element_id]
         end
         divb *= dg.elements.inverse_jacobian[element_id]
         linf_divb = max(linf_divb,abs(divb))
@@ -666,18 +777,27 @@ end
 
 
 
-# Calculate error norms and print information for user
+"""
+    analyze_solution(dg::Dg, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
+
+Calculate error norms and other analysis quantities to analyze the solution
+during a simulation, and return the L2 and Linf errors. `dg` and `mesh` are the
+DG and the mesh instance, respectively. `time`, `dt`, and `step` refer to the
+current simulation time, the last time step size, and the current time step
+count. The run time (in seconds) is given in `runtime_absolute`, while the
+performance index is specified in `runtime_relative`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`save_analysis_header`](@ref) when adding or changing quantities.
+"""
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real)
   equation = equations(dg)
 
-  l2_error, linf_error = calc_error_norms(dg, time)
-  duds_ut = calc_entropy_timederivative(dg, time)
-
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '$(equation.name)' with N = $(polydeg(dg))")
+  println(" Simulation running '", get_name(equation), "' with N = ", polydeg(dg))
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *
@@ -704,42 +824,275 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   end
   println()
 
-  # Derived quantities (error norms, entropy etc.)
-  print(" Variable:    ")
-  for v in 1:nvariables(equation)
-    @printf("   %-14s", equation.varnames_cons[v])
+  # Open file for appending and store time step and time information
+  if dg.save_analysis
+    f = open(dg.analysis_filename, "a")
+    @printf(f, "% 8d", step)
+    @printf(f, "  %10.8e", time)
+    @printf(f, "  %10.8e", dt)
   end
-  println()
-  print(" L2 error:    ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", l2_error[v])
-  end
-  println()
-  print(" Linf error:  ")
-  for v in 1:nvariables(equation)
-    @printf("  % 10.8e", linf_error[v])
-  end
-  println()
-  print(" ∑dUdS*Ut:    ")
-  @printf("  % 10.8e", duds_ut)
 
-  if equation isa IdealMhdEquations
+  # Calculate and print derived quantities (error norms, entropy etc.)
+  # Variable names required for L2 error, Linf error, and conservation error
+  if any(q in dg.analysis_quantities for q in
+         (:l2_error, :linf_error, :conservation_error, :residual))
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_cons(equation)[v])
+    end
+    println()
+  end
+
+  # Calculate L2/Linf errors
+  if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
+    l2_error, linf_error = calc_error_norms(dg, time)
+  else
+    error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
+  end
+
+  # L2 error
+  if :l2_error in dg.analysis_quantities
+    print(" L2 error:    ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", l2_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+    end
+    println()
+  end
+
+  # Linf error
+  if :linf_error in dg.analysis_quantities
+    print(" Linf error:  ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", linf_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+    end
+    println()
+  end
+
+  # Conservation errror
+  if :conservation_error in dg.analysis_quantities
+    # Calculate state integrals
+    state_integrals = integrate(dg.elements.u, dg)
+
+    # Store initial state integrals at first invocation
+    if isempty(dg.initial_state_integrals)
+      dg.initial_state_integrals = zeros(nvariables(equation))
+      dg.initial_state_integrals .= state_integrals
+    end
+
+    print(" |∑U - ∑U₀|:  ")
+    for v in 1:nvariables(equation)
+      err = abs(state_integrals[v] - dg.initial_state_integrals[v])
+      @printf("  % 10.8e", err)
+      dg.save_analysis && @printf(f, "  % 10.8e", err)
+    end
+    println()
+  end
+
+  # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
+  if :residual in dg.analysis_quantities
+    print(" max(|Uₜ|):   ")
+    for v in 1:nvariables(equation)
+      # Calculate maximum absolute value of Uₜ
+      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
+      @printf("  % 10.8e", res)
+      dg.save_analysis && @printf(f, "  % 10.8e", res)
+    end
+    println()
+  end
+
+  # Entropy time derivative
+  if :dsdu_ut in dg.analysis_quantities
+    duds_ut = calc_entropy_timederivative(dg, time)
+    print(" ∑∂S/∂U ⋅ Uₜ: ")
+    @printf("  % 10.8e", duds_ut)
+    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
+    println()
+  end
+
+  # Entropy
+  if :entropy in dg.analysis_quantities
+    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return entropy(cons, equations(dg))
+    end
+    print(" ∑S:          ")
+    @printf("  % 10.8e", s)
+    dg.save_analysis && @printf(f, "  % 10.8e", s)
+    println()
+  end
+
+  # Total energy
+  if :energy_total in dg.analysis_quantities
+    e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_total(cons, equations(dg))
+    end
+    print(" ∑e_total:    ")
+    @printf("  % 10.8e", e_total)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_total)
+    println()
+  end
+
+  # Kinetic energy
+  if :energy_kinetic in dg.analysis_quantities
+    e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_kinetic(cons, equations(dg))
+    end
+    print(" ∑e_kinetic:  ")
+    @printf("  % 10.8e", e_kinetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
+    println()
+  end
+
+  # Internal energy
+  if :energy_internal in dg.analysis_quantities
+    e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_internal(cons, equations(dg))
+    end
+    print(" ∑e_internal  ")
+    @printf("  % 10.8e", e_internal)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
+    println()
+  end
+
+  # Magnetic energy
+  if :energy_magnetic in dg.analysis_quantities
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return energy_magnetic(cons, equations(dg))
+    end
+    print(" ∑e_magnetic: ")
+    @printf("  % 10.8e", e_magnetic)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    println()
+  end
+
+  # Solenoidal condition ∇ ⋅ B = 0
+  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+  end
+  # L2 norm of ∇ ⋅ B
+  if :l2_divb in dg.analysis_quantities
+    print(" L2 ∇ ⋅B:     ")
+    @printf("  % 10.8e", l2_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
     println()
-    print(" L2 ∇⋅B:    ")
-    @printf("    % 10.8e", l2_divb)
-    println()
-    print(" Linf ∇⋅B:    ")
+  end
+  # Linf norm of ∇ ⋅ B
+  if :linf_divb in dg.analysis_quantities
+    print(" Linf ∇ ⋅B:   ")
     @printf("  % 10.8e", linf_divb)
+    dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+    println()
   end
 
-  println()
+  # Cross helicity
+  if :cross_helicity in dg.analysis_quantities
+    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      # Extract pointwise state
+      # TODO: Replace by `get_node_vars` once !59 is merged
+      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      return cross_helicity(cons, equations(dg))
+    end
+    print(" ∑H_c:        ")
+    @printf("  % 10.8e", h_c)
+    dg.save_analysis && @printf(f, "  % 10.8e", h_c)
+    println()
+  end
 
   println("-"^80)
   println()
 
+  # Add line break and close analysis file if it was opened
+  if dg.save_analysis
+    println(f)
+    close(f)
+  end
+
   # Return errors for EOC analysis
   return l2_error, linf_error
+end
+
+
+"""
+    save_analysis_header(filename, quantities, equation)
+
+Truncate file `filename` and save a header with the names of the quantities
+`quantities` that will subsequently written to `filename` by
+[`analyze_solution`](@ref). Since some quantities are equation-specific, the
+system of equations instance is passed in `equation`.
+
+**Note:** Keep order of analysis quantities in sync with
+          [`analyze_solution`](@ref) when adding or changing quantities.
+"""
+function save_analysis_header(filename, quantities, equation)
+  open(filename, "w") do f
+    @printf(f, "%-8s", "timestep")
+    @printf(f, "  %-14s", "time")
+    @printf(f, "  %-14s", "dt")
+    if :l2_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "linf_" * v)
+      end
+    end
+    if :conservation_error in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "cons_" * v)
+      end
+    end
+    if :residual in quantities
+      for v in varnames_cons(equation)
+        @printf(f, "   %-14s", "res_" * v)
+      end
+    end
+    if :dsdu_ut in quantities
+      @printf(f, "   %-14s", "dsdu_ut")
+    end
+    if :entropy in quantities
+      @printf(f, "   %-14s", "entropy")
+    end
+    if :energy_total in quantities
+      @printf(f, "   %-14s", "e_total")
+    end
+    if :energy_kinetic in quantities
+      @printf(f, "   %-14s", "e_kinetic")
+    end
+    if :energy_internal in quantities
+      @printf(f, "   %-14s", "e_internal")
+    end
+    if :energy_magnetic in quantities
+      @printf(f, "   %-14s", "e_magnetic")
+    end
+    if :l2_divb in quantities
+      @printf(f, "   %-14s", "l2_divb")
+    end
+    if :linf_divb in quantities
+      @printf(f, "   %-14s", "linf_divb")
+    end
+    if :cross_helicity in quantities
+      @printf(f, "   %-14s", "cross_helicity")
+    end
+    println(f)
+  end
 end
 
 
@@ -751,7 +1104,7 @@ function set_initial_conditions(dg::Dg, time)
   for element_id = 1:dg.n_elements
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= initial_conditions(
+        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
             equation, dg.elements.node_coordinates[:, i, j, element_id], time)
       end
     end
@@ -762,7 +1115,7 @@ end
 # Calculate time derivative
 function rhs!(dg::Dg, t_stage)
   # Reset u_t
-  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0.0
+  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -792,7 +1145,7 @@ function rhs!(dg::Dg, t_stage)
   @timeit timer() "Jacobian" apply_jacobian!(dg)
 
   # Calculate source terms
-  @timeit timer() "source terms" calc_sources!(dg, t_stage)
+  @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
 
@@ -860,8 +1213,8 @@ function calc_volume_integral!(dg, ::Val{:split_form}, u_t)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -911,7 +1264,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
   A2d = Array{Float64, 2}
-  A1d = Array{Float64, 1}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   # Note: Prefixing the array with the type ("A4d[A4d(...") seems to be
@@ -930,7 +1282,6 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
                             for _ in 1:Threads.nthreads()]
   u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
                              for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = A1d[A1d(undef, nvariables(dg)) for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
@@ -942,8 +1293,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -970,8 +1321,8 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, equations(dg), dg.elements.u,
-                       element_id, nnodes(dg))
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
+                       dg.volume_flux, equations(dg), dg.elements.u, element_id, nnodes(dg))
 
     # Calculate DG volume integral contribution
     for j = 1:nnodes(dg)
@@ -992,8 +1343,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
     u_leftright = u_leftright_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, u_leftright, fstarnode, equations(dg),
+    calcflux_fv!(fstar1, fstar2, dg.surface_flux, u_leftright, equations(dg),
                  dg.elements.u, element_id, nnodes(dg))
 
     # Calculate FV volume integral contribution
@@ -1011,73 +1361,81 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
 end
 
 
-# Calculate 2D two-point flux (element version)
-@inline function calcflux_fv!(fstar1::AbstractArray{Float64},
-                              fstar2::AbstractArray{Float64},
-                              u_leftright::AbstractArray{Float64},
-                              fstarnode::AbstractArray{Float64},
-                              equation::AbstractEquation,
-                              u::AbstractArray{Float64},
-                              element_id::Int, n_nodes::Int)
+"""
+    calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
+                  equation::AbstractEquation, u, element_id, n_nodes)
+
+Calculate the finite volume fluxes inside the elements.
+
+# Arguments
+- `fstar1::AbstractArray{T} where T<:Real`:
+- `fstar2::AbstractArray{T} where T<:Real`
+- `surface_flux`
+- `u_leftright::AbstractArray{T} where T<:Real`
+- `equation::AbstractEquation`
+- `u::AbstractArray{T} where T<:Real`
+- `element_id::Integer`
+- `n_nodes::Integer`
+"""
+@inline function calcflux_fv!(fstar1, fstar2, surface_flux, u_leftright,
+                              equation::AbstractEquation, u, element_id, n_nodes)
   for j in 1:n_nodes
     for v in 1:nvariables(equation)
-      fstar1[v, 1,         j] = 0.0
-      fstar1[v, n_nodes+1, j] = 0.0
+      fstar1[v, 1,         j] = 0
+      fstar1[v, n_nodes+1, j] = 0
     end
   end
   for j = 1:n_nodes
     for i = 2:n_nodes
       for v in 1:nvariables(equation)
-        u_leftright[1,v] = u[v,i-1,j,element_id]
-        u_leftright[2,v] = u[v,i,j,element_id]
+        u_leftright[1, v] = u[v, i-1, j, element_id]
+        u_leftright[2, v] = u[v, i,   j, element_id]
       end
-      if equation isa CompressibleEulerEquations #FIXME this doesn't look good (type stability, efficiency, ...)
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 equation, 1)
+      if equation isa CompressibleEulerEquations #FIXME this doesn't look that nice
+        flux = surface_flux(equation, 1, # orientation 1: x direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
       elseif equation isa IdealMhdEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                 u_leftright[1, 9],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                 u_leftright[2, 9], equation, 1)
+        flux = surface_flux(equation, 1, # orientation 1: x direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                            u_leftright[1, 9],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                            u_leftright[2, 9])
       end
       for v in 1:nvariables(equation)
-        fstar1[v,i,j] = fstarnode[v]
+        fstar1[v, i, j] = flux[v]
       end
     end
   end
   for i in 1:n_nodes
     for v in 1:nvariables(equation)
-      fstar2[v,i,1]         = 0.0
-      fstar2[v,i,n_nodes+1] = 0.0
+      fstar2[v, i, 1]         = 0
+      fstar2[v, i, n_nodes+1] = 0
     end
   end
   for j = 2:n_nodes
     for i = 1:n_nodes
       for v in 1:nvariables(equation)
-        u_leftright[1,v] = u[v,i,j-1,element_id]
-        u_leftright[2,v] = u[v,i,j,element_id]
+        u_leftright[1, v] = u[v, i, j-1, element_id]
+        u_leftright[2, v] = u[v, i, j,   element_id]
       end
       if equation isa CompressibleEulerEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 equation, 2)
+        flux = surface_flux(equation, 2, # orientation 2: y direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4])
       elseif equation isa IdealMhdEquations
-        riemann!(fstarnode,
-                 u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
-                 u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
-                 u_leftright[1, 9],
-                 u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
-                 u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
-                 u_leftright[2, 9], equation, 2)
+        flux = surface_flux(equation, 2, # orientation 2: y direction
+                            u_leftright[1, 1], u_leftright[1, 2], u_leftright[1, 3], u_leftright[1, 4],
+                            u_leftright[1, 5], u_leftright[1, 6], u_leftright[1, 7], u_leftright[1, 8],
+                            u_leftright[1, 9],
+                            u_leftright[2, 1], u_leftright[2, 2], u_leftright[2, 3], u_leftright[2, 4],
+                            u_leftright[2, 5], u_leftright[2, 6], u_leftright[2, 7], u_leftright[2, 8],
+                            u_leftright[2, 9])
       end
       for v in 1:nvariables(equation)
-        fstar2[v,i,j] = fstarnode[v]
+        fstar2[v,i,j] = flux[v]
       end
     end
   end
@@ -1300,20 +1658,17 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
                             orientations::Vector{Int})
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -1345,7 +1700,6 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
@@ -1354,13 +1708,12 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   Threads.@threads for s = 1:dg.n_surfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_surfaces, s, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_surfaces, s, equations(dg), nnodes(dg), orientations)
 
     # Compute the nonconservative numerical "flux" along a surface
     # Done twice because left/right orientation matters så
@@ -1415,23 +1768,21 @@ function calc_boundary_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Vect
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for b = 1:dg.n_boundaries=#
   Threads.@threads for b = 1:dg.n_boundaries
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-    fstarnode = fstarnode_threaded[Threads.threadid()]
 
     # Fill outer boundary state
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
-      u_boundaries[3 - neighbor_sides[b], :, i, b] .= initial_conditions(
+      u_boundaries[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
           equation, node_coordinates[:, i, b], time)
     end
 
     # Calculate flux
-    riemann!(fstar, fstarnode, u_boundaries, b, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar, dg.surface_flux, u_boundaries, b, equations(dg), nnodes(dg), orientations)
 
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
@@ -1483,8 +1834,6 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_upper_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
-  fstarnode_lower_threaded = [A1d(undef) for _ in 1:Threads.nthreads()]
 
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
   Threads.@threads for m = 1:dg.n_l2mortars
@@ -1495,12 +1844,10 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:l2},
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
-    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
-    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
-    riemann!(fstar_upper, fstarnode_upper, u_upper, m, equations(dg), nnodes(dg), orientations)
-    riemann!(fstar_lower, fstarnode_lower, u_lower, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_upper, dg.surface_flux, u_upper, m, equations(dg), nnodes(dg), orientations)
+    riemann!(fstar_lower, dg.surface_flux, u_lower, m, equations(dg), nnodes(dg), orientations)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
@@ -1590,19 +1937,17 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
-    fstarnode_upper = fstarnode_upper_threaded[Threads.threadid()]
-    fstarnode_lower = fstarnode_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
-      riemann!(fstar_upper, fstarnode_upper, u_large, u_upper, m,
+      riemann!(fstar_upper, dg.surface_flux, u_large, u_upper, m,
                equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, fstarnode_lower, u_large, u_lower, m,
+      riemann!(fstar_lower, dg.surface_flux, u_large, u_lower, m,
                equations(dg), nnodes(dg), orientations)
     else # large_sides[m] == 2 -> small elements on left side, large element on right
-      riemann!(fstar_upper, fstarnode_upper, u_upper, u_large, m,
+      riemann!(fstar_upper, dg.surface_flux, u_upper, u_large, m,
                equations(dg), nnodes(dg), orientations)
-      riemann!(fstar_lower, fstarnode_lower, u_lower, u_large, m,
+      riemann!(fstar_lower, dg.surface_flux, u_lower, u_large, m,
                equations(dg), nnodes(dg), orientations)
     end
 
@@ -1713,15 +2058,14 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calc_sources!(dg::Dg, t)
-  equation = equations(dg)
-  if equation.sources == "none"
-    return
-  end
+function calc_sources!(dg::Dg, source_terms::Nothing, t)
+  return nothing
+end
 
-  Threads.@threads for element_id = 1:dg.n_elements
-    sources(equations(dg), dg.elements.u_t, dg.elements.u,
-            dg.elements.node_coordinates, element_id, t, nnodes(dg))
+function calc_sources!(dg::Dg, source_terms, t)
+  Threads.@threads for element_id in 1:dg.n_elements
+    source_terms(equations(dg), dg.elements.u_t, dg.elements.u,
+                 dg.elements.node_coordinates, element_id, t, nnodes(dg))
   end
 end
 

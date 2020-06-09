@@ -74,7 +74,7 @@ function generate_mesh()
     if patch["type"] == "box"
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
-      error("unknown refinement patch type '$type_'")
+      error("unknown refinement patch type '$(patch["type"])'")
     end
   end
 
@@ -83,7 +83,7 @@ function generate_mesh()
     if patch["type"] == "box"
       coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
-      error("unknown coarsening patch type '$type_'")
+      error("unknown coarsening patch type '$(patch["type"])'")
     end
   end
 

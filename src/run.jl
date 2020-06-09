@@ -109,7 +109,7 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   println("done")
 
   # Sanity checks
-  # If DG volume integral type is weak form, volume flux type must be central_flux,
+  # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
   if globals[:euler_gravity]
     if solver_euler.volume_integral_type == Val(:weak_form) && equations_euler.volume_flux != central_flux
@@ -172,7 +172,6 @@ function init_simulation(parameters_file; verbose=false, args=nothing, refinemen
   N = parameter("N") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
-  initial_conditions = parameter("initial_conditions")
   sources = parameter("sources", "none")
   n_leaf_cells = count_leaf_cells(mesh.tree)
   min_level = minimum_level(mesh.tree)
@@ -519,7 +518,7 @@ function run_simulation(mesh, solvers, time_parameters)
   println()
 
   # Return error norms for EOC calculation
-  return l2_error, linf_error, solver.equations.varnames_cons
+  return l2_error, linf_error, varnames_cons(solver.equations)
 end
 
 

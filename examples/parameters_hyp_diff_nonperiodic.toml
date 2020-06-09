@@ -1,12 +1,12 @@
 ####################################################################################################
 # Simulation
-equations = "HyperbolicDiffusion"
+equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
-initial_conditions = "poisson_nonperiodic"
+initial_conditions = "initial_conditions_poisson_nonperiodic"
 
-surface_flux = "upwind_flux"
-sources = "poisson_nonperiodic"
+surface_flux = "flux_upwind"
+source_terms = "source_terms_poisson_nonperiodic"
 t_start = 0.0
 t_end   = 5.0
 

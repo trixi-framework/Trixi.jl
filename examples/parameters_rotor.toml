@@ -1,14 +1,14 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhd"
+equations = "IdealMhdEquations"
 gamma = 1.4
-initial_conditions = "rotor"
-surface_flux = "lax_friedrichs_flux"
-volume_flux = "central_flux"
+initial_conditions = "initial_conditions_rotor"
+surface_flux = "flux_lax_friedrichs"
+volume_flux = "flux_central"
 
 amr_indicator = "blast_wave" # for now just for testing
 
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 0.15
 

@@ -1,13 +1,13 @@
 ####################################################################################################
 # Simulation
-equations = "IdealMhd"
+equations = "IdealMhdEquations"
 gamma = 1.6666666666666667
-initial_conditions = "convergence_test"
-surface_flux = "lax_friedrichs_flux"
+initial_conditions = "initial_conditions_convergence_test"
+surface_flux = "flux_lax_friedrichs"
 
-volume_flux = "central_flux"
+volume_flux = "flux_central"
 
-# sources =
+# source_terms =
 t_start = 0.0
 t_end   = 2.0
 
@@ -22,6 +22,8 @@ N = 3
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
+extra_analysis_quantities = ["entropy", "energy_total", "energy_kinetic", "energy_magnetic",
+                             "energy_internal", "cross_helicity"]
 
 volume_integral_type = "split_form"
 

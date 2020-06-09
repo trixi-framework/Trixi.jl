@@ -15,6 +15,8 @@ of convergence (EOC):
   EOC tests for Euler equations with `N = 3`.
 * [`parameters_alfven_wave.toml`](parameters_alfven_wave.toml):  
   EOC tests for MHD equations with `N = 3`.
+* [`parameters_hyp_diff_llf.toml`](parameters_hyp_diff_llf.toml):  
+  EOC tests for hyperbolic diffusion equations with `N = 4`.
 
 In general, a good first parameter file to try out as a new user is
 [`parameters.toml`](parameters.toml), as it is short, takes less than a second
