@@ -2,10 +2,10 @@
 # Simulation
 equations = "euler_gravity"
 gamma = 1.6666666666666667
-initial_conditions = "jeans_instability"
+initial_conditions = "initial_conditions_jeans_instability"
 # initial_conditions = "constant"
-surface_flux = "lax_friedrichs_flux"
-sources = "harmonic"
+surface_flux = "flux_lax_friedrichs"
+source_terms = "source_terms_harmonic"
 t_start = 0.0
 t_end   = 5.0
 
