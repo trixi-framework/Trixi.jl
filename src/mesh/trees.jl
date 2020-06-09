@@ -489,12 +489,12 @@ refine_unbalanced!(t::Tree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
 function coarsen!(t::Tree)
   # Special case: if there is only one cell (root), there is nothing to do
   if length(t) == 1
-    return
+    return Int[]
   end
 
   # Get list of unique parent ids for all leaf cells
   parent_ids = unique(t.parent_ids[leaf_cells(t)])
-  coarsen!(t, parents_ids)
+  coarsen!(t, parent_ids)
 end
 
 
@@ -686,6 +686,8 @@ function invalidate!(t::Tree, first::Int, last::Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
   t.original_cell_ids[first:last] .= typemin(Int)
+
+  return nothing
 end
 invalidate!(t::Tree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::Tree) = invalidate!(t, 1, length(t))
