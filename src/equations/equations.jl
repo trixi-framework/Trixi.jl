@@ -22,8 +22,8 @@ function make_equations(name::String)
     return LinearScalarAdvectionEquation()
   elseif name == "CompressibleEulerEquations"
     return CompressibleEulerEquations()
-  elseif name == "IdealMhdEquations"
-    return IdealMhdEquations()
+  elseif name == "IdealGlmMhdEquations"
+    return IdealGlmMhdEquations()
   elseif name == "HyperbolicDiffusionEquations"
     return HyperbolicDiffusionEquations()
   else
@@ -33,6 +33,7 @@ end
 
 
 have_nonconservative_terms(::AbstractEquation) = Val(false)
+default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu_ut)
 
 
 """
@@ -89,7 +90,7 @@ include("linear_scalar_advection.jl")
 include("compressible_euler.jl")
 
 # Ideal MHD
-include("ideal_mhd.jl")
+include("ideal_glm_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
 include("hyperbolic_diffusion.jl")

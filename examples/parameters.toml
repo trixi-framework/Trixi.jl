@@ -23,6 +23,7 @@ N = 3
 cfl = 0.8
 n_steps_max = 10000
 analysis_interval = 100
+extra_analysis_quantities = ["entropy", "energy_total"]
 
 
 ####################################################################################################

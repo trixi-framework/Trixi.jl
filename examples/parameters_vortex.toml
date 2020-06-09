@@ -22,6 +22,9 @@ N = 3
 cfl = 0.6
 n_steps_max = 10000
 analysis_interval = 100
+extra_analysis_quantities = ["conservation_error", "entropy", "energy_total", "energy_kinetic",
+                             "energy_internal"]
+save_analysis = true
 
 
 ####################################################################################################
