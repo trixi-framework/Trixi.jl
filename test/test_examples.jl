@@ -169,6 +169,32 @@ isdir(outdir) && rm(outdir, recursive=true)
   @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
 end
 
+# Coverage test for all initial conditions
+@testset "Tests for initial conditions" begin
+  # Compressible Euler
+  @testset "../examples/parameters_vortex.toml one step with initial_conditions_density_pulse" begin
+    test_trixi_run("../examples/parameters_vortex.toml",
+            l2   = [0.003201074851451383, 0.0032010748514513724, 0.0032010748514513716, 0.0032010748514513794],
+            linf = [0.043716393835876444, 0.043716393835876444, 0.043716393835876, 0.04371639383587578],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_density_pulse")
+  end
+  @testset "../examples/parameters_vortex.toml one step with initial_conditions_pressure_pulse" begin
+    test_trixi_run("../examples/parameters_vortex.toml",
+            l2   = [0.00018950189533270512, 0.0020542290689775757, 0.002054229068977579, 0.01013381064979542],
+            linf = [0.004763284475434837, 0.028439617580275578, 0.028439617580275467, 0.13640572175447918],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_pressure_pulse")
+  end
+  @testset "../examples/parameters_vortex.toml one step with initial_conditions_constant" begin
+    test_trixi_run("../examples/parameters_vortex.toml",
+            l2   = [2.152855221229516e-16, 1.0331127755108141e-16, 9.987572506366347e-17, 1.7039492223005292e-15],
+            linf = [4.440892098500626e-16, 2.7755575615628914e-16, 3.885780586188048e-16, 3.552713678800501e-15],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_constant")
+  end
+end
+
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
