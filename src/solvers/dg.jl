@@ -700,8 +700,7 @@ state_integrals = integrate(dg.elements.u, dg)
 """
 function integrate(func, u, dg::Dg; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
-    # TODO: Replace by `get_node_vars` once !59 is merged
-    u_local = SVector(ntuple(v -> u[v, i, j, element_id], size(u, 1)))
+    u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
   return integrate(func_wrapped, dg, u; normalize=normalize)
@@ -938,8 +937,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :entropy in dg.analysis_quantities
     s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return entropy(cons, equations(dg))
     end
     print(" ∑S:          ")
@@ -952,8 +950,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :energy_total in dg.analysis_quantities
     e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return energy_total(cons, equations(dg))
     end
     print(" ∑e_total:    ")
@@ -966,8 +963,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :energy_kinetic in dg.analysis_quantities
     e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return energy_kinetic(cons, equations(dg))
     end
     print(" ∑e_kinetic:  ")
@@ -980,8 +976,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :energy_internal in dg.analysis_quantities
     e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return energy_internal(cons, equations(dg))
     end
     print(" ∑e_internal  ")
@@ -994,8 +989,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :energy_magnetic in dg.analysis_quantities
     e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return energy_magnetic(cons, equations(dg))
     end
     print(" ∑e_magnetic: ")
@@ -1027,8 +1021,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   if :cross_helicity in dg.analysis_quantities
     h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
       # Extract pointwise state
-      # TODO: Replace by `get_node_vars` once !59 is merged
-      cons = SVector(ntuple(v -> u[v, i, j, element_id], nvariables(dg)))
+      cons = get_node_vars(u, dg, i, j, element_id)
       return cross_helicity(cons, equations(dg))
     end
     print(" ∑H_c:        ")
