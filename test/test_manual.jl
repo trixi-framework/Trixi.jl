@@ -69,60 +69,71 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
+      data::Vector{Int}
       capacity::Int
       length::Int
       dummy::Int
     end
-    Trixi.invalidate!(c::MyContainer, first, last) = nothing
-    Trixi.raw_copy!(target::MyContainer, source::MyContainer, first, last, destination) = nothing
-    Trixi.move_connectivity!(c::MyContainer, first, last, destination) = nothing
-    Trixi.delete_connectivity!(c::MyContainer, first, last) = nothing
-    Trixi.reset_data_structures!(c::MyContainer) = nothing
+    function MyContainer(data, capacity)
+      c = MyContainer(Vector{Int}(undef, capacity+1), capacity, length(data), capacity+1) 
+      c.data[1:length(data)] .= data
+      return c
+    end
+    MyContainer(data::AbstractArray) = MyContainer(data, length(data))
+    Trixi.invalidate!(c::MyContainer, first, last) = (c.data[first:last] .= 0; c)
+    function Trixi.raw_copy!(target::MyContainer, source::MyContainer, first, last, destination)
+      Trixi.copy_data!(target.data, source.data, first, last, destination)
+      return target
+    end
+    Trixi.move_connectivity!(c::MyContainer, first, last, destination) = c
+    Trixi.delete_connectivity!(c::MyContainer, first, last) = c
+    Trixi.reset_data_structures!(c::MyContainer) = (c.data = Vector{Int}(undef, c.capacity+1); c)
     function Base.:(==)(c1::MyContainer, c2::MyContainer)
       return (c1.capacity == c2.capacity &&
               c1.length == c2.length &&
-              c1.dummy == c2.dummy)
+              c1.dummy == c2.dummy &&
+              c1.data[1:c1.length] == c2.data[1:c2.length])
     end
 
     @testset "size" begin
-      c = MyContainer(20, 5, 0)
-      @test size(c) == (5,)
+      c = MyContainer([1, 2, 3])
+      @test size(c) == (3,)
     end
 
     @testset "resize!" begin
-      c = MyContainer(20, 8, 0)
+      c = MyContainer([1, 2, 3], 5)
       @test length(resize!(c, 5)) == 5
     end
 
     @testset "copy!" begin
-      c1 = MyContainer(20, 5, 0)
-      c2 = MyContainer(20, 10, 0)
-      @test_nowarn Trixi.copy!(c1, c2, 1, 5, 1)
+      c1 = MyContainer([1, 2, 3])
+      c2 = MyContainer([4, 5])
+      @test Trixi.copy!(c1, c2, 1, 2, 2) == MyContainer([1, 4, 5])
     end
 
     @testset "move!" begin
-      c = MyContainer(20, 5, 0)
-      @test_nowarn Trixi.move!(c, 1, 1)
+      c = MyContainer([1, 2, 3])
+      @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
     @testset "swap!" begin
-      c = MyContainer(20, 5, 0)
-      @test Trixi.swap!(c, 1, 2) == MyContainer(20, 5, 0)
+      c = MyContainer([1,2])
+      @test Trixi.swap!(c, 1, 2) == MyContainer([2,1])
     end
 
     @testset "erase!" begin
-      c = MyContainer(20, 5, 0)
-      @test_nowarn Trixi.erase!(c, 1)
+      c = MyContainer([1, 2])
+      @test Trixi.erase!(c, 1) == MyContainer([0, 2])
     end
 
     @testset "remove_fill!" begin
-      c = MyContainer(20, 5, 0)
-      @test_nowarn Trixi.remove_fill!(c, 1, 2)
+      c = MyContainer([1, 2, 3, 4])
+      @test Trixi.remove_fill!(c, 2, 3) == MyContainer([1, 4], 4)
     end
 
     @testset "reset!" begin
-      c = MyContainer(20, 5, 0)
-      @test_nowarn Trixi.reset!(c, 10)
+      c = MyContainer([1, 2, 3])
+      @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
   end
 end

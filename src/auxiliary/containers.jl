@@ -25,6 +25,8 @@ function copy_data!(target::AbstractArray, source::AbstractArray,
       target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
     end
   end
+
+  return target
 end
 
 
@@ -80,6 +82,8 @@ function copy!(target::AbstractContainer, source::AbstractContainer,
   end
 
   raw_copy!(target, source, first, last, destination)
+
+  return target
 end
 
 
@@ -128,6 +132,8 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   last_invalid = (first <= destination <= last) ? destination - 1 : last
   # 3) Invalidate range
   invalidate!(c, first_invalid, last_invalid)
+
+  return c
 end
 move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
 
@@ -199,6 +205,8 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   if position <= length(c) - count
     move!(c, position, length(c) - count, position + count)
   end
+
+  return c
 end
 insert!(c) = insert!(c, position, 1)
 
@@ -217,6 +225,8 @@ function erase!(c::AbstractContainer, first::Int, last::Int)
   # Delete connectivity and invalidate cells
   delete_connectivity!(c, first, last)
   invalidate!(c, first, last)
+
+  return c
 end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
@@ -245,6 +255,8 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
   # Reduce length
   count = last - first + 1
   c.length -= count
+
+  return c
 end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
@@ -271,6 +283,8 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
 
   # Reduce length
   c.length -= count
+
+  return c
 end
 
 
@@ -282,6 +296,8 @@ function reset!(c::AbstractContainer, capacity::Int)
   c.length = 0
   c.dummy = capacity + 1
   reset_data_structures!(c)
+
+  return c
 end
 
 
@@ -289,4 +305,6 @@ end
 function clear!(c::AbstractContainer)
   invalidate!(c)
   c.length = 0
+
+  return c
 end
