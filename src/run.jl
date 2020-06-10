@@ -1,4 +1,7 @@
 
+using LinearMaps: LinearMap
+
+
 """
     run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
 
@@ -494,4 +497,30 @@ function convtest(parameters_file, iterations)
     println("")
     println("-"^80)
   end
+end
+
+
+function compute_linear_structure(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+  mesh, solver, time_parameters = init_simulation(
+      parameters_file, verbose=verbose, args=args,
+      refinement_level_increment=refinement_level_increment)
+
+  equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||
+    throw(ArgumentError("Only linear problems are supported."))
+
+  # get the right hand side from the source terms
+  solver.elements.u .= 0
+  rhs!(solver, 0)
+  b = vec(-solver.elements.u_t) |> copy
+
+  # set the source terms to zero to extract the linear operator
+  solver = Dg(solver.equations, solver.surface_flux, solver.volume_flux, solver.initial_conditions,
+              nothing, mesh, polydeg(solver))
+  A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
+    vec(solver.elements.u) .= src
+    rhs!(solver, 0)
+    dest .= vec(solver.elements.u_t)
+  end
+
+  A, b
 end
