@@ -500,7 +500,7 @@ function convtest(parameters_file, iterations)
 end
 
 
-function compute_linear_structure(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0)
+function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0)
   mesh, solver, time_parameters = init_simulation(
       parameters_file, verbose=verbose, args=args,
       refinement_level_increment=refinement_level_increment)
@@ -515,7 +515,7 @@ function compute_linear_structure(parameters_file=nothing; verbose=false, args=n
 
   # set the source terms to zero to extract the linear operator
   solver = Dg(solver.equations, solver.surface_flux, solver.volume_flux, solver.initial_conditions,
-              nothing, mesh, polydeg(solver))
+              source_terms, mesh, polydeg(solver))
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
     rhs!(solver, 0)
