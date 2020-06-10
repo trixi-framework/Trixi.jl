@@ -78,7 +78,7 @@ function copy!(target::AbstractContainer, source::AbstractContainer,
 
   # Return if copy would be a no-op
   if last < first || (source === target && first == destination)
-    return
+    return target
   end
 
   raw_copy!(target, source, first, last, destination)
@@ -114,7 +114,7 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 
   # Return if move would be a no-op
   if last < first || first == destination
-    return
+    return c
   end
 
   # Copy cells to new location
@@ -155,7 +155,7 @@ function swap!(c::AbstractContainer, a::Int, b::Int)
 
   # Return if swap would be a no-op
   if a == b
-    return
+    return c
   end
 
   # Move a to dummy location
@@ -188,13 +188,13 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
 
   # Return if insertation would be a no-op
   if count == 0
-    return
+    return c
   end
 
   # Append and return if insertion is beyond last current element
   if position == length(c) + 1
     resize!(c, length(c) + count)
-    return
+    return c
   end
 
   # Increase length
@@ -208,7 +208,6 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
 
   return c
 end
-insert!(c) = insert!(c, position, 1)
 
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
@@ -219,7 +218,7 @@ function erase!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if eraseure would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity and invalidate cells
@@ -238,7 +237,7 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if removal would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity of cells to be removed
@@ -268,7 +267,7 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if removal would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity of cells to be removed and then invalidate them
@@ -278,7 +277,7 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
   # Copy cells from end (unless last is already the last cell)
   count = last - first + 1
   if last < length(c)
-    move!(c, max(length(c) - count, last + 1), length(c), first)
+    move!(c, max(length(c) - count + 1, last + 1), length(c), first)
   end
 
   # Reduce length

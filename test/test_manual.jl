@@ -101,34 +101,71 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "resize!" begin
-      c = MyContainer([1, 2, 3], 5)
-      @test length(resize!(c, 5)) == 5
+      c = MyContainer([1, 2, 3])
+      @test length(resize!(c, 2)) == 2
     end
 
     @testset "copy!" begin
       c1 = MyContainer([1, 2, 3])
       c2 = MyContainer([4, 5])
+      @test Trixi.copy!(c1, c2, 2, 1, 2) == MyContainer([1, 2, 3]) # no-op
+
+      c1 = MyContainer([1, 2, 3])
+      c2 = MyContainer([4, 5])
       @test Trixi.copy!(c1, c2, 1, 2, 2) == MyContainer([1, 4, 5])
+
+      c1 = MyContainer([1, 2, 3])
+      @test Trixi.copy!(c1, c2, 1, 2) == MyContainer([1, 4, 3])
+
+      c1 = MyContainer([1, 2, 3])
+      @test Trixi.copy!(c1, 2, 3, 1) == MyContainer([2, 3, 3])
+
+      c1 = MyContainer([1, 2, 3])
+      @test Trixi.copy!(c1, 1, 3) == MyContainer([1, 2, 1])
     end
 
     @testset "move!" begin
+      c = MyContainer([1, 2, 3])
+      @test Trixi.move!(c, 1, 1) == MyContainer([1, 2, 3]) # no-op
+
       c = MyContainer([1, 2, 3])
       @test Trixi.move!(c, 1, 2) == MyContainer([0, 1, 3])
     end
 
     @testset "swap!" begin
       c = MyContainer([1,2])
+      @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op 
+
+      c = MyContainer([1,2])
       @test Trixi.swap!(c, 1, 2) == MyContainer([2,1])
     end
 
     @testset "erase!" begin
       c = MyContainer([1, 2])
+      @test Trixi.erase!(c, 2, 1) == MyContainer([1, 2]) # no-op
+
+      c = MyContainer([1, 2])
       @test Trixi.erase!(c, 1) == MyContainer([0, 2])
+    end
+
+    @testset "remove_shift!" begin
+      c = MyContainer([1, 2, 3, 4])
+      @test Trixi.remove_shift!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
+
+      c = MyContainer([1, 2, 3, 4])
+      @test Trixi.remove_shift!(c, 2, 2) == MyContainer([1, 3, 4], 4)
+
+      c = MyContainer([1, 2, 3, 4])
+      @test Trixi.remove_shift!(c, 2) == MyContainer([1, 3, 4], 4)
     end
 
     @testset "remove_fill!" begin
       c = MyContainer([1, 2, 3, 4])
-      @test Trixi.remove_fill!(c, 2, 3) == MyContainer([1, 4], 4)
+      @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
+
+      c = MyContainer([1, 2, 3, 4])
+      @show "jo"
+      @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
     end
 
     @testset "reset!" begin
