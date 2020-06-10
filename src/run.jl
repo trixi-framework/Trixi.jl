@@ -314,7 +314,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 
     # Check steady-state integration residual
     if solver.equations isa HyperbolicDiffusionEquations
-      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+      if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
         println()
         println("-"^80)
         println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
