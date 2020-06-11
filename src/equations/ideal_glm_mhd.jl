@@ -148,7 +148,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(equation::IdealGlmMhdEquations, orientation, u)
+@inline function calcflux(u, orientation, equation::IdealGlmMhdEquations)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -316,8 +316,8 @@ function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation, u_ll, 
   cf_rr = calc_fast_wavespeed(equation, orientation, u_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)

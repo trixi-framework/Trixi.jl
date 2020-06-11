@@ -1168,8 +1168,8 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, d
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       u_node = get_node_vars(u, dg, i, j, element_id)
-      flux1 = calcflux(equations(dg), 1, u_node)
-      flux2 = calcflux(equations(dg), 2, u_node)
+      flux1 = calcflux(u_node, 1, equations(dg))
+      flux2 = calcflux(u_node, 2, equations(dg))
       set_node_vars!(f1, dg, flux1, i, j)
       set_node_vars!(f2, dg, flux2, i, j)
     end
@@ -1238,13 +1238,13 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
       for i in 1:nnodes(dg)
         u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
 
-        flux1 = calcflux(equations(dg), 1, u_node)
+        flux1 = calcflux(u_node, 1, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, i] * flux1
           add_to_node_vars!(u_t, dg, integral_contribution, l, j, element_id)
         end
 
-        flux2 = calcflux(equations(dg), 2, u_node)
+        flux2 = calcflux(u_node, 2, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, j] * flux2
           add_to_node_vars!(u_t, dg, integral_contribution, i, l, element_id)
@@ -1316,7 +1316,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
         # x direction
         u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
         # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(equations(dg), 1, u_node)
+        flux = calcflux(u_node, 1, equations(dg))
         integral_contribution = dsplit[i, i] * flux
         add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms
@@ -1331,7 +1331,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
 
         # y direction
         # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(equations(dg), 2, u_node)
+        flux = calcflux(u_node, 2, equations(dg))
         integral_contribution = dsplit[j, j] * flux
         add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms

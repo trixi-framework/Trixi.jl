@@ -45,8 +45,8 @@ DG method (except floating point errors).
 """
 @inline function flux_central(equation::AbstractEquation, orientation, u_ll, u_rr)
   # Calculate regular 1D fluxes
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)

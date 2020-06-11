@@ -297,7 +297,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(equation::CompressibleEulerEquations, orientation, u)
+@inline function calcflux(u, orientation, equation::CompressibleEulerEquations)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -475,8 +475,8 @@ function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, 
   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -486,70 +486,6 @@ function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, 
 
   return SVector(f1, f2, f3, f4)
 end
-
-
-# Original riemann! implementation, non-optimized but easier to understand
-# function Equations.riemann!(surface_flux::Array{Float64, 2},
-#                             u_surfaces::Array{Float64, 3}, surface_id::Int,
-#                             equation::CompressibleEulerEquations, n_nodes::Int)
-#   u_ll     = u_surfaces[1, :, surface_id]
-#   u_rr     = u_surfaces[2, :, surface_id]
-#
-#   rho_ll   = u_ll[1]
-#   rho_v_ll = u_ll[2]
-#   rho_e_ll = u_ll[3]
-#   rho_rr   = u_rr[1]
-#   rho_v_rr = u_rr[2]
-#   rho_e_rr = u_rr[3]
-#
-#   v_ll = rho_v_ll / rho_ll
-#   p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_ll^2)
-#   c_ll = sqrt(equation.gamma * p_ll / rho_ll)
-#   v_rr = rho_v_rr / rho_rr
-#   p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_rr^2)
-#   c_rr = sqrt(equation.gamma * p_rr / rho_rr)
-#
-#   f_ll = zeros(MVector{3})
-#   f_rr = zeros(MVector{3})
-#   calcflux!(f_ll, equation, rho_ll, rho_v_ll, rho_e_ll)
-#   calcflux!(f_rr, equation, rho_rr, rho_v_rr, rho_e_rr)
-#
-#   if equation.surface_flux_type == :flux_lax_friedrichs
-#     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
-#
-#     @. surface_flux[:, surface_id] = 1/2 * (f_ll + f_rr) - 1/2 * λ_max * (u_rr - u_ll)
-#   elseif equation.surface_flux_type == :hllc
-#     v_tilde = (sqrt(rho_ll) * v_ll + sqrt(rho_rr) * v_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-#     h_ll = (rho_e_ll + p_ll) / rho_ll
-#     h_rr = (rho_e_rr + p_rr) / rho_rr
-#     h_tilde = (sqrt(rho_ll) * h_ll + sqrt(rho_rr) * h_rr) / (sqrt(rho_ll) + sqrt(rho_rr))
-#     c_tilde = sqrt((equation.gamma - 1) * (h_tilde - 1/2 * v_tilde^2))
-#     s_ll = v_tilde - c_tilde
-#     s_rr = v_tilde + c_tilde
-#
-#     if s_ll > 0
-#       @. surface_flux[:, surface_id] = f_ll
-#     elseif s_rr < 0
-#       @. surface_flux[:, surface_id] = f_rr
-#     else
-#       s_star = ((p_rr - p_ll + rho_ll * v_ll * (s_ll - v_ll) - rho_rr * v_rr * (s_rr - v_rr))
-#                 / (rho_ll * (s_ll - v_ll) - rho_rr * (s_rr - v_rr)))
-#       if s_ll <= 0 && 0 <= s_star
-#         u_star_ll = rho_ll * (s_ll - v_ll)/(s_ll - s_star) .* (
-#             [1, s_star,
-#              rho_e_ll/rho_ll + (s_star - v_ll) * (s_star + rho_ll/(rho_ll * (s_ll - v_ll)))])
-#         @. surface_flux[:, surface_id] = f_ll + s_ll * (u_star_ll - u_ll)
-#       else
-#         u_star_rr = rho_rr * (s_rr - v_rr)/(s_rr - s_star) .* (
-#             [1, s_star,
-#              rho_e_rr/rho_rr + (s_star - v_rr) * (s_star + rho_rr/(rho_rr * (s_rr - v_rr)))])
-#         @. surface_flux[:, surface_id] = f_rr + s_rr * (u_star_rr - u_rr)
-#       end
-#     end
-#   else
-#     error("unknown Riemann solver '$(string(equation.surface_flux_type))'")
-#   end
-# end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
