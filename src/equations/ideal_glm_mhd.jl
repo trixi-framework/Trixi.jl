@@ -307,13 +307,13 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquat
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  cf_ll = calc_fast_wavespeed(equation, orientation, u_ll)
+  cf_ll = calc_fast_wavespeed(u_ll, orientation, equation)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
-  cf_rr = calc_fast_wavespeed(equation, orientation, u_rr)
+  cf_rr = calc_fast_wavespeed(u_rr, orientation, equation)
 
   # Obtain left and right fluxes
   f_ll = calcflux(u_ll, orientation, equation)
@@ -394,8 +394,8 @@ function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
       v2 = u[3, i, j, element_id]/u[1, i, j, element_id]
       v3 = u[4, i, j, element_id]/u[1, i, j, element_id]
       v_mag = sqrt(v1^2 + v2^2 + v3^2)
-      cf_x_direction = calc_fast_wavespeed(equation, 1, u[:, i, j, element_id])
-      cf_y_direction = calc_fast_wavespeed(equation, 2, u[:, i, j, element_id])
+      cf_x_direction = calc_fast_wavespeed(u[:, i, j, element_id], 1, equation)
+      cf_y_direction = calc_fast_wavespeed(u[:, i, j, element_id], 2, equation)
       cf_max = max(cf_x_direction,cf_y_direction)
       equation.c_h = max(equation.c_h,cf_max) # GLM cleaning speed = c_f
       λ_max = max(λ_max, v_mag + cf_max)
@@ -544,7 +544,7 @@ end
 
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(equation::IdealGlmMhdEquations, direction, cons)
+@inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho
