@@ -2189,8 +2189,8 @@ end
 function calc_dt(dg::Dg, cfl)
   min_dt = Inf
   for element_id = 1:dg.n_elements
-    dt = calc_max_dt(equations(dg), dg.elements.u, element_id, nnodes(dg),
-                     dg.elements.inverse_jacobian[element_id], cfl)
+    dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
+                     dg.elements.inverse_jacobian[element_id], cfl, equations(dg))
     min_dt = min(min_dt, dt)
   end
 

@@ -101,10 +101,8 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(equation::LinearScalarAdvectionEquation,
-                     u::Array{Float64, 4}, element_id::Int,
-                     n_nodes::Int, invjacobian::Float64,
-                     cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::LinearScalarAdvectionEquation)
   return cfl * 2 / (invjacobian * maximum(abs.(equation.advectionvelocity))) / n_nodes
 end
 

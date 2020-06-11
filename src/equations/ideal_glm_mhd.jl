@@ -384,9 +384,8 @@ end
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
-function calc_max_dt(equation::IdealGlmMhdEquations, u::Array{Float64, 4},
-                     element_id::Int, n_nodes::Int,
-                     invjacobian::Float64, cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::IdealGlmMhdEquations)
   λ_max = 0.0
   equation.c_h = 0.0
   for j = 1:n_nodes

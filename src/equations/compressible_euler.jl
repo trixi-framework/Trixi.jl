@@ -489,9 +489,8 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(equation::CompressibleEulerEquations, u::Array{Float64, 4},
-                     element_id::Int, n_nodes::Int,
-                     invjacobian::Float64, cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::CompressibleEulerEquations)
   λ_max = 0.0
   for j = 1:n_nodes
     for i = 1:n_nodes
