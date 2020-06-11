@@ -1229,42 +1229,6 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-# NOTE: The first version below uses temporary storage and need to allocate.
-#       The other version does not need this temporary storage but more assignments.
-#       In preliminary tests, the second version is faster.
-# function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
-#   @unpack dhat = dg
-
-#   # Type alias only for convenience
-#   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-#   # Pre-allocate data structures to speed up computation (thread-safe)
-#   f1_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-#   f2_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-
-#   Threads.@threads for element_id in 1:dg.n_elements
-#     # Choose thread-specific pre-allocated container
-#     f1 = f1_threaded[Threads.threadid()]
-#     f2 = f2_threaded[Threads.threadid()]
-
-#     # Calculate volume fluxes
-#     calcflux!(f1, f2, dg, dg.elements.u, element_id)
-
-#     # Calculate volume integral
-#     for j in 1:nnodes(dg)
-#       for i in 1:nnodes(dg)
-#         for v in 1:nvariables(dg)
-#           # Use local accumulator to improve performance
-#           acc = zero(eltype(u_t))
-#           for l in 1:nnodes(dg)
-#             acc += dhat[i, l] * f1[v, l, j] + dhat[j, l] * f2[v, i, l]
-#           end
-#           u_t[v, i, j, element_id] += acc
-#         end
-#       end
-#     end
-#   end
-# end
 function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
   @unpack dhat = dg
 
