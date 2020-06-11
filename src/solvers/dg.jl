@@ -2208,7 +2208,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), indicator_variable)
+    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)

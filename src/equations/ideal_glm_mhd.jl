@@ -489,17 +489,16 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function cons2indicator!(indicator::AbstractArray{Float64}, equation::IdealGlmMhdEquations,
-                                 cons::AbstractArray{Float64},
-                                 element_id::Int, n_nodes::Int, indicator_variable)
+@inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
+                                 equation::IdealGlmMhdEquations)
   for j in 1:n_nodes
     for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(equation,
-                                          cons[1, i, j, element_id], cons[2, i, j, element_id],
+      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
                                           cons[3, i, j, element_id], cons[4, i, j, element_id],
                                           cons[5, i, j, element_id], cons[6, i, j, element_id],
                                           cons[7, i, j, element_id], cons[8, i, j, element_id],
-                                          cons[9, i, j, element_id], indicator_variable)
+                                          cons[9, i, j, element_id],
+                                          indicator_variable, equation)
     end
   end
 end
@@ -507,8 +506,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:density})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:density}, equation::IdealGlmMhdEquations)
   # Indicator variable is rho
   return rho
 end
@@ -516,8 +515,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:pressure})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:pressure}, equation::IdealGlmMhdEquations)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -530,8 +529,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:density_pressure})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:density_pressure}, equation::IdealGlmMhdEquations)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
