@@ -936,7 +936,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Entropy
   if :entropy in dg.analysis_quantities
     s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return entropy(cons, equations(dg))
     end
@@ -949,7 +948,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Total energy
   if :energy_total in dg.analysis_quantities
     e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_total(cons, equations(dg))
     end
@@ -962,7 +960,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Kinetic energy
   if :energy_kinetic in dg.analysis_quantities
     e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_kinetic(cons, equations(dg))
     end
@@ -975,7 +972,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Internal energy
   if :energy_internal in dg.analysis_quantities
     e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_internal(cons, equations(dg))
     end
@@ -988,7 +984,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Magnetic energy
   if :energy_magnetic in dg.analysis_quantities
     e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_magnetic(cons, equations(dg))
     end
@@ -1020,7 +1015,6 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Cross helicity
   if :cross_helicity in dg.analysis_quantities
     h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      # Extract pointwise state
       cons = get_node_vars(u, dg, i, j, element_id)
       return cross_helicity(cons, equations(dg))
     end
