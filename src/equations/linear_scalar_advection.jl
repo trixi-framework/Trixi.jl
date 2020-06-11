@@ -108,7 +108,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::LinearScalarAdvectionEquation, cons::Array{Float64, 4})
+function cons2prim(cons, equation::LinearScalarAdvectionEquation)
   return cons
 end
 

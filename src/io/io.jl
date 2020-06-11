@@ -135,7 +135,7 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
       data = dg.elements.u
       varnames = varnames_cons(equation)
     else
-      data = cons2prim(equation, dg.elements.u)
+      data = cons2prim(dg.elements.u, equation)
       varnames = varnames_prim(equation)
     end
 

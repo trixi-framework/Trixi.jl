@@ -514,7 +514,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::CompressibleEulerEquations, cons::Array{Float64, 4})
+function cons2prim(cons, equation::CompressibleEulerEquations)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]

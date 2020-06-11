@@ -203,7 +203,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::HyperbolicDiffusionEquations, cons::Array{Float64, 4})
+function cons2prim(cons, equation::HyperbolicDiffusionEquations)
   return cons
 end
 

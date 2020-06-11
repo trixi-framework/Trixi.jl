@@ -409,7 +409,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::IdealGlmMhdEquations, cons::Array{Float64, 4})
+function cons2prim(cons, equation::IdealGlmMhdEquations)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
