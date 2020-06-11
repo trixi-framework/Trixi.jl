@@ -25,7 +25,7 @@ default_analysis_quantities(::IdealGlmMhdEquations) = (:l2_error, :linf_error, :
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_constant(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -38,7 +38,7 @@ function initial_conditions_constant(equation::IdealGlmMhdEquations, x, t)
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
 
-function initial_conditions_convergence_test(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations)
   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
   # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
   alpha = 0.25*pi
@@ -56,7 +56,7 @@ function initial_conditions_convergence_test(equation::IdealGlmMhdEquations, x, 
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
 
-function initial_conditions_orszag_tang(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 5/3
   rho = 1.0
@@ -71,7 +71,7 @@ function initial_conditions_orszag_tang(equation::IdealGlmMhdEquations, x, t)
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
 
-function initial_conditions_rotor(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 1.4
   dx = x[1] - 0.5
@@ -100,7 +100,7 @@ function initial_conditions_rotor(equation::IdealGlmMhdEquations, x, t)
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
 
-function initial_conditions_mhd_blast(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
   r = sqrt(x[1]^2 + x[2]^2)
@@ -123,7 +123,7 @@ function initial_conditions_mhd_blast(equation::IdealGlmMhdEquations, x, t)
   return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
 end
 
-function initial_conditions_ec_test(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates

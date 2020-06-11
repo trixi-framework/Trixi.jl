@@ -26,14 +26,14 @@ varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_gauss(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
 
-function initial_conditions_convergence_test(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -46,7 +46,7 @@ function initial_conditions_convergence_test(equation::LinearScalarAdvectionEqua
   return @SVector [scalar]
 end
 
-function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_sin_sin(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -54,28 +54,28 @@ function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, 
   return @SVector [scalar]
 end
 
-function initial_conditions_constant(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [2.0]
 end
 
-function initial_conditions_linear_x_y(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_x_y(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [sum(x_trans)]
 end
 
-function initial_conditions_linear_x(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_x(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [x_trans[1]]
 end
 
-function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 

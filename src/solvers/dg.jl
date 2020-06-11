@@ -732,7 +732,7 @@ function calc_error_norms(dg::Dg, t::Float64)
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes_analysis
       for i = 1:n_nodes_analysis
-        u_exact = @views dg.initial_conditions(equation, x[:, i, j], t)
+        u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
         diff = similar(u_exact)
         @views @. diff = u_exact - u[:, i, j]
         @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
@@ -1115,7 +1115,7 @@ function set_initial_conditions(dg::Dg, time)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
-            equation, dg.elements.node_coordinates[:, i, j, element_id], time)
+            dg.elements.node_coordinates[:, i, j, element_id], time, equation)
       end
     end
   end
@@ -1896,7 +1896,7 @@ function calc_boundary_flux!(destination, dg::Dg, time)
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
       @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-        equations(dg), node_coordinates[:, i, b], time)
+        node_coordinates[:, i, b], time, equations(dg))
     end
 
     # Get neighboring element

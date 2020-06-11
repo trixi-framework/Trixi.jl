@@ -31,7 +31,7 @@ default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
@@ -46,7 +46,7 @@ function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquati
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -60,7 +60,7 @@ function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEqu
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0

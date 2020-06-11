@@ -21,7 +21,7 @@ varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_density_pulse(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -32,7 +32,7 @@ function initial_conditions_density_pulse(equation::CompressibleEulerEquations, 
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations)
   rho = 1
   v1 = 1
   v2 = 1
@@ -43,7 +43,7 @@ function initial_conditions_pressure_pulse(equation::CompressibleEulerEquations,
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleEulerEquations)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -54,7 +54,7 @@ function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEq
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_constant(x, t, equation::CompressibleEulerEquations)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -62,7 +62,7 @@ function initial_conditions_constant(equation::CompressibleEulerEquations, x, t)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_convergence_test(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations)
   c = 2
   A = 0.1
   L = 2
@@ -78,7 +78,7 @@ function initial_conditions_convergence_test(equation::CompressibleEulerEquation
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_sod(x, t, equation::CompressibleEulerEquations)
   if x < 0.0
     return @SVector [1.0, 0.0, 0.0, 2.5]
   else
@@ -86,7 +86,7 @@ function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
   end
 end
 
-function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
   # initial center of the vortex
@@ -114,7 +114,7 @@ function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquatio
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = [0, 0]
@@ -132,7 +132,7 @@ function initial_conditions_weak_blast_wave(equation::CompressibleEulerEquations
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
 
-function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = [0, 0]
@@ -150,7 +150,7 @@ function initial_conditions_blast_wave(equation::CompressibleEulerEquations, x, 
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
 
-function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
   # Set up polar coordinates
   inicenter = [0, 0]
   x_norm = x[1] - inicenter[1]
@@ -174,7 +174,7 @@ function initial_conditions_sedov_blast_wave(equation::CompressibleEulerEquation
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
 
-function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
   # Set up polar coordinates
   inicenter = [0, 0]
   x_norm = x[1] - inicenter[1]
@@ -198,7 +198,7 @@ function initial_conditions_medium_sedov_blast_wave(equation::CompressibleEulerE
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
 
-function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_khi(x, t, equation::CompressibleEulerEquations)
   # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
   # change discontinuity to tanh
   # typical resolution 128^2, 256^2
@@ -219,7 +219,7 @@ function initial_conditions_khi(equation::CompressibleEulerEquations, x, t)
   return prim2cons(equation, @SVector [rho, v1, v2, p])
 end
 
-function initial_conditions_blob(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
   # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
   # change discontinuity to tanh
