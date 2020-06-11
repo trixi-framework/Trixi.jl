@@ -53,7 +53,7 @@ function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquation
   B2 = sin(alpha) + v2
   B3 = v3
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
 function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
@@ -68,7 +68,7 @@ function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
   B2 = sin(4.0*pi*x[1])/equation.gamma
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
 function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
@@ -97,7 +97,7 @@ function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
   B2 = 0.0
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
 function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
@@ -120,7 +120,7 @@ function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
   B2 = 0.0
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
 function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations)
@@ -139,7 +139,7 @@ function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations)
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(equation, @SVector [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
+  return prim2cons(SVector(rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0), equation)
 end
 
 
@@ -472,7 +472,7 @@ function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations)
 end
 
 # Convert primitive to conservative variables
-function prim2cons(equation::IdealGlmMhdEquations, prim::AbstractArray{Float64})
+function prim2cons(prim, equation::IdealGlmMhdEquations)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]

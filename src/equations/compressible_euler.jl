@@ -110,7 +110,7 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
   prim[2:3]=prim[2:3]+du*cent #v
   prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-  rho,rho_v1,rho_v2,rho_e = prim2cons(equation,prim)
+  rho,rho_v1,rho_v2,rho_e = prim2cons(prim, equation)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
@@ -129,7 +129,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(equation, @SVector [rho, v1, v2, p])
+  return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations)
@@ -147,7 +147,7 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0E-3 : 1.245
 
-  return prim2cons(equation, @SVector [rho, v1, v2, p])
+  return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
@@ -171,7 +171,7 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   v2 = 0.0
   p = r > r0 ? p0_outer : p0_inner
 
-  return prim2cons(equation, @SVector [rho, v1, v2, p])
+  return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
@@ -195,7 +195,7 @@ function initial_conditions_medium_sedov_blast_wave(x, t, equation::Compressible
   v2 = 0.0
   p = r > r0 ? p0_outer : p0_inner
 
-  return prim2cons(equation, @SVector [rho, v1, v2, p])
+  return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_khi(x, t, equation::CompressibleEulerEquations)
@@ -216,7 +216,7 @@ function initial_conditions_khi(x, t, equation::CompressibleEulerEquations)
   rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
   #  x velocity is also augmented with noise
   v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-  return prim2cons(equation, @SVector [rho, v1, v2, p])
+  return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
@@ -251,7 +251,7 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
   dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
   # velocity blob is zero
   velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  return prim2cons(equation, @SVector [dens, velx, vely0, p0])
+  return prim2cons(SVector(dens, velx, vely0, p0), equation)
 end
 
 
@@ -554,7 +554,7 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(equation::CompressibleEulerEquations, prim)
+function prim2cons(prim, equation::CompressibleEulerEquations)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
