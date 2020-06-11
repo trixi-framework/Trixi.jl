@@ -153,13 +153,13 @@ end
 function flux_central(equation::HyperbolicDiffusionEquations, orientation,
                       phi_ll, p_ll, q_ll,
                       phi_rr, p_rr, q_rr)
-  flux_central(equation, orientation,
-               SVector(phi_ll, p_ll, q_ll),
-               SVector(phi_rr, p_rr, q_rr))
+  flux_central(SVector(phi_ll, p_ll, q_ll),
+               SVector(phi_rr, p_rr, q_rr),
+               orientation, equation)
 end
 
 
-@inline function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
+@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations)
   # Obtain left and right fluxes
   f_ll = calcflux(u_ll, orientation, equation)
   f_rr = calcflux(u_rr, orientation, equation)
@@ -170,7 +170,7 @@ end
 end
 
 
-@inline function flux_upwind(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
+@inline function flux_upwind(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr

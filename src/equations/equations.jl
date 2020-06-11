@@ -37,13 +37,13 @@ default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu
 
 
 """
-    flux_central(equation::AbstractEquation, orientation, u_ll, u_rr)
+    flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
 DG method (except floating point errors).
 """
-@inline function flux_central(equation::AbstractEquation, orientation, u_ll, u_rr)
+@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
   # Calculate regular 1D fluxes
   f_ll = calcflux(u_ll, orientation, equation)
   f_rr = calcflux(u_rr, orientation, equation)

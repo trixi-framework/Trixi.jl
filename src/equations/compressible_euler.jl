@@ -318,7 +318,7 @@ end
 
 
 """
-    function flux_kuya_etal(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+    function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
 
 Kinetic energy preserving two-point flux with pressure oscillation fix
 by Kuya, Totani and Kawai (2018)
@@ -326,7 +326,7 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function flux_kuya_etal(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -365,14 +365,14 @@ end
 
 
 """
-    flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+    flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
 
 Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -408,14 +408,14 @@ end
 
 
 """
-    flux_chandrashekar(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+    flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
 
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -458,7 +458,7 @@ Entropy conserving two-point flux by Chandrashekar (2013)
 end
 
 
-function flux_lax_friedrichs(equation::CompressibleEulerEquations, orientation, u_ll, u_rr)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr

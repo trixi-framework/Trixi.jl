@@ -1196,7 +1196,7 @@ end
       for l in (i+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, l, j, element_id)
-        flux = volume_flux(equations(dg), 1, u_ll, u_rr) # 1-> x-direction
+        flux = volume_flux(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
         for v in 1:nvariables(dg)
           f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
@@ -1206,7 +1206,7 @@ end
       for l in (j+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, i, l, element_id)
-        flux = volume_flux(equations(dg), 2, u_ll, u_rr) # 2 -> y-direction
+        flux = volume_flux(u_ll, u_rr, 2, equations(dg)) # 2 -> y-direction
         for v in 1:nvariables(dg)
           f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
@@ -1322,7 +1322,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
         # use symmetry of the volume flux for the remaining terms
         for l in (i+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
-          flux = volume_flux(equations(dg), 1, u_node, u_node_l)
+          flux = volume_flux(u_node, u_node_l, 1, equations(dg))
           integral_contribution = dsplit[i, l] * flux
           add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
           integral_contribution = dsplit[l, i] * flux
@@ -1337,7 +1337,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
         # use symmetry of the volume flux for the remaining terms
         for l in (j+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
-          flux = volume_flux(equations(dg), 2, u_node, u_node_l)
+          flux = volume_flux(u_node, u_node_l, 2, equations(dg))
           integral_contribution = dsplit[j, l] * flux
           add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
           integral_contribution = dsplit[l, j] * flux
@@ -1500,7 +1500,7 @@ Calculate the finite volume fluxes inside the elements.
         u_leftright[2, v] = u[v, i,   j, element_id]
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
-      flux = surface_flux(equations(dg), 1, u_ll, u_rr) # orientation 1: x direction
+      flux = surface_flux(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
       set_node_vars!(fstar1, dg, flux, i, j)
     end
   end
@@ -1515,7 +1515,7 @@ Calculate the finite volume fluxes inside the elements.
         u_leftright[2, v] = u[v, i, j,   element_id]
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
-      flux = surface_flux(equations(dg), 2, u_ll, u_rr) # orientation 2: y direction
+      flux = surface_flux(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
       set_node_vars!(fstar2, dg, flux, i, j)
     end
   end
@@ -1745,7 +1745,7 @@ function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surfac
     for i in 1:nnodes(dg)
       u_ll = get_node_vars(u_surfaces_left,  dg, i, surface_id)
       u_rr = get_node_vars(u_surfaces_right, dg, j, surface_id)
-      flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
       # Copy flux back to actual flux array
       set_node_vars!(destination, dg, flux, i, j)
@@ -1773,7 +1773,7 @@ function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
   for i in 1:nnodes(dg)
     # Call pointwise Riemann solver
     u_ll, u_rr = get_surface_node_vars(u_surfaces, dg, i, surface_id)
-    flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+    flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
     # Copy flux to left and right element storage
     set_node_vars!(destination, dg, flux, i)
@@ -1807,7 +1807,7 @@ function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{fals
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, s)
-      flux = surface_flux(equations(dg), orientations[s], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[s], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
@@ -1922,7 +1922,7 @@ function calc_boundary_flux!(destination, dg::Dg, time)
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux(equations(dg), orientations[b], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[b], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
