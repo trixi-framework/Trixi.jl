@@ -186,6 +186,13 @@ end
             n_steps_max = 1,
             initial_conditions = "initial_conditions_pressure_pulse")
   end
+  @testset "../examples/parameters_vortex.toml one step with initial_conditions_density_pressure_pulse" begin
+    test_trixi_run("../examples/parameters_vortex.toml",
+            l2   = [0.0031880440066425803, 0.0050397619349217574, 0.005039761934921767, 0.014340770024960708],
+            linf = [0.04279723800834989, 0.06783565847184869, 0.06783565847184914, 0.19291274039254347],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_density_pressure_pulse")
+  end
   @testset "../examples/parameters_vortex.toml one step with initial_conditions_constant" begin
     test_trixi_run("../examples/parameters_vortex.toml",
             l2   = [2.152855221229516e-16, 1.0331127755108141e-16, 9.987572506366347e-17, 1.7039492223005292e-15],
