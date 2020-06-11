@@ -49,7 +49,7 @@ function initial_conditions_density_pressure_pulse(equation::CompressibleEulerEq
   v2 = 1
   rho_v1 = rho * v1
   rho_v2 = rho * v2
-  p = 1 + exp(-x^2)/2
+  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
