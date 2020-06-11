@@ -1164,7 +1164,7 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, d
 
 
 # Calculate 2D flux (element version)
-@inline function calcflux!(f1, f2, dg::Dg, u, element_id)
+@inline function calcflux!(f1, f2, u, element_id, dg::Dg)
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       u_node = get_node_vars(u, dg, i, j, element_id)
@@ -1182,7 +1182,7 @@ end
   @unpack volume_flux = dg
 
   # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, dg, u, element_id)
+  calcflux!(f1_diag, f2_diag, u, element_id, dg)
 
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
