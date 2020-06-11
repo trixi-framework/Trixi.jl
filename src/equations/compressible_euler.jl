@@ -78,14 +78,6 @@ function initial_conditions_convergence_test(equation::CompressibleEulerEquation
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_sod(equation::CompressibleEulerEquations, x, t)
-  if x < 0.0
-    return @SVector [1.0, 0.0, 0.0, 2.5]
-  else
-    return @SVector [0.125, 0.0, 0.0, 0.25]
-  end
-end
-
 function initial_conditions_isentropic_vortex(equation::CompressibleEulerEquations, x, t)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
