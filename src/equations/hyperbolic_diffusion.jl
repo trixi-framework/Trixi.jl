@@ -77,7 +77,7 @@ end
 
 
 # Apply source terms
-function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
   inv_Tr = inv(equation.Tr)
@@ -98,7 +98,7 @@ function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, u
   return nothing
 end
 
-function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   inv_Tr = inv(equation.Tr)
@@ -116,7 +116,7 @@ function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations
   return nothing
 end
 
-function source_terms_harmonic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 

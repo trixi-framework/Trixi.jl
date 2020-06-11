@@ -2179,8 +2179,8 @@ end
 
 function calc_sources!(dg::Dg, source_terms, t)
   Threads.@threads for element_id in 1:dg.n_elements
-    source_terms(equations(dg), dg.elements.u_t, dg.elements.u,
-                 dg.elements.node_coordinates, element_id, t, nnodes(dg))
+    source_terms(dg.elements.u_t, dg.elements.u,
+                 dg.elements.node_coordinates, element_id, t, nnodes(dg), equations(dg))
   end
 end
 

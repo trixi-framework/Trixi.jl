@@ -144,7 +144,7 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(equation::IdealGlmMhdEquations, ut, u, x, element_id, t, n_nodes)
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations)
 
 
 # Calculate 1D flux in for a single point

@@ -256,7 +256,7 @@ end
 
 
 # Apply source terms
-function source_terms_convergence_test(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Same settings as in `initial_conditions`
   c = 2
   A = 0.1

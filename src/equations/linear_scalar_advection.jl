@@ -84,7 +84,7 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(equation::LinearScalarAdvectionEquation, ut, u, x, element_id, t, n_nodes)
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation)
 
 
 # Calculate 1D flux in for a single point
