@@ -203,9 +203,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::HyperbolicDiffusionEquations)
-  return cons
-end
+cons2prim(cons, equation::HyperbolicDiffusionEquations) =  cons
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
 function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations)

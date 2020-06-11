@@ -108,9 +108,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::LinearScalarAdvectionEquation)
-  return cons
-end
+cons2prim(cons, equation::LinearScalarAdvectionEquation) = cons
 
 # Convert conservative variables to entropy variables
 cons2entropy(cons, n_nodes, n_elements, equation::LinearScalarAdvectionEquation) = cons
