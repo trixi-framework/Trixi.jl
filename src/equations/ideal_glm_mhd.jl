@@ -432,7 +432,7 @@ end
 
 
 # Convert conservative variables to entropy
-function cons2entropy(equation::IdealGlmMhdEquations, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)

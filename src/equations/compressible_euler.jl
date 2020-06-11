@@ -526,7 +526,7 @@ function cons2prim(cons, equation::CompressibleEulerEquations)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(equation::CompressibleEulerEquations, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations)
   entropy = similar(cons)
   v = zeros(2,n_nodes,n_nodes,n_elements)
   v_square = zeros(n_nodes,n_nodes,n_elements)

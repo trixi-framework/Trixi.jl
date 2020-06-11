@@ -208,9 +208,7 @@ function cons2prim(cons, equation::HyperbolicDiffusionEquations)
 end
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function cons2entropy(equation::HyperbolicDiffusionEquations,
-                      cons::Array{Float64, 4}, n_nodes::Int,
-                      n_elements::Int)
+function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations)
   entropy = similar(cons)
   @. entropy[1, :, :, :] = cons[1, :, :, :]
   @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]

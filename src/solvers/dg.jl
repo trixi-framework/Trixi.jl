@@ -751,7 +751,7 @@ end
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t)
   # Compute entropy variables for all elements and nodes with current solution u
-  dsdu = cons2entropy(equations(dg), dg.elements.u, nnodes(dg), dg.n_elements)
+  dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
 
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
