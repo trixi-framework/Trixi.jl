@@ -245,14 +245,14 @@ end
   return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, ::Dg, u_node, indices...)
+@inline function set_node_vars!(u, u_node, ::Dg, indices...)
   for i in eachindex(u_node)
     u[i, indices...] = u_node[i]
   end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, ::Dg, u_node, indices...)
+@inline function add_to_node_vars!(u, u_node, ::Dg, indices...)
   for i in eachindex(u_node)
     u[i, indices...] += u_node[i]
   end
@@ -732,7 +732,7 @@ function calc_error_norms(dg::Dg, t::Float64)
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
     for j = 1:n_nodes_analysis
       for i = 1:n_nodes_analysis
-        u_exact = @views dg.initial_conditions(equation, x[:, i, j], t)
+        u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
         diff = similar(u_exact)
         @views @. diff = u_exact - u[:, i, j]
         @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
@@ -751,7 +751,7 @@ end
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg, t)
   # Compute entropy variables for all elements and nodes with current solution u
-  dsdu = cons2entropy(equations(dg), dg.elements.u, nnodes(dg), dg.n_elements)
+  dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
 
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
@@ -1107,7 +1107,7 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions(dg::Dg, time)
+function set_initial_conditions!(dg::Dg, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
@@ -1115,7 +1115,7 @@ function set_initial_conditions(dg::Dg, time)
     for j = 1:nnodes(dg)
       for i = 1:nnodes(dg)
         dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
-            equation, dg.elements.node_coordinates[:, i, j, element_id], time)
+            dg.elements.node_coordinates[:, i, j, element_id], time, equation)
       end
     end
   end
@@ -1160,29 +1160,29 @@ end
 
 
 # Calculate volume integral and update u_t
-calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, dg.elements.u_t)
+calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
 
 
 # Calculate 2D flux (element version)
-@inline function calcflux!(f1, f2, dg::Dg, u, element_id)
+@inline function calcflux!(f1, f2, u, element_id, dg::Dg)
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       u_node = get_node_vars(u, dg, i, j, element_id)
-      flux1 = calcflux(equations(dg), 1, u_node)
-      flux2 = calcflux(equations(dg), 2, u_node)
-      set_node_vars!(f1, dg, flux1, i, j)
-      set_node_vars!(f2, dg, flux2, i, j)
+      flux1 = calcflux(u_node, 1, equations(dg))
+      flux2 = calcflux(u_node, 2, equations(dg))
+      set_node_vars!(f1, flux1, dg, i, j)
+      set_node_vars!(f2, flux2, dg, i, j)
     end
   end
 end
 
 
 # Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, u, element_id, dg::Dg)
   @unpack volume_flux = dg
 
   # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, dg, u, element_id)
+  calcflux!(f1_diag, f2_diag, u, element_id, dg)
 
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1196,7 +1196,7 @@ end
       for l in (i+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, l, j, element_id)
-        flux = volume_flux(equations(dg), 1, u_ll, u_rr) # 1-> x-direction
+        flux = volume_flux(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
         for v in 1:nvariables(dg)
           f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
@@ -1206,7 +1206,7 @@ end
       for l in (j+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, i, l, element_id)
-        flux = volume_flux(equations(dg), 2, u_ll, u_rr) # 2 -> y-direction
+        flux = volume_flux(u_ll, u_rr, 2, equations(dg)) # 2 -> y-direction
         for v in 1:nvariables(dg)
           f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
@@ -1214,22 +1214,22 @@ end
     end
   end
 
-  calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg, u, element_id, have_nonconservative_terms(equations(dg)))
+  calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id, nonconservative_terms::Val{false})
+function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{false}, dg::Dg)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id, nonconservative_terms::Val{true})
+function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{true}, dg::Dg)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, dg, equations(dg), u, element_id)
+  calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
 end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+function calc_volume_integral!(u_t, ::Val{:weak_form}, dg)
   @unpack dhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1238,16 +1238,16 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
       for i in 1:nnodes(dg)
         u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
 
-        flux1 = calcflux(equations(dg), 1, u_node)
+        flux1 = calcflux(u_node, 1, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, i] * flux1
-          add_to_node_vars!(u_t, dg, integral_contribution, l, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
         end
 
-        flux2 = calcflux(equations(dg), 2, u_node)
+        flux2 = calcflux(u_node, 2, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, j] * flux2
-          add_to_node_vars!(u_t, dg, integral_contribution, i, l, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
         end
       end
     end
@@ -1263,11 +1263,11 @@ end
 #       for the first version. That's why we use a dispatch here.
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
-@inline function calc_volume_integral!(dg, volume_integral_type::Val{:split_form}, u_t)
-  calc_volume_integral!(dg, volume_integral_type, have_nonconservative_terms(equations(dg)), u_t)
+@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg)
+  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{true}, u_t)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, dg)
   @unpack dsplit_transposed = dg
 
   # Type alias only for convenience
@@ -1288,7 +1288,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j in 1:nnodes(dg)
@@ -1306,7 +1306,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
   end
 end
 
-function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{false}, u_t)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, dg)
   @unpack volume_flux, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1316,32 +1316,32 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
         # x direction
         u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
         # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(equations(dg), 1, u_node)
+        flux = calcflux(u_node, 1, equations(dg))
         integral_contribution = dsplit[i, i] * flux
-        add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms
         for l in (i+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
-          flux = volume_flux(equations(dg), 1, u_node, u_node_l)
+          flux = volume_flux(u_node, u_node_l, 1, equations(dg))
           integral_contribution = dsplit[i, l] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, i] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, l, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
         end
 
         # y direction
         # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(equations(dg), 2, u_node)
+        flux = calcflux(u_node, 2, equations(dg))
         integral_contribution = dsplit[j, j] * flux
-        add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms
         for l in (j+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
-          flux = volume_flux(equations(dg), 2, u_node, u_node_l)
+          flux = volume_flux(u_node, u_node_l, 2, equations(dg))
           integral_contribution = dsplit[j, l] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, j] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, l, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
         end
       end
     end
@@ -1350,28 +1350,28 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
 
-  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dg.element_variables[:blending_factor])
+  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor], dg)
 end
 
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, dg)
   @unpack dsplit_transposed, inverse_weights = dg
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg.elements.u,
                                                            dg.shock_alpha_max,
                                                            dg.shock_alpha_min,
                                                            true,
-                                                           Val(dg.shock_indicator_variable))
+                                                           Val(dg.shock_indicator_variable), dg)
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
@@ -1409,7 +1409,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -1436,7 +1436,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate DG volume integral contribution
     for j = 1:nnodes(dg)
@@ -1457,7 +1457,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
     u_leftright = u_leftright_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, dg, u_leftright,  dg.elements.u, element_id)
+    calcflux_fv!(fstar1, fstar2, u_leftright, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
     for j = 1:nnodes(dg)
@@ -1475,7 +1475,7 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
+    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
 
 Calculate the finite volume fluxes inside the elements.
 
@@ -1487,7 +1487,7 @@ Calculate the finite volume fluxes inside the elements.
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
+@inline function calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
   @unpack surface_flux = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1500,8 +1500,8 @@ Calculate the finite volume fluxes inside the elements.
         u_leftright[2, v] = u[v, i,   j, element_id]
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
-      flux = surface_flux(equations(dg), 1, u_ll, u_rr) # orientation 1: x direction
-      set_node_vars!(fstar1, dg, flux, i, j)
+      flux = surface_flux(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
+      set_node_vars!(fstar1, flux, dg, i, j)
     end
   end
 
@@ -1515,8 +1515,8 @@ Calculate the finite volume fluxes inside the elements.
         u_leftright[2, v] = u[v, i, j,   element_id]
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
-      flux = surface_flux(equations(dg), 2, u_ll, u_rr) # orientation 2: y direction
-      set_node_vars!(fstar2, dg, flux, i, j)
+      flux = surface_flux(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
+      set_node_vars!(fstar2, flux, dg, i, j)
     end
   end
 end
@@ -1723,7 +1723,7 @@ end
 
 
 """
-    riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
+    riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
 
 Calculate the `surface_flux` across interface with different states given by
 `u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
@@ -1735,8 +1735,9 @@ Calculate the `surface_flux` across interface with different states given by
 - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
 - `surface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
+- `dg::Dg`
 """
-function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
+function riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
   @unpack surface_flux = dg
 
   # Call pointwise Riemann solver
@@ -1745,16 +1746,16 @@ function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surfac
     for i in 1:nnodes(dg)
       u_ll = get_node_vars(u_surfaces_left,  dg, i, surface_id)
       u_rr = get_node_vars(u_surfaces_right, dg, j, surface_id)
-      flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
       # Copy flux back to actual flux array
-      set_node_vars!(destination, dg, flux, i, j)
+      set_node_vars!(destination, flux, dg, i, j)
     end
   end
 end
 
 """
-    riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+    riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
 
 Calculate the `surface_flux` across interface with different states given by
 `u_surfaces_left, u_surfaces_right` on both sides (surface version).
@@ -1762,21 +1763,21 @@ Calculate the `surface_flux` across interface with different states given by
 # Arguments
 - `destination::AbstractArray{T,2} where T<:Real`:
   The array of surface flux values (updated inplace).
-- `dg::Dg`
 - `u_surfaces::AbstractArray{T,4} where T<:Real``
 - `surface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
+- `dg::Dg`
 """
-function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+function riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
   @unpack surface_flux = dg
 
   for i in 1:nnodes(dg)
     # Call pointwise Riemann solver
     u_ll, u_rr = get_surface_node_vars(u_surfaces, dg, i, surface_id)
-    flux = surface_flux(equations(dg), orientations[surface_id], u_ll, u_rr)
+    flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
     # Copy flux to left and right element storage
-    set_node_vars!(destination, dg, flux, i)
+    set_node_vars!(destination, flux, dg, i)
   end
 end
 
@@ -1786,10 +1787,9 @@ end
 #                                           2) only needed for the MHD equations
 #                                           3) not implemented for boundaries
 calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg,
-                                            have_nonconservative_terms(dg.equations))
+                                            have_nonconservative_terms(dg.equations), dg)
 
-function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{false})
+function calc_surface_flux!(destination, nonconservative_terms::Val{false}, dg::Dg)
   @unpack surface_flux = dg
   @unpack u, neighbor_ids, orientations = dg.surfaces
 
@@ -1807,7 +1807,7 @@ function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{fals
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, s)
-      flux = surface_flux(equations(dg), orientations[s], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[s], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
@@ -1818,15 +1818,15 @@ function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{fals
 end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
-function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{true})
+function calc_surface_flux!(destination, nonconservative_terms::Val{true}, dg::Dg)
   #TODO temporary workaround while implementing the other stuff
-  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, dg, nonconservative_terms,
-                     dg.surfaces.orientations)
+  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, nonconservative_terms,
+                     dg.surfaces.orientations, dg)
 end
 
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg, nonconservative_terms::Val{true},
-                            orientations::Vector{Int})
+                            u_surfaces::Array{Float64, 4}, nonconservative_terms::Val{true},
+                            orientations::Vector{Int}, dg::Dg)
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1846,7 +1846,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, dg, u_surfaces, s, orientations)
+    riemann!(fstar, u_surfaces, s, orientations, dg)
 
     # Compute the nonconservative numerical "flux" along a surface
     # Done twice because left/right orientation matters så
@@ -1854,10 +1854,10 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
     @views noncons_surface_flux!(noncons_diamond_primary,
                                  u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
-                                 s, equations(dg), nnodes(dg), orientations)
+                                 s, nnodes(dg), orientations, equations(dg))
     @views noncons_surface_flux!(noncons_diamond_secondary,
                                  u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
-                                 s, equations(dg), nnodes(dg), orientations)
+                                 s, nnodes(dg), orientations, equations(dg))
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -1896,7 +1896,7 @@ function calc_boundary_flux!(destination, dg::Dg, time)
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
       @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-        equations(dg), node_coordinates[:, i, b], time)
+        node_coordinates[:, i, b], time, equations(dg))
     end
 
     # Get neighboring element
@@ -1922,7 +1922,7 @@ function calc_boundary_flux!(destination, dg::Dg, time)
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux(equations(dg), orientations[b], u_ll, u_rr)
+      flux = surface_flux(u_ll, u_rr, orientations[b], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
@@ -1965,8 +1965,8 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
-    riemann!(fstar_upper, dg, u_upper, m, orientations)
-    riemann!(fstar_lower, dg, u_lower, m, orientations)
+    riemann!(fstar_upper, u_upper, m, orientations, dg)
+    riemann!(fstar_lower, u_lower, m, orientations, dg)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
@@ -2059,11 +2059,11 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
 
     # Calculate fluxes
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
-      riemann!(fstar_upper, dg, u_large, u_upper, m, orientations)
-      riemann!(fstar_lower, dg, u_large, u_lower, m, orientations)
+      riemann!(fstar_upper, u_large, u_upper, m, orientations, dg)
+      riemann!(fstar_lower, u_large, u_lower, m, orientations, dg)
     else # large_sides[m] == 2 -> small elements on left side, large element on right
-      riemann!(fstar_upper, dg, u_upper, u_large, m, orientations)
-      riemann!(fstar_lower, dg, u_lower, u_large, m, orientations)
+      riemann!(fstar_upper, u_upper, u_large, m, orientations, dg)
+      riemann!(fstar_lower, u_lower, u_large, m, orientations, dg)
     end
 
     # Transfer fluxes to elements
@@ -2137,8 +2137,8 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg, dg.elements.surface_flux)
-function calc_surface_integral!(u_t, dg, surface_flux)
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux, dg)
+function calc_surface_integral!(u_t, surface_flux, dg)
   @unpack lhat = dg
 
   Threads.@threads for element_id = 1:dg.n_elements
@@ -2179,8 +2179,8 @@ end
 
 function calc_sources!(dg::Dg, source_terms, t)
   Threads.@threads for element_id in 1:dg.n_elements
-    source_terms(equations(dg), dg.elements.u_t, dg.elements.u,
-                 dg.elements.node_coordinates, element_id, t, nnodes(dg))
+    source_terms(dg.elements.u_t, dg.elements.u,
+                 dg.elements.node_coordinates, element_id, t, nnodes(dg), equations(dg))
   end
 end
 
@@ -2189,8 +2189,8 @@ end
 function calc_dt(dg::Dg, cfl)
   min_dt = Inf
   for element_id = 1:dg.n_elements
-    dt = calc_max_dt(equations(dg), dg.elements.u, element_id, nnodes(dg),
-                     dg.elements.inverse_jacobian[element_id], cfl)
+    dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
+                     dg.elements.inverse_jacobian[element_id], cfl, equations(dg))
     min_dt = min(min_dt, dt)
   end
 
@@ -2198,9 +2198,9 @@ function calc_dt(dg::Dg, cfl)
 end
 
 # Calculate blending factors used for shock capturing, or amr control
-function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
+function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Float64},
                                alpha_max::Float64, alpha_min::Float64, do_smoothing::Bool,
-                               indicator_variable)
+                               indicator_variable, dg)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
@@ -2208,7 +2208,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray
 
   for element_id in 1:dg.n_elements
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, equations(dg), u, element_id, nnodes(dg), indicator_variable)
+    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
     modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)

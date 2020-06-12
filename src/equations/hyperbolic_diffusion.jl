@@ -31,7 +31,7 @@ default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
@@ -46,7 +46,7 @@ function initial_conditions_poisson_periodic(equation::HyperbolicDiffusionEquati
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -60,7 +60,7 @@ function initial_conditions_poisson_nonperiodic(equation::HyperbolicDiffusionEqu
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_harmonic_nonperiodic(equation::HyperbolicDiffusionEquations, x, t)
+function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -77,7 +77,7 @@ end
 
 
 # Apply source terms
-function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
   inv_Tr = inv(equation.Tr)
@@ -98,7 +98,7 @@ function source_terms_poisson_periodic(equation::HyperbolicDiffusionEquations, u
   return nothing
 end
 
-function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   inv_Tr = inv(equation.Tr)
@@ -116,7 +116,7 @@ function source_terms_poisson_nonperiodic(equation::HyperbolicDiffusionEquations
   return nothing
 end
 
-function source_terms_harmonic(equation::HyperbolicDiffusionEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 
@@ -132,7 +132,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(equation::HyperbolicDiffusionEquations, orientation, u)
+@inline function calcflux(u, orientation, equation::HyperbolicDiffusionEquations)
   phi, p, q = u
 
   if orientation == 1
@@ -149,20 +149,10 @@ end
 end
 
 
-# Central two-point flux (identical to weak form volume integral, except for floating point errors)
-function flux_central(equation::HyperbolicDiffusionEquations, orientation,
-                      phi_ll, p_ll, q_ll,
-                      phi_rr, p_rr, q_rr)
-  flux_central(equation, orientation,
-               SVector(phi_ll, p_ll, q_ll),
-               SVector(phi_rr, p_rr, q_rr))
-end
-
-
-@inline function flux_lax_friedrichs(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
+@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations)
   # Obtain left and right fluxes
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   λ_max = sqrt(equation.nu / equation.Tr)
 
@@ -170,12 +160,12 @@ end
 end
 
 
-@inline function flux_upwind(equation::HyperbolicDiffusionEquations, orientation, u_ll, u_rr)
+@inline function flux_upwind(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr
-  f_ll = calcflux(equation, orientation, u_ll)
-  f_rr = calcflux(equation, orientation, u_rr)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
@@ -194,9 +184,8 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(equation::HyperbolicDiffusionEquations, u::Array{Float64, 4},
-                     element_id::Int, n_nodes::Int,
-                     invjacobian::Float64, cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::HyperbolicDiffusionEquations)
   dt = cfl * 2 / (invjacobian * sqrt(equation.nu/equation.Tr)) / n_nodes
 
   return dt
@@ -204,14 +193,10 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::HyperbolicDiffusionEquations, cons::Array{Float64, 4})
-  return cons
-end
+cons2prim(cons, equation::HyperbolicDiffusionEquations) =  cons
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function cons2entropy(equation::HyperbolicDiffusionEquations,
-                      cons::Array{Float64, 4}, n_nodes::Int,
-                      n_elements::Int)
+function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations)
   entropy = similar(cons)
   @. entropy[1, :, :, :] = cons[1, :, :, :]
   @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]
