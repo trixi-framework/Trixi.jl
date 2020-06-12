@@ -49,7 +49,7 @@ function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleE
   v2 = 1
   rho_v1 = rho * v1
   rho_v2 = rho * v2
-  p = 1 + exp(-x^2)/2
+  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
@@ -76,14 +76,6 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
   rho_e = ini^2
 
   return @SVector [rho, rho_v1, rho_v2, rho_e]
-end
-
-function initial_conditions_sod(x, t, equation::CompressibleEulerEquations)
-  if x < 0.0
-    return @SVector [1.0, 0.0, 0.0, 2.5]
-  else
-    return @SVector [0.125, 0.0, 0.0, 0.25]
-  end
 end
 
 function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations)
@@ -611,25 +603,27 @@ end
 
 
 # Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
-@inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)
-  entropy = MVector{4, Float64}(undef)
-  v = (cons[2] / cons[1] , cons[3] / cons[1])
-  v_square= v[1]*v[1]+v[2]*v[2]
-  p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-  rho_p = cons[1] / p
-  # thermodynamic entropy
-  s = log(p) - gamma*log(cons[1])
-  # mathematical entropy
-  S = - s*cons[1]/(gamma-1)
-  # entropy variables
-  entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
-  entropy[2] = rho_p*v[1]
-  entropy[3] = rho_p*v[2]
-  entropy[4] = -rho_p
-  # entropy flux
-  entropy_flux = S*v[orientation]
-  return entropy, entropy_flux
-end
+# NOTE: This method seems to work currently (b82534e) but is never used anywhere. Thus it is
+# commented here until someone uses it or writes a test for it.
+# @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)
+#   entropy = MVector{4, Float64}(undef)
+#   v = (cons[2] / cons[1] , cons[3] / cons[1])
+#   v_square= v[1]*v[1]+v[2]*v[2]
+#   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
+#   rho_p = cons[1] / p
+#   # thermodynamic entropy
+#   s = log(p) - gamma*log(cons[1])
+#   # mathematical entropy
+#   S = - s*cons[1]/(gamma-1)
+#   # entropy variables
+#   entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
+#   entropy[2] = rho_p*v[1]
+#   entropy[3] = rho_p*v[2]
+#   entropy[4] = -rho_p
+#   # entropy flux
+#   entropy_flux = S*v[orientation]
+#   return entropy, entropy_flux
+# end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
