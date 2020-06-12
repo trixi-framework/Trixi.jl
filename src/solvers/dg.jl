@@ -2137,8 +2137,8 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg, dg.elements.surface_flux)
-function calc_surface_integral!(u_t, dg, surface_flux)
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux, dg)
+function calc_surface_integral!(u_t, surface_flux, dg)
   @unpack lhat = dg
 
   Threads.@threads for element_id = 1:dg.n_elements
