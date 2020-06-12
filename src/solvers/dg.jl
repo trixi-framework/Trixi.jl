@@ -1457,7 +1457,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
     u_leftright = u_leftright_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, dg, u_leftright,  dg.elements.u, element_id)
+    calcflux_fv!(fstar1, fstar2, u_leftright, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
     for j = 1:nnodes(dg)
@@ -1475,7 +1475,7 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
+    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
 
 Calculate the finite volume fluxes inside the elements.
 
@@ -1487,7 +1487,7 @@ Calculate the finite volume fluxes inside the elements.
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, dg::Dg, u_leftright, u, element_id)
+@inline function calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
   @unpack surface_flux = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1723,7 +1723,7 @@ end
 
 
 """
-    riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
+    riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
 
 Calculate the `surface_flux` across interface with different states given by
 `u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
@@ -1735,8 +1735,9 @@ Calculate the `surface_flux` across interface with different states given by
 - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
 - `surface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
+- `dg::Dg`
 """
-function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surface_id, orientations)
+function riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
   @unpack surface_flux = dg
 
   # Call pointwise Riemann solver
@@ -1754,7 +1755,7 @@ function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surfac
 end
 
 """
-    riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+    riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
 
 Calculate the `surface_flux` across interface with different states given by
 `u_surfaces_left, u_surfaces_right` on both sides (surface version).
@@ -1762,12 +1763,12 @@ Calculate the `surface_flux` across interface with different states given by
 # Arguments
 - `destination::AbstractArray{T,2} where T<:Real`:
   The array of surface flux values (updated inplace).
-- `dg::Dg`
 - `u_surfaces::AbstractArray{T,4} where T<:Real``
 - `surface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
+- `dg::Dg`
 """
-function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
+function riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
   @unpack surface_flux = dg
 
   for i in 1:nnodes(dg)
@@ -1846,7 +1847,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, dg, u_surfaces, s, orientations)
+    riemann!(fstar, u_surfaces, s, orientations, dg)
 
     # Compute the nonconservative numerical "flux" along a surface
     # Done twice because left/right orientation matters så
@@ -1965,8 +1966,8 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
-    riemann!(fstar_upper, dg, u_upper, m, orientations)
-    riemann!(fstar_lower, dg, u_lower, m, orientations)
+    riemann!(fstar_upper, u_upper, m, orientations, dg)
+    riemann!(fstar_lower, u_lower, m, orientations, dg)
 
     # Copy flux small to small
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
@@ -2059,11 +2060,11 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
 
     # Calculate fluxes
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
-      riemann!(fstar_upper, dg, u_large, u_upper, m, orientations)
-      riemann!(fstar_lower, dg, u_large, u_lower, m, orientations)
+      riemann!(fstar_upper, u_large, u_upper, m, orientations, dg)
+      riemann!(fstar_lower, u_large, u_lower, m, orientations, dg)
     else # large_sides[m] == 2 -> small elements on left side, large element on right
-      riemann!(fstar_upper, dg, u_upper, u_large, m, orientations)
-      riemann!(fstar_lower, dg, u_lower, u_large, m, orientations)
+      riemann!(fstar_upper, u_upper, u_large, m, orientations, dg)
+      riemann!(fstar_lower, u_lower, u_large, m, orientations, dg)
     end
 
     # Transfer fluxes to elements
