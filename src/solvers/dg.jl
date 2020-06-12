@@ -1178,7 +1178,7 @@ end
 
 
 # Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id)
+@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, u, element_id, dg::Dg)
   @unpack volume_flux = dg
 
   # Calculate regular volume fluxes
@@ -1214,17 +1214,17 @@ end
     end
   end
 
-  calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg, u, element_id, have_nonconservative_terms(equations(dg)))
+  calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id, nonconservative_terms::Val{false})
+function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{false}, dg::Dg)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id, nonconservative_terms::Val{true})
+function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{true}, dg::Dg)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, dg, u, element_id, equations(dg))
+  calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
 end
 
 
@@ -1288,7 +1288,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j in 1:nnodes(dg)
@@ -1409,7 +1409,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -1436,7 +1436,7 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
     f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg, dg.elements.u, element_id)
+    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate DG volume integral contribution
     for j = 1:nnodes(dg)
