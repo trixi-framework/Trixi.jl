@@ -200,7 +200,37 @@ end
             n_steps_max = 1,
             initial_conditions = "initial_conditions_constant")
   end
+  @testset "../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml one step" begin
+    test_trixi_run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml",
+            l2   = [0.002911075352335366, 0.01249799423742342, 0.01249799423742343, 0.11130739933709777],
+            linf = [0.15341072072011042, 0.763322686048535, 0.7633226860485351, 5.184635785270958],
+            n_steps_max = 1)
+  end
+  @testset "../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml one step with initial_conditions_medium_sedov_blast_wave" begin
+    test_trixi_run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml",
+            l2   = [0.0029095199084281176, 0.012491250999308508, 0.012491250999308522, 0.11126623649275227],
+            linf = [0.15334906997459008, 0.7629367729245761, 0.7629367729245761, 5.18264418672338],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_medium_sedov_blast_wave")
+  end
+
+  # GLM-MHD
+  @testset "../examples/parameters_alfven_wave.toml one step with initial_conditions_constant" begin
+    test_trixi_run("../examples/parameters_alfven_wave.toml",
+            l2   = [2.0958792071577763e-16, 2.0050522345770137e-16, 4.67253468151704e-16, 1.0737400163083646e-16, 4.128456348036466e-15, 4.509403038981195e-16, 2.822966014836298e-16, 1.0943179254724171e-16, 1.7656549191657418e-16],
+            linf = [3.3306690738754696e-16, 4.163336342344337e-16, 3.885780586188048e-16, 1.1102230246251565e-16, 0.0, 5.551115123125783e-17, 2.220446049250313e-16, 1.6653345369377348e-16, 4.1677917377482687e-16],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_constant")
+  end
+  @testset "../examples/parameters_rotor.toml one step" begin
+    test_trixi_run("../examples/parameters_rotor.toml",
+            l2   = [0.019427744975023344, 0.04740447527885731, 0.043330457224485704, 0.0, 0.07742181652703439, 0.0071460140577900575, 0.00984439127521705, 0.0, 0.0021335541010966083],
+            linf = [0.5279494653654151, 1.9501858268442724, 1.9517180876506082, 0.0, 2.9931160992455936, 0.389052695580107, 0.3907824507405411, 0.0, 0.1822683069110969],
+            n_steps_max = 1)
+  end
+  @test_skip Trixi.run("../examples/parameters_mhd_blast_wave.toml", n_steps_max=1)
 end
+
 
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
