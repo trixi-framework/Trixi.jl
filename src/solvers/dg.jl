@@ -1160,7 +1160,7 @@ end
 
 
 # Calculate volume integral and update u_t
-calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, dg.elements.u_t)
+calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
 
 
 # Calculate 2D flux (element version)
@@ -1229,7 +1229,7 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
+function calc_volume_integral!(u_t, ::Val{:weak_form}, dg)
   @unpack dhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1263,11 +1263,11 @@ end
 #       for the first version. That's why we use a dispatch here.
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
-@inline function calc_volume_integral!(dg, volume_integral_type::Val{:split_form}, u_t)
-  calc_volume_integral!(dg, volume_integral_type, have_nonconservative_terms(equations(dg)), u_t)
+@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg)
+  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{true}, u_t)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, dg)
   @unpack dsplit_transposed = dg
 
   # Type alias only for convenience
@@ -1306,7 +1306,7 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
   end
 end
 
-function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Val{false}, u_t)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, dg)
   @unpack volume_flux, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1350,17 +1350,17 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
 
-  calc_volume_integral!(dg, Val(:shock_capturing), u_t, dg.element_variables[:blending_factor])
+  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor], dg)
 end
 
-function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, dg)
   @unpack dsplit_transposed, inverse_weights = dg
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
