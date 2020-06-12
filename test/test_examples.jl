@@ -195,8 +195,8 @@ end
   end
   @testset "../examples/parameters_vortex.toml one step with initial_conditions_constant" begin
     test_trixi_run("../examples/parameters_vortex.toml",
-            l2   = [2.152855221229516e-16, 1.0331127755108141e-16, 9.987572506366347e-17, 1.7039492223005292e-15],
-            linf = [4.440892098500626e-16, 2.7755575615628914e-16, 3.885780586188048e-16, 3.552713678800501e-15],
+            l2   = [2.359732835648237e-16, 1.088770274131804e-16, 1.1814939065033234e-16, 1.980283448445849e-15],
+            linf = [4.440892098500626e-16, 2.914335439641036e-16, 4.718447854656915e-16, 3.552713678800501e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_constant")
   end
