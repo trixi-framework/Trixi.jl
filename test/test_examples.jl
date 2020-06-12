@@ -188,24 +188,24 @@ end
   end
   @testset "../examples/parameters.toml with initial_conditions_linear_x_y" begin
     test_trixi_run("../examples/parameters.toml",
-            l2   = [0.28716994072507784],
-            linf = [5.0513408],
+            l2   = [2.559042358408011e-16],
+            linf = [6.8833827526759706e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_x_y",
             periodicity=false)
   end
   @testset "../examples/parameters.toml with initial_conditions_linear_x" begin
     test_trixi_run("../examples/parameters.toml",
-            l2   = [0.201514980654101],
-            linf = [2.525670400000001],
+            l2   = [1.5901063275642836e-16],
+            linf = [1.5543122344752192e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_x",
             periodicity=false)
   end
   @testset "../examples/parameters.toml with initial_conditions_linear_y" begin
     test_trixi_run("../examples/parameters.toml",
-            l2   = [0.20151498065410095],
-            linf = [2.525670400000001],
+            l2   = [1.597250146891042e-16],
+            linf = [3.552713678800501e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_y",
             periodicity=false)
