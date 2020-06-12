@@ -1787,10 +1787,9 @@ end
 #                                           2) only needed for the MHD equations
 #                                           3) not implemented for boundaries
 calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
-                                            dg,
-                                            have_nonconservative_terms(dg.equations))
+                                            have_nonconservative_terms(dg.equations), dg)
 
-function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{false})
+function calc_surface_flux!(destination, nonconservative_terms::Val{false}, dg::Dg)
   @unpack surface_flux = dg
   @unpack u, neighbor_ids, orientations = dg.surfaces
 
@@ -1819,15 +1818,15 @@ function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{fals
 end
 
 # Calculate and store Riemann and nonconservative fluxes across surfaces
-function calc_surface_flux!(destination, dg::Dg, nonconservative_terms::Val{true})
+function calc_surface_flux!(destination, nonconservative_terms::Val{true}, dg::Dg)
   #TODO temporary workaround while implementing the other stuff
-  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, dg, nonconservative_terms,
-                     dg.surfaces.orientations)
+  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, nonconservative_terms,
+                     dg.surfaces.orientations, dg)
 end
 
 function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, dg::Dg, nonconservative_terms::Val{true},
-                            orientations::Vector{Int})
+                            u_surfaces::Array{Float64, 4}, nonconservative_terms::Val{true},
+                            orientations::Vector{Int}, dg::Dg)
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
