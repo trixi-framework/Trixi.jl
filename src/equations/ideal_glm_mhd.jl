@@ -183,7 +183,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, dg, equation::IdealGlmMhdEquations, u, element_id)
+@inline function calcflux_twopoint_nonconservative!(f1, f2, dg, u, element_id, equation::IdealGlmMhdEquations)
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
@@ -340,11 +340,8 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
-function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
-                               u_left::AbstractArray{Float64},
-                               u_right::AbstractArray{Float64},
-                               surface_id::Int, equation::IdealGlmMhdEquations, n_nodes::Int,
-                               orientations::Vector{Int})
+function noncons_surface_flux!(noncons_flux, u_left, u_right, surface_id, n_nodes, orientations,
+                               equation::IdealGlmMhdEquations)
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]

@@ -1224,7 +1224,7 @@ end
 function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, dg::Dg, u, element_id, nonconservative_terms::Val{true})
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, dg, equations(dg), u, element_id)
+  calcflux_twopoint_nonconservative!(f1, f2, dg, u, element_id, equations(dg))
 end
 
 
@@ -1854,10 +1854,10 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
     @views noncons_surface_flux!(noncons_diamond_primary,
                                  u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
-                                 s, equations(dg), nnodes(dg), orientations)
+                                 s, nnodes(dg), orientations, equations(dg))
     @views noncons_surface_flux!(noncons_diamond_secondary,
                                  u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
-                                 s, equations(dg), nnodes(dg), orientations)
+                                 s, nnodes(dg), orientations, equations(dg))
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
