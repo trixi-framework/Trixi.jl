@@ -1107,7 +1107,7 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions(dg::Dg, time)
+function set_initial_conditions!(dg::Dg, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
