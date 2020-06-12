@@ -1367,11 +1367,11 @@ function calc_volume_integral!(dg, ::Val{:shock_capturing}, u_t, alpha)
   # Note: We need this 'out' shenanigans as otherwise the timer does not work
   # properly and causes a huge increase in memory allocations.
   out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg, dg.elements.u,
+  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg.elements.u,
                                                            dg.shock_alpha_max,
                                                            dg.shock_alpha_min,
                                                            true,
-                                                           Val(dg.shock_indicator_variable))
+                                                           Val(dg.shock_indicator_variable), dg)
   element_ids_dg, element_ids_dgfv = out
 
   # Type alias only for convenience
@@ -2198,9 +2198,9 @@ function calc_dt(dg::Dg, cfl)
 end
 
 # Calculate blending factors used for shock capturing, or amr control
-function calc_blending_factors(alpha::Vector{Float64}, out, dg, u::AbstractArray{Float64},
+function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Float64},
                                alpha_max::Float64, alpha_min::Float64, do_smoothing::Bool,
-                               indicator_variable)
+                               indicator_variable, dg)
   # Calculate blending factor
   indicator = zeros(1, nnodes(dg), nnodes(dg))
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
