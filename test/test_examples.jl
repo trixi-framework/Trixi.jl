@@ -191,21 +191,24 @@ end
             l2   = [0.28716994072507784],
             linf = [5.0513408],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_x_y")
+            initial_conditions = "initial_conditions_linear_x_y",
+            periodicity=false)
   end
   @testset "../examples/parameters.toml with initial_conditions_linear_x" begin
     test_trixi_run("../examples/parameters.toml",
             l2   = [0.201514980654101],
             linf = [2.525670400000001],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_x")
+            initial_conditions = "initial_conditions_linear_x",
+            periodicity=false)
   end
   @testset "../examples/parameters.toml with initial_conditions_linear_y" begin
     test_trixi_run("../examples/parameters.toml",
             l2   = [0.20151498065410095],
             linf = [2.525670400000001],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_y")
+            initial_conditions = "initial_conditions_linear_y",
+            periodicity=false)
   end
   # Compressible Euler
   @testset "../examples/parameters_vortex.toml one step with initial_conditions_density_pulse" begin
