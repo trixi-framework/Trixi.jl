@@ -245,14 +245,14 @@ end
   return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, ::Dg, u_node, indices...)
+@inline function set_node_vars!(u, u_node, ::Dg, indices...)
   for i in eachindex(u_node)
     u[i, indices...] = u_node[i]
   end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, ::Dg, u_node, indices...)
+@inline function add_to_node_vars!(u, u_node, ::Dg, indices...)
   for i in eachindex(u_node)
     u[i, indices...] += u_node[i]
   end
@@ -1170,8 +1170,8 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg, dg.volume_integral_type, d
       u_node = get_node_vars(u, dg, i, j, element_id)
       flux1 = calcflux(u_node, 1, equations(dg))
       flux2 = calcflux(u_node, 2, equations(dg))
-      set_node_vars!(f1, dg, flux1, i, j)
-      set_node_vars!(f2, dg, flux2, i, j)
+      set_node_vars!(f1, flux1, dg, i, j)
+      set_node_vars!(f2, flux2, dg, i, j)
     end
   end
 end
@@ -1241,13 +1241,13 @@ function calc_volume_integral!(dg, ::Val{:weak_form}, u_t)
         flux1 = calcflux(u_node, 1, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, i] * flux1
-          add_to_node_vars!(u_t, dg, integral_contribution, l, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
         end
 
         flux2 = calcflux(u_node, 2, equations(dg))
         for l in 1:nnodes(dg)
           integral_contribution = dhat[l, j] * flux2
-          add_to_node_vars!(u_t, dg, integral_contribution, i, l, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
         end
       end
     end
@@ -1318,30 +1318,30 @@ function calc_volume_integral!(dg, ::Val{:split_form}, nonconservative_terms::Va
         # use consistency of the volume flux to make this evaluation cheaper
         flux = calcflux(u_node, 1, equations(dg))
         integral_contribution = dsplit[i, i] * flux
-        add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms
         for l in (i+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
           flux = volume_flux(u_node, u_node_l, 1, equations(dg))
           integral_contribution = dsplit[i, l] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, i] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, l, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
         end
 
         # y direction
         # use consistency of the volume flux to make this evaluation cheaper
         flux = calcflux(u_node, 2, equations(dg))
         integral_contribution = dsplit[j, j] * flux
-        add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
         # use symmetry of the volume flux for the remaining terms
         for l in (j+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
           flux = volume_flux(u_node, u_node_l, 2, equations(dg))
           integral_contribution = dsplit[j, l] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, j, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, j] * flux
-          add_to_node_vars!(u_t, dg, integral_contribution, i, l, element_id)
+          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
         end
       end
     end
@@ -1501,7 +1501,7 @@ Calculate the finite volume fluxes inside the elements.
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
       flux = surface_flux(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
-      set_node_vars!(fstar1, dg, flux, i, j)
+      set_node_vars!(fstar1, flux, dg, i, j)
     end
   end
 
@@ -1516,7 +1516,7 @@ Calculate the finite volume fluxes inside the elements.
       end
       u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
       flux = surface_flux(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
-      set_node_vars!(fstar2, dg, flux, i, j)
+      set_node_vars!(fstar2, flux, dg, i, j)
     end
   end
 end
@@ -1748,7 +1748,7 @@ function riemann!(destination, dg::Dg, u_surfaces_left, u_surfaces_right, surfac
       flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
       # Copy flux back to actual flux array
-      set_node_vars!(destination, dg, flux, i, j)
+      set_node_vars!(destination, flux, dg, i, j)
     end
   end
 end
@@ -1776,7 +1776,7 @@ function riemann!(destination, dg::Dg, u_surfaces, surface_id, orientations)
     flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
 
     # Copy flux to left and right element storage
-    set_node_vars!(destination, dg, flux, i)
+    set_node_vars!(destination, flux, dg, i)
   end
 end
 
