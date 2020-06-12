@@ -171,6 +171,42 @@ end
 
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
+  # Linear scalar advection
+  @testset "../examples/parameters.toml with initial_conditions_sin_sin" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.0001424424804667062],
+            linf = [0.0007260692243250544],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_sin_sin")
+  end
+  @testset "../examples/parameters.toml with initial_conditions_constant" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [6.120436421866528e-16],
+            linf = [1.3322676295501878e-15],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_constant")
+  end
+  @testset "../examples/parameters.toml with initial_conditions_linear_x_y" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.28716994072507784],
+            linf = [5.0513408],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_linear_x_y")
+  end
+  @testset "../examples/parameters.toml with initial_conditions_linear_x" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.201514980654101],
+            linf = [2.525670400000001],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_linear_x")
+  end
+  @testset "../examples/parameters.toml with initial_conditions_linear_y" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.20151498065410095],
+            linf = [2.525670400000001],
+            n_steps_max = 1,
+            initial_conditions = "initial_conditions_linear_y")
+  end
   # Compressible Euler
   @testset "../examples/parameters_vortex.toml one step with initial_conditions_density_pulse" begin
     test_trixi_run("../examples/parameters_vortex.toml",
