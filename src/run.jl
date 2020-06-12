@@ -131,7 +131,7 @@ function init_simulation()
     t_start = parameter("t_start")
     time = t_start
     step = 0
-    set_initial_conditions(solver, time)
+    set_initial_conditions!(solver, time)
     println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
@@ -141,7 +141,7 @@ function init_simulation()
 
       # Iterate until mesh does not change anymore
       while has_changed
-        set_initial_conditions(solver, time)
+        set_initial_conditions!(solver, time)
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
             only_refine=adapt_initial_conditions_only_refine)
       end

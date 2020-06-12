@@ -12,6 +12,6 @@ docs/build
 docs/Manifest.toml
 test/coverage/Manifest.toml
 public/
+coverage/
 coverage_report/
-src/**/*.jl.*.cov
-test/**/*.jl.*.cov
+**/*.jl.*.cov

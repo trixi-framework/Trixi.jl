@@ -32,8 +32,8 @@ function refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   for old_element_id in 1:old_n_elements
     if needs_refinement[old_element_id]
       # Refine element and store solution directly in new data structure
-      refine_element!(elements.u, element_id, old_u, old_element_id, dg,
-                      dg.mortar_forward_upper, dg.mortar_forward_lower)
+      refine_element!(elements.u, element_id, old_u, old_element_id,
+                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
       element_id += 2^ndim
     else
       # Copy old element data to new element container
@@ -78,9 +78,8 @@ end
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
                          old_u::AbstractArray{Float64, 4}, old_element_id::Int,
-                         dg::Dg,
                          forward_upper::AbstractMatrix{Float64},
-                         forward_lower::AbstractMatrix{Float64})
+                         forward_lower::AbstractMatrix{Float64}, dg::Dg)
   # Store new element ids
   lower_left_id  = element_id
   lower_right_id = element_id + 1
@@ -192,8 +191,8 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
       @assert all(to_be_removed[old_element_id:(old_element_id+2^ndim-1)]) "bad cell/element order"
 
       # Coarsen elements and store solution directly in new data structure
-      coarsen_elements!(elements.u, element_id, old_u, old_element_id, dg,
-                        dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower)
+      coarsen_elements!(elements.u, element_id, old_u, old_element_id,
+                        dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg)
       element_id += 1
       skip = 3
     else
@@ -239,9 +238,8 @@ end
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
                            old_u::AbstractArray{Float64, 4}, old_element_id::Int,
-                           dg::Dg,
                            reverse_upper::AbstractMatrix{Float64},
-                           reverse_lower::AbstractMatrix{Float64})
+                           reverse_lower::AbstractMatrix{Float64}, dg::Dg)
   # Store old element ids
   lower_left_id  = old_element_id
   lower_right_id = old_element_id + 1
@@ -409,8 +407,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:amr_indicator_values]
     out = Any[]
-    calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                          Val(:density))
+    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                          Val(:density), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -451,8 +449,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:amr_indicator_values]
     out = Any[]
-    calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                          Val(:density))
+    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                          Val(:density), dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -462,11 +460,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha1 = dg.element_variables[:blending_factor]
     out = Any[]
-    calc_blending_factors(alpha1, out, dg, dg.elements.u,
-                                                dg.shock_alpha_max,
-                                                dg.shock_alpha_min,
-                                                true,
-                                                Val(dg.shock_indicator_variable))
+    calc_blending_factors(alpha1, out, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
+                          Val(dg.shock_indicator_variable), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -507,8 +502,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    calc_blending_factors(alpha, out, dg, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                          Val(:density_pressure))
+    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                          Val(:density_pressure), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

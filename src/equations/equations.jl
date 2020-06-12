@@ -37,47 +37,20 @@ default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu
 
 
 """
-    riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-             equation::AbstractEquation, n_nodes, orientations)
+    flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
 
-Calculate the `surface_flux` across interface with different states given by
-`u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
-
-# Arguments
-- `destination::AbstractArray{T,3} where T<:Real`:
-  The array of surface flux values (updated inplace).
-- `surface_flux`:
-  The surface flux as a function.
-- `u_surfaces_left::AbstractArray{T,3} where T<:Real``
-- `u_surfaces_right::AbstractArray{T,3} where T<:Real``
-- `surface_id::Integer`
-- `equation::AbstractEquations`
-- `n_nodes::Integer`
-- `orientations::Vector{T} where T<:Integer`
+The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
+used as volume flux, the discretization is equivalent to the classical weak form
+DG method (except floating point errors).
 """
-function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-                  equation::AbstractEquation, n_nodes, orientations) end
+@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
+  # Calculate regular 1D fluxes
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
-"""
-    riemann!(destination, surface_flux, u_surfaces, surface_id,
-             equation::AbstractEquation, n_nodes, orientations)
-
-Calculate the `surface_flux` across interface with different states given by
-`u_surfaces_left, u_surfaces_right` on both sides (surface version).
-
-# Arguments
-- `destination::AbstractArray{T,2} where T<:Real`:
-  The array of surface flux values (updated inplace).
-- `surface_flux`:
-  The surface flux as a function.
-- `u_surfaces::AbstractArray{T,4} where T<:Real``
-- `surface_id::Integer`
-- `equation::AbstractEquations`
-- `n_nodes::Integer`
-- `orientations::Vector{T} where T<:Integer`
-"""
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::AbstractEquation, n_nodes, orientations) end
+  # Average regular fluxes
+  return 0.5 * (f_ll + f_rr)
+end
 
 
 ####################################################################################################

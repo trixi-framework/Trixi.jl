@@ -26,14 +26,14 @@ varnames_prim(::LinearScalarAdvectionEquation) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_gauss(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
 
-function initial_conditions_convergence_test(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -46,7 +46,7 @@ function initial_conditions_convergence_test(equation::LinearScalarAdvectionEqua
   return @SVector [scalar]
 end
 
-function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_sin_sin(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -54,28 +54,28 @@ function initial_conditions_sin_sin(equation::LinearScalarAdvectionEquation, x, 
   return @SVector [scalar]
 end
 
-function initial_conditions_constant(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [2.0]
 end
 
-function initial_conditions_linear_x_y(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_x_y(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [sum(x_trans)]
 end
 
-function initial_conditions_linear_x(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_x(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [x_trans[1]]
 end
 
-function initial_conditions_linear_y(equation::LinearScalarAdvectionEquation, x, t)
+function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquation)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -84,87 +84,34 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(equation::LinearScalarAdvectionEquation, ut, u, x, element_id, t, n_nodes)
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation)
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::LinearScalarAdvectionEquation,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, u[:, i, j, element_id])
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::LinearScalarAdvectionEquation,
-                           u::AbstractArray{Float64})
-  f1[1] = u[1] * equation.advectionvelocity[1]
-  f2[1] = u[1] * equation.advectionvelocity[2]
-  return nothing
-end
-
-
-# Calculate flux across interface with different states on both sides (surface version)
-# - `destination::AbstractArray{T,2} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces::AbstractArray{T,4} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::LinearScalarAdvectionEquation, n_nodes::Int,
-                  orientations::Vector{Int})
-  for i = 1:n_nodes
-    flux = surface_flux(equation, orientations[surface_id],
-                        u_surfaces[1, 1, i, surface_id],
-                        u_surfaces[2, 1, i, surface_id])
-
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      destination[v, i] = flux[v]
-    end
-  end
-end
-
-
-function flux_lax_friedrichs(equation::LinearScalarAdvectionEquation, orientation, u_ll, u_rr)
+# Calculate 1D flux in for a single point
+@inline function calcflux(u, orientation, equation::LinearScalarAdvectionEquation)
   a = equation.advectionvelocity[orientation]
-  return 0.5 * ((a + abs(a)) * u_ll + (a - abs(a)) * u_rr)
+  return a * u
+end
+
+
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation)
+  a = equation.advectionvelocity[orientation]
+  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
 end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(equation::LinearScalarAdvectionEquation,
-                     u::Array{Float64, 4}, element_id::Int,
-                     n_nodes::Int, invjacobian::Float64,
-                     cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::LinearScalarAdvectionEquation)
   return cfl * 2 / (invjacobian * maximum(abs.(equation.advectionvelocity))) / n_nodes
 end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::LinearScalarAdvectionEquation, cons::Array{Float64, 4})
-  return cons
-end
+cons2prim(cons, equation::LinearScalarAdvectionEquation) = cons
 
 # Convert conservative variables to entropy variables
-function cons2entropy(equation::LinearScalarAdvectionEquation,
-                      cons::Array{Float64, 4}, n_nodes::Int,
-                      n_elements::Int)
-  return cons
-end
+cons2entropy(cons, n_nodes, n_elements, equation::LinearScalarAdvectionEquation) = cons
 
 
 # Calculate entropy for a conservative state `cons`
