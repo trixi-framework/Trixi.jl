@@ -7,6 +7,7 @@ function invalidate! end
 function raw_copy! end
 function move_connectivity! end
 function delete_connectivity! end
+function reset_data_structures! end
 
 
 # Auxiliary copy function to copy data between containers
@@ -24,6 +25,8 @@ function copy_data!(target::AbstractArray, source::AbstractArray,
       target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
     end
   end
+
+  return target
 end
 
 
@@ -75,10 +78,12 @@ function copy!(target::AbstractContainer, source::AbstractContainer,
 
   # Return if copy would be a no-op
   if last < first || (source === target && first == destination)
-    return
+    return target
   end
 
   raw_copy!(target, source, first, last, destination)
+
+  return target
 end
 
 
@@ -109,7 +114,7 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
 
   # Return if move would be a no-op
   if last < first || first == destination
-    return
+    return c
   end
 
   # Copy cells to new location
@@ -127,8 +132,20 @@ function move!(c::AbstractContainer, first::Int, last::Int, destination::Int)
   last_invalid = (first <= destination <= last) ? destination - 1 : last
   # 3) Invalidate range
   invalidate!(c, first_invalid, last_invalid)
+
+  return c
 end
 move!(c::AbstractContainer, from::Int, destination::Int) = move!(c, from, from, destination)
+
+# Default implementation for moving a single element
+function move_connectivity!(c::AbstractContainer, from::Int, destination::Int)
+  return move_connectivity!(c, from, from, destination)
+end
+
+# Default implementation for invalidating a single element
+function invalidate!(c::AbstractContainer, id::Int)
+  return invalidate!(c, id, id)
+end
 
 
 # Swap two elements in a container while preserving element connectivity.
@@ -138,23 +155,25 @@ function swap!(c::AbstractContainer, a::Int, b::Int)
 
   # Return if swap would be a no-op
   if a == b
-    return
+    return c
   end
 
   # Move a to dummy location
   raw_copy!(c, a, c.dummy)
-  move_connectivity(c, a, c.dummy)
+  move_connectivity!(c, a, c.dummy)
 
   # Move b to a
   raw_copy!(c, b, a)
-  move_connectivity(c, b, a)
+  move_connectivity!(c, b, a)
 
   # Move from dummy location to b
   raw_copy!(c, c.dummy, b)
-  move_connectivity(c, c.dummy, b)
+  move_connectivity!(c, c.dummy, b)
 
   # Invalidate dummy to be sure
-  invalidate(c, c.dummy)
+  invalidate!(c, c.dummy)
+
+  return c
 end
 
 
@@ -169,13 +188,13 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
 
   # Return if insertation would be a no-op
   if count == 0
-    return
+    return c
   end
 
   # Append and return if insertion is beyond last current element
   if position == length(c) + 1
     resize!(c, length(c) + count)
-    return
+    return c
   end
 
   # Increase length
@@ -186,8 +205,9 @@ function insert!(c::AbstractContainer, position::Int, count::Int)
   if position <= length(c) - count
     move!(c, position, length(c) - count, position + count)
   end
+
+  return c
 end
-insert!(c) = insert!(c, position, 1)
 
 
 # Erase elements from container, deleting their connectivity and then invalidating their data.
@@ -198,12 +218,14 @@ function erase!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if eraseure would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity and invalidate cells
   delete_connectivity!(c, first, last)
   invalidate!(c, first, last)
+
+  return c
 end
 erase!(c::AbstractContainer, id::Int) = erase!(c, id, id)
 
@@ -215,7 +237,7 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if removal would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity of cells to be removed
@@ -232,6 +254,8 @@ function remove_shift!(c::AbstractContainer, first::Int, last::Int)
   # Reduce length
   count = last - first + 1
   c.length -= count
+
+  return c
 end
 remove_shift!(c::AbstractContainer, id::Int) = remove_shift!(c, id, id)
 
@@ -243,7 +267,7 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
 
   # Return if removal would be a no-op
   if last < first
-    return
+    return c
   end
 
   # Delete connectivity of cells to be removed and then invalidate them
@@ -253,11 +277,13 @@ function remove_fill!(c::AbstractContainer, first::Int, last::Int)
   # Copy cells from end (unless last is already the last cell)
   count = last - first + 1
   if last < length(c)
-    move(c, max(length(c) - count, last + 1), length(c), first)
+    move!(c, max(length(c) - count + 1, last + 1), length(c), first)
   end
 
   # Reduce length
   c.length -= count
+
+  return c
 end
 
 
@@ -268,7 +294,9 @@ function reset!(c::AbstractContainer, capacity::Int)
   c.capacity = capacity
   c.length = 0
   c.dummy = capacity + 1
-  reset_data_structures!(c::AbstractContainer)
+  reset_data_structures!(c)
+
+  return c
 end
 
 
@@ -276,4 +304,6 @@ end
 function clear!(c::AbstractContainer)
   invalidate!(c)
   c.length = 0
+
+  return c
 end
