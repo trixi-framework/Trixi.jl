@@ -12,6 +12,8 @@ t_end   = 5.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
+#volume_integral_type = "split_form"
+
 resid_tol = 1e-5
 
 ####################################################################################################
@@ -21,7 +23,9 @@ N = 3
 cfl = 0.5
 n_steps_max = 10000
 n_iterations_max = 1000
-analysis_interval = 100
+analysis_interval = 1
+extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal"]
+save_analysis = true
 
 ####################################################################################################
 # Mesh

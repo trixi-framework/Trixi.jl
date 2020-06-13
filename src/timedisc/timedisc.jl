@@ -106,8 +106,8 @@ function update_gravity!(solver, u_euler, cfl)
       finalstep = true
     end
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-      println("  Gravity solution tolerance ",solver.equations.resid_tol,
-              " reached in iterations ",iteration)
+#      println("  Gravity solution tolerance ",solver.equations.resid_tol,
+#              " reached in iterations ",iteration)
       finalstep = true
     end
 
