@@ -42,9 +42,9 @@ function refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
     end
   end
 
-  # Initialize new surfaces container
-  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
-  n_surfaces = nsurfaces(surfaces)
+  # Initialize new interfaces container
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
   boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
@@ -57,15 +57,15 @@ function refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
 
   # Sanity check
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
 
   # Update DG instance with new data
   dg.elements = elements
   dg.n_elements = n_elements
-  dg.surfaces = surfaces
-  dg.n_surfaces = n_surfaces
+  dg.interfaces = interfaces
+  dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
@@ -88,11 +88,11 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
 
   # Interpolate to lower left element
   u[:, :, :, lower_left_id] .= 0.0
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, lower_left_id] += (old_u[v, k, l, old_element_id] *
                                           forward_lower[i, k] * forward_lower[j, l])
           end
@@ -103,11 +103,11 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
 
   # Interpolate to lower right element
   u[:, :, :, lower_right_id] .= 0.0
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, lower_right_id] += (old_u[v, k, l, old_element_id] *
                                            forward_upper[i, k] * forward_lower[j, l])
           end
@@ -118,11 +118,11 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
 
   # Interpolate to upper left element
   u[:, :, :, upper_left_id] .= 0.0
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, upper_left_id] += (old_u[v, k, l, old_element_id] *
                                           forward_lower[i, k] * forward_upper[j, l])
           end
@@ -133,11 +133,11 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
 
   # Interpolate to upper right element
   u[:, :, :, upper_right_id] .= 0.0
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, upper_right_id] += (old_u[v, k, l, old_element_id] *
                                            forward_upper[i, k] * forward_upper[j, l])
           end
@@ -202,9 +202,9 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
     end
   end
 
-  # Initialize new surfaces container
-  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
-  n_surfaces = nsurfaces(surfaces)
+  # Initialize new interfaces container
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
   boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
@@ -217,15 +217,15 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
 
   # Sanity check
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
 
   # Update DG instance with new data
   dg.elements = elements
   dg.n_elements = n_elements
-  dg.surfaces = surfaces
-  dg.n_surfaces = n_surfaces
+  dg.interfaces = interfaces
+  dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
@@ -250,11 +250,11 @@ function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
   u[:, :, :, element_id] .= 0.0
 
   # Project from lower left element
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, element_id] += (old_u[v, k, l, lower_left_id] *
                                        reverse_lower[i, k] * reverse_lower[j, l])
           end
@@ -264,11 +264,11 @@ function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
   end
 
   # Project from lower right element
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, element_id] += (old_u[v, k, l, lower_right_id] *
                                        reverse_upper[i, k] * reverse_lower[j, l])
           end
@@ -278,11 +278,11 @@ function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
   end
 
   # Project from upper left element
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, element_id] += (old_u[v, k, l, upper_left_id] *
                                        reverse_lower[i, k] * reverse_upper[j, l])
           end
@@ -292,11 +292,11 @@ function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
   end
 
   # Project from upper right element
-  for j = 1:nnodes(dg)
-    for i = 1:nnodes(dg)
-      for l = 1:nnodes(dg)
-        for k = 1:nnodes(dg)
-          for v = 1:nvariables(dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      for l in 1:nnodes(dg)
+        for k in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u[v, i, j, element_id] += (old_u[v, k, l, upper_right_id] *
                                        reverse_upper[i, k] * reverse_upper[j, l])
           end

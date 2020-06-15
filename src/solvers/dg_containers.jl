@@ -38,29 +38,29 @@ end
 nelements(elements::ElementContainer) = length(elements.cell_ids)
 
 
-# Container data structure (structure-of-arrays style) for DG surfaces
-struct SurfaceContainer{V, N} <: AbstractContainer
-  u::Array{Float64, 4}      # [leftright, variables, i, surfaces]
-  neighbor_ids::Matrix{Int} # [leftright, surfaces]
-  orientations::Vector{Int} # [surfaces]
+# Container data structure (structure-of-arrays style) for DG interfaces
+struct InterfaceContainer{V, N} <: AbstractContainer
+  u::Array{Float64, 4}      # [leftright, variables, i, interfaces]
+  neighbor_ids::Matrix{Int} # [leftright, interfaces]
+  orientations::Vector{Int} # [interfaces]
 end
 
 
-function SurfaceContainer{V, N}(capacity::Integer) where {V, N}
+function InterfaceContainer{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u = fill(NaN, 2, V, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
-  surfaces = SurfaceContainer{V, N}(u, neighbor_ids, orientations)
+  interfaces = InterfaceContainer{V, N}(u, neighbor_ids, orientations)
 
-  return surfaces
+  return interfaces
 end
 
 
-# Return number of surfaces
-nsurfaces(surfaces::SurfaceContainer) = length(surfaces.orientations)
+# Return number of interfaces
+ninterfaces(interfaces::InterfaceContainer) = length(interfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
