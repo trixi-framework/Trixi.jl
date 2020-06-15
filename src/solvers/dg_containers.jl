@@ -1,15 +1,15 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
 struct ElementContainer{V, N} <: AbstractContainer
-  u::Array{Float64, 4}                # [variables, i, j, elements]
-  u_t::Array{Float64, 4}              # [variables, i, j, elements]
-  u_tmp2::Array{Float64, 4}           # [variables, i, j, elements]
-  u_tmp3::Array{Float64, 4}           # [variables, i, j, elements]
-  inverse_jacobian::Vector{Float64}   # [elements]
-  node_coordinates::Array{Float64, 4} # [orientation, i, j, elements]
-  surface_ids::Matrix{Int}            # [direction, elements]
-  surface_flux::Array{Float64, 4}     # [variables, i, direction, elements]
-  cell_ids::Vector{Int}               # [elements]
+u_t::Array{Float64, 4}                   # [variables, i, j, elements]
+u::Array{Float64, 4}                     # [variables, i, j, elements]
+  u_tmp2::Array{Float64, 4}              # [variables, i, j, elements]
+  u_tmp3::Array{Float64, 4}              # [variables, i, j, elements]
+  inverse_jacobian::Vector{Float64}      # [elements]
+  node_coordinates::Array{Float64, 4}    # [orientation, i, j, elements]
+  surface_ids::Matrix{Int}               # [direction, elements]
+  surface_flux_values::Array{Float64, 4} # [variables, i, direction, elements]
+  cell_ids::Vector{Int}                  # [elements]
 end
 
 
@@ -24,11 +24,11 @@ function ElementContainer{V, N}(capacity::Integer) where {V, N} # V = no. variab
   inverse_jacobian = fill(NaN, capacity)
   node_coordinates = fill(NaN, ndim, n_nodes, n_nodes, capacity)
   surface_ids = fill(typemin(Int), 2 * ndim, capacity)
-  surface_flux = fill(NaN, V, n_nodes, 2 * ndim, capacity)
+  surface_flux_values = fill(NaN, V, n_nodes, 2 * ndim, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
-                                    surface_ids, surface_flux, cell_ids)
+                                    surface_ids, surface_flux_values, cell_ids)
 
   return elements
 end
