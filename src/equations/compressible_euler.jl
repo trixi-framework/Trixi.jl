@@ -246,7 +246,7 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
   return prim2cons(SVector(dens, velx, vely0, p0), equation)
 end
 
-function initial_conditions_jeans_instability(equation::CompressibleEulerEquations, x, t)
+function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations)
   # Jeans gravitational instability test case
   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
   # OBS! this uses cgs (centimeter, gram, second) units
@@ -312,7 +312,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_harmonic(equation::CompressibleEulerEquations, ut, u, x, element_id, t, n_nodes)
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # just an empty routine for the coupled simulation
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
