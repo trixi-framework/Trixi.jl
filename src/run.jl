@@ -157,10 +157,10 @@ function init_simulation()
     time = t_start
     step = 0
     if globals[:euler_gravity]
-      set_initial_conditions(solver_euler, time)
-      set_initial_conditions(solver_gravity, time)
+      set_initial_conditions!(solver_euler, time)
+      set_initial_conditions!(solver_gravity, time)
     else
-      set_initial_conditions(solver, time)
+      set_initial_conditions!(solver, time)
     end
     println("done")
 
@@ -203,7 +203,7 @@ function init_simulation()
     s *= """| Simulation setup (Euler + Gravity)
             | ----------------
             | working directory:  $(pwd())
-            | parameters file:    $(args["parameters_file"])
+            | parameters file:    $(parameter("parameters_file"))
             | equations:          $(equations_name)
             | | Euler:
             | | | #variables:     $(nvariables(equations_euler))
@@ -266,7 +266,7 @@ function init_simulation()
     s *= """| Simulation setup
             | ----------------
             | working directory:  $(pwd())
-            | parameters file:    $(args["parameters_file"])
+            | parameters file:    $(parameter("parameters_file"))
             | equations:          $(get_name(equations))
             | | #variables:       $(nvariables(equations))
             | | variable names:   $(join(varnames_cons(equations), ", "))

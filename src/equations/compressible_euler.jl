@@ -269,7 +269,7 @@ function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerE
   # flow starts as stationary
   velx = 0.0 # cm/s
   vely = 0.0 # cm/s
-  return prim2cons(equation, @SVector [dens, velx, vely, pres])
+  return prim2cons(SVector(dens, velx, vely, pres), equation)
 end
 
 # Apply source terms
