@@ -849,7 +849,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Open file for appending and store time step and time information
   if dg.save_analysis
     f = open(dg.analysis_filename, "a")
-    @printf(f, "% 8d", step)
+    @printf(f, "% 9d", step)
     @printf(f, "  %10.8e", time)
     @printf(f, "  %10.8e", dt)
   end
@@ -1051,7 +1051,7 @@ system of equations instance is passed in `equation`.
 """
 function save_analysis_header(filename, quantities, equation)
   open(filename, "w") do f
-    @printf(f, "%-8s", "timestep")
+    @printf(f, "#%-8s", "timestep")
     @printf(f, "  %-14s", "time")
     @printf(f, "  %-14s", "dt")
     if :l2_error in quantities
