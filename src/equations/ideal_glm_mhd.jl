@@ -25,7 +25,7 @@ default_analysis_quantities(::IdealGlmMhdEquations) = (:l2_error, :linf_error, :
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_constant(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -38,7 +38,7 @@ function initial_conditions_constant(equation::IdealGlmMhdEquations, x, t)
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
 
-function initial_conditions_convergence_test(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations)
   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
   # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
   alpha = 0.25*pi
@@ -53,10 +53,10 @@ function initial_conditions_convergence_test(equation::IdealGlmMhdEquations, x, 
   B2 = sin(alpha) + v2
   B3 = v3
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_orszag_tang(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 5/3
   rho = 1.0
@@ -68,10 +68,10 @@ function initial_conditions_orszag_tang(equation::IdealGlmMhdEquations, x, t)
   B2 = sin(4.0*pi*x[1])/equation.gamma
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_rotor(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 1.4
   dx = x[1] - 0.5
@@ -97,10 +97,10 @@ function initial_conditions_rotor(equation::IdealGlmMhdEquations, x, t)
   B2 = 0.0
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_mhd_blast(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
   r = sqrt(x[1]^2 + x[2]^2)
@@ -120,10 +120,10 @@ function initial_conditions_mhd_blast(equation::IdealGlmMhdEquations, x, t)
   B2 = 0.0
   B3 = 0.0
   psi = 0.0
-  return prim2cons(equation, @SVector [rho, v1, v2, v3, p, B1, B2, B3, psi])
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_ec_test(equation::IdealGlmMhdEquations, x, t)
+function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
@@ -139,200 +139,92 @@ function initial_conditions_ec_test(equation::IdealGlmMhdEquations, x, t)
   v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
   p = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(equation, @SVector [rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0])
+  return prim2cons(SVector(rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0), equation)
 end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(equation::IdealGlmMhdEquations, ut, u, x, element_id, t, n_nodes)
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations)
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::IdealGlmMhdEquations,
-                           u::AbstractArray{Float64}, element_id::Int,
-                           n_nodes::Int)
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      rho    = u[1, i, j, element_id]
-      rho_v1 = u[2, i, j, element_id]
-      rho_v2 = u[3, i, j, element_id]
-      rho_v3 = u[4, i, j, element_id]
-      rho_e  = u[5, i, j, element_id]
-      B1     = u[6, i, j, element_id]
-      B2     = u[7, i, j, element_id]
-      B3     = u[8, i, j, element_id]
-      psi    = u[9, i, j, element_id]
-      @views calcflux!(f1[:, i, j], f2[:, i, j], equation, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                       B1, B2, B3, psi)
-    end
-  end
-end
-
-
-# Calculate 2D flux (pointwise version)
-@inline function calcflux!(f1::AbstractArray{Float64},
-                           f2::AbstractArray{Float64},
-                           equation::IdealGlmMhdEquations,
-                           rho::Float64, rho_v1::Float64,
-                           rho_v2::Float64, rho_v3::Float64,
-                           rho_e::Float64, B1::Float64,
-                           B2::Float64, B3::Float64, psi::Float64)
+# Calculate 1D flux in for a single point
+@inline function calcflux(u, orientation, equation::IdealGlmMhdEquations)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  v_dot_B = v1*B1 + v2*B2 + v3*B3
-  p = (equation.gamma - 1)*(rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
-
-  f1[1] = rho_v1
-  f1[2] = rho_v1*v1 + p + mag_en - B1^2
-  f1[3] = rho_v1*v2 - B1*B2
-  f1[4] = rho_v1*v3 - B1*B3
-  f1[5] = (rho_e + p + mag_en)*v1 - B1*v_dot_B + equation.c_h*psi*B1
-  f1[6] = equation.c_h*psi
-  f1[7] = v1*B2 - v2*B1
-  f1[8] = v1*B3 - v3*B1
-  f1[9] = equation.c_h*B1
-
-  f2[1] = rho_v2
-  f2[2] = rho_v2*v1 - B1*B2
-  f2[3] = rho_v2*v2 + p + mag_en - B2^2
-  f2[4] = rho_v2*v3 - B2*B3
-  f2[5] = (rho_e + p + mag_en)*v2 - B2*v_dot_B + equation.c_h*psi*B2
-  f2[6] = v2*B1 - v1*B2
-  f2[7] = equation.c_h*psi
-  f2[8] = v2*B3 - v3*B2
-  f2[9] = equation.c_h*B2
-
-  return nothing
-end
-
-
-# Calculate 2D two-point flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag,
-                                    volume_flux, equation::IdealGlmMhdEquations, u, element_id, n_nodes)
-  # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, equation, u, element_id, n_nodes)
-
-  # split form advective fluxes
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      # Set diagonal entries (= regular volume fluxes due to consistency)
-      for v in 1:nvariables(equation)
-        f1[v, i, i, j] = f1_diag[v, i, j]
-        f2[v, j, i, j] = f2_diag[v, i, j]
-      end
-
-      # Flux in x-direction
-      for l = i + 1:n_nodes
-        flux = volume_flux(equation, 1, # 1-> x-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
-                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
-                           u[1, l, j, element_id], u[2, l, j, element_id], u[3, l, j, element_id],
-                           u[4, l, j, element_id], u[5, l, j, element_id], u[6, l, j, element_id],
-                           u[7, l, j, element_id], u[8, l, j, element_id], u[9, l, j, element_id])
-        for v in 1:nvariables(equation)
-          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
-        end
-      end
-
-      # Flux in y-direction
-      for l = j + 1:n_nodes
-        flux = volume_flux(equation, 2, # 2 -> y-direction
-                           u[1, i, j, element_id], u[2, i, j, element_id], u[3, i, j, element_id],
-                           u[4, i, j, element_id], u[5, i, j, element_id], u[6, i, j, element_id],
-                           u[7, i, j, element_id], u[8, i, j, element_id], u[9, i, j, element_id],
-                           u[1, i, l, element_id], u[2, i, l, element_id], u[3, i, l, element_id],
-                           u[4, i, l, element_id], u[5, i, l, element_id], u[6, i, l, element_id],
-                           u[7, i, l, element_id], u[8, i, l, element_id], u[9, i, l, element_id])
-        for v in 1:nvariables(equation)
-          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
-        end
-      end
-    end
+  p = (equation.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
+  if orientation == 1
+    f1 = rho_v1
+    f2 = rho_v1*v1 + p + mag_en - B1^2
+    f3 = rho_v1*v2 - B1*B2
+    f4 = rho_v1*v3 - B1*B3
+    f5 = (rho_e + p + mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B1
+    f6 = equation.c_h*psi
+    f7 = v1*B2 - v2*B1
+    f8 = v1*B3 - v3*B1
+    f9 = equation.c_h*B1
+  else
+    f1 = rho_v2
+    f2 = rho_v2*v1 - B1*B2
+    f3 = rho_v2*v2 + p + mag_en - B2^2
+    f4 = rho_v2*v3 - B2*B3
+    f5 = (rho_e + p + mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B2
+    f6 = v2*B1 - v1*B2
+    f7 = equation.c_h*psi
+    f8 = v2*B3 - v3*B2
+    f9 = equation.c_h*B2
   end
 
-  # add in nonconservative terms; see GLM paper from Derigs et al. 2018
-  @views add_noncons_flux!(f1, f2, u[:,:,:,element_id], n_nodes)
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
+
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function add_noncons_flux!(f::AbstractArray{Float64,4}, # x-direction advective flux
-                                   g::AbstractArray{Float64,4}, # y-direction advective flux
-                                   u::AbstractArray{Float64,3}, # solution on an element
-                                   n_nodes::Int)
-  phi_pow   = zeros(MVector{9})
-  phi_gal_x = zeros(MVector{9})
-  phi_gal_y = zeros(MVector{9})
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      v1 = u[2,i,j]/u[1,i,j]
-      v2 = u[3,i,j]/u[1,i,j]
-      v3 = u[4,i,j]/u[1,i,j]
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equation::IdealGlmMhdEquations, dg)
+  for j in 1:nnodes(dg)
+    for i in 1:nnodes(dg)
+      rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
+      v1 = rho_v1 / rho
+      v2 = rho_v2 / rho
+      v3 = rho_v3 / rho
+
       # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-      phi_pow[2] = 0.5*u[6,i,j]
-      phi_pow[3] = 0.5*u[7,i,j]
-      phi_pow[4] = 0.5*u[8,i,j]
-      phi_pow[5] = 0.5*(v1*u[6,i,j] + v2*u[7,i,j] + v3*u[8,i,j])
-      phi_pow[6] = 0.5*v1
-      phi_pow[7] = 0.5*v2
-      phi_pow[8] = 0.5*v3
+      phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+
       # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
       # x-direction
-      phi_gal_x[5] = 0.5*v1*u[9,i,j]
-      phi_gal_x[9] = 0.5*v1
+      phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
       # y-direction
-      phi_gal_y[5] = 0.5*v2*u[9,i,j]
-      phi_gal_y[9] = 0.5*v2
+      phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
+
       # add both nonconservative terms into the volume
-      for l in 1:n_nodes
-        f[:,l,i,j] += phi_pow * u[6,l,j] + phi_gal_x * u[9,l,j]
-        g[:,l,i,j] += phi_pow * u[7,i,l] + phi_gal_y * u[9,i,l]
+      for l in 1:nnodes(dg)
+        _, _, _, _, _, B1, _, _, psi = get_node_vars(u, dg, l, j, element_id)
+        f1[:, l, i, j] += phi_pow * B1 + phi_gal_x * psi
+        _, _, _, _, _, _, B2, _, psi = get_node_vars(u, dg, i, l, element_id)
+        f2[:, l, i, j] += phi_pow * B2 + phi_gal_y * psi
       end
     end
   end
-end
-
-
-function flux_central(equation::IdealGlmMhdEquations, orientation,
-                      rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                      B1_ll, B2_ll, B3_ll, psi_ll,
-                      rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                      B1_rr, B2_rr, B3_rr, psi_rr)
-  # Calculate regular 1D fluxes
-  f_ll = MVector{9, Float64}(undef)
-  f_rr = MVector{9, Float64}(undef)
-  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-              B1_ll, B2_ll, B3_ll, psi_ll, orientation)
-  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-              B1_rr, B2_rr, B3_rr, psi_rr, orientation)
-  # Average state of the advective fluxes
-  @. 0.5 * (f_ll + f_rr)
 end
 
 
 """
-    flux_derigs_etal(equation::IdealGlmMhdEquations, orientation,
-                     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                     B1_ll, B2_ll, B3_ll, psi_ll,
-                     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                     B1_rr, B2_rr, B3_rr, psi_rr)
+    flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
 
 Entropy conserving two-point flux by Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(equation::IdealGlmMhdEquations, orientation,
-                          rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-                          B1_ll, B2_ll, B3_ll, psi_ll,
-                          rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-                          B1_rr, B2_rr, B3_rr, psi_rr)
+function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
   v3_ll = rho_v3_ll/rho_ll
@@ -401,159 +293,31 @@ function flux_derigs_etal(equation::IdealGlmMhdEquations, orientation,
           B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg)
   end
 
-  return (f1, f2, f3, f4, f5, f6, f7, f8, f9)
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
 
-# Calculate 1D flux in for a single point
-@inline function calcflux1D!(f::AbstractArray{Float64}, equation::IdealGlmMhdEquations, rho::Float64,
-                             rho_v1::Float64, rho_v2::Float64, rho_v3::Float64, rho_e::Float64,
-                             B1::Float64, B2::Float64, B3::Float64, psi::Float64, orientation::Int)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  p = (equation.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
-  if orientation == 1
-    f[1]  = rho_v1
-    f[2]  = rho_v1*v1 + p + mag_en - B1^2
-    f[3]  = rho_v1*v2 - B1*B2
-    f[4]  = rho_v1*v3 - B1*B3
-    f[5]  = (rho_e + p + mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B1
-    f[6]  = equation.c_h*psi
-    f[7]  = v1*B2 - v2*B1
-    f[8]  = v1*B3 - v3*B1
-    f[9]  = equation.c_h*B1
-  else
-    f[1]  = rho_v2
-    f[2]  = rho_v2*v1 - B1*B2
-    f[3]  = rho_v2*v2 + p + mag_en - B2^2
-    f[4]  = rho_v2*v3 - B2*B3
-    f[5]  = (rho_e + p + mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B2
-    f[6]  = v2*B1 - v1*B2
-    f[7]  = equation.c_h*psi
-    f[8]  = v2*B3 - v3*B2
-    f[9]  = equation.c_h*B2
-  end
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
-  return nothing
-end
-
-
-# Calculate flux across interface with different states on both sides (EC mortar version)
-# - `destination::AbstractArray{T,3} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces_left::AbstractArray{T,3} where T<:Real``
-# - `u_surfaces_right::AbstractArray{T,3} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces_left, u_surfaces_right, surface_id,
-                  equation::IdealGlmMhdEquations, n_nodes, orientations)
-  # Call pointwise Riemann solver
-  # i -> left, j -> right
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      flux = surface_flux(equation, orientations[surface_id],
-                          u_surfaces_left[1, i, surface_id],
-                          u_surfaces_left[2, i, surface_id],
-                          u_surfaces_left[3, i, surface_id],
-                          u_surfaces_left[4, i, surface_id],
-                          u_surfaces_left[5, i, surface_id],
-                          u_surfaces_left[6, i, surface_id],
-                          u_surfaces_left[7, i, surface_id],
-                          u_surfaces_left[8, i, surface_id],
-                          u_surfaces_left[9, i, surface_id],
-                          u_surfaces_right[1, j, surface_id],
-                          u_surfaces_right[2, j, surface_id],
-                          u_surfaces_right[3, j, surface_id],
-                          u_surfaces_right[4, j, surface_id],
-                          u_surfaces_right[5, j, surface_id],
-                          u_surfaces_right[6, j, surface_id],
-                          u_surfaces_right[7, j, surface_id],
-                          u_surfaces_right[8, j, surface_id],
-                          u_surfaces_right[9, j, surface_id])
-
-      # Copy flux back to actual flux array
-      for v in 1:nvariables(equation)
-        destination[v, i, j] = flux[v]
-      end
-    end
-  end
-end
-
-# Calculate flux across interface with different states on both sides (surface version)
-# - `destination::AbstractArray{T,2} where T<:Real`:
-#   The array of surface flux values (updated inplace).
-# - `surface_flux`:
-#   The surface flux as a function.
-# - `u_surfaces::AbstractArray{T,4} where T<:Real``
-# - `surface_id::Integer`
-# - `equation::AbstractEquations`
-# - `n_nodes::Integer`
-# - `orientations::Vector{T} where T<:Integer`
-# See equations.jl
-function riemann!(destination, surface_flux, u_surfaces, surface_id,
-                  equation::IdealGlmMhdEquations, n_nodes, orientations)
-  # Call pointwise Riemann solver
-  for i = 1:n_nodes
-    flux = surface_flux(equation, orientations[surface_id],
-                        u_surfaces[1, 1, i, surface_id],
-                        u_surfaces[1, 2, i, surface_id],
-                        u_surfaces[1, 3, i, surface_id],
-                        u_surfaces[1, 4, i, surface_id],
-                        u_surfaces[1, 5, i, surface_id],
-                        u_surfaces[1, 6, i, surface_id],
-                        u_surfaces[1, 7, i, surface_id],
-                        u_surfaces[1, 8, i, surface_id],
-                        u_surfaces[1, 9, i, surface_id],
-                        u_surfaces[2, 1, i, surface_id],
-                        u_surfaces[2, 2, i, surface_id],
-                        u_surfaces[2, 3, i, surface_id],
-                        u_surfaces[2, 4, i, surface_id],
-                        u_surfaces[2, 5, i, surface_id],
-                        u_surfaces[2, 6, i, surface_id],
-                        u_surfaces[2, 7, i, surface_id],
-                        u_surfaces[2, 8, i, surface_id],
-                        u_surfaces[2, 9, i, surface_id])
-
-    # Copy flux back to actual flux array
-    for v in 1:nvariables(equation)
-      destination[v, i] = flux[v]
-    end
-  end
-end
-
-
-function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation,
-                             rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll,
-                             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr)
   # Calculate velocities and fast magnetoacoustic wave speeds
   # left
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  cf_ll = calc_fast_wavespeed(equation, orientation, [rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll,
-                              rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll])
+  cf_ll = calc_fast_wavespeed(u_ll, orientation, equation)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
-  cf_rr = calc_fast_wavespeed(equation, orientation, [rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr,
-                              rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr])
+  cf_rr = calc_fast_wavespeed(u_rr, orientation, equation)
+
   # Obtain left and right fluxes
-  f_ll = zeros(MVector{9})
-  f_rr = zeros(MVector{9})
-  calcflux1D!(f_ll, equation, rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll,
-              B1_ll, B2_ll, B3_ll, psi_ll, orientation)
-  calcflux1D!(f_rr, equation, rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr,
-              B1_rr, B2_rr, B3_rr, psi_rr, orientation)
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -566,7 +330,7 @@ function flux_lax_friedrichs(equation::IdealGlmMhdEquations, orientation,
   f8 = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
   f9 = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
 
-  return (f1, f2, f3, f4, f5, f6, f7, f8, f9)
+  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
 
@@ -576,11 +340,8 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along a surface! normal direction is super important
-function noncons_surface_flux!(noncons_flux::AbstractArray{Float64},
-                               u_left::AbstractArray{Float64},
-                               u_right::AbstractArray{Float64},
-                               surface_id::Int, equation::IdealGlmMhdEquations, n_nodes::Int,
-                               orientations::Vector{Int})
+function noncons_surface_flux!(noncons_flux, u_left, u_right, surface_id, n_nodes, orientations,
+                               equation::IdealGlmMhdEquations)
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
@@ -620,9 +381,8 @@ end
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
-function calc_max_dt(equation::IdealGlmMhdEquations, u::Array{Float64, 4},
-                     element_id::Int, n_nodes::Int,
-                     invjacobian::Float64, cfl::Float64)
+function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
+                     equation::IdealGlmMhdEquations)
   λ_max = 0.0
   equation.c_h = 0.0
   for j = 1:n_nodes
@@ -631,8 +391,8 @@ function calc_max_dt(equation::IdealGlmMhdEquations, u::Array{Float64, 4},
       v2 = u[3, i, j, element_id]/u[1, i, j, element_id]
       v3 = u[4, i, j, element_id]/u[1, i, j, element_id]
       v_mag = sqrt(v1^2 + v2^2 + v3^2)
-      cf_x_direction = calc_fast_wavespeed(equation, 1, u[:,i, j, element_id])
-      cf_y_direction = calc_fast_wavespeed(equation, 2, u[:,i, j, element_id])
+      cf_x_direction = calc_fast_wavespeed(u[:, i, j, element_id], 1, equation)
+      cf_y_direction = calc_fast_wavespeed(u[:, i, j, element_id], 2, equation)
       cf_max = max(cf_x_direction,cf_y_direction)
       equation.c_h = max(equation.c_h,cf_max) # GLM cleaning speed = c_f
       λ_max = max(λ_max, v_mag + cf_max)
@@ -646,7 +406,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(equation::IdealGlmMhdEquations, cons::Array{Float64, 4})
+function cons2prim(cons, equation::IdealGlmMhdEquations)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -669,7 +429,7 @@ end
 
 
 # Convert conservative variables to entropy
-function cons2entropy(equation::IdealGlmMhdEquations, cons::Array{Float64, 4}, n_nodes::Int, n_elements::Int)
+function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)
@@ -709,7 +469,7 @@ function cons2entropy(equation::IdealGlmMhdEquations, cons::Array{Float64, 4}, n
 end
 
 # Convert primitive to conservative variables
-function prim2cons(equation::IdealGlmMhdEquations, prim::AbstractArray{Float64})
+function prim2cons(prim, equation::IdealGlmMhdEquations)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -726,17 +486,16 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function cons2indicator!(indicator::AbstractArray{Float64}, equation::IdealGlmMhdEquations,
-                                 cons::AbstractArray{Float64},
-                                 element_id::Int, n_nodes::Int, indicator_variable)
+@inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
+                                 equation::IdealGlmMhdEquations)
   for j in 1:n_nodes
     for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(equation,
-                                          cons[1, i, j, element_id], cons[2, i, j, element_id],
+      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
                                           cons[3, i, j, element_id], cons[4, i, j, element_id],
                                           cons[5, i, j, element_id], cons[6, i, j, element_id],
                                           cons[7, i, j, element_id], cons[8, i, j, element_id],
-                                          cons[9, i, j, element_id], indicator_variable)
+                                          cons[9, i, j, element_id],
+                                          indicator_variable, equation)
     end
   end
 end
@@ -744,8 +503,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:density})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:density}, equation::IdealGlmMhdEquations)
   # Indicator variable is rho
   return rho
 end
@@ -753,8 +512,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:pressure})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:pressure}, equation::IdealGlmMhdEquations)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -767,8 +526,8 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(equation::IdealGlmMhdEquations, rho, rho_v1, rho_v2, rho_v3, rho_e,
-                                B1, B2, B3, psi, ::Val{:density_pressure})
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
+                                ::Val{:density_pressure}, equation::IdealGlmMhdEquations)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -780,17 +539,10 @@ end
   return rho * p
 end
 
+
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(equation::IdealGlmMhdEquations, direction::Int, cons::AbstractArray{Float64})
-  rho    = cons[1]
-  rho_v1 = cons[2]
-  rho_v2 = cons[3]
-  rho_v3 = cons[4]
-  rho_e  = cons[5]
-  B1     = cons[6]
-  B2     = cons[7]
-  B3     = cons[8]
-  psi    = cons[9]
+@inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho

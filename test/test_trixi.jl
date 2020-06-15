@@ -11,9 +11,9 @@ file. By default, only the absence of error output is checked. If
 are compared approximately against these reference values, using `rtol` for
 the relative tolerance.
 """
-function test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001)
+function test_trixi_run(parameters_file; l2=nothing, linf=nothing, rtol=0.001, parameters...)
   # Run basic test to ensure that there is no output to STDERR
-  l2_measured, linf_measured, _ = @test_nowarn Trixi.run(parameters_file)
+  l2_measured, linf_measured, _ = @test_nowarn Trixi.run(parameters_file; parameters...)
 
   # If present, compare L2 and Linf errors against reference values
   if !isnothing(l2)
