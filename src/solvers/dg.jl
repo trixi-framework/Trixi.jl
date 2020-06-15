@@ -813,7 +813,7 @@ performance index is specified in `runtime_relative`.
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                          runtime_absolute::Real, runtime_relative::Real)
+                          runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
   equation = equations(dg)
 
   # General information
@@ -975,7 +975,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_internal(cons, equations(dg))
     end
-    print(" ∑e_internal  ")
+    print(" ∑e_internal: ")
     @printf("  % 10.8e", e_internal)
     dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
     println()
@@ -990,6 +990,20 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     print(" ∑e_magnetic: ")
     @printf("  % 10.8e", e_magnetic)
     dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    println()
+  end
+
+  # Potential energy
+  if :energy_potential in dg.analysis_quantities
+    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
+    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u, u_gravity
+      cons_euler = get_node_vars(u, dg, i, j, element_id)
+      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+      return cons_euler[1] * cons_gravity[1]
+    end
+    print(" ∑e_pot:      ")
+    @printf("  % 10.8e", e_potential)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
     println()
   end
 
@@ -1091,6 +1105,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :energy_magnetic in quantities
       @printf(f, "   %-14s", "e_magnetic")
+    end
+    if :energy_potential in quantities
+      @printf(f, "   %-14s", "e_potential")
     end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")

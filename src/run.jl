@@ -347,7 +347,7 @@ function init_simulation()
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
     if globals[:euler_gravity]
-      analyze_solution(solver_euler, mesh, time, 0, step, 0, 0)
+      analyze_solution(solver_euler, mesh, time, 0, step, 0, 0, solver_gravity=solver_gravity)
     else
       analyze_solution(solver, mesh, time, 0, step, 0, 0)
     end
@@ -448,8 +448,13 @@ function run_simulation(mesh, solvers, time_parameters)
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
-      l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
-          solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
+      if globals[:euler_gravity]
+        l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
+            solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
+      else
+        l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
+            solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
+      end
 
       # Reset time and counters
       analysis_start_time = time_ns()
