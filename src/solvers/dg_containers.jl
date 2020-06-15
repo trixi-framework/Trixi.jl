@@ -3,7 +3,8 @@
 struct ElementContainer{V, N} <: AbstractContainer
   u::Array{Float64, 4}                # [variables, i, j, elements]
   u_t::Array{Float64, 4}              # [variables, i, j, elements]
-  u_rungekutta::Array{Float64, 4}     # [variables, i, j, elements]
+  u_tmp2::Array{Float64, 4}           # [variables, i, j, elements]
+  u_tmp3::Array{Float64, 4}           # [variables, i, j, elements]
   inverse_jacobian::Vector{Float64}   # [elements]
   node_coordinates::Array{Float64, 4} # [orientation, i, j, elements]
   surface_ids::Matrix{Int}            # [direction, elements]
@@ -18,14 +19,15 @@ function ElementContainer{V, N}(capacity::Integer) where {V, N} # V = no. variab
   u = fill(NaN, V, n_nodes, n_nodes, capacity)
   u_t = fill(NaN, V, n_nodes, n_nodes, capacity)
   # u_rungakutta is initialized to non-NaN since it is used directly
-  u_rungekutta = fill(0.0, V, n_nodes, n_nodes, capacity)
+  u_tmp2 = fill(0.0, V, n_nodes, n_nodes, capacity)
+  u_tmp3 = fill(0.0, V, n_nodes, n_nodes, capacity)
   inverse_jacobian = fill(NaN, capacity)
   node_coordinates = fill(NaN, ndim, n_nodes, n_nodes, capacity)
   surface_ids = fill(typemin(Int), 2 * ndim, capacity)
   surface_flux = fill(NaN, V, n_nodes, 2 * ndim, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer{V, N}(u, u_t, u_rungekutta, inverse_jacobian, node_coordinates,
+  elements = ElementContainer{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
                                     surface_ids, surface_flux, cell_ids)
 
   return elements
