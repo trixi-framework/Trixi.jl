@@ -23,6 +23,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   # FIXME: Hack to use different CFL number for the gravity solver
   # gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve)
   gravity_cfl = 0.435 # works for Williamson LSRK3 (≈95% of solve)
+  # gravity_cfl = 1.2 # works for Ranocha 3Sstar (≈??% of solve)
   @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
   for stage = 1:5
@@ -74,6 +75,7 @@ function update_gravity!(solver, u_euler, cfl)
 
     # Evolve solution by one pseudo-time step
     timestep_gravity!(solver, time, dt, u_euler)
+    # timestep_gravity_3Sstar!(solver, time, dt, u_euler)
     time += dt
 
     # Update iteration counter
@@ -126,6 +128,52 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
       @. solver.elements.u_tmp2 = (solver.elements.u_t
                                          - solver.elements.u_tmp2 * a[stage])
       @. solver.elements.u += solver.elements.u_tmp2 * b[stage] * dt
+    end
+  end
+end
+
+
+# Integrate gravity solver
+# OBS! coupling source term added outside the rhs! call
+function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
+  # New 3Sstar coefficients optimized for polynomials of degree p=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 1
+  gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
+  gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 8.0043329115077388E-01, 1.3550099149374278E-01]
+  beta   = @SVector [1.9189497208340553E-01, 5.4506406707700059E-02, 1.2103893164085415E-01, 6.8582252490550921E-01, 8.7914657211972225E-01]
+  delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
+
+  # Newton's gravitational constant (cgs units)
+  G = 6.674e-8 # cm^3/(g⋅s^2)
+  rho0 = 1.5e7 # background density
+  grav_scale = -4.0*pi*G
+
+  solver.elements.u_tmp2 .= zero(eltype(solver.elements.u_tmp2))
+  solver.elements.u_tmp3 .= solver.elements.u
+  for stage in eachindex(c)
+    t_stage = t + dt * c[stage]
+    @timeit timer() "rhs" rhs!(solver, t_stage)
+
+    # put in gravity source term proportional to Euler density
+    # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+
+    delta_stage   = delta[stage]
+    gamma1_stage  = gamma1[stage]
+    gamma2_stage  = gamma2[stage]
+    gamma3_stage  = gamma3[stage]
+    beta_stage_dt = beta[stage] * dt
+    @timeit timer() "Runge-Kutta step" begin
+      Threads.@threads for i in eachindex(solver.elements.u)
+        solver.elements.u_tmp2[i] += delta_stage * solver.elements.u[i]
+        solver.elements.u[i]       = (gamma1_stage * solver.elements.u[i] +
+                                      gamma2_stage * solver.elements.u_tmp2[i] +
+                                      gamma3_stage * solver.elements.u_tmp3[i] +
+                                      beta_stage_dt * solver.elements.u_t[i])
+      end
     end
   end
 end
