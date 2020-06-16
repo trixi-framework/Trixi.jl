@@ -19,8 +19,9 @@ resid_tol = 5.0e-12
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 4
-cfl = 0.5
+N = 3
+cfl = 1.2 # 0.5 for Carpenter-Kennedy-RK(5,4)2N; 1.2 for s=5 optimized scheme
+time_integration_scheme = "timestep_hyp_diff_N3_erk51_3Sstar!"
 n_steps_max = 10000
 analysis_interval = 200
 extra_analysis_quantities = ["entropy", "energy_total"]

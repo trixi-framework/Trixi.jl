@@ -2160,11 +2160,12 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  Threads.@threads for element_id = 1:dg.n_elements
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          dg.elements.u_t[v, i, j, element_id] *= -dg.elements.inverse_jacobian[element_id]
+  Threads.@threads for element_id in 1:dg.n_elements
+    factor = -dg.elements.inverse_jacobian[element_id]
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
+          dg.elements.u_t[v, i, j, element_id] *= factor
         end
       end
     end
