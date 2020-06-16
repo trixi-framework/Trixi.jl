@@ -1,4 +1,7 @@
 
+using LinearMaps: LinearMap
+
+
 """
     run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
 
@@ -311,7 +314,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 
     # Check steady-state integration residual
     if solver.equations isa HyperbolicDiffusionEquations
-      if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
+      if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
         println()
         println("-"^80)
         println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
@@ -494,4 +497,31 @@ function convtest(parameters_file, iterations)
     println("")
     println("-"^80)
   end
+end
+
+
+function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+  # Read command line or keyword arguments and parse parameters file
+  init_parameters(parameters_file; verbose=verbose, args=args,
+      refinement_level_increment=refinement_level_increment, parameters...)
+  mesh, solver, time_parameters = init_simulation()
+
+  equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||
+    throw(ArgumentError("Only linear problems are supported."))
+
+  # get the right hand side from the source terms
+  solver.elements.u .= 0
+  rhs!(solver, 0)
+  b = vec(-solver.elements.u_t) |> copy
+
+  # set the source terms to zero to extract the linear operator
+  solver = Dg(solver.equations, solver.surface_flux, solver.volume_flux, solver.initial_conditions,
+              source_terms, mesh, polydeg(solver))
+  A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
+    vec(solver.elements.u) .= src
+    rhs!(solver, 0)
+    dest .= vec(solver.elements.u_t)
+  end
+
+  A, b
 end
