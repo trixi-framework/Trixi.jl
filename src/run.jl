@@ -500,10 +500,11 @@ function convtest(parameters_file, iterations)
 end
 
 
-function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0)
-  mesh, solver, time_parameters = init_simulation(
-      parameters_file, verbose=verbose, args=args,
-      refinement_level_increment=refinement_level_increment)
+function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+  # Read command line or keyword arguments and parse parameters file
+  init_parameters(parameters_file; verbose=verbose, args=args,
+      refinement_level_increment=refinement_level_increment, parameters...)
+  mesh, solver, time_parameters = init_simulation()
 
   equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||
     throw(ArgumentError("Only linear problems are supported."))
