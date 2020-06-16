@@ -4,7 +4,10 @@ equations = "euler_gravity"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_jeans_instability"
 # initial_conditions = "constant"
-surface_flux = "flux_lax_friedrichs"
+# surface_flux = "flux_lax_friedrichs"
+# volume_flux = "flux_central"
+surface_flux = "flux_chandrashekar"
+volume_flux = "flux_chandrashekar"
 source_terms = "source_terms_harmonic"
 t_start = 0.0
 t_end   = 5.0
@@ -12,7 +15,7 @@ t_end   = 5.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
-#volume_integral_type = "split_form"
+volume_integral_type = "split_form"
 
 resid_tol = 1e-5
 

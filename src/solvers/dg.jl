@@ -113,6 +113,9 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
+  if equation isa HyperbolicDiffusionEquations && globals[:euler_gravity]
+    volume_integral_type = Val(:weak_form)
+  end
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))

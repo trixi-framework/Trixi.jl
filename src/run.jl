@@ -120,7 +120,8 @@ function init_simulation()
     # FIXME: Hack there is a fictitious source term in the Euler equations to trick it into
     #        having no source term
 #    solver_euler.source_terms = "none"
-    solver_gravity = make_solver(solver_name, equations_gravity, mesh)
+    solver_gravity = make_solver(solver_name, equations_gravity, mesh,
+                                 surface_flux=flux_lax_friedrichs, volume_flux=flux_central)
   else
     solver = make_solver(solver_name, equations, mesh)
   end
