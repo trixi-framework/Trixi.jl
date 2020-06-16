@@ -1,8 +1,8 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
 struct ElementContainer{V, N} <: AbstractContainer
-u_t::Array{Float64, 4}                   # [variables, i, j, elements]
-u::Array{Float64, 4}                     # [variables, i, j, elements]
+  u::Array{Float64, 4}                   # [variables, i, j, elements]
+  u_t::Array{Float64, 4}                 # [variables, i, j, elements]
   u_tmp2::Array{Float64, 4}              # [variables, i, j, elements]
   u_tmp3::Array{Float64, 4}              # [variables, i, j, elements]
   inverse_jacobian::Vector{Float64}      # [elements]
