@@ -20,6 +20,25 @@ isdir(outdir) && rm(outdir, recursive=true)
             linf = [0.08754218386076518],
             N=1)
   end
+  @testset "../examples/parameters.toml with carpenter_kennedy_erk43" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [8.908962577028364e-6],
+            linf = [6.969419032576418e-5],
+            time_integration_scheme = "timestep_carpenter_kennedy_erk43_2N!",
+            cfl = 0.5)
+  end
+  @testset "../examples/parameters.toml with parsani_ketcheson_deconinck_erk94" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [7.932405161658336e-6],
+            linf = [6.509399993848142e-5],
+            time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk94_3Sstar!")
+  end
+  @testset "../examples/parameters.toml with parsani_ketcheson_deconinck_erk32" begin
+    test_trixi_run("../examples/parameters.toml",
+            l2   = [0.00440542760645958],
+            linf = [0.012549162970726613],
+            time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk32_3Sstar!")
+  end
   @testset "../examples/parameters_alfven_wave.toml" begin
     test_trixi_run("../examples/parameters_alfven_wave.toml",
             l2   = [0.00011134513490658689, 5.880188909157728e-6, 5.880188909159547e-6, 8.432880997656317e-6, 1.2942387343501909e-6, 1.2238820298971968e-6, 1.2238820298896402e-6, 1.830621754702352e-6, 8.086996786269551e-7],
@@ -62,8 +81,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
   @testset "../examples/parameters_hyp_diff_llf.toml" begin
     test_trixi_run("../examples/parameters_hyp_diff_llf.toml",
-            l2   = [5.944333465696809e-6, 3.744414248045495e-5, 3.744414248051497e-5],
-            linf = [3.751627675097069e-5, 0.00019575235699065274, 0.00019575235699065274])
+            l2   = [0.00015687751088073104, 0.0010259867353397119, 0.0010259867353398994],
+            linf = [0.001198695640053704, 0.006423873515701395, 0.006423873515686296])
   end
   @testset "../examples/parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run("../examples/parameters_hyp_diff_nonperiodic.toml",

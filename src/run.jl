@@ -154,8 +154,7 @@ function init_simulation()
   t_end = parameter("t_end")
 
   # Init time integration
-  time_integration_scheme = Symbol(parameter("time_integration_scheme", "timestep_carpenter_4_5!",
-      valid=("timestep_carpenter_4_5!", "timestep_3Sstar!")))
+  time_integration_scheme = Symbol(parameter("time_integration_scheme", "timestep_carpenter_kennedy_erk54_2N!"))
   time_integration_function = eval(time_integration_scheme)
 
   # Print setup information
