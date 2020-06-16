@@ -852,7 +852,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
   # Open file for appending and store time step and time information
   if dg.save_analysis
     f = open(dg.analysis_filename, "a")
-    @printf(f, "% 8d", step)
+    @printf(f, "% 9d", step)
     @printf(f, "  %10.8e", time)
     @printf(f, "  %10.8e", dt)
   end
@@ -1068,7 +1068,7 @@ system of equations instance is passed in `equation`.
 """
 function save_analysis_header(filename, quantities, equation)
   open(filename, "w") do f
-    @printf(f, "%-8s", "timestep")
+    @printf(f, "#%-8s", "timestep")
     @printf(f, "  %-14s", "time")
     @printf(f, "  %-14s", "dt")
     if :l2_error in quantities
@@ -2180,11 +2180,12 @@ end
 
 # Apply Jacobian from mapping to reference element
 function apply_jacobian!(dg)
-  Threads.@threads for element_id = 1:dg.n_elements
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          dg.elements.u_t[v, i, j, element_id] *= -dg.elements.inverse_jacobian[element_id]
+  Threads.@threads for element_id in 1:dg.n_elements
+    factor = -dg.elements.inverse_jacobian[element_id]
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
+          dg.elements.u_t[v, i, j, element_id] *= factor
         end
       end
     end

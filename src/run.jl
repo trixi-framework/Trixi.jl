@@ -36,8 +36,8 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 
   # Separate initialization and execution into two functions such that Julia can specialize
   # the code in `run_simulation` for the actual type of `solver` and `mesh`
-  mesh, solver, time_parameters = init_simulation()
-  run_simulation(mesh, solver, time_parameters)
+  mesh, solver, time_parameters, time_integration_function = init_simulation()
+  run_simulation(mesh, solver, time_parameters, time_integration_function)
 end
 
 
@@ -185,6 +185,10 @@ function init_simulation()
   end
   t_end = parameter("t_end")
 
+  # Init time integration
+  time_integration_scheme = Symbol(parameter("time_integration_scheme", "timestep_carpenter_kennedy_erk54_2N!"))
+  time_integration_function = eval(time_integration_scheme)
+
   # Print setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
@@ -231,6 +235,7 @@ function init_simulation()
       s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
     end
     s *= """| n_steps_max:        $n_steps_max
+            | time integration:   $(get_name(time_integration_function))
             | restart interval:   $restart_interval
             | solution interval:  $solution_interval
             | #parallel threads:  $(Threads.nthreads())
@@ -289,6 +294,7 @@ function init_simulation()
       s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
     end
     s *= """| n_steps_max:        $n_steps_max
+            | time integration:   $(get_name(time_integration_function))
             | restart interval:   $restart_interval
             | solution interval:  $solution_interval
             | #parallel threads:  $(Threads.nthreads())
@@ -364,14 +370,14 @@ function init_simulation()
                     amr_interval=amr_interval,
                     restart_interval=restart_interval)
   if globals[:euler_gravity]
-    return mesh, (solver_euler, solver_gravity), time_parameters
+    return mesh, (solver_euler, solver_gravity), time_parameters, time_integration_function
   else
-    return mesh, solver, time_parameters
+    return mesh, solver, time_parameters, time_integration_function
   end
 end
 
 
-function run_simulation(mesh, solvers, time_parameters)
+function run_simulation(mesh, solvers, time_parameters, time_integration_function)
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,
           analysis_interval, alive_interval,
@@ -414,9 +420,9 @@ function run_simulation(mesh, solvers, time_parameters)
 
     # Evolve solution by one time step
     if globals[:euler_gravity]
-      timestep!(solver_euler, solver_gravity, time, dt, time_parameters)
+      timestep_euler_gravity!(solver_euler, solver_gravity, time, dt, time_parameters)
     else
-      timestep!(solver, time, dt)
+      time_integration_function(solver, time, dt)
     end
     step += 1
     time += dt
