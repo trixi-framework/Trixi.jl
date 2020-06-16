@@ -515,7 +515,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
-  solver = Dg(solver.equations, solver.surface_flux, solver.volume_flux, solver.initial_conditions,
+  solver = Dg(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
               source_terms, mesh, polydeg(solver))
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
