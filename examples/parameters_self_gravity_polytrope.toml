@@ -10,7 +10,7 @@ surface_flux = "flux_chandrashekar"
 volume_flux = "flux_chandrashekar"
 source_terms = "source_terms_harmonic"
 t_start = 0.0
-t_end   = 1.0
+t_end   = 0.5
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -23,7 +23,7 @@ resid_tol = 1e-4
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.1
+cfl = 0.6
 n_steps_max = 10000
 n_iterations_max = 1000
 analysis_interval = 100
@@ -36,6 +36,7 @@ n_cells_max = 10000
 coordinates_min = [-0.5, -0.5]
 coordinates_max =  [0.5, 0.5]
 initial_refinement_level = 4
+periodicity = false
 # refinement_patches = [
 #   {type = "box", coordinates_min = 0, coordinates_max = 16},
 # ]
