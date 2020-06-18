@@ -1002,6 +1002,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u, u_gravity
       cons_euler = get_node_vars(u, dg, i, j, element_id)
       cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
       return (cons_euler[1] - 1.5e7) * cons_gravity[1]
     end
     print(" ∑e_pot:      ")

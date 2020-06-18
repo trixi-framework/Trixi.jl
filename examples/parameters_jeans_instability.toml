@@ -17,16 +17,16 @@ t_end   = 5.0
 
 volume_integral_type = "split_form"
 
-resid_tol = 1e-5
+resid_tol = 1e-4
 
 ####################################################################################################
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.5
+cfl = 0.6
 n_steps_max = 10000
 n_iterations_max = 1000
-analysis_interval = 1
+analysis_interval = 100
 extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
 save_analysis = true
 
