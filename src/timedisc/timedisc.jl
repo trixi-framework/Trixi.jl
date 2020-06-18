@@ -21,7 +21,8 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   # Update gravity in every time step
   # FIXME: Hack to use different CFL number for the gravity solver
-  gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
+  # Values for the Jeans instability test
+  #gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
   #gravity_cfl = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
   #gravity_cfl = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
   #gravity_cfl = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
@@ -29,6 +30,8 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   #gravity_cfl = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
   #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
+  # Value for the polytrope test
+  gravity_cfl = 0.1
   for stage = 1:5
     # Update gravity in every RK stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
@@ -111,9 +114,11 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
   # b = [1.0/3.0, 15.0/16.0, 8.0/15.0]
   # c = [0.0, 1.0/3.0, 3.0/4.0]
 
-  # Newton's gravitational constant (cgs units)
-  G = 6.674e-8 # cm^3/(g⋅s^2)
-  rho0 = 1.5e7 # background density
+  # Newton's gravitational constant (cgs units) for Jeans instability
+  #G = 6.674e-8 # cm^3/(g⋅s^2)
+  #rho0 = 1.5e7 # background density
+  # Newton's gravitational constant (normalized) for polytrope test
+  G = 1.0
   grav_scale = -4.0*pi*G
   for stage = 1:5 # for LSRK45
 #  for stage = 1:3 # for LSRK3
@@ -122,7 +127,8 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*u_euler[1,:,:,:]
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_tmp2 = (solver.elements.u_t
