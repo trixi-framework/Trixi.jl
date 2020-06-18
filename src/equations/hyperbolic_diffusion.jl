@@ -91,8 +91,61 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   return @SVector [phi, p, q]
 end
 
+function initial_conditions_polytrope(x, t, equation::HyperbolicDiffusionEquations)
+  inicenter = [0.0, 0.0] # must be same as in source terms
+  r_soft = 0.001 # must be the same as in source terms
+
+  # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  # r_plummer = (r^2 + r_soft^2) / r
+  r_plummer = max(r, r_soft)
+
+  # Determine phi_x, phi_y
+  tmp_cos = -2.0 * sqrt(pi) * r_plummer * cos(sqrt(2*pi) * r_plummer)
+  tmp_sin = sqrt(2) * sin(sqrt(2*pi) * r_plummer)
+  tmp = (tmp_cos + tmp_sin) / (sqrt(pi) * r_plummer^3)
+  phi_x = -2.0 * x[1] * tmp
+  phi_y = -2.0 * x[2] * tmp
+
+  phi = -2.0 * sin(sqrt(2*pi) * r_plummer) / (sqrt(2*pi) * r_plummer)
+  p   = phi_x
+  q   = phi_y
+  return @SVector [phi, p, q]
+end
+
 
 # Apply source terms
+function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
+  r_soft = 0.001 # must be the same as in initial conditions
+  inicenter = [0.0, 0.0] # must be same as in initial conditions
+  inv_Tr = inv(equation.Tr)
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      x_norm = x1 - inicenter[1]
+      y_norm = x2 - inicenter[2]
+      r = sqrt(x_norm^2 + y_norm^2)
+      # r_plummer = (r^2 + r_soft^2) / r
+      r_plummer = max(r, r_soft)
+
+      numerator = (-2 * (1-2*pi*r_plummer^2) * sin(sqrt(2*pi) * r_plummer) +
+                   2 * sqrt(2*pi) * r_plummer * cos(sqrt(2*pi) * r_plummer))
+      denominator = sqrt(2*pi) * r_plummer^3
+
+      ut[1, i, j, element_id] += 0 #numerator / denominator
+      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
+    end
+  end
+
+  return nothing
+end
+
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
