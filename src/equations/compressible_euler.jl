@@ -312,11 +312,13 @@ function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::Comp
       r_plummer = max(r, r_soft)
 
       # Determine gravity acceleration
-      tmp_cos = -2.0 * sqrt(pi) * r_plummer * cos(sqrt(2*pi) * r_plummer)
-      tmp_sin = sqrt(2) * sin(sqrt(2*pi) * r_plummer)
-      tmp = (tmp_cos + tmp_sin) / (sqrt(pi) * r_plummer^3)
-      phi_x = x1 * tmp # = gravity acceleration in x-direction
-      phi_y = x2 * tmp # = gravity acceleration in y-direction
+      C = -2.0
+      alpha = sqrt(2.0*pi)
+      tmp_cos = alpha * r_plummer * cos(alpha * r_plummer)
+      tmp_sin = sin(alpha * r_plummer)
+      tmp = (tmp_cos - tmp_sin) / ( alpha * r_plummer^3)
+      phi_x = C * x1 * tmp # = gravity acceleration in x-direction
+      phi_y = C * x2 * tmp # = gravity acceleration in y-direction
 
       # Add source terms
       rho = u[1, i, j, element_id]

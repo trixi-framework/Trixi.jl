@@ -103,13 +103,15 @@ function initial_conditions_polytrope(x, t, equation::HyperbolicDiffusionEquatio
   r_plummer = max(r, r_soft)
 
   # Determine phi_x, phi_y
-  tmp_cos = -2.0 * sqrt(pi) * r_plummer * cos(sqrt(2*pi) * r_plummer)
-  tmp_sin = sqrt(2) * sin(sqrt(2*pi) * r_plummer)
-  tmp = (tmp_cos + tmp_sin) / (sqrt(pi) * r_plummer^3)
-  phi_x = -2.0 * x[1] * tmp
-  phi_y = -2.0 * x[2] * tmp
+  C = -2.0
+  alpha = sqrt(2.0*pi)
+  tmp_cos = alpha * r_plummer * cos(alpha * r_plummer)
+  tmp_sin = sin(alpha * r_plummer)
+  tmp = (tmp_cos - tmp_sin) / ( alpha * r_plummer^3)
+  phi_x = C * x[1] * tmp # = gravity acceleration in x-direction
+  phi_y = C * x[2] * tmp # = gravity acceleration in y-direction
 
-  phi = -2.0 * sin(sqrt(2*pi) * r_plummer) / (sqrt(2*pi) * r_plummer)
+  phi = C * sin(sqrt(2*pi) * r_plummer) / (sqrt(2*pi) * r_plummer)
   p   = phi_x
   q   = phi_y
   return @SVector [phi, p, q]
@@ -133,11 +135,13 @@ function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::Hype
       # r_plummer = (r^2 + r_soft^2) / r
       r_plummer = max(r, r_soft)
 
-      numerator = (-2 * (1-2*pi*r_plummer^2) * sin(sqrt(2*pi) * r_plummer) +
-                   2 * sqrt(2*pi) * r_plummer * cos(sqrt(2*pi) * r_plummer))
-      denominator = sqrt(2*pi) * r_plummer^3
+      C = -2.0
+      alpha = sqrt(2.0*pi)
+      numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
+                       alpha*r_plummer*cos(alpha*r_plummer) )
+      denominator = alpha * r_plummer^3
 
-      ut[1, i, j, element_id] += 0 #numerator / denominator
+      ut[1, i, j, element_id] += numerator / denominator
       ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
       ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
     end
