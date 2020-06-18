@@ -21,7 +21,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   # Update gravity in every time step
   # FIXME: Hack to use different CFL number for the gravity solver
-  gravity_cfl = 0.81 # works for CK LSRK45         (≈97% of solve) N = 3
+  gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
   #gravity_cfl = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
   #gravity_cfl = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
   #gravity_cfl = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
@@ -31,7 +31,6 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   for stage = 1:5
     # Update gravity in every RK stage
-    # FIXME: Hack to use different CFL number for the gravity solver
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
     # Update stage time
@@ -87,8 +86,8 @@ function update_gravity!(solver, u_euler, cfl)
       finalstep = true
     end
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-#      println("  Gravity solution tolerance ",solver.equations.resid_tol,
-#              " reached in iterations ",iteration)
+      println("  Gravity solution tolerance ",solver.equations.resid_tol,
+              " reached in iterations ",iteration)
       finalstep = true
     end
 
