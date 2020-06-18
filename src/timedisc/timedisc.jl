@@ -153,12 +153,18 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
   delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
   c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
 
+  # Jeans instability setup
   # Newton's gravitational constant (cgs units) for Jeans instability
   #G = 6.674e-8 # cm^3/(g⋅s^2)
   #rho0 = 1.5e7 # background density
+
   # Newton's gravitational constant (normalized) for polytrope test
   G = 1.0
   grav_scale = -4.0*pi*G
+
+  # Polytrope setup
+  r_soft = 0.001 # must be the same as in initial conditions
+  inicenter = [0.0, 0.0] # must be same as in initial conditions
 
   solver.elements.u_tmp2 .= zero(eltype(solver.elements.u_tmp2))
   solver.elements.u_tmp3 .= solver.elements.u
@@ -166,10 +172,39 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(solver, t_stage)
 
+    # Source term: Jeans instability
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
     #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*u_euler[1,:,:,:]
+    #=@views @. solver.elements.u_t[1,:,:,:] += grav_scale*u_euler[1,:,:,:]=#
+
+    # Source term: polytrope
+    for element_id in axes(u_euler, 4)
+      for j in axes(u_euler, 3)
+        for i in axes(u_euler, 2)
+          # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
+          x1 = solver.elements.node_coordinates[1, i, j, element_id]
+          x2 = solver.elements.node_coordinates[2, i, j, element_id]
+          x_norm = x1 - inicenter[1]
+          y_norm = x2 - inicenter[2]
+          r = sqrt(x_norm^2 + y_norm^2)
+          # r_plummer = (r^2 + r_soft^2) / r
+          r_plummer = max(r, r_soft)
+
+          rho = u_euler[1, i, j, element_id]
+          C = -2.0
+          alpha = sqrt(2.0*pi)
+          term1 = C * (alpha^2*r_plummer^2 - 1.0) * rho / r_plummer^2
+          term2 = C * alpha*r_plummer*cos(alpha*r_plummer) / (alpha * r_plummer^3)
+          numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
+                          alpha*r_plummer*cos(alpha*r_plummer) )
+          denominator = alpha * r_plummer^3
+
+          solver.elements.u_t[1, i, j, element_id] += term1 + term2
+          #=solver.elements.u_t[1, i, j, element_id] += numerator / denominator=#
+        end
+      end
+    end
 
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
