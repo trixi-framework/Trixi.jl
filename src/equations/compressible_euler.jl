@@ -272,6 +272,62 @@ function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerE
   return prim2cons(SVector(dens, velx, vely, pres), equation)
 end
 
+function initial_conditions_polytrope(x, t, equation::CompressibleEulerEquations)
+  # Setup parameters
+  inicenter = [0.0, 0.0] # must be same as in source terms
+  polytrope_gamma = 2.0 # must be same as in source terms
+  r_soft = 0.001 # must be the same as in source terms
+
+  # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
+  # r_plummer = (r^2 + r_soft^2) / r
+  r_plummer = max(r, r_soft)
+
+  # Calculate primitive variables
+  rho = sin(sqrt(2*pi) * r_plummer) / (sqrt(2*pi) * r_plummer)
+  v1 = 0.0
+  v2 = 0.0
+  p = rho^polytrope_gamma
+
+  return prim2cons(SVector(rho, v1, v2, p), equation)
+end
+
+function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # Setup parameters
+  inicenter = [0.0, 0.0] # must be same as in initial conditions
+  polytrope_gamma = 2.0 # must be same as in initial conditions
+  r_soft = 0.001 # must be the same as in initial conditions
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      x_norm = x1 - inicenter[1]
+      y_norm = x2 - inicenter[2]
+      r = sqrt(x_norm^2 + y_norm^2)
+      # r_plummer = (r^2 + r_soft^2) / r
+      r_plummer = max(r, r_soft)
+
+      # Determine gravity acceleration
+      tmp_cos = -2.0 * sqrt(pi) * r_plummer * cos(sqrt(2*pi) * r_plummer)
+      tmp_sin = sqrt(2) * sin(sqrt(2*pi) * r_plummer)
+      tmp = (tmp_cos + tmp_sin) / (sqrt(pi) * r_plummer^3)
+      phi_x = x1 * tmp # = gravity acceleration in x-direction
+      phi_y = x2 * tmp # = gravity acceleration in y-direction
+
+      # Add source terms
+      rho = u[1, i, j, element_id]
+      ut[2, i, j, element_id] += -rho * phi_x
+      ut[3, i, j, element_id] += -rho * phi_y
+    end
+  end
+
+  return nothing
+end
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Same settings as in `initial_conditions`
