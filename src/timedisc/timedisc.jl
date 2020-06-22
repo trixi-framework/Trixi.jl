@@ -32,7 +32,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   # Value for the polytrope test
   #gravity_cfl = 0.5 # for LSRK45
-  gravity_cfl = 1.22 # for 3Sstar
+  gravity_cfl = 1.0 # for 3Sstar
   for stage = 1:5
     # Update gravity in every RK stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
@@ -120,6 +120,7 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
   #rho0 = 1.5e7 # background density
   # Newton's gravitational constant (normalized) for polytrope test
   G = 1.0
+  rho0 = 0.0
   grav_scale = -4.0*pi*G
   for stage = 1:5 # for LSRK45
 #  for stage = 1:3 # for LSRK3
@@ -128,8 +129,7 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*u_euler[1,:,:,:]
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_tmp2 = (solver.elements.u_t
@@ -160,6 +160,7 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
 
   # Newton's gravitational constant (normalized) for polytrope test
   G = 1.0
+  rho0 = 0.0
   grav_scale = -4.0*pi*G
 
   # Polytrope setup
@@ -176,7 +177,6 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
     #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-    #=@views @. solver.elements.u_t[1,:,:,:] += grav_scale*u_euler[1,:,:,:]=#
 
     # Source term: polytrope
     for element_id in axes(u_euler, 4)
@@ -191,17 +191,30 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
           # r_plummer = (r^2 + r_soft^2) / r
           r_plummer = max(r, r_soft)
 
-          rho = u_euler[1, i, j, element_id]
           C = -2.0
           alpha = sqrt(2.0*pi)
+          rho = u_euler[1, i, j, element_id]
           term1 = C * (alpha^2*r_plummer^2 - 1.0) * rho / r_plummer^2
-          term2 = C * alpha*r_plummer*cos(alpha*r_plummer) / (alpha * r_plummer^3)
-          numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
-                          alpha*r_plummer*cos(alpha*r_plummer) )
-          denominator = alpha * r_plummer^3
+          term2 = C * cos(alpha*r_plummer) / r_plummer^2
 
-          solver.elements.u_t[1, i, j, element_id] += term1 + term2
-          #=solver.elements.u_t[1, i, j, element_id] += numerator / denominator=#
+          #println(u_euler[1, i, j, element_id] - sin(alpha*r_plummer)/(alpha*r_plummer))
+
+          numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
+                         alpha*r_plummer*cos(alpha*r_plummer) )
+          denominator = alpha * r_plummer^3
+          #
+          # this has a similar form to the RHS in hyperbolic diffusion polytrope EXCEPT it attempts
+          # to use the Euler density as part of the f(x,y) function. In this sense it has "full"
+          # coupling but it is unstable...do not understand why
+          #solver.elements.u_t[1, i, j, element_id] += term1 + term2
+          #
+          # this uses the same RHS as the hyperbolic diffusion polytrope test (stable and converges)
+          # BUT it does not use the Euler solution to update gravity potential, but the p = ϕ_x and
+          # q = ϕ_y variables from HypDiff are used for the gravity source term of Euler
+          solver.elements.u_t[1, i, j, element_id] += numerator / denominator
+          #
+          # this uses the density from the Euler solver for the gravity Poisson problem (unstable)
+          #solver.elements.u_t[1, i, j, element_id] += grav_scale*rho
         end
       end
     end

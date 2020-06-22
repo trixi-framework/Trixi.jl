@@ -322,8 +322,8 @@ function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::Comp
 
       # Add source terms
       rho = u[1, i, j, element_id]
-      ut[2, i, j, element_id] += -rho * phi_x
-      ut[3, i, j, element_id] += -rho * phi_y
+      ut[2, i, j, element_id] -= rho * phi_x
+      ut[3, i, j, element_id] -= rho * phi_y
     end
   end
 
