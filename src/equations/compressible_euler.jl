@@ -294,6 +294,27 @@ function initial_conditions_polytrope(x, t, equation::CompressibleEulerEquations
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
+function initial_conditions_coupling_convergence_test(x, t, equation::CompressibleEulerEquations)
+  # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+  if equation.gamma != 2.0
+    error("adiabatic constant must be 2 for the coupling convergence test")
+  end
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  ini = c + A * sin(ω * (x[1] + x[2] - t))
+  G = 1.0 # gravitational constant
+
+  rho = ini
+  v1 = 1.0
+  v2 = 1.0
+  p = ini^2*G/pi
+
+  return prim2cons(SVector(rho, v1, v2, p), equation)
+end
+
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Setup parameters
   inicenter = [0.0, 0.0] # must be same as in initial conditions
@@ -364,6 +385,33 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
       #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
       # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
       #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+    end
+  end
+
+  return nothing
+end
+
+function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # Same settings as in `initial_conditions`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  G = 1.0 # gravitational constant, must match coupling solver
+  C_grav = -2.0*G/pi
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      rhox = cos((x1 + x2 - t)*ω)*A*ω
+      rho  = c + sin((x1 + x2 - t)*ω)*A
+
+      ut[1, i, j, element_id] += rhox
+      ut[2, i, j, element_id] += rhox
+      ut[3, i, j, element_id] += rhox
+      ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
     end
   end
 

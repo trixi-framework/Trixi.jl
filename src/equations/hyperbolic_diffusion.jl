@@ -117,6 +117,21 @@ function initial_conditions_polytrope(x, t, equation::HyperbolicDiffusionEquatio
   return @SVector [phi, p, q]
 end
 
+function initial_conditions_coupling_convergence_test(x, t, equation::HyperbolicDiffusionEquations)
+
+  # Determine phi_x, phi_y
+  G = 1.0 # gravitational constant
+  C = -2.0*G/pi
+  alpha = pi
+  A = 0.1 # perturbation coefficient must match Euler setup
+  rho1 = A*sin(alpha*(x[1] + x[2] - t))
+  # intialize with ansatz of gravity potential
+  phi = C * rho1
+  p   = C * alpha * cos(alpha*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
+  q   = p                                        # = gravity acceleration in y-direction
+
+  return @SVector [phi, p, q]
+end
 
 # Apply source terms
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
@@ -190,6 +205,20 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equa
 end
 
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
+  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  inv_Tr = inv(equation.Tr)
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
+    end
+  end
+
+  return nothing
+end
+
+function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 

@@ -32,7 +32,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   # Value for the polytrope test
   #gravity_cfl = 0.5 # for LSRK45
-  gravity_cfl = 1.0 # for 3Sstar
+  gravity_cfl = 0.5 # for 3Sstar
   for stage = 1:5
     # Update gravity in every RK stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
@@ -90,8 +90,8 @@ function update_gravity!(solver, u_euler, cfl)
       finalstep = true
     end
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-      println("  Gravity solution tolerance ",solver.equations.resid_tol,
-              " reached in iterations ",iteration)
+#      println("  Gravity solution tolerance ",solver.equations.resid_tol,
+#              " reached in iterations ",iteration)
       finalstep = true
     end
 
@@ -157,15 +157,16 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
   # Newton's gravitational constant (cgs units) for Jeans instability
   #G = 6.674e-8 # cm^3/(g⋅s^2)
   #rho0 = 1.5e7 # background density
+  #grav_scale = -4.0*pi*G
 
-  # Newton's gravitational constant (normalized) for polytrope test
+  # Newton's gravitational constant (normalized) for coupling convergence test
   G = 1.0
-  rho0 = 0.0
+  rho0 = 2.0 # must match the constant c from initial conditions in compresible_euler.jl
   grav_scale = -4.0*pi*G
 
   # Polytrope setup
-  r_soft = 0.001 # must be the same as in initial conditions
-  inicenter = [0.0, 0.0] # must be same as in initial conditions
+  # r_soft = 0.001 # must be the same as in initial conditions
+  # inicenter = [0.0, 0.0] # must be same as in initial conditions
 
   solver.elements.u_tmp2 .= zero(eltype(solver.elements.u_tmp2))
   solver.elements.u_tmp3 .= solver.elements.u
@@ -178,7 +179,13 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
     #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
 
+    # Source term: coupling convergence test
+    # put in gravity source term proportional to Euler density
+    # OBS! subtract off the background density ρ_0
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+
     # Source term: polytrope
+#= OBS! This is for the 2D polytrope which does not work
     for element_id in axes(u_euler, 4)
       for j in axes(u_euler, 3)
         for i in axes(u_euler, 2)
@@ -206,19 +213,19 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
           # this has a similar form to the RHS in hyperbolic diffusion polytrope EXCEPT it attempts
           # to use the Euler density as part of the f(x,y) function. In this sense it has "full"
           # coupling but it is unstable...do not understand why
-          #solver.elements.u_t[1, i, j, element_id] += term1 + term2
+          solver.elements.u_t[1, i, j, element_id] += term1 + term2
           #
           # this uses the same RHS as the hyperbolic diffusion polytrope test (stable and converges)
           # BUT it does not use the Euler solution to update gravity potential, but the p = ϕ_x and
           # q = ϕ_y variables from HypDiff are used for the gravity source term of Euler
-          solver.elements.u_t[1, i, j, element_id] += numerator / denominator
+          #solver.elements.u_t[1, i, j, element_id] += numerator / denominator
           #
           # this uses the density from the Euler solver for the gravity Poisson problem (unstable)
           #solver.elements.u_t[1, i, j, element_id] += grav_scale*rho
         end
       end
     end
-
+=#
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
     gamma2_stage  = gamma2[stage]
