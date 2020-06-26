@@ -315,6 +315,27 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Compressib
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
+function initial_conditions_coupling_pulse_convergence_test(x, t, equation::CompressibleEulerEquations)
+  # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+  if equation.gamma != 2.0
+    error("adiabatic constant must be 2 for the coupling pulse convergence test")
+  end
+  rho0 = 2.0
+  A = 1e-6
+  w = 12.5
+  eta = w * sin( pi * (x[1] - t) ) * sin( pi * (x[2] - t) )
+  f = A * eta * exp(eta)
+  ini = rho0 + f
+  G = 1.0 # gravitational constant
+
+  rho = ini
+  v1 = 1.0
+  v2 = 1.0
+  p = ini^2*G/pi
+
+  return prim2cons(SVector(rho, v1, v2, p), equation)
+end
+
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Setup parameters
   inicenter = [0.0, 0.0] # must be same as in initial conditions
@@ -392,7 +413,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 end
 
 function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_conditions_coupling_convergence_test`
   c = 2
   A = 0.1
   L = 2
@@ -420,6 +441,7 @@ end
 
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # just an empty routine for the coupled simulation
+  # OBS! used for the Jeans instability as well as "coupling_pulse_convergence_test"
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
 end

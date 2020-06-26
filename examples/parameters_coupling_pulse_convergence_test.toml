@@ -1,16 +1,16 @@
 ####################################################################################################
-# Simulation
+# Simulati1n
 equations = "euler_gravity"
 gamma = 2.0
-initial_conditions = "initial_conditions_coupling_convergence_test"
+initial_conditions = "initial_conditions_coupling_pulse_convergence_test"
 # initial_conditions = "constant"
 # surface_flux = "flux_lax_friedrichs"
 # volume_flux = "flux_central"
-surface_flux = "flux_chandrashekar"
+surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_chandrashekar"
-source_terms = "source_terms_coupling_convergence_test"
+source_terms = "source_terms_harmonic"
 t_start = 0.0
-t_end   = 0.5
+t_end   = 1.0
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
