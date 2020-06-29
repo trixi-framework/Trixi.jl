@@ -6,7 +6,7 @@
 #
 # Return true if anything was changed, false if no cells where coarsened/refined
 function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
-                only_refine=false, only_coarsen=false)
+                only_refine=false, only_coarsen=false, gravity_solver=nothing)
   # Debug output
   globals[:verbose] && print("Begin adaptation...")
 
@@ -35,7 +35,10 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
 
     # Refine solver
-     @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
+    @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
+    if !isnothing(gravity_solver)
+      @timeit timer() "solver_gravity" refine!(solver_gravity, mesh, refined_original_cells)
+    end
   else
     # If there is nothing to refine, create empty array for later use
     refined_original_cells = Int[]
@@ -91,6 +94,9 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
 
     # Coarsen solver
     @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
+    if !isnothing(gravity_solver)
+      @timeit timer() "solver_gravity" coarsen!(solver_gravity, mesh, removed_child_cells)
+    end
   else
     # If there is nothing to coarsen, create empty array for later use
     coarsened_original_cells = Int[]

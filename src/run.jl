@@ -167,15 +167,27 @@ function init_simulation()
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @assert !globals[:euler_gravity] "Not yet supported for coupled Euler-gravity simulations"
-      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-          only_refine=adapt_initial_conditions_only_refine)
+      if globals[:euler_gravity]
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver_euler, time,
+            only_refine=adapt_initial_conditions_only_refine, solver_gravity=solver_gravity)
 
-      # Iterate until mesh does not change anymore
-      while has_changed
-        set_initial_conditions!(solver, time)
+        # Iterate until mesh does not change anymore
+        while has_changed
+          set_initial_conditions!(solver_euler, time)
+          set_initial_conditions!(solver_gravity, time)
+          @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver_euler, time,
+              only_refine=adapt_initial_conditions_only_refine, solver_gravity=solver_gravity)
+        end
+      else
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
             only_refine=adapt_initial_conditions_only_refine)
+
+        # Iterate until mesh does not change anymore
+        while has_changed
+          set_initial_conditions!(solver, time)
+          @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+              only_refine=adapt_initial_conditions_only_refine)
+        end
       end
 
       # Save mesh file
@@ -487,7 +499,11 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
         # Compute current AMR indicator values such that it can be written to
         # the solution file for the current number of elements
         if amr_interval > 0
-          calc_amr_indicator(solver, mesh, time)
+          if globals[:euler_gravity]
+            calc_amr_indicator(solver_euler, mesh, time)
+          else
+            calc_amr_indicator(solver, mesh, time)
+          end
         end
 
         # If mesh has changed, write a new mesh file name
@@ -526,7 +542,11 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
 
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
-      @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time)
+      if globals[:euler_gravity]
+        @timeit timer() "AMR" has_changed = adapt!(mesh, solver_euler, time, solver_gravity=solver_gravity)
+      else
+        @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time)
+      end
 
       # Store if mesh has changed to write changed mesh file before next restart/solution output
       if has_changed
