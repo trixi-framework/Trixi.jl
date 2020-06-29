@@ -90,6 +90,7 @@ function update_gravity!(solver, u_euler, cfl)
     if n_iterations_max > 0 && iteration >= n_iterations_max
       finalstep = true
     end
+    #println(maximum(abs.(solver.elements.u_t[1, :, :, :])))
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
      println("  Gravity solution tolerance ",solver.equations.resid_tol,
              " reached in iterations ",iteration)
@@ -161,12 +162,19 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
   #rho0 = 1.5e7 # background density
   #grav_scale = -4.0*pi*G
 
-  # Newton's gravitational constant (normalized) for coupling convergence tests
-  G = 1.0
-  rho0 = 2.0 # must match the constant c from initial conditions in compresible_euler.jl
+  # Coupling convergence test setup
+  # Newton's gravitational constant (normalized)
+  # G = 1.0
+  # rho0 = 2.0 # must match the constant c from initial conditions in compresible_euler.jl
+  # grav_scale = -4.0*pi*G
+
+  # Blast wave with self-gravity setup
+  # Newton's gravitational constant (cgs units)
+  G = 6.674e-8 # cm^3/(g⋅s^2)
+  rho0 = 0.0 # background density
   grav_scale = -4.0*pi*G
 
-  # Polytrope setup
+# Polytrope setup
   # r_soft = 0.001 # must be the same as in initial conditions
   # inicenter = [0.0, 0.0] # must be same as in initial conditions
 
@@ -176,42 +184,10 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
     t_stage = t + dt * c[stage]
     @timeit timer() "rhs" rhs!(solver, t_stage)
 
-    # Source term: Jeans instability
+    # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-
-    # Source term: coupling convergence test (plane wave)
-    # put in gravity source term proportional to Euler density
-    # OBS! subtract off the background density ρ_0
-    #@views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-
-    # Source term: coupling_pulse_convergence_test
-    A = 1e-6
-    w = 12.5
-    D = 2.0*A*G/pi
-    for element_id in axes(u_euler, 4)
-      for j in axes(u_euler, 3)
-        for i in axes(u_euler, 2)
-          # Pull the x and y values
-          x = solver.elements.node_coordinates[1, i, j, element_id]
-          y = solver.elements.node_coordinates[2, i, j, element_id]
-          # compute the different RHS components
-          eta   =      w * sin( pi * (x - t_stage) ) * sin( pi * (y - t_stage) )
-          eta_y = pi * w * cos( pi * (x - t_stage) ) * sin( pi * (y - t_stage) )
-          eta_x = pi * w * sin( pi * (x - t_stage) ) * cos( pi * (y - t_stage) )
-          rho = u_euler[1, i, j, element_id]
-          # augmented standard part of the gravity source
-          # OBS! f = A * eta * exp(eta) = rho - rho0
-          #println(A * eta * exp(eta) - (rho - rho0))
-          term1 = grav_scale * (1.0 + eta) * (rho - rho0)
-          # extra terms from the manufactured source
-          term2 = D * exp(eta) * (2.0 + eta) * (eta_x^2 + eta_y^2)
-          # this RHS is ugly but is basically the standard gravity source + EXTRA
-          solver.elements.u_t[1, i, j, element_id] += term1 + term2
-        end
-      end
-    end
+    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
 
     # Source term: polytrope
 #= OBS! This is for the 2D polytrope which does not work

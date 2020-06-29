@@ -106,7 +106,7 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_weak_t_wave(x, t, equation::CompressibleEulerEquations)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = [0, 0]
@@ -315,26 +315,6 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Compressib
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_coupling_pulse_convergence_test(x, t, equation::CompressibleEulerEquations)
-  # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
-  if equation.gamma != 2.0
-    error("adiabatic constant must be 2 for the coupling pulse convergence test")
-  end
-  rho0 = 2.0
-  A = 1e-6
-  w = 12.5
-  eta = w * sin( pi * (x[1] - t) ) * sin( pi * (x[2] - t) )
-  f = A * eta * exp(eta)
-  ini = rho0 + f
-  G = 1.0 # gravitational constant
-
-  rho = ini
-  v1 = 1.0
-  v2 = 1.0
-  p = ini^2*G/pi
-
-  return prim2cons(SVector(rho, v1, v2, p), equation)
-end
 
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Setup parameters

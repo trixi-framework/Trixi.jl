@@ -133,27 +133,6 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_coupling_pulse_convergence_test(x, t, equation::HyperbolicDiffusionEquations)
-
-  A = 1e-6
-  w = 12.5
-
-  eta   =      w * sin( pi * (x[1] - t) ) * sin( pi * (x[2] - t) )
-  eta_x = pi * w * cos( pi * (x[1] - t) ) * sin( pi * (x[2] - t) )
-  eta_y = pi * w * sin( pi * (x[1] - t) ) * cos( pi * (x[2] - t) )
-
-  f   = A * eta   * exp(eta)
-  f_x = A * eta_x * exp(eta) * (1.0 + eta)
-  f_y = A * eta_y * exp(eta) * (1.0 + eta)
-
-  G = 1.0 # gravitational constant
-  C = -2.0*G/pi
-
-  phi = C * f
-  p   = C * f_x
-  q   = C * f_y
-  return @SVector [phi, p, q]
-end
 
 # Apply source terms
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
