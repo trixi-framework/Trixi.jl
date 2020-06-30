@@ -133,6 +133,14 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
   return @SVector [phi, p, q]
 end
 
+function initial_conditions_sedov_blast_wave(x, t, equation::HyperbolicDiffusionEquations)
+  # for now just use constant initial condition for sedov blast wave (can likely be improved)
+  phi = 1.0
+  p   = 0.0
+  q   = 0.0
+  return @SVector [phi, p, q]
+end
+
 function initial_conditions_coupling_pulse_convergence_test(x, t, equation::HyperbolicDiffusionEquations)
 
   A = 1e-6
