@@ -134,6 +134,14 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
 end
 
 
+function initial_conditions_sedov_blast_wave(x, t, equation::HyperbolicDiffusionEquations)
+  # for now just use constant initial condition for sedov blast wave (can likely be improved)
+  phi = 1.0
+  p   = 0.0
+  q   = 0.0
+  return @SVector [phi, p, q]
+end
+
 # Apply source terms
 function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   r_soft = 0.001 # must be the same as in initial conditions
