@@ -12,13 +12,13 @@ t_end   = 1.5
 
 volume_integral_type = "shock_capturing"
 
-resid_tol = 1e-4
+resid_tol = 1e-5
 
 ####################################################################################################
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.075 # very small but might be improved with shock capturing parameters
+cfl = 0.1 # very small but might be improved with shock capturing parameters
 n_steps_max = 10000
 n_iterations_max = 1000
 analysis_interval = 100
