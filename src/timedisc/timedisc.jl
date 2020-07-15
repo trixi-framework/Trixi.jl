@@ -30,9 +30,13 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   #gravity_cfl = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
   #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
-  # Value for the polytrope test
+  # Value for the coupling convergence test
   #gravity_cfl = 0.5 # for LSRK45
-  gravity_cfl = 0.5 # for 3Sstar
+  #gravity_cfl = 0.5 # for 3Sstar
+
+  # Value for the slef-gravitating Sedov blast wave with AMR
+  #gravity_cfl = 0.5 # for LSRK45
+  gravity_cfl = 1.0 # for 3Sstar
   for stage = 1:5
     # Update gravity in every RK stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
@@ -71,7 +75,6 @@ function update_gravity!(solver, u_euler, cfl)
   n_iterations_max = parameter("n_iterations_max", 0)
   iteration = 0
   time = 0.0
-  # old_resid = 0.0
 
   # Iterate gravity solver until convergence or maximum number of iterations are reached
   while !finalstep
@@ -88,15 +91,16 @@ function update_gravity!(solver, u_euler, cfl)
 
     # Check if we reached the maximum number of iterations
     if n_iterations_max > 0 && iteration >= n_iterations_max
+      println("Max iterations reached: Gravity solver failed to converge!")
       finalstep = true
     end
     #println(maximum(abs.(solver.elements.u_t[1, :, :, :])))
+    #println((maximum(abs.(solver.elements.u_t[1, :, :, :])) - old_resid)/maximum(abs.(solver.elements.u_t[1, :, :, :])))
+    #this is an absolute tolerance check
     if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
      # println("  Gravity solution tolerance ",solver.equations.resid_tol,
      #         " reached in iterations ",iteration)
-      finalstep = true
-    # else
-    #   old_resid = maximum(abs.(solver.elements.u_t[1, :, :, :]))
+     finalstep = true
     end
   end
 end
@@ -158,20 +162,20 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
 
   # Jeans instability setup
   # Newton's gravitational constant (cgs units) for Jeans instability
-  #G = 6.674e-8 # cm^3/(g⋅s^2)
-  #rho0 = 1.5e7 # background density
-  #grav_scale = -4.0*pi*G
+  #G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
+  #rho0 = 1.5e7 # [ρ] = g/cm^3 (background density)
 
   # Coupling convergence test setup
   # Newton's gravitational constant (normalized)
   # G = 1.0
   # rho0 = 2.0 # must match the constant c from initial conditions in compresible_euler.jl
-  # grav_scale = -4.0*pi*G
 
-  # Blast wave with self-gravity setup
-  # Newton's gravitational constant (cgs units)
-  G = 6.674e-8 # cm^3/(g⋅s^2)
-  rho0 = 0.0 # background density
+  # Sedov blast wave with self-gravity setup
+  # Newton's gravitational constant (normalized) because Sedov initial conditions are non-dimensional
+  G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
+  rho0 = 0.0 # 1.123039e6 # rho_ambient from "initial_conditions_sedov_self_gravity"
+
+  # Gravity scaling always has the same form (whether dimensional or non-dimensional)
   grav_scale = -4.0*pi*G
 
 # Polytrope setup

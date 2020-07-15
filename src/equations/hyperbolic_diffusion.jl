@@ -134,9 +134,12 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
 end
 
 
-function initial_conditions_sedov_blast_wave(x, t, equation::HyperbolicDiffusionEquations)
+function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
-  phi = 1.0
+  # rho_ambient	= 1.123039e6
+  # r = sqrt(x[1]^2 + x[2]^2)
+
+  phi = 0.0
   p   = 0.0
   q   = 0.0
   return @SVector [phi, p, q]
