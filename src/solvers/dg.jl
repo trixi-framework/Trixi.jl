@@ -163,7 +163,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob", "gravity_blast_wave"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
