@@ -8,12 +8,12 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   @unpack cfl = time_parameters
 
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
-  a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+  a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
-  b = [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
+  b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
        1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
        2277821191437.0 / 14882151754819.0]
-  c = [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
+  c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
        2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
 
   # Store for convenience
@@ -26,7 +26,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   #gravity_cfl = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
   #gravity_cfl = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
   #gravity_cfl = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
-  #gravity_cfl = 1.2 # works for Ranocha 3Sstar (≈??% of solve) N = 3
+  # gravity_cfl = 1.22 # works for Ranocha 3Sstar (≈??% of solve) N = 3
   #gravity_cfl = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
   #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
@@ -37,7 +37,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   # Value for the slef-gravitating Sedov blast wave with AMR
   #gravity_cfl = 0.5 # for LSRK45
   gravity_cfl = 1.0 # for 3Sstar
-  for stage = 1:5
+  for stage in eachindex(c)
     # Update gravity in every RK stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
 
@@ -94,13 +94,13 @@ function update_gravity!(solver, u_euler, cfl)
       println("Max iterations reached: Gravity solver failed to converge!")
       finalstep = true
     end
-    #println(maximum(abs.(solver.elements.u_t[1, :, :, :])))
-    #println((maximum(abs.(solver.elements.u_t[1, :, :, :])) - old_resid)/maximum(abs.(solver.elements.u_t[1, :, :, :])))
-    #this is an absolute tolerance check
-    if maximum(abs.(solver.elements.u_t[1, :, :, :])) <= solver.equations.resid_tol
-     # println("  Gravity solution tolerance ",solver.equations.resid_tol,
-     #         " reached in iterations ",iteration)
-     finalstep = true
+    # println(maximum(abs.(solver.elements.u_t[1, :, :, :])))
+    # println((maximum(abs.(solver.elements.u_t[1, :, :, :])) - old_resid)/maximum(abs.(solver.elements.u_t[1, :, :, :])))
+    # this is an absolute tolerance check
+    if maximum(abs, @views solver.elements.u_t[1, :, :, :]) <= solver.equations.resid_tol
+      # println("  Gravity solution tolerance ", solver.equations.resid_tol,
+      #         " reached in iterations ",iteration)
+      finalstep = true
     end
   end
 end
@@ -110,17 +110,17 @@ end
 # OBS! coupling source term added outside the rhs! call
 function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
- a = [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+ a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
       3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
- b = [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
+ b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
       1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
       2277821191437.0 / 14882151754819.0]
- c = [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
+ c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
       2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
   # Coefficients for Williamson's 3-stage 3rd-order low-storage Runge-Kutta method
-  # a = [0.0, 5.0/9.0, 153.0/128.0]
-  # b = [1.0/3.0, 15.0/16.0, 8.0/15.0]
-  # c = [0.0, 1.0/3.0, 3.0/4.0]
+  # a = @SVector [0.0, 5.0/9.0, 153.0/128.0]
+  # b = @SVector [1.0/3.0, 15.0/16.0, 8.0/15.0]
+  # c = @SVector [0.0, 1.0/3.0, 3.0/4.0]
 
   # Newton's gravitational constant (cgs units) for Jeans instability
   #G = 6.674e-8 # cm^3/(g⋅s^2)
@@ -129,8 +129,7 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
   G = 1.0
   rho0 = 0.0
   grav_scale = -4.0*pi*G
-  for stage = 1:5 # for LSRK45
-#  for stage = 1:3 # for LSRK3
+  for stage in eachindex(c)
     t_stage = t + dt * c[stage]
     # rhs! has the source term for the harmonic problem
     @timeit timer() "rhs" rhs!(solver, t_stage)
