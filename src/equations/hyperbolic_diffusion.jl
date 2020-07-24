@@ -127,8 +127,8 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
   rho1 = A*sin(alpha*(x[1] + x[2] - t))
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  p   = C * alpha * cos(alpha*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q   = p                                        # = gravity acceleration in y-direction
+  p   = C * A * alpha * cos(alpha*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
+  q   = p                                            # = gravity acceleration in y-direction
 
   return @SVector [phi, p, q]
 end
