@@ -367,6 +367,8 @@ function init_simulation()
   if analysis_interval > 0
     if globals[:euler_gravity]
       analyze_solution(solver_euler, mesh, time, 0, step, 0, 0, solver_gravity=solver_gravity)
+      println()
+      analyze_solution(solver_gravity, mesh, time, 0, step, 0, 0)
     else
       analyze_solution(solver, mesh, time, 0, step, 0, 0)
     end
@@ -468,8 +470,12 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
 
       # Analyze solution
       if globals[:euler_gravity]
-        l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
+        l2_euler, linf_euler = @timeit timer() "analyze solution" analyze_solution(
             solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
+        l2_hypdiff, linf_hypdiff = @timeit timer() "analyze solution" analyze_solution(
+            solver_gravity, mesh, time, dt, step, runtime_absolute, runtime_relative)
+        l2_error   = vcat(l2_euler  , l2_hypdiff)
+        linf_error = vcat(linf_euler, linf_hypdiff)
       else
         l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
             solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
@@ -566,9 +572,12 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
   # Print timer information
   print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
   println()
-
   # Return error norms for EOC calculation
-  return l2_error, linf_error, varnames_cons(solver.equations)
+  if globals[:euler_gravity]
+    return l2_error, linf_error, vcat(varnames_cons(solver.equations),varnames_cons(solver_gravity.equations))
+  else
+    return l2_error, linf_error, varnames_cons(solver.equations)
+  end
 end
 
 
