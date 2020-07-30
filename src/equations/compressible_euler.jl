@@ -299,12 +299,9 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Compressib
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
   end
-  c = 2
+  c = 2.0
   A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  ini = c + A * sin(ω * (x[1] + x[2] - t))
+  ini = c + A * sin(pi * (x[1] + x[2] - t))
   G = 1.0 # gravitational constant
 
   rho = ini
@@ -382,7 +379,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   # use a logistic function to tranfer density value smoothly
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
-  k  = -200.0 # sharpness of transfer
+  k  = -150.0 # sharpness of transfer
   logistic_function = L/(1.0 + exp(-k*(r - x0)))
   rho_ambient = 1e-5
   rho = max(logistic_function, rho_ambient) # clip background density to not be so tiny
@@ -472,11 +469,8 @@ end
 
 function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Same settings as in `initial_conditions_coupling_convergence_test`
-  c = 2
+  c = 2.0
   A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
   G = 1.0 # gravitational constant, must match coupling solver
   C_grav = -2.0*G/pi
 
@@ -484,13 +478,37 @@ function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes
     for i in 1:n_nodes
       x1 = x[1, i, j, element_id]
       x2 = x[2, i, j, element_id]
-      rhox = cos((x1 + x2 - t)*ω)*A*ω
-      rho  = c + sin((x1 + x2 - t)*ω)*A
+      rhox = A * pi * cos(pi * (x1 + x2 - t))
+      rho  = c + A * sin(pi * (x1 + x2 - t))
 
       ut[1, i, j, element_id] += rhox
       ut[2, i, j, element_id] += rhox
       ut[3, i, j, element_id] += rhox
       ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
+    end
+  end
+
+  return nothing
+end
+
+function source_terms_no_gravity_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # Same settings as in `initial_conditions_coupling_convergence_test`
+  c = 2.0
+  A = 0.1
+  G = 1.0
+  C_grav = -2.0*G/pi
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      rhox = A * pi * cos(pi * (x1 + x2 - t))
+      rho  = c + A * sin(pi * (x1 + x2 - t))
+
+      ut[1, i, j, element_id] += rhox
+      ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+      ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+      ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
     end
   end
 
@@ -691,6 +709,52 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEule
   f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
   f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
   f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
+
+  return SVector(f1, f2, f3, f4)
+end
+
+
+function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  # Obtain left and right fluxes
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
+
+  if orientation == 1 # x-direction
+    Ssl = v1_ll - sqrt(equation.gamma * p_ll / rho_ll)
+    Ssr = v1_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  else # y-direction
+    Ssl = v2_ll - sqrt(equation.gamma * p_ll / rho_ll)
+    Ssr = v2_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  end
+
+  if Ssl >= 0.0
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+    f4 = f_ll[4]
+  elseif Ssr <= 0.0
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+    f4 = f_rr[4]
+  else
+    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
+    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
+    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr[1] - rho_v2_ll[1]))/(Ssr - Ssl)
+    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
+  end
 
   return SVector(f1, f2, f3, f4)
 end
