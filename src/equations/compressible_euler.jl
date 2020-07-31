@@ -739,12 +739,12 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
     Ssr = v2_rr + sqrt(equation.gamma * p_rr / rho_rr)
   end
 
-  if Ssl >= 0.0
+  if Ssl >= 0.0 && Ssr > 0.0
     f1 = f_ll[1]
     f2 = f_ll[2]
     f3 = f_ll[3]
     f4 = f_ll[4]
-  elseif Ssr <= 0.0
+  elseif Ssr <= 0.0 && Ssl < 0.0
     f1 = f_rr[1]
     f2 = f_rr[2]
     f3 = f_rr[3]
