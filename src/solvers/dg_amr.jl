@@ -525,8 +525,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
       end
     end
   elseif dg.amr_indicator === :gravity_blast_wave
-    base_level = 3
-    max_level = 6
+    base_level = 4
+    max_level = 7
     blending_factor_threshold = 0.01
 
     # (Re-)initialize element variable storage for blending factor

@@ -584,7 +584,11 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
   println()
   # Return error norms for EOC calculation (might need to comment out the euler_gravity part for other tests)
   if globals[:euler_gravity]
-    return l2_error, linf_error, vcat(varnames_cons(solver.equations),varnames_cons(solver_gravity.equations))
+    if get_name(solver_euler.initial_conditions) == "initial_conditions_coupling_convergence_test"
+      return l2_error, linf_error, vcat(varnames_cons(solver.equations),varnames_cons(solver_gravity.equations))
+    else
+      return l2_error, linf_error, varnames_cons(solver.equations)
+    end
   else
     return l2_error, linf_error, varnames_cons(solver.equations)
   end

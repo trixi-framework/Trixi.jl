@@ -4,7 +4,7 @@ equations = "euler_gravity"
 gamma = 1.4
 initial_conditions = "initial_conditions_sedov_self_gravity"
 
-surface_flux = "flux_lax_friedrichs"
+surface_flux = "flux_hll" # "flux_lax_friedrichs"
 volume_flux = "flux_chandrashekar"
 source_terms = "source_terms_harmonic"
 t_start = 0.0
@@ -29,9 +29,9 @@ save_analysis = true
 ####################################################################################################
 # Mesh
 n_cells_max = 100000
-coordinates_min = [-2.0, -2.0]
-coordinates_max = [ 2.0,  2.0]
-initial_refinement_level = 6
+coordinates_min = [-4.0, -4.0]
+coordinates_max = [ 4.0,  4.0]
+initial_refinement_level = 7
 periodicity = false
 # refinement_patches = [
 #   {type = "box", coordinates_min = 0, coordinates_max = 16},
@@ -39,7 +39,7 @@ periodicity = false
 ####################################################################################################
 # AMR
 amr_indicator = "gravity_blast_wave"
-amr_interval = 5
+amr_interval = 6
 amr_alpha_max = 0.4
 amr_alpha_min = 0.00001
 

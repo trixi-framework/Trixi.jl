@@ -122,13 +122,12 @@ function initial_conditions_coupling_convergence_test(x, t, equation::Hyperbolic
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
   C = -2.0*G/pi
-  alpha = pi
   A = 0.1 # perturbation coefficient must match Euler setup
-  rho1 = A*sin(alpha*(x[1] + x[2] - t))
+  rho1 = A * sin(pi * (x[1] + x[2] - t))
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  p   = C * A * alpha * cos(alpha*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q   = p                                            # = gravity acceleration in y-direction
+  p   = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
+  q   = p                                         # = gravity acceleration in y-direction
 
   return @SVector [phi, p, q]
 end
