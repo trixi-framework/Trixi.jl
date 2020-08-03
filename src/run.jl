@@ -530,7 +530,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
 end
 
 
-function compute_linear_steady_state(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+function benchmark_linear_steady_state(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
 
   reset_timer!(timer())
   init_parameters(parameters_file; verbose=verbose, args=args, refinement_level_increment=refinement_level_increment, parameters...)
