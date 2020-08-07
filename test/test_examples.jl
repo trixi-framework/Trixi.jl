@@ -62,7 +62,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "../examples/parameters_blast_wave_shockcapturing.toml" begin
     test_trixi_run("../examples/parameters_blast_wave_shockcapturing.toml",
             l2   = [0.13910202327088322, 0.11538722576277083, 0.1153873048510009, 0.3387876385945495],
-            linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368])
+            linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368],
+            n_steps_max=30)
   end
   @testset "../examples/parameters_ec.toml" begin
     test_trixi_run("../examples/parameters_ec.toml",
@@ -184,8 +185,16 @@ isdir(outdir) && rm(outdir, recursive=true)
             restart = true, restart_filename = "out/restart_000040.h5")
   end
   @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
-  @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
-  @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
+  @testset "../examples/parameters_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
+            linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
+  end
+  @testset "../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.48181540798407435, 0.16553711811584917, 0.16553711811592348, 0.6436020727868234],
+            linf = [2.4861229629790813, 1.2873838211418498, 1.2873838211478545, 6.473895863328632])
+  end
 end
 
 # Coverage test for all initial conditions
