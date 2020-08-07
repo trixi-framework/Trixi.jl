@@ -1,24 +1,13 @@
 ####################################################################################################
 # Simulation
 equations = "CompressibleEulerEquations"
-# equations = "LinearScalarAdvectionEquation"
-# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-# initial_conditions = "initial_conditions_convergence_test"
-# initial_conditions = "initial_conditions_isentropic_vortex"
-# initial_conditions = "initial_conditions_linear_x_y"
-# initial_conditions = "initial_conditions_linear_x"
-# initial_conditions = "initial_conditions_constant"
 initial_conditions = "initial_conditions_blast_wave"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_chandrashekar"
-# volume_flux = "flux_central"
 # source_terms =
 t_start = 0.0
 t_end   = 12.5
-
-# restart = true
-# restart_filename = "out/restart_000100.h5"
 
 
 ####################################################################################################
@@ -26,10 +15,9 @@ t_end   = 12.5
 solver = "dg"
 N = 3
 cfl = 0.5
-n_steps_max = 30 #10000
+n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "shock_capturing"
-# volume_integral_type = "split_form"
 
 
 ####################################################################################################

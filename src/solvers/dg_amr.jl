@@ -502,7 +502,7 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
 
     alpha = dg.element_variables[:blending_factor]
     out = Any[]
-    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
                           Val(:density_pressure), dg)
 
     # Iterate over all elements
