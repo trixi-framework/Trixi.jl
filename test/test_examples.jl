@@ -185,8 +185,16 @@ isdir(outdir) && rm(outdir, recursive=true)
             restart = true, restart_filename = "out/restart_000040.h5")
   end
   @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
-  @test_nowarn Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml", t_end=1.0)
-  @test_nowarn Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml", t_end=1.0)
+  @testset "../examples/parameters_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
+            linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
+  end
+  @testset "../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.48181540798407435, 0.16553711811584917, 0.16553711811592348, 0.6436020727868234],
+            linf = [2.4861229629790813, 1.2873838211418498, 1.2873838211478545, 6.473895863328632])
+  end
 end
 
 # Coverage test for all initial conditions
