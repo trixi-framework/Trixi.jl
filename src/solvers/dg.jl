@@ -62,9 +62,11 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   shock_indicator_variable::Symbol
   shock_alpha_max::Float64
   shock_alpha_min::Float64
+  shock_alpha_smooth::Bool
   amr_indicator::Symbol
   amr_alpha_max::Float64
   amr_alpha_min::Float64
+  amr_alpha_smooth::Bool
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
 
@@ -170,6 +172,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   # maximum and minimum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
   shock_alpha_min = parameter("shock_alpha_min", 0.001)
+  shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
@@ -178,6 +181,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
+  amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
@@ -208,8 +212,8 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
       SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
-      shock_indicator_variable, shock_alpha_max, shock_alpha_min,
-      amr_indicator, amr_alpha_max, amr_alpha_min,
+      shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
+      amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
       element_variables,
       initial_state_integrals)
 
@@ -1370,7 +1374,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, dg)
   @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg.elements.u,
                                                            dg.shock_alpha_max,
                                                            dg.shock_alpha_min,
-                                                           true,
+                                                           dg.shock_alpha_smooth,
                                                            Val(dg.shock_indicator_variable), dg)
   element_ids_dg, element_ids_dgfv = out
 
