@@ -26,6 +26,11 @@ analysis_interval = 100
 extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
 save_analysis = true
 
+# Gravity
+cfl_gravity = 1.0
+G = 6.674e-8
+rho0 = 0.0
+
 ####################################################################################################
 # Mesh
 n_cells_max = 100000

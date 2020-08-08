@@ -20,26 +20,31 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   solver = solver_euler
 
   # Update gravity in every time step
+  cfl_gravity = parameter("cfl_gravity")::Float64
+  rho0 = parameter("rho0")::Float64
+  G = parameter("G")::Float64
+  gravity_parameters = (; cfl_gravity, rho0, G)
+
   # FIXME: Hack to use different CFL number for the gravity solver
   # Values for the Jeans instability test
-  #gravity_cfl = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
-  #gravity_cfl = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
-  #gravity_cfl = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
-  #gravity_cfl = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
-  # gravity_cfl = 1.22 # works for Ranocha 3Sstar (≈??% of solve) N = 3
-  #gravity_cfl = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
-  #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
+  #cfl_gravity = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
+  #cfl_gravity = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
+  #cfl_gravity = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
+  #cfl_gravity = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
+  # cfl_gravity = 1.22 # works for Ranocha 3Sstar (≈??% of solve) N = 3
+  #cfl_gravity = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
+  #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, cfl_gravity)
 
   # Value for the coupling convergence test
-  #gravity_cfl = 0.5 # for LSRK45
-  #gravity_cfl = 0.5 # for 3Sstar
+  #cfl_gravity = 0.5 # for LSRK45
+  #cfl_gravity = 0.5 # for 3Sstar
 
   # Value for the slef-gravitating Sedov blast wave with AMR
-  #gravity_cfl = 0.5 # for LSRK45
-  gravity_cfl = 1.0 # for 3Sstar
+  #cfl_gravity = 0.5 # for LSRK45
+  #cfl_gravity = 1.0 # for 3Sstar
   for stage in eachindex(c)
     # Update gravity in every RK stage
-    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_cfl)
+    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_parameters)
 
     # Update stage time
     t_stage = t + dt * c[stage]
@@ -67,23 +72,22 @@ end
 
 # Update the gravity potential variable(s) a la hyperbolic diffusion coupled to Euler through
 # the density passed within u_euler
-function update_gravity!(solver, u_euler, cfl)
-  # FIXME: Outputs a lot of data to the terminal, could be improved
-
+function update_gravity!(solver, u_euler, gravity_parameters)
   # Set up main loop
   finalstep = false
   n_iterations_max = parameter("n_iterations_max", 0)
   iteration = 0
   time = 0.0
+  @unpack cfl_gravity = gravity_parameters
 
   # Iterate gravity solver until convergence or maximum number of iterations are reached
   while !finalstep
     # Calculate time step size
-    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl_gravity)
 
     # Evolve solution by one pseudo-time step
-    #timestep_gravity!(solver, time, dt, u_euler)
-    timestep_gravity_3Sstar!(solver, time, dt, u_euler)
+    #timestep_gravity!(solver, time, dt, u_euler, gravity_parameters)
+    timestep_gravity_3Sstar!(solver, time, dt, u_euler, gravity_parameters)
     time += dt
 
     # Update iteration counter
@@ -108,7 +112,7 @@ end
 
 # Integrate gravity solver
 # OBS! coupling source term added outside the rhs! call
-function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
+function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
   # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
  a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
       3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
@@ -126,8 +130,11 @@ function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler)
   #G = 6.674e-8 # cm^3/(g⋅s^2)
   #rho0 = 1.5e7 # background density
   # Newton's gravitational constant (normalized) for polytrope test
-  G = 1.0
-  rho0 = 0.0
+  # G = 1.0
+  # rho0 = 0.0
+
+  @unpack G, rho0 = gravity_parameters
+
   grav_scale = -4.0*pi*G
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
@@ -148,7 +155,7 @@ end
 
 # Integrate gravity solver
 # OBS! coupling source term added outside the rhs! call
-function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
+function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
   # New 3Sstar coefficients optimized for polynomials of degree p=3
   # and examples/parameters_hyp_diff_llf.toml
   # 5 stages, order 1
@@ -171,8 +178,10 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler)
 
   # Sedov blast wave with self-gravity setup
   # Newton's gravitational constant (normalized) because Sedov initial conditions are non-dimensional
-  G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
-  rho0 = 0.0 # 1.123039e6 # rho_ambient from "initial_conditions_sedov_self_gravity"
+  # G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
+  # rho0 = 0.0 # 1.123039e6 # rho_ambient from "initial_conditions_sedov_self_gravity"
+
+  @unpack G, rho0 = gravity_parameters
 
   # Gravity scaling always has the same form (whether dimensional or non-dimensional)
   grav_scale = -4.0*pi*G
