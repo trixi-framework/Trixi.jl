@@ -1,5 +1,8 @@
 
 using LinearMaps: LinearMap
+using IterativeSolvers: gmres, idrs, bicgstabl
+using LinearAlgebra: norm
+using SparseArrays: sparse
 
 
 """
@@ -523,5 +526,67 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
     dest .= vec(solver.elements.u_t)
   end
 
-  A, b
+  return solver, A, b
+end
+
+
+function benchmark_linear_steady_state(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+
+  reset_timer!(timer())
+  init_parameters(parameters_file; verbose=verbose, args=args, refinement_level_increment=refinement_level_increment, parameters...)
+  mesh, solver, time_parameters, time_integration_function = init_simulation()
+  run_simulation(mesh, solver, time_parameters, time_integration_function)
+  u_trixi = solver.elements.u
+  timer_trixi = copy(timer())
+  io = IOBuffer()
+  print_timer(io, timer_trixi, title="trixi", allocations=true, linechars=:ascii, compact=false)
+
+  solver, A, b = compute_linear_structure(parameters_file, source_terms, verbose=verbose, args=args, refinement_level_increment=refinement_level_increment; parameters...)
+
+  @show tol = solver.equations.resid_tol
+
+  u_dense  = Matrix(A) \ b
+  u_sparse = sparse(A) \ b
+  println()
+  println(size(A))
+  @printf("Diff. sparse-dense: %.2e\n", norm(u_dense - u_sparse))
+  @printf("Residual (dense)  : %.2e\n", norm(A *u_dense - b))
+  @printf("Residual (sparse) : %.2e\n", norm(A *u_sparse - b))
+  println()
+
+  print(String(take!(io)))
+  println()
+  @printf("Diff. dense:  %.2e\n", norm(vec(u_trixi) - u_dense))
+  @printf("Diff. sparse: %.2e\n", norm(vec(u_trixi) - u_sparse))
+  @printf("Residual:     %.2e\n", norm(A * vec(u_trixi) - b))
+  println()
+
+  reset_timer!(timer())
+  u_gmres = gmres(A, b, tol=tol)
+  print_timer(timer(), title="gmres", allocations=true, linechars=:ascii, compact=false)
+  println()
+  @printf("Diff. dense:  %.2e\n", norm(vec(u_gmres) - u_dense))
+  @printf("Diff. sparse: %.2e\n", norm(vec(u_gmres) - u_sparse))
+  @printf("Residual:     %.2e\n", norm(A * vec(u_gmres) - b))
+  println()
+
+  reset_timer!(timer())
+  u_idrs = idrs(A, b, tol=tol)
+  print_timer(timer(), title="idrs", allocations=true, linechars=:ascii, compact=false)
+  println()
+  @printf("Diff. dense:  %.2e\n", norm(vec(u_idrs) - u_dense))
+  @printf("Diff. sparse: %.2e\n", norm(vec(u_idrs) - u_sparse))
+  @printf("Residual:     %.2e\n", norm(A * vec(u_idrs) - b))
+  println()
+
+  reset_timer!(timer())
+  u_bicgstabl = bicgstabl(A, b, tol=tol)
+  print_timer(timer(), title="bicgstabl", allocations=true, linechars=:ascii, compact=false)
+  println()
+  @printf("Diff. dense:  %.2e\n", norm(vec(u_bicgstabl) - u_dense))
+  @printf("Diff. sparse: %.2e\n", norm(vec(u_bicgstabl) - u_sparse))
+  @printf("Residual:     %.2e\n", norm(A * vec(u_bicgstabl) - b))
+  println()
+
+  return nothing
 end
