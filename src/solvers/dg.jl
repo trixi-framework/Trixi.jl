@@ -1588,6 +1588,9 @@ prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
 function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
+  # Local storage for surface data of large element
+  u_large = zeros(nvariables(dg), nnodes(dg))
+
   for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
@@ -1631,9 +1634,6 @@ function prolong2mortars!(dg, ::Val{:l2})
         end
       end
     end
-
-    # Local storage for surface data of large element
-    u_large = zeros(nvariables(dg), nnodes(dg))
 
     # Interpolate large element face data to small surface locations
     for v in 1:nvariables(dg)
