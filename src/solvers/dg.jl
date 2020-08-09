@@ -1360,18 +1360,21 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
+  if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+      length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+    dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+  end
 
-  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor], dg)
+  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor],
+                        dg.element_variables[:blending_factor_tmp], dg)
 end
 
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, dg)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, dg)
   @unpack dsplit_transposed, inverse_weights = dg
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  # Note: We need this 'out' shenanigans as otherwise the timer does not work
-  # properly and causes a huge increase in memory allocations.
   @timeit timer() "blending factors" element_ids_dg, element_ids_dgfv = calc_blending_factors!(
-    alpha, dg.elements.u,
+    alpha, alpha_tmp, dg.elements.u,
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
@@ -2202,16 +2205,19 @@ function calc_dt(dg::Dg, cfl)
 end
 
 # Calculate blending factors used for shock capturing, or amr control
-function calc_blending_factors!(alpha, u,
+function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
                                 indicator_variable, dg)
   # Calculate blending factor
-  indicator = zeros(1, nnodes(dg), nnodes(dg))
-  modal     = zeros(1, nnodes(dg), nnodes(dg))
+  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
+  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in 1:dg.n_elements
+    indicator = indicator_threaded[Threads.threadid()]
+    modal     = modal_threaded[Threads.threadid()]
+
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
@@ -2261,7 +2267,7 @@ function calc_blending_factors!(alpha, u,
   if (do_smoothing)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
     # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_pre_smooth = copy(alpha)
+    alpha_pre_smooth .= alpha
 
     # Loop over surfaces
     for surface_id in 1:dg.n_surfaces
@@ -2308,8 +2314,6 @@ function calc_blending_factors!(alpha, u,
   element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
   element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
 
-  # push!(out, element_ids_dg)
-  # push!(out, element_ids_dgfv)
   return element_ids_dg, element_ids_dgfv
 end
 

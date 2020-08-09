@@ -404,9 +404,14 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
         length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)
       dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)
     end
+    if (!haskey(dg.element_variables, :amr_indicator_values_tmp) ||
+        length(dg.element_variables[:amr_indicator_values_tmp]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values_tmp] = Vector{Float64}(undef, dg.n_elements)
+    end
 
-    alpha = dg.element_variables[:amr_indicator_values]
-    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+    alpha     = dg.element_variables[:amr_indicator_values]
+    alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
+    calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
                            Val(:density), dg)
 
     # Iterate over all elements
@@ -445,9 +450,14 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
         length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)
       dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)
     end
+    if (!haskey(dg.element_variables, :amr_indicator_values_tmp) ||
+        length(dg.element_variables[:amr_indicator_values_tmp]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values_tmp] = Vector{Float64}(undef, dg.n_elements)
+    end
 
-    alpha = dg.element_variables[:amr_indicator_values]
-    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+    alpha     = dg.element_variables[:amr_indicator_values]
+    alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
+    calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
                            Val(:density), dg)
 
     # (Re-)initialize element variable storage for blending factor
@@ -455,9 +465,14 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
         length(dg.element_variables[:blending_factor]) != dg.n_elements)
       dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
     end
+    if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+        length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+      dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+    end
 
-    alpha1 = dg.element_variables[:blending_factor]
-    calc_blending_factors!(alpha1, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
+    alpha1     = dg.element_variables[:blending_factor]
+    alpha1_tmp = dg.element_variables[:blending_factor_tmp]
+    calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
                            Val(dg.shock_indicator_variable), dg)
 
     # Iterate over all elements
@@ -492,13 +507,18 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     blending_factor_threshold = 0.01
 
     # (Re-)initialize element variable storage for blending factor
-    if (!haskey(dg.element_variables, :blending_factor) ||
-        length(dg.element_variables[:blending_factor]) != dg.n_elements)
-      dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+    if (!haskey(dg.element_variables, :amr_indicator_values) ||
+        length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)
+    end
+    if (!haskey(dg.element_variables, :amr_indicator_values_tmp) ||
+        length(dg.element_variables[:amr_indicator_values_tmp]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values_tmp] = Vector{Float64}(undef, dg.n_elements)
     end
 
-    alpha = dg.element_variables[:blending_factor]
-    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
+    alpha     = dg.element_variables[:amr_indicator_values]
+    alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
+    calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
                            Val(:density_pressure), dg)
 
     # Iterate over all elements
