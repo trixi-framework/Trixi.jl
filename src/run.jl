@@ -596,14 +596,15 @@ end
 
 
 """
-    convtest(parameters_file, iterations)
+    convtest(parameters_file, iterations; parameters...)
 
 Run multiple Trixi simulations with the parameters in `parameters_file` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
 The number of runs is specified by `iterations` and in each run the initial
-refinement level will be increased by 1.
+refinement level will be increased by 1. Parameters can be overriden by specifying them as
+additional keyword arguments, which are passed to the respective call to `run`..
 """
-function convtest(parameters_file, iterations)
+function convtest(parameters_file, iterations; parameters...)
   @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
 
   # Types of errors to be calcuated
@@ -615,7 +616,8 @@ function convtest(parameters_file, iterations)
   # Run trixi and extract errors
   for i = 1:iterations
     println(string("Running convtest iteration ", i, "/", iterations))
-    l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
+    l2_error, linf_error, variablenames = run(parameters_file; refinement_level_increment = i - 1,
+                                              parameters...)
 
     # Collect errors as one vector to reshape later
     append!(errors[:L2], l2_error)
