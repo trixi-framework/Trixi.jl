@@ -28,12 +28,17 @@ analysis_interval = 100
 #extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
 save_analysis = true
 
+# Gravity
+cfl_gravity = 0.5
+G = 1.0
+rho0 = 2.0
+
 ####################################################################################################
 # Mesh
 n_cells_max = 10000
 coordinates_min = [0.0, 0.0]
 coordinates_max = [2.0, 2.0]
-initial_refinement_level = 3
+initial_refinement_level = 2
 #periodicity = false
 # refinement_patches = [
 #   {type = "box", coordinates_min = 0, coordinates_max = 16},
