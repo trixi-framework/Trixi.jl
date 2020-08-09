@@ -406,9 +406,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     end
 
     alpha = dg.element_variables[:amr_indicator_values]
-    out = Any[]
-    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                          Val(:density), dg)
+    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                           Val(:density), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -448,9 +447,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     end
 
     alpha = dg.element_variables[:amr_indicator_values]
-    out = Any[]
-    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                          Val(:density), dg)
+    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
+                           Val(:density), dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -459,9 +457,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     end
 
     alpha1 = dg.element_variables[:blending_factor]
-    out = Any[]
-    calc_blending_factors(alpha1, out, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
-                          Val(dg.shock_indicator_variable), dg)
+    calc_blending_factors!(alpha1, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
+                           Val(dg.shock_indicator_variable), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -501,9 +498,8 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
     end
 
     alpha = dg.element_variables[:blending_factor]
-    out = Any[]
-    calc_blending_factors(alpha, out, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                          Val(:density_pressure), dg)
+    calc_blending_factors!(alpha, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
+                           Val(:density_pressure), dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
