@@ -1364,21 +1364,32 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
       length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
     dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
   end
+  if (!haskey(dg.element_variables, :element_ids_dg))
+    dg.element_variables[:element_ids_dg] = Int[]
+    sizehint!(dg.element_variables[:element_ids_dg], dg.n_elements)
+  end
+  if (!haskey(dg.element_variables, :element_ids_dgfv))
+    dg.element_variables[:element_ids_dgfv] = Int[]
+    sizehint!(dg.element_variables[:element_ids_dgfv], dg.n_elements)
+  end
 
-  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor],
-                        dg.element_variables[:blending_factor_tmp], dg)
+  calc_volume_integral!(u_t, Val(:shock_capturing),
+                        dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
+                        dg.element_variables[:element_ids_dg], dg.element_variables[:element_ids_dgfv],
+                        dg)
 end
 
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, dg)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, dg)
   @unpack dsplit_transposed, inverse_weights = dg
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  @timeit timer() "blending factors" element_ids_dg, element_ids_dgfv = calc_blending_factors!(
-    alpha, alpha_tmp, dg.elements.u,
+  @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
     Val(dg.shock_indicator_variable), dg)
+
+  get_dgfv_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -2308,13 +2319,21 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
   end
+end
 
-  # Clip blending factor for values close to zero (-> pure DG)
-  dg_only = isapprox.(alpha, 0, atol=1e-12)
-  element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
-  element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
+function get_dgfv_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+  empty!(element_ids_dg)
+  empty!(element_ids_dgfv)
 
-  return element_ids_dg, element_ids_dgfv
+  for element_id in 1:dg.n_elements
+    # Clip blending factor for values close to zero (-> pure DG)
+    dg_only = isapprox(alpha[element_id], 0, atol=1e-12)
+    if dg_only
+      push!(element_ids_dg, element_id)
+    else
+      push!(element_ids_dgfv, element_id)
+    end
+  end
 end
 
 
