@@ -478,10 +478,11 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
           l2_euler, linf_euler = @timeit timer() "analyze solution" analyze_solution(
               solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
           # Pull gravity solver information from file
+          timestep_gravity = eval(Symbol(parameter("time_integration_scheme_gravity")))
           cfl_gravity = parameter("cfl_gravity")::Float64
           rho0 = parameter("rho0")::Float64
           G = parameter("G")::Float64
-          gravity_parameters = (; cfl_gravity, rho0, G)
+          gravity_parameters = (; timestep_gravity, cfl_gravity, rho0, G)
           update_gravity!(solver_gravity, solver_euler.elements.u, gravity_parameters)
           l2_hypdiff, linf_hypdiff = @timeit timer() "analyze solution" analyze_solution(
               solver_gravity, mesh, time, dt, step, runtime_absolute, runtime_relative)

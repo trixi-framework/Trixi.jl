@@ -20,10 +20,14 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   solver = solver_euler
 
   # Update gravity in every time step
+  time_integration_scheme_gravity = Symbol(parameter("time_integration_scheme_gravity",
+                                                     valid=("timestep_gravity!",
+                                                            "timestep_gravity_3Sstar!")))
+  timestep_gravity = eval(time_integration_scheme_gravity)
   cfl_gravity = parameter("cfl_gravity")::Float64
   rho0 = parameter("rho0")::Float64
   G = parameter("G")::Float64
-  gravity_parameters = (; cfl_gravity, rho0, G)
+  gravity_parameters = (; timestep_gravity, cfl_gravity, rho0, G)
 
   # FIXME: Hack to use different CFL number for the gravity solver
   # Values for the Jeans instability test
@@ -78,7 +82,7 @@ function update_gravity!(solver, u_euler, gravity_parameters)
   n_iterations_max = parameter("n_iterations_max", 0)
   iteration = 0
   time = 0.0
-  @unpack cfl_gravity = gravity_parameters
+  @unpack cfl_gravity, timestep_gravity = gravity_parameters
 
   # Iterate gravity solver until convergence or maximum number of iterations are reached
   while !finalstep
@@ -86,8 +90,9 @@ function update_gravity!(solver, u_euler, gravity_parameters)
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl_gravity)
 
     # Evolve solution by one pseudo-time step
+    timestep_gravity(solver, time, dt, u_euler, gravity_parameters)
     #timestep_gravity!(solver, time, dt, u_euler, gravity_parameters)
-    timestep_gravity_3Sstar!(solver, time, dt, u_euler, gravity_parameters)
+    #timestep_gravity_3Sstar!(solver, time, dt, u_euler, gravity_parameters)
     time += dt
 
     # Update iteration counter
