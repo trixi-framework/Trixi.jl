@@ -1390,7 +1390,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, e
     Val(dg.shock_indicator_variable), dg)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
-  get_dgfv_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+  pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -2322,7 +2322,15 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
   end
 end
 
-function get_dgfv_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+
+"""
+    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+
+Given blending factors `alpha` and the solver `dg`, fill
+`element_ids_dg` with the IDs of elements using a pure DG scheme and
+`element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+"""
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
   empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 
