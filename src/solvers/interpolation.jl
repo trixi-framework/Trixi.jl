@@ -383,9 +383,10 @@ vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 
 # Convert nodal to modal representation
 function nodal2modal(data_in, vandermonde)
-  interpolate_nodes(data_in, vandermonde, 1)
+  return interpolate_nodes(data_in, vandermonde, 1)
 end
 
 function nodal2modal!(data_out, data_in, vandermonde)
-  interpolate_nodes!(data_out, data_in, vandermonde, 1)
+  return interpolate_nodes!(data_out, data_in, vandermonde, 1)
 end
+
