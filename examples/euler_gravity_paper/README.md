@@ -21,3 +21,14 @@ Trixi.convtest("examples/euler_gravity_paper/parameters_hyp_diff_nonperiodic.tom
 ```julia
 Trixi.convtest("examples/euler_gravity_paper/parameters_hyp_diff_nonperiodic.toml", 4, N=4)
 ```
+
+## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity
+**N = 3**:
+```julia
+Trixi.convtest("examples/euler_gravity_paper/parameters_coupling_convergence_test.toml", 4)
+```
+
+**N = 4**:
+```julia
+Trixi.convtest("examples/euler_gravity_paper/parameters_coupling_convergence_test.toml", 4, N=4)
+```
