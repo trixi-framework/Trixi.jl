@@ -29,6 +29,8 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   G = parameter("G")::Float64
   gravity_parameters = (; timestep_gravity, cfl_gravity, rho0, G)
 
+  update_gravity_once_per_stage = parameter("update_gravity_once_per_stage", true)::Bool
+
   # FIXME: Hack to use different CFL number for the gravity solver
   # Values for the Jeans instability test
   #cfl_gravity = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
@@ -38,6 +40,10 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   # cfl_gravity = 1.22 # works for Ranocha 3Sstar (≈??% of solve) N = 3
   #cfl_gravity = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
   #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, cfl_gravity)
+  if !update_gravity_once_per_stage
+    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
+                                                     gravity_parameters)
+  end
 
   # Value for the coupling convergence test
   #cfl_gravity = 0.5 # for LSRK45
@@ -48,7 +54,10 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   #cfl_gravity = 1.0 # for 3Sstar
   for stage in eachindex(c)
     # Update gravity in every RK stage
-    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, gravity_parameters)
+    if update_gravity_once_per_stage
+      @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
+                                                      gravity_parameters)
+    end
 
     # Update stage time
     t_stage = t + dt * c[stage]
