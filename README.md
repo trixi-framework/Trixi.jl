@@ -12,7 +12,7 @@ to be easy to use and extend.
 ## Installation
 If you have not yet installed Julia, please follow the instructions for your
 operating system found [here](https://julialang.org/downloads/platform/). Trixi
-works with Julia v1.3 or higher.
+works with Julia v1.5.
 
 You can then install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:
