@@ -1389,6 +1389,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, e
     dg.shock_alpha_smooth,
     Val(dg.shock_indicator_variable), dg)
 
+  # Determine element ids for DG-only and blended DG-FV volume integral
   get_dgfv_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Type alias only for convenience
