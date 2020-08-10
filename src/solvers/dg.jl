@@ -1360,23 +1360,37 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
     dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
   end
+  if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+      length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+    dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+  end
+  if (!haskey(dg.element_variables, :element_ids_dg))
+    dg.element_variables[:element_ids_dg] = Int[]
+    sizehint!(dg.element_variables[:element_ids_dg], dg.n_elements)
+  end
+  if (!haskey(dg.element_variables, :element_ids_dgfv))
+    dg.element_variables[:element_ids_dgfv] = Int[]
+    sizehint!(dg.element_variables[:element_ids_dgfv], dg.n_elements)
+  end
 
-  calc_volume_integral!(u_t, Val(:shock_capturing), dg.element_variables[:blending_factor], dg)
+  calc_volume_integral!(u_t, Val(:shock_capturing),
+                        dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
+                        dg.element_variables[:element_ids_dg], dg.element_variables[:element_ids_dgfv],
+                        dg)
 end
 
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, dg)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, dg)
   @unpack dsplit_transposed, inverse_weights = dg
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  # Note: We need this 'out' shenanigans as otherwise the timer does not work
-  # properly and causes a huge increase in memory allocations.
-  out = Any[]
-  @timeit timer() "blending factors" calc_blending_factors(alpha, out, dg.elements.u,
-                                                           dg.shock_alpha_max,
-                                                           dg.shock_alpha_min,
-                                                           dg.shock_alpha_smooth,
-                                                           Val(dg.shock_indicator_variable), dg)
-  element_ids_dg, element_ids_dgfv = out
+  @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
+    dg.shock_alpha_max,
+    dg.shock_alpha_min,
+    dg.shock_alpha_smooth,
+    Val(dg.shock_indicator_variable), dg)
+
+  # Determine element ids for DG-only and blended DG-FV volume integral
+  pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Type alias only for convenience
   A4d = Array{Float64, 4}
@@ -2203,20 +2217,24 @@ function calc_dt(dg::Dg, cfl)
 end
 
 # Calculate blending factors used for shock capturing, or amr control
-function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Float64},
-                               alpha_max::Float64, alpha_min::Float64, do_smoothing::Bool,
-                               indicator_variable, dg)
+function calc_blending_factors!(alpha, alpha_pre_smooth, u,
+                                alpha_max, alpha_min, do_smoothing,
+                                indicator_variable, dg)
   # Calculate blending factor
-  indicator = zeros(1, nnodes(dg), nnodes(dg))
+  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
+  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  for element_id in 1:dg.n_elements
+  Threads.@threads for element_id in 1:dg.n_elements
+    indicator = indicator_threaded[Threads.threadid()]
+    modal     = modal_threaded[Threads.threadid()]
+
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
-    modal = nodal2modal(indicator, dg.inverse_vandermonde_legendre)
+    nodal2modal!(modal, indicator, dg.inverse_vandermonde_legendre)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
@@ -2242,7 +2260,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Flo
     energy = max((total_energy - total_energy_clip1)/total_energy,
                  (total_energy_clip1 - total_energy_clip2)/total_energy_clip1)
 
-    alpha[element_id] = 1/(1 + exp(-parameter_s/threshold * (energy - threshold)))
+    alpha[element_id] = 1 / (1 + exp(-parameter_s/threshold * (energy - threshold)))
 
     # Take care of the case close to pure DG
     if (alpha[element_id] < alpha_min)
@@ -2261,7 +2279,7 @@ function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Flo
   if (do_smoothing)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
     # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_pre_smooth = copy(alpha)
+    alpha_pre_smooth .= alpha
 
     # Loop over surfaces
     for surface_id in 1:dg.n_surfaces
@@ -2302,14 +2320,29 @@ function calc_blending_factors(alpha::Vector{Float64}, out, u::AbstractArray{Flo
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
   end
+end
 
-  # Clip blending factor for values close to zero (-> pure DG)
-  dg_only = isapprox.(alpha, 0, atol=1e-12)
-  element_ids_dg = collect(1:dg.n_elements)[dg_only .== 1]
-  element_ids_dgfv = collect(1:dg.n_elements)[dg_only .!= 1]
 
-  push!(out, element_ids_dg)
-  push!(out, element_ids_dgfv)
+"""
+    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+
+Given blending factors `alpha` and the solver `dg`, fill
+`element_ids_dg` with the IDs of elements using a pure DG scheme and
+`element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+"""
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+  empty!(element_ids_dg)
+  empty!(element_ids_dgfv)
+
+  for element_id in 1:dg.n_elements
+    # Clip blending factor for values close to zero (-> pure DG)
+    dg_only = isapprox(alpha[element_id], 0, atol=1e-12)
+    if dg_only
+      push!(element_ids_dg, element_id)
+    else
+      push!(element_ids_dgfv, element_id)
+    end
+  end
 end
 
 
