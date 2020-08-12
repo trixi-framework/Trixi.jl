@@ -1368,6 +1368,8 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
       length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
     dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
   end
+
+  # Initialize element variable storage for the cache
   if (!haskey(dg.cache, :element_ids_dg))
     dg.cache[:element_ids_dg] = Int[]
     sizehint!(dg.cache[:element_ids_dg], dg.n_elements)
@@ -1376,15 +1378,46 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
     dg.cache[:element_ids_dgfv] = Int[]
     sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
   end
+  if !haskey(dg.cache, :thread_cache)
+    # Type alias only for convenience
+    A4d = Array{Float64, 4}
+    A3d = Array{Float64, 3}
+    A3dp1_x = Array{Float64, 3}
+    A3dp1_y = Array{Float64, 3}
+    A2d = Array{Float64, 2}
+
+    # Pre-allocate data structures to speed up computation (thread-safe)
+    f1_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.nthreads()]
+    f2_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+                            for _ in 1:Threads.nthreads()]
+    f1_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
+                           for _ in 1:Threads.nthreads()]
+    f2_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
+                           for _ in 1:Threads.nthreads()]
+    fstar1_threaded  = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg))
+                               for _ in 1:Threads.nthreads()]
+    fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
+                               for _ in 1:Threads.nthreads()]
+    u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
+                               for _ in 1:Threads.nthreads()]
+
+    dg.cache[:thread_cache] = (; f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
+                                 fstar1_threaded, fstar2_threaded, u_leftright_threaded)
+  end
 
   calc_volume_integral!(u_t, Val(:shock_capturing),
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
                         dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
+                        dg.cache[:thread_cache],
                         dg)
 end
 
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, dg)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
+                               element_ids_dg, element_ids_dgfv, thread_cache, dg)
   @unpack dsplit_transposed, inverse_weights = dg
+  @unpack f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
+          fstar1_threaded, fstar2_threaded, u_leftright_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1395,31 +1428,6 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, e
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
-
-  # Type alias only for convenience
-  A4d = Array{Float64, 4}
-  A3d = Array{Float64, 3}
-  A3dp1_x = Array{Float64, 3}
-  A3dp1_y = Array{Float64, 3}
-  A2d = Array{Float64, 2}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  # Note: Prefixing the array with the type ("A4d[A4d(...") seems to be
-  # necessary for optimal performance
-  f1_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                    for _ in 1:Threads.nthreads()]
-  f2_threaded = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                    for _ in 1:Threads.nthreads()]
-  f1_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.nthreads()]
-  f2_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-                         for _ in 1:Threads.nthreads()]
-  fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg))
-                            for _ in 1:Threads.nthreads()]
-  fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
-                            for _ in 1:Threads.nthreads()]
-  u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
-                             for _ in 1:Threads.nthreads()]
 
   # Loop over pure DG elements
   #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
@@ -1461,14 +1469,14 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, e
     calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
 
     # Calculate DG volume integral contribution
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
           # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
-          for l = 1:nnodes(dg)
-            acc += (1 - alpha[element_id]) *
-                    (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j])
+          for l in 1:nnodes(dg)
+            acc += ( (1 - alpha[element_id]) *
+                      (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]) )
           end
           u_t[v, i, j, element_id] += acc
         end
@@ -1482,12 +1490,12 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, e
     calcflux_fv!(fstar1, fstar2, u_leftright, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
-          u_t[v, i, j, element_id] += ((alpha[element_id])
-                                       *(inverse_weights[i]*(fstar1[v, i+1, j] - fstar1[v,i,j]) +
-                                         inverse_weights[j]*(fstar2[v, i, j+1] - fstar2[v,i,j])))
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
+          u_t[v, i, j, element_id] += ( alpha[element_id] *
+                                         (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
+                                          inverse_weights[j] * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
 
         end
       end
