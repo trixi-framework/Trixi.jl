@@ -1171,34 +1171,18 @@ end
 calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
 
 
-# Calculate 2D flux (element version)
-@inline function calcflux!(f1, f2, u, element_id, dg::Dg)
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      u_node = get_node_vars(u, dg, i, j, element_id)
-      flux1 = calcflux(u_node, 1, equations(dg))
-      flux2 = calcflux(u_node, 2, equations(dg))
-      set_node_vars!(f1, flux1, dg, i, j)
-      set_node_vars!(f2, flux2, dg, i, j)
-    end
-  end
-end
-
-
 # Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, f1_diag, f2_diag, u, element_id, dg::Dg)
+@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg)
   @unpack volume_flux = dg
-
-  # Calculate regular volume fluxes
-  calcflux!(f1_diag, f2_diag, u, element_id, dg)
 
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       # Set diagonal entries (= regular volume fluxes due to consistency)
-      for v in 1:nvariables(dg)
-        f1[v, i, i, j] = f1_diag[v, i, j]
-        f2[v, j, i, j] = f2_diag[v, i, j]
-      end
+      u_node = get_node_vars(u, dg, i, j, element_id)
+      flux1 = calcflux(u_node, 1, equations(dg))
+      flux2 = calcflux(u_node, 2, equations(dg))
+      set_node_vars!(f1, flux1, dg, i, i, j)
+      set_node_vars!(f2, flux2, dg, j, i, j)
 
       # Flux in x-direction
       for l in (i+1):nnodes(dg)
@@ -1222,14 +1206,14 @@ end
     end
   end
 
-  calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, have_nonconservative_terms(equations(dg)), dg)
+  calcflux_twopoint_nonconservative!(f1, f2, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{false}, dg::Dg)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, f1_diag, f2_diag, u, element_id, nonconservative_terms::Val{true}, dg::Dg)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
@@ -1272,31 +1256,50 @@ end
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg)
-  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg)
+  if !haskey(dg.cache, :thread_cache)
+    dg.cache[:thread_cache] = create_thread_cache(dg)
+  end
+
+  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.cache[:thread_cache], dg)
 end
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, dg)
+function create_thread_cache(dg)
+  # Type alias only for convenience
+  A4d = Array{Float64, 4}
+  A3dp1_x = Array{Float64, 3}
+  A3dp1_y = Array{Float64, 3}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+                          for _ in 1:Threads.nthreads()]
+  f2_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+                          for _ in 1:Threads.nthreads()]
+  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
+                             for _ in 1:Threads.nthreads()]
+
+  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded)
+ end
+
+
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg)
   @unpack dsplit_transposed = dg
 
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
   f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f1_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  f2_diag_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   Threads.@threads for element_id in 1:dg.n_elements
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
-    f1_diag = f1_diag_threaded[Threads.threadid()]
-    f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
+    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j in 1:nnodes(dg)
@@ -1314,7 +1317,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
   end
 end
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, dg)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg)
   @unpack volume_flux, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1379,29 +1382,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
     sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
   end
   if !haskey(dg.cache, :thread_cache)
-    # Type alias only for convenience
-    A4d = Array{Float64, 4}
-    A3d = Array{Float64, 3}
-    A3dp1_x = Array{Float64, 3}
-    A3dp1_y = Array{Float64, 3}
-    A2d = Array{Float64, 2}
-
-    # Pre-allocate data structures to speed up computation (thread-safe)
-    f1_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.nthreads()]
-    f2_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                            for _ in 1:Threads.nthreads()]
-    f1_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
-    f2_diag_threaded = A3d[A3d(undef, nvariables(dg), nnodes(dg), nnodes(dg))
-                           for _ in 1:Threads.nthreads()]
-    fstar1_threaded  = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg))
-                               for _ in 1:Threads.nthreads()]
-    fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
-                               for _ in 1:Threads.nthreads()]
-
-    dg.cache[:thread_cache] = (; f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
-                                 fstar1_threaded, fstar2_threaded)
+    dg.cache[:thread_cache] = create_thread_cache(dg)
   end
 
   calc_volume_integral!(u_t, Val(:shock_capturing),
@@ -1414,8 +1395,7 @@ end
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
-          fstar1_threaded, fstar2_threaded = thread_cache
+  @unpack f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1433,11 +1413,9 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
-    f1_diag = f1_diag_threaded[Threads.threadid()]
-    f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
+    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
     for j = 1:nnodes(dg)
@@ -1460,11 +1438,9 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
-    f1_diag = f1_diag_threaded[Threads.threadid()]
-    f2_diag = f2_diag_threaded[Threads.threadid()]
 
     # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, f1_diag, f2_diag, dg.elements.u, element_id, dg)
+    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
 
     # Calculate DG volume integral contribution
     for j in 1:nnodes(dg)
