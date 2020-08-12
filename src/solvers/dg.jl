@@ -1399,11 +1399,9 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
                                for _ in 1:Threads.nthreads()]
     fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
                                for _ in 1:Threads.nthreads()]
-    u_leftright_threaded = A2d[A2d(undef, 2, nvariables(equations(dg)))
-                               for _ in 1:Threads.nthreads()]
 
     dg.cache[:thread_cache] = (; f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
-                                 fstar1_threaded, fstar2_threaded, u_leftright_threaded)
+                                 fstar1_threaded, fstar2_threaded)
   end
 
   calc_volume_integral!(u_t, Val(:shock_capturing),
@@ -1417,7 +1415,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg)
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack f1_threaded, f2_threaded,f1_diag_threaded, f2_diag_threaded,
-          fstar1_threaded, fstar2_threaded, u_leftright_threaded = thread_cache
+          fstar1_threaded, fstar2_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1486,8 +1484,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Calculate volume fluxes (one more dimension than weak form)
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
-    u_leftright = u_leftright_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, u_leftright, dg.elements.u, element_id, dg)
+    calcflux_fv!(fstar1, fstar2, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
     for j in 1:nnodes(dg)
@@ -1513,11 +1510,10 @@ Calculate the finite volume fluxes inside the elements.
 - `fstar1::AbstractArray{T} where T<:Real`:
 - `fstar2::AbstractArray{T} where T<:Real`
 - `dg::Dg`
-- `u_leftright::AbstractArray{T} where T<:Real`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
+@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg)
   @unpack surface_flux = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1525,11 +1521,8 @@ Calculate the finite volume fluxes inside the elements.
 
   for j in 1:nnodes(dg)
     for i in 2:nnodes(dg)
-      for v in 1:nvariables(dg)
-        u_leftright[1, v] = u[v, i-1, j, element_id]
-        u_leftright[2, v] = u[v, i,   j, element_id]
-      end
-      u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
+      u_ll = get_node_vars(u, dg, i-1, j, element_id)
+      u_rr = get_node_vars(u, dg, i,   j, element_id)
       flux = surface_flux(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
       set_node_vars!(fstar1, flux, dg, i, j)
     end
@@ -1540,11 +1533,8 @@ Calculate the finite volume fluxes inside the elements.
 
   for j in 2:nnodes(dg)
     for i in 1:nnodes(dg)
-      for v in 1:nvariables(dg)
-        u_leftright[1, v] = u[v, i, j-1, element_id]
-        u_leftright[2, v] = u[v, i, j,   element_id]
-      end
-      u_ll, u_rr = get_surface_node_vars(u_leftright, dg)
+      u_ll = get_node_vars(u, dg, i, j-1, element_id)
+      u_rr = get_node_vars(u, dg, i, j,   element_id)
       flux = surface_flux(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
       set_node_vars!(fstar2, flux, dg, i, j)
     end
