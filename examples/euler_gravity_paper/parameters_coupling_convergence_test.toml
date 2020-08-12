@@ -4,15 +4,12 @@ equations = "euler_gravity"
 gamma = 2.0
 initial_conditions = "initial_conditions_coupling_convergence_test"
 surface_flux = "flux_hll"
-volume_flux = "flux_central"
 source_terms = "source_terms_coupling_convergence_test"
 t_start = 0.0
 t_end   = 0.5
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
-
-#volume_integral_type = "split_form"
 
 resid_tol = 1e-10
 
