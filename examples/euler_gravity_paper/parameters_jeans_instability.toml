@@ -29,7 +29,7 @@ save_analysis = true
 
 # Gravity
 time_integration_scheme_gravity = "timestep_gravity!"
-cfl_gravity = 0.5
+cfl_gravity = 0.8
 G = 6.674e-8
 rho0 = 1.5e7
 
