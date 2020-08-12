@@ -1268,6 +1268,7 @@ function create_thread_cache(dg)
   A4d = Array{Float64, 4}
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -1278,8 +1279,11 @@ function create_thread_cache(dg)
                              for _ in 1:Threads.nthreads()]
   fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
                              for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
-  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded)
+  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
+            fstar_upper_threaded, fstar_lower_threaded)
  end
 
 
@@ -1930,25 +1934,21 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
+function calc_mortar_flux!(dg)
+  if !haskey(dg.cache, :thread_cache)
+    dg.cache[:thread_cache] = create_thread_cache(dg)
+  end
+
+  calc_mortar_flux!(dg, dg.mortar_type)
+end
 
 
 # Calculate and store fluxes across L2 mortars
 calc_mortar_flux!(dg, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, mortar_type,
-                                                                 dg.l2mortars.neighbor_ids,
-                                                                 dg.l2mortars.u_lower,
-                                                                 dg.l2mortars.u_upper,
-                                                                 dg.l2mortars.orientations)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val{:l2},
-                           neighbor_ids::Matrix{Int}, u_lower::Array{Float64, 4},
-                           u_upper::Array{Float64, 4}, orientations::Vector{Int})
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+                                                                 dg.l2mortars, dg.cache[:thread_cache])
+function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val{:l2}, mortars, cache)
+  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
   #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
   Threads.@threads for m in 1:dg.n_l2mortars
