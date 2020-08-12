@@ -38,3 +38,20 @@ Trixi.convtest("examples/euler_gravity_paper/parameters_coupling_convergence_tes
 Trixi.convtest("examples/euler_gravity_paper/parameters_coupling_convergence_test.toml", 4,
                update_gravity_once_per_stage=false)
 ```
+
+## Sec. 4.2.1, Figures 3 + 5a, Jeans energies with CK45+CK45
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml")
+```
+
+## Sec. 4.2.1, Figure 4, Jeans energies with CK45+CK45 (update gravity once per step)
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
+          update_gravity_once_per_stage=false)
+```
+
+## Sec. 4.2.1, Figure 5b, Jeans energies with CK45+CK45
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
+          time_integration_scheme_gravity="timestep_gravity_3Sstar!", cfl_gravity=1.2)
+```
