@@ -327,8 +327,8 @@ end
 
   @testset "../examples/euler_gravity_paper/parameters_jeans_instability.toml" begin
     test_trixi_run("../examples/euler_gravity_paper/parameters_jeans_instability.toml",
-            l2   = [10733.618719933014, 13356.466694885645, 7.3111206993223545e-6, 26834.03915692007],
-            linf = [15189.518392961472, 18889.91190186524, 3.13563689997973e-5, 37961.110869959],
+            l2   = [10734.069674978307, 13357.14137049754, 7.430683770399547e-6, 26835.16654472354],
+            linf = [15190.15931461379, 18890.86677707439, 3.42147931356359e-5, 37962.713187191635],
             t_end=0.1)
   end
 
