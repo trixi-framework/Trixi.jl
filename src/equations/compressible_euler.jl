@@ -106,7 +106,7 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_weak_t_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = [0, 0]

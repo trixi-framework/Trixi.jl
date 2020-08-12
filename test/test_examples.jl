@@ -86,8 +86,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
   @testset "../examples/parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run("../examples/parameters_hyp_diff_nonperiodic.toml",
-            l2   = [8.449481442600338e-6, 2.978444363369848e-5, 5.590431119408737e-5],
-            linf = [5.1550599501126726e-5, 0.00028988258669275583, 0.0003421368340976727])
+            l2   = [8.523077654037775e-6, 2.877932365308637e-5, 5.454942769137812e-5],
+            linf = [5.484978959957587e-5, 0.00014544895979200218, 0.000324491268921534])
   end
   @testset "../examples/parameters_hyp_diff_upwind.toml" begin
     test_trixi_run("../examples/parameters_hyp_diff_upwind.toml",
