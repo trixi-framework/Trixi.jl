@@ -1,10 +1,14 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Gassner <ggassner@math.uni-koeln.de"]
+authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>",
+           "Gregor Gassner <ggassner@uni-koeln.de>",
+           "Hendrik Ranocha <mail@ranocha.de>",
+           "Andrew R. Winters <andrew.ross.winters@liu.se>"]
 version = "0.1.0"
 
 [deps]
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+LinearMaps = "7a12625a-238d-50fd-b39a-03d52299707e"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
@@ -14,4 +18,4 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
-julia = "1.3, 1.4"
+julia = "1.5"

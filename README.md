@@ -1,18 +1,23 @@
-# Trixi: A tree-based flexible DG/SBP framework written in Julia
+# Trixi.jl
+
+**A flexible, tree-based numerical simulation framework for PDEs written in Julia.**
 
 <p align="center">
   <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
-*Trixi* is a flexible DG/SBP framework written in the Julia programming
-language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
-to be easy to use and extend.
+**Trixi.jl** is a flexible numerical simulation framework for partial
+differential equations. It is based on a two-dimensional hierarchical mesh
+(quadtree) and supports several governing equations such as compressible Euler
+equations, magnetohydrodynamics equations, or hyperbolic diffusion equations.
+Trixi is written in Julia and aims to be easy to use and extend also for new or
+inexperienced users.
 
 
 ## Installation
 If you have not yet installed Julia, please follow the instructions for your
 operating system found [here](https://julialang.org/downloads/platform/). Trixi
-works with Julia v1.3 or higher.
+works with Julia v1.5.
 
 You can then install Trixi, the postprocessing tools, and the respective dependencies by
 performing the following steps:

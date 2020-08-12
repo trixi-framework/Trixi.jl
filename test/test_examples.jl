@@ -62,7 +62,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "../examples/parameters_blast_wave_shockcapturing.toml" begin
     test_trixi_run("../examples/parameters_blast_wave_shockcapturing.toml",
             l2   = [0.13910202327088322, 0.11538722576277083, 0.1153873048510009, 0.3387876385945495],
-            linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368])
+            linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368],
+            n_steps_max=30)
   end
   @testset "../examples/parameters_ec.toml" begin
     test_trixi_run("../examples/parameters_ec.toml",
@@ -120,6 +121,12 @@ isdir(outdir) && rm(outdir, recursive=true)
             l2   = [2.1179157511237394e-6, 2.805652962710273e-5, 3.7597878575795916e-5, 8.8405400202012e-5],
             linf = [5.913671873580828e-5, 0.0007547162965326759, 0.000816284733694328, 0.0022072012966312116],
             volume_flux = "flux_kuya_etal")
+  end
+  @testset "../examples/parameters_mortar_vortex_split.toml with flux_ranocha" begin
+    test_trixi_run("../examples/parameters_mortar_vortex_split.toml",
+            l2   = [2.120037931908414e-6, 2.805632845562748e-5, 3.759465243706522e-5, 8.841157002762106e-5],
+            linf = [5.934036929955422e-5, 0.0007547536380712039, 0.000816277844819191, 0.0022070017103743567],
+            volume_flux = "flux_ranocha")
   end
   @testset "../examples/parameters_mortar_vortex_split_shockcapturing.toml" begin
     test_trixi_run("../examples/parameters_mortar_vortex_split_shockcapturing.toml",
@@ -184,8 +191,16 @@ isdir(outdir) && rm(outdir, recursive=true)
             restart = true, restart_filename = "out/restart_000040.h5")
   end
   @test_nowarn Trixi.convtest("../examples/parameters.toml", 3)
-  @test_skip   Trixi.run("../examples/parameters_blast_wave_shockcapturing_amr.toml") # errors for me
-  @test_skip   Trixi.run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml") # errors for me
+  @testset "../examples/parameters_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
+            linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
+  end
+  @testset "../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run("../examples/parameters_sedov_blast_wave_shockcapturing_amr.toml", t_end=1.0,
+            l2   = [0.48181540798407435, 0.16553711811584917, 0.16553711811592348, 0.6436020727868234],
+            linf = [2.4861229629790813, 1.2873838211418498, 1.2873838211478545, 6.473895863328632])
+  end
 end
 
 # Coverage test for all initial conditions
@@ -275,8 +290,8 @@ end
   # GLM-MHD
   @testset "../examples/parameters_alfven_wave.toml one step with initial_conditions_constant" begin
     test_trixi_run("../examples/parameters_alfven_wave.toml",
-            l2   = [2.09587921e-16, 2.00505223e-16, 4.67253468e-16, 1.07374002e-16, 4.12845635e-15, 4.50940304e-16, 2.82296601e-16, 1.09431793e-16, 1.76565492e-16],
-            linf = [3.33066907e-16, 7.49400542e-16, 1.77635684e-15, 1.66533454e-16, 1.42108547e-14, 8.88178420e-16, 6.66133815e-16, 1.66533454e-16, 7.41458237e-16],
+            l2   = [1.9377318494777845e-16, 2.0108417179968547e-16, 4.706803550379074e-16, 9.849916218369067e-17, 9.578096259273606e-15, 4.995499731290712e-16, 2.72017579525395e-16, 9.963303137205655e-17, 1.7656549191657418e-16],
+            linf = [4.440892098500626e-16, 7.494005416219807e-16, 1.7763568394002505e-15, 2.220446049250313e-16, 2.1316282072803006e-14, 1.3322676295501878e-15, 8.881784197001252e-16, 2.220446049250313e-16, 7.414582366945819e-16],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_constant")
   end

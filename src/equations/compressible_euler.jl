@@ -684,6 +684,51 @@ Entropy conserving two-point flux by Chandrashekar (2013)
 end
 
 
+"""
+    flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+
+Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+[PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+"""
+@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+  # Unpack left and right state
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  # Compute the necessary mean values
+  rho_mean   = ln_mean(rho_ll, rho_rr)
+  rho_p_mean = ln_mean(rho_ll / p_ll, rho_rr / p_rr)
+  v1_avg = 0.5 * (v1_ll + v1_rr)
+  v2_avg = 0.5 * (v2_ll + v2_rr)
+  p_avg  = 0.5 * (p_ll + p_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+
+  # Calculate fluxes depending on orientation
+  if orientation == 1
+    f1 = rho_mean * v1_avg
+    f2 = f1 * v1_avg + p_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  else
+    f1 = rho_mean * v2_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg + p_avg
+    f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+  end
+
+  return SVector(f1, f2, f3, f4)
+end
+
+
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
