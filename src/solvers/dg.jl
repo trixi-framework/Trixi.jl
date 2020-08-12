@@ -69,6 +69,7 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   amr_alpha_smooth::Bool
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
+  cache::Dict{Symbol, Any}
 
   initial_state_integrals::Vector{Float64}
 end
@@ -188,6 +189,9 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
+  # Initialize storage for the cache
+  cache = Dict{Symbol, Any}()
+
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
@@ -214,7 +218,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
-      element_variables,
+      element_variables, cache,
       initial_state_integrals)
 
   return dg
@@ -1364,18 +1368,18 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
       length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
     dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
   end
-  if (!haskey(dg.element_variables, :element_ids_dg))
-    dg.element_variables[:element_ids_dg] = Int[]
-    sizehint!(dg.element_variables[:element_ids_dg], dg.n_elements)
+  if (!haskey(dg.cache, :element_ids_dg))
+    dg.cache[:element_ids_dg] = Int[]
+    sizehint!(dg.cache[:element_ids_dg], dg.n_elements)
   end
-  if (!haskey(dg.element_variables, :element_ids_dgfv))
-    dg.element_variables[:element_ids_dgfv] = Int[]
-    sizehint!(dg.element_variables[:element_ids_dgfv], dg.n_elements)
+  if (!haskey(dg.cache, :element_ids_dgfv))
+    dg.cache[:element_ids_dgfv] = Int[]
+    sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
   end
 
   calc_volume_integral!(u_t, Val(:shock_capturing),
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
-                        dg.element_variables[:element_ids_dg], dg.element_variables[:element_ids_dgfv],
+                        dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
                         dg)
 end
 
