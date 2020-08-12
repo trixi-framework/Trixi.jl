@@ -289,6 +289,42 @@ end
   @test_skip Trixi.run("../examples/parameters_mhd_blast_wave.toml", n_steps_max=1)
 end
 
+# Numerical examples from the Euler-gravity paper
+@testset "Euler-gravity paper" begin
+  @testset "../examples/euler_gravity_paper/parameters_no_gravity_manufac.toml" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_no_gravity_manufac.toml",
+            l2   = [0.00017409779099463607, 0.0003369287450282371, 0.00033692874502819616, 0.0006099035183426747],
+            linf = [0.0010793454782482836, 0.0018836374478419238, 0.0018836374478410356, 0.003971446179607874])
+  end
+
+  @testset "../examples/euler_gravity_paper/parameters_hyp_diff_nonperiodic.toml" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_hyp_diff_nonperiodic.toml",
+            l2   = [0.00315402168051244, 0.012394424055283394, 0.021859728673870843],
+            linf = [0.017332075119072865, 0.07843510773347322, 0.11325788389718668])
+  end
+
+  @testset "../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml",
+            l2   = [0.00024871583705894266, 0.0003370291440492487, 0.0003370291440491768, 0.000723193451360431, 0.00013852406481146338, 0.0007541252865965574, 0.0007541252865965869],
+            linf = [0.0015811731253161376, 0.002049389754485098, 0.00204938975448421, 0.004793721265806461, 0.0009549587207352064, 0.003098123637900763, 0.0030981236379012634],
+            t_end=0.1)
+  end
+
+  @testset "../examples/euler_gravity_paper/parameters_jeans_instability.toml" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_jeans_instability.toml",
+            l2   = [10733.618719933014, 13356.466694885645, 7.3111206993223545e-6, 26834.03915692007],
+            linf = [15189.518392961472, 18889.91190186524, 3.13563689997973e-5, 37961.110869959],
+            t_end=0.1)
+  end
+
+  @testset "../examples/euler_gravity_paper/parameters_gravity_blast_wave.toml" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_gravity_blast_wave.toml",
+            l2   = [0.0025273042999318174, 0.0029754543943817453, 0.002975454394381747, 0.05645197998901993],
+            linf = [0.08760983369850617, 0.5766869368915706, 0.5766869368915706, 6.31143934062064],
+            t_end=0.001)
+  end
+end
+
 
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")

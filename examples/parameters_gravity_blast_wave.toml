@@ -4,7 +4,7 @@ equations = "euler_gravity"
 gamma = 1.4
 initial_conditions = "initial_conditions_sedov_self_gravity"
 
-surface_flux = "flux_hll" # "flux_lax_friedrichs"
+surface_flux = "flux_hll"
 volume_flux = "flux_chandrashekar"
 source_terms = "source_terms_harmonic"
 t_start = 0.0
@@ -27,6 +27,7 @@ extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", 
 save_analysis = true
 
 # Gravity
+time_integration_scheme_gravity = "timestep_gravity_3Sstar!"
 cfl_gravity = 1.0
 G = 6.674e-8
 rho0 = 0.0

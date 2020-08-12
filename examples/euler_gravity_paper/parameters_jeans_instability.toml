@@ -3,7 +3,6 @@
 equations = "euler_gravity"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_jeans_instability"
-# initial_conditions = "constant"
 surface_flux = "flux_central"
 volume_flux = "flux_central"
 source_terms = "source_terms_harmonic"
@@ -29,10 +28,10 @@ extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", 
 save_analysis = true
 
 # Gravity
+time_integration_scheme_gravity = "timestep_gravity!"
 cfl_gravity = 0.5
 G = 6.674e-8
 rho0 = 1.5e7
-time_integration_scheme_gravity = "timestep_gravity!"
 
 ####################################################################################################
 # Mesh
