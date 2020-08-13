@@ -53,7 +53,7 @@ Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
 ## Sec. 4.2.1, Figure 5b, Jeans energies with Euler/CK45 and gravity/RK3S*
 ```julia
 Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
-          time_integration_scheme_gravity="timestep_gravity_3Sstar!", cfl_gravity=1.2)
+          time_integration_scheme_gravity="timestep_gravity_erk51_3Sstar!", cfl_gravity=1.2)
 ```
 
 ### Creating Jeans energies figures
