@@ -25,7 +25,7 @@ analysis_interval = 100
 save_analysis = true
 
 # Gravity
-time_integration_scheme_gravity = "timestep_gravity_erk51_3Sstar!"
+time_integration_scheme_gravity = "timestep_gravity_erk52_3Sstar!"
 cfl_gravity = 0.5
 G = 1.0
 rho0 = 2.0
