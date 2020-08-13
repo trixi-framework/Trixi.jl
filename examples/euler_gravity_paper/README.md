@@ -90,3 +90,9 @@ Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml")
 Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml",
           amr_interval=0)
 ```
+
+### To postprocess the solution files use
+```
+/postprocessing/trixi2vtk --nvisnodes 16 --format vti 
+```
+Then use the saved paraview state in /figures/sedov/sedov_grav.pvsm
