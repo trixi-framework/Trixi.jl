@@ -55,3 +55,15 @@ Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
 Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
           time_integration_scheme_gravity="timestep_gravity_3Sstar!", cfl_gravity=1.2)
 ```
+
+### Creating Jeans energies figures
+One must also include shrink the analysis interval in the above command, e.g.,
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
+          analysis_interval=1)
+```
+to generate necessary data for the plots to look nice. Then run the python script with the analysis file from the run as input
+```
+./jeans_all_in_one.py analysis.dat
+```
+to generate the figure
