@@ -353,6 +353,20 @@ end
             t_end=0.1, update_gravity_once_per_stage=false)
   end
 
+  @testset "../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml with 1st order RK3S*" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml",
+            l2   = [0.00024871583705119436, 0.0003370291440915927, 0.0003370291440916112, 0.0007231934514459859, 0.00013852406160669225, 0.0007541252869723031, 0.0007541252869723208],
+            linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383, 0.0009549587622960237, 0.0030981236291827237, 0.003098123629182964],
+            t_end=0.1, time_integration_scheme_gravity="timestep_gravity_erk51_3Sstar!")
+  end
+
+  @testset "../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml with 3rd order RK3S*" begin
+    test_trixi_run("../examples/euler_gravity_paper/parameters_coupling_convergence_test.toml",
+            l2   = [0.000248715837047647, 0.0003370291440257414, 0.00033702914402587556, 0.0007231934513057375, 0.0001385240616293125, 0.0007541252869544295, 0.0007541252869544261],
+            linf = [0.00158117312532835, 0.0020493897540796446, 0.0020493897540800887, 0.0047937212650124295, 0.000954958762033685, 0.0030981236303003834, 0.003098123630300921],
+            t_end=0.1, time_integration_scheme_gravity="timestep_gravity_erk53_3Sstar!")
+  end
+
   @testset "../examples/euler_gravity_paper/parameters_jeans_instability.toml" begin
     test_trixi_run("../examples/euler_gravity_paper/parameters_jeans_instability.toml",
             l2   = [10734.069674978307, 13357.14137049754, 7.430683770399547e-6, 26835.16654472354],
