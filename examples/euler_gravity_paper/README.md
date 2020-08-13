@@ -67,3 +67,14 @@ to generate necessary data for the plots to look nice. Then run the python scrip
 ./jeans_all_in_one.py analysis.dat
 ```
 to generate the figure
+
+
+## Sec. 4.2.2, Figure 6a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml", t_end=0.5)
+```
+
+## Sec. 4.2.2, Figure 6b, T=1.0, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml")
+```
