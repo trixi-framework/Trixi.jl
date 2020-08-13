@@ -121,6 +121,8 @@ function update_gravity!(solver, u_euler, gravity_parameters)
       finalstep = true
     end
   end
+
+  globals[:gravity_subcycles] += iteration
 end
 
 
