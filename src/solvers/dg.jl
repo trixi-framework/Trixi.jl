@@ -191,6 +191,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
+  cache[:thread_cache] = create_thread_cache(V, N+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
@@ -223,6 +224,30 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   return dg
 end
+
+
+function create_thread_cache(n_variables, n_nodes)
+  # Type alias only for convenience
+  A4d = Array{Float64, 4}
+  A3dp1_x = Array{Float64, 3}
+  A3dp1_y = Array{Float64, 3}
+  A2d = MArray{Tuple{n_variables, n_nodes}, Float64}
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  f1_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+                          for _ in 1:Threads.nthreads()]
+  f2_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+                          for _ in 1:Threads.nthreads()]
+  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes)
+                             for _ in 1:Threads.nthreads()]
+  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1)
+                             for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+
+  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
+            fstar_upper_threaded, fstar_lower_threaded)
+ end
 
 
 # Return polynomial degree for a DG solver
@@ -1256,35 +1281,8 @@ end
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg)
-  if !haskey(dg.cache, :thread_cache)
-    dg.cache[:thread_cache] = create_thread_cache(dg)
-  end
-
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.cache[:thread_cache], dg)
 end
-
-function create_thread_cache(dg)
-  # Type alias only for convenience
-  A4d = Array{Float64, 4}
-  A3dp1_x = Array{Float64, 3}
-  A3dp1_y = Array{Float64, 3}
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                          for _ in 1:Threads.nthreads()]
-  f2_threaded      = A4d[A4d(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
-                          for _ in 1:Threads.nthreads()]
-  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, nvariables(dg), nnodes(dg)+1, nnodes(dg))
-                             for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, nvariables(dg), nnodes(dg), nnodes(dg)+1)
-                             for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-
-  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
-            fstar_upper_threaded, fstar_lower_threaded)
- end
 
 
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg)
@@ -1384,9 +1382,6 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
   if (!haskey(dg.cache, :element_ids_dgfv))
     dg.cache[:element_ids_dgfv] = Int[]
     sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
-  end
-  if !haskey(dg.cache, :thread_cache)
-    dg.cache[:thread_cache] = create_thread_cache(dg)
   end
 
   calc_volume_integral!(u_t, Val(:shock_capturing),
@@ -1934,13 +1929,7 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-function calc_mortar_flux!(dg)
-  if !haskey(dg.cache, :thread_cache)
-    dg.cache[:thread_cache] = create_thread_cache(dg)
-  end
-
-  calc_mortar_flux!(dg, dg.mortar_type)
-end
+calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
