@@ -21,8 +21,10 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   # Update gravity in every time step
   time_integration_scheme_gravity = Symbol(parameter("time_integration_scheme_gravity",
-                                                     valid=("timestep_gravity!",
-                                                            "timestep_gravity_3Sstar!")))
+                                                      valid=("timestep_gravity_carpenter_kennedy_erk54_2N!",
+                                                             "timestep_gravity_erk51_3Sstar!",
+                                                             "timestep_gravity_erk52_3Sstar!",
+                                                             "timestep_gravity_erk53_3Sstar!")))
   timestep_gravity = eval(time_integration_scheme_gravity)
   cfl_gravity = parameter("cfl_gravity")::Float64
   rho0 = parameter("rho0")::Float64
@@ -31,27 +33,11 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   update_gravity_once_per_stage = parameter("update_gravity_once_per_stage", true)::Bool
 
-  # FIXME: Hack to use different CFL number for the gravity solver
-  # Values for the Jeans instability test
-  #cfl_gravity = 0.8 # works for CK LSRK45         (≈97% of solve) N = 3
-  #cfl_gravity = 0.55 # works for CK LSRK45         (≈97% of solve) N = 4
-  #cfl_gravity = 0.4375 # works for Williamson LSRK3 (≈95% of solve) N = 3
-  #cfl_gravity = 0.275 # works for Williamson LSRK3 (≈95% of solve) N = 4
-  # cfl_gravity = 1.22 # works for Ranocha 3Sstar (≈??% of solve) N = 3
-  #cfl_gravity = 0.7 # works for Ranocha 3Sstar (≈??% of solve) N = 4
-  #@timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u, cfl_gravity)
   if !update_gravity_once_per_stage
     @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
                                                      gravity_parameters)
   end
 
-  # Value for the coupling convergence test
-  #cfl_gravity = 0.5 # for LSRK45
-  #cfl_gravity = 0.5 # for 3Sstar
-
-  # Value for the slef-gravitating Sedov blast wave with AMR
-  #cfl_gravity = 0.5 # for LSRK45
-  #cfl_gravity = 1.0 # for 3Sstar
   for stage in eachindex(c)
     # Update gravity in every RK stage
     if update_gravity_once_per_stage
@@ -128,83 +114,49 @@ end
 
 # Integrate gravity solver
 # OBS! coupling source term added outside the rhs! call
-function timestep_gravity!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
-  # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
- a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
-      3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
- b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
-      1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
-      2277821191437.0 / 14882151754819.0]
- c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
-      2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
-  # Coefficients for Williamson's 3-stage 3rd-order low-storage Runge-Kutta method
-  # a = @SVector [0.0, 5.0/9.0, 153.0/128.0]
-  # b = @SVector [1.0/3.0, 15.0/16.0, 8.0/15.0]
-  # c = @SVector [0.0, 1.0/3.0, 3.0/4.0]
-
-  # Newton's gravitational constant (cgs units) for Jeans instability
-  #G = 6.674e-8 # cm^3/(g⋅s^2)
-  #rho0 = 1.5e7 # background density
-  # Newton's gravitational constant (normalized) for polytrope test
-  # G = 1.0
-  # rho0 = 0.0
-
+function timestep_gravity_2N!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters, a, b, c)
   @unpack G, rho0 = gravity_parameters
-
   grav_scale = -4.0*pi*G
+
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
     # rhs! has the source term for the harmonic problem
     @timeit timer() "rhs" rhs!(solver, t_stage)
     # put in gravity source term proportional to Euler density
-    # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+    # OBS! subtract off the background density ρ_0 (spatial mean value)
     @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
-      @. solver.elements.u_tmp2 = (solver.elements.u_t
-                                         - solver.elements.u_tmp2 * a[stage])
+      @. solver.elements.u_tmp2 = solver.elements.u_t - solver.elements.u_tmp2 * a[stage]
       @. solver.elements.u += solver.elements.u_tmp2 * b[stage] * dt
     end
   end
 end
 
+function timestep_gravity_carpenter_kennedy_erk54_2N!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
+  # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
+  a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+  3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
+  b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
+  1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
+  2277821191437.0 / 14882151754819.0]
+  c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
+  2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
+  # Coefficients for Williamson's 3-stage 3rd-order low-storage Runge-Kutta method
+  # a = @SVector [0.0, 5.0/9.0, 153.0/128.0]
+  # b = @SVector [1.0/3.0, 15.0/16.0, 8.0/15.0]
+  # c = @SVector [0.0, 1.0/3.0, 3.0/4.0]
+
+  timestep_gravity_2N!(solver, t, dt, u_euler, gravity_parameters, a, b, c)
+end
+
 
 # Integrate gravity solver
 # OBS! coupling source term added outside the rhs! call
-function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
-  # New 3Sstar coefficients optimized for polynomials of degree p=3
-  # and examples/parameters_hyp_diff_llf.toml
-  # 5 stages, order 1
-  gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
-  gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
-  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 8.0043329115077388E-01, 1.3550099149374278E-01]
-  beta   = @SVector [1.9189497208340553E-01, 5.4506406707700059E-02, 1.2103893164085415E-01, 6.8582252490550921E-01, 8.7914657211972225E-01]
-  delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
-  c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
-
-  # Jeans instability setup
-  # Newton's gravitational constant (cgs units) for Jeans instability
-  #G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
-  #rho0 = 1.5e7 # [ρ] = g/cm^3 (background density)
-
-  # Coupling convergence test setup
-  # Newton's gravitational constant (normalized)
-  # G = 1.0
-  # rho0 = 2.0 # must match the constant c from initial conditions in compresible_euler.jl
-
-  # Sedov blast wave with self-gravity setup
-  # Newton's gravitational constant (normalized) because Sedov initial conditions are non-dimensional
-  # G = 6.674e-8 # [G] = cm^3/(g⋅s^2)
-  # rho0 = 0.0 # 1.123039e6 # rho_ambient from "initial_conditions_sedov_self_gravity"
-
+function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters,
+                                  gamma1, gamma2, gamma3, beta, delta, c)
   @unpack G, rho0 = gravity_parameters
-
-  # Gravity scaling always has the same form (whether dimensional or non-dimensional)
   grav_scale = -4.0*pi*G
-
-# Polytrope setup
-  # r_soft = 0.001 # must be the same as in initial conditions
-  # inicenter = [0.0, 0.0] # must be same as in initial conditions
 
   solver.elements.u_tmp2 .= zero(eltype(solver.elements.u_tmp2))
   solver.elements.u_tmp3 .= solver.elements.u
@@ -217,48 +169,6 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
     @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
 
-    # Source term: polytrope
-#= OBS! This is for the 2D polytrope which does not work
-    for element_id in axes(u_euler, 4)
-      for j in axes(u_euler, 3)
-        for i in axes(u_euler, 2)
-          # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
-          x1 = solver.elements.node_coordinates[1, i, j, element_id]
-          x2 = solver.elements.node_coordinates[2, i, j, element_id]
-          x_norm = x1 - inicenter[1]
-          y_norm = x2 - inicenter[2]
-          r = sqrt(x_norm^2 + y_norm^2)
-          # r_plummer = (r^2 + r_soft^2) / r
-          r_plummer = max(r, r_soft)
-
-          C = -2.0
-          alpha = sqrt(2.0*pi)
-          rho = u_euler[1, i, j, element_id]
-          term1 = C * (alpha^2*r_plummer^2 - 1.0) * rho / r_plummer^2
-          term2 = C * cos(alpha*r_plummer) / r_plummer^2
-
-          #println(u_euler[1, i, j, element_id] - sin(alpha*r_plummer)/(alpha*r_plummer))
-
-          numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
-                         alpha*r_plummer*cos(alpha*r_plummer) )
-          denominator = alpha * r_plummer^3
-          #
-          # this has a similar form to the RHS in hyperbolic diffusion polytrope EXCEPT it attempts
-          # to use the Euler density as part of the f(x,y) function. In this sense it has "full"
-          # coupling but it is unstable...do not understand why
-          solver.elements.u_t[1, i, j, element_id] += term1 + term2
-          #
-          # this uses the same RHS as the hyperbolic diffusion polytrope test (stable and converges)
-          # BUT it does not use the Euler solution to update gravity potential, but the p = ϕ_x and
-          # q = ϕ_y variables from HypDiff are used for the gravity source term of Euler
-          #solver.elements.u_t[1, i, j, element_id] += numerator / denominator
-          #
-          # this uses the density from the Euler solver for the gravity Poisson problem (unstable)
-          #solver.elements.u_t[1, i, j, element_id] += grav_scale*rho
-        end
-      end
-    end
-=#
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
     gamma2_stage  = gamma2[stage]
@@ -274,6 +184,48 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
       end
     end
   end
+end
+
+function timestep_gravity_erk51_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
+  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 1
+  gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
+  gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 8.0043329115077388E-01, 1.3550099149374278E-01]
+  beta   = @SVector [1.9189497208340553E-01, 5.4506406707700059E-02, 1.2103893164085415E-01, 6.8582252490550921E-01, 8.7914657211972225E-01]
+  delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
+
+  timestep_gravity_3Sstar!(solver, t, dt, u_euler, gravity_parameters, gamma1, gamma2, gamma3, beta, delta, c)
+end
+
+function timestep_gravity_erk52_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
+  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 2
+  gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
+  gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03]
+  beta   = @SVector [4.5158640252832094E-01, 7.5974836561844006E-01, 3.7561630338850771E-01, 2.9356700007428856E-02, 2.5205285143494666E-01]
+  delta  = @SVector [1.0000000000000000E+00, 1.3011720142005145E-01, 2.6579275844515687E-01, 9.9687218193685878E-01, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00, 1.4280257701954349E+00, 7.1581334196229851E-01]
+
+  timestep_gravity_3Sstar!(solver, t, dt, u_euler, gravity_parameters, gamma1, gamma2, gamma3, beta, delta, c)
+end
+
+function timestep_gravity_erk53_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
+  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 3
+  gamma1 = @SVector [0.0000000000000000E+00, 6.9362208054011210E-01, 9.1364483229179472E-01, 1.3129305757628569E+00, -1.4615811339132949E+00]
+  gamma2 = @SVector [1.0000000000000000E+00, 1.3224582239681788E+00, 2.4213162353103135E-01, -3.8532017293685838E-01, 1.5603355704723714E+00]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 3.8306787039991996E-01, -3.5683121201711010E-01]
+  beta   = @SVector [8.4476964977404881E-02, 3.0834660698015803E-01, 3.2131664733089232E-01, 2.8783574345390539E-01, 8.2199204703236073E-01]
+  delta  = @SVector [1.0000000000000000E+00, -7.6832695815481578E-01, 1.2497251501714818E-01, 1.4496404749796306E+00, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 8.4476964977404881E-02, 2.8110631488732202E-01, 5.7093842145029405E-01, 7.2999896418559662E-01]
+
+  timestep_gravity_3Sstar!(solver, t, dt, u_euler, gravity_parameters, gamma1, gamma2, gamma3, beta, delta, c)
 end
 
 
