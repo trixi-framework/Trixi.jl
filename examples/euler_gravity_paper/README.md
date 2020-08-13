@@ -56,18 +56,18 @@ Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
           time_integration_scheme_gravity="timestep_gravity_erk52_3Sstar!", cfl_gravity=1.2)
 ```
 
-### Creating Jeans energies figures
-One must also include shrink the analysis interval in the above command, e.g.,
+## Sec. 4.2.1, Creating Jeans energies figures 3 and 4
+One must also shrink the analysis interval in the above command, e.g.,
 ```julia
 Trixi.run("examples/euler_gravity_paper/parameters_jeans_instability.toml",
           analysis_interval=1)
 ```
-to generate necessary data for the plots to look nice. Then run the python script with the analysis file from the run as input
+to generate necessary data for the plots to look nice. Then run the python
+script with the analysis file from the run as input
 ```
 ./jeans_all_in_one.py analysis.dat
 ```
-to generate the figure
-
+to generate the figure.
 
 ## Sec. 4.2.2, Figure 6a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
 ```julia
@@ -77,4 +77,16 @@ Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml", t_e
 ## Sec. 4.2.2, Figure 6b, T=1.0, Sedov + gravity with Euler/CK45 and gravity/RK3S*
 ```julia
 Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml")
+```
+
+## Sec. 4.2.2, Table 6, Sedov + gravity, performance uniform vs. AMR
+**AMR mesh:**
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml")
+```
+
+**Uniform mesh:**
+```julia
+Trixi.run("examples/euler_gravity_paper/parameters_gravity_blast_wave.toml",
+          amr_interval=0)
 ```
