@@ -70,6 +70,7 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
+  thread_cache::Any # to make fully-typed output more readable
 
   initial_state_integrals::Vector{Float64}
 end
@@ -191,7 +192,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
-  cache[:thread_cache] = create_thread_cache(V, N+1)
+  thread_cache = create_thread_cache(V, N+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
@@ -219,7 +220,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
-      element_variables, cache,
+      element_variables, cache, thread_cache,
       initial_state_integrals)
 
   return dg
@@ -1281,12 +1282,15 @@ end
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg)
-  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.cache[:thread_cache], dg)
+  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
 
 
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg)
   @unpack dsplit_transposed = dg
+  # Do not use the thread_cache here since that reduces the performance significantly
+  # (which we do not fully understand right now)
+  # @unpack f1_threaded, f2_threaded = cache
 
   # Type alias only for convenience
   A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
@@ -1387,7 +1391,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg)
   calc_volume_integral!(u_t, Val(:shock_capturing),
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
                         dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
-                        dg.cache[:thread_cache],
+                        dg.thread_cache,
                         dg)
 end
 
@@ -1934,7 +1938,7 @@ calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 # Calculate and store fluxes across L2 mortars
 calc_mortar_flux!(dg, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, mortar_type,
-                                                                 dg.l2mortars, dg.cache[:thread_cache])
+                                                                 dg.l2mortars, dg.thread_cache)
 function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val{:l2}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
