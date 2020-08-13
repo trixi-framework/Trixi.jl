@@ -441,7 +441,9 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
 
     # Evolve solution by one time step
     if globals[:euler_gravity]
-      timestep_euler_gravity!(solver_euler, solver_gravity, time, dt, time_parameters)
+      @timeit timer() "timestep_euler_gravity!" begin
+        timestep_euler_gravity!(solver_euler, solver_gravity, time, dt, time_parameters)
+      end
     else
       time_integration_function(solver, time, dt)
     end
