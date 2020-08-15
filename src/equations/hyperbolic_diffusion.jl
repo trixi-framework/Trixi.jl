@@ -91,32 +91,6 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_polytrope(x, t, equation::HyperbolicDiffusionEquations)
-  inicenter = [0.0, 0.0] # must be same as in source terms
-  r_soft = 0.001 # must be the same as in source terms
-
-  # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  # r_plummer = (r^2 + r_soft^2) / r
-  r_plummer = max(r, r_soft)
-
-  # Determine phi_x, phi_y
-  C = -2.0
-  alpha = sqrt(2.0*pi)
-  tmp_cos = alpha * r_plummer * cos(alpha * r_plummer)
-  tmp_sin = sin(alpha * r_plummer)
-  tmp = (tmp_cos - tmp_sin) / ( alpha * r_plummer^3)
-  phi_x = C * x[1] * tmp # = gravity acceleration in x-direction
-  phi_y = C * x[2] * tmp # = gravity acceleration in y-direction
-
-  phi = C * sin(sqrt(2*pi) * r_plummer) / (sqrt(2*pi) * r_plummer)
-  p   = phi_x
-  q   = phi_y
-  return @SVector [phi, p, q]
-end
-
 function initial_conditions_coupling_convergence_test(x, t, equation::HyperbolicDiffusionEquations)
 
   # Determine phi_x, phi_y
@@ -145,37 +119,6 @@ function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusi
 end
 
 # Apply source terms
-function source_terms_polytrope(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
-  r_soft = 0.001 # must be the same as in initial conditions
-  inicenter = [0.0, 0.0] # must be same as in initial conditions
-  inv_Tr = inv(equation.Tr)
-
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      # Calculate radius and radius with Plummer's softening to avoid singularity at r == 0.0
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      x_norm = x1 - inicenter[1]
-      y_norm = x2 - inicenter[2]
-      r = sqrt(x_norm^2 + y_norm^2)
-      # r_plummer = (r^2 + r_soft^2) / r
-      r_plummer = max(r, r_soft)
-
-      C = -2.0
-      alpha = sqrt(2.0*pi)
-      numerator = C*( (alpha^2*r_plummer^2 - 1.0)*sin(alpha*r_plummer) +
-                       alpha*r_plummer*cos(alpha*r_plummer) )
-      denominator = alpha * r_plummer^3
-
-      ut[1, i, j, element_id] += numerator / denominator
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
-  end
-
-  return nothing
-end
-
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
