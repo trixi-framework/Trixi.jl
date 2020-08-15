@@ -8,7 +8,7 @@ outdir = joinpath(@__DIR__, "out")
 isdir(outdir) && rm(outdir, recursive=true)
 
 # Numerical examples from the Euler-gravity paper
-@testset "Euler-gravity paper" begin
+@testset "repro-self-gravitating-gas-dynamics" begin
   @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_eoc_test_euler.toml" begin
     test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_eoc_test_euler.toml",
             l2   = [0.00017409779099463607, 0.0003369287450282371, 0.00033692874502819616, 0.0006099035183426747],
