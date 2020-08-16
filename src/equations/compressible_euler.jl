@@ -292,68 +292,15 @@ end
 
 function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations)
   # Set up polar coordinates
-  # inicenter = [0, 0]
-  # x_norm = x[1] - inicenter[1]
-  # y_norm = x[2] - inicenter[2]
-  # r = sqrt(x_norm^2 + y_norm^2)
-  #
-  # Setup based on SedovSelfGravity setup from FLASH
-  # this setup has units so [ρ] = g/cm^3, [p] = dyn/cm^2, [E] = erg/cm^3
-  # OBS! These values are not available in the FLASH manual, must have access to the source code
-  # p_ambient   = 1.e-10
-  # rho_ambient = 1.123039e6
-  # exp_energy  = 1.0e6
-  # # use r0 instead for more reasonable explosion point
-  # #r0 = 0.02
-  #
-  # r0 = 0.5 # soften the setup because the shocks are so strong
-  # #r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # #r0 = 0.109375 # = 3.5 * smallest dx (for domain length=4 and max-ref=7)
-  # p0_inner = (equation.gamma - 1) * exp_energy / (pi * r0^2)
-  # #p0_outer = p_ambient
-  # p0_outer = 1.0e-3 # = more reasonable setup
-  #
-  # # Calculate primitive variables
-  # #rho = rho_ambient
-  # #rho = r > 1.0 ? 1e-9*rho_ambient : rho_ambient
-  # v1 = 0.0
-  # v2 = 0.0
-  # soften_param = 0.01
-  # f = (r0 - r)/soften_param
-  # if r <= r0 - soften_param
-  #   p = p0_inner
-  # elseif r >= r0
-  #   p = p0_outer
-  # else
-  #   p = p0_outer + p0_inner*f
-  # end
-  #p = r > r0 ? p0_outer : p0_inner
-
-  #return prim2cons(SVector(rho, v1, v2, p), equation)
-  # Set up polar coordinates
   r = sqrt(x[1]^2 + x[2]^2)
 
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   E = 1.0
   p_inner   = (equation.gamma - 1) * E / (pi * r0^2)
   p_ambient = 1e-5 # = true Sedov setup
 
   # Calculate primitive variables
-  #rho = 1.0
-  # r_soften = 1.0
-  # soften_param = 0.01
-  # f = (r_soften - r)/soften_param
-  # rho_inner = 1.0
-  # rho_outer = 1e-4
-  # if r <= r_soften - soften_param
-  #   rho = rho_inner
-  # elseif r >= r_soften
-  #   rho = rho_outer
-  # else
-  #   rho = rho_outer + (rho_inner - rho_outer)*f
-  # end
-  #rho = r > 1.0 ? rho_outer : rho_inner
   # use a logistic function to tranfer density value smoothly
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
@@ -456,9 +403,9 @@ function source_terms_no_gravity_convergence_test(ut, u, x, element_id, t, n_nod
   return nothing
 end
 
+# Empty source terms required for coupled Euler-gravity simulations
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
-  # just an empty routine for the coupled simulation
-  # OBS! used for the Jeans instability as well as "coupling_pulse_convergence_test"
+  # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
 end
