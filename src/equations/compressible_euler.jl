@@ -379,7 +379,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
-function source_terms_no_gravity_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
