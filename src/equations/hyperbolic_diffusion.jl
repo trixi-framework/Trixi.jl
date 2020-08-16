@@ -91,7 +91,7 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   return @SVector [phi, p, q]
 end
 
-function initial_conditions_coupling_convergence_test(x, t, equation::HyperbolicDiffusionEquations)
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant

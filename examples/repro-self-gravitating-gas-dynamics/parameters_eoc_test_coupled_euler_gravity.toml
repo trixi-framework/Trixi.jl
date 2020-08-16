@@ -2,7 +2,7 @@
 # Simulation
 equations = "euler_gravity"
 gamma = 2.0
-initial_conditions = "initial_conditions_coupling_convergence_test"
+initial_conditions = "initial_conditions_eoc_test_coupled_euler_gravity"
 surface_flux = "flux_hll"
 source_terms = "source_terms_coupling_convergence_test"
 t_start = 0.0

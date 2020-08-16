@@ -368,7 +368,7 @@ function init_simulation()
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
     if globals[:euler_gravity]
-      if get_name(solver_euler.initial_conditions) == "initial_conditions_coupling_convergence_test"
+      if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
         analyze_solution(solver_euler, mesh, time, 0, step, 0, 0, solver_gravity=solver_gravity)
         # comment out for anything other than coupling convergence test
         println()
@@ -480,7 +480,7 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
 
       # Analyze solution
       if globals[:euler_gravity]
-        if get_name(solver_euler.initial_conditions) == "initial_conditions_coupling_convergence_test"
+        if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
           l2_euler, linf_euler = @timeit timer() "analyze solution" analyze_solution(
               solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
           # Pull gravity solver information from file
@@ -597,7 +597,7 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
   # Return error norms for EOC calculation (might need to comment out the euler_gravity part for other tests)
   if globals[:euler_gravity]
     println("Number of gravity subcycles: ", globals[:gravity_subcycles])
-    if get_name(solver_euler.initial_conditions) == "initial_conditions_coupling_convergence_test"
+    if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
       return l2_error, linf_error, vcat(varnames_cons(solver.equations),varnames_cons(solver_gravity.equations))
     else
       return l2_error, linf_error, varnames_cons(solver.equations)

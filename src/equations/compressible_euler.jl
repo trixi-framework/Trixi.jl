@@ -272,7 +272,7 @@ function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerE
   return prim2cons(SVector(dens, velx, vely, pres), equation)
 end
 
-function initial_conditions_coupling_convergence_test(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
@@ -356,7 +356,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 end
 
 function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
-  # Same settings as in `initial_conditions_coupling_convergence_test`
+  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
@@ -380,7 +380,7 @@ function source_terms_coupling_convergence_test(ut, u, x, element_id, t, n_nodes
 end
 
 function source_terms_no_gravity_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
-  # Same settings as in `initial_conditions_coupling_convergence_test`
+  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0
