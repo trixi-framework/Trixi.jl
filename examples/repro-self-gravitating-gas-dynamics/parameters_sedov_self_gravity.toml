@@ -44,7 +44,7 @@ periodicity = false
 # ]
 ####################################################################################################
 # AMR
-amr_indicator = "gravity_blast_wave"
+amr_indicator = "sedov_self_gravity"
 amr_interval = 6
 amr_alpha_max = 0.4
 amr_alpha_min = 0.00001

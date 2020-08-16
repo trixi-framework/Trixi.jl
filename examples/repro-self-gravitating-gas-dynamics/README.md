@@ -71,23 +71,23 @@ to generate the figure.
 
 ## Sec. 4.2.2, Figure 6a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
 ```julia
-Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml", t_end=0.5)
+Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml", t_end=0.5)
 ```
 
 ## Sec. 4.2.2, Figure 6b, T=1.0, Sedov + gravity with Euler/CK45 and gravity/RK3S*
 ```julia
-Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml")
+Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml")
 ```
 
 ## Sec. 4.2.2, Table 6, Sedov + gravity, performance uniform vs. AMR
 **AMR mesh:**
 ```julia
-Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml")
+Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml")
 ```
 
 **Uniform mesh:**
 ```julia
-Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml",
+Trixi.run("examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
           amr_interval=0)
 ```
 

@@ -92,15 +92,15 @@ isdir(outdir) && rm(outdir, recursive=true)
             cfl_gravity=1.2)
   end
 
-  @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml" begin
-    test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml",
+  @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml" begin
+    test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
             l2   = [0.008146055797025783, 0.014269299367718674, 0.01426929936771867, 0.060938367077109826],
             linf = [0.6933648819697578, 1.3663603623406493, 1.3663603623406495, 4.98813462724603],
             t_end=0.01)
   end
 
-  @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml with amr_interval=0" begin
-    test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_gravity_blast_wave.toml",
+  @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml with amr_interval=0" begin
+    test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
             l2   = [0.004304641554796123, 0.010596124274294932, 0.010596124274294932, 0.05524239220030985],
             linf = [0.3312332195623221, 1.6809055950869678, 1.6809055950869682, 6.339130604072545],
             t_end=0.005, amr_interval=0)

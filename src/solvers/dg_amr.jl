@@ -540,7 +540,7 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
         lambda[element_id] = 0.0
       end
     end
-  elseif dg.amr_indicator === :gravity_blast_wave
+  elseif dg.amr_indicator === :sedov_self_gravity
     base_level = 4
     max_level = 7
     blending_factor_threshold = 0.01
