@@ -172,14 +172,14 @@ function init_simulation()
     if amr_interval > 0 && adapt_initial_conditions
       if globals[:euler_gravity]
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver_euler, time,
-            only_refine=adapt_initial_conditions_only_refine, solver_gravity=solver_gravity)
+            only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
 
         # Iterate until mesh does not change anymore
         while has_changed
           set_initial_conditions!(solver_euler, time)
           set_initial_conditions!(solver_gravity, time)
           @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver_euler, time,
-              only_refine=adapt_initial_conditions_only_refine, solver_gravity=solver_gravity)
+              only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
         end
       else
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
@@ -571,7 +571,8 @@ function run_simulation(mesh, solvers, time_parameters, time_integration_functio
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
       if globals[:euler_gravity]
-        @timeit timer() "AMR" has_changed = adapt!(mesh, solver_euler, time, solver_gravity=solver_gravity)
+        @timeit timer() "AMR" has_changed = adapt!(mesh, solver_euler, time,
+                                                   passive_solvers=(solver_gravity,))
       else
         @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time)
       end
