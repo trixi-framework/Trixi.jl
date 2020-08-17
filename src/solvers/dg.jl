@@ -117,6 +117,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
+  # FIXME: This should be removed as soon as it possible to set solver-specific parameters
   if equation isa HyperbolicDiffusionEquations && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
   end
@@ -1032,9 +1033,12 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
 
   # Potential energy
   if :energy_potential in dg.analysis_quantities
+    # FIXME: This should be implemented properly for multiple coupled solvers
     @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u, u_gravity
-      cons_euler = get_node_vars(u, dg, i, j, element_id)
+    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+
+    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
+      cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
       cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
       # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
       return (cons_euler[1] - 1.5e7) * cons_gravity[1]

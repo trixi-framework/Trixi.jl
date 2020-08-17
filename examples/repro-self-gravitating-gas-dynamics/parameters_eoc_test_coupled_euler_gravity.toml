@@ -21,7 +21,6 @@ cfl = 0.5
 n_steps_max = 10000
 n_iterations_max = 10000
 analysis_interval = 100
-#extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
 save_analysis = true
 
 # Gravity
