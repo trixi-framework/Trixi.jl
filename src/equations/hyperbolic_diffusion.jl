@@ -28,8 +28,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusionEquations"
-varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
-varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
+varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "q1", "q2"]
+varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "q1", "q2"]
 default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_error, :residual)
 
 
@@ -39,43 +39,43 @@ function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusion
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
     phi = 0.0
-    p   = 0.0
-    q   = 0.0
+    q1  = 0.0
+    q2  = 0.0
   else
     phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    p   = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
+    q1  = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
+    q2  = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
-    p   = 1.0
-    q   = 1.0
+    q1  = 1.0
+    q2  = 1.0
   else
     phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-    p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-    q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+    q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+    q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
-    p   = 1.0
-    q   = 1.0
+    q1  = 1.0
+    q2  = 1.0
   else
     C   = 1.0/sinh(pi)
     phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-    p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-    q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+    q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusionEquations)
@@ -86,9 +86,9 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   delta0 = 1e-3
   #
   phi = rho0*delta0 # constant background pertubation magnitude
-  p   = 0.0
-  q   = 0.0
-  return @SVector [phi, p, q]
+  q1  = 0.0
+  q2  = 0.0
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations)
@@ -100,10 +100,10 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
   rho1 = A * sin(pi * (x[1] + x[2] - t))
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  p   = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q   = p                                      # = gravity acceleration in y-direction
+  q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
+  q2  = q1                                     # = gravity acceleration in y-direction
 
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 
@@ -111,9 +111,9 @@ function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusi
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
 
   phi = 0.0
-  p   = 0.0
-  q   = 0.0
-  return @SVector [phi, p, q]
+  q1  = 0.0
+  q2  = 0.0
+  return @SVector [phi, q1, q2]
 end
 
 # Apply source terms
@@ -178,14 +178,14 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equation::HyperbolicDiffusionEquations)
-  phi, p, q = u
+  phi, q1, q2 = u
 
   if orientation == 1
-    f1 = -equation.nu*p
+    f1 = -equation.nu*q1
     f2 = -phi/equation.Tr
     f3 = zero(phi)
   else
-    f1 = -equation.nu*q
+    f1 = -equation.nu*q2
     f2 = zero(phi)
     f3 = -phi/equation.Tr
   end
