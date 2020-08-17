@@ -28,9 +28,9 @@ save_analysis = true
 time_integration_scheme_gravity = "timestep_gravity_erk52_3Sstar!"
 cfl_gravity = 0.5
 G = 1.0
-rho0 = 2.0
+rho0 = 2.0 # rho0 is (ab)used to add a "+8π" term to the source terms for the manufactured solution
 
-####################################################################################################
+###################################################################################################
 # Mesh
 n_cells_max = 10000
 coordinates_min = [0.0, 0.0]
