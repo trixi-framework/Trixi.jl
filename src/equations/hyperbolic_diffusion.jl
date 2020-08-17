@@ -101,7 +101,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
   # intialize with ansatz of gravity potential
   phi = C * rho1
   p   = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q   = p                                         # = gravity acceleration in y-direction
+  q   = p                                      # = gravity acceleration in y-direction
 
   return @SVector [phi, p, q]
 end
@@ -109,8 +109,6 @@ end
 
 function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
-  # rho_ambient	= 1.123039e6
-  # r = sqrt(x[1]^2 + x[2]^2)
 
   phi = 0.0
   p   = 0.0
@@ -172,18 +170,9 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   return nothing
 end
 
+# The coupled EOC test does not require additional sources
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
-  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  inv_Tr = inv(equation.Tr)
-
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
-  end
-
-  return nothing
+  return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)
 end
 
 
