@@ -246,6 +246,74 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
   return prim2cons(SVector(dens, velx, vely0, p0), equation)
 end
 
+function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations)
+  # Jeans gravitational instability test case
+  # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
+  # OBS! this uses cgs (centimeter, gram, second) units
+  # periodic boundaries
+  # domain size [0,L]^2 depends on the wave number chosen for the perturbation
+  # OBS! Be very careful here L must be chosen such that problem is periodic
+  # typical final time is T = 5
+  # gamma = 5/3
+  dens0  = 1.5e7 # g/cm^3
+  pres0  = 1.5e7 # dyn/cm^2
+  delta0 = 1e-3
+  # set wave vector values for pertubation (units 1/cm)
+  # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+  kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
+  ky = 0.0   # 2π/λ_y, λ_y = 1e10
+  k_dot_x = kx*x[1] + ky*x[2]
+  # perturb density and pressure away from reference states ρ_0 and p_0
+  dens = dens0*(1.0 + delta0*cos(k_dot_x))                # g/cm^3
+  pres = pres0*(1.0 + equation.gamma*delta0*cos(k_dot_x)) # dyn/cm^2
+  # flow starts as stationary
+  velx = 0.0 # cm/s
+  vely = 0.0 # cm/s
+  return prim2cons(SVector(dens, velx, vely, pres), equation)
+end
+
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations)
+  # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+  if equation.gamma != 2.0
+    error("adiabatic constant must be 2 for the coupling convergence test")
+  end
+  c = 2.0
+  A = 0.1
+  ini = c + A * sin(pi * (x[1] + x[2] - t))
+  G = 1.0 # gravitational constant
+
+  rho = ini
+  v1 = 1.0
+  v2 = 1.0
+  p = ini^2*G/pi
+
+  return prim2cons(SVector(rho, v1, v2, p), equation)
+end
+
+function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations)
+  # Set up polar coordinates
+  r = sqrt(x[1]^2 + x[2]^2)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  E = 1.0
+  p_inner   = (equation.gamma - 1) * E / (pi * r0^2)
+  p_ambient = 1e-5 # = true Sedov setup
+
+  # Calculate primitive variables
+  # use a logistic function to tranfer density value smoothly
+  L  = 1.0    # maximum of function
+  x0 = 1.0    # center point of function
+  k  = -150.0 # sharpness of transfer
+  logistic_function = L/(1.0 + exp(-k*(r - x0)))
+  rho_ambient = 1e-5
+  rho = max(logistic_function, rho_ambient) # clip background density to not be so tiny
+  v1 = 0.0
+  v2 = 0.0
+  p = r > r0 ? p_ambient : p_inner
+
+  return prim2cons(SVector(rho, v1, v2, p), equation)
+end
 
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
@@ -287,6 +355,60 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0 # gravitational constant, must match coupling solver
+  C_grav = -2.0*G/pi
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      rhox = A * pi * cos(pi * (x1 + x2 - t))
+      rho  = c + A * sin(pi * (x1 + x2 - t))
+
+      ut[1, i, j, element_id] += rhox
+      ut[2, i, j, element_id] += rhox
+      ut[3, i, j, element_id] += rhox
+      ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
+    end
+  end
+
+  return nothing
+end
+
+function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0
+  C_grav = -2.0*G/pi
+
+  for j in 1:n_nodes
+    for i in 1:n_nodes
+      x1 = x[1, i, j, element_id]
+      x2 = x[2, i, j, element_id]
+      rhox = A * pi * cos(pi * (x1 + x2 - t))
+      rho  = c + A * sin(pi * (x1 + x2 - t))
+
+      ut[1, i, j, element_id] += rhox
+      ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+      ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+      ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
+    end
+  end
+
+  return nothing
+end
+
+# Empty source terms required for coupled Euler-gravity simulations
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+  # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
+  # TODO: make this cleaner and let each solver have a different source term name
+  return nothing
+end
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations)
@@ -520,6 +642,52 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEule
   f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
   f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
   f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
+
+  return SVector(f1, f2, f3, f4)
+end
+
+
+function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+
+  # Obtain left and right fluxes
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
+
+  if orientation == 1 # x-direction
+    Ssl = v1_ll - sqrt(equation.gamma * p_ll / rho_ll)
+    Ssr = v1_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  else # y-direction
+    Ssl = v2_ll - sqrt(equation.gamma * p_ll / rho_ll)
+    Ssr = v2_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  end
+
+  if Ssl >= 0.0 && Ssr > 0.0
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+    f4 = f_ll[4]
+  elseif Ssr <= 0.0 && Ssl < 0.0
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+    f4 = f_rr[4]
+  else
+    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
+    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
+    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr[1] - rho_v2_ll[1]))/(Ssr - Ssl)
+    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
+  end
 
   return SVector(f1, f2, f3, f4)
 end

@@ -1,0 +1,49 @@
+####################################################################################################
+# Simulation
+equations = "euler_gravity"
+gamma = 2.0
+initial_conditions = "initial_conditions_eoc_test_coupled_euler_gravity"
+surface_flux = "flux_hll"
+source_terms = "source_terms_eoc_test_coupled_euler_gravity"
+t_start = 0.0
+t_end   = 0.5
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
+resid_tol = 1e-10
+
+####################################################################################################
+# Solver
+solver = "dg"
+N = 3
+cfl = 0.5
+n_steps_max = 10000
+n_iterations_max = 10000
+analysis_interval = 100
+save_analysis = true
+
+# Gravity
+time_integration_scheme_gravity = "timestep_gravity_erk52_3Sstar!"
+cfl_gravity = 0.5
+G = 1.0
+rho0 = 2.0 # rho0 is (ab)used to add a "+8π" term to the source terms for the manufactured solution
+
+###################################################################################################
+# Mesh
+n_cells_max = 10000
+coordinates_min = [0.0, 0.0]
+coordinates_max = [2.0, 2.0]
+initial_refinement_level = 2
+#periodicity = false
+# refinement_patches = [
+#   {type = "box", coordinates_min = 0, coordinates_max = 16},
+# ]
+
+
+####################################################################################################
+# I/O
+# save_initial_solution = false
+solution_interval = 10
+solution_variables = "primitive"
+restart_interval = 100

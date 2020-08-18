@@ -39,8 +39,15 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 
   # Separate initialization and execution into two functions such that Julia can specialize
   # the code in `run_simulation` for the actual type of `solver` and `mesh`
-  mesh, solver, time_parameters, time_integration_function = init_simulation()
-  run_simulation(mesh, solver, time_parameters, time_integration_function)
+  if parameter("equations") == "euler_gravity"
+    globals[:euler_gravity] = true
+    mesh, solver, time_parameters, time_integration_function = init_simulation_euler_gravity()
+    run_simulation_euler_gravity(mesh, solver, time_parameters, time_integration_function)
+  else
+    globals[:euler_gravity] = false
+    mesh, solver, time_parameters, time_integration_function = init_simulation()
+    run_simulation(mesh, solver, time_parameters, time_integration_function)
+  end
 end
 
 
@@ -411,7 +418,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   end
 
   # Print timer information
-  print_timer(timer(), title="trixi", allocations=true, linechars=:ascii, compact=false)
+  print_timer(timer(), title="Trixi.jl", allocations=true, linechars=:ascii, compact=false)
   println()
 
   # Return error norms for EOC calculation
@@ -420,14 +427,15 @@ end
 
 
 """
-    convtest(parameters_file, iterations)
+    convtest(parameters_file, iterations; parameters...)
 
 Run multiple Trixi simulations with the parameters in `parameters_file` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
 The number of runs is specified by `iterations` and in each run the initial
-refinement level will be increased by 1.
+refinement level will be increased by 1. Parameters can be overriden by specifying them as
+additional keyword arguments, which are passed to the respective call to `run`..
 """
-function convtest(parameters_file, iterations)
+function convtest(parameters_file, iterations; parameters...)
   @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
 
   # Types of errors to be calcuated
@@ -439,7 +447,8 @@ function convtest(parameters_file, iterations)
   # Run trixi and extract errors
   for i = 1:iterations
     println(string("Running convtest iteration ", i, "/", iterations))
-    l2_error, linf_error, variablenames = run(parameters_file, refinement_level_increment = i - 1)
+    l2_error, linf_error, variablenames = run(parameters_file; refinement_level_increment = i - 1,
+                                              parameters...)
 
     # Collect errors as one vector to reshape later
     append!(errors[:L2], l2_error)
@@ -525,3 +534,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
 
   A, b
 end
+
+
+# Include source file with init and run methods for coupled Euler-gravity simulations
+include("run_euler_gravity.jl")
