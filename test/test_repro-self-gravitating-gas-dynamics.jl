@@ -99,6 +99,13 @@ isdir(outdir) && rm(outdir, recursive=true)
             t_end=0.01)
   end
 
+  @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml with initial AMR" begin
+    test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
+            l2   = [0.00814606900032069, 0.014269347841647387, 0.01426934784164737, 0.0609382559801996],
+            linf = [0.6933505332101455, 1.366565014317652, 1.3665650143176524, 4.988403916351658],
+            t_end=0.01, initial_refinement_level=6)
+  end
+
   @testset "../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml with amr_interval=0" begin
     test_trixi_run("../examples/repro-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
             l2   = [0.004304641554796123, 0.010596124274294932, 0.010596124274294932, 0.05524239220030985],
