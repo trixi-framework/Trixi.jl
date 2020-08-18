@@ -10,11 +10,7 @@ function init_simulation_euler_gravity()
   end
 
   # Initialize mesh
-  if restart
-    print("Loading mesh... ")
-    @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
-    println("done")
-  else
+  begin
     print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
@@ -50,11 +46,7 @@ function init_simulation_euler_gravity()
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
-  if restart
-    print("Loading restart file...")
-    time, step = load_restart_file!(solver, restart_filename)
-    println("done")
-  else
+  begin
     print("Applying initial conditions... ")
     t_start = parameter("t_start")
     time = t_start
@@ -117,10 +109,7 @@ function init_simulation_euler_gravity()
           | | | sources:        $sources
           | restart:            $(restart ? "yes" : "no")
           """
-  if restart
-    s *= "| | restart timestep: $step\n"
-    s *= "| | restart time:     $time\n"
-  else
+  begin
     s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
     s *= "| t_start:            $t_start\n"
   end
@@ -262,18 +251,6 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     # Check if we reached the maximum number of time steps
     if step == n_steps_max
       finalstep = true
-    end
-
-    # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations
-      if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-        println("-"^80)
-        println()
-        finalstep = true
-      end
     end
 
     # Analyze solution errors
