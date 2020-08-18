@@ -320,23 +320,6 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
       output_time += time_ns() - output_start_time
     end
 
-    # Write restart file
-    if restart_interval > 0 && (
-        step % restart_interval == 0 || (finalstep && save_final_restart))
-      output_start_time = time_ns()
-      @timeit timer() "I/O" begin
-        # If mesh has changed, write a new mesh file
-        if mesh.unsaved_changes
-          mesh.current_filename = save_mesh_file(mesh, step)
-          mesh.unsaved_changes = false
-        end
-
-        # Then write restart file
-        save_restart_file(solver, mesh, time, dt, step)
-      end
-      output_time += time_ns() - output_start_time
-    end
-
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
       @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time,
