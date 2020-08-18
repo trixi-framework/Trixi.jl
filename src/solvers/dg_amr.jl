@@ -540,6 +540,45 @@ function calc_amr_indicator(dg::Dg, mesh::TreeMesh, time::Float64)
         lambda[element_id] = 0.0
       end
     end
+  elseif dg.amr_indicator === :sedov_self_gravity
+    base_level = 4
+    max_level = 7
+    blending_factor_threshold = 0.01
+
+    # (Re-)initialize element variable storage for blending factor
+    if (!haskey(dg.element_variables, :amr_indicator_values) ||
+        length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)
+    end
+    if (!haskey(dg.element_variables, :amr_indicator_values_tmp) ||
+        length(dg.element_variables[:amr_indicator_values_tmp]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values_tmp] = Vector{Float64}(undef, dg.n_elements)
+    end
+
+    alpha     = dg.element_variables[:amr_indicator_values]
+    alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
+    calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
+                           Val(:density_pressure), dg)
+
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      if alpha[element_id] > blending_factor_threshold
+        target_level = max_level
+      else
+        target_level = base_level
+      end
+
+      # Compare target level with actual level to set indicator
+      cell_id = dg.elements.cell_ids[element_id]
+      actual_level = mesh.tree.levels[cell_id]
+      if actual_level < target_level
+        lambda[element_id] = 1.0
+      elseif actual_level > target_level
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
+    end
   else
     error("unknown AMR indicator '$(dg.amr_indicator)'")
   end

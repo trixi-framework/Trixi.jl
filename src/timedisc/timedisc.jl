@@ -86,6 +86,7 @@ class 3Sstar of Ketcheson.
   end
 end
 
+
 """
     timestep_hyp_diff_N3_erk52_3Sstar!(solver::AbstractSolver, t, dt)
 
@@ -120,6 +121,7 @@ function timestep_hyp_diff_N3_erk52_3Sstar!(solver::AbstractSolver, t, dt)
   timestep_3Sstar!(solver, t, dt, gamma1, gamma2, gamma3, beta, delta, c)
 end
 
+
 """
     timestep_parsani_ketcheson_deconinck_erk94_3Sstar!(solver::AbstractSolver, t, dt)
 
@@ -138,6 +140,7 @@ function timestep_parsani_ketcheson_deconinck_erk94_3Sstar!(solver::AbstractSolv
   timestep_3Sstar!(solver, t, dt, gamma1, gamma2, gamma3, beta, delta, c)
 end
 
+
 """
     timestep_parsani_ketcheson_deconinck_erk32_3Sstar!(solver::AbstractSolver, t, dt)
 
@@ -155,3 +158,6 @@ function timestep_parsani_ketcheson_deconinck_erk32_3Sstar!(solver::AbstractSolv
 
   timestep_3Sstar!(solver, t, dt, gamma1, gamma2, gamma3, beta, delta, c)
 end
+
+# Add implemenations for coupled Euler-gravity simulations
+include("timedisc_euler_gravity.jl")

@@ -1,9 +1,12 @@
+
 @doc raw"""
     HyperbolicDiffusionEquations
 
 The linear hyperbolic diffusion equations in two space dimensions.
 A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD, Too: Vol 1".
-""" #TODO: DOI or something similar
+The book is freely available at http://www.cfdbooks.com/ and further analysis can be found in
+the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
+"""
 struct HyperbolicDiffusionEquations <: AbstractEquation{3}
   Lr::Float64
   Tr::Float64
@@ -25,8 +28,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations) = "HyperbolicDiffusionEquations"
-varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
-varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "p", "q"]
+varnames_cons(::HyperbolicDiffusionEquations) = @SVector ["phi", "q1", "q2"]
+varnames_prim(::HyperbolicDiffusionEquations) = @SVector ["phi", "q1", "q2"]
 default_analysis_quantities(::HyperbolicDiffusionEquations) = (:l2_error, :linf_error, :residual)
 
 
@@ -36,45 +39,82 @@ function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusion
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
     phi = 0.0
-    p   = 0.0
-    q   = 0.0
+    q1  = 0.0
+    q2  = 0.0
   else
     phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    p   = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
-    q   = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
+    q1  = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
+    q2  = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
-    p   = 1.0
-    q   = 1.0
+    q1  = 1.0
+    q2  = 1.0
   else
     phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-    p   = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-    q   = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+    q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+    q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
 function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
-    p   = 1.0
-    q   = 1.0
+    q1  = 1.0
+    q2  = 1.0
   else
     C   = 1.0/sinh(pi)
     phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-    p   = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-    q   = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+    q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
   end
-  return @SVector [phi, p, q]
+  return @SVector [phi, q1, q2]
 end
 
+function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusionEquations)
+  # gravity equation: -Δϕ = -4πGρ
+  # Constants taken from the FLASH manual
+  # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+  rho0 = 1.5e7
+  delta0 = 1e-3
+  #
+  phi = rho0*delta0 # constant background pertubation magnitude
+  q1  = 0.0
+  q2  = 0.0
+  return @SVector [phi, q1, q2]
+end
+
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations)
+
+  # Determine phi_x, phi_y
+  G = 1.0 # gravitational constant
+  C = -2.0*G/pi
+  A = 0.1 # perturbation coefficient must match Euler setup
+  rho1 = A * sin(pi * (x[1] + x[2] - t))
+  # intialize with ansatz of gravity potential
+  phi = C * rho1
+  q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
+  q2  = q1                                     # = gravity acceleration in y-direction
+
+  return @SVector [phi, q1, q2]
+end
+
+
+function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations)
+  # for now just use constant initial condition for sedov blast wave (can likely be improved)
+
+  phi = 0.0
+  q1  = 0.0
+  q2  = 0.0
+  return @SVector [phi, q1, q2]
+end
 
 # Apply source terms
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
@@ -130,17 +170,22 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   return nothing
 end
 
+# The coupled EOC test does not require additional sources
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations)
+  return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)
+end
+
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equation::HyperbolicDiffusionEquations)
-  phi, p, q = u
+  phi, q1, q2 = u
 
   if orientation == 1
-    f1 = -equation.nu*p
+    f1 = -equation.nu*q1
     f2 = -phi/equation.Tr
     f3 = zero(phi)
   else
-    f1 = -equation.nu*q
+    f1 = -equation.nu*q2
     f2 = zero(phi)
     f3 = -phi/equation.Tr
   end

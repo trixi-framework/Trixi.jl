@@ -117,6 +117,10 @@ function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_fu
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
+  # FIXME: This should be removed as soon as it possible to set solver-specific parameters
+  if equation isa HyperbolicDiffusionEquations && globals[:euler_gravity]
+    volume_integral_type = Val(:weak_form)
+  end
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
@@ -164,7 +168,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_fu
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob"]))
+                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -847,7 +851,7 @@ performance index is specified in `runtime_relative`.
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
 function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                          runtime_absolute::Real, runtime_relative::Real)
+                          runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
   equation = equations(dg)
 
   # General information
@@ -1009,7 +1013,7 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_internal(cons, equations(dg))
     end
-    print(" ∑e_internal  ")
+    print(" ∑e_internal: ")
     @printf("  % 10.8e", e_internal)
     dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
     println()
@@ -1024,6 +1028,24 @@ function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::In
     print(" ∑e_magnetic: ")
     @printf("  % 10.8e", e_magnetic)
     dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+    println()
+  end
+
+  # Potential energy
+  if :energy_potential in dg.analysis_quantities
+    # FIXME: This should be implemented properly for multiple coupled solvers
+    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
+    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+
+    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
+      cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
+      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
+      return (cons_euler[1] - 1.5e7) * cons_gravity[1]
+    end
+    print(" ∑e_pot:      ")
+    @printf("  % 10.8e", e_potential)
+    dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
     println()
   end
 
@@ -1125,6 +1147,9 @@ function save_analysis_header(filename, quantities, equation)
     end
     if :energy_magnetic in quantities
       @printf(f, "   %-14s", "e_magnetic")
+    end
+    if :energy_potential in quantities
+      @printf(f, "   %-14s", "e_potential")
     end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")

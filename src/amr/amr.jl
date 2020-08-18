@@ -3,10 +3,11 @@
 #
 # If `only_refine` is true, no coarsening will be performed, independent of the indicator values.
 # If `only_coarsen` is true, no refinement will be performed, independent of the indicator values.
+# Passively adapted solvers in `passive_solvers` will be adapated according to the primary solver.
 #
 # Return true if anything was changed, false if no cells where coarsened/refined
 function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
-                only_refine=false, only_coarsen=false)
+                only_refine=false, only_coarsen=false, passive_solvers=[])
   # Debug output
   globals[:verbose] && print("Begin adaptation...")
 
@@ -35,7 +36,12 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
 
     # Refine solver
-     @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
+    @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
+    if !isempty(passive_solvers)
+      @timeit timer() "passive solvers" for ps in passive_solvers
+        refine!(ps, mesh, refined_original_cells)
+      end
+    end
   else
     # If there is nothing to refine, create empty array for later use
     refined_original_cells = Int[]
@@ -91,6 +97,11 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
 
     # Coarsen solver
     @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
+    if !isempty(passive_solvers)
+      @timeit timer() "passive solvers" for ps in passive_solvers
+        coarsen!(ps, mesh, removed_child_cells)
+      end
+    end
   else
     # If there is nothing to coarsen, create empty array for later use
     coarsened_original_cells = Int[]
