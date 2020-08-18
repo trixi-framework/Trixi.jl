@@ -11,8 +11,8 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
                   VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
   equations::Eqn
 
-  surface_flux::SurfaceFlux
-  volume_flux::VolumeFlux
+  surface_flux_function::SurfaceFlux
+  volume_flux_function::VolumeFlux
 
   initial_conditions::InitialConditions
   source_terms::SourceTerms
@@ -20,8 +20,8 @@ mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialC
   elements::ElementContainer{V, N}
   n_elements::Int
 
-  surfaces::SurfaceContainer{V, N}
-  n_surfaces::Int
+  interfaces::InterfaceContainer{V, N}
+  n_interfaces::Int
 
   boundaries::BoundaryContainer{V, N}
   n_boundaries::Int
@@ -77,7 +77,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_conditions, source_terms, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh, N) where V
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -85,9 +85,9 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
   n_elements = nelements(elements)
 
-  # Initialize surface container
-  surfaces = init_surfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
-  n_surfaces = nsurfaces(surfaces)
+  # Initialize interface container
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
   boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
@@ -101,7 +101,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
 
   # Sanity checks
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_surfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
 
@@ -204,10 +204,10 @@ function Dg(equation::AbstractEquation{V}, surface_flux, volume_flux, initial_co
   # Create actual DG solver instance
   dg = Dg(
       equation,
-      surface_flux, volume_flux,
+      surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
       elements, n_elements,
-      surfaces, n_surfaces,
+      interfaces, n_interfaces,
       boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
@@ -298,14 +298,14 @@ end
 end
 
 
-# Count the number of surfaces that need to be created
-function count_required_surfaces(mesh::TreeMesh, cell_ids)
+# Count the number of interfaces that need to be created
+function count_required_interfaces(mesh::TreeMesh, cell_ids)
   count = 0
 
   # Iterate over all cells
   for cell_id in cell_ids
     for direction in 1:n_directions(mesh.tree)
-      # Only count surfaces in positive direction to avoid double counting
+      # Only count interfaces in positive direction to avoid double counting
       if direction % 2 == 1
         continue
       end
@@ -409,8 +409,8 @@ function init_elements(cell_ids, mesh, ::Val{V}, ::Val{N}) where {V, N}
     elements.inverse_jacobian[element_id] = 2/dx
 
     # Calculate node coordinates
-    for j = 1:n_nodes
-      for i = 1:n_nodes
+    for j in 1:n_nodes
+      for i in 1:n_nodes
         elements.node_coordinates[1, i, j, element_id] = (
             mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
         elements.node_coordinates[2, i, j, element_id] = (
@@ -423,19 +423,19 @@ function init_elements(cell_ids, mesh, ::Val{V}, ::Val{N}) where {V, N}
 end
 
 
-# Create surface container, initialize surface data, and return surface container for further use
+# Create interface container, initialize interface data, and return interface container for further use
 #
 # V: number of variables
 # N: polynomial degree
-function init_surfaces(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N}
+function init_interfaces(cell_ids, mesh, ::Val{V}, ::Val{N}, elements) where {V, N}
   # Initialize container
-  n_surfaces = count_required_surfaces(mesh, cell_ids)
-  surfaces = SurfaceContainer{V, N}(n_surfaces)
+  n_interfaces = count_required_interfaces(mesh, cell_ids)
+  interfaces = InterfaceContainer{V, N}(n_interfaces)
 
-  # Connect elements with surfaces
-  init_surface_connectivity!(elements, surfaces, mesh)
+  # Connect elements with interfaces
+  init_interface_connectivity!(elements, interfaces, mesh)
 
-  return surfaces
+  return interfaces
 end
 
 
@@ -474,7 +474,7 @@ function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type)
   l2mortars = L2MortarContainer{V, N}(n_l2mortars)
   ecmortars = EcMortarContainer{V, N}(n_ecmortars)
 
-  # Connect elements with surfaces and l2mortars
+  # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
     init_mortar_connectivity!(elements, l2mortars, mesh)
   elseif mortar_type === Val(:ec)
@@ -487,8 +487,8 @@ function init_mortars(cell_ids, mesh, ::Val{V}, ::Val{N}, elements, mortar_type)
 end
 
 
-# Initialize connectivity between elements and surfaces
-function init_surface_connectivity!(elements, surfaces, mesh)
+# Initialize connectivity between elements and interfaces
+function init_interface_connectivity!(elements, interfaces, mesh)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -496,17 +496,17 @@ function init_surface_connectivity!(elements, surfaces, mesh)
     c2e[elements.cell_ids[element_id]] = element_id
   end
 
-  # Reset surface count
+  # Reset interface count
   count = 0
 
-  # Iterate over all elements to find neighbors and to connect via surfaces
+  # Iterate over all elements to find neighbors and to connect via interfaces
   for element_id in 1:nelements(elements)
     # Get cell id
     cell_id = elements.cell_ids[element_id]
 
     # Loop over directions
     for direction in 1:n_directions(mesh.tree)
-      # Only create surfaces in positive direction
+      # Only create interfaces in positive direction
       if direction % 2 == 1
         continue
       end
@@ -522,18 +522,18 @@ function init_surface_connectivity!(elements, surfaces, mesh)
         continue
       end
 
-      # Create surface between elements (1 -> "left" of surface, 2 -> "right" of surface)
+      # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
-      surfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
-      surfaces.neighbor_ids[1, count] = element_id
+      interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
+      interfaces.neighbor_ids[1, count] = element_id
 
       # Set orientation (x -> 1, y -> 2)
-      surfaces.orientations[count] = div(direction, 2)
+      interfaces.orientations[count] = div(direction, 2)
     end
   end
 
-  @assert count == nsurfaces(surfaces) ("Actual surface count ($count) does not match " *
-                                        "expectations $(nsurfaces(surfaces))")
+  @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
+                                            "expectations $(ninterfaces(interfaces))")
 end
 
 
@@ -609,10 +609,10 @@ function init_mortar_connectivity!(elements, mortars, mesh)
     c2e[elements.cell_ids[element_id]] = element_id
   end
 
-  # Reset surface count
+  # Reset interface count
   count = 0
 
-  # Iterate over all elements to find neighbors and to connect via surfaces
+  # Iterate over all elements to find neighbors and to connect via interfaces
   for element_id in 1:nelements(elements)
     # Get cell id
     cell_id = elements.cell_ids[element_id]
@@ -758,7 +758,7 @@ function calc_error_norms(dg::Dg, t::Float64)
   u_exact = zeros(nvariables(equation))
 
   # Iterate over all elements for error calculations
-  for element_id = 1:dg.n_elements
+  for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
     u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
                           dg.analysis_vandermonde, nvariables(equation))
@@ -768,8 +768,8 @@ function calc_error_norms(dg::Dg, t::Float64)
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
-    for j = 1:n_nodes_analysis
-      for i = 1:n_nodes_analysis
+    for j in 1:n_nodes_analysis
+      for i in 1:n_nodes_analysis
         u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
         diff = similar(u_exact)
         @views @. diff = u_exact - u[:, i, j]
@@ -1170,9 +1170,9 @@ function set_initial_conditions!(dg::Dg, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
-  for element_id = 1:dg.n_elements
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
+  for element_id in 1:dg.n_elements
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
         dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
             dg.elements.node_coordinates[:, i, j, element_id], time, equation)
       end
@@ -1189,11 +1189,11 @@ function rhs!(dg::Dg, t_stage)
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
 
-  # Prolong solution to surfaces
-  @timeit timer() "prolong2surfaces" prolong2surfaces!(dg)
+  # Prolong solution to interfaces
+  @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
 
-  # Calculate surface fluxes
-  @timeit timer() "surface flux" calc_surface_flux!(dg)
+  # Calculate interface fluxes
+  @timeit timer() "interface flux" calc_interface_flux!(dg)
 
   # Prolong solution to boundaries
   @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
@@ -1224,7 +1224,7 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_int
 
 # Calculate 2D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg)
-  @unpack volume_flux = dg
+  @unpack volume_flux_function = dg
 
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1239,7 +1239,7 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_int
       for l in (i+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, l, j, element_id)
-        flux = volume_flux(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
+        flux = volume_flux_function(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
         for v in 1:nvariables(dg)
           f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
         end
@@ -1249,7 +1249,7 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_int
       for l in (j+1):nnodes(dg)
         u_ll = get_node_vars(u, dg, i, j, element_id)
         u_rr = get_node_vars(u, dg, i, l, element_id)
-        flux = volume_flux(u_ll, u_rr, 2, equations(dg)) # 2 -> y-direction
+        flux = volume_flux_function(u_ll, u_rr, 2, equations(dg)) # 2 -> y-direction
         for v in 1:nvariables(dg)
           f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
         end
@@ -1349,7 +1349,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
 end
 
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg)
-  @unpack volume_flux, dsplit = dg
+  @unpack volume_flux_function, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
     # Calculate volume integral
@@ -1364,7 +1364,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
         # use symmetry of the volume flux for the remaining terms
         for l in (i+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
-          flux = volume_flux(u_node, u_node_l, 1, equations(dg))
+          flux = volume_flux_function(u_node, u_node_l, 1, equations(dg))
           integral_contribution = dsplit[i, l] * flux
           add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, i] * flux
@@ -1379,7 +1379,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
         # use symmetry of the volume flux for the remaining terms
         for l in (j+1):nnodes(dg)
           u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
-          flux = volume_flux(u_node, u_node_l, 2, equations(dg))
+          flux = volume_flux_function(u_node, u_node_l, 2, equations(dg))
           integral_contribution = dsplit[j, l] * flux
           add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
           integral_contribution = dsplit[l, j] * flux
@@ -1446,12 +1446,12 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
-    for j = 1:nnodes(dg)
-      for i = 1:nnodes(dg)
-        for v = 1:nvariables(dg)
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        for v in 1:nvariables(dg)
           # Use local accumulator to improve performance
           acc = zero(eltype(u_t))
-          for l = 1:nnodes(dg)
+          for l in 1:nnodes(dg)
             acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
           end
           u_t[v, i, j, element_id] += acc
@@ -1518,7 +1518,7 @@ Calculate the finite volume fluxes inside the elements.
 - `element_id::Integer`
 """
 @inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg)
-  @unpack surface_flux = dg
+  @unpack surface_flux_function = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
   fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
@@ -1527,7 +1527,7 @@ Calculate the finite volume fluxes inside the elements.
     for i in 2:nnodes(dg)
       u_ll = get_node_vars(u, dg, i-1, j, element_id)
       u_rr = get_node_vars(u, dg, i,   j, element_id)
-      flux = surface_flux(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
+      flux = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
       set_node_vars!(fstar1, flux, dg, i, j)
     end
   end
@@ -1539,31 +1539,31 @@ Calculate the finite volume fluxes inside the elements.
     for i in 1:nnodes(dg)
       u_ll = get_node_vars(u, dg, i, j-1, element_id)
       u_rr = get_node_vars(u, dg, i, j,   element_id)
-      flux = surface_flux(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
+      flux = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
       set_node_vars!(fstar2, flux, dg, i, j)
     end
   end
 end
 
 
-# Prolong solution to surfaces (for GL nodes: just a copy)
-function prolong2surfaces!(dg)
+# Prolong solution to interfaces (for GL nodes: just a copy)
+function prolong2interfaces!(dg)
   equation = equations(dg)
 
-  for s in 1:dg.n_surfaces
-    left_element_id = dg.surfaces.neighbor_ids[1, s]
-    right_element_id = dg.surfaces.neighbor_ids[2, s]
-    if dg.surfaces.orientations[s] == 1
-      # Surface in x-direction
+  for s in 1:dg.n_interfaces
+    left_element_id = dg.interfaces.neighbor_ids[1, s]
+    right_element_id = dg.interfaces.neighbor_ids[2, s]
+    if dg.interfaces.orientations[s] == 1
+      # interface in x-direction
       for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
-        dg.surfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
+        dg.interfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
       end
     else
-      # Surface in y-direction
+      # interface in y-direction
       for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.surfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
-        dg.surfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
+        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
+        dg.interfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
       end
     end
   end
@@ -1608,7 +1608,7 @@ prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
 function prolong2mortars!(dg, ::Val{:l2})
   equation = equations(dg)
 
-  # Local storage for surface data of large element
+  # Local storage for interface data of large element
   u_large = zeros(nvariables(dg), nnodes(dg))
 
   for m in 1:dg.n_l2mortars
@@ -1655,7 +1655,7 @@ function prolong2mortars!(dg, ::Val{:l2})
       end
     end
 
-    # Interpolate large element face data to small surface locations
+    # Interpolate large element face data to small interface locations
     for v in 1:nvariables(dg)
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
@@ -1695,7 +1695,7 @@ end
 function prolong2mortars!(dg, ::Val{:ec})
   equation = equations(dg)
 
-  for m = 1:dg.n_ecmortars
+  for m in 1:dg.n_ecmortars
     large_element_id = dg.ecmortars.neighbor_ids[3, m]
     upper_element_id = dg.ecmortars.neighbor_ids[2, m]
     lower_element_id = dg.ecmortars.neighbor_ids[1, m]
@@ -1747,30 +1747,30 @@ end
 
 
 """
-    riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
+    riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg)
 
-Calculate the `surface_flux` across interface with different states given by
-`u_surfaces_left, u_surfaces_right` on both sides (EC mortar version).
+Calculate the surface flux across interface with different states given by
+`u_interfaces_left, u_interfaces_right` on both sides (EC mortar version).
 
 # Arguments
 - `destination::AbstractArray{T,3} where T<:Real`:
   The array of surface flux values (updated inplace).
-- `u_surfaces_left::AbstractArray{T,3} where T<:Real``
-- `u_surfaces_right::AbstractArray{T,3} where T<:Real``
-- `surface_id::Integer`
+- `u_interfaces_left::AbstractArray{T,3} where T<:Real``
+- `u_interfaces_right::AbstractArray{T,3} where T<:Real``
+- `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
 - `dg::Dg`
 """
-function riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, orientations, dg::Dg)
-  @unpack surface_flux = dg
+function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg)
+  @unpack surface_flux_function = dg
 
   # Call pointwise Riemann solver
   # i -> left, j -> right
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
-      u_ll = get_node_vars(u_surfaces_left,  dg, i, surface_id)
-      u_rr = get_node_vars(u_surfaces_right, dg, j, surface_id)
-      flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
+      u_ll = get_node_vars(u_interfaces_left,  dg, i, interface_id)
+      u_rr = get_node_vars(u_interfaces_right, dg, j, interface_id)
+      flux = surface_flux_function(u_ll, u_rr, orientations[interface_id], equations(dg))
 
       # Copy flux back to actual flux array
       set_node_vars!(destination, flux, dg, i, j)
@@ -1779,26 +1779,26 @@ function riemann!(destination, u_surfaces_left, u_surfaces_right, surface_id, or
 end
 
 """
-    riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
+    riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg)
 
-Calculate the `surface_flux` across interface with different states given by
-`u_surfaces_left, u_surfaces_right` on both sides (surface version).
+Calculate the surface flux across interface with different states given by
+`u_interfaces_left, u_interfaces_right` on both sides (interface version).
 
 # Arguments
 - `destination::AbstractArray{T,2} where T<:Real`:
   The array of surface flux values (updated inplace).
-- `u_surfaces::AbstractArray{T,4} where T<:Real``
-- `surface_id::Integer`
+- `u_interfaces::AbstractArray{T,4} where T<:Real``
+- `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
 - `dg::Dg`
 """
-function riemann!(destination, u_surfaces, surface_id, orientations, dg::Dg)
-  @unpack surface_flux = dg
+function riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg)
+  @unpack surface_flux_function = dg
 
   for i in 1:nnodes(dg)
     # Call pointwise Riemann solver
-    u_ll, u_rr = get_surface_node_vars(u_surfaces, dg, i, surface_id)
-    flux = surface_flux(u_ll, u_rr, orientations[surface_id], equations(dg))
+    u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, interface_id)
+    flux = surface_flux_function(u_ll, u_rr, orientations[interface_id], equations(dg))
 
     # Copy flux to left and right element storage
     set_node_vars!(destination, flux, dg, i)
@@ -1810,19 +1810,19 @@ end
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
 #                                           3) not implemented for boundaries
-calc_surface_flux!(dg) = calc_surface_flux!(dg.elements.surface_flux,
-                                            have_nonconservative_terms(dg.equations), dg)
+calc_interface_flux!(dg) = calc_interface_flux!(dg.elements.surface_flux_values,
+                                                have_nonconservative_terms(dg.equations), dg)
 
-function calc_surface_flux!(destination, nonconservative_terms::Val{false}, dg::Dg)
-  @unpack surface_flux = dg
-  @unpack u, neighbor_ids, orientations = dg.surfaces
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg)
+  @unpack surface_flux_function = dg
+  @unpack u, neighbor_ids, orientations = dg.interfaces
 
-  Threads.@threads for s in 1:dg.n_surfaces
+  Threads.@threads for s in 1:dg.n_interfaces
     # Get neighboring elements
     left_id  = neighbor_ids[1, s]
     right_id = neighbor_ids[2, s]
 
-    # Determine surface direction with respect to elements:
+    # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
     left_direction  = 2 * orientations[s]
@@ -1831,26 +1831,26 @@ function calc_surface_flux!(destination, nonconservative_terms::Val{false}, dg::
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, s)
-      flux = surface_flux(u_ll, u_rr, orientations[s], equations(dg))
+      flux = surface_flux_function(u_ll, u_rr, orientations[s], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
-        destination[v, i, left_direction, left_id]  = destination[v, i, right_direction, right_id] = flux[v]
+        surface_flux_values[v, i, left_direction, left_id]  = surface_flux_values[v, i, right_direction, right_id] = flux[v]
       end
     end
   end
 end
 
-# Calculate and store Riemann and nonconservative fluxes across surfaces
-function calc_surface_flux!(destination, nonconservative_terms::Val{true}, dg::Dg)
+# Calculate and store Riemann and nonconservative fluxes across interfaces
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg)
   #TODO temporary workaround while implementing the other stuff
-  calc_surface_flux!(destination, dg.surfaces.neighbor_ids, dg.surfaces.u, nonconservative_terms,
-                     dg.surfaces.orientations, dg)
+  calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
+                       dg.interfaces.orientations, dg)
 end
 
-function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matrix{Int},
-                            u_surfaces::Array{Float64, 4}, nonconservative_terms::Val{true},
-                            orientations::Vector{Int}, dg::Dg)
+function calc_interface_flux!(surface_flux_values, neighbor_ids,
+                              u_interfaces, nonconservative_terms::Val{true},
+                              orientations, dg::Dg)
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1861,8 +1861,7 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
   noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
-  #=@inbounds Threads.@threads for s = 1:dg.n_surfaces=#
-  Threads.@threads for s = 1:dg.n_surfaces
+  Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
 
@@ -1870,24 +1869,24 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
-    riemann!(fstar, u_surfaces, s, orientations, dg)
+    riemann!(fstar, u_interfaces, s, orientations, dg)
 
-    # Compute the nonconservative numerical "flux" along a surface
+    # Compute the nonconservative numerical "flux" along an interface
     # Done twice because left/right orientation matters så
     # 1 -> primary element and 2 -> secondary element
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    @views noncons_surface_flux!(noncons_diamond_primary,
-                                 u_surfaces[1,:,:,:], u_surfaces[2,:,:,:],
-                                 s, nnodes(dg), orientations, equations(dg))
-    @views noncons_surface_flux!(noncons_diamond_secondary,
-                                 u_surfaces[2,:,:,:], u_surfaces[1,:,:,:],
-                                 s, nnodes(dg), orientations, equations(dg))
+    @views noncons_interface_flux!(noncons_diamond_primary,
+                                   u_interfaces[1,:,:,:], u_interfaces[2,:,:,:],
+                                   s, nnodes(dg), orientations, equations(dg))
+    @views noncons_interface_flux!(noncons_diamond_secondary,
+                                   u_interfaces[2,:,:,:], u_interfaces[1,:,:,:],
+                                   s, nnodes(dg), orientations, equations(dg))
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
     right_neighbor_id = neighbor_ids[2, s]
 
-    # Determine surface direction with respect to elements:
+    # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
     left_neighbor_direction = 2 * orientations[s]
@@ -1896,9 +1895,9 @@ function calc_surface_flux!(surface_flux::Array{Float64, 4}, neighbor_ids::Matri
     # Copy flux to left and right element storage
     for i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        surface_flux[v, i, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i] +
+        surface_flux_values[v, i, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i] +
             noncons_diamond_primary[v, i])
-        surface_flux[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
+        surface_flux_values[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
             noncons_diamond_secondary[v, i])
       end
     end
@@ -1908,11 +1907,10 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux,
-                                                    dg,
-                                                    time)
-function calc_boundary_flux!(destination, dg::Dg, time)
-  @unpack surface_flux = dg
+calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
+                                                    dg, time)
+function calc_boundary_flux!(surface_flux_values, dg::Dg, time)
+  @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
   Threads.@threads for b in 1:dg.n_boundaries
@@ -1946,11 +1944,11 @@ function calc_boundary_flux!(destination, dg::Dg, time)
     for i in 1:nnodes(dg)
       # Call pointwise Riemann solver
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux(u_ll, u_rr, orientations[b], equations(dg))
+      flux = surface_flux_function(u_ll, u_rr, orientations[b], equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
-        destination[v, i, direction, neighbor_id] = flux[v]
+        surface_flux_values[v, i, direction, neighbor_id] = flux[v]
       end
     end
   end
@@ -1962,13 +1960,12 @@ calc_mortar_flux!(dg) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux, dg, mortar_type,
+calc_mortar_flux!(dg, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
                                                                  dg.l2mortars, dg.thread_cache)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val{:l2}, mortars, cache)
+function calc_mortar_flux!(surface_flux_values, dg, mortar_type::Val{:l2}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
-  #=@inbounds Threads.@threads for m = 1:dg.n_l2mortars=#
   Threads.@threads for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
@@ -1986,44 +1983,44 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, mortar_type::Val
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux[:, :, 1, upper_element_id] .= fstar_upper
-        surface_flux[:, :, 1, lower_element_id] .= fstar_lower
+        surface_flux_values[:, :, 1, upper_element_id] .= fstar_upper
+        surface_flux_values[:, :, 1, lower_element_id] .= fstar_lower
       else
         # L2 mortars in y-direction
-        surface_flux[:, :, 3, upper_element_id] .= fstar_upper
-        surface_flux[:, :, 3, lower_element_id] .= fstar_lower
+        surface_flux_values[:, :, 3, upper_element_id] .= fstar_upper
+        surface_flux_values[:, :, 3, lower_element_id] .= fstar_lower
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux[:, :, 2, upper_element_id] .= fstar_upper
-        surface_flux[:, :, 2, lower_element_id] .= fstar_lower
+        surface_flux_values[:, :, 2, upper_element_id] .= fstar_upper
+        surface_flux_values[:, :, 2, lower_element_id] .= fstar_lower
       else
         # L2 mortars in y-direction
-        surface_flux[:, :, 4, upper_element_id] .= fstar_upper
-        surface_flux[:, :, 4, lower_element_id] .= fstar_lower
+        surface_flux_values[:, :, 4, upper_element_id] .= fstar_upper
+        surface_flux_values[:, :, 4, lower_element_id] .= fstar_lower
       end
     end
 
     # Project small fluxes to large element
     for v in 1:nvariables(dg)
-      @views large_surface_flux = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
-                                   dg.l2mortar_reverse_lower * fstar_lower[v, :])
+      @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
+                                          dg.l2mortar_reverse_lower * fstar_lower[v, :])
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
-          surface_flux[v, :, 2, large_element_id] .= large_surface_flux
+          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
         else
           # L2 mortars in y-direction
-          surface_flux[v, :, 4, large_element_id] .= large_surface_flux
+          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
         end
       else # large_sides[m] == 2 -> large element on right side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
-          surface_flux[v, :, 1, large_element_id] .= large_surface_flux
+          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
         else
           # L2 mortars in y-direction
-          surface_flux[v, :, 3, large_element_id] .= large_surface_flux
+          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
         end
       end
     end
@@ -2032,18 +2029,16 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux, dg, v,
+calc_mortar_flux!(dg, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, v,
                                                       dg.ecmortars.neighbor_ids,
                                                       dg.ecmortars.u_lower,
                                                       dg.ecmortars.u_upper,
                                                       dg.ecmortars.u_large,
                                                       dg.ecmortars.orientations)
-function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
-                           neighbor_ids::Matrix{Int},
-                           u_lower::Array{Float64, 3},
-                           u_upper::Array{Float64, 3},
-                           u_large::Array{Float64, 3},
-                           orientations::Vector{Int})
+function calc_mortar_flux!(surface_flux_values, dg, ::Val{:ec},
+                           neighbor_ids,
+                           u_lower, u_upper, u_large,
+                           orientations)
   # Type alias only for convenience
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -2061,8 +2056,7 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
   PL2R_upper = dg.ecmortar_reverse_upper
   PL2R_lower = dg.ecmortar_reverse_lower
 
-  #=@inbounds Threads.@threads for m = 1:dg.n_ecmortars=#
-  Threads.@threads for m = 1:dg.n_ecmortars
+  Threads.@threads for m in 1:dg.n_ecmortars
     large_element_id = dg.ecmortars.neighbor_ids[3, m]
     upper_element_id = dg.ecmortars.neighbor_ids[2, m]
     lower_element_id = dg.ecmortars.neighbor_ids[1, m]
@@ -2084,31 +2078,31 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
     if dg.ecmortars.large_sides[m] == 1 # -> small elements on right side, large element on left
       if dg.ecmortars.orientations[m] == 1
         # EC mortars in x-direction
-        surface_flux[:, :, 2, large_element_id] .= 0.0
-        surface_flux[:, :, 1, upper_element_id] .= 0.0
-        surface_flux[:, :, 1, lower_element_id] .= 0.0
+        surface_flux_values[:, :, 2, large_element_id] .= 0.0
+        surface_flux_values[:, :, 1, upper_element_id] .= 0.0
+        surface_flux_values[:, :, 1, lower_element_id] .= 0.0
         for i in 1:nnodes(dg)
           for l in 1:nnodes(dg)
             for v in 1:nvariables(dg)
-              surface_flux[v, i, 2, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
-                                                          PL2R_lower[i, l] * fstar_lower[v, i, l])
-              surface_flux[v, i, 1, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
-              surface_flux[v, i, 1, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
+              surface_flux_values[v, i, 2, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
+                                                                 PL2R_lower[i, l] * fstar_lower[v, i, l])
+              surface_flux_values[v, i, 1, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
+              surface_flux_values[v, i, 1, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
             end
           end
         end
       else
         # EC mortars in y-direction
-        surface_flux[:, :, 4, large_element_id] .= 0.0
-        surface_flux[:, :, 3, upper_element_id] .= 0.0
-        surface_flux[:, :, 3, lower_element_id] .= 0.0
+        surface_flux_values[:, :, 4, large_element_id] .= 0.0
+        surface_flux_values[:, :, 3, upper_element_id] .= 0.0
+        surface_flux_values[:, :, 3, lower_element_id] .= 0.0
         for i in 1:nnodes(dg)
           for l in 1:nnodes(dg)
             for v in 1:nvariables(dg)
-              surface_flux[v, i, 4, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
-                                                          PL2R_lower[i, l] * fstar_lower[v, i, l])
-              surface_flux[v, i, 3, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
-              surface_flux[v, i, 3, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
+              surface_flux_values[v, i, 4, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, i, l] +
+                                                                 PL2R_lower[i, l] * fstar_lower[v, i, l])
+              surface_flux_values[v, i, 3, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, l, i]
+              surface_flux_values[v, i, 3, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, l, i]
             end
           end
         end
@@ -2116,31 +2110,31 @@ function calc_mortar_flux!(surface_flux::Array{Float64, 4}, dg, ::Val{:ec},
     else # large_sides[m] == 2 -> small elements on left side, large element on right
       if dg.ecmortars.orientations[m] == 1
         # EC mortars in x-direction
-        surface_flux[:, :, 1, large_element_id] .= 0.0
-        surface_flux[:, :, 2, upper_element_id] .= 0.0
-        surface_flux[:, :, 2, lower_element_id] .= 0.0
+        surface_flux_values[:, :, 1, large_element_id] .= 0.0
+        surface_flux_values[:, :, 2, upper_element_id] .= 0.0
+        surface_flux_values[:, :, 2, lower_element_id] .= 0.0
         for i in 1:nnodes(dg)
           for l in 1:nnodes(dg)
             for v in 1:nvariables(dg)
-              surface_flux[v, i, 1, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
-                                                          PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 2, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 2, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
+              surface_flux_values[v, i, 1, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
+                                                                 PL2R_lower[i, l] * fstar_lower[v, l, i])
+              surface_flux_values[v, i, 2, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux_values[v, i, 2, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
             end
           end
         end
       else
         # EC mortars in y-direction
-        surface_flux[:, :, 3, large_element_id] .= 0.0
-        surface_flux[:, :, 4, upper_element_id] .= 0.0
-        surface_flux[:, :, 4, lower_element_id] .= 0.0
+        surface_flux_values[:, :, 3, large_element_id] .= 0.0
+        surface_flux_values[:, :, 4, upper_element_id] .= 0.0
+        surface_flux_values[:, :, 4, lower_element_id] .= 0.0
         for i in 1:nnodes(dg)
           for l in 1:nnodes(dg)
             for v in 1:nvariables(dg)
-              surface_flux[v, i, 3, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
-                                                          PL2R_lower[i, l] * fstar_lower[v, l, i])
-              surface_flux[v, i, 4, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
-              surface_flux[v, i, 4, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
+              surface_flux_values[v, i, 3, large_element_id] += (PL2R_upper[i, l] * fstar_upper[v, l, i] +
+                                                                 PL2R_lower[i, l] * fstar_lower[v, l, i])
+              surface_flux_values[v, i, 4, upper_element_id] +=  PR2L_upper[i, l] * fstar_upper[v, i, l]
+              surface_flux_values[v, i, 4, lower_element_id] +=  PR2L_lower[i, l] * fstar_lower[v, i, l]
             end
           end
         end
@@ -2151,21 +2145,21 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux, dg)
-function calc_surface_integral!(u_t, surface_flux, dg)
+calc_surface_integral!(dg) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux_values, dg)
+function calc_surface_integral!(u_t, surface_flux_values, dg)
   @unpack lhat = dg
 
-  Threads.@threads for element_id = 1:dg.n_elements
-    for l = 1:nnodes(dg)
-      for v = 1:nvariables(dg)
+  Threads.@threads for element_id in 1:dg.n_elements
+    for l in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
         # surface at -x
-        u_t[v, 1,          l, element_id] -= surface_flux[v, l, 1, element_id] * lhat[1,          1]
+        u_t[v, 1,          l, element_id] -= surface_flux_values[v, l, 1, element_id] * lhat[1,          1]
         # surface at +x
-        u_t[v, nnodes(dg), l, element_id] += surface_flux[v, l, 2, element_id] * lhat[nnodes(dg), 2]
+        u_t[v, nnodes(dg), l, element_id] += surface_flux_values[v, l, 2, element_id] * lhat[nnodes(dg), 2]
         # surface at -y
-        u_t[v, l, 1,          element_id] -= surface_flux[v, l, 3, element_id] * lhat[1,          1]
+        u_t[v, l, 1,          element_id] -= surface_flux_values[v, l, 3, element_id] * lhat[1,          1]
         # surface at +y
-        u_t[v, l, nnodes(dg), element_id] += surface_flux[v, l, 4, element_id] * lhat[nnodes(dg), 2]
+        u_t[v, l, nnodes(dg), element_id] += surface_flux_values[v, l, 4, element_id] * lhat[nnodes(dg), 2]
       end
     end
   end
@@ -2203,7 +2197,7 @@ end
 # Calculate stable time step size
 function calc_dt(dg::Dg, cfl)
   min_dt = Inf
-  for element_id = 1:dg.n_elements
+  for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg))
     min_dt = min(min_dt, dt)
@@ -2277,11 +2271,11 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     # Copy alpha values such that smoothing is indpedenent of the element access order
     alpha_pre_smooth .= alpha
 
-    # Loop over surfaces
-    for surface_id in 1:dg.n_surfaces
+    # Loop over interfaces
+    for interface_id in 1:dg.n_interfaces
       # Get neighboring element ids
-      left  = dg.surfaces.neighbor_ids[1, surface_id]
-      right = dg.surfaces.neighbor_ids[2, surface_id]
+      left  = dg.interfaces.neighbor_ids[1, interface_id]
+      right = dg.interfaces.neighbor_ids[2, interface_id]
 
       # Apply smoothing
       alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])

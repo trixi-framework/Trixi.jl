@@ -31,14 +31,14 @@ function init_simulation_euler_gravity()
   solver_name = parameter("solver", valid=["dg"])
   solver = make_solver(solver_name, equations_euler, mesh)
   solver_gravity = make_solver(solver_name, equations_gravity, mesh,
-                               surface_flux=flux_lax_friedrichs, volume_flux=flux_central)
+                               surface_flux_function=flux_lax_friedrichs, volume_flux_function=flux_central)
   # `solver` = Euler solver -> this is to keep differences to original method to a minimum
   println("done")
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
-  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== flux_central
+  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux_function !== flux_central
     error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
   end
 
@@ -132,14 +132,14 @@ function init_simulation_euler_gravity()
           | | CFL:              $cfl
           | | Euler solver:
           | | | volume integral:  $(get_name(solver.volume_integral_type))
-          | | | volume flux:      $(get_name(solver.volume_flux))
-          | | | surface flux:     $(get_name(solver.surface_flux))
+          | | | volume flux:      $(get_name(solver.volume_flux_function))
+          | | | surface flux:     $(get_name(solver.surface_flux_function))
           | | Gravity solver:
           | | | volume integral:  $(get_name(solver_gravity.volume_integral_type))
-          | | | volume flux:      $(get_name(solver_gravity.volume_flux))
-          | | | surface flux:     $(get_name(solver_gravity.surface_flux))
+          | | | volume flux:      $(get_name(solver_gravity.volume_flux_function))
+          | | | surface flux:     $(get_name(solver_gravity.surface_flux_function))
           | | #elements:        $(solver.n_elements)
-          | | #surfaces:        $(solver.n_surfaces)
+          | | #interfaces:      $(solver.n_interfaces)
           | | #boundaries:      $(solver.n_boundaries)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver)) + $(ndofs(solver_gravity))

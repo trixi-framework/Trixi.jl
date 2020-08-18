@@ -339,29 +339,29 @@ end
 # OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
-#      2) this is non-unique along a surface! normal direction is super important
-function noncons_surface_flux!(noncons_flux, u_left, u_right, surface_id, n_nodes, orientations,
-                               equation::IdealGlmMhdEquations)
+#      2) this is non-unique along an interface! normal direction is super important
+function noncons_interface_flux!(noncons_flux, u_left, u_right, interface_id, n_nodes, orientations,
+                                 equation::IdealGlmMhdEquations)
   for i in 1:n_nodes
     # extract necessary variable from the left
-    v1_ll  = u_left[2,i,surface_id]/u_left[1,i,surface_id]
-    v2_ll  = u_left[3,i,surface_id]/u_left[1,i,surface_id]
-    v3_ll  = u_left[4,i,surface_id]/u_left[1,i,surface_id]
-    B1_ll  = u_left[6,i,surface_id]
-    B2_ll  = u_left[7,i,surface_id]
-    B3_ll  = u_left[8,i,surface_id]
-    psi_ll = u_left[9,i,surface_id]
+    v1_ll  = u_left[2,i,interface_id]/u_left[1,i,interface_id]
+    v2_ll  = u_left[3,i,interface_id]/u_left[1,i,interface_id]
+    v3_ll  = u_left[4,i,interface_id]/u_left[1,i,interface_id]
+    B1_ll  = u_left[6,i,interface_id]
+    B2_ll  = u_left[7,i,interface_id]
+    B3_ll  = u_left[8,i,interface_id]
+    psi_ll = u_left[9,i,interface_id]
     v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
     # extract necessary magnetic field variable from the right and normal velocity
     # both depend upon the orientation
-    if orientations[surface_id] == 1
+    if orientations[interface_id] == 1
       v_normal = v1_ll
-      B_normal = u_right[6,i,surface_id]
-      psi_rr   = u_right[9,i,surface_id]
+      B_normal = u_right[6,i,interface_id]
+      psi_rr   = u_right[9,i,interface_id]
     else
       v_normal = v2_ll
-      B_normal = u_right[7,i,surface_id]
-      psi_rr   = u_right[9,i,surface_id]
+      B_normal = u_right[7,i,interface_id]
+      psi_rr   = u_right[9,i,interface_id]
     end
     # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
     noncons_flux[1,i] = 0.0
