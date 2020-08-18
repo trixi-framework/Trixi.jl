@@ -117,7 +117,7 @@ function init_simulation()
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be flux_central,
   # as everything else does not make sense
-  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux !== flux_central
+  if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux_function !== flux_central
     error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
   end
 
@@ -210,10 +210,10 @@ function init_simulation()
           | | N:                $N
           | | CFL:              $cfl
           | | volume integral:  $(get_name(solver.volume_integral_type))
-          | | volume flux:      $(get_name(solver.volume_flux))
-          | | surface flux:     $(get_name(solver.surface_flux))
+          | | volume flux:      $(get_name(solver.volume_flux_function))
+          | | surface flux:     $(get_name(solver.surface_flux_function))
           | | #elements:        $(solver.n_elements)
-          | | #surfaces:        $(solver.n_surfaces)
+          | | #interfaces:      $(solver.n_interfaces)
           | | #boundaries:      $(solver.n_boundaries)
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
@@ -515,7 +515,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
-  solver = Dg(solver.equations, solver.surface_flux, solver.volume_flux, solver.initial_conditions,
+  solver = Dg(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
               source_terms, mesh, polydeg(solver))
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
