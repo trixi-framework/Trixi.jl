@@ -304,15 +304,17 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   # use a logistic function to tranfer density value smoothly
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
-  # k  = -150.0 # sharpness of transfer
-  k  = -75.0 # sharpness of transfer
-  logistic_function = L/(1.0 + exp(-k*(r - x0)))
+  k  = -150.0 # sharpness of transfer
+  logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
   rho_ambient = 1e-5
-  rho = max(logistic_function, rho_ambient) # clip background density to not be so tiny
+  rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
+
+  # velocities are zero
   v1 = 0.0
   v2 = 0.0
-  # p = r > r0 ? p_ambient : p_inner
-  logistic_function_p = p_inner * L/(1.0 + exp(-k*(r - r0)))
+
+  # use a logistic function to tranfer pressure value smoothly
+  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
   p = max(logistic_function_p, p_ambient)
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
