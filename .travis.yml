@@ -8,15 +8,14 @@ julia:
 
 os:
   - linux
-  - osx
 
 jobs:
   allow_failures:
     - julia: nightly
-  exclude:
-    - julia: nightly
-      os: osx
   include:
+    - if: type = push AND branch = master
+      julia: 1
+      os: osx
     - stage: "Documentation"
       julia: 1
       os: linux
