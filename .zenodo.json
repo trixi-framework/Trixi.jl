@@ -1,0 +1,29 @@
+{
+    "description": "A flexible tree-based numerical simulation framework for PDEs written in Julia",
+    "license": "MIT",
+    "title": "Trixi.jl",
+    "upload_type": "software",
+    "creators": [
+        {
+            "affiliation": "Department of Mathematics and Computer Science, University of Cologne, Germany",
+            "name": "Schlottke-Lakemper, Michael",
+            "orcid": "0000-0002-3195-2536"
+        },
+        {
+            "affiliation": "Department of Mathematics and Computer Science, University of Cologne, Germany",
+            "name": "Gassner, Gregor J.",
+            "orcid": "0000-0002-1752-1158"
+        },
+        {
+            "affiliation": "King Abdullah University of Science and Technology (KAUST), Thuwal, Saudi Arabia",
+            "name": "Ranocha, Hendrik",
+            "orcid": "0000-0002-3456-2277"
+        },
+        {
+            "affiliation": "Department of Mathematics; Computational Mathematics, Linköping University, Sweden",
+            "name": "Winters, Andrew R.",
+            "orcid": "0000-0002-5902-1522"
+        }
+    ],
+    "access_right": "open"
+}
