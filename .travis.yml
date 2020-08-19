@@ -6,16 +6,19 @@ julia:
   - 1 # latest 1.x.y
   - nightly
 
+os:
+  - linux
+  - osx
+
 matrix:
- allow_failures:
-   - julia: nightly
+  allow_failures:
+    - julia: nightly
+  exclude:
+    - julia: nightly
+      os: osx
 
 codecov: true
 coveralls: true
-
-os:
-  - linux
-#  - osx
 
 # avoid duplicate tests in PRs
 branches:
