@@ -295,7 +295,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   r = sqrt(x[1]^2 + x[2]^2)
 
   # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  r0 = 0.109375 # = 3.5 * smallest dx (for domain length=8 and max-ref=8)
   E = 1.0
   p_inner   = (equation.gamma - 1) * E / (pi * r0^2)
   p_ambient = 1e-5 # = true Sedov setup
