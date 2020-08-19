@@ -17,8 +17,8 @@
 differential equations. It is based on a two-dimensional hierarchical mesh
 (quadtree) and supports several governing equations such as compressible Euler
 equations, magnetohydrodynamics equations, or hyperbolic diffusion equations.
-Trixi is written in Julia and aims to be easy to use and extend also for new or
-inexperienced users.
+Trixi is written in [Julia](https://julialang.org) and aims to be easy to use and
+extend also for new or inexperienced users.
 
 
 ## Installation
