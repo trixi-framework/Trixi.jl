@@ -1,8 +1,10 @@
+module TestManual
+
 using Test
 import Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
-outdir = joinpath(@__DIR__, "out")
+outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various manual (= non-parameter-file-triggered tests)
@@ -75,7 +77,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       dummy::Int
     end
     function MyContainer(data, capacity)
-      c = MyContainer(Vector{Int}(undef, capacity+1), capacity, length(data), capacity+1) 
+      c = MyContainer(Vector{Int}(undef, capacity+1), capacity, length(data), capacity+1)
       c.data[1:length(data)] .= data
       return c
     end
@@ -134,7 +136,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "swap!" begin
       c = MyContainer([1,2])
-      @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op 
+      @test Trixi.swap!(c, 1, 1) == MyContainer([1, 2]) # no-op
 
       c = MyContainer([1,2])
       @test Trixi.swap!(c, 1, 2) == MyContainer([2,1])
@@ -174,3 +176,5 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 end
+
+end #module
