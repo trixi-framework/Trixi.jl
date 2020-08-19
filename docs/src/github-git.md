@@ -1,39 +1,35 @@
-# GitLab & Git
+# GitHub & Git
 
-This page contains information on how to use GitLab and Git when developing Trixi.
+This page contains information on how to use GitHub and Git when developing Trixi.
 
 ## Development workflow
 
 For adding modifcations to Trixi, we generally follow these steps:
 
 ### Create an issue (optional)
-In many cases it makes sense to start by creating an issue in GitLab. For
+In many cases it makes sense to start by creating an issue on GitHub. For
 example, if the implementation approach for a new feature is not yet clear or if
 there should be a discussion about the desired outcome, it is good practice to
 first get a consensus on what is the expected result of this modification. A
-GitLab issue is *the* place to lead this discussion, as it preserves it in the
+GitHub issue is *the* place to lead this discussion, as it preserves it in the
 project and - together with the actual code changes - allows in the future to revisit
 the reasons for a particular choice of implementation or feature.
 
-### Create a branch and *immediately* create a merge request
+### Create a branch and *immediately* create a pull request
 All feature development, bug fixes etc. should be developed in a branch and not
-directly on `master`. If you created a GitLab issue in step 1, you can use the
-"Create merge request" feature on the issue page to automatically create a branch and a
-corresponding merge request. The merge request will be linked to the issue such
-that once the merge request is merged, the issue is closed as well.
-Alternatively, you can also create a branch locally by executing `git checkout
--b yourbranch`, push it to the repository, and then create a merge request
-manually. Make sure your merge request starts with `WIP:` to indicate that it is
-still work in progress.
+directly on `master`. If you do not have write access to the main repository on
+GitHub, first create a fork of the Trixi.jl repository and clone the fork to
+your machine. Then, create a branch locally by executing `git checkout -b
+yourbranch`, push it to the repository, and create a pull request (PR).
 
-!!! info "Why using merge request?"
-    Immediately creating a merge request for your branch has the benefit that all
+!!! info "Why using pull requests?"
+    Immediately creating a PR for your branch has the benefit that all
     code discussions can now be held directly next to the corresponding code. Also,
-    the merge request allows to easily compare your branch to the upstream branch
+    the PR allows to easily compare your branch to the upstream branch
     (usually `master`) to see what you have changed.
 
 ### Make changes
-With a branch and merge request in place, you can now write your code and commit
+With a branch and PR in place, you can now write your code and commit
 it to your branch. If you request feedback from someone else, make sure to push
 your branch to the repository such that the others can easily review your
 changes or dive in and change something themselves.
@@ -93,7 +89,7 @@ directly, either face-to-face or via a video call. Other times a review will be
 conducted asynchronously, with the reviewer leaving comments and annotations. In
 some cases it will be necessary to do multiple rounds of reviews, especially if
 there are larger changes to be added. Just commit and push your changes to your
-branch, and the corresponding merge request will be updated automatically.
+branch, and the corresponding pull request will be updated automatically.
 
 Please note that a review has nothing to do with the lack of experience of the
 person developing changes: We try to review all code before it gets added to
@@ -105,20 +101,12 @@ we just try to keep Trixi as accessible and easy to use for everyone.
 ### Merge branch
 Once your branch is reviewed and declared ready for merging by the reviewer,
 make sure that all the latest changes have been pushed. Then, go
-to the merge request page on GitLab and and click on **Resolve WIP status**.
-This will remove the `WIP:` in front of the merge request title and enable the
-**Merge** button, which was grayed out before. Make sure the option "Delete
-source branch" is checked and **do not** enable "Squash commits". Then, click
-**Merge** and, voilá, you are done! The your branch will have been merged to
-`master` and the source branch will have been deleted in the GitLab repository.
-
-!!! info "Outdated branch"
-    If you cannot click **Resolve WIP status** or the **Merge** button remains
-    grayed out, it probably means you forgot to merge the current `master` (see
-    also [Prepare for review](@ref)).
+to the pull request page on GitHub and and click on **Merge pull request**.
+Voilá, you are done! The your branch will have been merged to
+`master` and the source branch will have been deleted in the GitHub repository.
 
 ### Update your working copy
-Once you have merged your branch by accepting the merge request on GitLab, you
+Once you have merged your branch by accepting the PR on GitHub, you
 should clean up your local working copy of the repository by performing the
 following steps:
 
@@ -150,7 +138,7 @@ you can undo the latest commit by running
 ```bash
 git reset HEAD~
 ```
-This only works if you have not yet pushed your branch to the GitLab repository.
+This only works if you have not yet pushed your branch to the GitHub repository.
 In this case, please talk to one of the core developers on how to proceed.
 Especially when you accidentally commited a large file (image, or video), please
 let us know as fast as possible, since the effort to fix the repository grows
@@ -166,9 +154,9 @@ repository, please talk to one of the core developers as soon as possible so tha
 
 Based on the instructions found
 [here](https://rtyley.github.io/bfg-repo-cleaner/) and
-[here](https://docs.gitlab.com/ee/user/project/repository/reducing_the_repo_size_using_git.html#using-the-bfg-repo-cleaner),
-the following steps need to be taken (as documented in issue
-[#33](https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl/-/issues/33)):
+[here](https://docs.github.com/en/github/authenticating-to-github/removing-sensitive-data-from-a-repository),
+the following steps need to be taken (as documented for GitLab in issue
+[#33](https://github.com/trixi-framework/Trixi.jl/issues/33)):
 
   1. Tell everyone to commit and push their changes to the repository.
   2. Fix the branch in which the file was committed by removing it and committing
@@ -180,7 +168,7 @@ the following steps need to be taken (as documented in issue
      # Download bfg-1.13.0.jar from https://rtyley.github.io/bfg-repo-cleaner/
 
      # Get fresh clone of repo (so you can throw it away in case there is a problem)
-     git clone --mirror git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+     git clone --mirror git@github.com:trixi-framework/Trixi.jl.git
 
      # Clean up repo of all files larger than 10M
      java -jar bfg-1.13.0.jar --strip-blobs-bigger-than 10M Trixi.jl.git
@@ -217,6 +205,3 @@ the following steps need to be taken (as documented in issue
      ```
      **IMPORTANT**: You need to do a `git rebase` instead of a `git pull` when
      updating the fixed branch.
-  5. Finally, follow the instructions found
-     [here](https://docs.gitlab.com/ee/user/project/repository/reducing_the_repo_size_using_git.html#using-the-bfg-repo-cleaner)
-     to allow GitLab to clean up its databases and caches.
