@@ -22,7 +22,7 @@ import Trixi2Vtk
 
 # Set paths based on availability of CI variables
 canonical = get(ENV, "CI_PAGES_URL", "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/")
-repo_url = get(ENV, "CI_PROJECT_URL", "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl")
+repo_url = get(ENV, "CI_PROJECT_URL", "github.com/trixi-framework/Trixi.jl")
 
 # Define module-wide setups such that the respective modules are available in doctests
 DocMeta.setdocmeta!(Trixi,
@@ -69,6 +69,10 @@ makedocs(
         "Contributing" => "contributing.md",
         "License" => "license.md"
     ],
-    # Set repo to GitLab
-    repo = "$(repo_url)/blob/{commit}{path}#{line}"
+    # Set repo
+    repo = "https://$(repo_url)/blob/{commit}{path}#{line}"
+)
+
+deploydocs(
+    repo = repo_url,
 )
