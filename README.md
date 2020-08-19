@@ -31,7 +31,7 @@ performing the following steps:
 
   1. Clone the repository:
      ```
-     git clone git@gitlab.mi.uni-koeln.de:numsim/code/Trixi.jl.git
+     git clone git@github.com:trixi-framework/Trixi.jl.git
      ```
   2. Enter the cloned directory and run the following command to install all
      required dependencies:
