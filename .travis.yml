@@ -15,7 +15,7 @@ coveralls: true
 
 os:
   - linux
-#  - osx
+  - osx
 
 # avoid duplicate tests in PRs
 branches:
