@@ -1,5 +1,12 @@
 # Trixi.jl
 
+[![build](https://travis-ci.com/trixi-framework/Trixi.jl.svg?branch=master)](https://travis-ci.com/trixi-framework/Trixi.jl)
+[![codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
+[![coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
+<!-- [![DOI](https://zenodo.org/badge/DOI/TODO.svg)](https://doi.org/TODO) -->
+
+
 **A flexible, tree-based numerical simulation framework for PDEs written in Julia.**
 
 <p align="center">
@@ -44,7 +51,7 @@ loaded. To run a simulation, execute
 Trixi.run("examples/parameters.toml")
 ```
 You can also pass a different parameters file or edit `examples/parameters.toml` to
-modify the simulation setup. 
+modify the simulation setup.
 
 Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., when starting
 a simulation from another script. This is possible by directly passing the
