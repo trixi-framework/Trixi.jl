@@ -1,5 +1,8 @@
 module Trixi
 
+# Use README as the docstring of the module:
+@doc read(joinpath(dirname(@__DIR__), "README.md"), String) Trixi
+
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 using Pkg.TOML: parsefile

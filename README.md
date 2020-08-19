@@ -1,12 +1,14 @@
 # Trixi.jl
 
+[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Build Linux & macOS](https://travis-ci.com/trixi-framework/Trixi.jl.svg?branch=master)](https://travis-ci.com/trixi-framework/Trixi.jl)
 [![Build Windows](https://ci.appveyor.com/api/projects/status/uu0xds4hyc1i10n8/branch/master?svg=true)](https://ci.appveyor.com/project/ranocha/trixi-jl/branch/master)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
-[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
-<!-- [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT) -->
+
+<!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.1.0.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
+<!-- [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable) -->
 <!-- [![DOI](https://zenodo.org/badge/DOI/TODO.svg)](https://doi.org/TODO) -->
 
 
