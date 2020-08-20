@@ -79,9 +79,8 @@ julia -e 'using Trixi; Trixi.run("examples/parameters.toml")'
 Additional documentation is available that contains more information on how to
 use Trixi interactively, how to visualize output files etc. It also includes a
 section on our preferred development workflow and some tips for using Git. The
-documentation can be accessed either
-[online](https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/) (restricted
-to authorized users) or under [`docs/src`](docs/src).
+latest documentation can be accessed either
+[online](https://trixi-framework.github.io/Trixi.jl/dev) or under [`docs/src`](docs/src).
 
 
 ## Authors
