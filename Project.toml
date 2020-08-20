@@ -1,9 +1,6 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>",
-           "Gregor Gassner <ggassner@uni-koeln.de>",
-           "Hendrik Ranocha <mail@ranocha.de>",
-           "Andrew R. Winters <andrew.ross.winters@liu.se>"]
+authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>"]
 version = "0.1.0"
 
 [deps]
@@ -18,4 +15,5 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+StaticArrays = "0.12"
 julia = "1.5"
