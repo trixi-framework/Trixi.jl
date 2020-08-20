@@ -103,7 +103,7 @@ Once your branch is reviewed and declared ready for merging by the reviewer,
 make sure that all the latest changes have been pushed. Then, go
 to the pull request page on GitHub and and click on **Merge pull request**.
 Voilá, you are done! Your branch will have been merged to
-`master` and the source branch will have been deleted in the GitHub repository.
+`master` and the source branch will have been deleted in the GitHub repository (if you are not working in your own fork).
 
 ### Update your working copy
 Once you have merged your branch by accepting the PR on GitHub, you
