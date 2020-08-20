@@ -22,6 +22,22 @@ GitHub, first create a fork of the Trixi.jl repository and clone the fork to
 your machine. Then, create a branch locally by executing `git checkout -b
 yourbranch`, push it to the repository, and create a pull request (PR).
 
+If you have already cloned Trixi.jl from the main repo to your local machine,
+you can also work in that clone. You just need to add your fork as additional
+remote repository and push your new branch there.
+```bash
+git remote add myfork git@github.com:YOUR_NAME/Trixi.jl.git
+# get latest master from the main repo
+git checkout master
+git pull
+# create a new branch for a cool new feature, bug fix, ...
+git checkout -b YOUR_BRANCH_NAME
+# do some work and push it to your fork
+git push -u myfork
+# go to https://github.com/trixi-framework/Trixi.jl/pull
+# and create a PR from your new branch
+```
+
 !!! info "Why using pull requests?"
     Immediately creating a PR for your branch has the benefit that all
     code discussions can now be held directly next to the corresponding code. Also,
