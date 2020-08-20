@@ -102,7 +102,7 @@ we just try to keep Trixi as accessible and easy to use for everyone.
 Once your branch is reviewed and declared ready for merging by the reviewer,
 make sure that all the latest changes have been pushed. Then, go
 to the pull request page on GitHub and and click on **Merge pull request**.
-Voilá, you are done! The your branch will have been merged to
+Voilá, you are done! Your branch will have been merged to
 `master` and the source branch will have been deleted in the GitHub repository.
 
 ### Update your working copy
