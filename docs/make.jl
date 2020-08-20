@@ -20,10 +20,6 @@ Pkg.activate(joinpath(trixi_root_dir, "postprocessing", "pkg", "Trixi2Vtk"))
 Pkg.instantiate()
 import Trixi2Vtk
 
-# Set paths based on availability of CI variables
-canonical = get(ENV, "CI_PAGES_URL", "https://numsim.gitlab-pages.sloede.com/code/Trixi.jl/")
-repo_url = get(ENV, "CI_PROJECT_URL", "https://gitlab.mi.uni-koeln.de/numsim/code/Trixi.jl")
-
 # Define module-wide setups such that the respective modules are available in doctests
 DocMeta.setdocmeta!(Trixi,
                     :DocTestSetup,
@@ -50,8 +46,8 @@ makedocs(
         prettyurls = get(ENV, "CI", nothing) == "true",
         # Explicitly add favicon as asset
         assets = ["assets/favicon.ico"],
-        # Set canonical URL to GitLab pages URL
-        canonical = canonical
+        # Set canonical URL to GitHub pages URL
+        canonical = "https://trixi-framework.github.io/Trixi.jl/stable"
     ),
     # Explicitly specify documentation structure
     pages = [
@@ -59,7 +55,7 @@ makedocs(
         "Development" => "development.md",
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
-        "GitLab & Git" => "gitlab-git.md",
+        "GitHub & Git" => "github-git.md",
         "Reference" => [
             "Trixi" => "reference/trixi.md",
             "Trixi2Img" => "reference/trixi2img.md",
@@ -68,7 +64,9 @@ makedocs(
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "License" => "license.md"
-    ],
-    # Set repo to GitLab
-    repo = "$(repo_url)/blob/{commit}{path}#{line}"
+    ]
+)
+
+deploydocs(
+    repo = "github.com/trixi-framework/Trixi.jl",
 )

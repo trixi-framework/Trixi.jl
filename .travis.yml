@@ -1,0 +1,57 @@
+# https://docs.travis-ci.com/user/languages/julia/
+
+language: julia
+
+julia:
+  - 1 # latest 1.x.y
+  - nightly
+
+os:
+  - linux
+
+jobs:
+  allow_failures:
+    - julia: nightly
+  include:
+    - if: type = push AND branch = master
+      julia: 1
+      os: osx
+    - stage: "Documentation"
+      julia: 1
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+                                               Pkg.build("Trixi");
+                                               Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
+
+codecov: true
+coveralls: true
+
+# avoid duplicate tests in PRs
+branches:
+  only:
+    - master
+
+notifications:
+  email: false
+
+# we could use groups to trigger multiple builds in parallel to speed-up running expensive tests
+# env:
+#   - GROUP=SomeGroupName
+
+# we could install binary dependencies if necessary
+# addons:
+#   apt:
+#     packages:
+#       - gfortran
+
+# script:
+# default build script along the lines of
+#   using Pkg
+#   Pkg.build() # Pkg.build(; verbose = true) for Julia 1.1 and up
+#   Pkg.test(coverage=true)
+
+# submit coverage reports (enabled already above) and/or deploy docs
+# after_success:
