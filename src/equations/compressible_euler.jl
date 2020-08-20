@@ -295,7 +295,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   r = sqrt(x[1]^2 + x[2]^2)
 
   # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
   E = 1.0
   p_inner   = (equation.gamma - 1) * E / (pi * r0^2)
   p_ambient = 1e-5 # = true Sedov setup
@@ -305,12 +305,17 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
   k  = -150.0 # sharpness of transfer
-  logistic_function = L/(1.0 + exp(-k*(r - x0)))
+  logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
   rho_ambient = 1e-5
-  rho = max(logistic_function, rho_ambient) # clip background density to not be so tiny
+  rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
+
+  # velocities are zero
   v1 = 0.0
   v2 = 0.0
-  p = r > r0 ? p_ambient : p_inner
+
+  # use a logistic function to tranfer pressure value smoothly
+  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
+  p = max(logistic_function_p, p_ambient)
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
