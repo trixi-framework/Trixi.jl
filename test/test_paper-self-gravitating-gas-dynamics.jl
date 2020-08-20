@@ -99,23 +99,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "parameters_sedov_self_gravity.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_self_gravity.toml"),
-            l2   = [0.008146055797025783, 0.014269299367718674, 0.01426929936771867, 0.060938367077109826],
-            linf = [0.6933648819697578, 1.3663603623406493, 1.3663603623406495, 4.98813462724603],
-            t_end=0.01)
+            l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
+            linf = [2.3861430058270847, 4.083635578775231, 4.083635578775232, 16.246070713311475],
+            t_end=0.05)
   end
 
-  @testset "parameters_sedov_self_gravity.toml with initial AMR" begin
+  @testset "parameters_sedov_self_gravity.toml with amr_interval=0 and ref-level=8" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_self_gravity.toml"),
-            l2   = [0.00814606900032069, 0.014269347841647387, 0.01426934784164737, 0.0609382559801996],
-            linf = [0.6933505332101455, 1.366565014317652, 1.3665650143176524, 4.988403916351658],
-            t_end=0.01, initial_refinement_level=6)
-  end
-
-  @testset "parameters_sedov_self_gravity.toml with amr_interval=0" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_self_gravity.toml"),
-            l2   = [0.004304641554796123, 0.010596124274294932, 0.010596124274294932, 0.05524239220030985],
-            linf = [0.3312332195623221, 1.6809055950869678, 1.6809055950869682, 6.339130604072545],
-            t_end=0.005, amr_interval=0)
+            l2   = [0.0028922121586238323, 0.013724796675028317, 0.013724796675028307, 0.05822941648860658],
+            linf = [0.26747911779347966, 1.385822018653034, 1.385822018653034, 4.071204772447614],
+            t_end=0.005, amr_interval=0, initial_refinement_level=8)
   end
 end
 
