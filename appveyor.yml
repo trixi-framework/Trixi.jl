@@ -20,6 +20,9 @@ branches:
     - master
     - /release-.*/
 
+# Do not build on tags (GitHub, Bitbucket, GitLab, Gitea)
+skip_tags: true
+
 notifications:
   - provider: Email
     on_build_success: false
