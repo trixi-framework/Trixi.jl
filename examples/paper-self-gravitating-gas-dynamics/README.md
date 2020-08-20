@@ -69,14 +69,39 @@ script with the analysis file from the run as input
 ```
 to generate the figure.
 
-## Sec. 4.2.2, Figure 6a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+## Sec. 4.2.2, Figure 6, T=0.5, AMR meshes for Sedov + gravity
+**T = 0.0 and T = 0.5:**
 ```julia
 Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml", t_end=0.5)
 ```
 
-## Sec. 4.2.2, Figure 6b, T=1.0, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+**T = 1.0:**
 ```julia
 Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml")
+```
+
+## Sec. 4.2.2, Figure 7a, T=0.5, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+**AMR mesh:**
+```julia
+Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml", t_end=0.5)
+```
+
+**Uniform mesh:**
+```julia
+Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
+          amr_interval=0, initial_refinement_level=8, t_end=0.5)
+```
+
+## Sec. 4.2.2, Figure 7b, T=1.0, Sedov + gravity with Euler/CK45 and gravity/RK3S*
+**AMR mesh:**
+```julia
+Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml")
+```
+
+**Uniform mesh:**
+```julia
+Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
+          amr_interval=0, initial_refinement_level=8)
 ```
 
 ## Sec. 4.2.2, Table 6, Sedov + gravity, performance uniform vs. AMR
@@ -88,7 +113,7 @@ Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gr
 **Uniform mesh:**
 ```julia
 Trixi.run("examples/paper-self-gravitating-gas-dynamics/parameters_sedov_self_gravity.toml",
-          amr_interval=0)
+          amr_interval=0, initial_refinement_level=8)
 ```
 
 ### To postprocess the solution files use
