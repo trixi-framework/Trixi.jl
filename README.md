@@ -20,7 +20,7 @@
 
 **Trixi.jl** is a flexible numerical simulation framework for partial
 differential equations. It is based on a two-dimensional hierarchical mesh
-(quadtree) and supports several governing equations such as compressible Euler
+(quadtree) and supports several governing equations such as the compressible Euler
 equations, magnetohydrodynamics equations, or hyperbolic diffusion equations.
 Trixi is written in [Julia](https://julialang.org) and aims to be easy to use and
 extend also for new or inexperienced users.
@@ -48,21 +48,30 @@ performing the following steps:
 ## Usage
 Enter the root directory `Trixi.jl/` and execute
 ```bash
-bin/trixi
+julia --project=@.
 ```
-This will start an interactive Julia session with the Trixi module already
-loaded. To run a simulation, execute
+This will start an interactive Julia session (REPL) using the project setup
+of Trixi.jl. If you have installed Trixi.jl in your default project environment,
+you can just start Julia as usual
+```bash
+julia
+```
+In the Julia REPL, you need to load the package Trixi
+```julia
+julia> using Trixi
+```
+To run a simulation, execute
 ```julia
 Trixi.run("examples/parameters.toml")
 ```
 You can also pass a different parameters file or edit `examples/parameters.toml` to
 modify the simulation setup.
 
-Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., when starting
-a simulation from another script. This is possible by directly passing the
-parameters file to Trixi on the command line:
+Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g.,
+when starting a simulation from another script. This is possible by directly passing
+the code that shall be executed to Julia
 ```bash
-bin/trixi examples/parameters.toml
+julia -e 'using Trixi; Trixi.run("examples/parameters.toml")'
 ```
 
 
