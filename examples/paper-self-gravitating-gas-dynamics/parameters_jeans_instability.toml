@@ -3,7 +3,7 @@
 equations = "euler_gravity"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_jeans_instability"
-surface_flux = "flux_central"
+surface_flux = "flux_hll"
 volume_flux = "flux_central"
 source_terms = "source_terms_harmonic"
 t_start = 0.0
@@ -12,7 +12,7 @@ t_end   = 5.0
 # restart = true
 # restart_filename = "out/restart_000100.h5"
 
-volume_integral_type = "split_form"
+volume_integral_type = "weak_form"
 
 resid_tol = 1e-4
 

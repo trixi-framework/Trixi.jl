@@ -77,22 +77,22 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "parameters_jeans_instability.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_jeans_instability.toml"),
-            l2   = [10734.069674978307, 13357.14137049754, 7.430683770399547e-6, 26835.16654472354],
-            linf = [15190.15931461379, 18890.86677707439, 3.42147931356359e-5, 37962.713187191635],
+            l2   = [10734.053145619571, 13357.12732342943, 1.689152281530251e-6, 26835.125221793754],
+            linf = [15194.889945842326, 18881.97158566768, 8.787452968447721e-6, 37974.480818059295],
             t_end=0.1)
   end
 
   @testset "parameters_jeans_instability.toml with update_gravity_once_per_stage=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_jeans_instability.toml"),
-            l2   = [10723.628704109766, 13336.232286560364, 7.886319075672209e-6, 26809.064110298692],
-            linf = [15175.393292613328, 18861.296962089087, 5.736141054119072e-5, 37925.79784276709],
+            l2   = [10723.612237729343, 13336.21827245215, 2.602694645664843e-6, 26809.022944817934],
+            linf = [15180.113784657791, 18852.413654859887, 9.130954929048019e-6, 37937.54015407339],
             t_end=0.1, update_gravity_once_per_stage=false)
   end
 
   @testset "parameters_jeans_instability.toml with RK3S*" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_jeans_instability.toml"),
-            l2   = [10734.467064217813, 13358.172101425738, 7.590895434458968e-6, 26836.1600182602],
-            linf = [15190.72004490532, 18892.323766605758, 3.585224859803839e-5, 37964.11502066627],
+            l2   = [10734.450531008228, 13358.15805096243, 2.0427912643500984e-6, 26836.118685698464],
+            linf = [15195.451979616657, 18883.428240704106, 1.0980410384074066e-5, 37975.88591177389],
             t_end=0.1, time_integration_scheme_gravity="timestep_gravity_erk52_3Sstar!",
             cfl_gravity=1.2)
   end
