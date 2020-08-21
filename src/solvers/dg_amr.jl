@@ -76,10 +76,8 @@ end
 
 
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
-                         old_u::AbstractArray{Float64, 4}, old_element_id::Int,
-                         forward_upper::AbstractMatrix{Float64},
-                         forward_lower::AbstractMatrix{Float64}, dg::Dg)
+function refine_element!(u, element_id, old_u, old_element_id,
+                         forward_upper, forward_lower, dg::Dg)
   # Store new element ids
   lower_left_id  = element_id
   lower_right_id = element_id + 1
@@ -87,63 +85,39 @@ function refine_element!(u::AbstractArray{Float64, 4}, element_id::Int,
   upper_right_id = element_id + 3
 
   # Interpolate to lower left element
-  u[:, :, :, lower_left_id] .= 0.0
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, lower_left_id] += (old_u[v, k, l, old_element_id] *
-                                          forward_lower[i, k] * forward_lower[j, l])
-          end
-        end
-      end
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, element_id))
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_lower[i, k] * forward_lower[j, l]
     end
+    set_node_vars!(u, acc, dg, i, j, lower_left_id)
   end
 
   # Interpolate to lower right element
-  u[:, :, :, lower_right_id] .= 0.0
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, lower_right_id] += (old_u[v, k, l, old_element_id] *
-                                           forward_upper[i, k] * forward_lower[j, l])
-          end
-        end
-      end
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, element_id))
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_upper[i, k] * forward_lower[j, l]
     end
+    set_node_vars!(u, acc, dg, i, j, lower_right_id)
   end
 
   # Interpolate to upper left element
-  u[:, :, :, upper_left_id] .= 0.0
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, upper_left_id] += (old_u[v, k, l, old_element_id] *
-                                          forward_lower[i, k] * forward_upper[j, l])
-          end
-        end
-      end
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, element_id))
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
     end
+    set_node_vars!(u, acc, dg, i, j, upper_left_id)
   end
 
   # Interpolate to upper right element
-  u[:, :, :, upper_right_id] .= 0.0
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, upper_right_id] += (old_u[v, k, l, old_element_id] *
-                                           forward_upper[i, k] * forward_upper[j, l])
-          end
-        end
-      end
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, element_id))
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
     end
+    set_node_vars!(u, acc, dg, i, j, upper_right_id)
   end
 end
 
@@ -194,7 +168,7 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
       coarsen_elements!(elements.u, element_id, old_u, old_element_id,
                         dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg)
       element_id += 1
-      skip = 3
+      skip = 2^ndim - 1
     else
       # Copy old element data to new element container
       @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
@@ -236,73 +210,39 @@ end
 
 
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u::AbstractArray{Float64, 4}, element_id::Int,
-                           old_u::AbstractArray{Float64, 4}, old_element_id::Int,
-                           reverse_upper::AbstractMatrix{Float64},
-                           reverse_lower::AbstractMatrix{Float64}, dg::Dg)
+function coarsen_elements!(u, element_id, old_u, old_element_id,
+                           reverse_upper, reverse_lower, dg::Dg)
   # Store old element ids
   lower_left_id  = old_element_id
   lower_right_id = old_element_id + 1
   upper_left_id  = old_element_id + 2
   upper_right_id = old_element_id + 3
 
-  # Reset solution
-  u[:, :, :, element_id] .= 0.0
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, element_id))
 
-  # Project from lower left element
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, element_id] += (old_u[v, k, l, lower_left_id] *
-                                       reverse_lower[i, k] * reverse_lower[j, l])
-          end
-        end
-      end
+    # Project from lower left element
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, lower_left_id) * reverse_lower[i, k] * reverse_lower[j, l]
     end
-  end
 
-  # Project from lower right element
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, element_id] += (old_u[v, k, l, lower_right_id] *
-                                       reverse_upper[i, k] * reverse_lower[j, l])
-          end
-        end
-      end
+    # Project from lower right element
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, lower_right_id) * reverse_upper[i, k] * reverse_lower[j, l]
     end
-  end
 
-  # Project from upper left element
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, element_id] += (old_u[v, k, l, upper_left_id] *
-                                       reverse_lower[i, k] * reverse_upper[j, l])
-          end
-        end
-      end
+    # Project from upper left element
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
     end
-  end
 
-  # Project from upper right element
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      for l in 1:nnodes(dg)
-        for k in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u[v, i, j, element_id] += (old_u[v, k, l, upper_right_id] *
-                                       reverse_upper[i, k] * reverse_upper[j, l])
-          end
-        end
-      end
+    # Project from upper right element
+    for l in 1:nnodes(dg), k in 1:nnodes(dg)
+      acc += get_node_vars(old_u, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
     end
+
+    # Update value
+    set_node_vars!(u, acc, dg, i, j, element_id)
   end
 end
 
