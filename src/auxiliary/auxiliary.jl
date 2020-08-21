@@ -10,13 +10,13 @@ const main_timer = TimerOutput()
 timer() = main_timer
 
 # Initialize top-level parameters structure for program-wide parameters
-const parameters = Dict()
+const parameters = Dict{Symbol,Any}()
 
 
 # Parse parameters file into global dict
 function parse_parameters_file(filename)
-  parameters["default"] = parsefile(filename)
-  parameters["default"]["parameters_file"] = filename
+  parameters[:default] = parsefile(filename)
+  parameters[:default]["parameters_file"] = filename
 end
 
 
@@ -25,13 +25,13 @@ end
 # If no default value is specified, the parameter is required and the program
 # stops if the parameter was not found. The range of valid parameters is used
 # to restrict parameters to sane values.
-function parameter(name::String, default=nothing; valid=nothing)
-  if haskey(parameters["default"], name)
+function parameter(name, default=nothing; valid=nothing)
+  if haskey(parameters[:default], name)
     # If parameter exists, use its value
-    value = parameters["default"][name]
+    value = parameters[:default][name]
   else
     # Otherwise check whether a default is given and abort if not
-    if default == nothing
+    if default === nothing
       error("requested paramter '$name' does not exist and no default value was provided")
     else
       value = default
@@ -39,7 +39,7 @@ function parameter(name::String, default=nothing; valid=nothing)
   end
 
   # If a range of valid values has been specified, check parameter value against it
-  if valid != nothing
+  if valid !== nothing
     if !(value in valid)
       error("'$value' is not a valid value for parameter '$name' (valid: $valid)")
     end
@@ -55,11 +55,11 @@ end
 Set parameter with the specified `name` to the specified `value`.
 """
 function setparameter(name::String, value)
-  parameters["default"][name] = value
+  parameters[:default][name] = value
 end
 
 # Return true if parameter exists.
-parameter_exists(name::String) = haskey(parameters["default"], name)
+parameter_exists(name::String) = haskey(parameters[:default], name)
 
 
 # Parse command line arguments and return as dict
