@@ -236,7 +236,8 @@ function create_thread_cache(n_variables, n_nodes)
   A4d = Array{Float64, 4}
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
-  A2d = MArray{Tuple{n_variables, n_nodes}, Float64}
+  MA2d = MArray{Tuple{n_variables, n_nodes}, Float64}
+  A2d = Array{Float64, 2}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
@@ -247,11 +248,13 @@ function create_thread_cache(n_variables, n_nodes)
                              for _ in 1:Threads.nthreads()]
   fstar2_threaded  = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1)
                              for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes)
+                         for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
-            fstar_upper_threaded, fstar_lower_threaded)
+            fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
  end
 
 
@@ -1550,7 +1553,7 @@ end
 function prolong2interfaces!(dg)
   equation = equations(dg)
 
-  for s in 1:dg.n_interfaces
+  Threads.@threads for s in 1:dg.n_interfaces
     left_element_id = dg.interfaces.neighbor_ids[1, s]
     right_element_id = dg.interfaces.neighbor_ids[2, s]
     if dg.interfaces.orientations[s] == 1
@@ -1602,16 +1605,19 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type)
+prolong2mortars!(dg) = prolong2mortars!(dg, dg.mortar_type, dg.thread_cache)
 
 # Prolong solution to mortars (l2mortar version)
-function prolong2mortars!(dg, ::Val{:l2})
+function prolong2mortars!(dg, ::Val{:l2}, thread_cache)
   equation = equations(dg)
 
   # Local storage for interface data of large element
-  u_large = zeros(nvariables(dg), nnodes(dg))
+  # u_large_threaded = [zeros(nvariables(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  @unpack u_large_threaded = thread_cache
 
-  for m in 1:dg.n_l2mortars
+  Threads.@threads for m in 1:dg.n_l2mortars
+    u_large = u_large_threaded[Threads.threadid()]
+
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
     lower_element_id = dg.l2mortars.neighbor_ids[1, m]
@@ -1692,10 +1698,10 @@ end
 
 
 # Prolong solution to mortars (ecmortar version)
-function prolong2mortars!(dg, ::Val{:ec})
+function prolong2mortars!(dg, ::Val{:ec}, thread_cache)
   equation = equations(dg)
 
-  for m in 1:dg.n_ecmortars
+  Threads.@threads for m in 1:dg.n_ecmortars
     large_element_id = dg.ecmortars.neighbor_ids[3, m]
     upper_element_id = dg.ecmortars.neighbor_ids[2, m]
     lower_element_id = dg.ecmortars.neighbor_ids[1, m]
