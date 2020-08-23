@@ -16,15 +16,15 @@ jobs:
     - if: type = push AND branch = master
       julia: 1
       os: osx
-    - stage: "Documentation"
-      julia: 1
-      os: linux
-      script:
-        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
-                                               Pkg.build("Trixi");
-                                               Pkg.instantiate()'
-        - julia --project=docs/ docs/make.jl
-      after_success: skip
+    # - stage: "Documentation"
+    #   julia: 1
+    #   os: linux
+    #   script:
+    #     - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+    #                                            Pkg.build("Trixi");
+    #                                            Pkg.instantiate()'
+    #     - julia --project=docs/ docs/make.jl
+    #   after_success: skip
 
 codecov: true
 coveralls: true
