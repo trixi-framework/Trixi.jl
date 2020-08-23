@@ -513,6 +513,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   # Read command line or keyword arguments and parse parameters file
   init_parameters(parameters_file; verbose=verbose, args=args,
       refinement_level_increment=refinement_level_increment, parameters...)
+  globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()
 
   equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||

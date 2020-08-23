@@ -18,6 +18,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
                                           initial_refinement_level=2)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < length(λ) * eps(real(eltype(λ)))
+
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
+                                          Trixi.source_terms_harmonic,
+                                          initial_refinement_level=2)
+    λ = eigvals(Matrix(A))
+    @test maximum(real, λ) < 10*length(λ) * eps(real(eltype(λ)))
   end
 end
 

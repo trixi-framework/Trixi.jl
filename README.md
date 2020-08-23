@@ -1,5 +1,6 @@
 # Trixi.jl
 
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Build Linux & macOS](https://travis-ci.com/trixi-framework/Trixi.jl.svg?branch=master)](https://travis-ci.com/trixi-framework/Trixi.jl)
 [![Build Windows](https://ci.appveyor.com/api/projects/status/uu0xds4hyc1i10n8/branch/master?svg=true)](https://ci.appveyor.com/project/ranocha/trixi-jl/branch/master)
@@ -7,9 +8,8 @@
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.1.1.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.1.2.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 
-<!-- [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable) -->
 
 
 
@@ -36,14 +36,25 @@ You can then install Trixi, the postprocessing tools, and the respective depende
 performing the following steps:
 
   1. Clone the repository:
-     ```
+     ```bash
      git clone git@github.com:trixi-framework/Trixi.jl.git
      ```
   2. Enter the cloned directory and run the following command to install all
      required dependencies:
-     ```
+     ```bash
      julia utils/install.jl
      ```
+
+Trixi is also a registered Julia package. Hence, you can also install Trixi via
+```julia
+julia> import Pkg
+
+julia> Pkg.add("Trixi")
+```
+If you do this and want to modify Trixi, you can run
+```julia
+julia> Pkg.dev("Trixi") # get a clone of the git repository, usually in ~/.julia/dev/Trixi
+```
 
 
 ## Usage
