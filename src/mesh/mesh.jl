@@ -43,6 +43,9 @@ TreeMesh(::Val{D}, args...) where D = TreeMesh{D}(args...)
 TreeMesh{1}(n::Int, center::Real, len::Real, periodicity=true) = TreeMesh{1}(n, [convert(Float64, center)], len, periodicity)
 
 
+@inline Base.ndims(mesh::TreeMesh) = ndims(mesh.tree)
+
+
 # Generate initial mesh
 function generate_mesh()
   # Get number of spatial dimensions

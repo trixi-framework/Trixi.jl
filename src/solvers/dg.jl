@@ -258,7 +258,7 @@ function create_thread_cache(n_variables, n_nodes)
 end
 
 
-@inline Base.ndims(::Dg) = ndims(equations(dg))
+@inline Base.ndims(dg::Dg) = ndims(equations(dg))
 
 
 # Return polynomial degree for a DG solver

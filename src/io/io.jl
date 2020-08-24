@@ -184,7 +184,7 @@ function save_mesh_file(mesh::TreeMesh, timestep=-1)
   h5open(filename * ".h5", "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
-    attrs(file)["ndims"] = ndims(dg)
+    attrs(file)["ndims"] = ndims(mesh)
     attrs(file)["n_cells"] = n_cells
     attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
     attrs(file)["minimum_level"] = minimum_level(mesh.tree)
