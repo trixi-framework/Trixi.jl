@@ -53,7 +53,7 @@ end
 function interpolate_nodes(data_in::AbstractArray{T, 4},
                            vandermonde, n_vars) where T
   n_nodes_out = size(vandermonde, 1)
-  data_out = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_out)
+  data_out = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_out, n_nodes_out)
   interpolate_nodes!(data_out, data_in, vandermonde, n_vars)
 end
 

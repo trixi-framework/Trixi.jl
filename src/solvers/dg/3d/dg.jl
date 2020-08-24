@@ -113,7 +113,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa HyperbolicDiffusionEquations3D && globals[:euler_gravity]
+  if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity] # FIXME: ndims
     volume_integral_type = Val(:weak_form)
   end
   dhat = calc_dhat(nodes, weights)
@@ -236,11 +236,11 @@ function create_thread_cache_3d(n_variables, n_nodes)
   A2d = Array{Float64, 2} # FIXME: ndims mortar
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+  f1_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes, n_nodes)
                          for _ in 1:Threads.nthreads()]
-  f2_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+  f2_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes, n_nodes)
                          for _ in 1:Threads.nthreads()]
-  f3_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+  f3_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes, n_nodes)
                          for _ in 1:Threads.nthreads()]
   fstar1_threaded  = A4dp1_x[A4dp1_x(undef, n_variables, n_nodes+1, n_nodes, n_nodes)
                              for _ in 1:Threads.nthreads()]
