@@ -1,6 +1,6 @@
 
 # Load restart file and store solution in solver
-function load_restart_file!(dg::Dg2D, restart_filename)
+function load_restart_file!(dg::AbstractDg, restart_filename)
   # Create variables to be returned later
   time = NaN
   step = -1
@@ -39,7 +39,13 @@ function load_restart_file!(dg::Dg2D, restart_filename)
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      dg.elements.u[v, :, :, :] = read(file["variables_$v"])
+      if ndims(dg) == 2
+        dg.elements.u[v, :, :, :] = read(file["variables_$v"])
+      elseif ndims(dg) == 3
+        dg.elements.u[v, :, :, :, :] = read(file["variables_$v"])
+      else
+        error("Unsupported number of spatial dimensions: ", ndims(dg))
+      end
     end
   end
 
@@ -49,7 +55,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # restarting.
-function save_restart_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep)
+function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -84,7 +90,13 @@ function save_restart_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep)
     # Store each variable of the solution
     for v = 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = data[v, :, :, :][:]
+      if ndims(dg) == 2
+        file["variables_$v"] = data[v, :, :, :][:]
+      elseif ndims(dg) == 3
+        file["variables_$v"] = data[v, :, :, :, :][:]
+      else
+        error("Unsupported number of spatial dimensions: ", ndims(dg))
+      end
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -96,7 +108,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep, system="")
+function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system="")
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -129,8 +141,16 @@ function save_solution_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep, system
     attrs(file)["timestep"] = timestep
 
     # Add coordinates as 1D arrays
-    file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
-    file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
+    if ndims(dg) == 2
+      file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
+      file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
+    elseif ndims(dg) == 3
+      file["x"] = dg.elements.node_coordinates[1, :, :, :, :][:]
+      file["y"] = dg.elements.node_coordinates[2, :, :, :, :][:]
+      file["z"] = dg.elements.node_coordinates[3, :, :, :, :][:]
+    else
+      error("Unsupported number of spatial dimensions: ", ndims(dg))
+    end
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
@@ -146,7 +166,13 @@ function save_solution_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep, system
     # Store each variable of the solution
     for v = 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = data[v, :, :, :][:]
+      if ndims(dg) == 2
+        file["variables_$v"] = data[v, :, :, :][:]
+      elseif ndims(dg) == 3
+        file["variables_$v"] = data[v, :, :, :, :][:]
+      else
+        error("Unsupported number of spatial dimensions: ", ndims(dg))
+      end
 
       # Add variable name as attribute
       var = file["variables_$v"]
