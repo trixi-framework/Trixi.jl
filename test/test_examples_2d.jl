@@ -10,10 +10,10 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
 # Run basic tests
-@testset "Examples (short execution time)" begin
+@testset "Examples 2D" begin
   @testset "parameters.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
             l2   = [9.144681765639205e-6],

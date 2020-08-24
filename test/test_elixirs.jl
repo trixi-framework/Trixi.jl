@@ -9,7 +9,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
 
 @testset "Elixirs" begin
