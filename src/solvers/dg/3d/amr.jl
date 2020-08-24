@@ -1,7 +1,7 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
+function refine!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
                  cells_to_refine::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
@@ -77,7 +77,7 @@ end
 
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u, element_id, old_u, old_element_id,
-                         forward_upper, forward_lower, dg::Dg2D)
+                         forward_upper, forward_lower, dg::Dg3D)
   # Store new element ids
   lower_left_id  = element_id
   lower_right_id = element_id + 1
@@ -123,7 +123,7 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
+function coarsen!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
                   child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, V, N}
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
@@ -211,7 +211,7 @@ end
 
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u, element_id, old_u, old_element_id,
-                           reverse_upper, reverse_lower, dg::Dg2D)
+                           reverse_upper, reverse_lower, dg::Dg3D)
   # Store old element ids
   lower_left_id  = old_element_id
   lower_right_id = old_element_id + 1
@@ -258,7 +258,7 @@ end
 #
 # FIXME: This is currently implemented for each test case - we need something
 # appropriate that is both equation and test case independent
-function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
+function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
   lambda = zeros(dg.n_elements)
 
   if dg.amr_indicator === :gauss
@@ -310,7 +310,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     # Iterate over all elements
     for element_id in 1:dg.n_elements
       cell_id = dg.elements.cell_ids[element_id]
-      r = periodic_distance_2d(mesh.tree.coordinates[:, cell_id], center, domain_length)
+      r = periodic_distance_3d(mesh.tree.coordinates[:, cell_id], center, domain_length)
       if r < radius_high
         target_level = max_level
       elseif r < radius_low
@@ -529,7 +529,7 @@ end
 
 # For periodic domains, distance between two points must take into account
 # periodic extensions of the domain
-function periodic_distance_2d(coordinates, center, domain_length)
+function periodic_distance_3d(coordinates, center, domain_length)
   dx = abs.(coordinates - center)
   dx_periodic = min.(dx, domain_length .- dx)
   return sqrt(sum(dx_periodic.^2))

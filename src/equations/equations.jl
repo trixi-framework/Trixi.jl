@@ -24,26 +24,28 @@ function make_equations(name::String, ndims_)
   if name == "LinearScalarAdvectionEquation"
     if ndims_ == 2
       return LinearScalarAdvectionEquation2D()
-    else
+    elseif ndims_ == 3
       return LinearScalarAdvectionEquation3D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
     end
   elseif name == "CompressibleEulerEquations"
     if ndims_ == 2
       return CompressibleEulerEquations2D()
     else
-      error("CompressibleEulerEquations is not implemented for 3D")
+      error("Unsupported number of spatial dimensions: ", ndims_)
     end
   elseif name == "IdealGlmMhdEquations"
     if ndims_ == 2
       return IdealGlmMhdEquations2D()
     else
-      error("IdealGlmMhdEquations is not implemented for 3D")
+      error("Unsupported number of spatial dimensions: ", ndims_)
     end
   elseif name == "HyperbolicDiffusionEquations"
     if ndims_ == 2
       return HyperbolicDiffusionEquations2D()
     else
-      error("HyperbolicDiffusionEquations is not implemented for 3D")
+      error("Unsupported number of spatial dimensions: ", ndims_)
     end
   else
     error("'$name' does not name a valid system of equations")

@@ -1,5 +1,5 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg2D{Eqn<:AbstractEquation, V, N,
+mutable struct Dg3D{Eqn<:AbstractEquation, V, N,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
                   VectorNp1, MatrixNp1, MatrixNp12,
@@ -12,19 +12,19 @@ mutable struct Dg2D{Eqn<:AbstractEquation, V, N,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer2D{V, N}
+  elements::ElementContainer3D{V, N}
   n_elements::Int
 
-  interfaces::InterfaceContainer2D{V, N}
+  interfaces::InterfaceContainer3D{V, N}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer2D{V, N}
+  boundaries::BoundaryContainer3D{V, N}
   n_boundaries::Int
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer2D{V, N}
+  l2mortars::L2MortarContainer3D{V, N}
   n_l2mortars::Int
-  ecmortars::EcMortarContainer2D{V, N}
+  ecmortars::EcMortarContainer3D{V, N}
   n_ecmortars::Int
 
   nodes::VectorNp1
@@ -72,7 +72,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
+function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -96,7 +96,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Sanity checks
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+    @assert n_interfaces == 2*n_elements ("For 3D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
 
@@ -113,7 +113,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity]
+  if equation isa HyperbolicDiffusionEquations3D && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
   end
   dhat = calc_dhat(nodes, weights)
@@ -191,13 +191,13 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
-  thread_cache = create_thread_cache_2d(NVARS, N+1)
+  thread_cache = create_thread_cache_3d(NVARS, N+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
   # Create actual DG solver instance
-  dg = Dg2D(
+  dg = Dg3D(
       equation,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
@@ -226,7 +226,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 end
 
 
-function create_thread_cache_2d(n_variables, n_nodes)
+function create_thread_cache_3d(n_variables, n_nodes)
   # Type alias only for convenience
   A4d = Array{Float64, 4}
   A3dp1_x = Array{Float64, 3}
@@ -253,45 +253,45 @@ function create_thread_cache_2d(n_variables, n_nodes)
 end
 
 
-@inline Base.ndims(dg::Dg2D) = ndims(equations(dg))
+@inline Base.ndims(dg::Dg3D) = ndims(equations(dg))
 
 
 # Return polynomial degree for a DG solver
-@inline polydeg(::Dg2D{Eqn, V, N}) where {Eqn, V, N} = N
+@inline polydeg(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N
 
 
 # Return number of nodes in one direction
-@inline nnodes(::Dg2D{Eqn, V, N}) where {Eqn, V, N} = N + 1
+@inline nnodes(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N + 1
 
 
 # Return system of equations instance for a DG solver
-@inline equations(dg::Dg2D) = dg.equations
+@inline equations(dg::Dg3D) = dg.equations
 
 
 # Return number of variables for the system of equations in use
-@inline nvariables(dg::Dg2D) = nvariables(equations(dg))
+@inline nvariables(dg::Dg3D) = nvariables(equations(dg))
 
 
 # Return number of degrees of freedom
-@inline ndofs(dg::Dg2D) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
+@inline ndofs(dg::Dg3D) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
 
 
-@inline get_node_vars(u, dg::Dg2D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
+@inline get_node_vars(u, dg::Dg3D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
 
-@inline function get_surface_node_vars(u, dg::Dg2D, indices...)
+@inline function get_surface_node_vars(u, dg::Dg3D, indices...)
   u_ll = SVector(ntuple(i -> u[1, i, indices...], nvariables(dg)))
   u_rr = SVector(ntuple(i -> u[2, i, indices...], nvariables(dg)))
   return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, u_node, ::Dg2D, indices...)
+@inline function set_node_vars!(u, u_node, ::Dg3D, indices...)
   for i in eachindex(u_node)
     u[i, indices...] = u_node[i]
   end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, ::Dg2D, indices...)
+@inline function add_to_node_vars!(u, u_node, ::Dg3D, indices...)
   for i in eachindex(u_node)
     u[i, indices...] += u_node[i]
   end
@@ -300,7 +300,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{2}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh{3}, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -331,7 +331,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{2}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh{3}, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -357,7 +357,7 @@ end
 
 
 # Count the number of mortars that need to be created
-function count_required_mortars(mesh::TreeMesh{2}, cell_ids)
+function count_required_mortars(mesh::TreeMesh{3}, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -386,10 +386,10 @@ end
 #
 # V: number of variables
 # N: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{2}, ::Val{V}, ::Val{N}) where {V, N}
+function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}) where {V, N}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer2D{V, N}(n_elements)
+  elements = ElementContainer3D{V, N}(n_elements)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
@@ -428,10 +428,10 @@ end
 #
 # V: number of variables
 # N: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{V}, ::Val{N}, elements) where {V, N}
+function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements) where {V, N}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer2D{V, N}(n_interfaces)
+  interfaces = InterfaceContainer3D{V, N}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -444,10 +444,10 @@ end
 #
 # V: number of variables
 # N: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{V}, ::Val{N}, elements) where {V, N}
+function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements) where {V, N}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{V, N}(n_boundaries)
+  boundaries = BoundaryContainer3D{V, N}(n_boundaries)
 
   # Connect elements with boundaries
   init_boundary_connectivity!(elements, boundaries, mesh)
@@ -460,7 +460,7 @@ end
 #
 # V: number of variables
 # N: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
+function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -472,8 +472,8 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{V}, ::Val{N}, elements,
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer2D{V, N}(n_l2mortars)
-  ecmortars = EcMortarContainer2D{V, N}(n_ecmortars)
+  l2mortars = L2MortarContainer3D{V, N}(n_l2mortars)
+  ecmortars = EcMortarContainer3D{V, N}(n_ecmortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
@@ -489,7 +489,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{2})
+function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{3})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -539,7 +539,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
+function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
   # Reset boundaries count
   count = 0
 
@@ -602,7 +602,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
+function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{3})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -674,7 +674,7 @@ end
 
 
 """
-    integrate(func, dg::Dg2D, args...; normalize=true)
+    integrate(func, dg::Dg3D, args...; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
@@ -696,7 +696,7 @@ dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, 
 end
 ```
 """
-function integrate(func, dg::Dg2D, args...; normalize=true)
+function integrate(func, dg::Dg3D, args...; normalize=true)
   # Initialize integral with zeros of the right shape
   integral = zero(func(1, 1, 1, dg, args...))
 
@@ -720,8 +720,8 @@ end
 
 
 """
-    integrate(func, u, dg::Dg2D; normalize=true)
-    integrate(u, dg::Dg2D; normalize=true)
+    integrate(func, u, dg::Dg3D; normalize=true)
+    integrate(u, dg::Dg3D; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
@@ -737,18 +737,18 @@ Calculate the integral over all conservative variables:
 state_integrals = integrate(dg.elements.u, dg)
 ```
 """
-function integrate(func, u, dg::Dg2D; normalize=true)
+function integrate(func, u, dg::Dg3D; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
   return integrate(func_wrapped, dg, u; normalize=normalize)
 end
-integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
+integrate(u, dg::Dg3D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(dg::Dg2D, t::Float64)
+function calc_error_norms(dg::Dg3D, t::Float64)
   # Gather necessary information
   equation = equations(dg)
   n_nodes_analysis = length(dg.analysis_nodes)
@@ -788,7 +788,7 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg2D, t)
+function calc_entropy_timederivative(dg::Dg3D, t)
   # Compute entropy variables for all elements and nodes with current solution u
   dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
 
@@ -807,8 +807,8 @@ end
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
-function calc_mhd_solenoid_condition(dg::Dg2D, t::Float64)
-  @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
+function calc_mhd_solenoid_condition(dg::Dg3D, t::Float64)
+  @assert equations(dg) isa IdealGlmMhdEquations3D "Only relevant for MHD"
 
   # Local copy of standard derivative matrix
   d = polynomial_derivative_matrix(dg.nodes)
@@ -839,7 +839,7 @@ end
 
 
 """
-    analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
+    analyze_solution(dg::Dg3D, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
 
 Calculate error norms and other analysis quantities to analyze the solution
 during a simulation, and return the L2 and Linf errors. `dg` and `mesh` are the
@@ -851,7 +851,7 @@ performance index is specified in `runtime_relative`.
 **Note:** Keep order of analysis quantities in sync with
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
-function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
+function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
   equation = equations(dg)
 
@@ -1106,7 +1106,7 @@ system of equations instance is passed in `equation`.
 **Note:** Keep order of analysis quantities in sync with
           [`analyze_solution`](@ref) when adding or changing quantities.
 """
-function save_analysis_header(filename, quantities, equation::AbstractEquation{2})
+function save_analysis_header(filename, quantities, equation::AbstractEquation{3})
   open(filename, "w") do f
     @printf(f, "#%-8s", "timestep")
     @printf(f, "  %-14s", "time")
@@ -1167,7 +1167,7 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions!(dg::Dg2D, time)
+function set_initial_conditions!(dg::Dg3D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
@@ -1183,7 +1183,7 @@ end
 
 
 # Calculate time derivative
-function rhs!(dg::Dg2D, t_stage)
+function rhs!(dg::Dg3D, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
@@ -1220,11 +1220,11 @@ end
 
 
 # Calculate volume integral and update u_t
-calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
+calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
 
 
-# Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg2D)
+# Calculate 3D twopoint flux (element version)
+@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg3D)
   @unpack volume_flux_function = dg
 
   for j in 1:nnodes(dg)
@@ -1261,11 +1261,11 @@ calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volu
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg2D)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg3D)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg2D)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
@@ -1273,7 +1273,7 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(u_t, ::Val{:weak_form}, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:weak_form}, dg::Dg3D)
   @unpack dhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1307,12 +1307,12 @@ end
 #       for the first version. That's why we use a dispatch here.
 #       We should find a way to generalize the way we handle nonconservative terms,
 #       also for the weak form volume integral type.
-@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
+@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg3D)
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D)
   @unpack dsplit_transposed = dg
   # Do not use the thread_cache here since that reduces the performance significantly
   # (which we do not fully understand right now)
@@ -1349,7 +1349,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
   end
 end
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D)
   @unpack volume_flux_function, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1393,7 +1393,7 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg3D)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
@@ -1422,7 +1422,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
+                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D)
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded = thread_cache
 
@@ -1507,18 +1507,18 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg2D)
+    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg3D)
 
 Calculate the finite volume fluxes inside the elements.
 
 # Arguments
 - `fstar1::AbstractArray{T} where T<:Real`:
 - `fstar2::AbstractArray{T} where T<:Real`
-- `dg::Dg2D`
+- `dg::Dg3D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg2D)
+@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg3D)
   @unpack surface_flux_function = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1548,7 +1548,7 @@ end
 
 
 # Prolong solution to interfaces (for GL nodes: just a copy)
-function prolong2interfaces!(dg::Dg2D)
+function prolong2interfaces!(dg::Dg3D)
   equation = equations(dg)
 
   Threads.@threads for s in 1:dg.n_interfaces
@@ -1572,7 +1572,7 @@ end
 
 
 # Prolong solution to boundaries (for GL nodes: just a copy)
-function prolong2boundaries!(dg::Dg2D)
+function prolong2boundaries!(dg::Dg3D)
   equation = equations(dg)
 
   for b in 1:dg.n_boundaries
@@ -1603,10 +1603,10 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg::Dg2D) = prolong2mortars!(dg, dg.mortar_type, dg.thread_cache)
+prolong2mortars!(dg::Dg3D) = prolong2mortars!(dg, dg.mortar_type, dg.thread_cache)
 
 # Prolong solution to mortars (l2mortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
+function prolong2mortars!(dg::Dg3D, ::Val{:l2}, thread_cache)
   equation = equations(dg)
 
   # Local storage for interface data of large element
@@ -1696,7 +1696,7 @@ end
 
 
 # Prolong solution to mortars (ecmortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:ec}, thread_cache)
+function prolong2mortars!(dg::Dg3D, ::Val{:ec}, thread_cache)
   equation = equations(dg)
 
   Threads.@threads for m in 1:dg.n_ecmortars
@@ -1751,7 +1751,7 @@ end
 
 
 """
-    riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg2D)
+    riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg3D)
 
 Calculate the surface flux across interface with different states given by
 `u_interfaces_left, u_interfaces_right` on both sides (EC mortar version).
@@ -1763,9 +1763,9 @@ Calculate the surface flux across interface with different states given by
 - `u_interfaces_right::AbstractArray{T,3} where T<:Real``
 - `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
-- `dg::Dg2D`
+- `dg::Dg3D`
 """
-function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg2D)
+function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg3D)
   @unpack surface_flux_function = dg
 
   # Call pointwise Riemann solver
@@ -1783,7 +1783,7 @@ function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_
 end
 
 """
-    riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg2D)
+    riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg3D)
 
 Calculate the surface flux across interface with different states given by
 `u_interfaces_left, u_interfaces_right` on both sides (interface version).
@@ -1794,9 +1794,9 @@ Calculate the surface flux across interface with different states given by
 - `u_interfaces::AbstractArray{T,4} where T<:Real``
 - `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
-- `dg::Dg2D`
+- `dg::Dg3D`
 """
-function riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg2D)
+function riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg3D)
   @unpack surface_flux_function = dg
 
   for i in 1:nnodes(dg)
@@ -1814,10 +1814,10 @@ end
 # OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
 #                                           2) only needed for the MHD equations
 #                                           3) not implemented for boundaries
-calc_interface_flux!(dg::Dg2D) = calc_interface_flux!(dg.elements.surface_flux_values,
+calc_interface_flux!(dg::Dg3D) = calc_interface_flux!(dg.elements.surface_flux_values,
                                                       have_nonconservative_terms(dg.equations), dg)
 
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg2D)
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg3D)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, orientations = dg.interfaces
 
@@ -1846,7 +1846,7 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
 end
 
 # Calculate and store Riemann and nonconservative fluxes across interfaces
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg2D)
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO temporary workaround while implementing the other stuff
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
                        dg.interfaces.orientations, dg)
@@ -1854,7 +1854,7 @@ end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg2D)
+                              orientations, dg::Dg3D)
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1911,9 +1911,9 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
+calc_boundary_flux!(dg::Dg3D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
                                                     dg, time)
-function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
+function calc_boundary_flux!(surface_flux_values, dg::Dg3D, time)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
@@ -1960,13 +1960,13 @@ end
 
 
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
-calc_mortar_flux!(dg::Dg2D) = calc_mortar_flux!(dg, dg.mortar_type)
+calc_mortar_flux!(dg::Dg3D) = calc_mortar_flux!(dg, dg.mortar_type)
 
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
+calc_mortar_flux!(dg::Dg3D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
                                                                        dg.l2mortars, dg.thread_cache)
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, mortars, cache)
+function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
@@ -2033,13 +2033,13 @@ end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg::Dg2D, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, v,
+calc_mortar_flux!(dg::Dg3D, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, v,
                                                              dg.ecmortars.neighbor_ids,
                                                              dg.ecmortars.u_lower,
                                                              dg.ecmortars.u_upper,
                                                              dg.ecmortars.u_large,
                                                              dg.ecmortars.orientations)
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, ::Val{:ec},
+function calc_mortar_flux!(surface_flux_values, dg::Dg3D, ::Val{:ec},
                            neighbor_ids,
                            u_lower, u_upper, u_large,
                            orientations)
@@ -2149,8 +2149,8 @@ end
 
 
 # Calculate surface integrals and update u_t
-calc_surface_integral!(dg::Dg2D) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux_values, dg)
-function calc_surface_integral!(u_t, surface_flux_values, dg::Dg2D)
+calc_surface_integral!(dg::Dg3D) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux_values, dg)
+function calc_surface_integral!(u_t, surface_flux_values, dg::Dg3D)
   @unpack lhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -2171,7 +2171,7 @@ end
 
 
 # Apply Jacobian from mapping to reference element
-function apply_jacobian!(dg::Dg2D)
+function apply_jacobian!(dg::Dg3D)
   Threads.@threads for element_id in 1:dg.n_elements
     factor = -dg.elements.inverse_jacobian[element_id]
     for j in 1:nnodes(dg)
@@ -2186,11 +2186,11 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calc_sources!(dg::Dg2D, source_terms::Nothing, t)
+function calc_sources!(dg::Dg3D, source_terms::Nothing, t)
   return nothing
 end
 
-function calc_sources!(dg::Dg2D, source_terms, t)
+function calc_sources!(dg::Dg3D, source_terms, t)
   Threads.@threads for element_id in 1:dg.n_elements
     source_terms(dg.elements.u_t, dg.elements.u,
                  dg.elements.node_coordinates, element_id, t, nnodes(dg), equations(dg))
@@ -2199,7 +2199,7 @@ end
 
 
 # Calculate stable time step size
-function calc_dt(dg::Dg2D, cfl)
+function calc_dt(dg::Dg3D, cfl)
   min_dt = Inf
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
@@ -2213,7 +2213,7 @@ end
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
-                                indicator_variable, dg::Dg2D)
+                                indicator_variable, dg::Dg3D)
   # Calculate blending factor
   indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
   modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
@@ -2324,7 +2324,7 @@ Given blending factors `alpha` and the solver `dg`, fill
 `element_ids_dg` with the IDs of elements using a pure DG scheme and
 `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
 """
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::Dg2D)
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::Dg3D)
   empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 

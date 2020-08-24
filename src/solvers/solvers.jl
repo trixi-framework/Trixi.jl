@@ -29,8 +29,10 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
 
     if ndims(equations) == 2
       return Dg2D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, N)
+    elseif ndims(equations) == 3
+      return Dg3D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, N)
     else
-      error("Dg is not implemented for 3D")
+      error("Unsupported number of spatial dimensions: ", ndims(equations))
     end
   else
     error("'$name' does not name a valid solver")

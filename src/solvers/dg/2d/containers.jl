@@ -1,6 +1,6 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-struct ElementContainer{V, N} <: AbstractContainer
+struct ElementContainer2D{V, N} <: AbstractContainer
   u::Array{Float64, 4}                   # [variables, i, j, elements]
   u_t::Array{Float64, 4}                 # [variables, i, j, elements]
   u_tmp2::Array{Float64, 4}              # [variables, i, j, elements]
@@ -13,7 +13,7 @@ struct ElementContainer{V, N} <: AbstractContainer
 end
 
 
-function ElementContainer{V, N}(capacity::Integer) where {V, N} # V = no. variables, N = polydeg
+function ElementContainer2D{V, N}(capacity::Integer) where {V, N} # V = no. variables, N = polydeg
   # Initialize fields with defaults
   n_nodes = N + 1
   u = fill(NaN, V, n_nodes, n_nodes, capacity)
@@ -27,7 +27,7 @@ function ElementContainer{V, N}(capacity::Integer) where {V, N} # V = no. variab
   surface_flux_values = fill(NaN, V, n_nodes, 2 * 2, capacity) # FIXME: ndims
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
+  elements = ElementContainer2D{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
                                     surface_ids, surface_flux_values, cell_ids)
 
   return elements
@@ -35,36 +35,36 @@ end
 
 
 # Return number of elements
-nelements(elements::ElementContainer) = length(elements.cell_ids)
+nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-struct InterfaceContainer{V, N} <: AbstractContainer
+struct InterfaceContainer2D{V, N} <: AbstractContainer
   u::Array{Float64, 4}      # [leftright, variables, i, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
 end
 
 
-function InterfaceContainer{V, N}(capacity::Integer) where {V, N}
+function InterfaceContainer2D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u = fill(NaN, 2, V, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
-  interfaces = InterfaceContainer{V, N}(u, neighbor_ids, orientations)
+  interfaces = InterfaceContainer2D{V, N}(u, neighbor_ids, orientations)
 
   return interfaces
 end
 
 
 # Return number of interfaces
-ninterfaces(interfaces::InterfaceContainer) = length(interfaces.orientations)
+ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-struct BoundaryContainer{V, N} <: AbstractContainer
+struct BoundaryContainer2D{V, N} <: AbstractContainer
   u::Array{Float64, 4}                # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
@@ -73,7 +73,7 @@ struct BoundaryContainer{V, N} <: AbstractContainer
 end
 
 
-function BoundaryContainer{V, N}(capacity::Integer) where {V, N}
+function BoundaryContainer2D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u = fill(NaN, 2, V, n_nodes, capacity)
@@ -82,7 +82,7 @@ function BoundaryContainer{V, N}(capacity::Integer) where {V, N}
   neighbor_sides = fill(typemin(Int), capacity)
   node_coordinates = fill(NaN, 2, n_nodes, capacity) # FIXME: ndims
 
-  boundaries = BoundaryContainer{V, N}(u, neighbor_ids, orientations, neighbor_sides,
+  boundaries = BoundaryContainer2D{V, N}(u, neighbor_ids, orientations, neighbor_sides,
                                        node_coordinates)
 
   return boundaries
@@ -90,7 +90,7 @@ end
 
 
 # Return number of boundaries
-nboundaries(boundaries::BoundaryContainer) = length(boundaries.orientations)
+nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -102,7 +102,7 @@ nboundaries(boundaries::BoundaryContainer) = length(boundaries.orientations)
 #           |    |
 # lower = 1 |    |
 #           |    |
-struct L2MortarContainer{V, N} <: AbstractContainer
+struct L2MortarContainer2D{V, N} <: AbstractContainer
   u_upper::Array{Float64, 4} # [leftright, variables, i, mortars]
   u_lower::Array{Float64, 4} # [leftright, variables, i, mortars]
   neighbor_ids::Matrix{Int}  # [position, mortars]
@@ -112,7 +112,7 @@ struct L2MortarContainer{V, N} <: AbstractContainer
 end
 
 
-function L2MortarContainer{V, N}(capacity::Integer) where {V, N}
+function L2MortarContainer2D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u_upper = fill(NaN, 2, V, n_nodes, capacity)
@@ -121,18 +121,18 @@ function L2MortarContainer{V, N}(capacity::Integer) where {V, N}
   large_sides = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  l2mortars = L2MortarContainer{V, N}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
+  l2mortars = L2MortarContainer2D{V, N}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
 
   return l2mortars
 end
 
 
 # Return number of L2 mortars
-nmortars(l2mortars::L2MortarContainer) = length(l2mortars.orientations)
+nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents
-function Base.show(io::IO, c::L2MortarContainer{V, N}) where {V, N}
+function Base.show(io::IO, c::L2MortarContainer2D{V, N}) where {V, N}
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper)
     println(io, "c.u_upper[$idx] = $(c.u_upper[idx])")
@@ -156,7 +156,7 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-struct EcMortarContainer{V, N} <: AbstractContainer
+struct EcMortarContainer2D{V, N} <: AbstractContainer
   u_upper::Array{Float64, 3} # [variables, i, mortars]
   u_lower::Array{Float64, 3} # [variables, i, mortars]
   u_large::Array{Float64, 3} # [variables, i, mortars]
@@ -167,7 +167,7 @@ struct EcMortarContainer{V, N} <: AbstractContainer
 end
 
 
-function EcMortarContainer{V, N}(capacity::Integer) where {V, N}
+function EcMortarContainer2D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
   u_upper = fill(NaN, V, n_nodes, capacity)
@@ -177,7 +177,7 @@ function EcMortarContainer{V, N}(capacity::Integer) where {V, N}
   large_sides = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  ecmortars = EcMortarContainer{V, N}(u_upper, u_lower, u_large, neighbor_ids,
+  ecmortars = EcMortarContainer2D{V, N}(u_upper, u_lower, u_large, neighbor_ids,
                                       large_sides, orientations)
 
   return ecmortars
@@ -185,4 +185,4 @@ end
 
 
 # Return number of EC mortars
-nmortars(ecmortars::EcMortarContainer) = length(ecmortars.orientations)
+nmortars(ecmortars::EcMortarContainer2D) = length(ecmortars.orientations)
