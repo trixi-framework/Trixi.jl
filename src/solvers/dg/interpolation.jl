@@ -62,20 +62,15 @@ function interpolate_nodes!(data_out::AbstractArray{T, 4}, data_in::AbstractArra
   n_nodes_out = size(vandermonde, 1)
   n_nodes_in  = size(vandermonde, 2)
 
-  error("Implement me!")
-  #=for j in 1:n_nodes_out=#
-  #=  for i in 1:n_nodes_out=#
-  #=    for v in 1:n_vars=#
-  #=      acc = zero(eltype(data_out))=#
-  #=      for jj in 1:n_nodes_in=#
-  #=        for ii in 1:n_nodes_in=#
-  #=          acc += vandermonde[i, ii] * data_in[v, ii, jj] * vandermonde[j, jj]=#
-  #=        end=#
-  #=      end=#
-  #=      data_out[v, i, j] = acc=#
-  #=    end=#
-  #=  end=#
-  #=end=#
+  for k in 1:n_nodes_out, j in 1:n_nodes_out, i in 1:n_nodes_out
+    for v in 1:n_vars
+      acc = zero(eltype(data_out))
+      for kk in 1:n_nodes_in, jj in 1:n_nodes_in, ii in 1:n_nodes_in
+        acc += vandermonde[i, ii] * vandermonde[j, jj] * vandermonde[k, kk] * data_in[v, ii, jj, kk]
+      end
+      data_out[v, i, j, k] = acc
+    end
+  end
 
   return data_out
 end
