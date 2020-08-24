@@ -1,6 +1,6 @@
 
 # Base type from which all solvers inherit from
-abstract type AbstractSolver end
+abstract type AbstractSolver{NDIMS} end
 
 
 # Create an instance of a solver based on a given name
@@ -38,4 +38,4 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # DG
-include("dg.jl")
+include("dg/dg.jl")

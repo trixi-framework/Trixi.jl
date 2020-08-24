@@ -1,14 +1,9 @@
-
-# Note: there are more includes at the bottom that depend on DG internals
-include("interpolation.jl")
-include("dg_containers.jl")
-include("l2projection.jl")
-
-
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N, SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
+mutable struct Dg{Eqn<:AbstractEquation, V, N,
+                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
-                  VectorNp1, MatrixNp1, MatrixNp12, VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver
+                  VectorNp1, MatrixNp1, MatrixNp12,
+                  VectorNAnap1, MatrixNAnap1Np1} <: AbstractSolver{2}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -2343,7 +2338,3 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
     end
   end
 end
-
-
-# Note: this is included here since it depends on definitions in the DG main file
-include("dg_amr.jl")
