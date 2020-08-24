@@ -20,15 +20,31 @@ end
 
 
 # Create an instance of a system of equation type based on a given name
-function make_equations(name::String)
+function make_equations(name::String, ndims_)
   if name == "LinearScalarAdvectionEquation"
-    return LinearScalarAdvectionEquation()
+    if ndims_ == 2
+      return LinearScalarAdvectionEquation2D()
+    else
+      error("LinearScalarAdvectionEquation is not implemented for 3D")
+    end
   elseif name == "CompressibleEulerEquations"
-    return CompressibleEulerEquations()
+    if ndims_ == 2
+      return CompressibleEulerEquations2D()
+    else
+      error("CompressibleEulerEquations is not implemented for 3D")
+    end
   elseif name == "IdealGlmMhdEquations"
-    return IdealGlmMhdEquations()
+    if ndims_ == 2
+      return IdealGlmMhdEquations2D()
+    else
+      error("IdealGlmMhdEquations is not implemented for 3D")
+    end
   elseif name == "HyperbolicDiffusionEquations"
-    return HyperbolicDiffusionEquations()
+    if ndims_ == 2
+      return HyperbolicDiffusionEquations2D()
+    else
+      error("HyperbolicDiffusionEquations is not implemented for 3D")
+    end
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -60,13 +76,14 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
-include("linear_scalar_advection.jl")
+include("2d/linear_scalar_advection.jl")
+# include("3d/linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
-include("compressible_euler.jl")
+include("2d/compressible_euler.jl")
 
 # Ideal MHD
-include("ideal_glm_mhd.jl")
+include("2d/ideal_glm_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
-include("hyperbolic_diffusion.jl")
+include("2d/hyperbolic_diffusion.jl")

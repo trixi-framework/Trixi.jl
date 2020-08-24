@@ -118,7 +118,7 @@ function Dg(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, vol
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa HyperbolicDiffusionEquations && globals[:euler_gravity]
+  if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
   end
   dhat = calc_dhat(nodes, weights)
@@ -813,7 +813,7 @@ end
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
 function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
-  @assert equations(dg) isa IdealGlmMhdEquations "Only relevant for MHD"
+  @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
 
   # Local copy of standard derivative matrix
   d = polynomial_derivative_matrix(dg.nodes)

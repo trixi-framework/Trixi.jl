@@ -1,31 +1,31 @@
 
 @doc raw"""
-    IdealGlmMhdEquations
+    IdealGlmMhdEquations2D
 
 The ideal compressible GLM-MHD equations in two space dimensions.
 """
-mutable struct IdealGlmMhdEquations <: AbstractEquation{2, 9}
+mutable struct IdealGlmMhdEquations2D <: AbstractEquation{2, 9}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
 end
 
-function IdealGlmMhdEquations()
+function IdealGlmMhdEquations2D()
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
-  IdealGlmMhdEquations(gamma, c_h)
+  IdealGlmMhdEquations2D(gamma, c_h)
 end
 
 
-get_name(::IdealGlmMhdEquations) = "IdealGlmMhdEquations"
-have_nonconservative_terms(::IdealGlmMhdEquations) = Val(true)
-varnames_cons(::IdealGlmMhdEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-varnames_prim(::IdealGlmMhdEquations) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
-default_analysis_quantities(::IdealGlmMhdEquations) = (:l2_error, :linf_error, :dsdu_ut,
+get_name(::IdealGlmMhdEquations2D) = "IdealGlmMhdEquations2D"
+have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)
+varnames_cons(::IdealGlmMhdEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames_prim(::IdealGlmMhdEquations2D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+default_analysis_quantities(::IdealGlmMhdEquations2D) = (:l2_error, :linf_error, :dsdu_ut,
                                                        :l2_divb, :linf_divb)
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations2D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -38,7 +38,7 @@ function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations)
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
 
-function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations2D)
   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
   # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
   alpha = 0.25*pi
@@ -56,7 +56,7 @@ function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquation
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 5/3
   rho = 1.0
@@ -71,7 +71,7 @@ function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations)
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [0, 1] x [0, 1], γ = 1.4
   dx = x[1] - 0.5
@@ -100,7 +100,7 @@ function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations)
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
   r = sqrt(x[1]^2 + x[2]^2)
@@ -123,7 +123,7 @@ function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations)
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations)
+function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations2D)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
@@ -144,11 +144,11 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations)
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations2D)
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::IdealGlmMhdEquations)
+@inline function calcflux(u, orientation, equation::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -183,7 +183,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equation::IdealGlmMhdEquations, dg)
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equation::IdealGlmMhdEquations2D, dg)
   for j in 1:nnodes(dg)
     for i in 1:nnodes(dg)
       rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
@@ -213,14 +213,14 @@ end
 
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
+    flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
 
 Entropy conserving two-point flux by Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
+function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -297,7 +297,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquation
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -341,7 +341,7 @@ end
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
 function noncons_interface_flux!(noncons_flux, u_left, u_right, interface_id, n_nodes, orientations,
-                                 equation::IdealGlmMhdEquations)
+                                 equation::IdealGlmMhdEquations2D)
   for i in 1:n_nodes
     # extract necessary variable from the left
     v1_ll  = u_left[2,i,interface_id]/u_left[1,i,interface_id]
@@ -382,7 +382,7 @@ end
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
 function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::IdealGlmMhdEquations)
+                     equation::IdealGlmMhdEquations2D)
   λ_max = 0.0
   equation.c_h = 0.0
   for j = 1:n_nodes
@@ -406,7 +406,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::IdealGlmMhdEquations)
+function cons2prim(cons, equation::IdealGlmMhdEquations2D)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -429,7 +429,7 @@ end
 
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations)
+function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations2D)
   entropy = similar(cons)
   v = zeros(3,n_nodes,n_nodes,n_elements)
   B = zeros(3,n_nodes,n_nodes,n_elements)
@@ -469,7 +469,7 @@ function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations)
 end
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::IdealGlmMhdEquations)
+function prim2cons(prim, equation::IdealGlmMhdEquations2D)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -487,7 +487,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::IdealGlmMhdEquations)
+                                 equation::IdealGlmMhdEquations2D)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
@@ -504,7 +504,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:density}, equation::IdealGlmMhdEquations)
+                                ::Val{:density}, equation::IdealGlmMhdEquations2D)
   # Indicator variable is rho
   return rho
 end
@@ -513,7 +513,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:pressure}, equation::IdealGlmMhdEquations)
+                                ::Val{:pressure}, equation::IdealGlmMhdEquations2D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -527,7 +527,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:density_pressure}, equation::IdealGlmMhdEquations)
+                                ::Val{:density_pressure}, equation::IdealGlmMhdEquations2D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
@@ -541,7 +541,7 @@ end
 
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations)
+@inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -563,7 +563,7 @@ end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equation::IdealGlmMhdEquations)
+@inline function entropy_thermodynamic(cons, equation::IdealGlmMhdEquations2D)
   # Pressure
   p = (equation.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
                                       - 1/2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
@@ -577,7 +577,7 @@ end
 
 
 # Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::IdealGlmMhdEquations)
+@inline function entropy_math(cons, equation::IdealGlmMhdEquations2D)
   S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
 
   return S
@@ -585,28 +585,28 @@ end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equation::IdealGlmMhdEquations) = entropy_math(cons, equation)
+@inline entropy(cons, equation::IdealGlmMhdEquations2D) = entropy_math(cons, equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::IdealGlmMhdEquations) = cons[5]
+@inline energy_total(cons, ::IdealGlmMhdEquations2D) = cons[5]
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::IdealGlmMhdEquations)
+@inline function energy_kinetic(cons, equation::IdealGlmMhdEquations2D)
   return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
 end
 
 
 # Calculate the magnetic energy for a conservative state `cons'.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
-@inline function energy_magnetic(cons, ::IdealGlmMhdEquations)
+@inline function energy_magnetic(cons, ::IdealGlmMhdEquations2D)
   return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equation::IdealGlmMhdEquations)
+@inline function energy_internal(cons, equation::IdealGlmMhdEquations2D)
   return (energy_total(cons, equation)
           - energy_kinetic(cons, equation)
           - energy_magnetic(cons, equation)
@@ -615,6 +615,6 @@ end
 
 
 # Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
-@inline function cross_helicity(cons, ::IdealGlmMhdEquations)
+@inline function cross_helicity(cons, ::IdealGlmMhdEquations2D)
   return (cons[2]*cons[6] + cons[3]*cons[7] + cons[4]*cons[8]) / cons[1]
 end

@@ -90,6 +90,9 @@ function init_simulation()
   # Print starup message
   print_startup_message()
 
+  # Get number of dimensions
+  ndims_ = parameter("ndims")::Int
+
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
   if restart
@@ -112,7 +115,7 @@ function init_simulation()
   # Initialize system of equations
   print("Initializing system of equations... ")
   equations_name = parameter("equations")
-  equations = make_equations(equations_name)
+  equations = make_equations(equations_name, ndims_)
   println("done")
 
   # Initialize solver
@@ -320,7 +323,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations
+    if solver.equations isa HyperbolicDiffusionEquations2D
       if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
         println()
         println("-"^80)
@@ -516,7 +519,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()
 
-  equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||
+  equations(solver) isa Union{LinearScalarAdvectionEquation2D, HyperbolicDiffusionEquations2D} ||
     throw(ArgumentError("Only linear problems are supported."))
 
   # get the right hand side from the source terms

@@ -3,6 +3,9 @@ function init_simulation_euler_gravity()
   # Print starup message
   print_startup_message()
 
+  # Get number of dimensions
+  ndims_ = parameter("ndims")::Int
+
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
   if restart
@@ -22,8 +25,8 @@ function init_simulation_euler_gravity()
   print("Initializing system of equations... ")
   equations_name = parameter("equations")
   @assert equations_name == "euler_gravity" "This only works with 'euler_gravity' as equations type"
-  equations_euler = make_equations("CompressibleEulerEquations")
-  equations_gravity = make_equations("HyperbolicDiffusionEquations")
+  equations_euler = make_equations("CompressibleEulerEquations", ndims_)
+  equations_gravity = make_equations("HyperbolicDiffusionEquations", ndims_)
   println("done")
 
   # Initialize solver

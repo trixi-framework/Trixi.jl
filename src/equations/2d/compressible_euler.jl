@@ -1,27 +1,27 @@
 
 @doc raw"""
-    CompressibleEulerEquations
+    CompressibleEulerEquations2D
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations <: AbstractEquation{2, 4}
+struct CompressibleEulerEquations2D <: AbstractEquation{2, 4}
   gamma::Float64
 end
 
-function CompressibleEulerEquations()
+function CompressibleEulerEquations2D()
   gamma = parameter("gamma", 1.4)
 
-  CompressibleEulerEquations(gamma)
+  CompressibleEulerEquations2D(gamma)
 end
 
 
-get_name(::CompressibleEulerEquations) = "CompressibleEulerEquations"
-varnames_cons(::CompressibleEulerEquations) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
-varnames_prim(::CompressibleEulerEquations) = @SVector ["rho", "v1", "v2", "p"]
+get_name(::CompressibleEulerEquations2D) = "CompressibleEulerEquations2D"
+varnames_cons(::CompressibleEulerEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
+varnames_prim(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -32,7 +32,7 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1
   v1 = 1
   v2 = 1
@@ -43,7 +43,7 @@ function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEqua
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -54,7 +54,7 @@ function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_constant(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_constant(x, t, equation::CompressibleEulerEquations2D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -62,7 +62,7 @@ function initial_conditions_constant(x, t, equation::CompressibleEulerEquations)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations2D)
   c = 2
   A = 0.1
   L = 2
@@ -78,7 +78,7 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations2D)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
   # initial center of the vortex
@@ -106,7 +106,7 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = [0, 0]
@@ -124,7 +124,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = [0, 0]
@@ -142,7 +142,7 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   inicenter = [0, 0]
   x_norm = x[1] - inicenter[1]
@@ -166,7 +166,7 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   inicenter = [0, 0]
   x_norm = x[1] - inicenter[1]
@@ -190,7 +190,7 @@ function initial_conditions_medium_sedov_blast_wave(x, t, equation::Compressible
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_khi(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_khi(x, t, equation::CompressibleEulerEquations2D)
   # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
   # change discontinuity to tanh
   # typical resolution 128^2, 256^2
@@ -211,7 +211,7 @@ function initial_conditions_khi(x, t, equation::CompressibleEulerEquations)
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_blob(x, t, equation::CompressibleEulerEquations2D)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
   # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
   # change discontinuity to tanh
@@ -246,7 +246,7 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations)
   return prim2cons(SVector(dens, velx, vely0, p0), equation)
 end
 
-function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations2D)
   # Jeans gravitational instability test case
   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
   # OBS! this uses cgs (centimeter, gram, second) units
@@ -272,7 +272,7 @@ function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerE
   return prim2cons(SVector(dens, velx, vely, pres), equation)
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations2D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
@@ -290,7 +290,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations)
+function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   r = sqrt(x[1]^2 + x[2]^2)
 
@@ -321,7 +321,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
 end
 
 # Apply source terms
-function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`
   c = 2
   A = 0.1
@@ -360,7 +360,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
@@ -384,7 +384,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
-function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
@@ -409,14 +409,14 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
 end
 
 # Empty source terms required for coupled Euler-gravity simulations
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations)
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
 end
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::CompressibleEulerEquations)
+@inline function calcflux(u, orientation, equation::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -437,7 +437,7 @@ end
 
 
 """
-    function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+    function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
 
 Kinetic energy preserving two-point flux with pressure oscillation fix
 by Kuya, Totani and Kawai (2018)
@@ -445,7 +445,7 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -484,14 +484,14 @@ end
 
 
 """
-    flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+    flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
 
 Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -527,14 +527,14 @@ end
 
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+    flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
 
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -578,14 +578,14 @@ end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+    flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
 [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -622,7 +622,7 @@ Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -652,7 +652,7 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEule
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations)
+function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -700,7 +700,7 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::CompressibleEulerEquations)
+                     equation::CompressibleEulerEquations2D)
   λ_max = 0.0
   for j = 1:n_nodes
     for i = 1:n_nodes
@@ -724,7 +724,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::CompressibleEulerEquations)
+function cons2prim(cons, equation::CompressibleEulerEquations2D)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -736,7 +736,7 @@ function cons2prim(cons, equation::CompressibleEulerEquations)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations)
+function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations2D)
   entropy = similar(cons)
   v = zeros(2,n_nodes,n_nodes,n_elements)
   v_square = zeros(n_nodes,n_nodes,n_elements)
@@ -764,7 +764,7 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::CompressibleEulerEquations)
+function prim2cons(prim, equation::CompressibleEulerEquations2D)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -776,7 +776,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::CompressibleEulerEquations)
+                                 equation::CompressibleEulerEquations2D)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
@@ -789,7 +789,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density},
-                                equation::CompressibleEulerEquations)
+                                equation::CompressibleEulerEquations2D)
   # Indicator variable is rho
   return rho
 end
@@ -797,7 +797,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density_pressure},
-                                equation::CompressibleEulerEquations)
+                                equation::CompressibleEulerEquations2D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -811,7 +811,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:pressure},
-                                equation::CompressibleEulerEquations)
+                                equation::CompressibleEulerEquations2D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
 
@@ -845,7 +845,7 @@ end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equation::CompressibleEulerEquations)
+@inline function entropy_thermodynamic(cons, equation::CompressibleEulerEquations2D)
   # Pressure
   p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
 
@@ -857,7 +857,7 @@ end
 
 
 # Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::CompressibleEulerEquations)
+@inline function entropy_math(cons, equation::CompressibleEulerEquations2D)
   # Mathematical entropy
   S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
 
@@ -866,20 +866,20 @@ end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equation::CompressibleEulerEquations) = entropy_math(cons, equation)
+@inline entropy(cons, equation::CompressibleEulerEquations2D) = entropy_math(cons, equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::CompressibleEulerEquations) = cons[4]
+@inline energy_total(cons, ::CompressibleEulerEquations2D) = cons[4]
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::CompressibleEulerEquations)
+@inline function energy_kinetic(cons, equation::CompressibleEulerEquations2D)
   return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equation::CompressibleEulerEquations)
+@inline function energy_internal(cons, equation::CompressibleEulerEquations2D)
   return energy_total(cons, equation) - energy_kinetic(cons, equation)
 end
