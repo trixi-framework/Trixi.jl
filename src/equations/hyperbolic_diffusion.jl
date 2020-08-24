@@ -7,7 +7,7 @@ A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD
 The book is freely available at http://www.cfdbooks.com/ and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
-struct HyperbolicDiffusionEquations <: AbstractEquation{3}
+struct HyperbolicDiffusionEquations <: AbstractEquation{2, 3}
   Lr::Float64
   Tr::Float64
   nu::Float64

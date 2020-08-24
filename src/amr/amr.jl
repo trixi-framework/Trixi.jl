@@ -52,14 +52,14 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
-      to_coarsen = original2refined(to_coarsen, refined_original_cells)
+      to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
     end
 
     # Next, determine the parent cells from which the fine cells are to be
     # removed, since these are needed for the coarsen! function. However, since
     # we only want to coarsen if *all* child cells are marked for coarsening,
     # we count the coarsening indicators for each parent cell and only coarsen
-    # if all children are marked as such (i.e., where the count is 2^ndim). At
+    # if all children are marked as such (i.e., where the count is 2^ndims). At
     # the same time, check if a cell is marked for coarsening even though it is
     # *not* a leaf cell -> this can only happen if it was refined due to 2:1
     # smoothing during the preceding refinement operation.
@@ -81,7 +81,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     end
 
     # Extract only those parent cells for which all children should be coarsened
-    to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndim]
+    to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
     coarsened_original_cells = @timeit timer() "mesh" coarsen!(tree, to_coarsen)
@@ -120,8 +120,8 @@ end
 
 # After refining cells, shift original cell ids to match new locations
 # Note: Assumes sorted lists of original and refined cell ids!
-function original2refined(original_cell_ids::AbstractVector{Int},
-                          refined_original_cells::AbstractVector{Int})
+# Note: `mesh` is only required to extract ndims
+function original2refined(original_cell_ids, refined_original_cells, mesh)
   # Sanity check
   @assert issorted(original_cell_ids) "`original_cell_ids` not sorted"
   @assert issorted(refined_original_cells) "`refined_cell_ids` not sorted"
@@ -136,8 +136,8 @@ function original2refined(original_cell_ids::AbstractVector{Int},
       break
     end
 
-    # Shift all subsequent cells by 2^ndim ids
-    shifted_cell_ids[(cell_id + 1):end] .+= 2^ndim
+    # Shift all subsequent cells by 2^ndims ids
+    shifted_cell_ids[(cell_id + 1):end] .+= 2^ndims(mesh)
   end
 
   # Convert original cell ids to their shifted values

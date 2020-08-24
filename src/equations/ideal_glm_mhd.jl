@@ -4,7 +4,7 @@
 
 The ideal compressible GLM-MHD equations in two space dimensions.
 """
-mutable struct IdealGlmMhdEquations <: AbstractEquation{9}
+mutable struct IdealGlmMhdEquations <: AbstractEquation{2, 9}
   gamma::Float64
   c_h::Float64 # GLM cleaning speed
 end

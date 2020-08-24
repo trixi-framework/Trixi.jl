@@ -1,19 +1,22 @@
 
 # Base type from which all systems of equations types inherit from
-abstract type AbstractEquation{V} end
+abstract type AbstractEquation{NDIMS, NVARS} end
 
 
 # Retrieve number of variables from equation type
-nvariables(::Type{AbstractEquation{V}}) where V = V
+@inline nvariables(::Type{AbstractEquation{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
 
 # Retrieve number of variables from equation instance
-nvariables(::AbstractEquation{V}) where V = V
+@inline nvariables(::AbstractEquation{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquation)
   print(io, "name = ", get_name(equation), ", n_vars = ", nvariables(equation))
 end
+
+
+@inline Base.ndims(::AbstractEquation{NDIMS}) where NDIMS = NDIMS
 
 
 # Create an instance of a system of equation type based on a given name

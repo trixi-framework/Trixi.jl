@@ -4,7 +4,7 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations <: AbstractEquation{4}
+struct CompressibleEulerEquations <: AbstractEquation{2, 4}
   gamma::Float64
 end
 

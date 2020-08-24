@@ -143,8 +143,8 @@ function Base.show(io::IO, t::Tree{D}) where D
 end
 
 # Type traits to obtain dimension
-ndims(t::Type{Tree{D}}) where D = D
-ndims(t::Tree) = ndims(typeof(t))
+@inline Base.ndims(t::Type{Tree{D}}) where D = D
+@inline Base.ndims(t::Tree) = ndims(typeof(t))
 
 
 # Auxiliary methods to allow semantic queries on the tree

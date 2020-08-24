@@ -77,25 +77,25 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh, N) where V
+function Dg(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(N))
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
   mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, mortar_type)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
@@ -139,7 +139,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_fu
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = mesh.tree.length_level_0^ndim
+  analysis_total_volume = mesh.tree.length_level_0^ndims(equation)
 
   # Store which quantities should be analyzed in `analyze_solution`
   if parameter_exists("extra_analysis_quantities")
@@ -196,7 +196,7 @@ function Dg(equation::AbstractEquation{V}, surface_flux_function, volume_flux_fu
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
-  thread_cache = create_thread_cache(V, N+1)
+  thread_cache = create_thread_cache(NVARS, N+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
@@ -255,7 +255,10 @@ function create_thread_cache(n_variables, n_nodes)
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
             fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
- end
+end
+
+
+@inline Base.ndims(::Dg) = ndims(equations(dg))
 
 
 # Return polynomial degree for a DG solver
@@ -275,7 +278,7 @@ function create_thread_cache(n_variables, n_nodes)
 
 
 # Return number of degrees of freedom
-@inline ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndim
+@inline ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
 
 
 @inline get_node_vars(u, dg::Dg, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
@@ -704,7 +707,7 @@ function integrate(func, dg::Dg, args...; normalize=true)
 
   # Use quadrature to numerically integrate over entire domain
   for element_id in 1:dg.n_elements
-    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
         integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
@@ -766,11 +769,11 @@ function calc_error_norms(dg::Dg, t::Float64)
     u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
                           dg.analysis_vandermonde, nvariables(equation))
     x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, element_id],
-                          dg.analysis_vandermonde, ndim)
+                          dg.analysis_vandermonde, ndims(dg))
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
-    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:n_nodes_analysis
       for i in 1:n_nodes_analysis
         u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
@@ -820,7 +823,7 @@ function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
   linf_divb = 0.0
   l2_divb   = 0.0
   for element_id in 1:dg.n_elements
-    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndim
+    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
         divb   = 0.0

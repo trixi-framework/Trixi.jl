@@ -34,7 +34,7 @@ function refine!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
       # Refine element and store solution directly in new data structure
       refine_element!(elements.u, element_id, old_u, old_element_id,
                       dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
-      element_id += 2^ndim
+      element_id += 2^ndims(dg)
     else
       # Copy old element data to new element container
       @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
@@ -152,7 +152,7 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
   skip = 0
   element_id = 1
   for old_element_id in 1:old_n_elements
-    # If skip is non-zero, we just coarsened 2^ndim elements and need to omit the following elements
+    # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
     if skip > 0
       skip -= 1
       continue
@@ -162,13 +162,13 @@ function coarsen!(dg::Dg{Eqn, V, N}, mesh::TreeMesh,
       # If an element is to be removed, sanity check if the following elements
       # are also marked - otherwise there would be an error in the way the
       # cells/elements are sorted
-      @assert all(to_be_removed[old_element_id:(old_element_id+2^ndim-1)]) "bad cell/element order"
+      @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(dg)-1)]) "bad cell/element order"
 
       # Coarsen elements and store solution directly in new data structure
       coarsen_elements!(elements.u, element_id, old_u, old_element_id,
                         dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg)
       element_id += 1
-      skip = 2^ndim - 1
+      skip = 2^ndims(dg) - 1
     else
       # Copy old element data to new element container
       @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]

@@ -11,8 +11,8 @@ function load_restart_file!(dg::Dg, restart_filename)
     N = polydeg(dg)
 
     # Read attributes to perform some sanity checks
-    if read(attrs(file)["ndim"]) != ndim
-      error("restart mismatch: ndim in solver differs from value in restart file")
+    if read(attrs(file)["ndims"]) != ndims(dg)
+      error("restart mismatch: ndims in solver differs from value in restart file")
     end
     if read(attrs(file)["equations"]) != get_name(equation)
       error("restart mismatch: equations in solver differs from value in restart file")
@@ -67,7 +67,7 @@ function save_restart_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
     N = polydeg(dg)
 
     # Add context information as attributes
-    attrs(file)["ndim"] = ndim
+    attrs(file)["ndims"] = ndims(dg)
     attrs(file)["equations"] = get_name(equation)
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
@@ -118,7 +118,7 @@ function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep, system="
     N = polydeg(dg)
 
     # Add context information as attributes
-    attrs(file)["ndim"] = ndim
+    attrs(file)["ndims"] = ndims(dg)
     attrs(file)["equations"] = get_name(equation)
     attrs(file)["N"] = N
     attrs(file)["n_vars"] = nvariables(dg)
@@ -184,7 +184,7 @@ function save_mesh_file(mesh::TreeMesh, timestep=-1)
   h5open(filename * ".h5", "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
-    attrs(file)["ndim"] = ndim
+    attrs(file)["ndims"] = ndims(dg)
     attrs(file)["n_cells"] = n_cells
     attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
     attrs(file)["minimum_level"] = minimum_level(mesh.tree)

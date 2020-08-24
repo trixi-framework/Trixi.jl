@@ -22,9 +22,9 @@ function ElementContainer{V, N}(capacity::Integer) where {V, N} # V = no. variab
   u_tmp2 = fill(0.0, V, n_nodes, n_nodes, capacity)
   u_tmp3 = fill(0.0, V, n_nodes, n_nodes, capacity)
   inverse_jacobian = fill(NaN, capacity)
-  node_coordinates = fill(NaN, ndim, n_nodes, n_nodes, capacity)
-  surface_ids = fill(typemin(Int), 2 * ndim, capacity)
-  surface_flux_values = fill(NaN, V, n_nodes, 2 * ndim, capacity)
+  node_coordinates = fill(NaN, 2, n_nodes, n_nodes, capacity) # FIXME: ndims
+  surface_ids = fill(typemin(Int), 2 * 2, capacity) # FIXME: ndims
+  surface_flux_values = fill(NaN, V, n_nodes, 2 * 2, capacity) # FIXME: ndims
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
@@ -80,7 +80,7 @@ function BoundaryContainer{V, N}(capacity::Integer) where {V, N}
   neighbor_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
-  node_coordinates = fill(NaN, ndim, n_nodes, capacity)
+  node_coordinates = fill(NaN, 2, n_nodes, capacity) # FIXME: ndims
 
   boundaries = BoundaryContainer{V, N}(u, neighbor_ids, orientations, neighbor_sides,
                                        node_coordinates)

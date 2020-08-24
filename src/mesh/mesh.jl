@@ -45,6 +45,9 @@ TreeMesh{1}(n::Int, center::Real, len::Real, periodicity=true) = TreeMesh{1}(n, 
 
 # Generate initial mesh
 function generate_mesh()
+  # Get number of spatial dimensions
+  ndims_ = parameter("ndims")
+
   # Get maximum number of cells that should be supported
   n_cells_max = parameter("n_cells_max")
 
@@ -60,7 +63,7 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndim}(), n_cells_max, domain_center,
+  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
                                              domain_length, periodicity)
 
   # Create initial refinement
@@ -93,11 +96,14 @@ end
 
 # Load existing mesh from file
 function load_mesh(restart_filename)
+  # Get number of spatial dimensions
+  ndims_ = parameter("ndims")
+
   # Get maximum number of cells that should be supported
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndim}(), n_cells_max)
+  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)

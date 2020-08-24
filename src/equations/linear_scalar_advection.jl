@@ -8,7 +8,7 @@ The linear scalar advection equation
 ```
 in two space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation <: AbstractEquation{1}
+struct LinearScalarAdvectionEquation <: AbstractEquation{2, 1}
   sources::String
   advectionvelocity::SVector{2, Float64}
 end
