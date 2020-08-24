@@ -1,6 +1,6 @@
 
 # Load restart file and store solution in solver
-function load_restart_file!(dg::Dg, restart_filename)
+function load_restart_file!(dg::Dg2D, restart_filename)
   # Create variables to be returned later
   time = NaN
   step = -1
@@ -49,7 +49,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # restarting.
-function save_restart_file(dg::Dg, mesh::TreeMesh, time, dt, timestep)
+function save_restart_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep)
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -96,7 +96,7 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::Dg, mesh::TreeMesh, time, dt, timestep, system="")
+function save_solution_file(dg::Dg2D, mesh::TreeMesh, time, dt, timestep, system="")
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)

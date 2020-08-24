@@ -1,5 +1,5 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg{Eqn<:AbstractEquation, V, N,
+mutable struct Dg2D{Eqn<:AbstractEquation, V, N,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
                   VectorNp1, MatrixNp1, MatrixNp12,
@@ -72,7 +72,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -197,7 +197,7 @@ function Dg(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, vol
   initial_state_integrals = Vector{Float64}()
 
   # Create actual DG solver instance
-  dg = Dg(
+  dg = Dg2D(
       equation,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
@@ -253,45 +253,45 @@ function create_thread_cache(n_variables, n_nodes)
 end
 
 
-@inline Base.ndims(dg::Dg) = ndims(equations(dg))
+@inline Base.ndims(dg::Dg2D) = ndims(equations(dg))
 
 
 # Return polynomial degree for a DG solver
-@inline polydeg(::Dg{Eqn, V, N}) where {Eqn, V, N} = N
+@inline polydeg(::Dg2D{Eqn, V, N}) where {Eqn, V, N} = N
 
 
 # Return number of nodes in one direction
-@inline nnodes(::Dg{Eqn, V, N}) where {Eqn, V, N} = N + 1
+@inline nnodes(::Dg2D{Eqn, V, N}) where {Eqn, V, N} = N + 1
 
 
 # Return system of equations instance for a DG solver
-@inline equations(dg::Dg) = dg.equations
+@inline equations(dg::Dg2D) = dg.equations
 
 
 # Return number of variables for the system of equations in use
-@inline nvariables(dg::Dg) = nvariables(equations(dg))
+@inline nvariables(dg::Dg2D) = nvariables(equations(dg))
 
 
 # Return number of degrees of freedom
-@inline ndofs(dg::Dg) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
+@inline ndofs(dg::Dg2D) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
 
 
-@inline get_node_vars(u, dg::Dg, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
+@inline get_node_vars(u, dg::Dg2D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
 
-@inline function get_surface_node_vars(u, dg::Dg, indices...)
+@inline function get_surface_node_vars(u, dg::Dg2D, indices...)
   u_ll = SVector(ntuple(i -> u[1, i, indices...], nvariables(dg)))
   u_rr = SVector(ntuple(i -> u[2, i, indices...], nvariables(dg)))
   return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, u_node, ::Dg, indices...)
+@inline function set_node_vars!(u, u_node, ::Dg2D, indices...)
   for i in eachindex(u_node)
     u[i, indices...] = u_node[i]
   end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, ::Dg, indices...)
+@inline function add_to_node_vars!(u, u_node, ::Dg2D, indices...)
   for i in eachindex(u_node)
     u[i, indices...] += u_node[i]
   end
@@ -674,7 +674,7 @@ end
 
 
 """
-    integrate(func, dg::Dg, args...; normalize=true)
+    integrate(func, dg::Dg2D, args...; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
@@ -696,7 +696,7 @@ dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, 
 end
 ```
 """
-function integrate(func, dg::Dg, args...; normalize=true)
+function integrate(func, dg::Dg2D, args...; normalize=true)
   # Initialize integral with zeros of the right shape
   integral = zero(func(1, 1, 1, dg, args...))
 
@@ -720,8 +720,8 @@ end
 
 
 """
-    integrate(func, u, dg::Dg; normalize=true)
-    integrate(u, dg::Dg; normalize=true)
+    integrate(func, u, dg::Dg2D; normalize=true)
+    integrate(u, dg::Dg2D; normalize=true)
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
@@ -737,18 +737,18 @@ Calculate the integral over all conservative variables:
 state_integrals = integrate(dg.elements.u, dg)
 ```
 """
-function integrate(func, u, dg::Dg; normalize=true)
+function integrate(func, u, dg::Dg2D; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
   return integrate(func_wrapped, dg, u; normalize=normalize)
 end
-integrate(u, dg::Dg; normalize=true) = integrate(identity, u, dg; normalize=normalize)
+integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(dg::Dg, t::Float64)
+function calc_error_norms(dg::Dg2D, t::Float64)
   # Gather necessary information
   equation = equations(dg)
   n_nodes_analysis = length(dg.analysis_nodes)
@@ -788,7 +788,7 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg, t)
+function calc_entropy_timederivative(dg::Dg2D, t)
   # Compute entropy variables for all elements and nodes with current solution u
   dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
 
@@ -807,7 +807,7 @@ end
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
-function calc_mhd_solenoid_condition(dg::Dg, t::Float64)
+function calc_mhd_solenoid_condition(dg::Dg2D, t::Float64)
   @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
 
   # Local copy of standard derivative matrix
@@ -839,7 +839,7 @@ end
 
 
 """
-    analyze_solution(dg::Dg, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
+    analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
 
 Calculate error norms and other analysis quantities to analyze the solution
 during a simulation, and return the L2 and Linf errors. `dg` and `mesh` are the
@@ -851,7 +851,7 @@ performance index is specified in `runtime_relative`.
 **Note:** Keep order of analysis quantities in sync with
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
-function analyze_solution(dg::Dg, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
                           runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
   equation = equations(dg)
 
@@ -1167,7 +1167,7 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions!(dg::Dg, time)
+function set_initial_conditions!(dg::Dg2D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
@@ -1183,7 +1183,7 @@ end
 
 
 # Calculate time derivative
-function rhs!(dg::Dg, t_stage)
+function rhs!(dg::Dg2D, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
@@ -1224,7 +1224,7 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_int
 
 
 # Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg)
+@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg2D)
   @unpack volume_flux_function = dg
 
   for j in 1:nnodes(dg)
@@ -1261,11 +1261,11 @@ calc_volume_integral!(dg) = calc_volume_integral!(dg.elements.u_t, dg.volume_int
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg2D)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg2D)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
@@ -1507,18 +1507,18 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg)
+    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg2D)
 
 Calculate the finite volume fluxes inside the elements.
 
 # Arguments
 - `fstar1::AbstractArray{T} where T<:Real`:
 - `fstar2::AbstractArray{T} where T<:Real`
-- `dg::Dg`
+- `dg::Dg2D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg)
+@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg2D)
   @unpack surface_flux_function = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1751,7 +1751,7 @@ end
 
 
 """
-    riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg)
+    riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg2D)
 
 Calculate the surface flux across interface with different states given by
 `u_interfaces_left, u_interfaces_right` on both sides (EC mortar version).
@@ -1763,9 +1763,9 @@ Calculate the surface flux across interface with different states given by
 - `u_interfaces_right::AbstractArray{T,3} where T<:Real``
 - `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
-- `dg::Dg`
+- `dg::Dg2D`
 """
-function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg)
+function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg2D)
   @unpack surface_flux_function = dg
 
   # Call pointwise Riemann solver
@@ -1783,7 +1783,7 @@ function riemann!(destination, u_interfaces_left, u_interfaces_right, interface_
 end
 
 """
-    riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg)
+    riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg2D)
 
 Calculate the surface flux across interface with different states given by
 `u_interfaces_left, u_interfaces_right` on both sides (interface version).
@@ -1794,9 +1794,9 @@ Calculate the surface flux across interface with different states given by
 - `u_interfaces::AbstractArray{T,4} where T<:Real``
 - `interface_id::Integer`
 - `orientations::Vector{T} where T<:Integer`
-- `dg::Dg`
+- `dg::Dg2D`
 """
-function riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg)
+function riemann!(destination, u_interfaces, interface_id, orientations, dg::Dg2D)
   @unpack surface_flux_function = dg
 
   for i in 1:nnodes(dg)
@@ -1817,7 +1817,7 @@ end
 calc_interface_flux!(dg) = calc_interface_flux!(dg.elements.surface_flux_values,
                                                 have_nonconservative_terms(dg.equations), dg)
 
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg)
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg2D)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, orientations = dg.interfaces
 
@@ -1846,7 +1846,7 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
 end
 
 # Calculate and store Riemann and nonconservative fluxes across interfaces
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg)
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg2D)
   #TODO temporary workaround while implementing the other stuff
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
                        dg.interfaces.orientations, dg)
@@ -1854,7 +1854,7 @@ end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg)
+                              orientations, dg::Dg2D)
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
   A1d = MArray{Tuple{nvariables(dg)}, Float64}
@@ -1913,7 +1913,7 @@ end
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
 calc_boundary_flux!(dg, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
                                                     dg, time)
-function calc_boundary_flux!(surface_flux_values, dg::Dg, time)
+function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
@@ -2186,11 +2186,11 @@ end
 
 
 # Calculate source terms and apply them to u_t
-function calc_sources!(dg::Dg, source_terms::Nothing, t)
+function calc_sources!(dg::Dg2D, source_terms::Nothing, t)
   return nothing
 end
 
-function calc_sources!(dg::Dg, source_terms, t)
+function calc_sources!(dg::Dg2D, source_terms, t)
   Threads.@threads for element_id in 1:dg.n_elements
     source_terms(dg.elements.u_t, dg.elements.u,
                  dg.elements.node_coordinates, element_id, t, nnodes(dg), equations(dg))
@@ -2199,7 +2199,7 @@ end
 
 
 # Calculate stable time step size
-function calc_dt(dg::Dg, cfl)
+function calc_dt(dg::Dg2D, cfl)
   min_dt = Inf
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
