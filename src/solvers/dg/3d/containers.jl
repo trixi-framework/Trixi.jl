@@ -1,14 +1,14 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
 struct ElementContainer3D{V, N} <: AbstractContainer
-  u::Array{Float64, 4}                   # [variables, i, j, elements]
-  u_t::Array{Float64, 4}                 # [variables, i, j, elements]
-  u_tmp2::Array{Float64, 4}              # [variables, i, j, elements]
-  u_tmp3::Array{Float64, 4}              # [variables, i, j, elements]
+  u::Array{Float64, 5}                   # [variables, i, j, k, elements]
+  u_t::Array{Float64, 5}                 # [variables, i, j, k, elements]
+  u_tmp2::Array{Float64, 5}              # [variables, i, j, k, elements]
+  u_tmp3::Array{Float64, 5}              # [variables, i, j, k, elements]
   inverse_jacobian::Vector{Float64}      # [elements]
-  node_coordinates::Array{Float64, 4}    # [orientation, i, j, elements]
+  node_coordinates::Array{Float64, 5}    # [orientation, i, j, k, elements]
   surface_ids::Matrix{Int}               # [direction, elements]
-  surface_flux_values::Array{Float64, 4} # [variables, i, direction, elements]
+  surface_flux_values::Array{Float64, 5} # [variables, i, j, direction, elements]
   cell_ids::Vector{Int}                  # [elements]
 end
 
@@ -16,15 +16,15 @@ end
 function ElementContainer3D{V, N}(capacity::Integer) where {V, N} # V = no. variables, N = polydeg
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, V, n_nodes, n_nodes, capacity)
-  u_t = fill(NaN, V, n_nodes, n_nodes, capacity)
+  u = fill(NaN, V, n_nodes, n_nodes, n_nodes, capacity)
+  u_t = fill(NaN, V, n_nodes, n_nodes, n_nodes, capacity)
   # u_rungakutta is initialized to non-NaN since it is used directly
-  u_tmp2 = fill(0.0, V, n_nodes, n_nodes, capacity)
-  u_tmp3 = fill(0.0, V, n_nodes, n_nodes, capacity)
+  u_tmp2 = fill(0.0, V, n_nodes, n_nodes, n_nodes, capacity)
+  u_tmp3 = fill(0.0, V, n_nodes, n_nodes, n_nodes, capacity)
   inverse_jacobian = fill(NaN, capacity)
-  node_coordinates = fill(NaN, 2, n_nodes, n_nodes, capacity) # FIXME: ndims
-  surface_ids = fill(typemin(Int), 2 * 2, capacity) # FIXME: ndims
-  surface_flux_values = fill(NaN, V, n_nodes, 2 * 2, capacity) # FIXME: ndims
+  node_coordinates = fill(NaN, 3, n_nodes, n_nodes, n_nodes, capacity) # 3 = ndims
+  surface_ids = fill(typemin(Int), 2 * 3, capacity) # 3 = ndims
+  surface_flux_values = fill(NaN, V, n_nodes, n_nodes, 2 * 3, capacity) # 3 = ndims
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer3D{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
@@ -40,7 +40,7 @@ nelements(elements::ElementContainer3D) = length(elements.cell_ids)
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 struct InterfaceContainer3D{V, N} <: AbstractContainer
-  u::Array{Float64, 4}      # [leftright, variables, i, interfaces]
+  u::Array{Float64, 5}      # [leftright, variables, i, j, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
 end
@@ -49,7 +49,7 @@ end
 function InterfaceContainer3D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, 2, V, n_nodes, capacity)
+  u = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
@@ -65,22 +65,22 @@ ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
 
 # Container data structure (structure-of-arrays style) for DG boundaries
 struct BoundaryContainer3D{V, N} <: AbstractContainer
-  u::Array{Float64, 4}                # [leftright, variables, i, boundaries]
+  u::Array{Float64, 5}                # [leftright, variables, i, j, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
   neighbor_sides::Vector{Int}         # [boundaries]
-  node_coordinates::Array{Float64, 3} # [orientation, i, elements]
+  node_coordinates::Array{Float64, 4} # [orientation, i, j, elements]
 end
 
 
 function BoundaryContainer3D{V, N}(capacity::Integer) where {V, N}
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, 2, V, n_nodes, capacity)
+  u = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
-  node_coordinates = fill(NaN, 2, n_nodes, capacity) # FIXME: ndims
+  node_coordinates = fill(NaN, 3, n_nodes, n_nodes, capacity) # 3 = ndims
 
   boundaries = BoundaryContainer3D{V, N}(u, neighbor_ids, orientations, neighbor_sides,
                                        node_coordinates)

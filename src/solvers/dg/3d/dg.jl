@@ -3,7 +3,7 @@ mutable struct Dg3D{Eqn<:AbstractEquation, V, N,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
                   VectorNp1, MatrixNp1, MatrixNp12,
-                  VectorNAnap1, MatrixNAnap1Np1} <: AbstractDg{2}
+                  VectorNAnap1, MatrixNAnap1Np1} <: AbstractDg{3}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -96,8 +96,8 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Sanity checks
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 2*n_elements ("For 3D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 2*n_elem")
+    @assert n_interfaces == 3*n_elements ("For 3D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 3*n_elem")
   end
 
   # Initialize interpolation data structures
@@ -134,7 +134,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = mesh.tree.length_level_0^ndims(equation)
+  analysis_total_volume = mesh.tree.length_level_0^ndims(mesh)
 
   # Store which quantities should be analyzed in `analyze_solution`
   if parameter_exists("extra_analysis_quantities")
@@ -228,70 +228,76 @@ end
 
 function create_thread_cache_3d(n_variables, n_nodes)
   # Type alias only for convenience
-  A4d = Array{Float64, 4}
-  A3dp1_x = Array{Float64, 3}
-  A3dp1_y = Array{Float64, 3}
-  MA2d = MArray{Tuple{n_variables, n_nodes}, Float64}
-  A2d = Array{Float64, 2}
+  A5d = Array{Float64, 5}
+  A4dp1_x = Array{Float64, 4}
+  A4dp1_y = Array{Float64, 4}
+  A4dp1_z = Array{Float64, 4}
+  MA2d = MArray{Tuple{n_variables, n_nodes}, Float64} # FIXME: ndims mortar
+  A2d = Array{Float64, 2} # FIXME: ndims mortar
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  f2_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes)
-                             for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1)
-                             for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes)
+  f1_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
                          for _ in 1:Threads.nthreads()]
+  f2_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+                         for _ in 1:Threads.nthreads()]
+  f3_threaded      = A5d[A5d(undef, n_variables, n_nodes, n_nodes, n_nodes)
+                         for _ in 1:Threads.nthreads()]
+  fstar1_threaded  = A4dp1_x[A4dp1_x(undef, n_variables, n_nodes+1, n_nodes, n_nodes)
+                             for _ in 1:Threads.nthreads()]
+  fstar2_threaded  = A4dp1_y[A4dp1_y(undef, n_variables, n_nodes, n_nodes+1, n_nodes)
+                             for _ in 1:Threads.nthreads()]
+  fstar3_threaded  = A4dp1_z[A4dp1_y(undef, n_variables, n_nodes, n_nodes, n_nodes+1)
+                             for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()] # FIXME: ndims mortar
+  fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()] # FIXME: ndims mortar
+  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes)
+                         for _ in 1:Threads.nthreads()] # FIXME: ndims mortar
 
-  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
+  return (; f1_threaded, f2_threaded, f3_threaded,
+            fstar1_threaded, fstar2_threaded, fstar3_threaded,
             fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
 end
 
 
-@inline Base.ndims(dg::Dg3D) = ndims(equations(dg))
+@inline Base.ndims(dg::Dg3D) = ndims(equations(dg)) # FIXME: ndims dimension-agnostic
 
 
 # Return polynomial degree for a DG solver
-@inline polydeg(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N
+@inline polydeg(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N # FIXME: ndims dimension-agnostic
 
 
 # Return number of nodes in one direction
-@inline nnodes(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N + 1
+@inline nnodes(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N + 1 # FIXME: ndims dimension-agnostic
 
 
 # Return system of equations instance for a DG solver
-@inline equations(dg::Dg3D) = dg.equations
+@inline equations(dg::Dg3D) = dg.equations # FIXME: ndims dimension-agnostic
 
 
 # Return number of variables for the system of equations in use
-@inline nvariables(dg::Dg3D) = nvariables(equations(dg))
+@inline nvariables(dg::Dg3D) = nvariables(equations(dg)) # FIXME: ndims dimension-agnostic
 
 
 # Return number of degrees of freedom
-@inline ndofs(dg::Dg3D) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
+@inline ndofs(dg::Dg3D) = dg.n_elements * nnodes(dg)^ndims(dg) # FIXME: ndims dimension-agnostic
 
 
-@inline get_node_vars(u, dg::Dg3D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
+@inline get_node_vars(u, dg::Dg3D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg))) # FIXME: ndims dimension-agnostic
 
-@inline function get_surface_node_vars(u, dg::Dg3D, indices...)
+@inline function get_surface_node_vars(u, dg::Dg3D, indices...) # FIXME: ndims dimension-agnostic
   u_ll = SVector(ntuple(i -> u[1, i, indices...], nvariables(dg)))
   u_rr = SVector(ntuple(i -> u[2, i, indices...], nvariables(dg)))
   return u_ll, u_rr
 end
 
-@inline function set_node_vars!(u, u_node, ::Dg3D, indices...)
+@inline function set_node_vars!(u, u_node, ::Dg3D, indices...) # FIXME: ndims dimension-agnostic
   for i in eachindex(u_node)
     u[i, indices...] = u_node[i]
   end
   return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, ::Dg3D, indices...)
+@inline function add_to_node_vars!(u, u_node, ::Dg3D, indices...) # FIXME: ndims dimension-agnostic
   for i in eachindex(u_node)
     u[i, indices...] += u_node[i]
   end
@@ -410,13 +416,13 @@ function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}) where {V
     elements.inverse_jacobian[element_id] = 2/dx
 
     # Calculate node coordinates
-    for j in 1:n_nodes
-      for i in 1:n_nodes
-        elements.node_coordinates[1, i, j, element_id] = (
-            mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
-        elements.node_coordinates[2, i, j, element_id] = (
-            mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
-      end
+    for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+      elements.node_coordinates[1, i, j, k, element_id] = (
+          mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
+      elements.node_coordinates[2, i, j, k, element_id] = (
+          mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
+      elements.node_coordinates[3, i, j, k, element_id] = (
+          mesh.tree.coordinates[3, cell_id] + dx/2 * nodes[k])
     end
   end
 
@@ -460,7 +466,7 @@ end
 #
 # V: number of variables
 # N: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
+function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N} # FIXME: ndims mortar
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -528,8 +534,14 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{3})
       interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
       interfaces.neighbor_ids[1, count] = element_id
 
-      # Set orientation (x -> 1, y -> 2)
-      interfaces.orientations[count] = div(direction, 2)
+      # Set orientation (x -> 1, y -> 2, z -> 3)
+      if direction in (1, 2)
+        interfaces.orientations[count] = 1
+      elseif direction in (3, 4)
+        interfaces.orientations[count] = 2
+      else
+        interfaces.orientations[count] = 3
+      end
     end
   end
 
@@ -567,7 +579,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
       boundaries.neighbor_ids[count] = element_id
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
-      if direction in (2, 4)
+      if direction in (2, 4, 6)
         boundaries.neighbor_sides[count] = 1
       else
         boundaries.neighbor_sides[count] = 2
@@ -576,20 +588,26 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
       # Set orientation (x -> 1, y -> 2)
       if direction in (1, 2)
         boundaries.orientations[count] = 1
-      else
+      elseif direction in (3, 4)
         boundaries.orientations[count] = 2
+      else
+        boundaries.orientations[count] = 3
       end
 
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,   element_id]
-      elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,   element_id]
-      elseif direction == 3 # -y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,   element_id]
-      elseif direction == 4 # +y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end, element_id]
+        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,    :,   element_id]
+      elseif direction == 2 # +x direction                           
+        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,    :,   element_id]
+      elseif direction == 3 # -y direction                           
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,    :,   element_id]
+      elseif direction == 4 # +y direction                           
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end,  :,   element_id]
+      elseif direction == 5 # -z direction                           
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   :,    1,   element_id]
+      elseif direction == 6 # +z direction                           
+        boundaries.node_coordinates[:, :, count] .= enc[:, :,   :,    end, element_id]
       else
         error("should not happen")
       end
@@ -602,7 +620,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{3})
+function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{3}) # FIXME: ndims mortar
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -678,8 +696,8 @@ end
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
-The function `func` is called as `func(i, j, element_id, dg, args...)` for each
-volume node `(i, j)` and each `element_id`. Additional positional
+The function `func` is called as `func(i, j, k, element_id, dg, args...)` for each
+volume node `(i, j, k)` and each `element_id`. Additional positional
 arguments `args...` are passed along as well. If `normalize` is true, the result
 is divided by the total volume of the computational domain.
 
@@ -691,22 +709,20 @@ Calculate the integral of the time derivative of the entropy, i.e.,
 entropy_vars = cons2entropy(...)
 
 # Calculate integral of entropy time derivative
-dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, entropy_vars, u_t
-  sum(entropy_vars[:, i, j, element_id] .* u_t[:, i, j, element_id])
+dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, k, element_id, dg, entropy_vars, u_t
+  sum(entropy_vars[:, i, j, k, element_id] .* u_t[:, i, j, k, element_id])
 end
 ```
 """
 function integrate(func, dg::Dg3D, args...; normalize=true)
   # Initialize integral with zeros of the right shape
-  integral = zero(func(1, 1, 1, dg, args...))
+  integral = zero(func(1, 1, 1, 1, dg, args...))
 
   # Use quadrature to numerically integrate over entire domain
   for element_id in 1:dg.n_elements
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        integral += jacobian_volume * dg.weights[i] * dg.weights[j] * func(i, j, element_id, dg, args...)
-      end
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      integral += jacobian_volume * dg.weights[i] * dg.weights[j] * dg.weights[k] * func(i, j, k, element_id, dg, args...)
     end
   end
 
@@ -725,9 +741,9 @@ end
 
 Call function `func` for each DG node and integrate the result over the computational domain.
 
-The function `func` is called as `func(u_local)` for each volume node `(i, j)`
+The function `func` is called as `func(u_local)` for each volume node `(i, j, k)`
 and each `element_id`, where `u_local` is an `SVector`ized copy of
-`u[:, i, j, element_id]`. If `normalize` is true, the result is divided by the
+`u[:, i, j, k, element_id]`. If `normalize` is true, the result is divided by the
 total volume of the computational domain. If `func` is omitted, it defaults to
 `identity`.
 
@@ -738,8 +754,8 @@ state_integrals = integrate(dg.elements.u, dg)
 ```
 """
 function integrate(func, u, dg::Dg3D; normalize=true)
-  func_wrapped = function(i, j, element_id, dg, u)
-    u_local = get_node_vars(u, dg, i, j, element_id)
+  func_wrapped = function(i, j, k, element_id, dg, u)
+    u_local = get_node_vars(u, dg, i, j, k, element_id)
     return func(u_local)
   end
   return integrate(func_wrapped, dg, u; normalize=normalize)
@@ -761,22 +777,20 @@ function calc_error_norms(dg::Dg3D, t::Float64)
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
+    u = interpolate_nodes(dg.elements.u[:, :, :, :, element_id],
                           dg.analysis_vandermonde, nvariables(equation))
-    x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, element_id],
+    x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, :, element_id],
                           dg.analysis_vandermonde, ndims(dg))
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    for j in 1:n_nodes_analysis
-      for i in 1:n_nodes_analysis
-        u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
-        diff = similar(u_exact)
-        @views @. diff = u_exact - u[:, i, j]
-        @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
-        @. linf_error = max(linf_error, abs(diff))
-      end
+    for k in 1:n_nodes_analysis, j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+      u_exact = @views dg.initial_conditions(x[:, i, j, k], t, equation)
+      diff = similar(u_exact)
+      @views @. diff = u_exact - u[:, i, j, k]
+      @. l2_error += diff^2 * weights[i] * weights[j] * weights[k] * jacobian_volume
+      @. linf_error = max(linf_error, abs(diff))
     end
   end
 
@@ -796,8 +810,8 @@ function calc_entropy_timederivative(dg::Dg3D, t)
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, element_id, dg, dsdu, u_t
-    sum(dsdu[:,i,j,element_id].*u_t[:,i,j,element_id])
+  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, k, element_id, dg, dsdu, u_t
+    sum(dsdu[:,i,j,k,element_id].*u_t[:,i,j,k,element_id])
   end
 
   return dsdu_ut
@@ -819,16 +833,16 @@ function calc_mhd_solenoid_condition(dg::Dg3D, t::Float64)
   l2_divb   = 0.0
   for element_id in 1:dg.n_elements
     jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        divb   = 0.0
-        for k in 1:nnodes(dg)
-          divb += d[i,k]*dg.elements.u[6,k,j,element_id] + d[j,k]*dg.elements.u[7,i,k,element_id]
-        end
-        divb *= dg.elements.inverse_jacobian[element_id]
-        linf_divb = max(linf_divb,abs(divb))
-        l2_divb += jacobian_volume*weights[i]*weights[j]*divb^2
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      divb   = 0.0
+      for l in 1:nnodes(dg)
+        divb += (d[i,l]*dg.elements.u[6,l,j,k,element_id] +
+                 d[j,l]*dg.elements.u[7,i,l,k,element_id] +
+                 d[k,l]*dg.elements.u[8,i,j,l,element_id])
       end
+      divb *= dg.elements.inverse_jacobian[element_id]
+      linf_divb = max(linf_divb,abs(divb))
+      l2_divb += jacobian_volume*weights[i]*weights[j]*weights[k]*divb^2
     end
   end
   l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
@@ -956,7 +970,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
     print(" max(|Uₜ|):   ")
     for v in 1:nvariables(equation)
       # Calculate maximum absolute value of Uₜ
-      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
+      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :, :]))
       @printf("  % 10.8e", res)
       dg.save_analysis && @printf(f, "  % 10.8e", res)
     end
@@ -974,8 +988,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Entropy
   if :entropy in dg.analysis_quantities
-    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    s = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return entropy(cons, equations(dg))
     end
     print(" ∑S:          ")
@@ -986,8 +1000,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Total energy
   if :energy_total in dg.analysis_quantities
-    e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    e_total = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return energy_total(cons, equations(dg))
     end
     print(" ∑e_total:    ")
@@ -998,8 +1012,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Kinetic energy
   if :energy_kinetic in dg.analysis_quantities
-    e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    e_kinetic = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return energy_kinetic(cons, equations(dg))
     end
     print(" ∑e_kinetic:  ")
@@ -1010,8 +1024,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Internal energy
   if :energy_internal in dg.analysis_quantities
-    e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    e_internal = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return energy_internal(cons, equations(dg))
     end
     print(" ∑e_internal: ")
@@ -1022,8 +1036,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Magnetic energy
   if :energy_magnetic in dg.analysis_quantities
-    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return energy_magnetic(cons, equations(dg))
     end
     print(" ∑e_magnetic: ")
@@ -1038,9 +1052,9 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
     @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
     @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
 
-    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
-      cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
-      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, k, element_id, dg, u_euler, u_gravity
+      cons_euler = get_node_vars(u_euler, dg, i, j, k, element_id)
+      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, k, element_id)
       # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
       return (cons_euler[1] - 1.5e7) * cons_gravity[1]
     end
@@ -1071,8 +1085,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Cross helicity
   if :cross_helicity in dg.analysis_quantities
-    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
+    h_c = integrate(dg, dg.elements.u) do i, j, k, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, k, element_id)
       return cross_helicity(cons, equations(dg))
     end
     print(" ∑H_c:        ")
@@ -1172,11 +1186,9 @@ function set_initial_conditions!(dg::Dg3D, time)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
   for element_id in 1:dg.n_elements
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
-            dg.elements.node_coordinates[:, i, j, element_id], time, equation)
-      end
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      dg.elements.u[:, i, j, k, element_id] .= dg.initial_conditions(
+          dg.elements.node_coordinates[:, i, j, k, element_id], time, equation)
     end
   end
 end
@@ -1224,7 +1236,7 @@ calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volu
 
 
 # Calculate 3D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg3D)
+@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg3D) # FIXME: ndims deferred
   @unpack volume_flux_function = dg
 
   for j in 1:nnodes(dg)
@@ -1261,11 +1273,11 @@ calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volu
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg3D)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg3D) # FIXME: ndims deferred
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg3D)
+function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg3D) # FIXME: ndims deferred
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
   calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
@@ -1278,21 +1290,28 @@ function calc_volume_integral!(u_t, ::Val{:weak_form}, dg::Dg3D)
 
   Threads.@threads for element_id in 1:dg.n_elements
     # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
 
-        flux1 = calcflux(u_node, 1, equations(dg))
-        for l in 1:nnodes(dg)
-          integral_contribution = dhat[l, i] * flux1
-          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
-        end
+      # Flux in x-direction
+      flux1 = calcflux(u_node, 1, equations(dg))
+      for l in 1:nnodes(dg)
+        integral_contribution = dhat[l, i] * flux1
+        add_to_node_vars!(u_t, integral_contribution, dg, l, j, k, element_id)
+      end
 
-        flux2 = calcflux(u_node, 2, equations(dg))
-        for l in 1:nnodes(dg)
-          integral_contribution = dhat[l, j] * flux2
-          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
-        end
+      # Flux in y-direction
+      flux2 = calcflux(u_node, 2, equations(dg))
+      for l in 1:nnodes(dg)
+        integral_contribution = dhat[l, j] * flux2
+        add_to_node_vars!(u_t, integral_contribution, dg, i, l, k, element_id)
+      end
+
+      # Flux in z-direction
+      flux3 = calcflux(u_node, 3, equations(dg))
+      for l in 1:nnodes(dg)
+        integral_contribution = dhat[l, k] * flux3
+        add_to_node_vars!(u_t, integral_contribution, dg, i, j, l, element_id)
       end
     end
   end
@@ -1312,7 +1331,7 @@ end
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D) # FIXME: ndims deferred
   @unpack dsplit_transposed = dg
   # Do not use the thread_cache here since that reduces the performance significantly
   # (which we do not fully understand right now)
@@ -1349,7 +1368,7 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
   end
 end
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D) # FIXME: ndims deferred
   @unpack volume_flux_function, dsplit = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1422,7 +1441,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg3D)
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D)
+                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D) # FIXME: ndims deferred
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded = thread_cache
 
@@ -1518,7 +1537,7 @@ Calculate the finite volume fluxes inside the elements.
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg3D)
+@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg3D) # FIXME: ndims deferred
   @unpack surface_flux_function = dg
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
@@ -1556,15 +1575,21 @@ function prolong2interfaces!(dg::Dg3D)
     right_element_id = dg.interfaces.neighbor_ids[2, s]
     if dg.interfaces.orientations[s] == 1
       # interface in x-direction
-      for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
-        dg.interfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.interfaces.u[1, v, j, k, s] = dg.elements.u[v, nnodes(dg), j, k, left_element_id]
+        dg.interfaces.u[2, v, j, k, s] = dg.elements.u[v,          1, j, k, right_element_id]
+      end
+    elseif dg.interfaces.orientations[s] == 2
+      # interface in y-direction
+      for k in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.interfaces.u[1, v, i, k, s] = dg.elements.u[v, i, nnodes(dg), k, left_element_id]
+        dg.interfaces.u[2, v, i, k, s] = dg.elements.u[v, i,          1, k, right_element_id]
       end
     else
-      # interface in y-direction
-      for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
-        dg.interfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
+      # interface in z-direction
+      for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.interfaces.u[1, v, i, j, s] = dg.elements.u[v, i, j, nnodes(dg), left_element_id]
+        dg.interfaces.u[2, v, i, j, s] = dg.elements.u[v, i, j,          1, right_element_id]
       end
     end
   end

@@ -134,7 +134,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
-  analysis_total_volume = mesh.tree.length_level_0^ndims(equation)
+  analysis_total_volume = mesh.tree.length_level_0^ndims(mesh)
 
   # Store which quantities should be analyzed in `analyze_solution`
   if parameter_exists("extra_analysis_quantities")
@@ -1556,15 +1556,15 @@ function prolong2interfaces!(dg::Dg2D)
     right_element_id = dg.interfaces.neighbor_ids[2, s]
     if dg.interfaces.orientations[s] == 1
       # interface in x-direction
-      for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, nnodes(dg), l, left_element_id]
-        dg.interfaces.u[2, v, l, s] = dg.elements.u[v,          1, l, right_element_id]
+      for j in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.interfaces.u[1, v, j, s] = dg.elements.u[v, nnodes(dg), j, left_element_id]
+        dg.interfaces.u[2, v, j, s] = dg.elements.u[v,          1, j, right_element_id]
       end
     else
       # interface in y-direction
-      for l in 1:nnodes(dg), v in 1:nvariables(dg)
-        dg.interfaces.u[1, v, l, s] = dg.elements.u[v, l, nnodes(dg), left_element_id]
-        dg.interfaces.u[2, v, l, s] = dg.elements.u[v, l,          1, right_element_id]
+      for i in 1:nnodes(dg), v in 1:nvariables(dg)
+        dg.interfaces.u[1, v, i, s] = dg.elements.u[v, i, nnodes(dg), left_element_id]
+        dg.interfaces.u[2, v, i, s] = dg.elements.u[v, i,          1, right_element_id]
       end
     end
   end
