@@ -4,18 +4,18 @@
 
 The linear scalar advection equation
 ```math
-\partial_t u + a_1 \partial_1 u + a_2 \partial_2 u = 0
+\partial_t u + a_1 \partial_1 u + a_2 \partial_2 u + a_3 \partial_3 u = 0
 ```
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation3D <: AbstractLinearScalarAdvectionEquation{3, 1}
   sources::String
-  advectionvelocity::SVector{2, Float64}
+  advectionvelocity::SVector{3, Float64}
 end
 
 function LinearScalarAdvectionEquation3D()
   sources = parameter("sources", "none")
-  a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
+  a = convert(SVector{3,Float64}, parameter("advectionvelocity"))
   LinearScalarAdvectionEquation3D(sources, a)
 end
 
@@ -30,7 +30,7 @@ function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation3
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))]
 end
 
 function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
@@ -50,7 +50,7 @@ function initial_conditions_sin_sin(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
+  scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2]) * sin(2 * pi * x_trans[3])
   return @SVector [scalar]
 end
 
@@ -61,7 +61,7 @@ function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquati
   return @SVector [2.0]
 end
 
-function initial_conditions_linear_x_y(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_conditions_linear_x_y_z(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -80,6 +80,13 @@ function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquati
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [x_trans[2]]
+end
+
+function initial_conditions_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [x_trans[3]]
 end
 
 
