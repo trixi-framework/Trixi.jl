@@ -519,7 +519,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()
 
-  equations(solver) isa Union{LinearScalarAdvectionEquation2D, HyperbolicDiffusionEquations2D} ||
+  equations(solver) isa Union{AbstractLinearScalarAdvectionEquation, HyperbolicDiffusionEquations2D} ||
     throw(ArgumentError("Only linear problems are supported."))
 
   # get the right hand side from the source terms

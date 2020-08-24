@@ -42,8 +42,10 @@ include("run.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations2D, IdealGlmMhdEquations2D, HyperbolicDiffusionEquations2D,
-       LinearScalarAdvectionEquation2D
+export CompressibleEulerEquations2D,
+       IdealGlmMhdEquations2D,
+       HyperbolicDiffusionEquations2D,
+       LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 export flux_central, flux_lax_friedrichs,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_kuya_etal
 

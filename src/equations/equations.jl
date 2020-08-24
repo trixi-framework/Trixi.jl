@@ -25,7 +25,7 @@ function make_equations(name::String, ndims_)
     if ndims_ == 2
       return LinearScalarAdvectionEquation2D()
     else
-      error("LinearScalarAdvectionEquation is not implemented for 3D")
+      return LinearScalarAdvectionEquation3D()
     end
   elseif name == "CompressibleEulerEquations"
     if ndims_ == 2
@@ -76,8 +76,9 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
 include("2d/linear_scalar_advection.jl")
-# include("3d/linear_scalar_advection.jl")
+include("3d/linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
 include("2d/compressible_euler.jl")
