@@ -327,6 +327,21 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
+function initial_conditions_taylor_green(x, t, equation::CompressibleEulerEquations3D)
+  A  = 1.0 # magnitude of speed
+  Ms = 0.1 # maximum Mach number
+
+  rho = 1.0
+  v1  =  A * sin(x[1]) * cos(x[2]) * cos(x[3])
+  v2  = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
+  v3  = 0.0
+  p   = (A / Ms)^2 * rho / equation.gamma # scaling to get Ms
+  p   = p + 1.0/16.0 * A^2 * rho * (cos(2*x[1])*cos(2*x[3]) + 2*cos(2*x[2]) + 2*cos(2*x[1]) + cos(2*x[2])*cos(2*x[3]))
+
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
+end
+
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_conditions`

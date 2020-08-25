@@ -881,7 +881,10 @@ function calc_mhd_solenoid_condition(dg::Dg3D, t::Float64)
   linf_divb = 0.0
   l2_divb   = 0.0
   for element_id in 1:dg.n_elements
-    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndims(dg)
+    # inverse_jacobian * jacobian^ndims
+    #   (chain rule)        (integral)
+    jacobian_factor = (1.0/dg.elements.inverse_jacobian[element_id])^(ndims(dg)-1)
+
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
       divb   = 0.0
       for l in 1:nnodes(dg)
@@ -891,12 +894,63 @@ function calc_mhd_solenoid_condition(dg::Dg3D, t::Float64)
       end
       divb *= dg.elements.inverse_jacobian[element_id]
       linf_divb = max(linf_divb,abs(divb))
-      l2_divb += jacobian_volume*weights[i]*weights[j]*weights[k]*divb^2
+      l2_divb += jacobian_factor*weights[i]*weights[j]*weights[k]*divb^2
     end
   end
   l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
 
   return l2_divb, linf_divb
+end
+
+
+# Calculate enstrophy for the compressible Euler equations
+function calc_enstrophy(dg::Dg3D, t::Float64) # FIXME ndims optimize, use integrate
+  @assert equations(dg) isa CompressibleEulerEquations3D "Only relevant for compressible Euler"
+
+  # Local copy of standard derivative matrix
+  d = polynomial_derivative_matrix(dg.nodes)
+  # Quadrature weights
+  weights = dg.weights
+  # integrate over all elements to get the divergence-free condition errors
+  enstrophy = 0.0
+
+  for element_id in 1:dg.n_elements
+    # inverse_jacobian * jacobian^ndims
+    #   (chain rule)        (integral)
+    jacobian_factor = (1.0/dg.elements.inverse_jacobian[element_id])^(ndims(dg)-1)
+
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      v_x = SVector(0.0, 0.0, 0.0)
+      for ii in 1:nnodes(dg)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_node_vars(dg.elements.u, dg, ii, j, k, element_id)
+        v = SVector(rho_v1, rho_v2, rho_v3) / rho
+        v_x += d[i, ii] * v
+      end
+
+      v_y = SVector(0.0, 0.0, 0.0)
+      for jj in 1:nnodes(dg)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_node_vars(dg.elements.u, dg, i, jj, k, element_id)
+        v = SVector(rho_v1, rho_v2, rho_v3) / rho
+        v_y += d[j, jj] * v
+      end
+
+      v_z = SVector(0.0, 0.0, 0.0)
+      for kk in 1:nnodes(dg)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_node_vars(dg.elements.u, dg, i, j, kk, element_id)
+        v = SVector(rho_v1, rho_v2, rho_v3) / rho
+        v_z += d[k, kk] * v
+      end
+
+      rho, _ = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      omega = SVector(v_y[3] - v_z[2],
+                      v_z[1] - v_x[3],
+                      v_x[2] - v_y[1])
+      enstrophy += jacobian_factor * weights[i] * weights[j] * weights[k] * 0.5 * rho * sum(abs2, omega)
+    end
+  end
+  enstrophy = enstrophy / dg.analysis_total_volume
+
+  return enstrophy
 end
 
 
@@ -1113,6 +1167,15 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
+  # Enstrophy
+  if :enstrophy in dg.analysis_quantities
+    enstrophy = calc_enstrophy(dg, time)
+    print(" enstrophy:   ")
+    @printf("  % 10.8e", enstrophy)
+    dg.save_analysis && @printf(f, "  % 10.8e", enstrophy)
+    println()
+  end
+
   # Solenoidal condition ∇ ⋅ B = 0
   if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
     l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
@@ -1214,6 +1277,9 @@ function save_analysis_header(filename, quantities, equation::AbstractEquation{3
     end
     if :energy_potential in quantities
       @printf(f, "   %-14s", "e_potential")
+    end
+    if :enstrophy in quantities
+      @printf(f, "   %-14s", "enstrophy")
     end
     if :l2_divb in quantities
       @printf(f, "   %-14s", "l2_divb")
