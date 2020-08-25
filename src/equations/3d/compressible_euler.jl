@@ -110,22 +110,25 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations3D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-  # Set up polar coordinates
-  inicenter = [0, 0]
+  # Set up spherical coordinates
+  inicenter = (0, 0, 0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
+  z_norm = x[3] - inicenter[3]
+  r = sqrt(x_norm^2 + y_norm^2 + z_norm^2)
+  phi   = atan(y_norm, x_norm)
+  theta = iszero(r) ? 0.0 : acos(z_norm / r)
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-  p = r > 0.5 ? 1.0 : 1.245
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos(phi) * sin(theta)
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin(phi) * sin(theta)
+  v3  = r > 0.5 ? 0.0 : 0.1882 * cos(theta)
+  p   = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(SVector(rho, v1, v2, p), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
 function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
@@ -596,40 +599,51 @@ Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018
   for Hyperbolic Balance Laws
 [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
-  p_ll =  (equation.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equation.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v3_rr = rho_v3_rr / rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
   # Compute the necessary mean values
   rho_mean   = ln_mean(rho_ll, rho_rr)
   rho_p_mean = ln_mean(rho_ll / p_ll, rho_rr / p_rr)
   v1_avg = 0.5 * (v1_ll + v1_rr)
   v2_avg = 0.5 * (v2_ll + v2_rr)
+  v3_avg = 0.5 * (v3_ll + v3_rr)
   p_avg  = 0.5 * (p_ll + p_rr)
-  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr)
+  velocity_square_avg = 0.5 * (v1_ll*v1_rr + v2_ll*v2_rr + v3_ll*v3_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
     f1 = rho_mean * v1_avg
     f2 = f1 * v1_avg + p_avg
     f3 = f1 * v2_avg
-    f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
-  else
+    f4 = f1 * v3_avg
+    f5 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  elseif orientation == 2
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
     f3 = f1 * v2_avg + p_avg
-    f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+    f4 = f1 * v3_avg
+    f5 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v2_rr + p_rr*v2_ll)
+  else # orientation == 3
+    f1 = rho_mean * v3_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg + p_avg
+    f5 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v3_rr + p_rr*v3_ll)
   end
 
-  return SVector(f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4, f5)
 end
 
 

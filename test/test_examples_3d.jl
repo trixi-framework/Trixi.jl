@@ -24,6 +24,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
             linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
   end
+  @testset "parameters_source_terms.toml with split_form" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_source_terms.toml"),
+            l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
+            linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979],
+            volume_integral_type = "split_form")
+  end
   @testset "parameters_mortar.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar.toml"),
             l2   = [0.0018461483161353273],
@@ -38,6 +44,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr.toml"),
             l2   = [9.773858425669403e-6],
             linf = [0.0005853874124926092])
+  end
+  @testset "parameters_ec.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
+            linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
 end
 
