@@ -95,6 +95,39 @@ latest documentation can be accessed either
 [online](https://trixi-framework.github.io/Trixi.jl/dev) or under [`docs/src`](docs/src).
 
 
+## Referencing
+If you use Trixi in your own research or write a paper using results obtained
+with the help of Trixi, please cite the following
+[paper](https://arxiv.org/abs/2008.10593):
+```bibtex
+@online{schlottkelakemper2020purely,
+  title={A purely hyperbolic discontinuous {G}alerkin approach for
+         self-gravitating gas dynamics},
+  author={Schlottke-Lakemper, Michael and Winters, Andrew R and
+          Ranocha, Hendrik and Gassner, Gregor J},
+  year={2020},
+  month={08},
+  eprint={2008.10593},
+  eprinttype={arXiv},
+  eprintclass={math.NA}
+}
+```
+
+In addition, you can also refer to Trixi directly as
+```bibtex
+@misc{schlottkelakemper2020trixi,
+  title={{T}rixi.jl: A flexible tree-based numerical simulation framework
+         for {PDE}s written in {J}ulia},
+  author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
+          Ranocha, Hendrik and Winters, Andrew R},
+  year={2020},
+  month={08},
+  howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
+  doi={10.5281/zenodo.3996439}
+}
+```
+
+
 ## Authors
 Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
