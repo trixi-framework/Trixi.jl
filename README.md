@@ -98,7 +98,7 @@ latest documentation can be accessed either
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
-[reference](https://arxiv.org/abs/2008.10593):
+[paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
 @online{schlottkelakemper2020purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for
@@ -110,6 +110,20 @@ with the help of Trixi, please cite the following
   eprint={2008.10593},
   eprinttype={arXiv},
   eprintclass={math.NA}
+}
+```
+
+In addition, you can also refer to Trixi directly as
+```bibtex
+@misc{schlottkelakemper2020trixi,
+  title={{T}rixi.jl: A flexible tree-based numerical simulation framework
+         for {PDE}s written in {J}ulia},
+  author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
+          Ranocha, Hendrik and Winters, Andrew R},
+  year={2020},
+  month={08},
+  howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
+  doi={10.5281/zenodo.3996439}
 }
 ```
 

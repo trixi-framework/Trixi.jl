@@ -171,6 +171,20 @@ with the help of Trixi, please cite the following
 }
 ```
 
+In addition, you can also refer to Trixi directly as
+```bibtex
+@misc{schlottkelakemper2020trixi,
+  title={{T}rixi.jl: A flexible tree-based numerical simulation framework
+         for {PDE}s written in {J}ulia},
+  author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
+          Ranocha, Hendrik and Winters, Andrew R},
+  year={2020},
+  month={08},
+  howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
+  doi={10.5281/zenodo.3996439}
+}
+```
+
 ## [Authors](@id authors-index-md)
 Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
