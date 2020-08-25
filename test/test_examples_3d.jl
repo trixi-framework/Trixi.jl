@@ -36,8 +36,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr.toml"),
-            l2   = [1.1114311208163972e-5],
-            linf = [0.0006488458725611851])
+            l2   = [9.773858425669403e-6],
+            linf = [0.0005853874124926092])
   end
 end
 

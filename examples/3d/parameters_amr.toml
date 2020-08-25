@@ -3,7 +3,7 @@ ndims = 3
 # Simulation
 # equations = "CompressibleEulerEquations"
 equations = "LinearScalarAdvectionEquation"
-advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+advectionvelocity = [0.2, -0.7, 0.5] # Need only for linarscalaradvection
 
 # initial_conditions = "initial_conditions_convergence_test"
 # initial_conditions = "initial_conditions_constant"
