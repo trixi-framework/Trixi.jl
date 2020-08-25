@@ -152,6 +152,25 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 --------------------------------------------------------------------------------
 ```
 
+
+## Referencing
+If you use Trixi in your own research or write a paper using results obtained
+with the help of Trixi, please cite the following
+[reference](https://arxiv.org/abs/2008.10593):
+```bibtex
+@online{schlottkelakemper2020purely,
+  title={A purely hyperbolic discontinuous {G}alerkin approach for
+         self-gravitating gas dynamics},
+  author={Schlottke-Lakemper, Michael and Winters, Andrew R and
+          Ranocha, Hendrik and Gassner, Gregor J},
+  year={2020},
+  month={08},
+  eprint={2008.10593},
+  eprinttype={arXiv},
+  eprintclass={math.NA}
+}
+```
+
 ## [Authors](@id authors-index-md)
 Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
