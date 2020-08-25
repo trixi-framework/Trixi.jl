@@ -18,8 +18,8 @@ function PointLocator{NDIMS}(center::AbstractVector, length::Float64, offset=0.0
   center_ = SVector{NDIMS}(center) .+ offset
   length_ = length + 2 * offset
 
-  # Use at most 20 points per locator node
-  max_point_ids = 1
+  # Use at most 4 points per locator node
+  max_point_ids = 4
   point_ids = Vector{Int}()
   children = Vector{PointLocator{NDIMS}}()
 
