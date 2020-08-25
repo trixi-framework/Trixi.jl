@@ -1,8 +1,5 @@
 module Trixi2Img
 
-# Get useful bits and pieces from trixi
-include("../../../../src/solvers/interpolation.jl")
-
 # Number of spatial dimensions
 const ndim = 2
 
@@ -14,6 +11,9 @@ using HDF5: h5open, attrs
 using Plots: plot, plot!, gr, savefig, text, contourf, contourf!
 using TimerOutputs
 import GR
+
+# Get useful bits and pieces from Trixi
+using Trixi: gauss_lobatto_nodes_weights, interpolate_nodes, polynomial_interpolation_matrix
 
 
 """

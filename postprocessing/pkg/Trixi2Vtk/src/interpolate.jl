@@ -1,6 +1,8 @@
 module Interpolate
 
-include("../../../../src/solvers/interpolation.jl")
+# Get useful bits and pieces from Trixi
+using Trixi: gauss_lobatto_nodes_weights, interpolate_nodes, polynomial_interpolation_matrix
+
 using ..Trixi2Vtk
 
 
