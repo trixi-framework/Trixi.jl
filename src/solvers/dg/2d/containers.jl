@@ -94,11 +94,12 @@ nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
-# Positions/directions for large_sides = 1, orientations = 1:
+# Positions/directions for orientations = 1, large_sides = 2:
+# mortar is orthogonal to x-axis, large side is in positive coordinate direction wrt mortar
 #           |    |
 # upper = 2 |    |
 #           |    |
-#                | 3
+#                | 3 = large side
 #           |    |
 # lower = 1 |    |
 #           |    |
