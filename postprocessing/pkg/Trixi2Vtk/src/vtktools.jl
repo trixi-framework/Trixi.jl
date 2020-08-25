@@ -219,8 +219,6 @@ function calc_vtk_points_cells(::Val{3}, coordinates::AbstractMatrix{Float64},
     y_lowerleft = cell_y - cell_dx/2 - dx/2
     z_lowerleft = cell_z - cell_dx/2 - dx/2
 
-    println("| --> ", element_id)
-
     # Create cell for each visualization node
     for k = 1:n_visnodes, j = 1:n_visnodes, i = 1:n_visnodes
       # Determine x and y

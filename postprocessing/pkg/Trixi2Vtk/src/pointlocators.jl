@@ -13,7 +13,7 @@ struct PointLocator{NDIMS}
   length::Float64
   max_point_ids::Int
   point_ids::Vector{Int}
-  children::Vector{PointLocator}
+  children::Vector{PointLocator{NDIMS}}
 end
 
 
@@ -23,9 +23,9 @@ function PointLocator{NDIMS}(center::Point, length::Float64, offset=0.0) where N
   length_ = length + 2 * offset
 
   # Use at most 20 points per locator node
-  max_point_ids = 20
+  max_point_ids = 1
   point_ids = Vector{Int}()
-  children = Vector{PointLocator}()
+  children = Vector{PointLocator{NDIMS}}()
 
   return PointLocator{NDIMS}(center_, length_, max_point_ids, point_ids, children)
 end
