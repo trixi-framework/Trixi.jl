@@ -34,6 +34,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.0019011097431965655, 0.0018289464087588392, 0.0018289464087585998, 0.0018289464087588862, 0.003354766311541738],
             linf = [0.011918594206950184, 0.011808582644224241, 0.011808582644249999, 0.011808582644239785, 0.02464803617735356])
   end
+  @testset "parameters_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr.toml"),
+            l2   = [1.1114311208163972e-5],
+            linf = [0.0006488458725611851])
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

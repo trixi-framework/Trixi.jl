@@ -37,7 +37,7 @@ function refine!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
       element_id += 2^ndims(dg)
     else
       # Copy old element data to new element container
-      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+      @views elements.u[:, :, :, :, element_id] .= old_u[:, :, :, :, old_element_id]
       element_id += 1
     end
   end
@@ -57,8 +57,8 @@ function refine!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
 
   # Sanity check
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 2*n_elem")
+    @assert n_interfaces == 3*n_elements ("For 3D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 3*n_elem")
   end
 
   # Update DG instance with new data
@@ -79,45 +79,109 @@ end
 function refine_element!(u, element_id, old_u, old_element_id,
                          forward_upper, forward_lower, dg::Dg3D)
   # Store new element ids
-  lower_left_id  = element_id
-  lower_right_id = element_id + 1
-  upper_left_id  = element_id + 2
-  upper_right_id = element_id + 3
+  bottom_lower_left_id  = element_id
+  bottom_lower_right_id = element_id + 1
+  bottom_upper_left_id  = element_id + 2
+  bottom_upper_right_id = element_id + 3
+  top_lower_left_id     = element_id + 4
+  top_lower_right_id    = element_id + 5
+  top_upper_left_id     = element_id + 6
+  top_upper_right_id    = element_id + 7
 
-  # Interpolate to lower left element
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, element_id))
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_lower[i, k] * forward_lower[j, l]
+  # Interpolate to bottom lower left element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_lower[i, ii]
+              * forward_lower[j, jj]
+              * forward_lower[k, kk])
     end
-    set_node_vars!(u, acc, dg, i, j, lower_left_id)
+    set_node_vars!(u, acc, dg, i, j, k, bottom_lower_left_id)
   end
 
-  # Interpolate to lower right element
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, element_id))
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_upper[i, k] * forward_lower[j, l]
+  # Interpolate to bottom lower right element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_upper[i, ii]
+              * forward_lower[j, jj]
+              * forward_lower[k, kk])
     end
-    set_node_vars!(u, acc, dg, i, j, lower_right_id)
+    set_node_vars!(u, acc, dg, i, j, k, bottom_lower_right_id)
   end
 
-  # Interpolate to upper left element
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, element_id))
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
+  # Interpolate to bottom upper left element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_lower[i, ii]
+              * forward_upper[j, jj]
+              * forward_lower[k, kk])
     end
-    set_node_vars!(u, acc, dg, i, j, upper_left_id)
+    set_node_vars!(u, acc, dg, i, j, k, bottom_upper_left_id)
   end
 
-  # Interpolate to upper right element
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, element_id))
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
+  # Interpolate to bottom upper right element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_upper[i, ii]
+              * forward_upper[j, jj]
+              * forward_lower[k, kk])
     end
-    set_node_vars!(u, acc, dg, i, j, upper_right_id)
+    set_node_vars!(u, acc, dg, i, j, k, bottom_upper_right_id)
+  end
+
+  # Interpolate to top lower left element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_lower[i, ii]
+              * forward_lower[j, jj]
+              * forward_upper[k, kk])
+    end
+    set_node_vars!(u, acc, dg, i, j, k, top_lower_left_id)
+  end
+
+  # Interpolate to top lower right element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_upper[i, ii]
+              * forward_lower[j, jj]
+              * forward_upper[k, kk])
+    end
+    set_node_vars!(u, acc, dg, i, j, k, top_lower_right_id)
+  end
+
+  # Interpolate to top upper left element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_lower[i, ii]
+              * forward_upper[j, jj]
+              * forward_upper[k, kk])
+    end
+    set_node_vars!(u, acc, dg, i, j, k, top_upper_left_id)
+  end
+
+  # Interpolate to top upper right element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
+              * forward_upper[i, ii]
+              * forward_upper[j, jj]
+              * forward_upper[k, kk])
+    end
+    set_node_vars!(u, acc, dg, i, j, k, top_upper_right_id)
   end
 end
 
@@ -171,7 +235,7 @@ function coarsen!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
       skip = 2^ndims(dg) - 1
     else
       # Copy old element data to new element container
-      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+      @views elements.u[:, :, :, :, element_id] .= old_u[:, :, :, :, old_element_id]
       element_id += 1
     end
   end
@@ -191,8 +255,8 @@ function coarsen!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
 
   # Sanity check
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 2*n_elem")
+    @assert n_interfaces == 3*n_elements ("For 3D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 3*n_elem")
   end
 
   # Update DG instance with new data
@@ -213,36 +277,84 @@ end
 function coarsen_elements!(u, element_id, old_u, old_element_id,
                            reverse_upper, reverse_lower, dg::Dg3D)
   # Store old element ids
-  lower_left_id  = old_element_id
-  lower_right_id = old_element_id + 1
-  upper_left_id  = old_element_id + 2
-  upper_right_id = old_element_id + 3
+  bottom_lower_left_id  = old_element_id
+  bottom_lower_right_id = old_element_id + 1
+  bottom_upper_left_id  = old_element_id + 2
+  bottom_upper_right_id = old_element_id + 3
+  top_lower_left_id     = old_element_id + 4
+  top_lower_right_id    = old_element_id + 5
+  top_upper_left_id     = old_element_id + 6
+  top_upper_right_id    = old_element_id + 7
 
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, element_id))
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
 
-    # Project from lower left element
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, lower_left_id) * reverse_lower[i, k] * reverse_lower[j, l]
+    # Project from bottom lower left element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_lower_left_id)
+              * reverse_lower[i, ii]
+              * reverse_lower[j, jj]
+              * reverse_lower[k, kk])
     end
 
-    # Project from lower right element
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, lower_right_id) * reverse_upper[i, k] * reverse_lower[j, l]
+    # Project from bottom lower right element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_lower_right_id)
+              * reverse_upper[i, ii]
+              * reverse_lower[j, jj]
+              * reverse_lower[k, kk])
     end
 
-    # Project from upper left element
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
+    # Project from bottom upper left element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_upper_left_id)
+              * reverse_lower[i, ii]
+              * reverse_upper[j, jj]
+              * reverse_lower[k, kk])
     end
 
-    # Project from upper right element
-    for l in 1:nnodes(dg), k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
+    # Project from bottom upper right element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_upper_right_id)
+              * reverse_upper[i, ii]
+              * reverse_upper[j, jj]
+              * reverse_lower[k, kk])
+    end
+
+    # Project from top lower left element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_lower_left_id)
+              * reverse_lower[i, ii]
+              * reverse_lower[j, jj]
+              * reverse_upper[k, kk])
+    end
+
+    # Project from top lower right element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_lower_right_id)
+              * reverse_upper[i, ii]
+              * reverse_lower[j, jj]
+              * reverse_upper[k, kk])
+    end
+
+    # Project from top upper left element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_upper_left_id)
+              * reverse_lower[i, ii]
+              * reverse_upper[j, jj]
+              * reverse_upper[k, kk])
+    end
+
+    # Project from top upper right element
+    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
+      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_upper_right_id)
+              * reverse_upper[i, ii]
+              * reverse_upper[j, jj]
+              * reverse_upper[k, kk])
     end
 
     # Update value
-    set_node_vars!(u, acc, dg, i, j, element_id)
+    set_node_vars!(u, acc, dg, i, j, k, element_id)
   end
 end
 
@@ -270,7 +382,7 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
     # Iterate over all elements
     for element_id in 1:dg.n_elements
       # Determine target level from peak value
-      peak = maximum(dg.elements.u[:, :, :, element_id])
+      peak = maximum(dg.elements.u[:, :, :, :, element_id])
       if peak > threshold_high
         target_level = max_level
       elseif peak > threshold_low
