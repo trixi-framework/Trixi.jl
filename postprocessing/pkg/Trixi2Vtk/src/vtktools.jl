@@ -11,19 +11,22 @@ using TimerOutputs
 # Create and return VTK grids that are ready to be filled with data (vtu version)
 function build_vtk_grids(::Val{:vtu}, coordinates, levels, center_level_0, length_level_0,
                          n_visnodes, verbose, output_directory, is_datafile, filename)
+  # Extract number of spatial dimensions
+  ndims_ = size(coordinates, 1)
+
   # Calculate VTK points and cells
   verbose && println("| Preparing VTK cells...")
   if is_datafile
     @timeit "prepare VTK cells (node data)" begin
-      vtk_points, vtk_cells = calc_vtk_points_cells(coordinates, levels,
+      vtk_points, vtk_cells = calc_vtk_points_cells(Val(ndims_), coordinates, levels,
                                                     center_level_0, length_level_0, n_visnodes)
     end
   end
 
   # Prepare VTK points and cells for celldata file
   @timeit "prepare VTK cells (cell data)" begin
-    vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(coordinates, levels,
-                                                                    center_level_0,
+    vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(Val(ndims_), coordinates,
+                                                                    levels, center_level_0,
                                                                     length_level_0, 1)
   end
 
@@ -53,7 +56,7 @@ function build_vtk_grids(::Val{:vti}, coordinates, levels, center_level_0, lengt
                          n_visnodes, verbose, output_directory, is_datafile, filename)
     # Prepare VTK points and cells for celldata file
     @timeit "prepare VTK cells" vtk_celldata_points, vtk_celldata_cells = calc_vtk_points_cells(
-        coordinates, levels, center_level_0, length_level_0, 1)
+        Val(ndims_), coordinates, levels, center_level_0, length_level_0, 1)
 
     # Determine output file names
     base, _ = splitext(splitdir(filename)[2])
@@ -122,16 +125,15 @@ function get_pvd_filename(filenames::AbstractArray)
 end
 
 
-# Convert coordinates and level information to a list of points and VTK cells
-function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
+# Convert coordinates and level information to a list of points and VTK cells (2D version)
+function calc_vtk_points_cells(::Val{2}, coordinates::AbstractMatrix{Float64},
                                levels::AbstractVector{Int},
                                center_level_0::AbstractVector{Float64},
                                length_level_0::Float64,
                                n_visnodes::Int=1)
-  @assert ndim == 2 "Algorithm currently only works in 2D"
-
+  ndim = 2
   # Create point locator
-  pl = PointLocator(center_level_0, length_level_0, 1e-12)
+  pl = PointLocator{2}(center_level_0, length_level_0, 1e-12)
 
   # Create arrays for points and cells
   n_elements = length(levels)
@@ -162,10 +164,10 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
         y = y_lowerleft + j * dx
 
         # Get point id for each vertex
-        point_ids[1] = insert!(pl, points, x - dx/2, y - dx/2)
-        point_ids[2] = insert!(pl, points, x + dx/2, y - dx/2)
-        point_ids[3] = insert!(pl, points, x - dx/2, y + dx/2)
-        point_ids[4] = insert!(pl, points, x + dx/2, y + dx/2)
+        point_ids[1] = insert!(pl, points, (x - dx/2, y - dx/2))
+        point_ids[2] = insert!(pl, points, (x + dx/2, y - dx/2))
+        point_ids[3] = insert!(pl, points, (x - dx/2, y + dx/2))
+        point_ids[4] = insert!(pl, points, (x + dx/2, y + dx/2))
 
         # Add cell
         reshaped[i, j, element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids)) 
@@ -176,8 +178,77 @@ function calc_vtk_points_cells(coordinates::AbstractMatrix{Float64},
   # Convert array-of-points to two-dimensional array
   vtk_points = Matrix{Float64}(undef, ndim, length(points))
   for point_id in 1:length(points)
-    vtk_points[1, point_id] = points[point_id].x
-    vtk_points[2, point_id] = points[point_id].y
+    vtk_points[1, point_id] = points[point_id].x[1]
+    vtk_points[2, point_id] = points[point_id].x[2]
+  end
+
+  return vtk_points, vtk_cells
+end
+
+
+# Convert coordinates and level information to a list of points and VTK cells (3D version)
+function calc_vtk_points_cells(::Val{3}, coordinates::AbstractMatrix{Float64},
+                               levels::AbstractVector{Int},
+                               center_level_0::AbstractVector{Float64},
+                               length_level_0::Float64,
+                               n_visnodes::Int=1)
+  ndim = 3
+  # Create point locator
+  pl = PointLocator{3}(center_level_0, length_level_0, 1e-12)
+
+  # Create arrays for points and cells
+  n_elements = length(levels)
+  points = Vector{Point}()
+  vtk_cells = Vector{MeshCell}(undef, n_elements * n_visnodes^ndim)
+  point_ids = Vector{Int}(undef, 2^ndim)
+
+  # Reshape cell array for easy-peasy access
+  reshaped = reshape(vtk_cells, n_visnodes, n_visnodes, n_visnodes, n_elements)
+
+  # Create VTK cell for each Trixi element
+  for element_id in 1:n_elements
+    # Extract cell values
+    cell_x = coordinates[1, element_id]
+    cell_y = coordinates[2, element_id]
+    cell_z = coordinates[3, element_id]
+    cell_dx = length_level_0 / 2^levels[element_id]
+
+    # Adapt to visualization nodes for easy-to-understand loops
+    dx = cell_dx / n_visnodes
+    x_lowerleft = cell_x - cell_dx/2 - dx/2
+    y_lowerleft = cell_y - cell_dx/2 - dx/2
+    z_lowerleft = cell_z - cell_dx/2 - dx/2
+
+    println("| --> ", element_id)
+
+    # Create cell for each visualization node
+    for k = 1:n_visnodes, j = 1:n_visnodes, i = 1:n_visnodes
+      # Determine x and y
+      x = x_lowerleft + i * dx
+      y = y_lowerleft + j * dx
+      z = z_lowerleft + k * dx
+
+      # Get point id for each vertex
+      point_ids[1] = insert!(pl, points, (x - dx/2, y - dx/2, z - dx/2))
+      point_ids[2] = insert!(pl, points, (x + dx/2, y - dx/2, z - dx/2))
+      point_ids[3] = insert!(pl, points, (x - dx/2, y + dx/2, z - dx/2))
+      point_ids[4] = insert!(pl, points, (x + dx/2, y + dx/2, z - dx/2))
+      point_ids[5] = insert!(pl, points, (x - dx/2, y - dx/2, z + dx/2))
+      point_ids[6] = insert!(pl, points, (x + dx/2, y - dx/2, z + dx/2))
+      point_ids[7] = insert!(pl, points, (x - dx/2, y + dx/2, z + dx/2))
+      point_ids[8] = insert!(pl, points, (x + dx/2, y + dx/2, z + dx/2))
+
+      # Add cell
+      reshaped[i, j, k, element_id] = MeshCell(VTKCellTypes.VTK_VOXEL, copy(point_ids)) 
+    end
+  end
+
+  # Convert array-of-points to two-dimensional array
+  vtk_points = Matrix{Float64}(undef, ndim, length(points))
+  for point_id in 1:length(points)
+    vtk_points[1, point_id] = points[point_id].x[1]
+    vtk_points[2, point_id] = points[point_id].x[2]
+    vtk_points[3, point_id] = points[point_id].x[3]
   end
 
   return vtk_points, vtk_cells

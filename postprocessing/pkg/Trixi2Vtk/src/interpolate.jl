@@ -1,7 +1,7 @@
 module Interpolate
 
 # Get useful bits and pieces from Trixi
-using Trixi: gauss_lobatto_nodes_weights, interpolate_nodes, polynomial_interpolation_matrix
+include("../../../../src/solvers/dg/interpolation.jl")
 
 using ..Trixi2Vtk
 
@@ -45,6 +45,9 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
                                  normalized_coordinates::AbstractArray{Float64},
                                  levels::AbstractArray{Int}, resolution::Int,
                                  nvisnodes_per_level::AbstractArray{Int})
+  # Extract number of spatial dimensions
+  ndims_ = size(normalized_coordinates, 1)
+
   # Extract data shape information
   n_nodes_in, _, n_elements, n_variables = size(unstructured_data)
 
@@ -90,7 +93,7 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
   end
 
   # Return as one 1D array for each variable
-  return reshape(structured, resolution^ndim, n_variables)
+  return reshape(structured, resolution^ndims_, n_variables)
 end
 
 
@@ -98,11 +101,14 @@ end
 # contribution to the global data structure
 function element2index(normalized_coordinates::AbstractArray{Float64}, levels::AbstractArray{Int},
                        resolution::Int, nvisnodes_per_level::AbstractArray{Int})
+  # Extract number of spatial dimensions
+  ndims_ = size(normalized_coordinates, 1)
+
   n_elements = length(levels)
 
   # First, determine lower left coordinate for all cells
   dx = 2 / resolution
-  lower_left_coordinate = Array{Float64}(undef, ndim, n_elements)
+  lower_left_coordinate = Array{Float64}(undef, ndims_, n_elements)
   for element_id in 1:n_elements
     nvisnodes = nvisnodes_per_level[levels[element_id] + 1]
     lower_left_coordinate[1, element_id] = (
@@ -133,8 +139,13 @@ end
 
 # Interpolate to visualization nodes
 function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int)
+  # Extract number of spatial dimensions
+  ndims_ = ndims(data_gl) - 2
+
   # Extract data shape information
-  n_nodes_in, _, n_elements, n_variables = size(data_gl)
+  n_nodes_in = size(data_gl, 1)
+  n_elements = size(data_gl, ndims_ + 1)
+  n_variables = size(data_gl, ndims_ + 2)
 
   # Get node coordinates for DG locations on reference element
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
@@ -144,24 +155,45 @@ function raw2visnodes(data_gl::AbstractArray{Float64}, n_visnodes::Int)
   nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_visnodes))
   vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
-  # Create output data structure
-  data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements, n_variables)
+  if ndims_ == 2
+    # Create output data structure
+    data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_elements, n_variables)
 
-  # For each variable, interpolate element data and store to global data structure
-  for v in 1:n_variables
-    # Reshape data array for use in interpolate_nodes function
-    @views reshaped_data = reshape(data_gl[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
+    # For each variable, interpolate element data and store to global data structure
+    for v in 1:n_variables
+      # Reshape data array for use in interpolate_nodes function
+      @views reshaped_data = reshape(data_gl[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
 
-    # Interpolate data to visualization nodes
-    for element_id in 1:n_elements
-      @views data_vis[:, :, element_id, v] .= reshape(
-          interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
-          n_visnodes, n_visnodes)
+      # Interpolate data to visualization nodes
+      for element_id in 1:n_elements
+        @views data_vis[:, :, element_id, v] .= reshape(
+            interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
+            n_visnodes, n_visnodes)
+      end
     end
+  elseif ndims_ == 3
+    # Create output data structure
+    data_vis = Array{Float64}(undef, n_visnodes, n_visnodes, n_visnodes, n_elements, n_variables)
+
+    # For each variable, interpolate element data and store to global data structure
+    for v in 1:n_variables
+      # Reshape data array for use in interpolate_nodes function
+      @views reshaped_data = reshape(data_gl[:, :, :, :, v],
+                                     1, n_nodes_in, n_nodes_in, n_nodes_in, n_elements)
+
+      # Interpolate data to visualization nodes
+      for element_id in 1:n_elements
+        @views data_vis[:, :, :, element_id, v] .= reshape(
+            interpolate_nodes(reshaped_data[:, :, :, :, element_id], vandermonde, 1),
+            n_visnodes, n_visnodes, n_visnodes)
+      end
+    end
+  else
+    error("Unsupported number of spatial dimensions: ", ndims_)
   end
 
   # Return as one 1D array for each variable
-  return reshape(data_vis, n_visnodes^ndim * n_elements, n_variables)
+  return reshape(data_vis, n_visnodes^ndims_ * n_elements, n_variables)
 end
 
 

@@ -30,18 +30,18 @@ function read_meshfile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
-    ndim = read(attrs(file)["ndim"])
+    ndims_ = read(attrs(file)["ndims"])
     n_cells = read(attrs(file)["n_cells"])
     n_leaf_cells = read(attrs(file)["n_leaf_cells"])
     center_level_0 = read(attrs(file)["center_level_0"])
     length_level_0 = read(attrs(file)["length_level_0"])
 
     # Extract coordinates, levels, child cells
-    coordinates = Array{Float64}(undef, ndim, n_cells)
+    coordinates = Array{Float64}(undef, ndims_, n_cells)
     coordinates .= read(file["coordinates"])
     levels = Array{Int}(undef, n_cells)
     levels .= read(file["levels"])
-    child_ids = Array{Int}(undef, 2^ndim, n_cells)
+    child_ids = Array{Int}(undef, 2^ndims_, n_cells)
     child_ids .= read(file["child_ids"])
 
     # Extract leaf cells (= cells to be plotted) and contract all other arrays accordingly
@@ -70,6 +70,7 @@ function read_datafile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
+    ndims_ = read(attrs(file)["ndims"])
     N = read(attrs(file)["N"])
     n_elements = read(attrs(file)["n_elements"])
     n_variables = read(attrs(file)["n_vars"])
@@ -83,10 +84,21 @@ function read_datafile(filename::String)
 
     # Extract data arrays
     n_nodes = N + 1
-    data = Array{Float64}(undef, n_nodes, n_nodes, n_elements, n_variables)
-    for v = 1:n_variables
-      vardata = read(file["variables_$v"])
-      @views data[:, :, :, v][:] .= vardata
+
+    if ndims_ == 2
+      data = Array{Float64}(undef, n_nodes, n_nodes, n_elements, n_variables)
+      for v = 1:n_variables
+        vardata = read(file["variables_$v"])
+        @views data[:, :, :, v][:] .= vardata
+      end
+    elseif ndims_ == 3
+      data = Array{Float64}(undef, n_nodes, n_nodes, n_nodes, n_elements, n_variables)
+      for v = 1:n_variables
+        vardata = read(file["variables_$v"])
+        @views data[:, :, :, :, v][:] .= vardata
+      end
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
     end
 
     # Extract element variable arrays

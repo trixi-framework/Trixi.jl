@@ -1,9 +1,5 @@
 module Trixi2Vtk
 
-# Number of spatial dimensions
-const ndim = 2
-export ndim
-
 # Include all top-level submodule files
 include("auxiliary.jl")
 include("interpolate.jl")

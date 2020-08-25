@@ -171,11 +171,11 @@ function run(; args=nothing, kwargs...)
 
     # Save VTK file
     if is_datafile
-      verbose && println("| Saving VTK file '$(vtk_filename).$(format)'...")
+      verbose && println("| Saving VTK file '$(vtk_nodedata.path)'...")
       @timeit "save VTK file" vtk_save(vtk_nodedata)
     end
 
-    verbose && println("| Saving VTK file '$(vtk_celldata_filename).$(format)'...")
+    verbose && println("| Saving VTK file '$(vtk_celldata.path)'...")
     @timeit "save VTK file" vtk_save(vtk_celldata)
 
     # Add to PVD file only if it is a datafile
