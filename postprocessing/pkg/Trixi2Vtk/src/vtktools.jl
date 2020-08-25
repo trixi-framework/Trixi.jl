@@ -1,11 +1,12 @@
 module VtkTools
 
-using ..PointLocators: PointLocator, insert!, Point
+using ..PointLocators: PointLocator, insert!
 using ..Auxiliary: longest_common_prefix
 using ..Trixi2Vtk
 
-using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
+using StaticArrays: SVector
 using TimerOutputs
+using WriteVTK: vtk_grid, MeshCell, VTKCellTypes, vtk_save, paraview_collection
 
 
 # Create and return VTK grids that are ready to be filled with data (vtu version)
@@ -137,7 +138,7 @@ function calc_vtk_points_cells(::Val{2}, coordinates::AbstractMatrix{Float64},
 
   # Create arrays for points and cells
   n_elements = length(levels)
-  points = Vector{Point}()
+  points = Vector{SVector{2, Float64}}()
   vtk_cells = Vector{MeshCell}(undef, n_elements * n_visnodes^ndim)
   point_ids = Vector{Int}(undef, 2^ndim)
 
@@ -170,7 +171,7 @@ function calc_vtk_points_cells(::Val{2}, coordinates::AbstractMatrix{Float64},
         point_ids[4] = insert!(pl, points, (x + dx/2, y + dx/2))
 
         # Add cell
-        reshaped[i, j, element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids)) 
+        reshaped[i, j, element_id] = MeshCell(VTKCellTypes.VTK_PIXEL, copy(point_ids))
       end
     end
   end
@@ -198,7 +199,7 @@ function calc_vtk_points_cells(::Val{3}, coordinates::AbstractMatrix{Float64},
 
   # Create arrays for points and cells
   n_elements = length(levels)
-  points = Vector{Point}()
+  points = Vector{SVector{3, Float64}}()
   vtk_cells = Vector{MeshCell}(undef, n_elements * n_visnodes^ndim)
   point_ids = Vector{Int}(undef, 2^ndim)
 
@@ -237,16 +238,16 @@ function calc_vtk_points_cells(::Val{3}, coordinates::AbstractMatrix{Float64},
       point_ids[8] = insert!(pl, points, (x + dx/2, y + dx/2, z + dx/2))
 
       # Add cell
-      reshaped[i, j, k, element_id] = MeshCell(VTKCellTypes.VTK_VOXEL, copy(point_ids)) 
+      reshaped[i, j, k, element_id] = MeshCell(VTKCellTypes.VTK_VOXEL, copy(point_ids))
     end
   end
 
   # Convert array-of-points to two-dimensional array
   vtk_points = Matrix{Float64}(undef, ndim, length(points))
   for point_id in 1:length(points)
-    vtk_points[1, point_id] = points[point_id].x[1]
-    vtk_points[2, point_id] = points[point_id].x[2]
-    vtk_points[3, point_id] = points[point_id].x[3]
+    vtk_points[1, point_id] = points[point_id][1]
+    vtk_points[2, point_id] = points[point_id][2]
+    vtk_points[3, point_id] = points[point_id][3]
   end
 
   return vtk_points, vtk_cells
