@@ -339,8 +339,9 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
     x2 = x[2, i, j, k, element_id]
     x3 = x[3, i, j, k, element_id]
 
-    tmp1 = sin(((x1 + x2 + x3) - t) * ω) * A
-    tmp2 = cos(((x1 + x2 + x3) - t) * ω) * A * ω
+    si, co = sincos(((x1 + x2 + x3) - t) * ω)
+    tmp1 = si * A
+    tmp2 = co * A * ω
     tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
 
     ut[1, i, j, k, element_id] += 2 * tmp2
