@@ -93,19 +93,20 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
-  C = -2.0*G/pi
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
   A = 0.1 # perturbation coefficient must match Euler setup
-  rho1 = A * sin(pi * (x[1] + x[2] - t))
+  rho1 = A * sin(pi * (x[1] + x[2] + x[3] - t))
   # intialize with ansatz of gravity potential
-  phi = C * rho1
-  q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q2  = q1                                     # = gravity acceleration in y-direction
+  phi = C_grav * rho1
+  q1  = C_grav * A * pi * cos(pi*(x[1] + x[2] + x[3] - t)) # = gravity acceleration in x-direction
+  q2  = q1                                                 # = gravity acceleration in y-direction
+  q3  = q1                                                 # = gravity acceleration in z-direction
 
-  return @SVector [phi, q1, q2]
+  return @SVector [phi, q1, q2, q3]
 end
 
 
@@ -159,15 +160,14 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equa
   return nothing
 end
 
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
+  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+    ut[2, i, j, k, element_id] -= inv_Tr * u[2, i, j, k, element_id]
+    ut[3, i, j, k, element_id] -= inv_Tr * u[3, i, j, k, element_id]
+    ut[4, i, j, k, element_id] -= inv_Tr * u[4, i, j, k, element_id]
   end
 
   return nothing

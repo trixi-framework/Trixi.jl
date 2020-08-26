@@ -105,22 +105,23 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations3D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
   end
   c = 2.0
   A = 0.1
-  ini = c + A * sin(pi * (x[1] + x[2] - t))
+  ini = c + A * sin(pi * (x[1] + x[2] + x[3] - t))
   G = 1.0 # gravitational constant
 
   rho = ini
   v1 = 1.0
   v2 = 1.0
-  p = ini^2*G/pi
+  v3 = 1.0
+  p = ini^2 * G * 2/(3 * pi) # "3" is the number of spatial dimensions
 
-  return prim2cons(SVector(rho, v1, v2, p), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
 function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations3D)
@@ -207,25 +208,26 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
-  C_grav = -2.0*G/pi
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      rhox = A * pi * cos(pi * (x1 + x2 - t))
-      rho  = c + A * sin(pi * (x1 + x2 - t))
+  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, k, element_id]
+    x2 = x[2, i, j, k, element_id]
+    x3 = x[3, i, j, k, element_id]
+    rhox = A * pi * cos(pi * (x1 + x2 + x3 - t))
+    rho  = c + A * sin(pi * (x1 + x2 + x3 - t))
 
-      ut[1, i, j, element_id] += rhox
-      ut[2, i, j, element_id] += rhox
-      ut[3, i, j, element_id] += rhox
-      ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
-    end
+    # In "2 * rhox", the "2" is "number of spatial dimensions minus one"
+    ut[1, i, j, k, element_id] += 2 * rhox
+    ut[2, i, j, k, element_id] += 2 * rhox
+    ut[3, i, j, k, element_id] += 2 * rhox
+    ut[4, i, j, k, element_id] += 2 * rhox
+    ut[5, i, j, k, element_id] += 2 * rhox * (3/2 - C_grav*rho) # "3" in "3/2" is the number of spatial dimensions
   end
 
   return nothing
