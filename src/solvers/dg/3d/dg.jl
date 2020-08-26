@@ -604,17 +604,17 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, 1,   :,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, 1,   :,    :,   element_id]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, end, :,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, end, :,    :,   element_id]
       elseif direction == 3 # -y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   1,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   1,    :,   element_id]
       elseif direction == 4 # +y direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   end,  :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   end,  :,   element_id]
       elseif direction == 5 # -z direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   :,    1,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    1,   element_id]
       elseif direction == 6 # +z direction
-        boundaries.node_coordinates[:, :, count] .= enc[:, :,   :,    end, element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    end, element_id]
       else
         error("should not happen")
       end

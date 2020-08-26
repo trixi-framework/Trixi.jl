@@ -624,7 +624,7 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
     end
   elseif dg.amr_indicator === :sedov_self_gravity
     base_level = 2
-    max_level = 8
+    max_level = 7
     blending_factor_threshold = 0.0003
 
     # (Re-)initialize element variable storage for blending factor

@@ -297,14 +297,14 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # Set up polar coordinates
-  r = sqrt(x[1]^2 + x[2]^2)
+function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations3D)
+  # Calculate radius as distance from origin
+  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
   # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
+  r0 = 0.25 #0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
   E = 1.0
-  p_inner   = (equation.gamma - 1) * E / (pi * r0^2)
+  p_inner   = (equation.gamma - 1) * E / (4/3 * pi * r0^3)
   p_ambient = 1e-5 # = true Sedov setup
 
   # Calculate primitive variables
@@ -319,12 +319,13 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   # velocities are zero
   v1 = 0.0
   v2 = 0.0
+  v3 = 0.0
 
   # use a logistic function to tranfer pressure value smoothly
   logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
   p = max(logistic_function_p, p_ambient)
 
-  return prim2cons(SVector(rho, v1, v2, p), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
 function initial_conditions_taylor_green(x, t, equation::CompressibleEulerEquations3D)
@@ -695,18 +696,20 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEule
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
-  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  v3_ll = rho_v3_ll / rho_ll
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
 
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
-  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v3_rr = rho_v3_rr / rho_rr
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
   # Obtain left and right fluxes
   f_ll = calcflux(u_ll, orientation, equation)
@@ -715,9 +718,12 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
   if orientation == 1 # x-direction
     Ssl = v1_ll - sqrt(equation.gamma * p_ll / rho_ll)
     Ssr = v1_rr + sqrt(equation.gamma * p_rr / rho_rr)
-  else # y-direction
+  elseif orientation == 2 # y-direction
     Ssl = v2_ll - sqrt(equation.gamma * p_ll / rho_ll)
     Ssr = v2_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  else # z-direction
+    Ssl = v3_ll - sqrt(equation.gamma * p_ll / rho_ll)
+    Ssr = v3_rr + sqrt(equation.gamma * p_rr / rho_rr)
   end
 
   if Ssl >= 0.0 && Ssr > 0.0
@@ -725,19 +731,22 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
     f2 = f_ll[2]
     f3 = f_ll[3]
     f4 = f_ll[4]
+    f5 = f_ll[5]
   elseif Ssr <= 0.0 && Ssl < 0.0
     f1 = f_rr[1]
     f2 = f_rr[2]
     f3 = f_rr[3]
     f4 = f_rr[4]
+    f5 = f_rr[5]
   else
-    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
-    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
-    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr[1] - rho_v2_ll[1]))/(Ssr - Ssl)
-    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
+    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr    - rho_ll))    / (Ssr - Ssl)
+    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr - rho_v1_ll)) / (Ssr - Ssl)
+    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr - rho_v2_ll)) / (Ssr - Ssl)
+    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_v3_rr - rho_v3_ll)) / (Ssr - Ssl)
+    f5 = (Ssr*f_ll[5] - Ssl*f_rr[5] + Ssl*Ssr*(rho_e_rr  - rho_e_ll))  / (Ssr - Ssl)
   end
 
-  return SVector(f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4, f5)
 end
 
 
