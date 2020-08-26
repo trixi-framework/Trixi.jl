@@ -3,7 +3,7 @@ ndims = 3
 # Simulation
 equations = "CompressibleEulerEquations"
 
-initial_conditions = "initial_conditions_taylor_green"
+initial_conditions = "initial_conditions_taylor_green_vortex"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_ranocha"
 t_start = 0.0

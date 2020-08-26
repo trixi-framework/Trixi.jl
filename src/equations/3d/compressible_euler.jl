@@ -34,28 +34,6 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
 end
 
-function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  rho = 1
-  v1 = 1
-  v2 = 1
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-  return @SVector [rho, rho_v1, rho_v2, rho_e]
-end
-
-function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  v1 = 1
-  v2 = 1
-  rho_v1 = rho * v1
-  rho_v2 = rho * v2
-  p = 1 + exp(-(x[1]^2 + x[2]^2))/2
-  rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-  return @SVector [rho, rho_v1, rho_v2, rho_e]
-end
-
 function initial_conditions_constant(x, t, equation::CompressibleEulerEquations3D)
   rho = 1.0
   rho_v1 = 0.1
@@ -82,34 +60,6 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
 end
 
-function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
-  # make sure that the inicenter does not exit the domain, e.g. T=10.0
-  # initial center of the vortex
-  inicenter = [0,0]
-  # size and strength of the vortex
-  iniamplitude = 0.2
-  # base flow
-  prim=[1.0,1.0,1.0,10.0]
-  vel=prim[2:3]
-  rt=prim[4]/prim[1]                      # ideal gas equation
-  cent=(inicenter+vel*t)                  # advection of center
-  cent=x-cent                             # distance to centerpoint
-  #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
-  # cross product with iniaxis = [0,0,1]
-  helper =  cent[1]
-  cent[1] = -cent[2]
-  cent[2] = helper
-  r2=cent[1]^2+cent[2]^2
-  du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
-  dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-  prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
-  prim[2:3]=prim[2:3]+du*cent #v
-  prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-  rho,rho_v1,rho_v2,rho_e = prim2cons(prim, equation)
-  return @SVector [rho, rho_v1, rho_v2, rho_e]
-end
-
 function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations3D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up spherical coordinates
@@ -131,152 +81,28 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-  # Set up polar coordinates
-  inicenter = [0, 0]
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-  phi = atan(y_norm, x_norm)
+function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations3D)
+  # Calculate radius as distance from origin
+  r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-  p = r > 0.5 ? 1.0E-3 : 1.245
-
-  return prim2cons(SVector(rho, v1, v2, p), equation)
-end
-
-function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # Set up polar coordinates
-  inicenter = [0, 0]
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+  r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
   E = 1.0
-  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-  p0_outer = 1.0e-5 # = true Sedov setup
-  # p0_outer = 1.0e-3 # = more reasonable setup
+  p_inner   = (equation.gamma - 1) * E / (4/3 * pi * r0^3)
+  p_ambient = 1e-5 # = true Sedov setup
 
   # Calculate primitive variables
   rho = 1.0
   v1 = 0.0
   v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
+  v3 = 0.0
 
-  return prim2cons(SVector(rho, v1, v2, p), equation)
-end
+  # use a logistic function to tranfer pressure value smoothly
+  k  = -50.0 # sharpness of transfer
+  logistic_function_p = p_inner/(1.0 + exp(-k*(r - r0)))
+  p = max(logistic_function_p, p_ambient)
 
-function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # Set up polar coordinates
-  inicenter = [0, 0]
-  x_norm = x[1] - inicenter[1]
-  y_norm = x[2] - inicenter[2]
-  r = sqrt(x_norm^2 + y_norm^2)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 3 * (equation.gamma - 1) * E / (3 * pi * r0^2)
-  # p0_outer = 1.0e-5 # = true Sedov setup
-  p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
-
-  return prim2cons(SVector(rho, v1, v2, p), equation)
-end
-
-function initial_conditions_khi(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
-  # change discontinuity to tanh
-  # typical resolution 128^2, 256^2
-  # domain size is [-0.5,0.5]^2
-  dens0 = 1.0 # outside density
-  dens1 = 2.0 # inside density
-  velx0 = -0.5 # outside velocity
-  velx1 = 0.5 # inside velocity
-  slope = 50 # used for tanh instead of discontinuous initial condition
-  # pressure equilibrium
-  p     = 2.5
-  #  y velocity v2 is only white noise
-  v2  = 0.01*(rand(Float64,1)[1]-0.5)
-  # density
-  rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-  #  x velocity is also augmented with noise
-  v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-  return prim2cons(SVector(rho, v1, v2, p), equation)
-end
-
-function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
-  # change discontinuity to tanh
-  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  # resolution 128^2, 256^2
-  # domain size is [-20.0,20.0]^2
-  # gamma = 5/3 for this test case
-  R = 1.0 # radius of the blob
-  # background density
-  dens0 = 1.0
-  Chi = 10.0 # density contrast
-  # reference time of characteristic growth of KH instability equal to 1.0
-  tau_kh = 1.0
-  tau_cr = tau_kh/1.6 # crushing time
-  # determine background velocity
-  velx0 = 2*R*sqrt(Chi)/tau_cr
-  vely0 = 0.0
-  Ma0 = 2.7 # background flow Mach number Ma=v/c
-  c = velx0/Ma0 # sound speed
-  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-  p0 = c*c*dens0/equation.gamma
-  # initial center of the blob
-  inicenter = [-15,0]
-  x_rel = x-inicenter
-  r = sqrt(x_rel[1]^2 + x_rel[2]^2)
-  # steepness of the tanh transition zone
-  slope = 2
-  # density blob
-  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  # velocity blob is zero
-  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  return prim2cons(SVector(dens, velx, vely0, p0), equation)
-end
-
-function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
-  # Jeans gravitational instability test case
-  # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
-  # OBS! this uses cgs (centimeter, gram, second) units
-  # periodic boundaries
-  # domain size [0,L]^2 depends on the wave number chosen for the perturbation
-  # OBS! Be very careful here L must be chosen such that problem is periodic
-  # typical final time is T = 5
-  # gamma = 5/3
-  dens0  = 1.5e7 # g/cm^3
-  pres0  = 1.5e7 # dyn/cm^2
-  delta0 = 1e-3
-  # set wave vector values for pertubation (units 1/cm)
-  # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-  kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
-  ky = 0.0   # 2π/λ_y, λ_y = 1e10
-  k_dot_x = kx*x[1] + ky*x[2]
-  # perturb density and pressure away from reference states ρ_0 and p_0
-  dens = dens0*(1.0 + delta0*cos(k_dot_x))                # g/cm^3
-  pres = pres0*(1.0 + equation.gamma*delta0*cos(k_dot_x)) # dyn/cm^2
-  # flow starts as stationary
-  velx = 0.0 # cm/s
-  vely = 0.0 # cm/s
-  return prim2cons(SVector(dens, velx, vely, pres), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
 function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations3D) # FIXME: ndims
@@ -302,7 +128,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
   # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
-  r0 = 0.25 #0.125 # = 4.0 * smallest dx (for domain length=8 and max-ref=8)
+  r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
   E = 1.0
   p_inner   = (equation.gamma - 1) * E / (4/3 * pi * r0^3)
   p_ambient = 1e-5 # = true Sedov setup
@@ -311,7 +137,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   # use a logistic function to tranfer density value smoothly
   L  = 1.0    # maximum of function
   x0 = 1.0    # center point of function
-  k  = -150.0 # sharpness of transfer
+  k  = -50.0 # sharpness of transfer
   logistic_function_rho = L/(1.0 + exp(-k*(r - x0)))
   rho_ambient = 1e-5
   rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
@@ -328,7 +154,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_taylor_green(x, t, equation::CompressibleEulerEquations3D)
+function initial_conditions_taylor_green_vortex(x, t, equation::CompressibleEulerEquations3D)
   A  = 1.0 # magnitude of speed
   Ms = 0.1 # maximum Mach number
 
