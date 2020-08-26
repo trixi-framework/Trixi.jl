@@ -825,33 +825,35 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::CompressibleEulerEquations3D) # FIXME: ndims
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id],
-                                          indicator_variable, equation)
-    end
+                                 equation::CompressibleEulerEquations3D)
+  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+    indicator[1, i, j, k] = cons2indicator(cons[1, i, j, k, element_id],
+                                           cons[2, i, j, k, element_id],
+                                           cons[3, i, j, k, element_id],
+                                           cons[4, i, j, k, element_id],
+                                           cons[5, i, j, k, element_id],
+                                           indicator_variable, equation)
   end
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density},
-                                equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density},
+                                equation::CompressibleEulerEquations3D)
   # Indicator variable is rho
   return rho
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density_pressure},
-                                equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density_pressure},
+                                equation::CompressibleEulerEquations3D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
+  v3 = rho_v3/rho
 
   # Calculate pressure
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
 
   # Indicator variable is rho * p
   return rho * p
@@ -859,13 +861,14 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:pressure},
-                                equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:pressure},
+                                equation::CompressibleEulerEquations3D)
   v1 = rho_v1/rho
   v2 = rho_v2/rho
+  v3 = rho_v3/rho
 
   # Indicator variable is p
-  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
 end
 
 

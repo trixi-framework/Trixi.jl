@@ -56,6 +56,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.0013934701399120897, 0.07284947983025436, 0.07284947983025408, 0.12803234075782724, 0.07624639122292365],
             t_end = 0.5)
   end
+  @testset "parameters_shock_capturing.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_shock_capturing.toml"),
+            l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
+            linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory

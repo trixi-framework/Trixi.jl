@@ -1351,51 +1351,64 @@ calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volu
 
 
 # Calculate 3D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, f2, u, element_id, dg::Dg3D) # FIXME: ndims deferred
+@inline function calcflux_twopoint!(f1, f2, f3, u, element_id, dg::Dg3D)
   @unpack volume_flux_function = dg
 
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      # Set diagonal entries (= regular volume fluxes due to consistency)
-      u_node = get_node_vars(u, dg, i, j, element_id)
-      flux1 = calcflux(u_node, 1, equations(dg))
-      flux2 = calcflux(u_node, 2, equations(dg))
-      set_node_vars!(f1, flux1, dg, i, i, j)
-      set_node_vars!(f2, flux2, dg, j, i, j)
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    # Set diagonal entries (= regular volume fluxes due to consistency)
+    u_node = get_node_vars(u, dg, i, j, k, element_id)
+    flux1 = calcflux(u_node, 1, equations(dg))
+    flux2 = calcflux(u_node, 2, equations(dg))
+    flux3 = calcflux(u_node, 3, equations(dg))
+    set_node_vars!(f1, flux1, dg, i, i, j, k)
+    set_node_vars!(f2, flux2, dg, j, i, j, k)
+    set_node_vars!(f3, flux3, dg, k, i, j, k)
 
-      # Flux in x-direction
-      for l in (i+1):nnodes(dg)
-        u_ll = get_node_vars(u, dg, i, j, element_id)
-        u_rr = get_node_vars(u, dg, l, j, element_id)
-        flux = volume_flux_function(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
-        for v in 1:nvariables(dg)
-          f1[v, i, l, j] = f1[v, l, i, j] = flux[v]
-        end
+    # Flux in x-direction
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, dg, ii, j, k, element_id)
+      flux = volume_flux_function(u_node, u_node_ii, 1, equations(dg)) # 1-> x-direction
+      for v in 1:nvariables(dg)
+        f1[v, i, ii, j, k] = flux[v]
+        f1[v, ii, i, j, k] = flux[v]
       end
+    end
 
-      # Flux in y-direction
-      for l in (j+1):nnodes(dg)
-        u_ll = get_node_vars(u, dg, i, j, element_id)
-        u_rr = get_node_vars(u, dg, i, l, element_id)
-        flux = volume_flux_function(u_ll, u_rr, 2, equations(dg)) # 2 -> y-direction
-        for v in 1:nvariables(dg)
-          f2[v, j, i, l] = f2[v, l, i, j] = flux[v]
-        end
+    # Flux in y-direction
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(u, dg, i, jj, k, element_id)
+      flux = volume_flux_function(u_node, u_node_jj, 2, equations(dg)) # 2 -> y-direction
+      for v in 1:nvariables(dg)
+        f2[v, j, i, jj, k] = flux[v]
+        f2[v, jj, i, j, k] = flux[v]
+      end
+    end
+
+    # Flux in z-direction
+    for kk in (k+1):nnodes(dg)
+      u_node_kk = get_node_vars(u, dg, i, j, kk, element_id)
+      flux = volume_flux_function(u_node, u_node_kk, 3, equations(dg)) # 3 -> z-direction
+      for v in 1:nvariables(dg)
+        f3[v, k, i, j, kk] = flux[v]
+        f3[v, kk, i, j, k] = flux[v]
       end
     end
   end
 
-  calcflux_twopoint_nonconservative!(f1, f2, u, element_id, have_nonconservative_terms(equations(dg)), dg)
+  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id,
+                                     have_nonconservative_terms(equations(dg)), dg)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{false}, dg::Dg3D) # FIXME: ndims deferred
+function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id,
+                                            nonconservative_terms::Val{false}, dg::Dg3D)
   return nothing
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, nonconservative_terms::Val{true}, dg::Dg3D) # FIXME: ndims deferred
+function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id,
+                                            nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
   #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations(dg), dg)
+  calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id, equations(dg), dg)
 end
 
 
@@ -1570,9 +1583,10 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg3D)
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D) # FIXME: ndims deferred
+                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded = thread_cache
+  @unpack (f1_threaded, f2_threaded, f3_threaded,
+           fstar1_threaded, fstar2_threaded, fstar3_threaded) = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1590,21 +1604,22 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
+    f3 = f3_threaded[Threads.threadid()]
 
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
+    # Calculate volume fluxes
+    calcflux_twopoint!(f1, f2, f3, dg.elements.u, element_id, dg)
 
     # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
-          end
-          u_t[v, i, j, element_id] += acc
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        # Use local accumulator to improve performance
+        acc = zero(eltype(u_t))
+        for l in 1:nnodes(dg)
+          acc += (dsplit_transposed[l, i] * f1[v, l, i, j, k] +
+                  dsplit_transposed[l, j] * f2[v, l, i, j, k] +
+                  dsplit_transposed[l, k] * f3[v, l, i, j, k])
         end
+        u_t[v, i, j, k, element_id] += acc
       end
     end
   end
@@ -1615,39 +1630,40 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
     f2 = f2_threaded[Threads.threadid()]
+    f3 = f3_threaded[Threads.threadid()]
 
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
+    # Calculate DG symmetric two-point volume fluxes
+    calcflux_twopoint!(f1, f2, f3, dg.elements.u, element_id, dg)
 
     # Calculate DG volume integral contribution
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += ( (1 - alpha[element_id]) *
-                      (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]) )
-          end
-          u_t[v, i, j, element_id] += acc
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        # Use local accumulator to improve performance
+        acc = zero(eltype(u_t))
+        for l in 1:nnodes(dg)
+          acc += ( (1 - alpha[element_id]) *
+                    (dsplit_transposed[l, i] * f1[v, l, i, j, k] +
+                     dsplit_transposed[l, j] * f2[v, l, i, j, k] +
+                     dsplit_transposed[l, k] * f3[v, l, i, j, k]) )
         end
+        u_t[v, i, j, k, element_id] += acc
       end
     end
 
-    # Calculate volume fluxes (one more dimension than weak form)
+    # Calculate FV two-point fluxes
     fstar1 = fstar1_threaded[Threads.threadid()]
     fstar2 = fstar2_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, dg.elements.u, element_id, dg)
+    fstar3 = fstar3_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1, fstar2, fstar3, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          u_t[v, i, j, element_id] += ( alpha[element_id] *
-                                         (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
-                                          inverse_weights[j] * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        u_t[v, i, j, k, element_id] += (alpha[element_id] *
+                                        (inverse_weights[i] * (fstar1[v, i+1, j, k] - fstar1[v, i, j, k]) +
+                                         inverse_weights[j] * (fstar2[v, i, j+1, k] - fstar2[v, i, j, k]) +
+                                         inverse_weights[k] * (fstar3[v, i, j, k+1] - fstar3[v, i, j, k])) )
 
-        end
       end
     end
   end
@@ -1655,41 +1671,60 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg3D)
+    calcflux_fv!(fstar1, fstar2, fstar3, u_leftright, u, element_id, dg::Dg3D)
 
 Calculate the finite volume fluxes inside the elements.
 
 # Arguments
 - `fstar1::AbstractArray{T} where T<:Real`:
 - `fstar2::AbstractArray{T} where T<:Real`
+- `fstar3::AbstractArray{T} where T<:Real`
 - `dg::Dg3D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg3D) # FIXME: ndims deferred
+@inline function calcflux_fv!(fstar1, fstar2, fstar3, u, element_id, dg::Dg3D)
   @unpack surface_flux_function = dg
 
-  fstar1[:, 1,            :] .= zero(eltype(fstar1))
-  fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
+  fstar1[:, 1,            :, :] .= zero(eltype(fstar1))
+  fstar1[:, nnodes(dg)+1, :, :] .= zero(eltype(fstar1))
 
-  for j in 1:nnodes(dg)
-    for i in 2:nnodes(dg)
-      u_ll = get_node_vars(u, dg, i-1, j, element_id)
-      u_rr = get_node_vars(u, dg, i,   j, element_id)
-      flux = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
-      set_node_vars!(fstar1, flux, dg, i, j)
+  for k in 1:nnodes(dg)
+    for j in 1:nnodes(dg)
+      for i in 2:nnodes(dg)
+        u_ll = get_node_vars(u, dg, i-1, j, k, element_id)
+        u_rr = get_node_vars(u, dg, i,   j, k, element_id)
+        flux = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
+        set_node_vars!(fstar1, flux, dg, i, j, k)
+      end
     end
   end
 
-  fstar2[:, :, 1           ] .= zero(eltype(fstar2))
-  fstar2[:, :, nnodes(dg)+1] .= zero(eltype(fstar2))
+  fstar2[:, :, 1,            :] .= zero(eltype(fstar2))
+  fstar2[:, :, nnodes(dg)+1, :] .= zero(eltype(fstar2))
 
-  for j in 2:nnodes(dg)
-    for i in 1:nnodes(dg)
-      u_ll = get_node_vars(u, dg, i, j-1, element_id)
-      u_rr = get_node_vars(u, dg, i, j,   element_id)
-      flux = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
-      set_node_vars!(fstar2, flux, dg, i, j)
+  for k in 1:nnodes(dg)
+    for j in 2:nnodes(dg)
+      for i in 1:nnodes(dg)
+        u_ll = get_node_vars(u, dg, i, j-1, k, element_id)
+        u_rr = get_node_vars(u, dg, i, j,   k, element_id)
+        flux = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
+        set_node_vars!(fstar2, flux, dg, i, j, k)
+      end
+    end
+  end
+
+  fstar3[:, :, :, 1           ] .= zero(eltype(fstar3))
+  fstar3[:, :, :, nnodes(dg)+1] .= zero(eltype(fstar3))
+
+  for k in 2:nnodes(dg)
+    for j in 1:nnodes(dg)
+      for i in 1:nnodes(dg)
+        u_ll = get_node_vars(u, dg, i, j, k-1, element_id)
+        u_rr = get_node_vars(u, dg, i, j, k,   element_id)
+        flux = surface_flux_function(u_ll, u_rr, 3, equations(dg)) # orientation 3: z direction
+        set_node_vars!(fstar3, flux, dg, i, j, k)
+      end
     end
   end
 end
@@ -2517,13 +2552,13 @@ function calc_dt(dg::Dg3D, cfl)
   return min_dt
 end
 
-# Calculate blending factors used for shock capturing, or amr control
+# Calculate blending factors used for shock capturing, or AMR control
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
-                                indicator_variable, dg::Dg3D) # FIXME: ndims deferred
+                                indicator_variable, dg::Dg3D)
   # Calculate blending factor
-  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
-  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
+  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
@@ -2539,22 +2574,16 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        total_energy += modal[1, i, j]^2
-      end
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      total_energy += modal[1, i, j, k]^2
     end
     total_energy_clip1 = 0.0
-    for j in 1:(nnodes(dg)-1)
-      for i in 1:(nnodes(dg)-1)
-        total_energy_clip1 += modal[1, i, j]^2
-      end
+    for k in 1:(nnodes(dg)-1), j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
+      total_energy_clip1 += modal[1, i, j, k]^2
     end
     total_energy_clip2 = 0.0
-    for j in 1:(nnodes(dg)-2)
-      for i in 1:(nnodes(dg)-2)
-        total_energy_clip2 += modal[1, i, j]^2
-      end
+    for k in 1:(nnodes(dg)-2), j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
+      total_energy_clip2 += modal[1, i, j, k]^2
     end
 
     # Calculate energy in lower modes
@@ -2596,29 +2625,26 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     # Loop over L2 mortars
     for l2mortar_id in 1:dg.n_l2mortars
       # Get neighboring element ids
-      lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-      upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-      large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+      lower_left  = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+      lower_right = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+      upper_left  = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+      upper_right = dg.l2mortars.neighbor_ids[4, l2mortar_id]
+      large       = dg.l2mortars.neighbor_ids[5, l2mortar_id]
 
       # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-    end
+      alpha[lower_left] = max(alpha_pre_smooth[lower_left],
+                              0.5 * alpha_pre_smooth[large], alpha[lower_left])
+      alpha[lower_right] = max(alpha_pre_smooth[lower_right],
+                               0.5 * alpha_pre_smooth[large], alpha[lower_right])
+      alpha[upper_left] = max(alpha_pre_smooth[upper_left],
+                              0.5 * alpha_pre_smooth[large], alpha[upper_left])
+      alpha[upper_right] = max(alpha_pre_smooth[upper_right],
+                               0.5 * alpha_pre_smooth[large], alpha[upper_right])
 
-    # Loop over EC mortars
-    for ecmortar_id in 1:dg.n_ecmortars
-      # Get neighboring element ids
-      lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-      upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-      large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
     end
   end
 end
