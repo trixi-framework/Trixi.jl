@@ -46,6 +46,8 @@ function make_equations(name::String, ndims_)
   elseif name == "HyperbolicDiffusionEquations"
     if ndims_ == 2
       return HyperbolicDiffusionEquations2D()
+    elseif ndims_ == 3
+      return HyperbolicDiffusionEquations3D()
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
@@ -93,4 +95,6 @@ include("3d/compressible_euler.jl")
 include("2d/ideal_glm_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
+abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
 include("2d/hyperbolic_diffusion.jl")
+include("3d/hyperbolic_diffusion.jl")

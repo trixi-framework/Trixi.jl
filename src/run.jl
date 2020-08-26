@@ -333,6 +333,16 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         finalstep = true
       end
     end
+    if solver.equations isa HyperbolicDiffusionEquations3D
+      if maximum(abs, view(solver.elements.u_t, 1, :, :, :, :)) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
+    end
 
     # Analyze solution errors
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)

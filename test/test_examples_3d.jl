@@ -61,6 +61,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
             linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
   end
+  @testset "parameters_hyp_diff_llf.toml with initial_refinement_level=2" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
+            l2   = [0.0015303292770225546, 0.011314166522881952, 0.011314166522881981, 0.011314166522881947],
+            linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
+            initial_refinement_level=2)
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
