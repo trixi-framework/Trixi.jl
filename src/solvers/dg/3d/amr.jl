@@ -51,12 +51,11 @@ function refine!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
-  n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0
     @assert n_interfaces == 3*n_elements ("For 3D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 3*n_elem")
   end
@@ -70,8 +69,6 @@ function refine!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
   dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
-  dg.ecmortars = ecmortars
-  dg.n_ecmortars = n_ecmortars
 end
 
 
@@ -249,12 +246,11 @@ function coarsen!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
-  n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0
     @assert n_interfaces == 3*n_elements ("For 3D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 3*n_elem")
   end
@@ -268,8 +264,6 @@ function coarsen!(dg::Dg3D{Eqn, V, N}, mesh::TreeMesh,
   dg.n_boundaries = n_boundaries
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
-  dg.ecmortars = ecmortars
-  dg.n_ecmortars = n_ecmortars
 end
 
 
