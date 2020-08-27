@@ -15,7 +15,7 @@ t_end   = 0.4
 # Solver
 solver = "dg"
 N = 3
-cfl = 0.5
+cfl = 0.35
 n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "shock_capturing"
@@ -24,7 +24,7 @@ volume_flux = "flux_ranocha"
 
 shock_indicator_variable = "density_pressure"
 shock_alpha_min = 0.001
-shock_alpha_max = 0.5
+shock_alpha_max = 0.7
 shock_alpha_smooth = true
 
 
