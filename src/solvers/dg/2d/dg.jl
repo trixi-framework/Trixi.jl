@@ -1314,11 +1314,11 @@ end
 
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
-    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), dg)
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), cache, dg)
   end
 end
 
-function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, dg::Dg2D, alpha=true)
+function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg2D, alpha=true)
   @unpack volume_flux_function, dsplit = dg
 
   # Calculate volume integral in one element
@@ -1431,7 +1431,7 @@ end
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded = thread_cache
+  @unpack fstar1_threaded, fstar2_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1445,52 +1445,12 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
 
   # Loop over pure DG elements
   @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
-
-    # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
-          end
-          u_t[v, i, j, element_id] += acc
-        end
-      end
-    end
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg)
   end
 
   # Loop over blended DG-FV elements
-  #=@timeit timer() "blended DG-FV" @inbounds Threads.@threads for element_id in element_ids_dgfv=#
   @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
-
-    # Calculate DG volume integral contribution
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += ( (1 - alpha[element_id]) *
-                      (dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]) )
-          end
-          u_t[v, i, j, element_id] += acc
-        end
-      end
-    end
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
 
     # Calculate volume fluxes (one more dimension than weak form)
     fstar1 = fstar1_threaded[Threads.threadid()]
@@ -1498,14 +1458,12 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     calcflux_fv!(fstar1, fstar2, dg.elements.u, element_id, dg)
 
     # Calculate FV volume integral contribution
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          u_t[v, i, j, element_id] += ( alpha[element_id] *
-                                         (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
-                                          inverse_weights[j] * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        u_t[v, i, j, element_id] += ( alpha[element_id] *
+                                        (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
+                                        inverse_weights[j]  * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
 
-        end
       end
     end
   end
