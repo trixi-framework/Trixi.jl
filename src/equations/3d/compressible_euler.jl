@@ -619,25 +619,21 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::CompressibleEulerEquations3D)
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equation::CompressibleEulerEquations3D, dg)
   λ_max = 0.0
-  for k = 1:n_nodes, j = 1:n_nodes, i = 1:n_nodes
-    rho    = u[1, i, j, k, element_id]
-    rho_v1 = u[2, i, j, k, element_id]
-    rho_v2 = u[3, i, j, k, element_id]
-    rho_v3 = u[4, i, j, k, element_id]
-    rho_e  = u[5, i, j, k, element_id]
-    v1 = rho_v1/rho
-    v2 = rho_v2/rho
-    v3 = rho_v3/rho
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = get_node_vars(u, dg, i, j, k, element_id)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
     p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
     c = sqrt(equation.gamma * p / rho)
     λ_max = max(λ_max, v_mag + c)
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
 end

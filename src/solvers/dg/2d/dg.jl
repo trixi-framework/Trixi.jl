@@ -2167,8 +2167,8 @@ end
 function calc_dt(dg::Dg2D, cfl)
   min_dt = Inf
   for element_id in 1:dg.n_elements
-    dt = calc_max_dt(dg.elements.u, element_id, nnodes(dg),
-                     dg.elements.inverse_jacobian[element_id], cfl, equations(dg))
+    dt = calc_max_dt(dg.elements.u, element_id,
+                     dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
     min_dt = min(min_dt, dt)
   end
 
@@ -2197,22 +2197,16 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        total_energy += modal[1, i, j]^2
-      end
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+      total_energy += modal[1, i, j]^2
     end
     total_energy_clip1 = 0.0
-    for j in 1:(nnodes(dg)-1)
-      for i in 1:(nnodes(dg)-1)
-        total_energy_clip1 += modal[1, i, j]^2
-      end
+    for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
+      total_energy_clip1 += modal[1, i, j]^2
     end
     total_energy_clip2 = 0.0
-    for j in 1:(nnodes(dg)-2)
-      for i in 1:(nnodes(dg)-2)
-        total_energy_clip2 += modal[1, i, j]^2
-      end
+    for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
+      total_energy_clip2 += modal[1, i, j]^2
     end
 
     # Calculate energy in lower modes

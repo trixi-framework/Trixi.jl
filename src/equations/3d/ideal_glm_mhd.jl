@@ -364,24 +364,26 @@ end
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
-function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::IdealGlmMhdEquations3D)
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equation::IdealGlmMhdEquations3D, dg)
   λ_max = 0.0
   equation.c_h = 0.0
-  for k = 1:n_nodes, j = 1:n_nodes, i = 1:n_nodes
-    v1 = u[2, i, j, k, element_id]/u[1, i, j, k, element_id]
-    v2 = u[3, i, j, k, element_id]/u[1, i, j, k, element_id]
-    v3 = u[4, i, j, k, element_id]/u[1, i, j, k, element_id]
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, k, element_id)
+    rho, rho_v1, rho_v2, rho_v3, _ = u_node
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
-    cf_x_direction = calc_fast_wavespeed(u[:, i, j, k, element_id], 1, equation)
-    cf_y_direction = calc_fast_wavespeed(u[:, i, j, k, element_id], 2, equation)
-    cf_z_direction = calc_fast_wavespeed(u[:, i, j, k, element_id], 3, equation)
+    cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
+    cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
+    cf_z_direction = calc_fast_wavespeed(u_node, 3, equation)
     cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
     equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
     λ_max = max(λ_max, v_mag + cf_max)
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
 end

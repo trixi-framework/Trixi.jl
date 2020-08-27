@@ -114,11 +114,12 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
   phi = atan(y_norm, x_norm)
+  sin_phi, cos_phi = sincos(phi)
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   p = r > 0.5 ? 1.0 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
@@ -132,11 +133,12 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
   phi = atan(y_norm, x_norm)
+  sin_phi, cos_phi = sincos(phi)
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   p = r > 0.5 ? 1.0E-3 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
@@ -366,18 +368,17 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   G = 1.0 # gravitational constant, must match coupling solver
   C_grav = -2.0*G/pi
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      rhox = A * pi * cos(pi * (x1 + x2 - t))
-      rho  = c + A * sin(pi * (x1 + x2 - t))
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    si, co = sincos(pi * (x1 + x2 - t))
+    rhox = A * pi * co
+    rho  = c + A *  si
 
-      ut[1, i, j, element_id] += rhox
-      ut[2, i, j, element_id] += rhox
-      ut[3, i, j, element_id] += rhox
-      ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
-    end
+    ut[1, i, j, element_id] += rhox
+    ut[2, i, j, element_id] += rhox
+    ut[3, i, j, element_id] += rhox
+    ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
   end
 
   return nothing
@@ -390,18 +391,17 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   G = 1.0
   C_grav = -2.0*G/pi
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      rhox = A * pi * cos(pi * (x1 + x2 - t))
-      rho  = c + A * sin(pi * (x1 + x2 - t))
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    si, co = sincos(pi * (x1 + x2 - t))
+    rhox = A * pi * co
+    rho  = c + A *  si
 
-      ut[1, i, j, element_id] += rhox
-      ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-      ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-      ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
-    end
+    ut[1, i, j, element_id] += rhox
+    ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+    ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
+    ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
   end
 
   return nothing
@@ -703,25 +703,20 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::CompressibleEulerEquations2D)
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equation::CompressibleEulerEquations2D, dg)
   λ_max = 0.0
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      rho    = u[1, i, j, element_id]
-      rho_v1 = u[2, i, j, element_id]
-      rho_v2 = u[3, i, j, element_id]
-      rho_e  = u[4, i, j, element_id]
-      v1 = rho_v1/rho
-      v2 = rho_v2/rho
-      v_mag = sqrt(v1^2 + v2^2)
-      p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
-      c = sqrt(equation.gamma * p / rho)
-      λ_max = max(λ_max, v_mag + c)
-    end
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    rho, rho_v1, rho_v2, rho_e = get_node_vars(u, dg, i, j, element_id)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v_mag = sqrt(v1^2 + v2^2)
+    p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
+    c = sqrt(equation.gamma * p / rho)
+    λ_max = max(λ_max, v_mag + c)
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
 end

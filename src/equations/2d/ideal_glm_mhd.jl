@@ -46,7 +46,7 @@ function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquation
   B_perp = 0.1*sin(2.0*pi*x_perp)
   rho = 1.0
   v1 = -B_perp*sin(alpha)
-  v2 = B_perp*cos(alpha)
+  v2 =  B_perp*cos(alpha)
   v3 = 0.1*cos(2.0*pi*x_perp)
   p = 0.1
   B1 = cos(alpha) + v1
@@ -61,11 +61,11 @@ function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations2D)
   # domain must be [0, 1] x [0, 1], γ = 5/3
   rho = 1.0
   v1 = -sin(2.0*pi*x[2])
-  v2 = sin(2.0*pi*x[1])
+  v2 =  sin(2.0*pi*x[1])
   v3 = 0.0
-  p = 1.0/equation.gamma
-  B1 = -sin(2.0*pi*x[2])/equation.gamma
-  B2 = sin(4.0*pi*x[1])/equation.gamma
+  p = 1.0 / equation.gamma
+  B1 = -sin(2.0*pi*x[2]) / equation.gamma
+  B2 =  sin(4.0*pi*x[1]) / equation.gamma
   B3 = 0.0
   psi = 0.0
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
@@ -127,7 +127,7 @@ function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations2D)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = (0, 0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -165,7 +165,7 @@ end
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
     f9 = equation.c_h*B1
-  else
+  else # orientation == 2
     f1 = rho_v2
     f2 = rho_v2*v1 - B1*B2
     f3 = rho_v2*v2 + p + mag_en - B2^2
@@ -184,28 +184,30 @@ end
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
 @inline function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equation::IdealGlmMhdEquations2D, dg)
-  for j in 1:nnodes(dg)
-    for i in 1:nnodes(dg)
-      rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
-      v1 = rho_v1 / rho
-      v2 = rho_v2 / rho
-      v3 = rho_v3 / rho
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
 
-      # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-      phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
 
-      # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-      # x-direction
-      phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
-      # y-direction
-      phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
+    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    # x-direction
+    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
+    # y-direction
+    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
 
-      # add both nonconservative terms into the volume
-      for l in 1:nnodes(dg)
-        _, _, _, _, _, B1, _, _, psi = get_node_vars(u, dg, l, j, element_id)
-        f1[:, l, i, j] += phi_pow * B1 + phi_gal_x * psi
-        _, _, _, _, _, _, B2, _, psi = get_node_vars(u, dg, i, l, element_id)
-        f2[:, l, i, j] += phi_pow * B2 + phi_gal_y * psi
+    # add both nonconservative terms into the volume
+    for l in 1:nnodes(dg)
+      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, dg, l, j, element_id)
+      for v in 1:nvariables(dg)
+        f1[v, l, i, j] += phi_pow[v] * B1 + phi_gal_x[v] * psi
+      end
+      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, dg, i, l, element_id)
+      for v in 1:nvariables(dg)
+        f2[v, l, i, j] += phi_pow[v] * B2 + phi_gal_y[v] * psi
       end
     end
   end
@@ -381,25 +383,25 @@ end
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
-function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::IdealGlmMhdEquations2D)
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equation::IdealGlmMhdEquations2D, dg)
   λ_max = 0.0
   equation.c_h = 0.0
-  for j = 1:n_nodes
-    for i = 1:n_nodes
-      v1 = u[2, i, j, element_id]/u[1, i, j, element_id]
-      v2 = u[3, i, j, element_id]/u[1, i, j, element_id]
-      v3 = u[4, i, j, element_id]/u[1, i, j, element_id]
-      v_mag = sqrt(v1^2 + v2^2 + v3^2)
-      cf_x_direction = calc_fast_wavespeed(u[:, i, j, element_id], 1, equation)
-      cf_y_direction = calc_fast_wavespeed(u[:, i, j, element_id], 2, equation)
-      cf_max = max(cf_x_direction,cf_y_direction)
-      equation.c_h = max(equation.c_h,cf_max) # GLM cleaning speed = c_f
-      λ_max = max(λ_max, v_mag + cf_max)
-    end
+  for j in nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, element_id)
+    rho, rho_v1, rho_v2, rho_v3, _ = u_node
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    v_mag = sqrt(v1^2 + v2^2 + v3^2)
+    cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
+    cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
+    cf_max = max(cf_x_direction, cf_y_direction)
+    equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
+    λ_max = max(λ_max, v_mag + cf_max)
   end
 
-  dt = cfl * 2 / (invjacobian * λ_max) / n_nodes
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
 end
@@ -488,15 +490,13 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
                                  equation::IdealGlmMhdEquations2D)
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id],
-                                          cons[5, i, j, element_id], cons[6, i, j, element_id],
-                                          cons[7, i, j, element_id], cons[8, i, j, element_id],
-                                          cons[9, i, j, element_id],
-                                          indicator_variable, equation)
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
+                                        cons[3, i, j, element_id], cons[4, i, j, element_id],
+                                        cons[5, i, j, element_id], cons[6, i, j, element_id],
+                                        cons[7, i, j, element_id], cons[8, i, j, element_id],
+                                        cons[9, i, j, element_id],
+                                        indicator_variable, equation)
   end
 end
 
@@ -543,15 +543,16 @@ end
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
 @inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
   v_mag = sqrt(v1^2 + v2^2 + v3^2)
   p = (equation.gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
   a_square = equation.gamma * p / rho
-  b1 = B1/sqrt(rho)
-  b2 = B2/sqrt(rho)
-  b3 = B3/sqrt(rho)
+  sqrt_rho = sqrt(rho)
+  b1 = B1 / sqrt_rho
+  b2 = B2 / sqrt_rho
+  b3 = B3 / sqrt_rho
   b_square = b1^2 + b2^2 + b3^2
   if direction == 1 # x-direction
     c_f = sqrt(0.5*(a_square + b_square) + 0.5*sqrt((a_square + b_square)^2 - 4.0*a_square*b1^2))

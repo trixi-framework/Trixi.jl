@@ -109,7 +109,6 @@ end
 
 function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
-
   phi = 0.0
   q1  = 0.0
   q2  = 0.0
@@ -123,16 +122,14 @@ function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equatio
   inv_Tr = inv(equation.Tr)
   C = -8.0*equation.nu*pi*pi
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      tmp1 = sin(2.0*pi*x1)
-      tmp2 = sin(2.0*pi*x2)
-      ut[1, i, j, element_id] -= C*tmp1*tmp2
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    tmp1 = sin(2.0*pi*x1)
+    tmp2 = sin(2.0*pi*x2)
+    ut[1, i, j, element_id] -= C*tmp1*tmp2
+    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
   end
 
   return nothing
@@ -143,14 +140,12 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equa
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   inv_Tr = inv(equation.Tr)
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      ut[1, i, j, element_id] += 10 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2)
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    ut[1, i, j, element_id] += 10 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2)
+    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
   end
 
   return nothing
@@ -160,11 +155,9 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
+    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
   end
 
   return nothing
@@ -229,16 +222,17 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, n_nodes, invjacobian, cfl,
-                     equation::HyperbolicDiffusionEquations2D)
-  dt = cfl * 2 / (invjacobian * sqrt(equation.nu/equation.Tr)) / n_nodes
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equation::HyperbolicDiffusionEquations2D, dg)
+  λ_max = sqrt(equation.nu / equation.Tr)
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
 end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::HyperbolicDiffusionEquations2D) =  cons
+cons2prim(cons, equation::HyperbolicDiffusionEquations2D) = cons
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
 function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations2D)
