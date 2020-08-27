@@ -50,10 +50,19 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
     u_euler = solver_euler.elements.u
     u_t_euler = solver_euler.elements.u_t
     u_gravity = solver_gravity.elements.u
-    @views @. u_t_euler[2,:,:,:] -= u_euler[1,:,:,:]*u_gravity[2,:,:,:]
-    @views @. u_t_euler[3,:,:,:] -= u_euler[1,:,:,:]*u_gravity[3,:,:,:]
-    @views @. u_t_euler[4,:,:,:] -= (u_euler[2,:,:,:]*u_gravity[2,:,:,:]
-                                    +u_euler[3,:,:,:]*u_gravity[3,:,:,:])
+    if ndims(solver_euler) == 2
+      @views @. u_t_euler[2,:,:,:] -= u_euler[1,:,:,:]*u_gravity[2,:,:,:]
+      @views @. u_t_euler[3,:,:,:] -= u_euler[1,:,:,:]*u_gravity[3,:,:,:]
+      @views @. u_t_euler[4,:,:,:] -= (u_euler[2,:,:,:]*u_gravity[2,:,:,:]
+                                      +u_euler[3,:,:,:]*u_gravity[3,:,:,:])
+    else
+      @views @. u_t_euler[2,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[2,:,:,:,:]
+      @views @. u_t_euler[3,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[3,:,:,:,:]
+      @views @. u_t_euler[4,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[4,:,:,:,:]
+      @views @. u_t_euler[5,:,:,:,:] -= (u_euler[2,:,:,:,:]*u_gravity[2,:,:,:,:]
+                                        +u_euler[3,:,:,:,:]*u_gravity[3,:,:,:,:]
+                                        +u_euler[4,:,:,:,:]*u_gravity[4,:,:,:,:])
+    end
     # take RK step for compressible Euler
     @timeit timer() "Runge-Kutta step" begin
       @. solver_euler.elements.u_tmp2 = (solver_euler.elements.u_t
@@ -92,10 +101,18 @@ function update_gravity!(solver, u_euler, gravity_parameters)
     end
 
     # this is an absolute tolerance check
-    if maximum(abs, @views solver.elements.u_t[1, :, :, :]) <= solver.equations.resid_tol
-      # println("  Gravity solution tolerance ", solver.equations.resid_tol,
-      #         " reached in iterations ",iteration)
-      finalstep = true
+    if ndims(solver) == 2
+      if maximum(abs, @views solver.elements.u_t[1, :, :, :]) <= solver.equations.resid_tol
+        # println("  Gravity solution tolerance ", solver.equations.resid_tol,
+        #         " reached in iterations ",iteration)
+        finalstep = true
+      end
+    else
+      if maximum(abs, @views solver.elements.u_t[1, :, :, :, :]) <= solver.equations.resid_tol
+        # println("  Gravity solution tolerance ", solver.equations.resid_tol,
+        #         " reached in iterations ",iteration)
+        finalstep = true
+      end
     end
   end
 
@@ -117,7 +134,11 @@ function timestep_gravity_2N!(solver::AbstractSolver, t, dt, u_euler, gravity_pa
 
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 (spatial mean value)
-    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    if ndims(solver) == 2
+      @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    else
+      @views @. solver.elements.u_t[1,:,:,:,:] += grav_scale*(u_euler[1,:,:,:,:] - rho0)
+    end
 
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
@@ -157,7 +178,11 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    if ndims(solver) == 2
+      @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
+    else
+      @views @. solver.elements.u_t[1,:,:,:,:] += grav_scale*(u_euler[1,:,:,:,:] - rho0)
+    end
 
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
@@ -165,12 +190,12 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
     @timeit timer() "Runge-Kutta step" begin
-      Threads.@threads for i in eachindex(solver.elements.u)
-        solver.elements.u_tmp2[i] += delta_stage * solver.elements.u[i]
-        solver.elements.u[i]       = (gamma1_stage * solver.elements.u[i] +
-                                      gamma2_stage * solver.elements.u_tmp2[i] +
-                                      gamma3_stage * solver.elements.u_tmp3[i] +
-                                      beta_stage_dt * solver.elements.u_t[i])
+      Threads.@threads for idx in eachindex(solver.elements.u)
+        solver.elements.u_tmp2[idx] += delta_stage * solver.elements.u[idx]
+        solver.elements.u[idx]       = (gamma1_stage * solver.elements.u[idx] +
+                                        gamma2_stage * solver.elements.u_tmp2[idx] +
+                                        gamma3_stage * solver.elements.u_tmp3[idx] +
+                                        beta_stage_dt * solver.elements.u_t[idx])
       end
     end
   end
