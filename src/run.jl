@@ -14,7 +14,7 @@ that may help with debugging.  If `args` is given, it should be an
 interpreted by the `parse_commandline_arguments` function. In this case, the values of
 `parameters_file` and `verbose` are ignored. If a value for
 `refinement_level_increment` is given, `initial_refinement_level` will be
- increased by this value before running the simulation (mostly used by EOC analysis).
+increased by this value before running the simulation (mostly used by EOC analysis).
 
 # Examples
 ```julia
