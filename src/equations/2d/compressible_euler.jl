@@ -436,15 +436,20 @@ end
 
 
 """
-    function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+    function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
 
-Kinetic energy preserving two-point flux with pressure oscillation fix
-by Kuya, Totani and Kawai (2018)
+Preventing spurious pressure oscillations in split convective form discretizations for
+compressible flows
+by Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
+
+This flux is is a modification of the original kinetic energy preserving two-point flux by Kuya,
+Totani and Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
-[DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+  [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+The modification is in the energy flux to guarantee pressure equilibrium.
 """
-@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr

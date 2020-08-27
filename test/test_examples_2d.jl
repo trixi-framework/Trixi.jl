@@ -121,11 +121,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [5.932055097812583e-5, 0.0007486675478027838, 0.0008175405566221983, 0.0022122678889928693],
             volume_flux = "flux_central")
   end
-  @testset "parameters_mortar_vortex_split.toml with flux_kuya_etal" begin
+  @testset "parameters_mortar_vortex_split.toml with flux_shima_etal" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_vortex_split.toml"),
             l2   = [2.1179157511237394e-6, 2.805652962710273e-5, 3.7597878575795916e-5, 8.8405400202012e-5],
             linf = [5.913671873580828e-5, 0.0007547162965326759, 0.000816284733694328, 0.0022072012966312116],
-            volume_flux = "flux_kuya_etal")
+            volume_flux = "flux_shima_etal")
   end
   @testset "parameters_mortar_vortex_split.toml with flux_ranocha" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_vortex_split.toml"),

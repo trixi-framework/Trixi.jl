@@ -47,7 +47,7 @@ export CompressibleEulerEquations2D,
        HyperbolicDiffusionEquations2D,
        LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 export flux_central, flux_lax_friedrichs,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_kuya_etal
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 
 end
