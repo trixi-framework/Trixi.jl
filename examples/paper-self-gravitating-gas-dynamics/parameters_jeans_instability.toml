@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "euler_gravity"
 gamma = 1.6666666666666667
 initial_conditions = "initial_conditions_jeans_instability"

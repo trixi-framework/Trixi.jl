@@ -1,6 +1,6 @@
-ndims = 3
 ####################################################################################################
 # Simulation
+ndims = 3
 equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 

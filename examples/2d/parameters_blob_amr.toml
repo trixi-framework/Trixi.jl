@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "CompressibleEulerEquations"
 gamma = 1.66667
 # equations = "LinearScalarAdvectionEquation"

@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "CompressibleEulerEquations"
 gamma = 2.0
 

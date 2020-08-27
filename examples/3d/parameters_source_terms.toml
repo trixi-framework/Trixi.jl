@@ -1,6 +1,6 @@
-ndims = 3
 ####################################################################################################
 # Simulation
+ndims = 3
 equations = "CompressibleEulerEquations"
 
 initial_conditions = "initial_conditions_convergence_test"

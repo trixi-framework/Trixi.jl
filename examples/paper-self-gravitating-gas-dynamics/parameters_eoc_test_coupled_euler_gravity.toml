@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "euler_gravity"
 gamma = 2.0
 initial_conditions = "initial_conditions_eoc_test_coupled_euler_gravity"

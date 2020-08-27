@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "CompressibleEulerEquations"
 # equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection

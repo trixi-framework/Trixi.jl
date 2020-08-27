@@ -1,6 +1,6 @@
-ndims = 2
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "IdealGlmMhdEquations"
 gamma = 1.4
 initial_conditions = "initial_conditions_ec_test"
