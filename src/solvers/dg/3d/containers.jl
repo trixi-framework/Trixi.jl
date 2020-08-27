@@ -1,6 +1,6 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-struct ElementContainer3D{V, N} <: AbstractContainer
+struct ElementContainer3D{NVARS, N} <: AbstractContainer
   u::Array{Float64, 5}                   # [variables, i, j, k, elements]
   u_t::Array{Float64, 5}                 # [variables, i, j, k, elements]
   u_tmp2::Array{Float64, 5}              # [variables, i, j, k, elements]
@@ -13,21 +13,21 @@ struct ElementContainer3D{V, N} <: AbstractContainer
 end
 
 
-function ElementContainer3D{V, N}(capacity::Integer) where {V, N} # V = no. variables, N = polydeg
+function ElementContainer3D{NVARS, N}(capacity::Integer) where {NVARS, N} # NVARS = no. variables, N = polydeg
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, V, n_nodes, n_nodes, n_nodes, capacity)
-  u_t = fill(NaN, V, n_nodes, n_nodes, n_nodes, capacity)
+  u = fill(NaN, NVARS, n_nodes, n_nodes, n_nodes, capacity)
+  u_t = fill(NaN, NVARS, n_nodes, n_nodes, n_nodes, capacity)
   # u_rungakutta is initialized to non-NaN since it is used directly
-  u_tmp2 = fill(0.0, V, n_nodes, n_nodes, n_nodes, capacity)
-  u_tmp3 = fill(0.0, V, n_nodes, n_nodes, n_nodes, capacity)
+  u_tmp2 = fill(0.0, NVARS, n_nodes, n_nodes, n_nodes, capacity)
+  u_tmp3 = fill(0.0, NVARS, n_nodes, n_nodes, n_nodes, capacity)
   inverse_jacobian = fill(NaN, capacity)
   node_coordinates = fill(NaN, 3, n_nodes, n_nodes, n_nodes, capacity) # 3 = ndims
   surface_ids = fill(typemin(Int), 2 * 3, capacity) # 3 = ndims
-  surface_flux_values = fill(NaN, V, n_nodes, n_nodes, 2 * 3, capacity) # 3 = ndims
+  surface_flux_values = fill(NaN, NVARS, n_nodes, n_nodes, 2 * 3, capacity) # 3 = ndims
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer3D{V, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
+  elements = ElementContainer3D{NVARS, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
                                     surface_ids, surface_flux_values, cell_ids)
 
   return elements
@@ -39,21 +39,21 @@ nelements(elements::ElementContainer3D) = length(elements.cell_ids)
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-struct InterfaceContainer3D{V, N} <: AbstractContainer
+struct InterfaceContainer3D{NVARS, N} <: AbstractContainer
   u::Array{Float64, 5}      # [leftright, variables, i, j, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
 end
 
 
-function InterfaceContainer3D{V, N}(capacity::Integer) where {V, N}
+function InterfaceContainer3D{NVARS, N}(capacity::Integer) where {NVARS, N}
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
+  u = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
-  interfaces = InterfaceContainer3D{V, N}(u, neighbor_ids, orientations)
+  interfaces = InterfaceContainer3D{NVARS, N}(u, neighbor_ids, orientations)
 
   return interfaces
 end
@@ -64,7 +64,7 @@ ninterfaces(interfaces::InterfaceContainer3D) = length(interfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-struct BoundaryContainer3D{V, N} <: AbstractContainer
+struct BoundaryContainer3D{NVARS, N} <: AbstractContainer
   u::Array{Float64, 5}                # [leftright, variables, i, j, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
@@ -73,16 +73,16 @@ struct BoundaryContainer3D{V, N} <: AbstractContainer
 end
 
 
-function BoundaryContainer3D{V, N}(capacity::Integer) where {V, N}
+function BoundaryContainer3D{NVARS, N}(capacity::Integer) where {NVARS, N}
   # Initialize fields with defaults
   n_nodes = N + 1
-  u = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
+  u = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
   node_coordinates = fill(NaN, 3, n_nodes, n_nodes, capacity) # 3 = ndims
 
-  boundaries = BoundaryContainer3D{V, N}(u, neighbor_ids, orientations, neighbor_sides,
+  boundaries = BoundaryContainer3D{NVARS, N}(u, neighbor_ids, orientations, neighbor_sides,
                                        node_coordinates)
 
   return boundaries
@@ -115,7 +115,7 @@ nboundaries(boundaries::BoundaryContainer3D) = length(boundaries.orientations)
 #
 # Left and right are used *both* for the numbering of the mortar faces *and* for the position of the
 # elements with respect to the axis orthogonal to the mortar.
-struct L2MortarContainer3D{V, N} <: AbstractContainer
+struct L2MortarContainer3D{NVARS, N} <: AbstractContainer
   u_upper_left ::Array{Float64, 5} # [leftright, variables, i, j, mortars]
   u_upper_right::Array{Float64, 5} # [leftright, variables, i, j, mortars]
   u_lower_left ::Array{Float64, 5} # [leftright, variables, i, j, mortars]
@@ -127,18 +127,18 @@ struct L2MortarContainer3D{V, N} <: AbstractContainer
 end
 
 
-function L2MortarContainer3D{V, N}(capacity::Integer) where {V, N}
+function L2MortarContainer3D{NVARS, N}(capacity::Integer) where {NVARS, N}
   # Initialize fields with defaults
   n_nodes = N + 1
-  u_upper_left  = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
-  u_upper_right = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
-  u_lower_left  = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
-  u_lower_right = fill(NaN, 2, V, n_nodes, n_nodes, capacity)
+  u_upper_left  = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
+  u_upper_right = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
+  u_lower_left  = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
+  u_lower_right = fill(NaN, 2, NVARS, n_nodes, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 5, capacity)
   large_sides = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  l2mortars = L2MortarContainer3D{V, N}(u_upper_left, u_upper_right,
+  l2mortars = L2MortarContainer3D{NVARS, N}(u_upper_left, u_upper_right,
                                         u_lower_left, u_lower_right,
                                         neighbor_ids, large_sides, orientations)
 
@@ -151,7 +151,7 @@ nmortars(l2mortars::L2MortarContainer3D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents
-function Base.show(io::IO, c::L2MortarContainer3D{V, N}) where {V, N}
+function Base.show(io::IO, c::L2MortarContainer3D{NVARS, N}) where {NVARS, N}
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper_left)
     println(io, "c.u_upper_left[$idx] = $(c.u_upper_left[idx])")

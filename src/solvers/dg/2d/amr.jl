@@ -1,8 +1,8 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
-                 cells_to_refine::AbstractArray{Int}) where {Eqn, V, N}
+function refine!(dg::Dg2D{Eqn, NVARS, N}, mesh::TreeMesh,
+                 cells_to_refine::AbstractArray{Int}) where {Eqn, NVARS, N}
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -24,7 +24,7 @@ function refine!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
   leaf_cell_ids = leaf_cells(tree)
 
   # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(N))
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or refine them
@@ -43,15 +43,15 @@ function refine!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
   end
 
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
@@ -123,8 +123,8 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
-                  child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, V, N}
+function coarsen!(dg::Dg2D{Eqn, NVARS, N}, mesh::TreeMesh,
+                  child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, NVARS, N}
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -145,7 +145,7 @@ function coarsen!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(V), Val(N))
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(N))
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or coarsen them
@@ -177,15 +177,15 @@ function coarsen!(dg::Dg2D{Eqn, V, N}, mesh::TreeMesh,
   end
 
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(V), Val(N), elements)
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(V), Val(N), elements, dg.mortar_type)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 

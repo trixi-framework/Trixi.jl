@@ -1,5 +1,5 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg3D{Eqn<:AbstractEquation, V, N,
+mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, N,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
                   VectorNp1, MatrixNp1, MatrixNp12,
@@ -12,17 +12,17 @@ mutable struct Dg3D{Eqn<:AbstractEquation, V, N,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer3D{V, N}
+  elements::ElementContainer3D{NVARS, N}
   n_elements::Int
 
-  interfaces::InterfaceContainer3D{V, N}
+  interfaces::InterfaceContainer3D{NVARS, N}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer3D{V, N}
+  boundaries::BoundaryContainer3D{NVARS, N}
   n_boundaries::Int
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer3D{V, N}
+  l2mortars::L2MortarContainer3D{NVARS, N}
   n_l2mortars::Int
 
   nodes::VectorNp1
@@ -261,11 +261,11 @@ end
 
 
 # Return polynomial degree for a DG solver
-@inline polydeg(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N # FIXME: ndims dimension-agnostic
+@inline polydeg(::Dg3D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N # FIXME: ndims dimension-agnostic
 
 
 # Return number of nodes in one direction
-@inline nnodes(::Dg3D{Eqn, V, N}) where {Eqn, V, N} = N + 1 # FIXME: ndims dimension-agnostic
+@inline nnodes(::Dg3D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N + 1 # FIXME: ndims dimension-agnostic
 
 
 # Return system of equations instance for a DG solver
@@ -388,12 +388,12 @@ end
 
 # Create element container, initialize element data, and return element container for further use
 #
-# V: number of variables
+# NVARS: number of variables
 # N: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}) where {V, N}
+function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}) where {NVARS, N}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer3D{V, N}(n_elements)
+  elements = ElementContainer3D{NVARS, N}(n_elements)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
@@ -430,12 +430,12 @@ end
 
 # Create interface container, initialize interface data, and return interface container for further use
 #
-# V: number of variables
+# NVARS: number of variables
 # N: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements) where {V, N}
+function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer3D{V, N}(n_interfaces)
+  interfaces = InterfaceContainer3D{NVARS, N}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -446,12 +446,12 @@ end
 
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
-# V: number of variables
+# NVARS: number of variables
 # N: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements) where {V, N}
+function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer3D{V, N}(n_boundaries)
+  boundaries = BoundaryContainer3D{NVARS, N}(n_boundaries)
 
   # Connect elements with boundaries
   init_boundary_connectivity!(elements, boundaries, mesh)
@@ -462,9 +462,9 @@ end
 
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
-# V: number of variables
+# NVARS: number of variables
 # N: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements, mortar_type) where {V, N}
+function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements, mortar_type) where {NVARS, N}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -472,7 +472,7 @@ function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{V}, ::Val{N}, elements,
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer3D{V, N}(n_l2mortars)
+  l2mortars = L2MortarContainer3D{NVARS, N}(n_l2mortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
