@@ -1,7 +1,7 @@
 module TestExamples3D
 
 using Test
-import Trixi
+using Trixi
 
 include("test_trixi.jl")
 

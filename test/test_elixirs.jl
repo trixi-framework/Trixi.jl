@@ -2,7 +2,7 @@ module TestElixirs
 
 using LinearAlgebra
 using Test
-import Trixi
+using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"

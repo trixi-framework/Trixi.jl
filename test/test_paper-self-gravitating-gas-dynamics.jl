@@ -1,7 +1,7 @@
 module TestPaperSelfgravitatingGasDynamics
 
 using Test
-import Trixi
+using Trixi
 
 include("test_trixi.jl")
 
