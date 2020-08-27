@@ -26,16 +26,26 @@ jobs:
     #     - julia --project=docs/ docs/make.jl
     #   after_success: skip
 
-codecov: true
+# coveralls with merging of multiple builds, cf. https://docs.coveralls.io/parallel-build-webhook
 coveralls: true
+env:
+  global:
+    - COVERALLS_PARALLEL=true
+  jobs:
+    - TRIXI_TEST=2D
+    - TRIXI_TEST=misc
+    - TRIXI_TEST=paper-self-gravitating-gas-dynamics
+notifications:
+  webhooks: https://coveralls.io/webhook
+  email: false
+
+# codecov merges multiple reports automatically, cf. https://docs.codecov.io/docs/merging-reports
+codecov: true
 
 # avoid duplicate tests in PRs
 branches:
   only:
     - master
-
-notifications:
-  email: false
 
 # we could use groups to trigger multiple builds in parallel to speed-up running expensive tests
 # env:
