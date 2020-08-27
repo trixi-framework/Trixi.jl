@@ -1350,43 +1350,47 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
 end
 
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
-  @unpack volume_flux_function, dsplit = dg
-
   Threads.@threads for element_id in 1:dg.n_elements
     # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        # x direction
-        u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
-        # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(u_node, 1, equations(dg))
-        integral_contribution = dsplit[i, i] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
-        # use symmetry of the volume flux for the remaining terms
-        for l in (i+1):nnodes(dg)
-          u_node_l = get_node_vars(dg.elements.u, dg, l, j, element_id)
-          flux = volume_flux_function(u_node, u_node_l, 1, equations(dg))
-          integral_contribution = dsplit[i, l] * flux
-          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
-          integral_contribution = dsplit[l, i] * flux
-          add_to_node_vars!(u_t, integral_contribution, dg, l, j, element_id)
-        end
+    split_form_kernel!(u_t, element_id, nonconservative_terms, dg)
+  end
+end
 
-        # y direction
-        # use consistency of the volume flux to make this evaluation cheaper
-        flux = calcflux(u_node, 2, equations(dg))
-        integral_contribution = dsplit[j, j] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
-        # use symmetry of the volume flux for the remaining terms
-        for l in (j+1):nnodes(dg)
-          u_node_l = get_node_vars(dg.elements.u, dg, i, l, element_id)
-          flux = volume_flux_function(u_node, u_node_l, 2, equations(dg))
-          integral_contribution = dsplit[j, l] * flux
-          add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
-          integral_contribution = dsplit[l, j] * flux
-          add_to_node_vars!(u_t, integral_contribution, dg, i, l, element_id)
-        end
-      end
+function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, dg::Dg2D, alpha=true)
+  @unpack volume_flux_function, dsplit = dg
+
+  # Calculate volume integral in one element
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(dg.elements.u, dg, i, j, element_id)
+
+    # x direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 1, equations(dg))
+    integral_contribution = dsplit[i, i] * flux
+    add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
+    # use symmetry of the volume flux for the remaining terms
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(dg.elements.u, dg, ii, j, element_id)
+      flux = volume_flux_function(u_node, u_node_ii, 1, equations(dg))
+      integral_contribution = alpha * dsplit[i, ii] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i,  j, element_id)
+      integral_contribution = alpha * dsplit[ii, i] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, ii, j, element_id)
+    end
+
+    # y direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 2, equations(dg))
+    integral_contribution = dsplit[j, j] * flux
+    add_to_node_vars!(u_t, integral_contribution, dg, i, j, element_id)
+    # use symmetry of the volume flux for the remaining terms
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(dg.elements.u, dg, i, jj, element_id)
+      flux = volume_flux_function(u_node, u_node_jj, 2, equations(dg))
+      integral_contribution = alpha * dsplit[j, jj] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, j,  element_id)
+      integral_contribution = alpha * dsplit[jj, j] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, jj, element_id)
     end
   end
 end
