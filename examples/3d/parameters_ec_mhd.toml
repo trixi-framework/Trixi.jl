@@ -1,13 +1,13 @@
 ####################################################################################################
 # Simulation
-ndims = 2
+ndims = 3
 equations = "IdealGlmMhdEquations"
-gamma = 1.6666666666666667
-initial_conditions = "initial_conditions_convergence_test"
+gamma = 1.4
+initial_conditions = "initial_conditions_ec_test"
 
 # source_terms =
 t_start = 0.0
-t_end   = 2.0
+t_end   = 0.4
 
 # restart = true
 # restart_filename = "out/restart_000100.h5"
@@ -20,21 +20,19 @@ N = 3
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
-extra_analysis_quantities = ["entropy", "energy_total", "energy_kinetic", "energy_magnetic",
-                             "energy_internal", "cross_helicity"]
 
 volume_integral_type = "split_form"
-surface_flux = "flux_lax_friedrichs"
-volume_flux = "flux_central"
+surface_flux = "flux_derigs_etal"
+volume_flux  = "flux_derigs_etal"
 
 ####################################################################################################
 # Mesh
 n_cells_max = 10000
-coordinates_min = [0, 0]
-coordinates_max = [1.4142135623730951, 1.4142135623730951]
-initial_refinement_level = 4
+coordinates_min = [-2, -2, -2]
+coordinates_max = [ 2,  2,  2]
+initial_refinement_level = 2
 # refinement_patches = [
-#   {type = "box", coordinates_min = [0.3535533905932738, 0.3535533905932738], coordinates_max = [1.0606601717798214, 1.0606601717798214]},
+#   {type = "box", coordinates_min = 0, coordinates_max = 16},
 # ]
 
 

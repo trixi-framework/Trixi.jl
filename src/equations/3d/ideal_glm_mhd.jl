@@ -39,20 +39,30 @@ function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations3D)
 end
 
 function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations3D)
-  # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-  # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-  alpha = 0.25*pi
-  x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
-  B_perp = 0.1*sin(2.0*pi*x_perp)
-  rho = 1.0
-  v1 = -B_perp*sin(alpha)
-  v2 = B_perp*cos(alpha)
-  v3 = 0.1*cos(2.0*pi*x_perp)
-  p = 0.1
-  B1 = cos(alpha) + v1
-  B2 = sin(alpha) + v2
-  B3 = v3
-  psi = 0.0
+  # Alfvén wave in three space dimensions
+  # Altmann thesis http://dx.doi.org/10.18419/opus-3895
+  # domain must be set to [-1, 1]^3, γ = 5/3
+  p = 1
+  omega = 2*pi # may be multiplied by frequency
+  # r: length-variable = length of computational domain
+  r = 2
+  # e: epsilon = 0.2
+  e = 0.2
+  nx  = 1 / sqrt(r^2 + 1)
+  ny  = r / sqrt(r^2 + 1)
+  sqr = 1
+  Va  = omega / (ny * sqr)
+  phi_alv = omega / ny * (nx * (x[1] - 0.5*r) + ny * (x[2] - 0.5*r)) - Va * t
+
+  rho = 1.
+  v1  = -e*ny*cos(phi_alv) / rho
+  v2  =  e*nx*cos(phi_alv) / rho
+  v3  =  e *  sin(phi_alv) / rho
+  B1  = nx -rho*v1*sqr
+  B2  = ny -rho*v2*sqr
+  B3  =    -rho*v3*sqr
+  psi = 0
+
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
@@ -150,11 +160,17 @@ end
     # add both nonconservative terms into the volume
     for l in 1:nnodes(dg)
       _, _, _, _, _, B1, _, _, psi = get_node_vars(u, dg, l, j, k, element_id)
-      f1[:, l, i, j, k] += phi_pow * B1 + phi_gal_x * psi
+      for v in 1:nvariables(dg)
+        f1[v, l, i, j, k] += phi_pow[v] * B1 + phi_gal_x[v] * psi
+      end
       _, _, _, _, _, _, B2, _, psi = get_node_vars(u, dg, i, l, k, element_id)
-      f2[:, l, i, j, k] += phi_pow * B2 + phi_gal_y * psi
+      for v in 1:nvariables(dg)
+        f2[v, l, i, j, k] += phi_pow[v] * B2 + phi_gal_y[v] * psi
+      end
       _, _, _, _, _, _, _, B3, psi = get_node_vars(u, dg, i, j, l, element_id)
-      f3[:, l, i, j, k] += phi_pow * B3 + phi_gal_z * psi
+      for v in 1:nvariables(dg)
+        f3[v, l, i, j, k] += phi_pow[v] * B3 + phi_gal_z[v] * psi
+      end
     end
   end
 end

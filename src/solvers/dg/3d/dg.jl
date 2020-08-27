@@ -1443,6 +1443,8 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::V
 end
 
 @inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg3D, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can get optimized away due to constant propagation.
   @unpack volume_flux_function, dsplit = dg
 
   # Calculate volume integral
@@ -1497,8 +1499,49 @@ end
 end
 
 
-# function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D) # FIXME: ndims deferred
-# end
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, _, dg::Dg3D)
+  # Do not use the thread_cache here since that reduces the performance significantly
+  # (which we do not fully understand right now)
+  # @unpack f1_threaded, f2_threaded, f3_threaded = cache
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  A5d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
+  f1_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
+  f3_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
+  cache = (;f1_threaded, f2_threaded, f3_threaded)
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
+  end
+end
+
+@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, cache, dg::Dg3D, alpha=true)
+  @unpack volume_flux_function, dsplit_transposed = dg
+  @unpack f1_threaded, f2_threaded, f3_threaded = cache
+
+  # Choose thread-specific pre-allocated container
+  f1 = f1_threaded[Threads.threadid()]
+  f2 = f2_threaded[Threads.threadid()]
+  f3 = f3_threaded[Threads.threadid()]
+
+  # Calculate volume fluxes
+  calcflux_twopoint!(f1, f2, f3, dg.elements.u, element_id, dg)
+
+  # Calculate volume integral in one element
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    for v in 1:nvariables(dg)
+      # Use local accumulator to improve performance
+      acc = zero(eltype(u_t))
+      for l in 1:nnodes(dg)
+        acc += (dsplit_transposed[l, i] * f1[v, l, i, j, k] +
+                dsplit_transposed[l, j] * f2[v, l, i, j, k] +
+                dsplit_transposed[l, k] * f3[v, l, i, j, k])
+      end
+      u_t[v, i, j, k, element_id] += alpha * acc
+    end
+  end
+end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
@@ -1957,22 +2000,17 @@ end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg3D) # FIXME: ndims deferred
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
-
+                              orientations, dg::Dg3D)
   # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-
-  noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+  fstar_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_primary_threaded   = [A3d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_secondary_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
   Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
-
-    noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
+    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
@@ -1983,10 +2021,10 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # 1 -> primary element and 2 -> secondary element
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
     @views noncons_interface_flux!(noncons_diamond_primary,
-                                   u_interfaces[1,:,:,:], u_interfaces[2,:,:,:],
+                                   u_interfaces[1,:,:,:,:], u_interfaces[2,:,:,:,:],
                                    s, nnodes(dg), orientations, equations(dg))
     @views noncons_interface_flux!(noncons_diamond_secondary,
-                                   u_interfaces[2,:,:,:], u_interfaces[1,:,:,:],
+                                   u_interfaces[2,:,:,:,:], u_interfaces[1,:,:,:,:],
                                    s, nnodes(dg), orientations, equations(dg))
 
     # Get neighboring elements
@@ -1996,16 +2034,17 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
-    left_neighbor_direction = 2 * orientations[s]
+    # orientation = 3: left -> 6, right -> 5
+    left_neighbor_direction  = 2 * orientations[s]
     right_neighbor_direction = 2 * orientations[s] - 1
 
     # Copy flux to left and right element storage
-    for i in 1:nnodes(dg)
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        surface_flux_values[v, i, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i] +
-            noncons_diamond_primary[v, i])
-        surface_flux_values[v, i, right_neighbor_direction, right_neighbor_id] = (fstar[v, i] +
-            noncons_diamond_secondary[v, i])
+        surface_flux_values[v, i, j, left_neighbor_direction,  left_neighbor_id]  = (fstar[v, i, j] +
+            noncons_diamond_primary[v, i, j])
+        surface_flux_values[v, i, j, right_neighbor_direction, right_neighbor_id] = (fstar[v, i, j] +
+            noncons_diamond_secondary[v, i, j])
       end
     end
   end
