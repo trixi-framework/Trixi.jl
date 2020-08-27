@@ -1431,110 +1431,74 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-# NOTE: The first version below uses temporary storage and need to allocate.
-#       The other version does not need this temporary storage but more assignments.
-#       In preliminary tests, the second version is faster.
-#       Currently, the nonconservative terms for IdealMhdEquations are only implemented
-#       for the first version. That's why we use a dispatch here.
-#       We should find a way to generalize the way we handle nonconservative terms,
-#       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg3D)
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D) # FIXME: ndims deferred
-  @unpack dsplit_transposed = dg
-  # Do not use the thread_cache here since that reduces the performance significantly
-  # (which we do not fully understand right now)
-  # @unpack f1_threaded, f2_threaded = cache
-
-  # Type alias only for convenience
-  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D)
   Threads.@threads for element_id in 1:dg.n_elements
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
-
-    # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
-          end
-          u_t[v, i, j, element_id] += acc
-        end
-      end
-    end
+    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
 end
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D)
+@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg3D, alpha=true)
   @unpack volume_flux_function, dsplit = dg
 
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Calculate volume integral
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+  # Calculate volume integral
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
 
-      # x direction
-      # use consistency of the volume flux to make this evaluation cheaper
-      flux = calcflux(u_node, 1, equations(dg))
-      integral_contribution = dsplit[i, i] * flux
-      add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
-      # use symmetry of the volume flux for the remaining terms
-      for ii in (i+1):nnodes(dg)
-        u_node_ii = get_node_vars(dg.elements.u, dg, ii, j, k, element_id)
-        flux = volume_flux_function(u_node, u_node_ii, 1, equations(dg))
-        integral_contribution = dsplit[i, ii] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i,  j, k, element_id)
-        integral_contribution = dsplit[ii, i] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, ii, j, k, element_id)
-      end
+    # x direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 1, equations(dg))
+    integral_contribution = alpha * dsplit[i, i] * flux
+    add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
+    # use symmetry of the volume flux for the remaining terms
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(dg.elements.u, dg, ii, j, k, element_id)
+      flux = volume_flux_function(u_node, u_node_ii, 1, equations(dg))
+      integral_contribution = alpha * dsplit[i, ii] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i,  j, k, element_id)
+      integral_contribution = alpha * dsplit[ii, i] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, ii, j, k, element_id)
+    end
 
-      # y direction
-      # use consistency of the volume flux to make this evaluation cheaper
-      flux = calcflux(u_node, 2, equations(dg))
-      integral_contribution = dsplit[j, j] * flux
-      add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
-      # use symmetry of the volume flux for the remaining terms
-      for jj in (j+1):nnodes(dg)
-        u_node_jj = get_node_vars(dg.elements.u, dg, i, jj, k, element_id)
-        flux = volume_flux_function(u_node, u_node_jj, 2, equations(dg))
-        integral_contribution = dsplit[j, jj] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, j,  k, element_id)
-        integral_contribution = dsplit[jj, j] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, jj, k, element_id)
-      end
+    # y direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 2, equations(dg))
+    integral_contribution = alpha * dsplit[j, j] * flux
+    add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
+    # use symmetry of the volume flux for the remaining terms
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(dg.elements.u, dg, i, jj, k, element_id)
+      flux = volume_flux_function(u_node, u_node_jj, 2, equations(dg))
+      integral_contribution = alpha * dsplit[j, jj] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, j,  k, element_id)
+      integral_contribution = alpha * dsplit[jj, j] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, jj, k, element_id)
+    end
 
-      # z direction
-      # use consistency of the volume flux to make this evaluation cheaper
-      flux = calcflux(u_node, 3, equations(dg))
-      integral_contribution = dsplit[k, k] * flux
-      add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
-      # use symmetry of the volume flux for the remaining terms
-      for kk in (k+1):nnodes(dg)
-        u_node_kk = get_node_vars(dg.elements.u, dg, i, j, kk, element_id)
-        flux = volume_flux_function(u_node, u_node_kk, 3, equations(dg))
-        integral_contribution = dsplit[k, kk] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, j, k,  element_id)
-        integral_contribution = dsplit[kk, k] * flux
-        add_to_node_vars!(u_t, integral_contribution, dg, i, j, kk, element_id)
-      end
+    # z direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 3, equations(dg))
+    integral_contribution = alpha * dsplit[k, k] * flux
+    add_to_node_vars!(u_t, integral_contribution, dg, i, j, k, element_id)
+    # use symmetry of the volume flux for the remaining terms
+    for kk in (k+1):nnodes(dg)
+      u_node_kk = get_node_vars(dg.elements.u, dg, i, j, kk, element_id)
+      flux = volume_flux_function(u_node, u_node_kk, 3, equations(dg))
+      integral_contribution = alpha * dsplit[k, kk] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, j, k,  element_id)
+      integral_contribution = alpha * dsplit[kk, k] * flux
+      add_to_node_vars!(u_t, integral_contribution, dg, i, j, kk, element_id)
     end
   end
 end
+
+
+# function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg3D) # FIXME: ndims deferred
+# end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
@@ -1569,8 +1533,7 @@ end
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg3D)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack (f1_threaded, f2_threaded, f3_threaded,
-           fstar1_threaded, fstar2_threaded, fstar3_threaded) = thread_cache
+  @unpack fstar1_threaded, fstar2_threaded, fstar3_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1583,56 +1546,14 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Loop over pure DG elements
-  #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
   @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-    f3 = f3_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes
-    calcflux_twopoint!(f1, f2, f3, dg.elements.u, element_id, dg)
-
-    # Calculate volume integral
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      for v in 1:nvariables(dg)
-        # Use local accumulator to improve performance
-        acc = zero(eltype(u_t))
-        for l in 1:nnodes(dg)
-          acc += (dsplit_transposed[l, i] * f1[v, l, i, j, k] +
-                  dsplit_transposed[l, j] * f2[v, l, i, j, k] +
-                  dsplit_transposed[l, k] * f3[v, l, i, j, k])
-        end
-        u_t[v, i, j, k, element_id] += acc
-      end
-    end
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg)
   end
 
   # Loop over blended DG-FV elements
-  #=@timeit timer() "blended DG-FV" @inbounds Threads.@threads for element_id in element_ids_dgfv=#
   @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-    f3 = f3_threaded[Threads.threadid()]
-
-    # Calculate DG symmetric two-point volume fluxes
-    calcflux_twopoint!(f1, f2, f3, dg.elements.u, element_id, dg)
-
     # Calculate DG volume integral contribution
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      for v in 1:nvariables(dg)
-        # Use local accumulator to improve performance
-        acc = zero(eltype(u_t))
-        for l in 1:nnodes(dg)
-          acc += ( (1 - alpha[element_id]) *
-                    (dsplit_transposed[l, i] * f1[v, l, i, j, k] +
-                     dsplit_transposed[l, j] * f2[v, l, i, j, k] +
-                     dsplit_transposed[l, k] * f3[v, l, i, j, k]) )
-        end
-        u_t[v, i, j, k, element_id] += acc
-      end
-    end
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
 
     # Calculate FV two-point fluxes
     fstar1 = fstar1_threaded[Threads.threadid()]
