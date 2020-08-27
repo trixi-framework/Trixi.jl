@@ -529,7 +529,7 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()
 
-  equations(solver) isa Union{AbstractLinearScalarAdvectionEquation, HyperbolicDiffusionEquations2D} ||
+  equations(solver) isa Union{AbstractLinearScalarAdvectionEquation, AbstractHyperbolicDiffusionEquations} ||
     throw(ArgumentError("Only linear problems are supported."))
 
   # get the right hand side from the source terms
@@ -538,8 +538,15 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
-  solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
-                source_terms, mesh, polydeg(solver))
+  if solver isa Dg2D
+    solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+                  source_terms, mesh, polydeg(solver))
+  elseif solver isa Dg3D
+    solver = Dg3D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+                  source_terms, mesh, polydeg(solver))
+  else
+    error("not implemented")
+  end
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
     rhs!(solver, 0)
