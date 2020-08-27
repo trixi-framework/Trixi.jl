@@ -1300,7 +1300,7 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-# NOTE: The first version below uses temporary storage and need to allocate.
+# NOTE: The version for nonconservative_terms::Val{true} uses temporary storage and need to allocate.
 #       The other version does not need this temporary storage but more assignments.
 #       In preliminary tests, the second version is faster.
 #       Currently, the nonconservative terms for IdealMhdEquations are only implemented
@@ -1312,47 +1312,9 @@ end
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, cache, dg::Dg2D)
-  @unpack dsplit_transposed = dg
-  # Do not use the thread_cache here since that reduces the performance significantly
-  # (which we do not fully understand right now)
-  # @unpack f1_threaded, f2_threaded = cache
-
-  # Type alias only for convenience
-  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Choose thread-specific pre-allocated container
-    f1 = f1_threaded[Threads.threadid()]
-    f2 = f2_threaded[Threads.threadid()]
-
-    # Calculate volume fluxes (one more dimension than weak form)
-    calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
-
-    # Calculate volume integral
-    for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        for v in 1:nvariables(dg)
-          # Use local accumulator to improve performance
-          acc = zero(eltype(u_t))
-          for l in 1:nnodes(dg)
-            acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
-          end
-          u_t[v, i, j, element_id] += acc
-        end
-      end
-    end
-  end
-end
-
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
-    # Calculate volume integral
-    split_form_kernel!(u_t, element_id, nonconservative_terms, dg)
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), dg)
   end
 end
 
@@ -1391,6 +1353,47 @@ function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, 
       add_to_node_vars!(u_t, integral_contribution, dg, i, j,  element_id)
       integral_contribution = alpha * dsplit[jj, j] * flux
       add_to_node_vars!(u_t, integral_contribution, dg, i, jj, element_id)
+    end
+  end
+end
+
+
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, _, dg::Dg2D)
+  # Do not use the thread_cache here since that reduces the performance significantly
+  # (which we do not fully understand right now)
+  # @unpack f1_threaded, f2_threaded = cache
+
+  # Pre-allocate data structures to speed up computation (thread-safe)
+  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
+  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
+  cache = (;f1_threaded, f2_threaded)
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
+  end
+end
+
+function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, cache, dg::Dg2D, alpha=true)
+  @unpack volume_flux_function, dsplit_transposed = dg
+  @unpack f1_threaded, f2_threaded = cache
+
+  # Choose thread-specific pre-allocated container
+  f1 = f1_threaded[Threads.threadid()]
+  f2 = f2_threaded[Threads.threadid()]
+
+  # Calculate volume fluxes (one more dimension than weak form)
+  calcflux_twopoint!(f1, f2, dg.elements.u, element_id, dg)
+
+  # Calculate volume integral in one element
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    for v in 1:nvariables(dg)
+      # Use local accumulator to improve performance
+      acc = zero(eltype(u_t))
+      for l in 1:nnodes(dg)
+        acc += dsplit_transposed[l, i] * f1[v, l, i, j] + dsplit_transposed[l, j] * f2[v, l, i, j]
+      end
+      u_t[v, i, j, element_id] += alpha * acc
     end
   end
 end
@@ -1441,7 +1444,6 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Loop over pure DG elements
-  #=@timeit timer() "pure DG" @inbounds Threads.@threads for element_id in element_ids_dg=#
   @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
     # Choose thread-specific pre-allocated container
     f1 = f1_threaded[Threads.threadid()]
