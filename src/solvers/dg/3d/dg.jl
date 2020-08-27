@@ -108,7 +108,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity] # FIXME: ndims
+  if equation isa AbstractHyperbolicDiffusionEquations && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
   end
   dhat = calc_dhat(nodes, weights)

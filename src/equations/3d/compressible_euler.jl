@@ -238,20 +238,21 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   c = 2.0
   A = 0.1
   G = 1.0
-  C_grav = -2.0*G/pi
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      rhox = A * pi * cos(pi * (x1 + x2 - t))
-      rho  = c + A * sin(pi * (x1 + x2 - t))
+  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, k, element_id]
+    x2 = x[2, i, j, k, element_id]
+    x3 = x[3, i, j, k, element_id]
+    rhox = A * pi * cos(pi * (x1 + x2 + x3 - t))
+    rho  = c + A * sin(pi * (x1 + x2 + x3 - t))
 
-      ut[1, i, j, element_id] += rhox
-      ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-      ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-      ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
-    end
+    # FIXME: these lines are not yet (fully) converted to 3D!
+    ut[1, i, j, k, element_id] += rhox
+    ut[2, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
+    ut[3, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
+    ut[4, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
+    ut[5, i, j, k, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
   end
 
   return nothing
@@ -303,41 +304,53 @@ by Kuya, Totani and Kawai (2018)
   by split convective forms
 [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 """
-@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function flux_kuya_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
+  v3_ll = rho_v3_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
-  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v3_rr = rho_v3_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
   v1_avg = 1/2 * (v1_ll + v1_rr)
   v2_avg = 1/2 * (v2_ll + v2_rr)
+  v3_avg = 1/2 * (v3_ll + v3_rr)
   p_avg = 1/2 * (p_ll + p_rr)
-  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr)
+  kin_avg = 1/2 * (v1_ll*v1_rr + v2_ll*v2_rr + v3_ll*v3_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
-    pv1_avg = 1/2 * ( p_ll*v1_ll + p_rr*v1_rr)
+    pv1_avg = 1/2 * (p_ll*v1_ll + p_rr*v1_rr)
     f1 = rho_avg * v1_avg
     f2 = rho_avg * v1_avg * v1_avg + p_avg
     f3 = rho_avg * v1_avg * v2_avg
-    f4 = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
-  else
-    pv2_avg = 1/2 * ( p_ll*v2_ll + p_rr*v2_rr)
+    f4 = rho_avg * v1_avg * v3_avg
+    f5 = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
+  elseif orientation == 2
+    pv2_avg = 1/2 * (p_ll*v2_ll + p_rr*v2_rr)
     f1 = rho_avg * v2_avg
     f2 = rho_avg * v2_avg * v1_avg
     f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
+    f4 = rho_avg * v2_avg * v3_avg
+    f5 = p_avg*v2_avg/(equation.gamma-1) + rho_avg*v2_avg*kin_avg + pv2_avg
+  else
+    pv3_avg = 1/2 * (p_ll*v3_ll + p_rr*v3_rr)
+    f1 = rho_avg * v3_avg
+    f2 = rho_avg * v3_avg * v1_avg
+    f3 = rho_avg * v3_avg * v2_avg
+    f4 = rho_avg * v3_avg * v3_avg + p_avg
+    f5 = p_avg*v3_avg/(equation.gamma-1) + rho_avg*v3_avg*kin_avg + pv3_avg
   end
 
-  return SVector(f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4, f5)
 end
 
 
@@ -349,22 +362,25 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
+  v3_ll = rho_v3_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
+  v3_rr = rho_v3_rr/rho_rr
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
   v1_avg = 1/2 * (v1_ll + v1_rr)
   v2_avg = 1/2 * (v2_ll + v2_rr)
-  p_avg = 1/2 * ((equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2)) +
-                 (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2)))
+  v3_avg = 1/2 * (v3_ll + v3_rr)
+  p_avg = 1/2 * ((equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2)) +
+                 (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2)))
   e_avg = 1/2 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
 
   # Calculate fluxes depending on orientation
@@ -372,15 +388,23 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
     f1 = rho_avg * v1_avg
     f2 = rho_avg * v1_avg * v1_avg + p_avg
     f3 = rho_avg * v1_avg * v2_avg
-    f4 = (rho_avg * e_avg + p_avg) * v1_avg
-  else
+    f4 = rho_avg * v1_avg * v3_avg
+    f5 = (rho_avg * e_avg + p_avg) * v1_avg
+  elseif orientation == 2
     f1 = rho_avg * v2_avg
     f2 = rho_avg * v2_avg * v1_avg
     f3 = rho_avg * v2_avg * v2_avg + p_avg
-    f4 = (rho_avg * e_avg + p_avg) * v2_avg
+    f4 = rho_avg * v2_avg * v3_avg
+    f5 = (rho_avg * e_avg + p_avg) * v2_avg
+  else
+    f1 = rho_avg * v3_avg
+    f2 = rho_avg * v3_avg * v1_avg
+    f3 = rho_avg * v3_avg * v2_avg
+    f4 = rho_avg * v3_avg * v3_avg + p_avg
+    f5 = (rho_avg * e_avg + p_avg) * v3_avg
   end
 
-  return SVector(f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4, f5)
 end
 
 
@@ -392,21 +416,23 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D) # FIXME: ndims
+@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Unpack left and right state
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll/rho_ll
   v2_ll = rho_v2_ll/rho_ll
+  v3_ll = rho_v3_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
-  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
-  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  v3_rr = rho_v3_rr/rho_rr
+  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
   beta_ll = 0.5*rho_ll/p_ll
   beta_rr = 0.5*rho_rr/p_rr
-  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2)
-  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2)
+  specific_kin_ll = 0.5*(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  specific_kin_rr = 0.5*(v1_rr^2 + v2_rr^2 + v3_rr^2)
 
   # Compute the necessary mean values
   rho_avg  = 0.5*(rho_ll+rho_rr)
@@ -415,6 +441,7 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   beta_avg = 0.5*(beta_ll+beta_rr)
   v1_avg = 0.5*(v1_ll+v1_rr)
   v2_avg = 0.5*(v2_ll+v2_rr)
+  v3_avg = 0.5*(v3_ll+v3_rr)
   p_mean = 0.5*rho_avg/beta_avg
   velocity_square_avg = specific_kin_ll + specific_kin_rr
 
@@ -423,15 +450,23 @@ Entropy conserving two-point flux by Chandrashekar (2013)
     f1 = rho_mean * v1_avg
     f2 = f1 * v1_avg + p_mean
     f3 = f1 * v2_avg
-    f4 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg + f3*v2_avg
-  else
+    f4 = f1 * v3_avg
+    f5 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+ f2*v1_avg + f3*v2_avg + f4*v3_avg
+  elseif orientation == 2
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
     f3 = f1 * v2_avg + p_mean
-    f4 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg + f3*v2_avg
+    f4 = f1 * v3_avg
+    f5 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+ f2*v1_avg + f3*v2_avg + f4*v3_avg
+  else
+    f1 = rho_mean * v3_avg
+    f2 = f1 * v1_avg
+    f3 = f1 * v2_avg
+    f4 = f1 * v3_avg + p_mean
+    f5 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+ f2*v1_avg + f3*v2_avg + f4*v3_avg
   end
 
-  return SVector(f1, f2, f3, f4)
+  return SVector(f1, f2, f3, f4, f5)
 end
 
 

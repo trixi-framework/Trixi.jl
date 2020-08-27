@@ -50,6 +50,24 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
             linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
+  @testset "parameters_ec.toml with flux_chandrashekar" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [0.025105743648126774, 0.016571417754430256, 0.01657141775443023, 0.016565202090289916, 0.09077232065771225],
+            linf = [0.4349225166034201, 0.27945714200874, 0.2794571420087401, 0.28021366413271664, 1.5240679700745954],
+            surface_flux=flux_chandrashekar, volume_flux=flux_chandrashekar)
+  end
+  @testset "parameters_ec.toml with flux_kennedry_gruber" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [0.025120431810845507, 0.016599310737401483, 0.01659931073740148, 0.016592567464138185, 0.090856457771812],
+            linf = [0.43120500632996794, 0.28419288751363336, 0.2841928875136334, 0.28583515705222146, 1.515485025725378],
+            surface_flux=flux_kennedy_gruber, volume_flux=flux_kennedy_gruber)
+  end
+  @testset "parameters_ec.toml with flux_kuya_etal" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [0.025158572247744777, 0.016638273163668674, 0.016638273163668692, 0.016631581587765128, 0.09097798883433982],
+            linf = [0.4298582725942134, 0.28561096934734514, 0.28561096934734487, 0.287502111001965, 1.5313368512936554],
+            surface_flux=flux_kuya_etal, volume_flux=flux_kuya_etal)
+  end
   @testset "parameters_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_taylor_green_vortex.toml"),
             l2   = [0.0003494971047256544, 0.03133386380969968, 0.031333863809699644, 0.04378595081016185, 0.015796569210801217],
