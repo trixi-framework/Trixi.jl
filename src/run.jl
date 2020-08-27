@@ -131,6 +131,10 @@ function init_simulation()
     error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
   end
 
+  if equations isa AbstractIdealGlmMhdEquations && solver.volume_integral_type === Val(:weak_form)
+    error("The weak form is not implemented for $equations.")
+  end
+
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
