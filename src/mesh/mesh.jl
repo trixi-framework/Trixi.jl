@@ -1,5 +1,5 @@
 
-include("trees.jl")
+include("tree.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
