@@ -1,5 +1,5 @@
 
-# Composite type that represents a D-dimensional tree.
+# Composite type that represents a NDIMS-dimensional tree.
 #
 # Implements everything required for AbstractContainer.
 #
@@ -11,7 +11,7 @@
 #   c) the tree is stored depth-first
 #
 # However, the way the refinement/coarsening algorithms are currently
-# implemented, we only have fully refined cells. That is, a cell either has 2^D children or
+# implemented, we only have fully refined cells. That is, a cell either has 2^NDIMS children or
 # no children at all (= leaf cell). This restriction is also assumed at
 # multiple positions in the refinement/coarsening algorithms.
 #
@@ -19,7 +19,7 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
-mutable struct Tree{D} <: AbstractContainer
+mutable struct Tree{NDIMS} <: AbstractContainer
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
   neighbor_ids::Matrix{Int}
@@ -31,13 +31,13 @@ mutable struct Tree{D} <: AbstractContainer
   length::Int
   dummy::Int
 
-  center_level_0::MVector{D, Float64}
+  center_level_0::MVector{NDIMS, Float64}
   length_level_0::Float64
-  periodicity::NTuple{D, Bool}
+  periodicity::NTuple{NDIMS, Bool}
 
-  function Tree{D}(capacity::Integer) where D
-    # Verify that D is an integer
-    @assert D isa Integer
+  function Tree{NDIMS}(capacity::Integer) where NDIMS
+    # Verify that NDIMS is an integer
+    @assert NDIMS isa Integer
 
     # Create instance
     t = new()
@@ -45,17 +45,17 @@ mutable struct Tree{D} <: AbstractContainer
     # Initialize fields with defaults
     # Note: length as capacity + 1 is to use `capacity + 1` as temporary storage for swap operations
     t.parent_ids = fill(typemin(Int), capacity + 1)
-    t.child_ids = fill(typemin(Int), 2^D, capacity + 1)
-    t.neighbor_ids = fill(typemin(Int), 2*D, capacity + 1)
+    t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
+    t.neighbor_ids = fill(typemin(Int), 2*NDIMS, capacity + 1)
     t.levels = fill(typemin(Int), capacity + 1)
-    t.coordinates = fill(NaN, D, capacity + 1)
+    t.coordinates = fill(NaN, NDIMS, capacity + 1)
     t.original_cell_ids = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
     t.dummy = capacity + 1
 
-    t.center_level_0 = @MVector fill(NaN, D)
+    t.center_level_0 = @MVector fill(NaN, NDIMS)
     t.length_level_0 = NaN
 
     return t
@@ -64,13 +64,13 @@ end
 
 
 # Constructor for passing the dimension as an argument
-Tree(::Val{D}, args...) where D = Tree{D}(args...)
+Tree(::Val{NDIMS}, args...) where NDIMS = Tree{NDIMS}(args...)
 
 # Create and initialize tree
-function Tree{D}(capacity::Int, center::AbstractArray{Float64},
-                 length::Real, periodicity=true) where D
+function Tree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
+                 length::Real, periodicity=true) where NDIMS
   # Create instance
-  t = Tree{D}(capacity)
+  t = Tree{NDIMS}(capacity)
 
   # Initialize root cell
   init!(t, center, length, periodicity)
@@ -125,7 +125,7 @@ end
 
 
 # Convenience output for debugging
-function Base.show(io::IO, t::Tree{D}) where D
+function Base.show(io::IO, t::Tree{NDIMS}) where NDIMS
   l = t.length
   println(io, '*'^20)
   println(io, "t.parent_ids[1:l] = $(t.parent_ids[1:l])")
@@ -143,7 +143,7 @@ function Base.show(io::IO, t::Tree{D}) where D
 end
 
 # Type traits to obtain dimension
-@inline Base.ndims(t::Type{Tree{D}}) where D = D
+@inline Base.ndims(t::Type{Tree{NDIMS}}) where NDIMS = NDIMS
 @inline Base.ndims(t::Tree) = ndims(typeof(t))
 
 
@@ -195,7 +195,7 @@ isperiodic(t::Tree, dimension) = t.periodicity[dimension]
 
 # Auxiliary methods for often-required calculations
 # Number of potential child cells
-n_children_per_cell(::Tree{D}) where D = 2^D
+n_children_per_cell(::Tree{NDIMS}) where NDIMS = 2^NDIMS
 n_children_per_cell(dims::Integer) = 2^dims
 
 # Number of directions
@@ -207,7 +207,7 @@ n_children_per_cell(dims::Integer) = 2^dims
 # 4 -> +y
 # 5 -> -z
 # 6 -> +z
-n_directions(::Tree{D}) where D = 2 * D
+n_directions(::Tree{NDIMS}) where NDIMS = 2 * NDIMS
 
 # For a given direction, return its opposite direction
 #
@@ -328,9 +328,9 @@ end
 
 
 # Refine all leaf cells with coordinates in a given rectangular box
-function refine_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
-                     coordinates_max::AbstractArray{Float64}) where D
-  for dim in 1:D
+function refine_box!(t::Tree{NDIMS}, coordinates_min::AbstractArray{Float64},
+                     coordinates_max::AbstractArray{Float64}) where NDIMS
+  for dim in 1:NDIMS
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
 
@@ -626,9 +626,9 @@ coarsen!(t::Tree, cell_id::Int) = coarsen!(t::Tree, [cell_id])
 
 
 # Coarsen all viable parent cells with coordinates in a given rectangular box
-function coarsen_box!(t::Tree{D}, coordinates_min::AbstractArray{Float64},
-                     coordinates_max::AbstractArray{Float64}) where D
-  for dim in 1:D
+function coarsen_box!(t::Tree{NDIMS}, coordinates_min::AbstractArray{Float64},
+                     coordinates_max::AbstractArray{Float64}) where NDIMS
+  for dim in 1:NDIMS
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end
 
@@ -658,13 +658,13 @@ end
 
 
 # Return coordinates of a child cell based on its relative position to the parent.
-function child_coordinates(::Tree{D}, parent_coordinates, parent_length::Number, child::Int) where D
+function child_coordinates(::Tree{NDIMS}, parent_coordinates, parent_length::Number, child::Int) where NDIMS
   # Calculate length of child cells and set up data structure
   child_length = parent_length / 2
-  coordinates = MVector{D, Float64}(undef)
+  coordinates = MVector{NDIMS, Float64}(undef)
 
   # For each dimension, calculate coordinate as parent coordinate + relative position x length/2
-  for d in 1:D
+  for d in 1:NDIMS
     coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
   end
 
@@ -824,12 +824,12 @@ end
 
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::Tree{D}) where D
+function reset_data_structures!(t::Tree{NDIMS}) where NDIMS
   t.parent_ids = Vector{Int}(undef, t.capacity + 1)
-  t.child_ids = Matrix{Int}(undef, 2^D, t.capacity + 1)
-  t.neighbor_ids = Matrix{Int}(undef, 2*D, t.capacity + 1)
+  t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
+  t.neighbor_ids = Matrix{Int}(undef, 2*NDIMS, t.capacity + 1)
   t.levels = Vector{Int}(undef, t.capacity + 1)
-  t.coordinates = Matrix{Float64}(undef, D, t.capacity + 1)
+  t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
