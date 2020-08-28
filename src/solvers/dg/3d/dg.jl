@@ -1,9 +1,9 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, N,
+mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
-                  VectorNp1, MatrixNp1, MatrixNp12,
-                  VectorNAnap1, MatrixNAnap1Np1} <: AbstractDg{3}
+                  VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -12,39 +12,39 @@ mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, N,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer3D{NVARS, N}
+  elements::ElementContainer3D{NVARS, POLYDEG}
   n_elements::Int
 
-  interfaces::InterfaceContainer3D{NVARS, N}
+  interfaces::InterfaceContainer3D{NVARS, POLYDEG}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer3D{NVARS, N}
+  boundaries::BoundaryContainer3D{NVARS, POLYDEG}
   n_boundaries::Int
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer3D{NVARS, N}
+  l2mortars::L2MortarContainer3D{NVARS, POLYDEG}
   n_l2mortars::Int
 
-  nodes::VectorNp1
-  weights::VectorNp1
-  inverse_weights::VectorNp1
-  inverse_vandermonde_legendre::MatrixNp1
-  lhat::MatrixNp12
+  nodes::VectorNnodes
+  weights::VectorNnodes
+  inverse_weights::VectorNnodes
+  inverse_vandermonde_legendre::MatrixNnodes
+  lhat::MatrixNnodes2
 
   volume_integral_type::VolumeIntegralType
-  dhat::MatrixNp1
-  dsplit::MatrixNp1
-  dsplit_transposed::MatrixNp1
+  dhat::MatrixNnodes
+  dsplit::MatrixNnodes
+  dsplit_transposed::MatrixNnodes
 
-  mortar_forward_upper::MatrixNp1
-  mortar_forward_lower::MatrixNp1
-  l2mortar_reverse_upper::MatrixNp1
-  l2mortar_reverse_lower::MatrixNp1
+  mortar_forward_upper::MatrixNnodes
+  mortar_forward_lower::MatrixNnodes
+  l2mortar_reverse_upper::MatrixNnodes
+  l2mortar_reverse_lower::MatrixNnodes
 
-  analysis_nodes::VectorNAnap1
-  analysis_weights::VectorNAnap1
-  analysis_weights_volume::VectorNAnap1
-  analysis_vandermonde::MatrixNAnap1Np1
+  analysis_nodes::VectorAnalysisNnodes
+  analysis_weights::VectorAnalysisNnodes
+  analysis_weights_volume::VectorAnalysisNnodes
+  analysis_vandermonde::AnalysisVandermonde
   analysis_total_volume::Float64
   analysis_quantities::Vector{Symbol}
   save_analysis::Bool
@@ -68,25 +68,25 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
+function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(N))
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
   mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=("l2",))))
-  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements, mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
 
   # Sanity checks
@@ -96,7 +96,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   end
 
   # Initialize interpolation data structures
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
   inverse_weights = 1 ./ weights
   _, inverse_vandermonde_legendre = vandermonde_legendre(nodes)
@@ -184,7 +184,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
-  thread_cache = create_thread_cache_3d(NVARS, N+1)
+  thread_cache = create_thread_cache_3d(NVARS, POLYDEG+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
@@ -199,14 +199,14 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
-      SVector{N+1}(nodes), SVector{N+1}(weights), SVector{N+1}(inverse_weights),
-      SMatrix{N+1,N+1}(inverse_vandermonde_legendre), SMatrix{N+1,2}(lhat),
+      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
+      SMatrix{POLYDEG+1,POLYDEG+1}(inverse_vandermonde_legendre), SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
-      SMatrix{N+1,N+1}(dhat), SMatrix{N+1,N+1}(dsplit), SMatrix{N+1,N+1}(dsplit_transposed),
-      SMatrix{N+1,N+1}(mortar_forward_upper), SMatrix{N+1,N+1}(mortar_forward_lower),
-      SMatrix{N+1,N+1}(l2mortar_reverse_upper), SMatrix{N+1,N+1}(l2mortar_reverse_lower),
+      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
+      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
+      SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
-      SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
+      SMatrix{NAna+1,POLYDEG+1}(analysis_vandermonde), analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
@@ -254,52 +254,6 @@ function create_thread_cache_3d(n_variables, n_nodes)
             fstar_upper_left_threaded, fstar_upper_right_threaded,
             fstar_lower_left_threaded, fstar_lower_right_threaded,
             u_large_threaded)
-end
-
-
-@inline Base.ndims(dg::Dg3D) = ndims(equations(dg)) # FIXME: ndims dimension-agnostic
-
-
-# Return polynomial degree for a DG solver
-@inline polydeg(::Dg3D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N # FIXME: ndims dimension-agnostic
-
-
-# Return number of nodes in one direction
-@inline nnodes(::Dg3D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N + 1 # FIXME: ndims dimension-agnostic
-
-
-# Return system of equations instance for a DG solver
-@inline equations(dg::Dg3D) = dg.equations # FIXME: ndims dimension-agnostic
-
-
-# Return number of variables for the system of equations in use
-@inline nvariables(dg::Dg3D) = nvariables(equations(dg)) # FIXME: ndims dimension-agnostic
-
-
-# Return number of degrees of freedom
-@inline ndofs(dg::Dg3D) = dg.n_elements * nnodes(dg)^ndims(dg) # FIXME: ndims dimension-agnostic
-
-
-@inline get_node_vars(u, dg::Dg3D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg))) # FIXME: ndims dimension-agnostic
-
-@inline function get_surface_node_vars(u, dg::Dg3D, indices...) # FIXME: ndims dimension-agnostic
-  u_ll = SVector(ntuple(i -> u[1, i, indices...], nvariables(dg)))
-  u_rr = SVector(ntuple(i -> u[2, i, indices...], nvariables(dg)))
-  return u_ll, u_rr
-end
-
-@inline function set_node_vars!(u, u_node, ::Dg3D, indices...) # FIXME: ndims dimension-agnostic
-  for i in eachindex(u_node)
-    u[i, indices...] = u_node[i]
-  end
-  return nothing
-end
-
-@inline function add_to_node_vars!(u, u_node, ::Dg3D, indices...) # FIXME: ndims dimension-agnostic
-  for i in eachindex(u_node)
-    u[i, indices...] += u_node[i]
-  end
-  return nothing
 end
 
 
@@ -389,17 +343,17 @@ end
 # Create element container, initialize element data, and return element container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer3D{NVARS, N}(n_elements)
+  elements = ElementContainer3D{NVARS, POLYDEG}(n_elements)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
 
   # Determine node locations
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
 
   # Calculate inverse Jacobian and node coordinates
@@ -431,11 +385,11 @@ end
 # Create interface container, initialize interface data, and return interface container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer3D{NVARS, N}(n_interfaces)
+  interfaces = InterfaceContainer3D{NVARS, POLYDEG}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -447,11 +401,11 @@ end
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer3D{NVARS, N}(n_boundaries)
+  boundaries = BoundaryContainer3D{NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
   init_boundary_connectivity!(elements, boundaries, mesh)
@@ -463,8 +417,8 @@ end
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, elements, mortar_type) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -472,7 +426,7 @@ function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{N}, eleme
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer3D{NVARS, N}(n_l2mortars)
+  l2mortars = L2MortarContainer3D{NVARS, POLYDEG}(n_l2mortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
@@ -959,7 +913,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '", get_name(equation), "' with N = ", polydeg(dg))
+  println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *

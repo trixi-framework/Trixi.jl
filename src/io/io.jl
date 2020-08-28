@@ -8,7 +8,6 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
   # Open file
   h5open(restart_filename, "r") do file
     equation = equations(dg)
-    N = polydeg(dg)
 
     # Read attributes to perform some sanity checks
     if read(attrs(file)["ndims"]) != ndims(dg)
@@ -17,7 +16,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
     if read(attrs(file)["equations"]) != get_name(equation)
       error("restart mismatch: equations in solver differs from value in restart file")
     end
-    if read(attrs(file)["N"]) != N
+    if read(attrs(file)["polydeg"]) != polydeg(dg)
       error("restart mismatch: polynomial degree in solver differs from value in restart file")
     end
     if read(attrs(file)["n_elements"]) != dg.n_elements
@@ -70,12 +69,11 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
     equation = equations(dg)
-    N = polydeg(dg)
 
     # Add context information as attributes
     attrs(file)["ndims"] = ndims(dg)
     attrs(file)["equations"] = get_name(equation)
-    attrs(file)["N"] = N
+    attrs(file)["polydeg"] = polydeg(dg)
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
     attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
@@ -127,12 +125,11 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
     equation = equations(dg)
-    N = polydeg(dg)
 
     # Add context information as attributes
     attrs(file)["ndims"] = ndims(dg)
     attrs(file)["equations"] = get_name(equation)
-    attrs(file)["N"] = N
+    attrs(file)["polydeg"] = polydeg(dg)
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
     attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]

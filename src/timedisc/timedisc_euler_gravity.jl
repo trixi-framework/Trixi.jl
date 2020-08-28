@@ -202,7 +202,7 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
 end
 
 function timestep_gravity_erk51_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
-  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
   # and examples/parameters_hyp_diff_llf.toml
   # 5 stages, order 1
   gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
@@ -216,7 +216,7 @@ function timestep_gravity_erk51_3Sstar!(solver::AbstractSolver, t, dt, u_euler, 
 end
 
 function timestep_gravity_erk52_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
-  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
   # and examples/parameters_hyp_diff_llf.toml
   # 5 stages, order 2
   gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
@@ -230,7 +230,7 @@ function timestep_gravity_erk52_3Sstar!(solver::AbstractSolver, t, dt, u_euler, 
 end
 
 function timestep_gravity_erk53_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravity_parameters)
-  # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
   # and examples/parameters_hyp_diff_llf.toml
   # 5 stages, order 3
   gamma1 = @SVector [0.0000000000000000E+00, 6.9362208054011210E-01, 9.1364483229179472E-01, 1.3129305757628569E+00, -1.4615811339132949E+00]

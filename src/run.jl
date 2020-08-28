@@ -22,10 +22,10 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 [...]
 ```
 
-Without changing the parameters file we can start a simulation with `N = 1` and
+Without changing the parameters file we can start a simulation with `polydeg = 1` and
 `t_end = 0.5` as follows:
 ```julia
-julia> Trixi.run("examples/parameters.toml", N=1, t_end=0.5)
+julia> Trixi.run("examples/parameters.toml", polydeg=1, t_end=0.5)
 [...]
 ```
 """
@@ -177,7 +177,7 @@ function init_simulation()
   # Print setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
-  N = parameter("N") # FIXME: This is currently the only DG-specific code in here
+  polydeg = parameter("polydeg") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
   sources = parameter("sources", "none")
@@ -221,7 +221,7 @@ function init_simulation()
           |
           | Solver
           | | solver:           $solver_name
-          | | N:                $N
+          | | polydeg:          $polydeg
           | | CFL:              $cfl
           | | volume integral:  $(get_name(solver.volume_integral_type))
           | | volume flux:      $(get_name(solver.volume_flux_function))

@@ -1,6 +1,6 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-struct ElementContainer2D{NVARS, N} <: AbstractContainer
+struct ElementContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u::Array{Float64, 4}                   # [variables, i, j, elements]
   u_t::Array{Float64, 4}                 # [variables, i, j, elements]
   u_tmp2::Array{Float64, 4}              # [variables, i, j, elements]
@@ -13,9 +13,9 @@ struct ElementContainer2D{NVARS, N} <: AbstractContainer
 end
 
 
-function ElementContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N} # NVARS = no. variables, N = polydeg
+function ElementContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
   # Initialize fields with defaults
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   u = fill(NaN, NVARS, n_nodes, n_nodes, capacity)
   u_t = fill(NaN, NVARS, n_nodes, n_nodes, capacity)
   # u_rungakutta is initialized to non-NaN since it is used directly
@@ -27,8 +27,8 @@ function ElementContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N} # NVAR
   surface_flux_values = fill(NaN, NVARS, n_nodes, 2 * 2, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer2D{NVARS, N}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
-                                    surface_ids, surface_flux_values, cell_ids)
+  elements = ElementContainer2D{NVARS, POLYDEG}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
+                                                surface_ids, surface_flux_values, cell_ids)
 
   return elements
 end
@@ -39,21 +39,21 @@ nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
-struct InterfaceContainer2D{NVARS, N} <: AbstractContainer
+struct InterfaceContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u::Array{Float64, 4}      # [leftright, variables, i, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
 end
 
 
-function InterfaceContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N}
+function InterfaceContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
   # Initialize fields with defaults
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   u = fill(NaN, 2, NVARS, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
-  interfaces = InterfaceContainer2D{NVARS, N}(u, neighbor_ids, orientations)
+  interfaces = InterfaceContainer2D{NVARS, POLYDEG}(u, neighbor_ids, orientations)
 
   return interfaces
 end
@@ -64,7 +64,7 @@ ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries
-struct BoundaryContainer2D{NVARS, N} <: AbstractContainer
+struct BoundaryContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u::Array{Float64, 4}                # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
@@ -73,17 +73,17 @@ struct BoundaryContainer2D{NVARS, N} <: AbstractContainer
 end
 
 
-function BoundaryContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N}
+function BoundaryContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
   # Initialize fields with defaults
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   u = fill(NaN, 2, NVARS, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
   node_coordinates = fill(NaN, 2, n_nodes, capacity)
 
-  boundaries = BoundaryContainer2D{NVARS, N}(u, neighbor_ids, orientations, neighbor_sides,
-                                       node_coordinates)
+  boundaries = BoundaryContainer2D{NVARS, POLYDEG}(u, neighbor_ids, orientations, neighbor_sides,
+                                                   node_coordinates)
 
   return boundaries
 end
@@ -103,7 +103,7 @@ nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 #           |    |
 # lower = 1 |    |
 #           |    |
-struct L2MortarContainer2D{NVARS, N} <: AbstractContainer
+struct L2MortarContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u_upper::Array{Float64, 4} # [leftright, variables, i, mortars]
   u_lower::Array{Float64, 4} # [leftright, variables, i, mortars]
   neighbor_ids::Matrix{Int}  # [position, mortars]
@@ -113,16 +113,16 @@ struct L2MortarContainer2D{NVARS, N} <: AbstractContainer
 end
 
 
-function L2MortarContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N}
+function L2MortarContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
   # Initialize fields with defaults
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   u_upper = fill(NaN, 2, NVARS, n_nodes, capacity)
   u_lower = fill(NaN, 2, NVARS, n_nodes, capacity)
   neighbor_ids = fill(typemin(Int), 3, capacity)
   large_sides = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  l2mortars = L2MortarContainer2D{NVARS, N}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
+  l2mortars = L2MortarContainer2D{NVARS, POLYDEG}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
 
   return l2mortars
 end
@@ -133,7 +133,7 @@ nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents
-function Base.show(io::IO, c::L2MortarContainer2D{NVARS, N}) where {NVARS, N}
+function Base.show(io::IO, c::L2MortarContainer2D{NVARS, POLYDEG}) where {NVARS, POLYDEG}
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper)
     println(io, "c.u_upper[$idx] = $(c.u_upper[idx])")
@@ -157,7 +157,7 @@ end
 #           |    |
 # lower = 1 |    |
 #           |    |
-struct EcMortarContainer2D{NVARS, N} <: AbstractContainer
+struct EcMortarContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u_upper::Array{Float64, 3} # [variables, i, mortars]
   u_lower::Array{Float64, 3} # [variables, i, mortars]
   u_large::Array{Float64, 3} # [variables, i, mortars]
@@ -168,9 +168,9 @@ struct EcMortarContainer2D{NVARS, N} <: AbstractContainer
 end
 
 
-function EcMortarContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N}
+function EcMortarContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
   # Initialize fields with defaults
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   u_upper = fill(NaN, NVARS, n_nodes, capacity)
   u_lower = fill(NaN, NVARS, n_nodes, capacity)
   u_large = fill(NaN, NVARS, n_nodes, capacity)
@@ -178,8 +178,8 @@ function EcMortarContainer2D{NVARS, N}(capacity::Integer) where {NVARS, N}
   large_sides = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  ecmortars = EcMortarContainer2D{NVARS, N}(u_upper, u_lower, u_large, neighbor_ids,
-                                      large_sides, orientations)
+  ecmortars = EcMortarContainer2D{NVARS, POLYDEG}(u_upper, u_lower, u_large, neighbor_ids,
+                                                  large_sides, orientations)
 
   return ecmortars
 end

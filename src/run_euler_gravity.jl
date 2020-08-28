@@ -85,7 +85,7 @@ function init_simulation_euler_gravity()
   # Print setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
-  N = parameter("N") # FIXME: This is currently the only DG-specific code in here
+  polydeg = parameter("polydeg") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
   sources = parameter("sources", "none")
@@ -131,7 +131,7 @@ function init_simulation_euler_gravity()
           |
           | Solver
           | | solver:           $solver_name
-          | | N:                $N
+          | | polydeg:          $polydeg
           | | CFL:              $cfl
           | | Euler solver:
           | | | volume integral:  $(get_name(solver.volume_integral_type))

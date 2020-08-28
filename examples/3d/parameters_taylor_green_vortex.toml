@@ -16,7 +16,7 @@ t_end   = 10.0
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 3
+polydeg = 3
 cfl = 0.5
 n_steps_max = 10000
 volume_integral_type = "split_form"

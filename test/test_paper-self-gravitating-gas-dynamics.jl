@@ -20,11 +20,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.0010793454782482836, 0.0018836374478419238, 0.0018836374478410356, 0.003971446179607874])
   end
 
-  @testset "parameters_eoc_test_euler.toml with N=4" begin
+  @testset "parameters_eoc_test_euler.toml with polydeg=4" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eoc_test_euler.toml"),
             l2   = [1.7187032983384504e-5, 2.6780178144541376e-5, 2.678017814469407e-5, 4.952410417693103e-5],
             linf = [0.00015018092862240096, 0.00016548331714294484, 0.00016548331714405506, 0.00043726245511699346],
-            N=4)
+            polydeg=4)
   end
 
   @testset "parameters_eoc_test_hyperbolic_diffusion.toml" begin
@@ -33,11 +33,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.017332075119072865, 0.07843510773347322, 0.11325788389718668])
   end
 
-  @testset "parameters_eoc_test_hyperbolic_diffusion.toml with N=4" begin
+  @testset "parameters_eoc_test_hyperbolic_diffusion.toml with polydeg=4" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eoc_test_hyperbolic_diffusion.toml"),
             l2   = [0.00025112830138292663, 0.0008808243851096586, 0.0016313343234903468],
             linf = [0.001719090967553516, 0.0031291844657076145, 0.00994609342322228],
-            N=4)
+            polydeg=4)
   end
 
   @testset "parameters_eoc_test_coupled_euler_gravity.toml" begin
@@ -47,11 +47,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             t_end=0.1)
   end
 
-  @testset "parameters_eoc_test_coupled_euler_gravity.toml with N=4" begin
+  @testset "parameters_eoc_test_coupled_euler_gravity.toml with polydeg=4" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eoc_test_coupled_euler_gravity.toml"),
             l2   = [1.9536732064098693e-5, 2.756381055173374e-5, 2.7563810551703437e-5, 5.688705902953846e-5, 1.0684325470325204e-5, 5.829033623593028e-5, 5.829033623591347e-5],
             linf = [0.00012335977351507488, 0.00020086338378089152, 0.00020086338378044744, 0.0004962132679873221, 8.5358666522109e-5, 0.0002927883863423353, 0.00029278838634330673],
-            t_end=0.1, N=4)
+            t_end=0.1, polydeg=4)
   end
 
   @testset "parameters_eoc_test_coupled_euler_gravity.toml with update_gravity_once_per_stage=false" begin

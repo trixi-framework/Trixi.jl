@@ -19,11 +19,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [9.144681765639205e-6],
             linf = [6.437440532547356e-5])
   end
-  @testset "parameters.toml with N=1" begin
+  @testset "parameters.toml with polydeg=1" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
             l2   = [0.05264106093598111],
             linf = [0.08754218386076518],
-            N=1)
+            polydeg=1)
   end
   @testset "parameters.toml with carpenter_kennedy_erk43" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),

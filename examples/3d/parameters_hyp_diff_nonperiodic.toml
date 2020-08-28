@@ -20,7 +20,7 @@ resid_tol = 1.0e-5
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 4
+polydeg = 4
 cfl = 0.6
 time_integration_scheme = "timestep_hyp_diff_N3_erk52_3Sstar!"
 n_steps_max = 20000

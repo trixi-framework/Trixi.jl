@@ -1,9 +1,9 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, N,
+mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType,
-                  VectorNp1, MatrixNp1, MatrixNp12,
-                  VectorNAnap1, MatrixNAnap1Np1} <: AbstractDg{2}
+                  VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -12,43 +12,43 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, N,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer2D{NVARS, N}
+  elements::ElementContainer2D{NVARS, POLYDEG}
   n_elements::Int
 
-  interfaces::InterfaceContainer2D{NVARS, N}
+  interfaces::InterfaceContainer2D{NVARS, POLYDEG}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer2D{NVARS, N}
+  boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer2D{NVARS, N}
+  l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
   n_l2mortars::Int
-  ecmortars::EcMortarContainer2D{NVARS, N}
+  ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
   n_ecmortars::Int
 
-  nodes::VectorNp1
-  weights::VectorNp1
-  inverse_weights::VectorNp1
-  inverse_vandermonde_legendre::MatrixNp1
-  lhat::MatrixNp12
+  nodes::VectorNnodes
+  weights::VectorNnodes
+  inverse_weights::VectorNnodes
+  inverse_vandermonde_legendre::MatrixNnodes
+  lhat::MatrixNnodes2
 
   volume_integral_type::VolumeIntegralType
-  dhat::MatrixNp1
-  dsplit::MatrixNp1
-  dsplit_transposed::MatrixNp1
+  dhat::MatrixNnodes
+  dsplit::MatrixNnodes
+  dsplit_transposed::MatrixNnodes
 
-  mortar_forward_upper::MatrixNp1
-  mortar_forward_lower::MatrixNp1
-  l2mortar_reverse_upper::MatrixNp1
-  l2mortar_reverse_lower::MatrixNp1
-  ecmortar_reverse_upper::MatrixNp1
-  ecmortar_reverse_lower::MatrixNp1
+  mortar_forward_upper::MatrixNnodes
+  mortar_forward_lower::MatrixNnodes
+  l2mortar_reverse_upper::MatrixNnodes
+  l2mortar_reverse_lower::MatrixNnodes
+  ecmortar_reverse_upper::MatrixNnodes
+  ecmortar_reverse_lower::MatrixNnodes
 
-  analysis_nodes::VectorNAnap1
-  analysis_weights::VectorNAnap1
-  analysis_weights_volume::VectorNAnap1
-  analysis_vandermonde::MatrixNAnap1Np1
+  analysis_nodes::VectorAnalysisNnodes
+  analysis_weights::VectorAnalysisNnodes
+  analysis_weights_volume::VectorAnalysisNnodes
+  analysis_vandermonde::AnalysisVandermonde
   analysis_total_volume::Float64
   analysis_quantities::Vector{Symbol}
   save_analysis::Bool
@@ -72,25 +72,25 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, N) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(N))
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements)
+  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
   mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(N), elements, mortar_type)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
@@ -101,7 +101,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   end
 
   # Initialize interpolation data structures
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   nodes, weights = gauss_lobatto_nodes_weights(n_nodes)
   inverse_weights = 1 ./ weights
   _, inverse_vandermonde_legendre = vandermonde_legendre(nodes)
@@ -130,8 +130,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
-  NAna = 2 * (n_nodes) - 1
-  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
+  analysis_polydeg = 2 * (n_nodes) - 1
+  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(analysis_polydeg + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndims(mesh)
@@ -191,7 +191,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize storage for the cache
   cache = Dict{Symbol, Any}()
-  thread_cache = create_thread_cache_2d(NVARS, N+1)
+  thread_cache = create_thread_cache_2d(NVARS, POLYDEG+1)
 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
@@ -207,15 +207,15 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      SVector{N+1}(nodes), SVector{N+1}(weights), SVector{N+1}(inverse_weights),
-      SMatrix{N+1,N+1}(inverse_vandermonde_legendre), SMatrix{N+1,2}(lhat),
+      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
+      SMatrix{POLYDEG+1,POLYDEG+1}(inverse_vandermonde_legendre), SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
-      SMatrix{N+1,N+1}(dhat), SMatrix{N+1,N+1}(dsplit), SMatrix{N+1,N+1}(dsplit_transposed),
-      SMatrix{N+1,N+1}(mortar_forward_upper), SMatrix{N+1,N+1}(mortar_forward_lower),
-      SMatrix{N+1,N+1}(l2mortar_reverse_upper), SMatrix{N+1,N+1}(l2mortar_reverse_lower),
-      SMatrix{N+1,N+1}(ecmortar_reverse_upper), SMatrix{N+1,N+1}(ecmortar_reverse_lower),
-      SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
-      SMatrix{NAna+1,N+1}(analysis_vandermonde), analysis_total_volume,
+      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
+      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
+      SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
+      SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
+      SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
+      SMatrix{analysis_polydeg+1,POLYDEG+1}(analysis_vandermonde), analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
@@ -250,52 +250,6 @@ function create_thread_cache_2d(n_variables, n_nodes)
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
             fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
-end
-
-
-@inline Base.ndims(dg::Dg2D) = ndims(equations(dg))
-
-
-# Return polynomial degree for a DG solver
-@inline polydeg(::Dg2D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N
-
-
-# Return number of nodes in one direction
-@inline nnodes(::Dg2D{Eqn, NVARS, N}) where {Eqn, NVARS, N} = N + 1
-
-
-# Return system of equations instance for a DG solver
-@inline equations(dg::Dg2D) = dg.equations
-
-
-# Return number of variables for the system of equations in use
-@inline nvariables(dg::Dg2D) = nvariables(equations(dg))
-
-
-# Return number of degrees of freedom
-@inline ndofs(dg::Dg2D) = dg.n_elements * (polydeg(dg) + 1)^ndims(dg)
-
-
-@inline get_node_vars(u, dg::Dg2D, indices...) = SVector(ntuple(i -> u[i, indices...], nvariables(dg)))
-
-@inline function get_surface_node_vars(u, dg::Dg2D, indices...)
-  u_ll = SVector(ntuple(i -> u[1, i, indices...], nvariables(dg)))
-  u_rr = SVector(ntuple(i -> u[2, i, indices...], nvariables(dg)))
-  return u_ll, u_rr
-end
-
-@inline function set_node_vars!(u, u_node, ::Dg2D, indices...)
-  for i in eachindex(u_node)
-    u[i, indices...] = u_node[i]
-  end
-  return nothing
-end
-
-@inline function add_to_node_vars!(u, u_node, ::Dg2D, indices...)
-  for i in eachindex(u_node)
-    u[i, indices...] += u_node[i]
-  end
-  return nothing
 end
 
 
@@ -385,17 +339,17 @@ end
 # Create element container, initialize element data, and return element container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{N}) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_elements(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer2D{NVARS, N}(n_elements)
+  elements = ElementContainer2D{NVARS, POLYDEG}(n_elements)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
 
   # Determine node locations
-  n_nodes = N + 1
+  n_nodes = POLYDEG + 1
   nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
 
   # Calculate inverse Jacobian and node coordinates
@@ -427,11 +381,11 @@ end
 # Create interface container, initialize interface data, and return interface container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer2D{NVARS, N}(n_interfaces)
+  interfaces = InterfaceContainer2D{NVARS, POLYDEG}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -443,11 +397,11 @@ end
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{N}, elements) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{NVARS, N}(n_boundaries)
+  boundaries = BoundaryContainer2D{NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
   init_boundary_connectivity!(elements, boundaries, mesh)
@@ -459,8 +413,8 @@ end
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
 # NVARS: number of variables
-# N: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{N}, elements, mortar_type) where {NVARS, N}
+# POLYDEG: polynomial degree
+function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -472,8 +426,8 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{N}, eleme
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer2D{NVARS, N}(n_l2mortars)
-  ecmortars = EcMortarContainer2D{NVARS, N}(n_ecmortars)
+  l2mortars = L2MortarContainer2D{NVARS, POLYDEG}(n_l2mortars)
+  ecmortars = EcMortarContainer2D{NVARS, POLYDEG}(n_ecmortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
@@ -858,7 +812,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   # General information
   println()
   println("-"^80)
-  println(" Simulation running '", get_name(equation), "' with N = ", polydeg(dg))
+  println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
   println("-"^80)
   println(" #timesteps:     " * @sprintf("% 14d", step) *
           "               " *

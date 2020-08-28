@@ -1,36 +1,36 @@
 # Overview of how to reproduce results in Euler-gravity paper
 
 ## Sec. 4.1.1, Table 2, EOC tests compressible Euler
-**N = 3**:
+**polydeg = 3**:
 ```julia
 Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_euler.toml", 4)
 ```
 
-**N = 4**:
+**polydeg = 4**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_euler.toml", 4, N=4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_euler.toml", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.2, Table 3, EOC tests hyperbolic diffusion
-**N = 3**:
+**polydeg = 3**:
 ```julia
 Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_hyperbolic_diffusion.toml", 4)
 ```
 
-**N = 4**:
+**polydeg = 4**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_hyperbolic_diffusion.toml", 4, N=4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_hyperbolic_diffusion.toml", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity
-**N = 3**:
+**polydeg = 3**:
 ```julia
 Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_coupled_euler_gravity.toml", 4)
 ```
 
-**N = 4**:
+**polydeg = 4**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_coupled_euler_gravity.toml", 4, N=4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eoc_test_coupled_euler_gravity.toml", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 5, EOC tests coupled Euler-gravity (update gravity once per step)
