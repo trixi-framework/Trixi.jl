@@ -51,46 +51,20 @@ function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusion
   return @SVector [phi, q1, q2, q3]
 end
 
-function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
     q1  = 1.0
     q2  = 1.0
+    q3  = 1.0
   else
-    phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-    q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-    q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+    phi =  2.0 *      cos(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3]) + 2.0 # ϕ
+    q1  = -2.0 * pi * sin(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_x
+    q2  =  4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
+    q3  =  4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
   end
-  return @SVector [phi, q1, q2]
-end
-
-function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
-  # elliptic equation: -νΔϕ = f
-  if t == 0.0
-    phi = 1.0
-    q1  = 1.0
-    q2  = 1.0
-  else
-    C   = 1.0/sinh(pi)
-    phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-    q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-    q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-  end
-  return @SVector [phi, q1, q2]
-end
-
-function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
-  # gravity equation: -Δϕ = -4πGρ
-  # Constants taken from the FLASH manual
-  # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-  rho0 = 1.5e7
-  delta0 = 1e-3
-  #
-  phi = rho0*delta0 # constant background pertubation magnitude
-  q1  = 0.0
-  q2  = 0.0
-  return @SVector [phi, q1, q2]
+  return @SVector [phi, q1, q2, q3]
 end
 
 function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
@@ -110,13 +84,14 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
 end
 
 
-function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
 
   phi = 0.0
   q1  = 0.0
   q2  = 0.0
-  return @SVector [phi, q1, q2]
+  q3  = 0.0
+  return @SVector [phi, q1, q2, q3]
 end
 
 # Apply source terms
@@ -142,19 +117,19 @@ function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
-  # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
+  # analytical solution: ϕ = 2 cos(πx)sin(2πy)sin(2πz) + 2 and f = 18 π^2 cos(πx)sin(2πy)sin(2πz)
   inv_Tr = inv(equation.Tr)
 
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      x1 = x[1, i, j, element_id]
-      x2 = x[2, i, j, element_id]
-      ut[1, i, j, element_id] += 10 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2)
-      ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-      ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-    end
+  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, k, element_id]
+    x2 = x[2, i, j, k, element_id]
+    x3 = x[3, i, j, k, element_id]
+    ut[1, i, j, k, element_id] += 18 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2) * sin(2.0*pi*x3)
+    ut[2, i, j, k, element_id] -= inv_Tr * u[2, i, j, k, element_id]
+    ut[3, i, j, k, element_id] -= inv_Tr * u[3, i, j, k, element_id]
+    ut[4, i, j, k, element_id] -= inv_Tr * u[4, i, j, k, element_id]
   end
 
   return nothing
@@ -174,7 +149,7 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
 end
 
 # The coupled EOC test does not require additional sources
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D) # FIXME: ndims
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)
 end
 

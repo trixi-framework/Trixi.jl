@@ -85,6 +85,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
             initial_refinement_level=2)
   end
+  @testset "parameters_hyp_diff_nonperiodic.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),
+            l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
+            linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
+  end
   @testset "parameters_ec_mhd.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.toml"),
             l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],

@@ -233,7 +233,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
-function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
@@ -259,7 +259,7 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
 end
 
 # Empty source terms required for coupled Euler-gravity simulations
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D) # FIXME: ndims
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
