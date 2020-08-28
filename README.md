@@ -10,21 +10,28 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
 [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.1.2.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 
-
-
-
-**A flexible, tree-based numerical simulation framework for PDEs written in Julia.**
-
 <p align="center">
   <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
-**Trixi.jl** is a flexible numerical simulation framework for partial
-differential equations. It is based on a two-dimensional hierarchical mesh
-(quadtree) and supports several governing equations such as the compressible Euler
-equations, magnetohydrodynamics equations, or hyperbolic diffusion equations.
-Trixi is written in [Julia](https://julialang.org) and aims to be easy to use and
-extend also for new or inexperienced users.
+**Trixi.jl** is a flexible tree-based numerical simulation framework for partial
+differential equations written in Julia. A key goal of Trixi is to be easy to
+use for new or unexperienced users, including installation and postprocessing.
+Its features include:
+
+* Native support for 2D and 3D simuations
+* High-order accuracy in space in time
+* Standard and split-form discontinuous Galerkin method for spatial discretization
+* Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Multiple governing equations:
+  * Compressible Euler equations
+  * Magnetohydrodynamics equations
+  * Hyperbolic diffusion equations for elliptic problems
+  * Scalar advection
+* Multi-physics simulations for self-gravitating gas dynamics
+* Written in [Julia](https://julialang.org)
+* Shared-memory parallelization via multithreading
+* Visualization of results with Julia-only tools (2D) or ParaView (2D/3D)
 
 
 ## Installation
