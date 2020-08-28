@@ -30,8 +30,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979],
             volume_integral_type = "split_form")
   end
-  @testset "parameters_eoc_test_euler.toml.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eoc_test_euler.toml.toml"),
+  @testset "parameters_eoc_test_euler.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eoc_test_euler.toml"),
             l2   = [0.000363723832448333, 0.00039555684672049366, 0.0003955568467203738, 0.00039555684672064724, 0.0007811604790242773],
             linf = [0.002400072140187337, 0.0029635489437536133, 0.0029635489437540574, 0.0029635489437565, 0.007191455734479657])
   end
