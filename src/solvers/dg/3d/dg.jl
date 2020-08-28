@@ -156,13 +156,10 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "isentropic_vortex", "blast_wave", "khi", "blob", "sedov_self_gravity", "density_pulse"]))
+                                   valid=["n/a", "gauss", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
-  if amr_indicator === :khi || amr_indicator === :blob
-    element_variables[:amr_indicator_values] = zeros(n_elements)
-  end
   # maximum and minimum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
   shock_alpha_min = parameter("shock_alpha_min", 0.001)
@@ -170,7 +167,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                          valid=["density", "density_pressure", "pressure"]))
+                                    valid=["density", "density_pressure", "pressure"]))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)

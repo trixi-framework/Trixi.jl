@@ -61,6 +61,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
             linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
+  @testset "parameters_ec.toml with initial_conditions=Trixi.initial_conditions_constant" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [5.717218008425079e-16, 6.088971423170968e-16, 6.23130776282275e-16, 7.29884557381127e-16, 5.167198077601542e-15],
+            linf = [3.885780586188048e-15, 4.454769886308441e-15, 3.219646771412954e-15, 4.884981308350689e-15, 4.440892098500626e-14],
+            initial_conditions=Trixi.initial_conditions_constant)
+  end
   @testset "parameters_ec.toml with flux_chandrashekar" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
             l2   = [0.025105743648126774, 0.016571417754430256, 0.01657141775443023, 0.016565202090289916, 0.09077232065771225],
@@ -96,6 +102,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
             initial_refinement_level=2)
   end
+  @testset "parameters_hyp_diff_llf.toml with initial_refinement_level=2, surface_flux=Trixi.flux_upwind)" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
+            l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
+            linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
+            initial_refinement_level=2, surface_flux=Trixi.flux_upwind)
+  end
   @testset "parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),
             l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
@@ -105,6 +117,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.toml"),
             l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
             linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
+  end
+  @testset "parameters_ec_mhd.toml with initial_conditions=Trixi.initial_conditions_constant" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
+            linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
+            initial_conditions=Trixi.initial_conditions_constant)
   end
   @testset "parameters_alfven_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_alfven_wave.toml"),
