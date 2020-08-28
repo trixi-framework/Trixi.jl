@@ -745,30 +745,6 @@ end
 end
 
 
-# Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
-# NOTE: This method seems to work currently (b82534e) but is never used anywhere. Thus it is
-# commented here until someone uses it or writes a test for it.
-# @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)
-#   entropy = MVector{4, Float64}(undef)
-#   v = (cons[2] / cons[1] , cons[3] / cons[1])
-#   v_square= v[1]*v[1]+v[2]*v[2]
-#   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-#   rho_p = cons[1] / p
-#   # thermodynamic entropy
-#   s = log(p) - gamma*log(cons[1])
-#   # mathematical entropy
-#   S = - s*cons[1]/(gamma-1)
-#   # entropy variables
-#   entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
-#   entropy[2] = rho_p*v[1]
-#   entropy[3] = rho_p*v[2]
-#   entropy[4] = -rho_p
-#   # entropy flux
-#   entropy_flux = S*v[orientation]
-#   return entropy, entropy_flux
-# end
-
-
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equation::CompressibleEulerEquations3D)
   # Pressure
