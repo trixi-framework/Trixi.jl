@@ -888,7 +888,7 @@ end
 
 
 # Calculate enstrophy for the compressible Euler equations
-function calc_enstrophy(dg::Dg3D, t::Float64) # FIXME ndims optimize, use integrate
+function calc_enstrophy(dg::Dg3D, t::Float64)
   @assert equations(dg) isa CompressibleEulerEquations3D "Only relevant for compressible Euler"
 
   # Local copy of standard derivative matrix
@@ -1133,24 +1133,6 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  # Potential energy
-  if :energy_potential in dg.analysis_quantities
-    # FIXME: This should be implemented properly for multiple coupled solvers
-    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
-
-    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, k, element_id, dg, u_euler, u_gravity
-      cons_euler = get_node_vars(u_euler, dg, i, j, k, element_id)
-      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, k, element_id)
-      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
-      return (cons_euler[1] - 1.5e7) * cons_gravity[1]
-    end
-    print(" ∑e_pot:      ")
-    @printf("  % 10.8e", e_potential)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
-    println()
-  end
-
   # Enstrophy
   if :enstrophy in dg.analysis_quantities
     enstrophy = calc_enstrophy(dg, time)
@@ -1258,9 +1240,6 @@ function save_analysis_header(filename, quantities, equation::AbstractEquation{3
     end
     if :energy_magnetic in quantities
       @printf(f, "   %-14s", "e_magnetic")
-    end
-    if :energy_potential in quantities
-      @printf(f, "   %-14s", "e_potential")
     end
     if :enstrophy in quantities
       @printf(f, "   %-14s", "enstrophy")

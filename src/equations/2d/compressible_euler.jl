@@ -287,7 +287,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   rho = ini
   v1 = 1.0
   v2 = 1.0
-  p = ini^2*G/pi
+  p = ini^2 * G / pi # * 2 / ndims, but ndims==2 here
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
@@ -366,7 +366,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
-  C_grav = -2.0*G/pi
+  C_grav = -2.0 * G / pi # 2 == 4 / ndims
 
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
@@ -389,7 +389,7 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   c = 2.0
   A = 0.1
   G = 1.0
-  C_grav = -2.0*G/pi
+  C_grav = -2 * G / pi # 2 == 4 / ndims
 
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
@@ -399,9 +399,9 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
     rho  = c + A *  si
 
     ut[1, i, j, element_id] += rhox
-    ut[2, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-    ut[3, i, j, element_id] += rhox * (2.0*rho/pi + 1.0)
-    ut[4, i, j, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
+    ut[2, i, j, element_id] += rhox * (1 -     C_grav * rho)
+    ut[3, i, j, element_id] += rhox * (1 -     C_grav * rho)
+    ut[4, i, j, element_id] += rhox * (1 - 3 * C_grav * rho)
   end
 
   return nothing
@@ -414,7 +414,7 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Compr
   return nothing
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho

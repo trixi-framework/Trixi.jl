@@ -119,7 +119,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   v1 = 1.0
   v2 = 1.0
   v3 = 1.0
-  p = ini^2 * G * 2/(3 * pi) # "3" is the number of spatial dimensions
+  p = ini^2 * G * 2 / (3 * pi) # "3" is the number of spatial dimensions
 
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
@@ -238,21 +238,21 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   c = 2.0
   A = 0.1
   G = 1.0
-  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions
 
   for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, k, element_id]
     x2 = x[2, i, j, k, element_id]
     x3 = x[3, i, j, k, element_id]
-    rhox = A * pi * cos(pi * (x1 + x2 + x3 - t))
-    rho  = c + A * sin(pi * (x1 + x2 + x3 - t))
+    si, co = sincos(pi * (x1 + x2 + x3 - t))
+    rhox = A * pi * co
+    rho  = c + A *  si
 
-    # FIXME: these lines are not yet (fully) converted to 3D!
-    ut[1, i, j, k, element_id] += rhox
-    ut[2, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
-    ut[3, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
-    ut[4, i, j, k, element_id] += rhox * (2.0*rho/pi + 1.0)
-    ut[5, i, j, k, element_id] += (1.0 - 3.0*C_grav*rho)*rhox
+    ut[1, i, j, k, element_id] += rhox *  2
+    ut[2, i, j, k, element_id] += rhox * (2 -     C_grav * rho)
+    ut[3, i, j, k, element_id] += rhox * (2 -     C_grav * rho)
+    ut[4, i, j, k, element_id] += rhox * (2 -     C_grav * rho)
+    ut[5, i, j, k, element_id] += rhox * (3 - 5 * C_grav * rho)
   end
 
   return nothing
@@ -260,12 +260,12 @@ end
 
 # Empty source terms required for coupled Euler-gravity simulations
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
-  # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
+  # OBS! used for self-gravitating Sedov blast
   # TODO: make this cleaner and let each solver have a different source term name
   return nothing
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1/rho
