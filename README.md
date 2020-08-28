@@ -14,22 +14,26 @@
   <img width="300px" src="docs/src/assets/logo.png">
 </p>
 
-**Trixi.jl** is a flexible tree-based numerical simulation framework for partial
-differential equations written in Julia. A key goal of Trixi is to be easy to
-use for new or unexperienced users, including installation and postprocessing.
-Its features include:
+**Trixi.jl** is a numerical simulation framework for hyperbolic conservation
+laws written in [Julia](https://julialang.org). A key goal for Trixi is to be
+easy to use for new or unexperienced users, including installation and
+postprocessing.  Its features include:
 
-* Native support for 2D and 3D simuations
-* High-order accuracy in space in time
-* Standard and split-form discontinuous Galerkin method for spatial discretization
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Native support for 2D and 3D simulations
+* High-order accuracy in space in time
+* Nodal discontinuous Galerkin spectral element methods
+  * Kinetic energy-preserving and entropy-stable split forms
+  * Entropy-stable shock capturing
+* Explicit low-storage Runge-Kutta time integration
+* Square/cubic domains with periodic and Dirichlet boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
   * Magnetohydrodynamics equations
   * Hyperbolic diffusion equations for elliptic problems
   * Scalar advection
-* Multi-physics simulations for self-gravitating gas dynamics
-* Written in [Julia](https://julialang.org)
+* Multi-physics simulations
+  * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
 * Visualization of results with Julia-only tools (2D) or ParaView (2D/3D)
 

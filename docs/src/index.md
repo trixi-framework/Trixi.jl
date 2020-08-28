@@ -1,8 +1,27 @@
 # Trixi
 
-*Trixi* is a flexible DG/SBP framework written in the Julia programming
-language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
-to be easy to use and extend.
+**Trixi.jl** is a numerical simulation framework for hyperbolic conservation
+laws written in [Julia](https://julialang.org). A key goal for Trixi is to be
+easy to use for new or unexperienced users, including installation and
+postprocessing.  Its features include:
+
+* Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Native support for 2D and 3D simulations
+* High-order accuracy in space in time
+* Nodal discontinuous Galerkin spectral element methods
+  * Kinetic energy-preserving and entropy-stable split forms
+  * Entropy-stable shock capturing
+* Explicit low-storage Runge-Kutta time integration
+* Square/cubic domains with periodic and Dirichlet boundary conditions
+* Multiple governing equations:
+  * Compressible Euler equations
+  * Magnetohydrodynamics equations
+  * Hyperbolic diffusion equations for elliptic problems
+  * Scalar advection
+* Multi-physics simulations
+  * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
+* Shared-memory parallelization via multithreading
+* Visualization of results with Julia-only tools (2D) or ParaView (2D/3D)
 
 
 ## Installation
