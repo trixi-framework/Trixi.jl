@@ -46,7 +46,7 @@ function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvecti
   return @SVector [scalar]
 end
 
-function initial_conditions_sin_sin(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_conditions_sin_periodic(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -59,27 +59,6 @@ function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquati
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [2.0]
-end
-
-function initial_conditions_linear_x_y_z(x, t, equation::LinearScalarAdvectionEquation3D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [sum(x_trans)]
-end
-
-function initial_conditions_linear_x(x, t, equation::LinearScalarAdvectionEquation3D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [x_trans[1]]
-end
-
-function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquation3D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [x_trans[2]]
 end
 
 function initial_conditions_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
