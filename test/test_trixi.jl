@@ -11,7 +11,7 @@ If `l2` or `linf` are specified, in addition the resulting L2/Linf errors
 are compared approximately against these reference values, using `atol, rtol`
 as absolute/relative tolerance.
 """
-function test_trixi_run(parameters_file; l2=nothing, linf=nothing, atol=10*eps(), rtol=0.001, parameters...)
+function test_trixi_run(parameters_file; l2=nothing, linf=nothing, atol=200*eps(), rtol=0.001, parameters...)
   # Run basic test to ensure that there is no output to STDERR
   l2_measured, linf_measured, _ = @test_nowarn Trixi.run(parameters_file; parameters...)
 
