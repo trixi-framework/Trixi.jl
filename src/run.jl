@@ -1,20 +1,16 @@
-
 using LinearMaps: LinearMap
 
 
 """
-    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+    run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
 
 Run a Trixi simulation with the parameters in `parameters_file`.
 Parameters can be overriden by specifying them as keyword arguments (see examples).
 
 If `verbose` is `true`, additional output will be generated on the terminal
-that may help with debugging.  If `args` is given, it should be an
-`ARGS`-like array of strings that holds command line arguments, and will be
-interpreted by the `parse_commandline_arguments` function. In this case, the values of
-`parameters_file` and `verbose` are ignored. If a value for
-`refinement_level_increment` is given, `initial_refinement_level` will be
-increased by this value before running the simulation (mostly used by EOC analysis).
+that may help with debugging. If a value for `refinement_level_increment` is given,
+`initial_refinement_level` will be increased by this value before running the simulation (mostly
+used by EOC analysis).
 
 # Examples
 ```julia
@@ -29,12 +25,12 @@ julia> Trixi.run("examples/parameters.toml", polydeg=1, t_end=0.5)
 [...]
 ```
 """
-function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+function run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
   # Reset timer
   reset_timer!(timer())
 
   # Read command line or keyword arguments and parse parameters file
-  init_parameters(parameters_file; verbose=verbose, args=args,
+  init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
 
   # Separate initialization and execution into two functions such that Julia can specialize
@@ -51,26 +47,12 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 end
 
 
-function init_parameters(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
-  # Read command line or keyword arguments
-  @timeit timer() "parse command line" if !isnothing(args)
-    # If args are given explicitly, parse command line arguments
-    args = parse_commandline_arguments(args)
-  else
-    # Otherwise interpret keyword arguments as command line arguments
-    args = Dict{String, Any}()
-    if isnothing(parameters_file)
-      error("missing 'parameters_file' argument")
-    end
-    args["parameters_file"] = parameters_file
-    args["verbose"] = verbose
-  end
-
+function init_parameters(parameters_file=nothing; verbose=false, refinement_level_increment=0, parameters...)
   # Set global verbosity
-  globals[:verbose] = args["verbose"]
+  globals[:verbose] = verbose
 
   # Parse parameters file
-  @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+  @timeit timer() "read parameter file" parse_parameters_file(parameters_file)
 
   # Override specified parameters
   for (parameter, value) in parameters
@@ -526,9 +508,9 @@ function convtest(parameters_file, iterations; parameters...)
 end
 
 
-function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, refinement_level_increment=0, parameters...)
   # Read command line or keyword arguments and parse parameters file
-  init_parameters(parameters_file; verbose=verbose, args=args,
+  init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
   globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()

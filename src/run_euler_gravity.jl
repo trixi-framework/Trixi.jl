@@ -1,4 +1,3 @@
-
 function init_simulation_euler_gravity()
   # Print starup message
   print_startup_message()
