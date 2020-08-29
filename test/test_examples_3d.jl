@@ -19,6 +19,31 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.00015975754755823664],
             linf = [0.001503873297666436])
   end
+  @testset "parameters.toml with restart and t_end=2" begin
+    Trixi.run(joinpath(EXAMPLES_DIR, "parameters.toml"))
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
+            l2   = [0.00017800012466353434],
+            linf = [0.001452075263740804],
+            t_end = 2, restart = true, restart_filename = "out/restart_000040.h5")
+  end
+  @testset "parameters.toml with initial_conditions_sin_periodic" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
+            l2   = [0.002727292086517533],
+            linf = [0.024833049753677727],
+            initial_conditions=Trixi.initial_conditions_sin_periodic)
+  end
+  @testset "parameters.toml with initial_conditions_constant" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
+            l2   = [9.770171014620371e-16],
+            linf = [2.4424906541753444e-15],
+            initial_conditions=Trixi.initial_conditions_constant)
+  end
+  @testset "parameters.toml with initial_conditions_linear_z and periodicity=false" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
+            l2   = [6.607840408143593e-16],
+            linf = [5.773159728050814e-15],
+            initial_conditions=Trixi.initial_conditions_linear_z, periodicity=false)
+  end
   @testset "parameters_source_terms.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_source_terms.toml"),
             l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
@@ -140,7 +165,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
   end
   @testset "parameters_ec_mhd.toml with initial_conditions=Trixi.initial_conditions_constant" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.toml"),
             l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
             linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
             atol = 1000*eps(),
