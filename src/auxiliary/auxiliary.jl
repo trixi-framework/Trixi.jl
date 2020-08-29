@@ -47,6 +47,44 @@ function parameter(name, default=nothing; valid=nothing)
   return value
 end
 
+"""
+    examples_dir()
+
+Return the directory where the example files provided with Trixi.jl are located. If Trixi is
+installed as a regular package (with `]add Trixi`), these files are read-only and should *not* be
+modified. To find out which files are available, use, e.g., `readdir`:
+
+# Examples
+```julia
+julia> readdir(examples_dir())
+4-element Array{String,1}:
+ "2d"
+ "3d"
+ "README.md"
+ "paper-self-gravitating-gas-dynamics"
+```
+"""
+examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+
+
+"""
+    get_examples()
+
+Return a list of all example parameter files that are provided by Trixi.
+"""
+function get_examples()
+  examples = String[]
+  for (root, dirs, files) in walkdir(examples_dir())
+    for f in files
+      if endswith(f, ".toml")
+        push!(examples, joinpath(root, f))
+      end
+    end
+  end
+
+  return examples
+end
+
 
 """
     setparameter(name::String, value)

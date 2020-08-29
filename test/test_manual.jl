@@ -162,6 +162,11 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
   end
+
+  @testset "example_dir" begin
+    @test basename(examples_dir()) == "examples"
+    @test !isempty(get_examples())
+  end
 end
 
 end #module
