@@ -31,7 +31,7 @@ function parameter(name, default=nothing; valid=nothing)
   else
     # Otherwise check whether a default is given and abort if not
     if default === nothing
-      error("requested paramter '$name' does not exist and no default value was provided")
+      error("requested parameter '$name' does not exist and no default value was provided")
     else
       value = default
     end

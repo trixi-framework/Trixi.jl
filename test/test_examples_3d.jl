@@ -85,6 +85,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.4298582725942134, 0.28561096934734514, 0.28561096934734487, 0.287502111001965, 1.5313368512936554],
             surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
   end
+  @testset "parameters_density_pulse.toml with source_terms_harmonic" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_density_pulse.toml"),
+            l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
+            linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
+            source_terms=Trixi.source_terms_harmonic)
+            
+  end
   @testset "parameters_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_taylor_green_vortex.toml"),
             l2   = [0.0003494971047256544, 0.03133386380969968, 0.031333863809699644, 0.04378595081016185, 0.015796569210801217],
@@ -95,6 +102,20 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_shock_capturing.toml"),
             l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
             linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
+  end
+  @testset "parameters_shock_capturing.toml with initial_conditions_sedov_blast_wave" begin
+    # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_shock_capturing.toml"),
+            l2   = [0.03627060784392582, 0.05178777376859809, 0.05178777376859804, 0.05178777376859802, 0.23043996953698023],
+            linf = [0.9307998233177583, 1.4326649193439467, 1.4326649193439467, 1.4326649193439467, 12.80585041235138],
+            initial_conditions=Trixi.initial_conditions_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+  @testset "parameters_shock_capturing.toml with initial_conditions_sedov_self_gravity" begin
+    # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_shock_capturing.toml"),
+            l2   = [0.04846527000320781, 0.051787773760055514, 0.051787773760055486, 0.05178777376005548, 0.23043996953467236],
+            linf = [0.9307979866990295, 1.4326649193456429, 1.4326649193456429, 1.4326649193456429, 12.805850412386896],
+            initial_conditions=Trixi.initial_conditions_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+  end
   end
   @testset "parameters_hyp_diff_llf.toml with initial_refinement_level=2" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
