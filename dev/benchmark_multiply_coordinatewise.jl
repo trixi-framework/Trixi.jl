@@ -460,7 +460,7 @@ function compute_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variab
           "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
   sequential_dynamic = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
   sequential_static  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp))
-  sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
+  # sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
   sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp), tmp=$(tmp))
   sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp), tmp=$(tmp))
   squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
@@ -468,7 +468,7 @@ function compute_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variab
 
   return time(median(sequential_dynamic)),
          time(median(sequential_static)),
-         time(median(sequential_nexpr)),
+         NaN, #FIXME time(median(sequential_nexpr)),
          time(median(sequential_dynamic_prealloc)),
          time(median(sequential_static_prealloc)),
          time(median(squeezed_dynamic)),
@@ -1093,7 +1093,7 @@ function compute_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variab
           "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
   sequential_dynamic = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
   sequential_static  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp))
-  sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
+  # sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
   sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp), tmp1=$(tmp1), tmp2=$(tmp2))
   sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp), tmp1=$(tmp1), tmp2=$(tmp2))
   squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
@@ -1101,7 +1101,7 @@ function compute_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variab
 
   return time(median(sequential_dynamic)),
          time(median(sequential_static)),
-         time(median(sequential_nexpr)),
+         NaN, #time(median(sequential_nexpr)),
          time(median(sequential_dynamic_prealloc)),
          time(median(sequential_static_prealloc)),
          time(median(squeezed_dynamic)),
@@ -1178,5 +1178,5 @@ end
 
 
 # TODO
-compute_benchmarks_3d(1:10, 2:10)
+# compute_benchmarks_3d(1:10, 2:10)
 
