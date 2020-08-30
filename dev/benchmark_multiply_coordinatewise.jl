@@ -33,7 +33,7 @@ function multiply_coordinatewise_sequential!(
   end
 
   # Interpolate in y-direction
-  @inbounds for j in 1:n_nodes_in, i in 1:n_nodes_out
+  @inbounds for j in 1:n_nodes_out, i in 1:n_nodes_out
     for jj in 1:n_nodes_in
       for v in 1:n_variables
         data_out[v, i, j] += vandermonde[j, jj] * tmp[v, i, jj]
@@ -69,7 +69,7 @@ end
   end
 
   # Interpolate in y-direction
-  @inbounds for j in 1:n_nodes_in, i in 1:n_nodes_out
+  @inbounds for j in 1:n_nodes_out, i in 1:n_nodes_out
     for jj in 1:n_nodes_in
       for v in 1:n_variables
         data_out[v, i, j] += vandermonde[j, jj] * tmp[v, i, jj]
@@ -105,7 +105,7 @@ function multiply_coordinatewise_sequential_simd!(
   end
 
   # Interpolate in y-direction
-  @inbounds for j in 1:n_nodes_in, i in 1:n_nodes_out
+  @inbounds for j in 1:n_nodes_out, i in 1:n_nodes_out
     @simd for jj in 1:n_nodes_in
       for v in 1:n_variables
         data_out[v, i, j] += vandermonde[j, jj] * tmp[v, i, jj]
@@ -141,7 +141,7 @@ end
   end
 
   # Interpolate in y-direction
-  @inbounds for j in 1:n_nodes_in, i in 1:n_nodes_out
+  @inbounds for j in 1:n_nodes_out, i in 1:n_nodes_out
     @simd for jj in 1:n_nodes_in
       for v in 1:n_variables
         data_out[v, i, j] += vandermonde[j, jj] * tmp[v, i, jj]
@@ -177,7 +177,7 @@ function multiply_coordinatewise_sequential_avx!(
   end
 
   # Interpolate in y-direction
-  @avx for j in 1:n_nodes_in, i in 1:n_nodes_out
+  @avx for j in 1:n_nodes_out, i in 1:n_nodes_out
     for jj in 1:n_nodes_in
       for v in 1:n_variables
         data_out[v, i, j] += vandermonde[j, jj] * tmp[v, i, jj]
@@ -186,6 +186,47 @@ function multiply_coordinatewise_sequential_avx!(
   end
 
   return data_out
+end
+
+@generated function multiply_coordinatewise_sequential_nexpr!(
+    data_out::AbstractArray{T, 3}, data_in::AbstractArray{T, 3}, vandermonde::SMatrix{n_nodes_out,n_nodes_in}, ::Val{n_variables}) where {T,n_nodes_out,n_nodes_in,n_variables}
+  quote
+    @boundscheck begin
+      inbounds = (size(data_out, 1) >= $n_variables) &&
+                 (size(data_out, 2) == size(data_out, 3) == $n_nodes_out) &&
+                 (size(data_in, 1) >= $n_variables) &&
+                 (size(data_in, 2) == size(data_in, 3) == $n_nodes_in)
+      inbounds || throw(BoundsError())
+    end
+
+    # Interpolate in x-direction
+    # tmp1 = zeros(eltype(data_out), n_variables, $n_nodes_out, $n_nodes_in)
+    @inbounds Base.Cartesian.@nexprs $n_nodes_in j -> begin
+      Base.Cartesian.@nexprs $n_nodes_out i -> begin
+        Base.Cartesian.@nexprs $n_variables v -> begin
+          tmp1_v_i_j = zero(eltype(data_out))
+          Base.Cartesian.@nexprs $n_nodes_in ii -> begin
+            tmp1_v_i_j += vandermonde[i, ii] * data_in[v, ii, j]
+          end
+        end
+      end
+    end
+
+    # Interpolate in y-direction
+    @inbounds Base.Cartesian.@nexprs $n_nodes_out j -> begin
+      Base.Cartesian.@nexprs $n_nodes_out i -> begin
+        Base.Cartesian.@nexprs $n_variables v -> begin
+          tmp2_v_i_j = zero(eltype(data_out))
+          Base.Cartesian.@nexprs $n_nodes_in jj -> begin
+            tmp2_v_i_j += vandermonde[j, jj] * tmp1_v_i_jj
+          end
+          data_out[v, i, j] = tmp2_v_i_j
+        end
+      end
+    end
+
+    return data_out
+  end
 end
 
 
@@ -319,46 +360,6 @@ function multiply_coordinatewise_squeezed_avx!(
   return data_out
 end
 
-@generated function multiply_coordinatewise_sequential_nexpr!(
-    data_out::AbstractArray{T, 3}, data_in::AbstractArray{T, 3}, vandermonde::SMatrix{n_nodes_out,n_nodes_in}, ::Val{n_variables}) where {T,n_nodes_out,n_nodes_in,n_variables}
-  quote
-    @boundscheck begin
-      inbounds = (size(data_out, 1) >= $n_variables) &&
-                (size(data_out, 2) == size(data_out, 3) == $n_nodes_out) &&
-                (size(data_in, 1) >= $n_variables) &&
-                (size(data_in, 2) == size(data_in, 3) == $n_nodes_in)
-      inbounds || throw(BoundsError())
-    end
-
-    # Interpolate in x-direction
-    # tmp1 = zeros(eltype(data_out), n_variables, $n_nodes_out, $n_nodes_in)
-    @inbounds Base.Cartesian.@nexprs $n_nodes_in j -> begin
-      Base.Cartesian.@nexprs $n_nodes_out i -> begin
-        Base.Cartesian.@nexprs $n_variables v -> begin
-          tmp1_v_i_j = zero(eltype(data_out))
-          Base.Cartesian.@nexprs $n_nodes_in ii -> begin
-            tmp1_v_i_j += vandermonde[i, ii] * data_in[v, ii, j]
-          end
-        end
-      end
-    end
-
-    # Interpolate in y-direction
-    @inbounds Base.Cartesian.@nexprs $n_nodes_out j -> begin
-      Base.Cartesian.@nexprs $n_nodes_out i -> begin
-        Base.Cartesian.@nexprs $n_variables v -> begin
-          tmp2_v_i_j = zero(eltype(data_out))
-          Base.Cartesian.@nexprs $n_nodes_in jj -> begin
-            tmp2_v_i_j += vandermonde[j, jj] * tmp1_v_i_jj
-          end
-        end
-      end
-    end
-
-    return data_out
-  end
-end
-
 
 function run_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variables_total, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   data_in  = randn(n_variables_total, n_nodes_in,  n_nodes_in)
@@ -366,10 +367,16 @@ function run_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variables_
   vandermonde_dynamic = randn(n_nodes_out, n_nodes_in)
   vandermonde_static  = SMatrix{n_nodes_out, n_nodes_in}(vandermonde_dynamic)
 
+  println("\n\n# 2D   ", "#"^70)
+
   println("\nmultiply_coordinatewise_sequential!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  data_out_copy = copy(data_out)
   display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -396,21 +403,31 @@ function run_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variables_
 
   println("\nmultiply_coordinatewise_sequential_avx!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
   println("\nmultiply_coordinatewise_sequential_nexpr!")
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_variables_interp))
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp))))
   println()
 
 
   println("\nmultiply_coordinatewise_squeezed!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -437,8 +454,12 @@ function run_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variables_
 
   println("\nmultiply_coordinatewise_squeezed_avx!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -460,7 +481,7 @@ function compute_benchmarks_2d(;n_variables_total=4, n_variables_interp=n_variab
           "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
   sequential_dynamic = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
   sequential_static  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp))
-  # sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
+  #FIXME sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
   sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp), tmp=$(tmp))
   sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp), tmp=$(tmp))
   squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
@@ -779,7 +800,7 @@ function multiply_coordinatewise_sequential_avx!(
     end
   end
 
-  return nothing #data_out
+  return data_out
 end
 
 @generated function multiply_coordinatewise_sequential_nexpr!(
@@ -999,10 +1020,16 @@ function run_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variables_
   vandermonde_dynamic = randn(n_nodes_out, n_nodes_in)
   vandermonde_static  = SMatrix{n_nodes_out, n_nodes_in}(vandermonde_dynamic)
 
+  println("\n\n# 3D   ", "#"^70)
+
   println("\nmultiply_coordinatewise_sequential!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  data_out_copy = copy(data_out)
   display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -1029,20 +1056,30 @@ function run_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variables_
 
   println("\nmultiply_coordinatewise_sequential_avx!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
   println("\nmultiply_coordinatewise_sequential_nexpr!")
   println("\nvandermonde_static")
+  multiply_coordinatewise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_variables_interp))
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp))))
   println()
 
   println("\nmultiply_coordinatewise_squeezed!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -1069,8 +1106,12 @@ function run_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variables_
 
   println("\nmultiply_coordinatewise_squeezed_avx!")
   println("vandermonde_dynamic")
+  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_dynamic, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp)))
   println("\nvandermonde_static")
+  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_static, n_variables_interp)
+  @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp)))
   println()
 
@@ -1093,7 +1134,7 @@ function compute_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variab
           "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
   sequential_dynamic = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
   sequential_static  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp))
-  # sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
+  #FIXME sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_variables_interp)))
   sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp), tmp1=$(tmp1), tmp2=$(tmp2))
   sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static), $(n_variables_interp), tmp1=$(tmp1), tmp2=$(tmp2))
   squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic), $(n_variables_interp))
@@ -1101,7 +1142,7 @@ function compute_benchmarks_3d(;n_variables_total=4, n_variables_interp=n_variab
 
   return time(median(sequential_dynamic)),
          time(median(sequential_static)),
-         NaN, #time(median(sequential_nexpr)),
+         NaN, #FIXME time(median(sequential_nexpr)),
          time(median(sequential_dynamic_prealloc)),
          time(median(sequential_static_prealloc)),
          time(median(squeezed_dynamic)),
@@ -1178,5 +1219,4 @@ end
 
 
 # TODO
-# compute_benchmarks_3d(1:10, 2:10)
-
+compute_benchmarks_3d(1:10, 2:10)
