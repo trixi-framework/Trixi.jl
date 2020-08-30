@@ -363,39 +363,25 @@ function rebalance!(t::Tree, refined_cell_ids)
 
   # Iterate over cell ids that have previously been refined
   for cell_id in refined_cell_ids
-    # Loop over newly created children
-    for child in 1:n_children_per_cell(t)
-      # Skip if child cell does not exist
-      if !has_child(t, cell_id, child)
+    # Go over all potential neighbors of child cell
+    for direction in 1:n_directions(t)
+      # Continue if refined cell has a neighbor in that direction
+      if has_neighbor(t, cell_id, direction)
         continue
       end
-      child_id = t.child_ids[child, cell_id]
 
-      # Go over all potential neighbors of child cell
-      for direction in 1:n_directions(t)
-        # Continue if neighbor would be a sibling
-        if has_sibling(child, direction)
-          continue
-        end
-
-        # Continue if refined cell has a neighbor in that direction
-        if has_neighbor(t, cell_id, direction)
-          continue
-        end
-
-        # Continue if refined cell has no coarse neighbor, since that would
-        # mean it there is no neighbor in that direction at all (domain
-        # boundary)
-        if !has_coarse_neighbor(t, cell_id, direction)
-          continue
-        end
-
-        # Otherwise, the coarse neighbor exists and is not refined, thus it must
-        # be marked for refinement
-        coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
-        count += 1
-        to_refine[count] = coarse_neighbor_id
+      # Continue if refined cell has no coarse neighbor, since that would
+      # mean it there is no neighbor in that direction at all (domain
+      # boundary)
+      if !has_coarse_neighbor(t, cell_id, direction)
+        continue
       end
+
+      # Otherwise, the coarse neighbor exists and is not refined, thus it must
+      # be marked for refinement
+      coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
+      count += 1
+      to_refine[count] = coarse_neighbor_id
     end
   end
 
