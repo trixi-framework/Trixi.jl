@@ -288,7 +288,7 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
 end
 
 # TODO
-run_benchmarks_2d(1, 2, 3) # n_vars, n_nodes_in, n_nodes_out
+run_benchmarks_2d(4, 4, 4) # n_vars, n_nodes_in, n_nodes_out
 
 
 function compute_benchmarks_2d(n_vars, n_nodes_in, n_nodes_out)
@@ -330,7 +330,6 @@ function compute_benchmarks_2d(n_vars_list, n_nodes_in_list)
   # superset of n_vars = 1, n_nodes_out = n_nodes_in, used for blending
   for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
     for (idx_variables, n_vars) in enumerate(n_vars_list)
-      n_vars = n_vars
       n_nodes_out = n_nodes_in
       sequential_dynamic[idx_variables, idx_nodes],
       sequential_static[idx_variables, idx_nodes],
@@ -348,7 +347,6 @@ function compute_benchmarks_2d(n_vars_list, n_nodes_in_list)
   # visualization
   for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
     for (idx_variables, n_vars) in enumerate(n_vars_list)
-      n_vars = n_vars
       n_nodes_out = 2 * n_nodes_in
       sequential_dynamic[idx_variables, idx_nodes],
       sequential_static[idx_variables, idx_nodes],
@@ -692,7 +690,7 @@ function run_benchmarks_3d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
 end
 
 # TODO
-run_benchmarks_3d(1, 2, 3) # n_vars, n_nodes_in, n_nodes_out
+run_benchmarks_3d(5, 4, 4) # n_vars, n_nodes_in, n_nodes_out
 
 
 function compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
@@ -735,7 +733,6 @@ function compute_benchmarks_3d(n_vars_list, n_nodes_in_list)
   # superset of n_vars = 1, n_nodes_out = n_nodes_in, used for blending
   for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
     for (idx_variables, n_vars) in enumerate(n_vars_list)
-      n_vars = n_vars
       n_nodes_out = n_nodes_in
       sequential_dynamic[idx_variables, idx_nodes],
       sequential_static[idx_variables, idx_nodes],
@@ -754,7 +751,6 @@ function compute_benchmarks_3d(n_vars_list, n_nodes_in_list)
   title = "n_vars = 2*n_vars, n_nodes_out = n_nodes_in"
   for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
     for (idx_variables, n_vars) in enumerate(n_vars_list)
-      n_vars = n_vars
       n_nodes_out = 2 * n_nodes_in
       sequential_dynamic[idx_variables, idx_nodes],
       sequential_static[idx_variables, idx_nodes],
