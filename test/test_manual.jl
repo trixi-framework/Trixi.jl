@@ -163,9 +163,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "example_dir" begin
+  @testset "example parameters" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
+    @test endswith(default_example(), "parameters.toml")
   end
 end
 

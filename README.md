@@ -15,9 +15,11 @@
 </p>
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
-laws written in [Julia](https://julialang.org). A key goal for Trixi is to be
-easy to use for new or unexperienced users, including installation and
-postprocessing.  Its features include:
+laws written in [Julia](https://julialang.org). A key objective for the
+framework is to be useful to both scientists and students. Therefore, next to
+having an extensible design with a fast implementation, Trixi is
+focused on being easy to use for new or unexperienced users, including the
+installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
 * Native support for 2D and 3D simulations
@@ -39,70 +41,48 @@ postprocessing.  Its features include:
 
 
 ## Installation
-If you have not yet installed Julia, please follow the instructions for your
-operating system found [here](https://julialang.org/downloads/platform/). Trixi
-works with Julia v1.5.
+If you have not yet installed Julia, please [follow the instructions for your
+operating system](https://julialang.org/downloads/platform/). Trixi works
+with Julia v1.5.
 
-You can then install Trixi, the postprocessing tools, and the respective dependencies by
-performing the following steps:
-
-  1. Clone the repository:
-     ```bash
-     git clone git@github.com:trixi-framework/Trixi.jl.git
-     ```
-  2. Enter the cloned directory and run the following command to install all
-     required dependencies:
-     ```bash
-     julia utils/install.jl
-     ```
-
-Trixi is also a registered Julia package. Hence, you can also install Trixi via
+Trixi and related postprocessing tools are registered Julia packages. Hence, you
+can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
+and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
+the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
 ```
-If you do this and want to modify Trixi, you can run
-```julia
-julia> Pkg.dev("Trixi") # get a clone of the git repository, usually in ~/.julia/dev/Trixi
-```
+Further details can be found in the [documentation](#documentation), including
+instructions on how to install Trixi such that you can modify or extend it with
+your own implementations.
 
 
 ## Usage
-Enter the root directory `Trixi.jl/` and execute
-```bash
-julia --project=@.
-```
-This will start an interactive Julia session (REPL) using the project setup
-of Trixi.jl. If you have installed Trixi.jl in your default project environment,
-you can just start Julia as usual
-```bash
-julia
-```
-In the Julia REPL, you need to load the package Trixi
+In the Julia REPL, first load the package Trixi
 ```julia
 julia> using Trixi
 ```
-To run a simulation, execute
+Then, to start a simulation, execute
 ```julia
-Trixi.run("examples/parameters.toml")
+Julia> Trixi.run(default_example())
 ```
-You can also pass a different parameters file or edit `examples/parameters.toml` to
-modify the simulation setup.
-
-Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g.,
-when starting a simulation from another script. This is possible by directly passing
-the code that shall be executed to Julia
-```bash
-julia -e 'using Trixi; Trixi.run("examples/parameters.toml")'
-```
+The `run(...)` method expects a single string argument with the path to a
+Trixi parameter file. To quickly see Trixi in action, `default_example()`
+returns the path to an example parameter file with a short, two-dimensional
+problem setup. A list of all example parameter files packaged with Trixi can be
+obtained by running `get_examples()`. Alternatively, you can also browse the
+[`examples/`](examples/) subdirectory. If you want to
+modify one of the parameter files to set up your own simulation, download it to
+your machine, edit the configuration, and pass the file path to `run(...)`.
 
 
 ## Documentation
 Additional documentation is available that contains more information on how to
-use Trixi interactively, how to visualize output files etc. It also includes a
-section on our preferred development workflow and some tips for using Git. The
-latest documentation can be accessed either
+modify/extend Trixi's implementation, how to visualize output files etc. It
+also includes a section on our preferred development workflow and some tips for
+using Git. The latest documentation can be accessed either
 [online](https://trixi-framework.github.io/Trixi.jl/dev) or under [`docs/src`](docs/src).
 
 
@@ -127,8 +107,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A flexible tree-based numerical simulation framework
-         for {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: A tree-based numerical simulation framework
+         for hyperbolic {PDE}s written in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},

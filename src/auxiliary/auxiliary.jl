@@ -87,6 +87,14 @@ end
 
 
 """
+    default_example()
+
+Return the path to an example parameter file that can be used to quickly see Trixi in action.
+"""
+default_example() = joinpath(examples_dir(), "2d", "parameters.toml")
+
+
+"""
     setparameter(name::String, value)
 
 Set parameter with the specified `name` to the specified `value`.
