@@ -54,6 +54,8 @@ julia> import Pkg
 
 julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
 ```
+Note that you can copy and paste all commands to the REPL *including* the leading
+`julia>` prompts - they will automatically be stripped away by Julia.
 Further details can be found in the [documentation](#documentation), including
 instructions on how to install Trixi such that you can modify or extend it with
 your own implementations.
@@ -74,7 +76,7 @@ julia> using Trixi2Img
 ```
 and generate a contour plot of the results with
 ```julia
-julia> Trixi2Img.convert("out/solution_000040.h5", grid_lines=true) # On Windows, use "out\\solution_000040.h5"
+julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), grid_lines=true)
 ```
 This will create a file `solution_000040_scalar.png` that can be opened with any
 image viewer:
