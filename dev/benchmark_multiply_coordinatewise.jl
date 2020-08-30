@@ -698,7 +698,7 @@ function compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
   data_out = randn(n_vars, n_nodes_out, n_nodes_out, n_nodes_out)
   vandermonde_dynamic = randn(n_nodes_out, n_nodes_in)
   vandermonde_static  = SMatrix{n_nodes_out, n_nodes_in}(vandermonde_dynamic)
-  tmp1 = zeros(eltype(data_out), n_vars, n_nodes_out, n_nodes_in, n_nodes_in)
+  tmp1 = zeros(eltype(data_out), n_vars, n_nodes_out, n_nodes_in,  n_nodes_in)
   tmp2 = zeros(eltype(data_out), n_vars, n_nodes_out, n_nodes_out, n_nodes_in)
 
   println("n_vars = ", n_vars, "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
@@ -706,7 +706,7 @@ function compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
   sequential_static  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static))
   #FIXME sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars)))
   sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic), $(tmp1), $(tmp2))
-  sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static), $(tmp1), $(tmp2))
+  sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static),  $(tmp1), $(tmp2))
   squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
   squeezed_static  = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static))
 
@@ -746,23 +746,24 @@ function compute_benchmarks_3d(n_vars_list, n_nodes_in_list)
   end
   BSON.@save "3D_nVarTotal_nNodesIn.bson" n_vars_list n_nodes_in_list sequential_dynamic sequential_static sequential_nexpr sequential_dynamic_prealloc sequential_static_prealloc squeezed_dynamic squeezed_static
 
-  # n_nodes_out = 2*n_nodes_in
-  # visualization
-  title = "n_vars = 2*n_vars, n_nodes_out = n_nodes_in"
-  for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
-    for (idx_variables, n_vars) in enumerate(n_vars_list)
-      n_nodes_out = 2 * n_nodes_in
-      sequential_dynamic[idx_variables, idx_nodes],
-      sequential_static[idx_variables, idx_nodes],
-      sequential_nexpr[idx_variables, idx_nodes],
-      sequential_dynamic_prealloc[idx_variables, idx_nodes],
-      sequential_static_prealloc[idx_variables, idx_nodes],
-      squeezed_dynamic[idx_variables, idx_nodes],
-      squeezed_static[idx_variables, idx_nodes] =
-        compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
-    end
-  end
-  BSON.@save "3D_nVarTotal_2nNodesIn.bson" n_vars_list n_nodes_in_list sequential_dynamic sequential_static sequential_nexpr sequential_dynamic_prealloc sequential_static_prealloc squeezed_dynamic squeezed_static
+  # TODO deactivated to save some time
+  # # n_nodes_out = 2*n_nodes_in
+  # # visualization
+  # title = "n_vars = 2*n_vars, n_nodes_out = n_nodes_in"
+  # for (idx_nodes, n_nodes_in) in enumerate(n_nodes_in_list)
+  #   for (idx_variables, n_vars) in enumerate(n_vars_list)
+  #     n_nodes_out = 2 * n_nodes_in
+  #     sequential_dynamic[idx_variables, idx_nodes],
+  #     sequential_static[idx_variables, idx_nodes],
+  #     sequential_nexpr[idx_variables, idx_nodes],
+  #     sequential_dynamic_prealloc[idx_variables, idx_nodes],
+  #     sequential_static_prealloc[idx_variables, idx_nodes],
+  #     squeezed_dynamic[idx_variables, idx_nodes],
+  #     squeezed_static[idx_variables, idx_nodes] =
+  #       compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
+  #   end
+  # end
+  # BSON.@save "3D_nVarTotal_2nNodesIn.bson" n_vars_list n_nodes_in_list sequential_dynamic sequential_static sequential_nexpr sequential_dynamic_prealloc sequential_static_prealloc squeezed_dynamic squeezed_static
 
   return nothing
 end
