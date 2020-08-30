@@ -64,18 +64,39 @@ In the Julia REPL, first load the package Trixi
 ```julia
 julia> using Trixi
 ```
-Then, to start a simulation, execute
+Then start a simulation by executing
 ```julia
-Julia> Trixi.run(default_example())
+julia> Trixi.run(default_example())
 ```
-The `run(...)` method expects a single string argument with the path to a
+To visualize the results, load the package Trixi2Img
+```julia
+julia> using Trixi2Img
+```
+and generate a contour plot of the results with
+```julia
+julia> Trixi2Img.convert("out/solution_000040.h5", grid_lines=true) # On Windows, use "out\\solution_000040.h5"
+```
+This will create a file `solution_000040_scalar.png` that can be opened with any
+image viewer:
+<p align="center">
+  <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
+</p>
+
+The method `Trixi.run(...)` expects a single string argument with the path to a
 Trixi parameter file. To quickly see Trixi in action, `default_example()`
 returns the path to an example parameter file with a short, two-dimensional
 problem setup. A list of all example parameter files packaged with Trixi can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
 [`examples/`](examples/) subdirectory. If you want to
 modify one of the parameter files to set up your own simulation, download it to
-your machine, edit the configuration, and pass the file path to `run(...)`.
+your machine, edit the configuration, and pass the file path to `Trixi.run(...)`.
+
+*Note on performance:* Julia uses just-in-time compilation to transform its
+source code to native, optimized machine code at the *time of execution* and
+caches the compiled methods for further use. That means that the first execution
+of a Julia method is typically slow, with subsequent runs being much faster. For
+instance, in the example above the first execution of `Trixi.run` takes about 15
+seconds, while subsequent runs require less than 50 *milli*seconds.
 
 
 ## Documentation
@@ -83,7 +104,7 @@ Additional documentation is available that contains more information on how to
 modify/extend Trixi's implementation, how to visualize output files etc. It
 also includes a section on our preferred development workflow and some tips for
 using Git. The latest documentation can be accessed either
-[online](https://trixi-framework.github.io/Trixi.jl/dev) or under [`docs/src`](docs/src).
+[online](https://trixi-framework.github.io/Trixi.jl/stable) or under [`docs/src`](docs/src).
 
 
 ## Referencing
