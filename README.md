@@ -18,7 +18,7 @@
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
 having an extensible design with a fast implementation, Trixi is
-focused on being easy to use for new or unexperienced users, including the
+focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
