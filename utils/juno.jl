@@ -17,7 +17,7 @@ let trixi_root_dir
   end
 
   # Load Trixi
-  import Trixi
+  using Trixi
 
   # Inform user
   @info """$revise_message
@@ -25,6 +25,6 @@ let trixi_root_dir
 
            Execute the following line to start a Trixi simulation:
 
-           Trixi.run("examples/parameters.toml")
+           Trixi.run(default_example())
            """
 end

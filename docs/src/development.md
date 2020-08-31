@@ -8,7 +8,7 @@ executed in the REPL (= "return-eval-print loop", which is what the Julia
 community calls the interactive command-line prompt that opens when executing
 `julia` without any files as arguments), however, the previously compiled functions are
 cached. Therefore, Trixi should generally always be used interactively from the
-REPL (without closing Julia) during development, as it allows much faster turnaround times.
+REPL without closing Julia during development, as it allows much faster turnaround times.
 
 If you naively run Trixi from the REPL, you will not be able to change your
 Trixi source files and then run the changed code without restarting the REPL,
@@ -35,7 +35,7 @@ improvements for using Julia interactively. To automatically use OhMyREPL when
 starting the REPL, follow the instructions given in the official
 [documentation](https://kristofferc.github.io/OhMyREPL.jl/latest/).
 
-### Example: Running Trixi interactively in the global environment
+### Running Trixi interactively in the global environment
 If you've installed Trixi and Revise in your default environment,
 begin by executing:
 ```bash
@@ -47,39 +47,21 @@ julia> using Revise; using Trixi
 ```
 You can run a simulation by executing
 ```julia
-julia> Trixi.run("examples/parameters.toml")
+julia> Trixi.run("examples/2d/parameters.toml")
 ```
-
-<!-- The following screencast shows the above commands in action:
-```@raw html
-  <script id="asciicast-zn79qrdAfCDGWKlQgWHzc0wCB"
-          src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
-          async
-          data-cols=90
-          data-rows=48></script>
-``` -->
-Together, all of these commands can take some time, roughly half a minute
-on a modern workstation. Most of the time is spent on compilation of Julia code etc.
-If you execute the last command
-```julia
-julia> Trixi.run("examples/parameters.toml")
-```
-again in the same REPL, it will finish within a few milliseconds
-(maybe ~25 on a modern workstation).
-This demonstrates the
-second reason for using the REPL: the compilation cache. That is, those parts of
-the code that do not change between two Trixi runs do not need to be recompiled
-and thus execute much faster after the first run.
+Together, all of these commands can take some time, roughly half a minute on a
+modern workstation. Most of the time is spent on compilation of Julia code etc.
+If you execute the last command again in the same REPL, it will finish within a
+few milliseconds (maybe ~45 on a modern workstation).  This demonstrates the
+second reason for using the REPL: the compilation cache.  That is, those parts
+of the code that do not change between two Trixi runs do not need to be
+recompiled and thus execute much faster after the first run.
 
 
 ### Manually starting Trixi in the local environment
-To manually start in interactive mode (e.g., to supply additional arguments to
-the `julia` executable at startup`), execute Julia with the project directory
-set to the package directory of the program/tool you want to use:
-  * Trixi: `Trixi.jl/`
-  * `trixi2vtk`: `Trixi.jl/postprocessing/pgk/Trixi2Vtk`
-  * `trixi2img`: `Trixi.jl/postprocessing/pgk/Trixi2Img`
-
+If you followed the [installation instructions for developers](@ref for-developers), execute
+Julia with the project directory set to the package directory of the
+program/tool you want to use.
 For example, to run Trixi this way, you need to start the REPL with
 ```bash
 julia --project=path/to/Trixi.jl/
@@ -89,9 +71,13 @@ and execute
 julia> using Revise; using Trixi
 ```
 to load Revise and Trixi. You can then proceed with the usual commands and run Trixi as in
-the example [above](#Example:-Running-Trixi-interactively-in-the-global-environment-1).
+the example [above](#Running-Trixi-interactively-in-the-global-environment-1).
 The `--project` flag is required such that Julia can properly load Trixi and all dependencies
-if Trixi isn't installed in the global environment.
+if Trixi is not installed in the global environment. The same procedure also
+applies should you opt to install the postprocessing tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl) and
+[Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) manually such that
+you can modify their implemenations.
 
 
 ### Pitfalls when using Revise
