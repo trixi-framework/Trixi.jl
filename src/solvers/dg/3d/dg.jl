@@ -156,7 +156,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "sedov_self_gravity"]))
+                                   valid=["n/a", "gauss", "density_pulse", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()

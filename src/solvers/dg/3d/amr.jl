@@ -396,6 +396,36 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
         lambda[element_id] = 0.0
       end
     end
+  elseif dg.amr_indicator === :density_pulse
+    # Works with initial_conditions_density_pulse for compressible Euler equations
+    base_level = 4
+    max_level = 6
+    threshold_high = 1.3
+    threshold_low = 1.05
+
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      # Determine target level from peak value
+      peak = maximum(dg.elements.u[1, :, :, :, element_id])
+      if peak > threshold_high
+        target_level = max_level
+      elseif peak > threshold_low
+        target_level = max_level - 1
+      else
+        target_level = base_level
+      end
+
+      # Compare target level with actual level to set indicator
+      cell_id = dg.elements.cell_ids[element_id]
+      actual_level = mesh.tree.levels[cell_id]
+      if actual_level < target_level
+        lambda[element_id] = 1.0
+      elseif actual_level > target_level
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
+    end
   elseif dg.amr_indicator === :sedov_self_gravity
     base_level = 2
     max_level = 7
