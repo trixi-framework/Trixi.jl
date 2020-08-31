@@ -1,13 +1,13 @@
 
 # Base type from which all systems of equations types inherit from
-abstract type AbstractEquation{V} end
+abstract type AbstractEquation{NDIMS, NVARS} end
 
 
 # Retrieve number of variables from equation type
-nvariables(::Type{AbstractEquation{V}}) where V = V
+@inline nvariables(::Type{AbstractEquation{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
 
 # Retrieve number of variables from equation instance
-nvariables(::AbstractEquation{V}) where V = V
+@inline nvariables(::AbstractEquation{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
 
 # Add method to show some information on system of equations
@@ -16,16 +16,43 @@ function Base.show(io::IO, equation::AbstractEquation)
 end
 
 
+@inline Base.ndims(::AbstractEquation{NDIMS}) where NDIMS = NDIMS
+
+
 # Create an instance of a system of equation type based on a given name
-function make_equations(name::String)
+function make_equations(name::String, ndims_)
   if name == "LinearScalarAdvectionEquation"
-    return LinearScalarAdvectionEquation()
+    if ndims_ == 2
+      return LinearScalarAdvectionEquation2D()
+    elseif ndims_ == 3
+      return LinearScalarAdvectionEquation3D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
   elseif name == "CompressibleEulerEquations"
-    return CompressibleEulerEquations()
+    if ndims_ == 2
+      return CompressibleEulerEquations2D()
+    elseif ndims_ == 3
+      return CompressibleEulerEquations3D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
   elseif name == "IdealGlmMhdEquations"
-    return IdealGlmMhdEquations()
+    if ndims_ == 2
+      return IdealGlmMhdEquations2D()
+    elseif ndims_ == 3
+      return IdealGlmMhdEquations3D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
   elseif name == "HyperbolicDiffusionEquations"
-    return HyperbolicDiffusionEquations()
+    if ndims_ == 2
+      return HyperbolicDiffusionEquations2D()
+    elseif ndims_ == 3
+      return HyperbolicDiffusionEquations3D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
   else
     error("'$name' does not name a valid system of equations")
   end
@@ -57,13 +84,21 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
-include("linear_scalar_advection.jl")
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+include("2d/linear_scalar_advection.jl")
+include("3d/linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
-include("compressible_euler.jl")
+abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+include("2d/compressible_euler.jl")
+include("3d/compressible_euler.jl")
 
 # Ideal MHD
-include("ideal_glm_mhd.jl")
+abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+include("2d/ideal_glm_mhd.jl")
+include("3d/ideal_glm_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
-include("hyperbolic_diffusion.jl")
+abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+include("2d/hyperbolic_diffusion.jl")
+include("3d/hyperbolic_diffusion.jl")

@@ -1,4 +1,3 @@
-
 include("containers.jl")
 include("math.jl")
 
@@ -32,7 +31,7 @@ function parameter(name, default=nothing; valid=nothing)
   else
     # Otherwise check whether a default is given and abort if not
     if default === nothing
-      error("requested paramter '$name' does not exist and no default value was provided")
+      error("requested parameter '$name' does not exist and no default value was provided")
     else
       value = default
     end
@@ -48,6 +47,52 @@ function parameter(name, default=nothing; valid=nothing)
   return value
 end
 
+"""
+    examples_dir()
+
+Return the directory where the example files provided with Trixi.jl are located. If Trixi is
+installed as a regular package (with `]add Trixi`), these files are read-only and should *not* be
+modified. To find out which files are available, use, e.g., `readdir`:
+
+# Examples
+```julia
+julia> readdir(examples_dir())
+4-element Array{String,1}:
+ "2d"
+ "3d"
+ "README.md"
+ "paper-self-gravitating-gas-dynamics"
+```
+"""
+examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
+
+
+"""
+    get_examples()
+
+Return a list of all example parameter files that are provided by Trixi.
+"""
+function get_examples()
+  examples = String[]
+  for (root, dirs, files) in walkdir(examples_dir())
+    for f in files
+      if endswith(f, ".toml")
+        push!(examples, joinpath(root, f))
+      end
+    end
+  end
+
+  return examples
+end
+
+
+"""
+    default_example()
+
+Return the path to an example parameter file that can be used to quickly see Trixi in action.
+"""
+default_example() = joinpath(examples_dir(), "2d", "parameters.toml")
+
 
 """
     setparameter(name::String, value)
@@ -60,111 +105,6 @@ end
 
 # Return true if parameter exists.
 parameter_exists(name::String) = haskey(parameters[:default], name)
-
-
-# Parse command line arguments and return as dict
-function parse_commandline_arguments(args=ARGS; testing=false)
-  # Copy arguments such that we can modify them without changing the function argument
-  myargs = copy(args)
-
-  # Initialize dictionary with parsed arguments
-  parsed = Dict{String, Any}()
-
-  # Verbose if disabled by default
-  parsed["verbose"] = false
-
-  # The output was bravely copied and pasted by using the ArgParse settings below
-  while !isempty(myargs)
-    current = popfirst!(myargs)
-    if current in ("-h", "--help")
-      println("""
-              usage: trixi [-v] [-h] parameters_file
-
-              positional arguments:
-                parameters_file  Name of file with runtime parameters.
-
-              optional arguments:
-                -v, --verbose    Enable verbose output, which might help with
-                                debugging.
-                -h, --help       show this help message and exit
-                """)
-      if testing
-        return 1
-      else
-        exit(0)
-      end
-    elseif current in ("-v", "--verbose")
-      # Enable verbose output
-      parsed["verbose"] = true
-    elseif startswith(current, "-")
-      # Unknown option
-      println(stderr, """
-              unrecognized option $current
-              usage: trixi [-v] parameters_file
-              """)
-      if testing
-        return 2
-      else
-        exit(1)
-      end
-    else
-      # Must be non-option argument -> parameters file
-      # If a parameters file was already given, throw error
-      if haskey(parsed, "parameters_file")
-        println(stderr, """
-                too many arguments
-                usage: trixi [-v] parameters_file
-                """)
-        if testing
-          return 3
-        else
-          exit(1)
-        end
-      end
-
-      # Otherwise store parameters file
-      parsed["parameters_file"] = current
-    end
-  end
-
-  # Error if no parameters file was given
-  if !haskey(parsed, "parameters_file")
-    println(stderr, """
-            required argument parameters_file was not provided
-            usage: trixi [-v] parameters_file
-            """)
-    if testing
-      return 4
-    else
-      exit(1)
-    end
-  end
-
-  return parsed
-end
-
-
-# Allow an expression to be terminated gracefully by Ctrl-c.
-#
-# On Unix-like operating systems, gracefully handle user interrupts (SIGINT), also known as
-# Ctrl-c, while evaluation expression `ex`.
-macro interruptable(ex)
-  @static Sys.isunix() && quote
-    ccall(:jl_exit_on_sigint, Cvoid, (Cint,), 0)
-
-    try
-      # Try to run code
-      $(esc(ex))
-    catch e
-      # Only catch interrupt exceptions and end with a nice message
-      isa(e, InterruptException) || rethrow(e)
-      println(stderr, "\nExecution interrupted by user (Ctrl-c)")
-    end
-
-    # Disable interrupt handling again
-    ccall(:jl_exit_on_sigint, Cvoid, (Cint,), 1)
-  end
-end
 
 
 # Print informative message at startup

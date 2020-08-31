@@ -1,0 +1,48 @@
+####################################################################################################
+# Simulation
+ndims = 3
+equations = "HyperbolicDiffusionEquations"
+nu = 1.0
+
+initial_conditions = "initial_conditions_poisson_nonperiodic"
+
+surface_flux = "flux_lax_friedrichs"
+source_terms = "source_terms_poisson_nonperiodic"
+t_start = 0.0
+t_end   = 5.0
+
+resid_tol = 1.0e-5
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
+
+####################################################################################################
+# Solver
+solver = "dg"
+polydeg = 4
+cfl = 0.6
+time_integration_scheme = "timestep_hyp_diff_N3_erk52_3Sstar!"
+n_steps_max = 20000
+analysis_interval = 200
+
+
+####################################################################################################
+# Mesh
+n_cells_max = 100000
+coordinates_min = [0, 0, 0]
+coordinates_max = [1, 1, 1]
+initial_refinement_level = 2
+periodicity = [false, true, true]
+# refinement_patches = [
+#   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
+#   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
+# ]
+
+
+####################################################################################################
+# I/O
+# save_initial_solution = false
+solution_interval = 100
+solution_variables = "primitive"
+restart_interval = 0

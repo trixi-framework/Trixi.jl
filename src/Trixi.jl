@@ -24,21 +24,6 @@ using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatr
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
 
-
-# Set ndim as a short, module-wide constant.
-# Rationale: This makes code easier to understand than using hardcoded dimension values.
-"""
-    ndim
-
-Specify the number of spatial dimensions.
-
-Always use `ndim` instead of hard-coding the literal `2` when referring to the
-number of dimensions. This makes code easier to understand, since it adds a
-meaning to the number.
-"""
-const ndim = 2
-export ndim
-
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
 export globals
@@ -57,9 +42,13 @@ include("run.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations, IdealGlmMhdEquations, HyperbolicDiffusionEquations, LinearScalarAdvectionEquation
+export CompressibleEulerEquations2D,
+       IdealGlmMhdEquations2D,
+       HyperbolicDiffusionEquations2D,
+       LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 export flux_central, flux_lax_friedrichs,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_kuya_etal
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+export examples_dir, get_examples, default_example
 
 
 end

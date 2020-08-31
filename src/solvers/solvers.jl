@@ -1,14 +1,12 @@
 
 # Base type from which all solvers inherit from
-abstract type AbstractSolver end
+abstract type AbstractSolver{NDIMS} end
 
 
 # Create an instance of a solver based on a given name
 function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
                      surface_flux_function=nothing, volume_flux_function=nothing)
   if name == "dg"
-    N = parameter("N")
-
     # "eval is evil"
     # This is a temporary hack until we have switched to a library based approach
     # with pure Julia code instead of parameter files.
@@ -27,7 +25,13 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
     source_terms_type = Symbol(parameter("source_terms", "nothing"))
     source_terms = eval(source_terms_type)
 
-    return Dg(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, N)
+    if ndims(equations) == 2
+      return Dg2D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+    elseif ndims(equations) == 3
+      return Dg3D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+    else
+      error("Unsupported number of spatial dimensions: ", ndims(equations))
+    end
   else
     error("'$name' does not name a valid solver")
   end
@@ -38,4 +42,4 @@ end
 # Include files with actual implementations for different systems of equations.
 
 # DG
-include("dg.jl")
+include("dg/dg.jl")

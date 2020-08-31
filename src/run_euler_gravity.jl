@@ -1,7 +1,9 @@
-
 function init_simulation_euler_gravity()
   # Print starup message
   print_startup_message()
+
+  # Get number of dimensions
+  ndims_ = parameter("ndims")::Int
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
@@ -22,8 +24,8 @@ function init_simulation_euler_gravity()
   print("Initializing system of equations... ")
   equations_name = parameter("equations")
   @assert equations_name == "euler_gravity" "This only works with 'euler_gravity' as equations type"
-  equations_euler = make_equations("CompressibleEulerEquations")
-  equations_gravity = make_equations("HyperbolicDiffusionEquations")
+  equations_euler = make_equations("CompressibleEulerEquations", ndims_)
+  equations_gravity = make_equations("HyperbolicDiffusionEquations", ndims_)
   println("done")
 
   # Initialize solver
@@ -82,7 +84,7 @@ function init_simulation_euler_gravity()
   # Print setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
-  N = parameter("N") # FIXME: This is currently the only DG-specific code in here
+  polydeg = parameter("polydeg") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
   sources = parameter("sources", "none")
@@ -128,7 +130,7 @@ function init_simulation_euler_gravity()
           |
           | Solver
           | | solver:           $solver_name
-          | | N:                $N
+          | | polydeg:          $polydeg
           | | CFL:              $cfl
           | | Euler solver:
           | | | volume integral:  $(get_name(solver.volume_integral_type))

@@ -1,20 +1,16 @@
-
 using LinearMaps: LinearMap
 
 
 """
-    run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+    run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
 
 Run a Trixi simulation with the parameters in `parameters_file`.
 Parameters can be overriden by specifying them as keyword arguments (see examples).
 
 If `verbose` is `true`, additional output will be generated on the terminal
-that may help with debugging.  If `args` is given, it should be an
-`ARGS`-like array of strings that holds command line arguments, and will be
-interpreted by the `parse_commandline_arguments` function. In this case, the values of
-`parameters_file` and `verbose` are ignored. If a value for
-`refinement_level_increment` is given, `initial_refinement_level` will be
-increased by this value before running the simulation (mostly used by EOC analysis).
+that may help with debugging. If a value for `refinement_level_increment` is given,
+`initial_refinement_level` will be increased by this value before running the simulation (mostly
+used by EOC analysis).
 
 # Examples
 ```julia
@@ -22,19 +18,19 @@ julia> Trixi.run("examples/parameters.toml", verbose=true)
 [...]
 ```
 
-Without changing the parameters file we can start a simulation with `N = 1` and
+Without changing the parameters file we can start a simulation with `polydeg = 1` and
 `t_end = 0.5` as follows:
 ```julia
-julia> Trixi.run("examples/parameters.toml", N=1, t_end=0.5)
+julia> Trixi.run("examples/parameters.toml", polydeg=1, t_end=0.5)
 [...]
 ```
 """
-function run(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+function run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
   # Reset timer
   reset_timer!(timer())
 
   # Read command line or keyword arguments and parse parameters file
-  init_parameters(parameters_file; verbose=verbose, args=args,
+  init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
 
   # Separate initialization and execution into two functions such that Julia can specialize
@@ -51,26 +47,12 @@ function run(parameters_file=nothing; verbose=false, args=nothing, refinement_le
 end
 
 
-function init_parameters(parameters_file=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
-  # Read command line or keyword arguments
-  @timeit timer() "parse command line" if !isnothing(args)
-    # If args are given explicitly, parse command line arguments
-    args = parse_commandline_arguments(args)
-  else
-    # Otherwise interpret keyword arguments as command line arguments
-    args = Dict{String, Any}()
-    if isnothing(parameters_file)
-      error("missing 'parameters_file' argument")
-    end
-    args["parameters_file"] = parameters_file
-    args["verbose"] = verbose
-  end
-
+function init_parameters(parameters_file=nothing; verbose=false, refinement_level_increment=0, parameters...)
   # Set global verbosity
-  globals[:verbose] = args["verbose"]
+  globals[:verbose] = verbose
 
   # Parse parameters file
-  @timeit timer() "read parameter file" parse_parameters_file(args["parameters_file"])
+  @timeit timer() "read parameter file" parse_parameters_file(parameters_file)
 
   # Override specified parameters
   for (parameter, value) in parameters
@@ -89,6 +71,9 @@ end
 function init_simulation()
   # Print starup message
   print_startup_message()
+
+  # Get number of dimensions
+  ndims_ = parameter("ndims")::Int
 
   # Check if this is a restart from a previous result or a new simulation
   restart = parameter("restart", false)
@@ -112,7 +97,7 @@ function init_simulation()
   # Initialize system of equations
   print("Initializing system of equations... ")
   equations_name = parameter("equations")
-  equations = make_equations(equations_name)
+  equations = make_equations(equations_name, ndims_)
   println("done")
 
   # Initialize solver
@@ -126,6 +111,10 @@ function init_simulation()
   # as everything else does not make sense
   if solver.volume_integral_type === Val(:weak_form) && solver.volume_flux_function !== flux_central
     error("using the weak formulation with a volume flux other than 'flux_central' does not make sense")
+  end
+
+  if equations isa AbstractIdealGlmMhdEquations && solver.volume_integral_type === Val(:weak_form)
+    error("The weak form is not implemented for $equations.")
   end
 
   # Initialize solution
@@ -170,7 +159,7 @@ function init_simulation()
   # Print setup information
   solution_interval = parameter("solution_interval", 0)
   restart_interval = parameter("restart_interval", 0)
-  N = parameter("N") # FIXME: This is currently the only DG-specific code in here
+  polydeg = parameter("polydeg") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
   sources = parameter("sources", "none")
@@ -214,7 +203,7 @@ function init_simulation()
           |
           | Solver
           | | solver:           $solver_name
-          | | N:                $N
+          | | polydeg:          $polydeg
           | | CFL:              $cfl
           | | volume integral:  $(get_name(solver.volume_integral_type))
           | | volume flux:      $(get_name(solver.volume_flux_function))
@@ -320,8 +309,18 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations
+    if solver.equations isa HyperbolicDiffusionEquations2D
       if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
+    end
+    if solver.equations isa HyperbolicDiffusionEquations3D
+      if maximum(abs, view(solver.elements.u_t, 1, :, :, :, :)) <= solver.equations.resid_tol
         println()
         println("-"^80)
         println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
@@ -509,14 +508,14 @@ function convtest(parameters_file, iterations; parameters...)
 end
 
 
-function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, args=nothing, refinement_level_increment=0, parameters...)
+function compute_linear_structure(parameters_file=nothing, source_terms=nothing; verbose=false, refinement_level_increment=0, parameters...)
   # Read command line or keyword arguments and parse parameters file
-  init_parameters(parameters_file; verbose=verbose, args=args,
+  init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
   globals[:euler_gravity] = false
   mesh, solver, time_parameters = init_simulation()
 
-  equations(solver) isa Union{LinearScalarAdvectionEquation, HyperbolicDiffusionEquations} ||
+  equations(solver) isa Union{AbstractLinearScalarAdvectionEquation, AbstractHyperbolicDiffusionEquations} ||
     throw(ArgumentError("Only linear problems are supported."))
 
   # get the right hand side from the source terms
@@ -525,8 +524,15 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
-  solver = Dg(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
-              source_terms, mesh, polydeg(solver))
+  if solver isa Dg2D
+    solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+                  source_terms, mesh, polydeg(solver))
+  elseif solver isa Dg3D
+    solver = Dg3D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+                  source_terms, mesh, polydeg(solver))
+  else
+    error("not implemented")
+  end
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
     rhs!(solver, 0)

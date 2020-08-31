@@ -1,7 +1,7 @@
 module TestManual
 
 using Test
-import Trixi
+using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
@@ -9,19 +9,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various manual (= non-parameter-file-triggered tests)
 @testset "Manual tests" begin
-  @testset "parse_commandline_arguments" begin
-    args = ["-h"]
-    @test Trixi.parse_commandline_arguments(args, testing=true) == 1
-    args = ["-"]
-    @test Trixi.parse_commandline_arguments(args, testing=true) == 2
-    args = ["filename", "filename"]
-    @test Trixi.parse_commandline_arguments(args, testing=true) == 3
-    args = ["-v"]
-    @test Trixi.parse_commandline_arguments(args, testing=true) == 4
-    args = ["filename"]
-    @test_nowarn Trixi.parse_commandline_arguments(args, testing=true)
-  end
-
   @testset "Tree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.Tree(Val(1), 10, 0.0, 1.0)
@@ -174,6 +161,19 @@ isdir(outdir) && rm(outdir, recursive=true)
       c = MyContainer([1, 2, 3])
       @test Trixi.reset!(c, 2) == MyContainer(Int[], 2)
     end
+  end
+
+  @testset "example parameters" begin
+    @test basename(examples_dir()) == "examples"
+    @test !isempty(get_examples())
+    @test endswith(default_example(), "parameters.toml")
+  end
+
+  @testset "DG L2 mortar container debug output" begin
+    c2d = Trixi.L2MortarContainer2D{1, 1}(1)
+    @test isnothing(show(c2d))
+    c3d = Trixi.L2MortarContainer3D{1, 1}(1)
+    @test isnothing(show(c3d))
   end
 end
 

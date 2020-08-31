@@ -91,10 +91,10 @@ end
     timestep_hyp_diff_N3_erk52_3Sstar!(solver::AbstractSolver, t, dt)
 
 Five stage, second-order acurate explicit Runge-Kutta scheme with stability region optimized for
-the hyperbolic diffusion equation with LLF flux and polynomials of degree N=3.
+the hyperbolic diffusion equation with LLF flux and polynomials of degree polydeg=3.
 """
 function timestep_hyp_diff_N3_erk52_3Sstar!(solver::AbstractSolver, t, dt)
-  # # New 3Sstar coefficients optimized for polynomials of degree N=3
+  # # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
   # # and examples/parameters_hyp_diff_llf.toml
   # # 5 stages, order 1
   # gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]

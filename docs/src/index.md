@@ -1,102 +1,161 @@
 # Trixi
 
-*Trixi* is a flexible DG/SBP framework written in the Julia programming
-language. It is based on a two-dimensional hierarchical mesh (quadtree) and aims
-to be easy to use and extend.
+**Trixi.jl** is a numerical simulation framework for hyperbolic conservation
+laws written in [Julia](https://julialang.org). A key objective for the
+framework is to be useful to both scientists and students. Therefore, next to
+having an extensible design with a fast implementation, Trixi is
+focused on being easy to use for new or inexperienced users, including the
+installation and postprocessing procedures. Its features include:
+
+* Hierarchical quadtree/octree grid with adaptive mesh refinement
+* Native support for 2D and 3D simulations
+* High-order accuracy in space in time
+* Nodal discontinuous Galerkin spectral element methods
+  * Kinetic energy-preserving and entropy-stable split forms
+  * Entropy-stable shock capturing
+* Explicit low-storage Runge-Kutta time integration
+* Square/cubic domains with periodic and Dirichlet boundary conditions
+* Multiple governing equations:
+  * Compressible Euler equations
+  * Magnetohydrodynamics equations
+  * Hyperbolic diffusion equations for elliptic problems
+  * Scalar advection
+* Multi-physics simulations
+  * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
+* Shared-memory parallelization via multithreading
+* Visualization of results with Julia-only tools (2D) or ParaView (2D/3D)
 
 
 ## Installation
-If you have not yet installed Julia, please follow the instructions for your
-operating system found [here](https://julialang.org/downloads/platform/). Trixi
-works with Julia v1.3 or higher.
-Official binaries are available for Windows, macOS, Linux, and FreeBSD.
+If you have not yet installed Julia, please [follow the instructions for your
+operating system](https://julialang.org/downloads/platform/). Trixi works
+with Julia v1.5.
 
-Strictly speaking, no installation is necessary to run Trixi. However, the
-simulation program and the postprocessing tools rely on a number of Julia
-packages, which need to be available on the respective machine. This can most
-easily be achieved by performing the following steps:
+### For users
+Trixi and related postprocessing tools are registered Julia packages. Hence, you
+can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
+and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
+the following commands in the Julia REPL:
+```julia
+julia> import Pkg
 
-  1. Clone the repository:
-     ```
-     git clone git@github.com:trixi-framework/Trixi.jl.git
-     ```
-  2. Enter the cloned directory and run the following command to install all
-     required dependencies:
-     ```
-     julia utils/install.jl
-     ```
-
-Afterwards you are able to use Trixi and the postprocessing tools without
-repeating these steps. In case the execution of the `install.jl` script fails,
-you can also install the dependencies manually:
-```bash
-# Enter the Trixi root directory
-cd path/to/Trixi.jl
-
-# Install Trixi dependencies
-julia --project=. -e 'import Pkg; Pkg.instantiate()'
-
-# Install Trixi2Img dependencies
-julia --project='postprocessing/pkg/Trixi2Img' -e 'import Pkg; Pkg.instantiate()'
-
-# Install Trixi2Vtk dependencies
-julia --project='postprocessing/pkg/Trixi2Vtk' -e 'import Pkg; Pkg.instantiate()'
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
 ```
-The `install.jl` script can also be used to *update* the dependencies if they have
-changed since you installed Trixi.
+Note that you can copy and paste all commands to the REPL *including* the leading
+`julia>` prompts - they will automatically be stripped away by Julia.
 
-### Example: Installing Trixi from scratch
+### [For developers](@id for-developers)
+If you plan on editing Trixi itself, you have two options: installing it as a
+`dev` package or cloning it to a local folder.  
+
+1. **Install Trixi as a `dev` package**: You can install Trixi as a `dev` package by running
+   ```julia
+   julia> import Pkg
+   
+   julia> Pkg.dev("Trixi")
+   ```
+   This will download and install Trixi to a designated package development directory
+   (usually `.julia/dev`, but you can determine the path on your system with
+   `Pkg.devdir()`). As opposed to using the `Pkg.add` method as described above,
+   packages installed via `Pkg.dev` may have their files edited locally.
+
+2. **Install Trixi in a local folder**: Alternatively, you can download Trixi
+   locally and use it from within the cloned directory:
+   ```bash
+   git clone git@github.com:trixi-framework/Trixi.jl.git
+   cd Trixi.jl
+   julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
+   ```
+   The last line can also be used to *update* the dependencies if they have changed
+   since you first installed Trixi.
+   
+   If you installed Trixi this way, you always have to start Julia with the `--project`
+   flag set to your local Trixi clone, e.g.,
+   ```bash
+   julia --project=.
+   ```
+
+Either way, since the
+postprocessing tools typically do not need to be modified, it is recommended to
+install them as normal packages by executing
+```julia
+julia> import Pkg
+
+julia> Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
+```
+in the Julia REPL.
+
+
+
+### Example: Installing Trixi as a package
 ```@raw html
-  <script id="asciicast-pGwc6GpZ5AFlb8Dk9gsACMR24"
-          src="https://asciinema.org/a/pGwc6GpZ5AFlb8Dk9gsACMR24.js"
+  <script id="asciicast-356938"
+          src="https://asciinema.org/a/356938.js"
           async
           data-cols=90
           data-rows=20
-          data-speed=4></script>
+          data-speed=3></script>
 ```
-Please note that the playback speed is set to 4x, thus the entire installation
-procedure lasts around 4 minutes in real time (depending on the performance of
+Please note that the playback speed is set to 3x, thus the entire installation
+procedure lasts around 1.5 minutes  in real time (depending on the performance of
 your computer and on how many dependencies had already been installed before).
 
 
 ## Usage
-Enter the root directory `Trixi.jl/` and execute
-```bash
-bin/trixi
-```
-This will start an interactive Julia session with the Trixi module already
-loaded. To run a simulation, execute
+In the Julia REPL, first load the package Trixi
 ```julia
-Trixi.run("examples/parameters.toml")
+julia> using Trixi
 ```
-You can also pass a different parameters file or edit `examples/parameters.toml` to
-modify the simulation setup.
-More information on how to use Trixi interactively can be found in the
-[Development](@ref) section.
-
-Sometimes it can be helpful to run Trixi non-interactively in batch mode, e.g., when starting
-a simulation from another script. This is possible by directly passing the
-parameters file to Trixi on the command line:
-```bash
-bin/trixi examples/parameters.toml
+Then start a simulation by executing
+```julia
+julia> Trixi.run(default_example())
 ```
+To visualize the results, load the package Trixi2Img
+```julia
+julia> using Trixi2Img
+```
+and generate a contour plot of the results with
+```julia
+julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
+```
+This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
+that can be opened with any image viewer:
+<p align="center">
+  <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
+</p>
 
-### Example: Running Trixi interactively
+The method `Trixi.run(...)` expects a single string argument with the path to a
+Trixi parameter file. To quickly see Trixi in action, `default_example()`
+returns the path to an example parameter file with a short, two-dimensional
+problem setup. A list of all example parameter files packaged with Trixi can be
+obtained by running `get_examples()`. Alternatively, you can also browse the
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/examples/) subdirectory. If you want to
+modify one of the parameter files to set up your own simulation, download it to
+your machine, edit the configuration, and pass the file path to `Trixi.run(...)`.
+
+### Example: Running a simulation with Trixi
 ```@raw html
-  <script id="asciicast-zn79qrdAfCDGWKlQgWHzc0wCB"
-          src="https://asciinema.org/a/zn79qrdAfCDGWKlQgWHzc0wCB.js"
+  <script id="asciicast-356942"
+          src="https://asciinema.org/a/356942.js"
           async
           data-cols=90
           data-rows=48></script>
 ```
+*Note on performance:* Julia uses just-in-time compilation to transform its
+source code to native, optimized machine code at the *time of execution* and
+caches the compiled methods for further use. That means that the first execution
+of a Julia method is typically slow, with subsequent runs being much faster. For
+instance, in the example above the first execution of `Trixi.run` takes about 15
+seconds, while subsequent runs require less than 50 *milli*seconds.
+
 
 ### Performing a convergence analysis
 To automatically determine the experimental order of convergence (EOC) for a
 given setup, execute
 ```julia
-Trixi.convtest("examples/parameters.toml", 4)
+Trixi.convtest("examples/2d/parameters.toml", 4)
 ```
-This will run a convergence test with the parameters file `examples/parameters.toml`,
+This will run a convergence test with the parameters file `examples/2d/parameters.toml`,
 using four iterations with different initial refinement levels. The initial
 iteration will use the parameters file unchanged, while for each subsequent
 iteration the `initial_refinement_level` parameter is incremented by one.
@@ -128,7 +187,7 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> Trixi.convtest("examples/parameters_source_terms.toml", 3)
+julia> Trixi.convtest("examples/2d/parameters_source_terms.toml", 3)
 ```
 ```
 [...]
@@ -174,8 +233,8 @@ with the help of Trixi, please cite the following
 In addition, you can also refer to Trixi directly as
 ```bibtex
 @misc{schlottkelakemper2020trixi,
-  title={{T}rixi.jl: A flexible tree-based numerical simulation framework
-         for {PDE}s written in {J}ulia},
+  title={{T}rixi.jl: A tree-based numerical simulation framework
+         for hyperbolic {PDE}s written in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R},
   year={2020},

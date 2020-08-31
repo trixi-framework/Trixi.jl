@@ -1,5 +1,6 @@
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "euler_gravity"
 gamma = 2.0
 initial_conditions = "initial_conditions_eoc_test_coupled_euler_gravity"
@@ -16,7 +17,7 @@ resid_tol = 1e-10
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 3
+polydeg = 3
 cfl = 0.5
 n_steps_max = 10000
 n_iterations_max = 10000

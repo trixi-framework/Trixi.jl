@@ -1,5 +1,6 @@
 ####################################################################################################
 # Simulation
+ndims = 2
 equations = "euler_gravity"
 gamma = 1.4
 initial_conditions = "initial_conditions_sedov_self_gravity"
@@ -18,7 +19,7 @@ resid_tol = 1e-4
 ####################################################################################################
 # Solver
 solver = "dg"
-N = 3
+polydeg = 3
 cfl = 0.5
 n_steps_max = 10000
 n_iterations_max = 100
