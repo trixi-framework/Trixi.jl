@@ -41,7 +41,7 @@ notifications:
   email: false
 
 # codecov merges multiple reports automatically, cf. https://docs.codecov.io/docs/merging-reports
-# codecov: true
+codecov: true
 
 # avoid duplicate tests in PRs
 branches:
