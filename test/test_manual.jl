@@ -168,6 +168,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test !isempty(get_examples())
     @test endswith(default_example(), "parameters.toml")
   end
+
+  @testset "DG L2 mortar container debug output" begin
+    c2d = Trixi.L2MortarContainer2D{1, 1}(1)
+    @test isnothing(show(c2d))
+    c3d = Trixi.L2MortarContainer3D{1, 1}(1)
+    @test isnothing(show(c3d))
+  end
 end
 
 end #module
