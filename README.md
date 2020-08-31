@@ -45,6 +45,7 @@ If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
 with Julia v1.5.
 
+### For users
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
 can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
 and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
@@ -56,9 +57,22 @@ julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
 ```
 Note that you can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
-Further details can be found in the [documentation](#documentation), including
-instructions on how to install Trixi such that you can modify or extend it with
-your own implementations.
+
+### For developers
+If you plan on editing Trixi itself, you can download Trixi locally and run it from
+within the cloned directory:
+```bash
+git clone git@github.com:trixi-framework/Trixi.jl.git
+cd Trixi.jl
+julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
+julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")' # Install postprocessing tools
+```
+If you installed Trixi this way, you always have to start Julia with the `--project`
+flag set to your local Trixi clone, e.g.,
+```bash
+julia --project=.
+```
+Further details can be found in the [documentation](#documentation).
 
 
 ## Usage
@@ -76,10 +90,10 @@ julia> using Trixi2Img
 ```
 and generate a contour plot of the results with
 ```julia
-julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), grid_lines=true)
+julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
 ```
-This will create a file `solution_000040_scalar.png` that can be opened with any
-image viewer:
+This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
+that can be opened with any image viewer:
 <p align="center">
   <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
 </p>
