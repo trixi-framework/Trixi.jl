@@ -121,10 +121,6 @@ julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory
 This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
 that can be opened with any image viewer:
 
-```@raw html
-<img src="../assets/solution_000040_scalar_resized.png" width="300px" class="center"/>
-```
-
 !["solution_000040_scalar_resized"](assets/solution_000040_scalar_resized.png)
 
 The method `Trixi.run(...)` expects a single string argument with the path to a

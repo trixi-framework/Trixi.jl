@@ -1,6 +1,0 @@
-/* https://discourse.julialang.org/t/resizing-images-in-docs/21721/19 */
-.center {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}

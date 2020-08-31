@@ -27,7 +27,7 @@ makedocs(
         # Disable pretty URLs during manual testing
         prettyurls = get(ENV, "CI", nothing) == "true",
         # Explicitly add favicon as asset
-        assets = ["assets/favicon.ico", "assets/custom.css"],
+        assets = ["assets/favicon.ico"],
         # Set canonical URL to GitHub pages URL
         canonical = "https://trixi-framework.github.io/Trixi.jl/stable"
     ),
