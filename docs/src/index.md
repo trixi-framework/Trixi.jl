@@ -46,12 +46,12 @@ Note that you can copy and paste all commands to the REPL *including* the leadin
 
 ### [For developers](@id for-developers)
 If you plan on editing Trixi itself, you have two options: installing it as a
-`dev` package or cloning it to a local folder.  
+`dev` package or cloning it to a local folder.
 
 1. **Install Trixi as a `dev` package**: You can install Trixi as a `dev` package by running
    ```julia
    julia> import Pkg
-   
+
    julia> Pkg.dev("Trixi")
    ```
    This will download and install Trixi to a designated package development directory
@@ -68,7 +68,7 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    ```
    The last line can also be used to *update* the dependencies if they have changed
    since you first installed Trixi.
-   
+
    If you installed Trixi this way, you always have to start Julia with the `--project`
    flag set to your local Trixi clone, e.g.,
    ```bash
@@ -121,7 +121,7 @@ julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory
 This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
 that can be opened with any image viewer:
 <p align="center">
-  <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
+  <img width="300px" src="assets/solution_000040_scalar_resized.png">
 </p>
 
 The method `Trixi.run(...)` expects a single string argument with the path to a
@@ -195,14 +195,14 @@ L2
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
 8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
-6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85      
+6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85
 4.33e-09  3.91      5.39e-09  3.96      5.39e-09  3.96      1.93e-08  3.94
 
 mean      3.81      mean      3.92      mean      3.92      mean      3.90
 --------------------------------------------------------------------------------
 Linf
 rho                 rho_v1              rho_v2              rho_e
-error     EOC       error     EOC       error     EOC       error     EOC       
+error     EOC       error     EOC       error     EOC       error     EOC
 8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
 5.58e-07  3.90      6.58e-07  3.97      6.58e-07  3.97      2.92e-06  3.94
 3.77e-08  3.89      4.42e-08  3.90      4.42e-08  3.90      1.91e-07  3.93
