@@ -166,3 +166,19 @@ Juno). If you decide to use Vim or Emacs, make sure that you install the
 corresponding Vim plugin
 [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
+
+
+## Releasing a new version of Trixi, Trixi2Vtk, Trixi2Img
+
+1. Check whether everything is okay, tests pass etc.
+2. Set the new version number in `Project.toml` according to the Julian version of semver.
+   Commit and push.
+3. Comment `@JuliaRegistrator register` on the commit setting the version number.
+4. `JuliaRegistrator` will create a PR with the new version in the General registry.
+   Wait for it to be merged.
+5. Increment the version number in `Project.toml` again with suffix `-pre`. For example,
+   if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
+6. Set the correct version number in the badge "GitHub commits since tagged version"
+   in README.md.
+7. When a new version of Trixi was released, check whether the `[compat]` entries
+   in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
