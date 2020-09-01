@@ -1,12 +1,12 @@
 """
     Trixi
 
-**Trixi.jl** is a flexible numerical simulation framework for partial
-differential equations. It is based on a two-dimensional hierarchical mesh
-(quadtree) and supports several governing equations such as the compressible Euler
-equations, magnetohydrodynamics equations, or hyperbolic diffusion equations.
-Trixi is written in Julia and aims to be easy to use and
-extend also for new or inexperienced users.
+**Trixi.jl** is a numerical simulation framework for hyperbolic conservation
+laws. A key objective for the
+framework is to be useful to both scientists and students. Therefore, next to
+having an extensible design with a fast implementation, Trixi is
+focused on being easy to use for new or inexperienced users, including the
+installation and postprocessing procedures.
 
 See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
 """

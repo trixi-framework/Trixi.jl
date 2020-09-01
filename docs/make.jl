@@ -1,5 +1,7 @@
 using Documenter
 import Pkg
+using Trixi2Vtk
+using Trixi2Img
 
 # Get Trixi root directory
 trixi_root_dir = dirname(@__DIR__)
@@ -15,13 +17,15 @@ DocMeta.setdocmeta!(Trixi,
                     :DocTestSetup,
                     :(push!(LOAD_PATH, ".."); using Trixi);
                     recursive=true)
+DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
+DocMeta.setdocmeta!(Trixi2Img, :DocTestSetup, :(using Trixi2Img); recursive=true)
 
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
-    modules = [Trixi],
+    modules = [Trixi, Trixi2Vtk, Trixi2Img],
     # Set sitename to Trixi
-    sitename="Trixi",
+    sitename="Trixi.jl",
     # Provide additional formatting options
     format = Documenter.HTML(
         # Disable pretty URLs during manual testing
@@ -38,7 +42,11 @@ makedocs(
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
-        "Reference" => "reference.md",
+        "Reference" => [
+                        "Trixi.jl" => "reference-trixi.md",
+                        "Trixi2Vtk.jl" => "reference-trixi2vtk.md",
+                        "Trixi2Img.jl" => "reference-trixi2img.md",
+                       ],
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "License" => "license.md"
