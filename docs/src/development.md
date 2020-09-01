@@ -180,5 +180,8 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
    if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
 6. Set the correct version number in the badge "GitHub commits since tagged version"
    in README.md.
+   The badge will only show up correctly if TagBot has released a new version. This will
+   be done automatically over night. If you don't want to wait, trigger the GitHub Action
+   TagBot manually.
 7. When a new version of Trixi was released, check whether the `[compat]` entries
    in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
