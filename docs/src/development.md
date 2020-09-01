@@ -185,3 +185,10 @@ mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
    TagBot manually.
 7. When a new version of Trixi was released, check whether the `[compat]` entries
    in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
+   When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
+   entries in `docs/Project.toml` in Trixi should be updated.
+
+   These entries will also be checked regularly by CompatHelper (once a day). Hence,
+   if everything was released correctly, you should only need to do these checks manually
+   if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
+   but no new version of Trixi was released afterwards.
