@@ -1,4 +1,4 @@
-# Trixi
+# Trixi.jl
 
 **Trixi.jl** is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
@@ -23,7 +23,7 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools (2D) or ParaView (2D/3D)
+* Visualization of results with Julia-only tools (2D) or ParaView/VisIt (2D/3D)
 
 
 ## Installation
