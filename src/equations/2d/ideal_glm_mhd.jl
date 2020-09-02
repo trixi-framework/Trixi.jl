@@ -416,79 +416,6 @@ function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-"""
-    calc_fast_wavespeed_roe_from_averages(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
-
-Compute the fast magnetoacoustic wave speed using Roe averages
-as given by Cargo and Gallice (1997)
-  Roe Matrices for Ideal MHD and Systematic Construction
-  of Roe Matrices for Systems of Conservation Laws
-[DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
-"""
-@inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
-
-  # Calculate primitive variables
-  v1_ll = rho_v1_ll/rho_ll
-  v2_ll = rho_v2_ll/rho_ll
-  v3_ll = rho_v3_ll/rho_ll
-  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
-  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
-
-  v1_rr = rho_v1_rr/rho_rr
-  v2_rr = rho_v2_rr/rho_rr
-  v3_rr = rho_v3_rr/rho_rr
-  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
-  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
-
-  # compute total pressure which is thermal + magnetic pressures
-  p_total_ll = p_ll + 0.5*mag_norm_ll
-  p_total_rr = p_rr + 0.5*mag_norm_rr
-
-  # compute the Roe density averages
-  sqrt_rho_ll = sqrt(rho_ll)
-  sqrt_rho_rr = sqrt(rho_rr)
-  inv_sqrt_rho_add  = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
-  inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
-  rho_ll_roe =  sqrt_rho_ll * inv_sqrt_rho_add
-  rho_rr_roe =  sqrt_rho_rr * inv_sqrt_rho_add
-  # Roe averages
-  # velocities and magnetic fields
-  v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
-  v2_roe = v2_ll * rho_ll_roe + v2_rr * rho_rr_roe
-  v3_roe = v3_ll * rho_ll_roe + v3_rr * rho_rr_roe
-  B1_roe = B1_ll * rho_ll_roe + B1_rr * rho_rr_roe
-  B2_roe = B2_ll * rho_ll_roe + B2_rr * rho_rr_roe
-  B3_roe = B3_ll * rho_ll_roe + B3_rr * rho_rr_roe
-  # enthalpy
-  H_ll  = (rho_e_ll + p_total_ll) / rho_ll
-  H_rr  = (rho_e_rr + p_total_rr) / rho_rr
-  H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
-  # temporary vairable see equation (4.12) in Cargo and Gallice
-  X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
-  # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
-  b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
-  a_square_roe = ((2.0 - equation.gamma) * X +
-                 (equation.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
-                                          b_square_roe)) # acoustic speed
-  # finally compute the average wave speed and set the output velocity (depends on orientation)
-  if direction == 1 # x-direction
-    c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
-    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
-    vel_out_roe = v1_roe
-  else # y-direction
-    c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
-    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
-    vel_out_roe = v2_roe
-  end
-
-  return vel_out_roe, c_f_roe
- end
 
 # strong form of nonconservative flux on a side, e.g., the Powell term
 #     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
@@ -716,6 +643,79 @@ end
   return c_f
 end
 
+"""
+    calc_fast_wavespeed_roe_from_averages(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
+
+Compute the fast magnetoacoustic wave speed using Roe averages
+as given by Cargo and Gallice (1997)
+  Roe Matrices for Ideal MHD and Systematic Construction
+  of Roe Matrices for Systems of Conservation Laws
+[DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
+"""
+@inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  # Calculate primitive variables
+  v1_ll = rho_v1_ll/rho_ll
+  v2_ll = rho_v2_ll/rho_ll
+  v3_ll = rho_v3_ll/rho_ll
+  vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
+  mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+
+  v1_rr = rho_v1_rr/rho_rr
+  v2_rr = rho_v2_rr/rho_rr
+  v3_rr = rho_v3_rr/rho_rr
+  vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
+  mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+
+  # compute total pressure which is thermal + magnetic pressures
+  p_total_ll = p_ll + 0.5*mag_norm_ll
+  p_total_rr = p_rr + 0.5*mag_norm_rr
+
+  # compute the Roe density averages
+  sqrt_rho_ll = sqrt(rho_ll)
+  sqrt_rho_rr = sqrt(rho_rr)
+  inv_sqrt_rho_add  = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
+  inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+  rho_ll_roe =  sqrt_rho_ll * inv_sqrt_rho_add
+  rho_rr_roe =  sqrt_rho_rr * inv_sqrt_rho_add
+  # Roe averages
+  # velocities and magnetic fields
+  v1_roe = v1_ll * rho_ll_roe + v1_rr * rho_rr_roe
+  v2_roe = v2_ll * rho_ll_roe + v2_rr * rho_rr_roe
+  v3_roe = v3_ll * rho_ll_roe + v3_rr * rho_rr_roe
+  B1_roe = B1_ll * rho_ll_roe + B1_rr * rho_rr_roe
+  B2_roe = B2_ll * rho_ll_roe + B2_rr * rho_rr_roe
+  B3_roe = B3_ll * rho_ll_roe + B3_rr * rho_rr_roe
+  # enthalpy
+  H_ll  = (rho_e_ll + p_total_ll) / rho_ll
+  H_rr  = (rho_e_rr + p_total_rr) / rho_rr
+  H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
+  # temporary vairable see equation (4.12) in Cargo and Gallice
+  X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
+  # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
+  b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
+  a_square_roe = ((2.0 - equation.gamma) * X +
+                 (equation.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
+                                          b_square_roe)) # acoustic speed
+  # finally compute the average wave speed and set the output velocity (depends on orientation)
+  if direction == 1 # x-direction
+    c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
+    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
+    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
+    vel_out_roe = v1_roe
+  else # y-direction
+    c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
+    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
+    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
+    vel_out_roe = v2_roe
+  end
+
+  return vel_out_roe, c_f_roe
+ end
 
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equation::IdealGlmMhdEquations2D)
