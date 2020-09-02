@@ -644,7 +644,7 @@ end
 end
 
 """
-    calc_fast_wavespeed_roe_from_averages(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
+    calc_fast_wavespeed_roe(u_ll, u_rr, direction, equation::IdealGlmMhdEquations2D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages
 as given by Cargo and Gallice (1997)
