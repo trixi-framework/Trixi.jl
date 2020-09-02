@@ -365,8 +365,7 @@ function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
   f_ll = calcflux(u_ll, orientation, equation)
   f_rr = calcflux(u_rr, orientation, equation)
 
-#function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations2D)
-
+  # Approximate the left-most and right-most eigenvalues in the Riemann fan
   if orientation == 1 # x-direction
     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equation)
     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equation)
@@ -420,7 +419,7 @@ end
 # strong form of nonconservative flux on a side, e.g., the Powell term
 #     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
 # OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
-#         so this routine only adds 1/2(phi^L B^R nvec)
+#         so this routine only adds 1/2(phi^L B^R normal)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
 function noncons_interface_flux!(noncons_flux, u_left, u_right, interface_id, n_nodes, orientations,
