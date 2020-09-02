@@ -37,12 +37,12 @@ volume_flux = "flux_chandrashekar"
 n_cells_max = 500000
 coordinates_min = [-20.0, -20.0, -20.0]
 coordinates_max =  [20.0, 20.0, 20.0]
-initial_refinement_level = 6
-# refinement_patches = [
+initial_refinement_level = 5
+ refinement_patches = [
+   {type = "box", coordinates_min = [-17.0, -2.0, -2.0], coordinates_max = [-13.0, 2.0, 2.0]},
 #   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
 #   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
-#   {type = "box", coordinates_min = [-40.0, -5.0], coordinates_max = [40.0, 5.0]},
-# ]
+ ]
 ####################################################################################################
 # AMR
 amr_indicator = "blob"
