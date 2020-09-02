@@ -543,5 +543,48 @@ function compute_linear_structure(parameters_file=nothing, source_terms=nothing;
 end
 
 
+"""
+    compute_jacobian_dg(parameters_file=nothing; verbose=false, refinement_level_increment=0, parameters...)
+
+Uses DG right hand side operator and simple second order finite difference to compute the Jacobian of the operator.
+The linearisation state is the initial condition from the parameter file.
+"""
+function compute_jacobian_dg(parameters_file=nothing; verbose=false, refinement_level_increment=0, parameters...)
+  # Read command line or keyword arguments and parse parameters file
+  init_parameters(parameters_file; verbose=verbose, refinement_level_increment=refinement_level_increment, parameters...)
+  # function does not support multi-physics
+  if parameter("equations") == "euler_gravity"
+    throw(ArgumentError("Multi-physics such as Euler-gravity is not supported"))
+  end
+  globals[:euler_gravity] = false
+
+  # linearisation state is initial condition
+  mesh, dg, time_parameters = init_simulation()
+  # store initial state
+  u0 = dg.elements.u |> copy
+
+  #compute residual of linearisation state
+  rhs!(dg, 0)
+  res0 = vec(dg.elements.u_t) |> copy
+
+  # initialize Jacobian matrix
+  A = zeros(length(dg.elements.u),length(dg.elements.u))
+
+  #use second order finite difference to estimate Jacobian matrix
+  for idx in eachindex(dg.elements.u)
+    epsilon = sqrt(eps(u0[idx]))
+    dg.elements.u[idx] = u0[idx] + epsilon
+    rhs!(dg, 0)
+    res_p = vec(dg.elements.u_t) |> copy
+    dg.elements.u[idx] = u0[idx] - epsilon
+    rhs!(dg, 0)
+    res_m = vec(dg.elements.u_t) |> copy
+    dg.elements.u[idx] = u0[idx]
+    A[:,idx] = (res_p - res_m) / (2 * epsilon)
+  end
+
+  return A
+end
+
 # Include source file with init and run methods for coupled Euler-gravity simulations
 include("run_euler_gravity.jl")

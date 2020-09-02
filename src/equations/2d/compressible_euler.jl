@@ -32,6 +32,24 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
+"""
+    initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations2D)
+
+test case for stability of EC fluxes from paper: https://arxiv.org/pdf/2007.09026.pdf
+domain [-1, 1]^2
+mesh = 4x4, polydeg = 5
+"""
+function initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations2D)
+  v1 = 0.1
+  v2 = 0.2
+  rho = 1 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  p = 20
+  rho_e = p / (equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+  return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+
 function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1
   v1 = 1
