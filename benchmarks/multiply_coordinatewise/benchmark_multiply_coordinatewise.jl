@@ -203,6 +203,7 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   data_out = randn(n_vars, n_nodes_out, n_nodes_out)
   vandermonde_dynamic = randn(n_nodes_out, n_nodes_in)
   vandermonde_static  = SMatrix{n_nodes_out, n_nodes_in}(vandermonde_dynamic)
+  vandermonde_mmatrix = MMatrix{n_nodes_out, n_nodes_in}(vandermonde_dynamic)
 
   println("\n\n# 2D   ", "#"^70)
   println("n_vars      = ", n_vars)
@@ -219,6 +220,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   println("\n","multiply_coordinatewise_sequential_avx!")
@@ -230,6 +235,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   println("\n","multiply_coordinatewise_sequential_tullio!")
@@ -241,6 +250,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   println("\n","multiply_coordinatewise_sequential_nexpr!")
@@ -260,6 +273,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   println("\n","multiply_coordinatewise_squeezed_avx!")
@@ -271,6 +288,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   println("\n","multiply_coordinatewise_squeezed_tullio!")
@@ -282,6 +303,10 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
   display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  println("\n", "vandermonde_mmatrix")
+  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_mmatrix)
+  @assert data_out ≈ data_out_copy
+  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   nothing
