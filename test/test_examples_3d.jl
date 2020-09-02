@@ -112,8 +112,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_ec.toml with flux_shima_etal" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
-            l2   = [0.025158572247744777, 0.016638273163668674, 0.016638273163668692, 0.016631581587765128, 0.09097798883433982],
-            linf = [0.4298582725942134, 0.28561096934734514, 0.28561096934734487, 0.287502111001965, 1.5313368512936554],
+            l2   = [0.025099944530993942, 0.016561611274319134, 0.016561611274319127, 0.01655478190136039, 0.09076538812894279],
+            linf = [0.43472962954165273, 0.2824065323711477, 0.2824065323711474, 0.28409419760015847, 1.4995295774522692],
             surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
   end
   @testset "parameters_density_pulse.toml with source_terms_harmonic" begin
@@ -121,7 +121,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
             linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
             source_terms=Trixi.source_terms_harmonic)
-            
   end
   @testset "parameters_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_taylor_green_vortex.toml"),
