@@ -715,22 +715,18 @@ function calc_error_norms(dg::Dg2D, t::Float64)
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
-                          dg.analysis_vandermonde, nvariables(equation))
-    x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, element_id],
-                          dg.analysis_vandermonde, ndims(dg))
+    u = multiply_coordinatewise(dg.elements.u[:, :, :, element_id], dg.analysis_vandermonde)
+    x = multiply_coordinatewise(dg.elements.node_coordinates[:, :, :, element_id], dg.analysis_vandermonde)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    for j in 1:n_nodes_analysis
-      for i in 1:n_nodes_analysis
-        u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
-        diff = similar(u_exact)
-        @views @. diff = u_exact - u[:, i, j]
-        @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
-        @. linf_error = max(linf_error, abs(diff))
-      end
+    for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+      u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
+      diff = similar(u_exact)
+      @views @. diff = u_exact - u[:, i, j]
+      @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
+      @. linf_error = max(linf_error, abs(diff))
     end
   end
 
@@ -2259,7 +2255,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
-    nodal2modal!(modal, indicator, dg.inverse_vandermonde_legendre)
+    multiply_coordinatewise!(modal, indicator, dg.inverse_vandermonde_legendre)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0

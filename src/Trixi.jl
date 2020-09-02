@@ -20,8 +20,10 @@ using Profile: clear_malloc_data
 using Random: seed!
 
 using HDF5: h5open, attrs
+using LoopVectorization: @avx
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
+using Tullio: @tullio
 using UnPack: @unpack
 
 # Use a central dictionary for global settings
@@ -42,9 +44,9 @@ include("run.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations2D,
-       IdealGlmMhdEquations2D,
-       HyperbolicDiffusionEquations2D,
+export CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 export flux_central, flux_lax_friedrichs,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal

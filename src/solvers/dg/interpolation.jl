@@ -1,46 +1,17 @@
 
-# Interpolate data using the given Vandermonde matrix and return interpolated values (1D version).
-function interpolate_nodes(data_in::AbstractArray{T, 2},
-                           vandermonde::AbstractArray{T, 2}, n_vars::Integer) where T
-  n_nodes_out = size(vandermonde, 1)
-  n_nodes_in = size(vandermonde, 2)
-  data_out = zeros(eltype(data_in), n_vars, n_nodes_out)
+# Naive implementations of multiply_coordinatewise used to demonstrate the functionality
+# without performance optimizations and for testing correctness of the optimized versions
+# implemented below.
+function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
+  size_out = size(matrix, 1)
+  size_in  = size(matrix, 2)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out)
 
-  for i = 1:n_nodes_out
-    for ii = 1:n_nodes_in
-      for v = 1:n_vars
-        data_out[v, i] += vandermonde[i, ii] * data_in[v, ii]
-      end
-    end
-  end
-
-  return data_out
-end
-
-
-# Interpolate data using the given Vandermonde matrix and return interpolated values (2D version).
-function interpolate_nodes(data_in::AbstractArray{T, 3},
-                           vandermonde, n_vars) where T
-  n_nodes_out = size(vandermonde, 1)
-  data_out = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_out)
-  interpolate_nodes!(data_out, data_in, vandermonde, n_vars)
-end
-
-function interpolate_nodes!(data_out::AbstractArray{T, 3}, data_in::AbstractArray{T, 3},
-                            vandermonde, n_vars) where T
-  n_nodes_out = size(vandermonde, 1)
-  n_nodes_in  = size(vandermonde, 2)
-
-  for j in 1:n_nodes_out
-    for i in 1:n_nodes_out
+  for i in 1:size_out
+    for ii in 1:size_in
       for v in 1:n_vars
-        acc = zero(eltype(data_out))
-        for jj in 1:n_nodes_in
-          for ii in 1:n_nodes_in
-            acc += vandermonde[i, ii] * data_in[v, ii, jj] * vandermonde[j, jj]
-          end
-        end
-        data_out[v, i, j] = acc
+        data_out[v, i] += matrix[i, ii] * data_in[v, ii]
       end
     end
   end
@@ -48,32 +19,122 @@ function interpolate_nodes!(data_out::AbstractArray{T, 3}, data_in::AbstractArra
   return data_out
 end
 
+function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
+  size_out = size(matrix, 1)
+  size_in  = size(matrix, 2)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out)
 
-# Interpolate data using the given Vandermonde matrix and return interpolated values (3D version).
-function interpolate_nodes(data_in::AbstractArray{T, 4},
-                           vandermonde, n_vars) where T
-  n_nodes_out = size(vandermonde, 1)
-  data_out = zeros(eltype(data_in), n_vars, n_nodes_out, n_nodes_out, n_nodes_out)
-  interpolate_nodes!(data_out, data_in, vandermonde, n_vars)
-end
-
-function interpolate_nodes!(data_out::AbstractArray{T, 4}, data_in::AbstractArray{T, 4},
-                            vandermonde, n_vars) where T
-  n_nodes_out = size(vandermonde, 1)
-  n_nodes_in  = size(vandermonde, 2)
-
-  for k in 1:n_nodes_out, j in 1:n_nodes_out, i in 1:n_nodes_out
-    for v in 1:n_vars
-      acc = zero(eltype(data_out))
-      for kk in 1:n_nodes_in, jj in 1:n_nodes_in, ii in 1:n_nodes_in
-        acc += vandermonde[i, ii] * vandermonde[j, jj] * vandermonde[k, kk] * data_in[v, ii, jj, kk]
+  for j in 1:size_out, i in 1:size_out
+    for jj in 1:size_in, ii in 1:size_in
+      for v in 1:n_vars
+        data_out[v, i, j] += matrix[i, ii] * matrix[j, jj] * data_in[v, ii, jj]
       end
-      data_out[v, i, j, k] = acc
     end
   end
 
   return data_out
 end
+
+function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
+  size_out = size(matrix, 1)
+  size_in  = size(matrix, 2)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out, size_out)
+
+  for k in 1:size_out, j in 1:size_out, i in 1:size_out
+    for kk in 1:size_in, jj in 1:size_in, ii in 1:size_in
+      for v in 1:n_vars
+        data_out[v, i, j, k] += matrix[i, ii] * matrix[j, jj] * matrix[k, kk] * data_in[v, ii, jj, kk]
+      end
+    end
+  end
+
+  return data_out
+end
+
+"""
+    multiply_coordinatewise(data_in::AbstractArray{<:Any, NDIMS+1}, matrix::AbstractMatrix)
+
+Multiply the array `data_in` by `matrix` in each coordinate direction, where `data_in`
+is assumed to have the first coordinate for the number of variables and the remaining coordinates
+are multiplied by `matrix`.
+"""
+function multiply_coordinatewise(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
+  # 1D
+  # optimized version of multiply_coordinatewise_naive
+  size_out = size(matrix, 1)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out)
+
+  multiply_coordinatewise!(data_out, data_in, matrix)
+
+  return data_out
+end
+
+function multiply_coordinatewise(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
+  # 2D
+  # optimized version of multiply_coordinatewise_naive
+  size_out = size(matrix, 1)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out)
+
+  multiply_coordinatewise!(data_out, data_in, matrix)
+
+  return data_out
+end
+
+function multiply_coordinatewise(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
+  # 3D
+  # optimized version of multiply_coordinatewise_naive
+  size_out = size(matrix, 1)
+  n_vars   = size(data_in, 1)
+  data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out, size_out)
+
+  multiply_coordinatewise!(data_out, data_in, matrix)
+
+  return data_out
+end
+
+
+# in-place version of multiply_coordinatewise
+function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 2}, data_in::AbstractArray{<:Any, 2},
+                                  matrix::AbstractMatrix)
+  @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
+
+  return nothing
+end
+
+function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3},
+                                  matrix::AbstractMatrix,
+                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[v, i, j]     = matrix[i, ii] * data_in[v, ii, j]
+
+  # Interpolate in y-direction
+  @tullio threads=false data_out[v, i, j] = matrix[j, jj] * tmp1[v, i, jj]
+
+  return nothing
+end
+
+function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4},
+                                  matrix::AbstractMatrix,
+                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
+                                  tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 1), size(matrix, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[v, i, j, k]     = matrix[i, ii] * data_in[v, ii, j, k]
+
+  # Interpolate in y-direction
+  @tullio threads=false tmp2[v, i, j, k]     = matrix[j, jj] * tmp1[v, i, jj, k]
+
+  # Interpolate in z-direction
+  @tullio threads=false data_out[v, i, j, k] = matrix[k, kk] * tmp2[v, i, j, kk]
+
+  return nothing
+end
+
 
 
 # Calculate the Dhat matrix
@@ -82,7 +143,7 @@ function calc_dhat(nodes, weights)
   dhat = polynomial_derivative_matrix(nodes)
   dhat = transpose(dhat)
 
-  for n = 1:n_nodes, j = 1:n_nodes
+  for n in 1:n_nodes, j in 1:n_nodes
     dhat[j, n] *= -weights[n] / weights[j]
   end
 
@@ -110,7 +171,7 @@ function polynomial_derivative_matrix(nodes)
   d = zeros(n_nodes, n_nodes)
   wbary = barycentric_weights(nodes)
 
-  for i = 1:n_nodes, j = 1:n_nodes
+  for i in 1:n_nodes, j in 1:n_nodes
     if j != i
       d[i, j] = wbary[j] / wbary[i] * 1 / (nodes[i] - nodes[j])
       d[i, i] -= d[i, j]
@@ -128,9 +189,9 @@ function polynomial_interpolation_matrix(nodes_in, nodes_out)
   wbary_in = barycentric_weights(nodes_in)
   vdm = zeros(n_nodes_out, n_nodes_in)
 
-  for k = 1:n_nodes_out
+  for k in 1:n_nodes_out
     match = false
-    for j = 1:n_nodes_in
+    for j in 1:n_nodes_in
       if isapprox(nodes_out[k], nodes_in[j], rtol=eps())
         match = true
         vdm[k, j] = 1
@@ -139,12 +200,12 @@ function polynomial_interpolation_matrix(nodes_in, nodes_out)
 
     if match == false
       s = 0.0
-      for j = 1:n_nodes_in
+      for j in 1:n_nodes_in
         t = wbary_in[j] / (nodes_out[k] - nodes_in[j])
         vdm[k, j] = t
         s += t
       end
-      for j = 1:n_nodes_in
+      for j in 1:n_nodes_in
         vdm[k, j] = vdm[k, j] / s
       end
     end
@@ -164,7 +225,7 @@ function barycentric_weights(nodes)
     weights[j] *= nodes[j] - nodes[k]
   end
 
-  for j = 1:n_nodes
+  for j in 1:n_nodes
     weights[j] = 1 / weights[j]
   end
 
@@ -179,7 +240,7 @@ function calc_lhat(x::Float64, nodes, weights)
 
   lhat = lagrange_interpolating_polynomials(x, nodes, wbary)
 
-  for i = 1:n_nodes
+  for i in 1:n_nodes
     lhat[i] /= weights[i]
   end
 
@@ -192,19 +253,19 @@ function lagrange_interpolating_polynomials(x::Float64, nodes, wbary)
   n_nodes = length(nodes)
   polynomials = zeros(n_nodes)
 
-  for i = 1:n_nodes
+  for i in 1:n_nodes
     if isapprox(x, nodes[i], rtol=eps(x))
       polynomials[i] = 1
       return polynomials
     end
   end
 
-  for i = 1:n_nodes
+  for i in 1:n_nodes
     polynomials[i] = wbary[i] / (x - nodes[i])
   end
   total = sum(polynomials)
 
-  for i = 1:n_nodes
+  for i in 1:n_nodes
     polynomials[i] /= total
   end
 
@@ -406,14 +467,3 @@ function vandermonde_legendre(nodes, N)
   return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
-
-
-# Convert nodal to modal representation
-function nodal2modal(data_in, vandermonde)
-  return interpolate_nodes(data_in, vandermonde, 1)
-end
-
-function nodal2modal!(data_out, data_in, vandermonde)
-  return interpolate_nodes!(data_out, data_in, vandermonde, 1)
-end
-
