@@ -1,8 +1,9 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
-                  MortarType, VolumeIntegralType,
+                  MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                  InverseVandermondeLegendre, MortarMatrix,
                   VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
   equations::Eqn
 
@@ -30,7 +31,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   nodes::VectorNnodes
   weights::VectorNnodes
   inverse_weights::VectorNnodes
-  inverse_vandermonde_legendre::MatrixNnodes
+  inverse_vandermonde_legendre::InverseVandermondeLegendre
   lhat::MatrixNnodes2
 
   volume_integral_type::VolumeIntegralType
@@ -38,12 +39,12 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   dsplit::MatrixNnodes
   dsplit_transposed::MatrixNnodes
 
-  mortar_forward_upper::MatrixNnodes
-  mortar_forward_lower::MatrixNnodes
-  l2mortar_reverse_upper::MatrixNnodes
-  l2mortar_reverse_lower::MatrixNnodes
-  ecmortar_reverse_upper::MatrixNnodes
-  ecmortar_reverse_lower::MatrixNnodes
+  mortar_forward_upper::MortarMatrix
+  mortar_forward_lower::MortarMatrix
+  l2mortar_reverse_upper::MortarMatrix
+  l2mortar_reverse_lower::MortarMatrix
+  ecmortar_reverse_upper::MortarMatrix
+  ecmortar_reverse_lower::MortarMatrix
 
   analysis_nodes::VectorAnalysisNnodes
   analysis_weights::VectorAnalysisNnodes
@@ -54,7 +55,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   save_analysis::Bool
   analysis_filename::String
 
-  shock_indicator_variable::Symbol
+  shock_indicator_variable::ShockIndicatorVariable
   shock_alpha_max::Float64
   shock_alpha_min::Float64
   shock_alpha_smooth::Bool
@@ -176,8 +177,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                          valid=["density", "density_pressure", "pressure"]))
+  shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
+                                                  valid=["density", "density_pressure", "pressure"])))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -208,7 +209,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
-      SMatrix{POLYDEG+1,POLYDEG+1}(inverse_vandermonde_legendre), SMatrix{POLYDEG+1,2}(lhat),
+      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
       SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
@@ -228,28 +229,28 @@ end
 
 function create_thread_cache_2d(n_variables, n_nodes)
   # Type alias only for convenience
-  A4d = Array{Float64, 4}
+  A4d     = Array{Float64, 4}
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
-  MA2d = MArray{Tuple{n_variables, n_nodes}, Float64}
-  A2d = Array{Float64, 2}
+  MA2d    = MArray{Tuple{n_variables, n_nodes}, Float64}
+  A2d     = Array{Float64, 2}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  f2_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes)
-                             for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1)
-                             for _ in 1:Threads.nthreads()]
+  f1_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  f2_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar1_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes)
-                         for _ in 1:Threads.nthreads()]
+  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes) for _ in 1:Threads.nthreads()]
+
+  indicator_threaded  = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
-            fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
+            fstar_upper_threaded, fstar_lower_threaded, u_large_threaded,
+            indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
 
@@ -1396,7 +1397,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
-    Val(dg.shock_indicator_variable), dg)
+    dg.shock_indicator_variable, thread_cache, dg)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
@@ -2248,22 +2249,23 @@ end
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
-                                indicator_variable, dg::Dg2D)
-  # Calculate blending factor
-  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
-  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
+                                indicator_variable, thread_cache, dg::Dg2D)
+  # temporary buffers
+  @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
+  # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
   Threads.@threads for element_id in 1:dg.n_elements
-    indicator = indicator_threaded[Threads.threadid()]
-    modal     = modal_threaded[Threads.threadid()]
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
-    multiply_dimensionwise!(modal, indicator, dg.inverse_vandermonde_legendre)
+    multiply_dimensionwise!(modal, indicator, dg.inverse_vandermonde_legendre, modal_tmp1)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0

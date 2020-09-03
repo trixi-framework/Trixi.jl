@@ -99,15 +99,15 @@ end
 
 # in-place version of multiply_dimensionwise
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, data_in::AbstractArray{<:Any, 2},
-                                  matrix::AbstractMatrix)
+                                 matrix::AbstractMatrix)
   @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
 
   return nothing
 end
 
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3},
-                                  matrix::AbstractMatrix,
-                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
+                                 matrix::AbstractMatrix,
+                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
 
   # Interpolate in x-direction
   @tullio threads=false tmp1[v, i, j]     = matrix[i, ii] * data_in[v, ii, j]
@@ -119,9 +119,9 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, data_in::Abs
 end
 
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4},
-                                  matrix::AbstractMatrix,
-                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
-                                  tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 1), size(matrix, 2)))
+                                 matrix::AbstractMatrix,
+                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
+                                 tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 1), size(matrix, 2)))
 
   # Interpolate in x-direction
   @tullio threads=false tmp1[v, i, j, k]     = matrix[i, ii] * data_in[v, ii, j, k]
@@ -134,7 +134,6 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, data_in::Abs
 
   return nothing
 end
-
 
 
 # Calculate the Dhat matrix

@@ -258,7 +258,7 @@ end
 #
 # FIXME: This is currently implemented for each test case - we need something
 # appropriate that is both equation and test case independent
-function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
+function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
   lambda = zeros(dg.n_elements)
 
   if dg.amr_indicator === :gauss
@@ -352,7 +352,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg)
+                           Val(:density), dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -398,7 +398,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg)
+                           Val(:density), dg.thread_cache, dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -413,7 +413,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     alpha1     = dg.element_variables[:blending_factor]
     alpha1_tmp = dg.element_variables[:blending_factor_tmp]
     calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
-                           Val(dg.shock_indicator_variable), dg)
+                           Val(dg.shock_indicator_variable), dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -459,7 +459,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg)
+                           Val(:density_pressure), dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -498,7 +498,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time::Float64)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg)
+                           Val(:density_pressure), dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

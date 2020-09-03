@@ -797,12 +797,10 @@ end
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
                                  equation::CompressibleEulerEquations2D)
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id],
-                                          indicator_variable, equation)
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
+                                        cons[3, i, j, element_id], cons[4, i, j, element_id],
+                                        indicator_variable, equation)
   end
 end
 
