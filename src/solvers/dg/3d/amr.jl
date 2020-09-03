@@ -397,10 +397,10 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
       end
     end
   elseif dg.amr_indicator === :blob                                                                 
-    base_level = 4                                                                                  
+    base_level = 1
     max_level = 7                                                                                   
-    super_max_level = 7                                                                             
-    blending_factor_threshold0 = 0.3                                                                
+    super_max_level = 8                                                                             
+    blending_factor_threshold0 = 0.3 # 0.03 # for full super power                                                                
     blending_factor_threshold1 = 0.003                                                              
     blending_factor_threshold2 = 0.0003                                                             
                                                                                                     
