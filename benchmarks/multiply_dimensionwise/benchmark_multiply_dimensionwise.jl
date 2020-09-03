@@ -9,7 +9,7 @@ using Tullio
 
 ###################################################################################################
 # 2D versions
-function multiply_coordinatewise_sequential!(
+function multiply_dimensionwise_sequential!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2)))
   n_vars      = size(data_out, 1)
@@ -45,7 +45,7 @@ function multiply_coordinatewise_sequential!(
   return data_out
 end
 
-function multiply_coordinatewise_sequential_avx!(
+function multiply_dimensionwise_sequential_avx!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2)))
   n_vars      = size(data_out, 1)
@@ -81,7 +81,7 @@ function multiply_coordinatewise_sequential_avx!(
   return data_out
 end
 
-function multiply_coordinatewise_sequential_tullio!(
+function multiply_dimensionwise_sequential_tullio!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2)))
 
@@ -94,7 +94,7 @@ function multiply_coordinatewise_sequential_tullio!(
   return data_out
 end
 
-@generated function multiply_coordinatewise_sequential_nexpr!(
+@generated function multiply_dimensionwise_sequential_nexpr!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde::SMatrix{n_nodes_out,n_nodes_in}, ::Val{n_vars}) where {n_nodes_out, n_nodes_in, n_vars}
   quote
     @boundscheck begin
@@ -135,7 +135,7 @@ end
 end
 
 
-function multiply_coordinatewise_squeezed!(
+function multiply_dimensionwise_squeezed!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde)
   n_vars      = size(data_out, 1)
   n_nodes_out = size(vandermonde, 1)
@@ -162,7 +162,7 @@ function multiply_coordinatewise_squeezed!(
   return data_out
 end
 
-function multiply_coordinatewise_squeezed_avx!(
+function multiply_dimensionwise_squeezed_avx!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde)
   n_vars      = size(data_out, 1)
   n_nodes_out = size(vandermonde, 1)
@@ -189,7 +189,7 @@ function multiply_coordinatewise_squeezed_avx!(
   return data_out
 end
 
-function multiply_coordinatewise_squeezed_tullio!(
+function multiply_dimensionwise_squeezed_tullio!(
     data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3}, vandermonde)
 
   @tullio threads=false data_out[v, i, j] = vandermonde[i, ii] * vandermonde[j, jj] * data_in[v, ii, jj]
@@ -211,102 +211,102 @@ function run_benchmarks_2d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   println("n_nodes_out = ", n_nodes_out)
   println()
 
-  println("\n","multiply_coordinatewise_sequential!")
+  println("\n","multiply_dimensionwise_sequential!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential!(data_out, data_in, vandermonde_dynamic)
   data_out_copy = copy(data_out)
-  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_sequential!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_sequential!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_avx!")
+  println("\n","multiply_dimensionwise_sequential_avx!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential_avx!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_sequential_avx!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_sequential_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_tullio!")
+  println("\n","multiply_dimensionwise_sequential_tullio!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential_tullio!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_sequential_tullio!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_nexpr!")
+  println("\n","multiply_dimensionwise_sequential_nexpr!")
   println("vandermonde_static")
-  multiply_coordinatewise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_vars))
+  multiply_dimensionwise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_vars))
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars))))
+  display(@benchmark multiply_dimensionwise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars))))
   println()
 
 
-  println("\n","multiply_coordinatewise_squeezed!")
+  println("\n","multiply_dimensionwise_squeezed!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_squeezed!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_squeezed!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
-  println("\n","multiply_coordinatewise_squeezed_avx!")
+  println("\n","multiply_dimensionwise_squeezed_avx!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed_avx!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_squeezed_avx!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
-  println("\n","multiply_coordinatewise_squeezed_tullio!")
+  println("\n","multiply_dimensionwise_squeezed_tullio!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed_tullio!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static)))
   println("\n", "vandermonde_mmatrix")
-  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_mmatrix)
+  multiply_dimensionwise_squeezed_tullio!(data_out, data_in, vandermonde_mmatrix)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
+  display(@benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_mmatrix)))
   println()
 
   nothing
@@ -324,13 +324,13 @@ function compute_benchmarks_2d(n_vars, n_nodes_in, n_nodes_out)
   tmp1 = zeros(eltype(data_out), n_vars, n_nodes_out, n_nodes_in)
 
   println("n_vars = ", n_vars, "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
-  sequential_dynamic = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
-  sequential_static  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static))
-  #FIXME sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars)))
-  sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic), $(tmp1))
-  sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static), $(tmp1))
-  squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
-  squeezed_static  = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static))
+  sequential_dynamic = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
+  sequential_static  = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static))
+  #FIXME sequential_nexpr   = @benchmark multiply_dimensionwise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars)))
+  sequential_dynamic_prealloc = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic), $(tmp1))
+  sequential_static_prealloc  = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static), $(tmp1))
+  squeezed_dynamic = @benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
+  squeezed_static  = @benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static))
 
   return time(median(sequential_dynamic)),
          time(median(sequential_static)),
@@ -395,7 +395,7 @@ compute_benchmarks_2d(1:10, 2:10)
 ###################################################################################################
 # 3D versions
 
-function multiply_coordinatewise_sequential!(
+function multiply_dimensionwise_sequential!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2), size(vandermonde, 2)),
     tmp2=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 1), size(vandermonde, 2)))
@@ -441,7 +441,7 @@ function multiply_coordinatewise_sequential!(
   return data_out
 end
 
-function multiply_coordinatewise_sequential_avx!(
+function multiply_dimensionwise_sequential_avx!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2), size(vandermonde, 2)),
     tmp2=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 1), size(vandermonde, 2)))
@@ -487,7 +487,7 @@ function multiply_coordinatewise_sequential_avx!(
   return data_out
 end
 
-function multiply_coordinatewise_sequential_tullio!(
+function multiply_dimensionwise_sequential_tullio!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde,
     tmp1=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 2), size(vandermonde, 2)),
     tmp2=zeros(eltype(data_out), size(data_out, 1), size(vandermonde, 1), size(vandermonde, 1), size(vandermonde, 2)))
@@ -504,7 +504,7 @@ function multiply_coordinatewise_sequential_tullio!(
   return data_out
 end
 
-@generated function multiply_coordinatewise_sequential_nexpr!(
+@generated function multiply_dimensionwise_sequential_nexpr!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde::SMatrix{n_nodes_out,n_nodes_in}, ::Val{n_vars}) where {n_nodes_out, n_nodes_in, n_vars}
   quote
     @boundscheck begin
@@ -563,7 +563,7 @@ end
 end
 
 
-function multiply_coordinatewise_squeezed!(
+function multiply_dimensionwise_squeezed!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde)
   n_vars      = size(data_out, 1)
   n_nodes_out = size(vandermonde, 1)
@@ -590,7 +590,7 @@ function multiply_coordinatewise_squeezed!(
   return data_out
 end
 
-function multiply_coordinatewise_squeezed_avx!(
+function multiply_dimensionwise_squeezed_avx!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde)
   n_vars      = size(data_out, 1)
   n_nodes_out = size(vandermonde, 1)
@@ -617,7 +617,7 @@ function multiply_coordinatewise_squeezed_avx!(
   return data_out
 end
 
-function multiply_coordinatewise_squeezed_tullio!(
+function multiply_dimensionwise_squeezed_tullio!(
     data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4}, vandermonde)
 
   @tullio threads=false data_out[v, i, j, k] = vandermonde[i, ii] * vandermonde[j, jj] * vandermonde[k, kk] * data_in[v, ii, jj, kk]
@@ -638,77 +638,77 @@ function run_benchmarks_3d(n_vars=4, n_nodes_in=4, n_nodes_out=2*n_nodes_in)
   println("n_nodes_out = ", n_nodes_out)
   println()
 
-  println("\n","multiply_coordinatewise_sequential!")
+  println("\n","multiply_dimensionwise_sequential!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential!(data_out, data_in, vandermonde_dynamic)
   data_out_copy = copy(data_out)
-  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_avx!")
+  println("\n","multiply_dimensionwise_sequential_avx!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential_avx!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential_avx!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential_avx!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_tullio!")
+  println("\n","multiply_dimensionwise_sequential_tullio!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_sequential_tullio!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_sequential_tullio!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_sequential_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
-  println("\n","multiply_coordinatewise_sequential_nexpr!")
+  println("\n","multiply_dimensionwise_sequential_nexpr!")
   println("vandermonde_static")
-  multiply_coordinatewise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_vars))
+  multiply_dimensionwise_sequential_nexpr!(data_out, data_in, vandermonde_static, Val(n_vars))
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars))))
+  display(@benchmark multiply_dimensionwise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars))))
   println()
 
-  println("\n","multiply_coordinatewise_squeezed!")
+  println("\n","multiply_dimensionwise_squeezed!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
-  println("\n","multiply_coordinatewise_squeezed_avx!")
+  println("\n","multiply_dimensionwise_squeezed_avx!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed_avx!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed_avx!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed_avx!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed_avx!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
-  println("\n","multiply_coordinatewise_squeezed_tullio!")
+  println("\n","multiply_dimensionwise_squeezed_tullio!")
   println("vandermonde_dynamic")
-  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_dynamic)
+  multiply_dimensionwise_squeezed_tullio!(data_out, data_in, vandermonde_dynamic)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
+  display(@benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic)))
   println("\n", "vandermonde_static")
-  multiply_coordinatewise_squeezed_tullio!(data_out, data_in, vandermonde_static)
+  multiply_dimensionwise_squeezed_tullio!(data_out, data_in, vandermonde_static)
   @assert data_out ≈ data_out_copy
-  display(@benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static)))
+  display(@benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static)))
   println()
 
   nothing
@@ -727,13 +727,13 @@ function compute_benchmarks_3d(n_vars, n_nodes_in, n_nodes_out)
   tmp2 = zeros(eltype(data_out), n_vars, n_nodes_out, n_nodes_out, n_nodes_in)
 
   println("n_vars = ", n_vars, "; n_nodes_in = ", n_nodes_in, "; n_nodes_out = ", n_nodes_out)
-  sequential_dynamic = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
-  sequential_static  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static))
-  #FIXME sequential_nexpr   = @benchmark multiply_coordinatewise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars)))
-  sequential_dynamic_prealloc = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic), $(tmp1), $(tmp2))
-  sequential_static_prealloc  = @benchmark multiply_coordinatewise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static),  $(tmp1), $(tmp2))
-  squeezed_dynamic = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
-  squeezed_static  = @benchmark multiply_coordinatewise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static))
+  sequential_dynamic = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
+  sequential_static  = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static))
+  #FIXME sequential_nexpr   = @benchmark multiply_dimensionwise_sequential_nexpr!($(data_out), $(data_in), $(vandermonde_static), $(Val(n_vars)))
+  sequential_dynamic_prealloc = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_dynamic), $(tmp1), $(tmp2))
+  sequential_static_prealloc  = @benchmark multiply_dimensionwise_sequential_tullio!($(data_out), $(data_in), $(vandermonde_static),  $(tmp1), $(tmp2))
+  squeezed_dynamic = @benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_dynamic))
+  squeezed_static  = @benchmark multiply_dimensionwise_squeezed_tullio!($(data_out), $(data_in), $(vandermonde_static))
 
   return time(median(sequential_dynamic)),
          time(median(sequential_static)),

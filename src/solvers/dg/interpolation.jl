@@ -1,8 +1,8 @@
 
-# Naive implementations of multiply_coordinatewise used to demonstrate the functionality
+# Naive implementations of multiply_dimensionwise used to demonstrate the functionality
 # without performance optimizations and for testing correctness of the optimized versions
 # implemented below.
-function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
+function multiply_dimensionwise_naive(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
   size_out = size(matrix, 1)
   size_in  = size(matrix, 2)
   n_vars   = size(data_in, 1)
@@ -19,7 +19,7 @@ function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 2}, matrix:
   return data_out
 end
 
-function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
+function multiply_dimensionwise_naive(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
   size_out = size(matrix, 1)
   size_in  = size(matrix, 2)
   n_vars   = size(data_in, 1)
@@ -36,7 +36,7 @@ function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 3}, matrix:
   return data_out
 end
 
-function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
+function multiply_dimensionwise_naive(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
   size_out = size(matrix, 1)
   size_in  = size(matrix, 2)
   n_vars   = size(data_in, 1)
@@ -54,58 +54,58 @@ function multiply_coordinatewise_naive(data_in::AbstractArray{<:Any, 4}, matrix:
 end
 
 """
-    multiply_coordinatewise(data_in::AbstractArray{<:Any, NDIMS+1}, matrix::AbstractMatrix)
+    multiply_dimensionwise(data_in::AbstractArray{<:Any, NDIMS+1}, matrix::AbstractMatrix)
 
 Multiply the array `data_in` by `matrix` in each coordinate direction, where `data_in`
 is assumed to have the first coordinate for the number of variables and the remaining coordinates
 are multiplied by `matrix`.
 """
-function multiply_coordinatewise(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
+function multiply_dimensionwise(data_in::AbstractArray{<:Any, 2}, matrix::AbstractMatrix)
   # 1D
-  # optimized version of multiply_coordinatewise_naive
+  # optimized version of multiply_dimensionwise_naive
   size_out = size(matrix, 1)
   n_vars   = size(data_in, 1)
   data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out)
 
-  multiply_coordinatewise!(data_out, data_in, matrix)
+  multiply_dimensionwise!(data_out, data_in, matrix)
 
   return data_out
 end
 
-function multiply_coordinatewise(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
+function multiply_dimensionwise(data_in::AbstractArray{<:Any, 3}, matrix::AbstractMatrix)
   # 2D
-  # optimized version of multiply_coordinatewise_naive
+  # optimized version of multiply_dimensionwise_naive
   size_out = size(matrix, 1)
   n_vars   = size(data_in, 1)
   data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out)
 
-  multiply_coordinatewise!(data_out, data_in, matrix)
+  multiply_dimensionwise!(data_out, data_in, matrix)
 
   return data_out
 end
 
-function multiply_coordinatewise(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
+function multiply_dimensionwise(data_in::AbstractArray{<:Any, 4}, matrix::AbstractMatrix)
   # 3D
-  # optimized version of multiply_coordinatewise_naive
+  # optimized version of multiply_dimensionwise_naive
   size_out = size(matrix, 1)
   n_vars   = size(data_in, 1)
   data_out = zeros(promote_type(eltype(data_in), eltype(matrix)), n_vars, size_out, size_out, size_out)
 
-  multiply_coordinatewise!(data_out, data_in, matrix)
+  multiply_dimensionwise!(data_out, data_in, matrix)
 
   return data_out
 end
 
 
-# in-place version of multiply_coordinatewise
-function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 2}, data_in::AbstractArray{<:Any, 2},
+# in-place version of multiply_dimensionwise
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, data_in::AbstractArray{<:Any, 2},
                                   matrix::AbstractMatrix)
   @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
 
   return nothing
 end
 
-function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3},
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, data_in::AbstractArray{<:Any, 3},
                                   matrix::AbstractMatrix,
                                   tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
 
@@ -118,7 +118,7 @@ function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 3}, data_in::Ab
   return nothing
 end
 
-function multiply_coordinatewise!(data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4},
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, data_in::AbstractArray{<:Any, 4},
                                   matrix::AbstractMatrix,
                                   tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
                                   tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 1), size(matrix, 2)))
