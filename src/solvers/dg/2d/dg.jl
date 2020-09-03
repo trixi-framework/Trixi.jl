@@ -215,7 +215,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
       SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
-      SMatrix{analysis_polydeg+1,POLYDEG+1}(analysis_vandermonde), analysis_total_volume,
+      analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
@@ -702,29 +702,37 @@ integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=no
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(dg::Dg2D, t::Float64)
+function calc_error_norms(dg::Dg2D, t)
   # Gather necessary information
   equation = equations(dg)
-  n_nodes_analysis = length(dg.analysis_nodes)
+  n_nodes_analysis = size(dg.analysis_vandermonde, 1)
+
+  # pre-allocate buffers
+  u = zeros(eltype(dg.elements.u),
+            nvariables(dg), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1))
+  u_tmp1 = similar(u,
+            nvariables(dg), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
+  x = zeros(eltype(dg.elements.node_coordinates),
+            2, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1))
+  x_tmp1 = similar(x,
+            2, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
 
   # Set up data structures
-  l2_error = zeros(nvariables(equation))
+  l2_error   = zeros(nvariables(equation))
   linf_error = zeros(nvariables(equation))
-  u_exact = zeros(nvariables(equation))
 
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = multiply_dimensionwise(dg.elements.u[:, :, :, element_id], dg.analysis_vandermonde)
-    x = multiply_dimensionwise(dg.elements.node_coordinates[:, :, :, element_id], dg.analysis_vandermonde)
+    multiply_dimensionwise!(u, view(dg.elements.u, :, :, :, element_id),                dg.analysis_vandermonde, u_tmp1)
+    multiply_dimensionwise!(x, view(dg.elements.node_coordinates, :, :, :, element_id), dg.analysis_vandermonde, x_tmp1)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
-      u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
-      diff = similar(u_exact)
-      @views @. diff = u_exact - u[:, i, j]
+      u_exact = dg.initial_conditions(view(x, :, i, j), t, equation)
+      diff = u_exact - get_node_vars(u, dg, i, j)
       @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
       @. linf_error = max(linf_error, abs(diff))
     end
