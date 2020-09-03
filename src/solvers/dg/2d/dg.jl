@@ -1801,10 +1801,8 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
       noncons_primary   = noncons_interface_flux!(u_ll, u_rr, orientations[s], equations(dg))
       noncons_secondary = noncons_interface_flux!(u_rr, u_ll, orientations[s], equations(dg))
       # Save to primary and secondary temporay storage
-      for v in 1:nvariables(dg)
-        noncons_diamond_primary[v, i]   = noncons_primary[v]
-        noncons_diamond_secondary[v, i] = noncons_secondary[v]
-      end
+      set_node_vars!(noncons_diamond_primary, noncons_primary, dg, i)
+      set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i)
     end
 
     # Get neighboring elements
@@ -1926,10 +1924,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         noncons_upper = noncons_interface_flux!(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
         noncons_lower = noncons_interface_flux!(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
         # Save to primary and secondary temporay storage
-        for v in 1:nvariables(dg)
-          noncons_diamond_upper[v, i] = noncons_upper[v]
-          noncons_diamond_lower[v, i] = noncons_lower[v]
-        end
+        set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
+        set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
       end
     else # large_sides[m] == 2 -> small elements on the left
       for i in 1:nnodes(dg)
@@ -1940,10 +1936,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         noncons_upper = noncons_interface_flux!(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
         noncons_lower = noncons_interface_flux!(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
         # Save to primary and secondary temporay storage
-        for v in 1:nvariables(dg)
-          noncons_diamond_upper[v, i] = noncons_upper[v]
-          noncons_diamond_lower[v, i] = noncons_lower[v]
-        end
+        set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
+        set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
       end
     end
 
