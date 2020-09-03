@@ -1,5 +1,6 @@
 
 include("tree.jl")
+include("parallel_tree.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
