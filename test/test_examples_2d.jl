@@ -187,6 +187,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [1.2713060246638115, 0.6733000091062668, 0.8764507997673942, 0.0, 2.819437219022322, 0.6756993525030384, 0.9970376054894377, 0.0, 0.05310784504107611],
             t_end = 0.09)
   end
+  # second orszag-tang test added to exercise all components of flux_hll for GLM-MHD
+  @testset "parameters_orszag_tang.toml with t_end=0.06" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_orszag_tang.toml"),
+            l2   = [0.10797201158738569, 0.20183923675400306, 0.22965987220003012, 0.0, 0.2993862890890887, 0.156865945562645, 0.24280278839125313, 0.0, 0.0034424029849492947],
+            linf = [0.5605977377102305, 0.509274304343078, 0.6612312950402195, 0.0, 0.9814914518422291, 0.39977774699748586, 0.6748004026413148, 0.0, 0.06802505466018915],
+            t_end = 0.06, surface_flux=flux_hll)
+  end
   @testset "parameters_ec_mortar.toml with shock_capturing" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mortar.toml"),
             l2   = [0.04816136246215661, 0.03713041026830962, 0.03713130328181323, 0.1777051166244772],
