@@ -1952,29 +1952,21 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-#                                                           noncons_diamond_primary_upper)
         surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-                                                           # noncons_diamond_primary_lower)
       else
         # L2 mortars in y-direction
         surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-                                                           # noncons_diamond_primary_upper)
         surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-                                                           # noncons_diamond_primary_lower)
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-                                                           # noncons_diamond_secondary_upper)
         surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-                                                           # noncons_diamond_secondary_lower)
       else
         # L2 mortars in y-direction
         surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-                                                           # noncons_diamond_secondary_upper)
         surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-                                                           # noncons_diamond_secondary_lower)
       end
     end
 
