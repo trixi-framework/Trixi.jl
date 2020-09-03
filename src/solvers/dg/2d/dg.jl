@@ -1894,10 +1894,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
 
-  noncons_diamond_primary_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_primary_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
   Threads.@threads for m in 1:dg.n_l2mortars
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
@@ -1908,10 +1906,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
 
-    noncons_diamond_primary_upper = noncons_diamond_primary_upper_threaded[Threads.threadid()]
-    noncons_diamond_primary_lower = noncons_diamond_primary_lower_threaded[Threads.threadid()]
-    noncons_diamond_secondary_upper = noncons_diamond_secondary_upper_threaded[Threads.threadid()]
-    noncons_diamond_secondary_lower = noncons_diamond_secondary_lower_threaded[Threads.threadid()]
+    noncons_diamond_upper = noncons_diamond_upper_threaded[Threads.threadid()]
+    noncons_diamond_lower = noncons_diamond_lower_threaded[Threads.threadid()]
 
     # Calculate fluxes
     calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
@@ -1921,24 +1917,33 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     # Done twice because left/right orientation matters
     # 1 -> primary element and 2 -> secondary element
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    for i in 1:nnodes(dg)
-      # Call pointwise nonconservative term
-      u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
-      u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
-      noncons_primary_upper   = noncons_interface_flux!(u_upper_ll, u_upper_rr, orientations[m],
-                                                        equations(dg))
-      noncons_secondary_upper = noncons_interface_flux!(u_upper_rr, u_upper_ll, orientations[m],
-                                                        equations(dg))
-      noncons_primary_lower   = noncons_interface_flux!(u_lower_ll, u_lower_rr, orientations[m],
-                                                        equations(dg))
-      noncons_secondary_lower = noncons_interface_flux!(u_lower_rr, u_lower_ll, orientations[m],
-                                                        equations(dg))
-      # Save to primary and secondary temporay storage
-      for v in 1:nvariables(dg)
-        noncons_diamond_primary_upper[v, i]   = noncons_primary_upper[v]
-        noncons_diamond_secondary_upper[v, i] = noncons_secondary_upper[v]
-        noncons_diamond_primary_lower[v, i]   = noncons_primary_lower[v]
-        noncons_diamond_secondary_lower[v, i] = noncons_secondary_lower[v]
+    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+      for i in 1:nnodes(dg)
+        # pull the left and right solutions
+        u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
+        u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
+        # Call pointwise nonconservative term
+        noncons_upper = noncons_interface_flux!(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux!(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
+        # Save to primary and secondary temporay storage
+        for v in 1:nvariables(dg)
+          noncons_diamond_upper[v, i] = noncons_upper[v]
+          noncons_diamond_lower[v, i] = noncons_lower[v]
+        end
+      end
+    else # large_sides[m] == 2 -> small elements on the left
+      for i in 1:nnodes(dg)
+        # pull the left and right solutions
+        u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
+        u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
+        # Call pointwise nonconservative term
+        noncons_upper = noncons_interface_flux!(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux!(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
+        # Save to primary and secondary temporay storage
+        for v in 1:nvariables(dg)
+          noncons_diamond_upper[v, i] = noncons_upper[v]
+          noncons_diamond_lower[v, i] = noncons_lower[v]
+        end
       end
     end
 
@@ -1946,30 +1951,30 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper +
-                                                           noncons_diamond_primary_upper)
-        surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower +
-                                                           noncons_diamond_primary_lower)
+        surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+#                                                           noncons_diamond_primary_upper)
+        surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+                                                           # noncons_diamond_primary_lower)
       else
         # L2 mortars in y-direction
-        surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper +
-                                                           noncons_diamond_primary_upper)
-        surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower +
-                                                           noncons_diamond_primary_lower)
+        surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+                                                           # noncons_diamond_primary_upper)
+        surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+                                                           # noncons_diamond_primary_lower)
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper +
-                                                           noncons_diamond_secondary_upper)
-        surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower +
-                                                           noncons_diamond_secondary_lower)
+        surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+                                                           # noncons_diamond_secondary_upper)
+        surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+                                                           # noncons_diamond_secondary_lower)
       else
         # L2 mortars in y-direction
-        surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper +
-                                                           noncons_diamond_secondary_upper)
-        surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower +
-                                                           noncons_diamond_secondary_lower)
+        surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+                                                           # noncons_diamond_secondary_upper)
+        surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+                                                           # noncons_diamond_secondary_lower)
       end
     end
 
@@ -1977,9 +1982,9 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     for v in 1:nvariables(dg)
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
         @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                          (fstar_upper[v, :] + noncons_diamond_primary_upper[v,:]) +
+                                          (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
                                             dg.l2mortar_reverse_lower *
-                                          (fstar_lower[v, :] + noncons_diamond_primary_lower[v,:]))
+                                          (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
           surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
@@ -1989,9 +1994,9 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
       else # large_sides[m] == 2 -> large element on right side
         @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                        (fstar_upper[v, :] + noncons_diamond_secondary_upper[v,:]) +
+                                        (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
                                             dg.l2mortar_reverse_lower *
-                                        (fstar_lower[v, :] + noncons_diamond_secondary_lower[v,:]))
+                                        (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
           surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
