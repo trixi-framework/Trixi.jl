@@ -106,9 +106,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.5043638249003257])
   end
   @testset "parameters_mortar_alfven_wave.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_alfven_wave.toml", t_end=1.0),
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_alfven_wave.toml"),
             l2   = [4.608223422391918e-6, 1.6891556053250136e-6, 1.6202140809698534e-6, 1.6994400213969954e-6, 1.4856807283318347e-6, 1.387768347373047e-6, 1.3411738859512443e-6, 1.7155298750074954e-6, 9.799762075600064e-7],
-            linf = [3.52219535260101e-5, 1.534468550207224e-5, 1.426263439847919e-5, 1.4421456102198249e-5, 7.743399239257265e-6, 1.019242699840106e-5, 9.862935257842764e-6, 1.6018118328936515e-5, 5.563695788849475e-6])
+            linf = [3.52219535260101e-5, 1.534468550207224e-5, 1.426263439847919e-5, 1.4421456102198249e-5, 7.743399239257265e-6, 1.019242699840106e-5, 9.862935257842764e-6, 1.6018118328936515e-5, 5.563695788849475e-6],
+            t_end=1.0)
   end
   @testset "parameters_mortar_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_vortex.toml"),
