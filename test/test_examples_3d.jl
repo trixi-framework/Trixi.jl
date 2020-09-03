@@ -89,9 +89,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_amr_blob.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr_euler.toml"),
-            l2   = [0.0026958666768177753, 0.01977790887379724, 0.0003327989977747753, 0.0003327989977747741, 0.09290375962726319],
-            linf = [0.5358932019703149, 4.279080849221062, 0.2275018269559105, 0.2275018269559121, 17.89037246743689],
-            t_end=0.01)
+            l2   = [0.029377590482165445, 0.18488335295838168, 0.010109672047134356, 0.010109672047134519, 0.8267757852214529],
+            linf = [10.561404577360785, 61.65597683709678, 4.450556310431, 4.450556310431132, 251.60722059012323],
+            t_end=0.1)
   end
   @testset "parameters_ec.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
