@@ -439,48 +439,6 @@ function noncons_interface_flux!(u_left, u_right, orientation, equation::IdealGl
 
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
-##
-#  OLD WAY
-##
-# function noncons_interface_flux!(noncons_flux, u_left, u_right, interface_id, n_nodes, orientations,
-#                                  equation::IdealGlmMhdEquations3D)
-#   for j in 1:n_nodes, i in 1:n_nodes
-#     # extract necessary variable from the left
-#     v1_ll  = u_left[2,i,j,interface_id]/u_left[1,i,j,interface_id]
-#     v2_ll  = u_left[3,i,j,interface_id]/u_left[1,i,j,interface_id]
-#     v3_ll  = u_left[4,i,j,interface_id]/u_left[1,i,j,interface_id]
-#     B1_ll  = u_left[6,i,j,interface_id]
-#     B2_ll  = u_left[7,i,j,interface_id]
-#     B3_ll  = u_left[8,i,j,interface_id]
-#     psi_ll = u_left[9,i,j,interface_id]
-#     v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
-#     # extract necessary magnetic field variable from the right and normal velocity
-#     # both depend upon the orientation
-#     if orientations[interface_id] == 1
-#       v_normal = v1_ll
-#       B_normal = u_right[6,i,j,interface_id]
-#       psi_rr   = u_right[9,i,j,interface_id]
-#     elseif orientations[interface_id] == 2
-#       v_normal = v2_ll
-#       B_normal = u_right[7,i,j,interface_id]
-#       psi_rr   = u_right[9,i,j,interface_id]
-#     else
-#       v_normal = v3_ll
-#       B_normal = u_right[8,i,j,interface_id]
-#       psi_rr   = u_right[9,i,j,interface_id]
-#     end
-#     # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
-#     noncons_flux[1,i,j] = 0.0
-#     noncons_flux[2,i,j] = 0.5*B_normal*B1_ll
-#     noncons_flux[3,i,j] = 0.5*B_normal*B2_ll
-#     noncons_flux[4,i,j] = 0.5*B_normal*B3_ll
-#     noncons_flux[5,i,j] = 0.5*B_normal*v_dot_B_ll + 0.5*v_normal*psi_ll*psi_rr
-#     noncons_flux[6,i,j] = 0.5*B_normal*v1_ll
-#     noncons_flux[7,i,j] = 0.5*B_normal*v2_ll
-#     noncons_flux[8,i,j] = 0.5*B_normal*v3_ll
-#     noncons_flux[9,i,j] = 0.5*v_normal*psi_rr
-#   end
-# end
 
 
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
