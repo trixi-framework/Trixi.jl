@@ -205,6 +205,7 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D)
   return prim2cons(SVector(dens, velx, vely0, velz0, p0), equation)
 end
 
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_conditions`
