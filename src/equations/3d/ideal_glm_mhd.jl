@@ -88,6 +88,21 @@ function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations3D)
   return prim2cons(SVector(rho, v1, v2, v3, p, 1.0, 1.0, 1.0, 0.0), equation)
 end
 
+function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations3D)
+  # setup taken from Table 4 of Bohm et al. JCP article (2018) DOI: 10.1016/j.jcp.2018.06.027
+  # domain must be [0, 1]^3 , γ = 5/3
+  rho = 25.0 / (36.0 * pi)
+  v1 = -sin(2.0*pi*x[3])
+  v2 =  sin(2.0*pi*x[1])
+  v3 =  sin(2.0*pi*x[2])
+  p = 5.0 / (12.0 * pi)
+  B1 = -sin(2.0*pi*x[3]) / (4.0*pi)
+  B2 =  sin(4.0*pi*x[1]) / (4.0*pi)
+  B3 =  sin(4.0*pi*x[2]) / (4.0*pi)
+  psi = 0.0
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
+end
+
 
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations3D)
