@@ -1728,9 +1728,8 @@ end
 
 
 # Calculate and store the surface fluxes (standard Riemann and nonconservative parts) at an interface
-# OBS! Regarding the nonconservative terms: 1) only implemented to work on conforming meshes
-#                                           2) only needed for the MHD equations
-#                                           3) not implemented for boundaries
+# OBS! Regarding the nonconservative terms: 1) currently only needed for the MHD equations
+#                                           2) not implemented for boundaries
 calc_interface_flux!(dg::Dg2D) = calc_interface_flux!(dg.elements.surface_flux_values,
                                                       have_nonconservative_terms(dg.equations), dg)
 
@@ -1765,16 +1764,16 @@ end
 # Calculate and store Riemann and nonconservative fluxes across interfaces
 function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg2D)
   #TODO temporary workaround while implementing the other stuff
-  calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
-                       dg.interfaces.orientations, dg)
+  calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u,
+                       nonconservative_terms, dg.interfaces.orientations, dg)
 end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
                               orientations, dg::Dg2D)
+
   # Type alias only for convenience
   A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-  A1d = MArray{Tuple{nvariables(dg)}, Float64}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
@@ -1796,12 +1795,15 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # Done twice because left/right orientation matters så
     # 1 -> primary element and 2 -> secondary element
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    @views noncons_interface_flux!(noncons_diamond_primary,
-                                   u_interfaces[1,:,:,:], u_interfaces[2,:,:,:],
-                                   s, nnodes(dg), orientations, equations(dg))
-    @views noncons_interface_flux!(noncons_diamond_secondary,
-                                   u_interfaces[2,:,:,:], u_interfaces[1,:,:,:],
-                                   s, nnodes(dg), orientations, equations(dg))
+    for i in 1:nnodes(dg)
+      # Call pointwise nonconservative term
+      u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, s)
+      noncons_primary   = noncons_interface_flux!(u_ll, u_rr, orientations[s], equations(dg))
+      noncons_secondary = noncons_interface_flux!(u_rr, u_ll, orientations[s], equations(dg))
+      # Save to primary and secondary temporay storage
+      set_node_vars!(noncons_diamond_primary, noncons_primary, dg, i)
+      set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i)
+    end
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
@@ -1879,11 +1881,123 @@ end
 # Calculate and store fluxes across mortars (select correct method based on mortar type)
 calc_mortar_flux!(dg::Dg2D) = calc_mortar_flux!(dg, dg.mortar_type)
 
+# Calculate and store fluxes and nonconservative terms across L2 mortars
+calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
+                                                                       have_nonconservative_terms(dg.equations), dg.l2mortars, dg.thread_cache)
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
+                           nonconservative_terms::Val{true}, mortars, cache)
+  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+  # Type alias only for convenience
+  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+
+  noncons_diamond_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+
+  Threads.@threads for m in 1:dg.n_l2mortars
+    large_element_id = dg.l2mortars.neighbor_ids[3, m]
+    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+    noncons_diamond_upper = noncons_diamond_upper_threaded[Threads.threadid()]
+    noncons_diamond_lower = noncons_diamond_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
+    calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
+
+    # Compute the nonconservative numerical terms along the upper and lower interface
+    # Done twice because left/right orientation matters
+    # 1 -> primary element and 2 -> secondary element
+    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
+    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+      for i in 1:nnodes(dg)
+        # pull the left and right solutions
+        u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
+        u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
+        # Call pointwise nonconservative term
+        noncons_upper = noncons_interface_flux!(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux!(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
+        # Save to primary and secondary temporay storage
+        set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
+        set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
+      end
+    else # large_sides[m] == 2 -> small elements on the left
+      for i in 1:nnodes(dg)
+        # pull the left and right solutions
+        u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
+        u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
+        # Call pointwise nonconservative term
+        noncons_upper = noncons_interface_flux!(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux!(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
+        # Save to primary and secondary temporay storage
+        set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
+        set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
+      end
+    end
+
+    # Copy flux small to small
+    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+        surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+      else
+        # L2 mortars in y-direction
+        surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+        surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+      end
+    else # large_sides[m] == 2 -> small elements on left side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+        surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+      else
+        # L2 mortars in y-direction
+        surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
+        surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
+      end
+    end
+
+    # Project small fluxes to large element
+    for v in 1:nvariables(dg)
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
+                                          (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
+                                            dg.l2mortar_reverse_lower *
+                                          (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
+        else
+          # L2 mortars in y-direction
+          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
+        end
+      else # large_sides[m] == 2 -> large element on right side
+        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
+                                        (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
+                                            dg.l2mortar_reverse_lower *
+                                        (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
+        else
+          # L2 mortars in y-direction
+          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
+        end
+      end
+    end
+  end
+end
 
 # Calculate and store fluxes across L2 mortars
-calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
-                                                                       dg.l2mortars, dg.thread_cache)
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, mortars, cache)
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
+                           nonconservative_terms::Val{false}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
