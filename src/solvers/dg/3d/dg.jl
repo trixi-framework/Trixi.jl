@@ -1950,12 +1950,15 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # Done twice because left/right orientation matters så
     # 1 -> primary element and 2 -> secondary element
     # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-    @views noncons_interface_flux!(noncons_diamond_primary,
-                                   u_interfaces[1,:,:,:,:], u_interfaces[2,:,:,:,:],
-                                   s, nnodes(dg), orientations, equations(dg))
-    @views noncons_interface_flux!(noncons_diamond_secondary,
-                                   u_interfaces[2,:,:,:,:], u_interfaces[1,:,:,:,:],
-                                   s, nnodes(dg), orientations, equations(dg))
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+      # Call pointwise Riemann solver
+      u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, j, s)
+      noncons_primary   = noncons_interface_flux!(u_ll, u_rr, orientations[s], equations(dg))
+      noncons_secondary = noncons_interface_flux!(u_rr, u_ll, orientations[s], equations(dg))
+      # Save to primary and secondary temporay storage
+      set_node_vars!(noncons_diamond_primary, noncons_primary, dg, i, j)
+      set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i, j)
+    end
 
     # Get neighboring elements
     left_neighbor_id  = neighbor_ids[1, s]
