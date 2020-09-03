@@ -709,7 +709,7 @@ as given by Cargo and Gallice (1997)
   end
 
   return vel_out_roe, c_f_roe
- end
+end
 
 # Calculate thermodynamic entropy for a conservative state `cons`
 @inline function entropy_thermodynamic(cons, equation::IdealGlmMhdEquations2D)

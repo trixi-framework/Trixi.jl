@@ -192,7 +192,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_orszag_tang.toml"),
             l2   = [0.10797201158738569, 0.20183923675400306, 0.22965987220003012, 0.0, 0.2993862890890887, 0.156865945562645, 0.24280278839125313, 0.0, 0.0034424029849492947],
             linf = [0.5605977377102305, 0.509274304343078, 0.6612312950402195, 0.0, 0.9814914518422291, 0.39977774699748586, 0.6748004026413148, 0.0, 0.06802505466018915],
-            t_end = 0.06, surface_flux="flux_hll")
+            t_end = 0.06, surface_flux = "flux_hll")
   end
   @testset "parameters_ec_mortar.toml with shock_capturing" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mortar.toml"),
