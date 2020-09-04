@@ -4,32 +4,32 @@ include("parallel_tree.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
-mutable struct TreeMesh{D}
-  tree::Tree{D}
+mutable struct TreeMesh{NDIMS, TreeType}
+  tree::TreeType
   current_filename::String
   unsaved_changes::Bool
 
-  function TreeMesh{D}(n_cells_max::Integer) where D
-    # Verify that D is an integer
-    @assert D isa Integer
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType}
+    # Verify that NDIMS is an integer
+    @assert NDIMS == ndims(TreeType)
 
     # Create mesh
     m = new()
-    m.tree = Tree{D}(n_cells_max)
+    m.tree = TreeType{NDIMS}(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = false
 
     return m
   end
 
-  function TreeMesh{D}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
-                       domain_length, periodicity=true) where D
-    # Verify that D is an integer
-    @assert D isa Integer
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
+                                     domain_length, periodicity=true) where{NDIMS, TreeType} 
+    # Verify that NDIMS matches the tree
+    @assert NDIMS == ndims(TreeType)
 
     # Create mesh
     m = new()
-    m.tree = Tree{D}(n_cells_max, domain_center, domain_length, periodicity)
+    m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = false
 
@@ -37,11 +37,15 @@ mutable struct TreeMesh{D}
   end
 end
 
-# Constructor for passing the dimension as an argument
-TreeMesh(::Val{D}, args...) where D = TreeMesh{D}(args...)
+# Constructor for passing the dimension and mesh type as an argument
+function TreeMesh(::Val{NDIMS}, ::Val{TreeType}, args...) where {NDIMS, TreeType}
+  return TreeMesh{NDIMS, TreeType}(args...)
+end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-TreeMesh{1}(n::Int, center::Real, len::Real, periodicity=true) = TreeMesh{1}(n, [convert(Float64, center)], len, periodicity)
+function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where TreeType
+  return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
+end
 
 
 @inline Base.ndims(mesh::TreeMesh) = ndims(mesh.tree)
@@ -67,8 +71,14 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
-                                             domain_length, periodicity)
+  if is_parallel()
+    @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), Val{ParallelTree{ndims_}}(),
+                                               n_cells_max,
+                                               domain_center, domain_length, periodicity)
+  else
+    @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), Val{Tree{ndims_}}(), n_cells_max,
+                                               domain_center, domain_length, periodicity)
+  end
 
   # Create initial refinement
   initial_refinement_level = parameter("initial_refinement_level")
