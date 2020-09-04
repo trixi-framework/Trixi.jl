@@ -26,6 +26,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractContainer
   levels::Vector{Int}
   coordinates::Matrix{Float64}
   original_cell_ids::Vector{Int}
+  domain_ids::Vector{Int}
 
   capacity::Int
   length::Int
@@ -50,6 +51,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractContainer
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, NDIMS, capacity + 1)
     t.original_cell_ids = fill(typemin(Int), capacity + 1)
+    t.domain_ids = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
@@ -97,6 +99,7 @@ function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, pe
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
   t.original_cell_ids[1] = 0
+  t.domain_ids[1] = 0
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
@@ -134,6 +137,7 @@ function Base.show(io::IO, t::ParallelTree{NDIMS}) where NDIMS
   println(io, "t.levels[1:l] = $(t.levels[1:l])")
   println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
   println(io, "t.original_cell_ids[1:l] = $(t.original_cell_ids[1:l])")
+  println(io, "t.domain_ids[1:l] = $(t.domain_ids[1:l])")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
@@ -196,7 +200,7 @@ isperiodic(t::ParallelTree, dimension) = t.periodicity[dimension]
 # Auxiliary methods for often-required calculations
 # Number of potential child cells
 n_children_per_cell(::ParallelTree{NDIMS}) where NDIMS = 2^NDIMS
-n_children_per_cell(dims::Integer) = 2^dims
+# n_children_per_cell(dims::Integer) = 2^dims
 
 # Number of directions
 #
@@ -218,7 +222,7 @@ n_directions(::ParallelTree{NDIMS}) where NDIMS = 2 * NDIMS
 #  4  ->  3
 #  5  ->  6
 #  6  ->  5
-opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
+# opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 
 # For a given child position (from 1 to 8) and dimension (from 1 to 3),
 # calculate a child cell's position relative to its parent cell.
@@ -234,26 +238,26 @@ opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 #   6       +     -     +
 #   7       -     +     +
 #   8       +     +     +
-child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
+# child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
 
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
 # neighboring child position.
-adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
-                                              1 1 4 4 6 6;
-                                              4 4 1 1 7 7;
-                                              3 3 2 2 8 8;
-                                              6 6 7 7 1 1;
-                                              5 5 8 8 2 2;
-                                              8 8 5 5 3 3;
-                                              7 7 6 6 4 4][child, direction]
+# adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
+#                                               1 1 4 4 6 6;
+#                                               4 4 1 1 7 7;
+#                                               3 3 2 2 8 8;
+#                                               6 6 7 7 1 1;
+#                                               5 5 8 8 2 2;
+#                                               8 8 5 5 3 3;
+#                                               7 7 6 6 4 4][child, direction]
 
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
 # if neighbor is a sibling
-function has_sibling(child::Int, direction::Int)
-  return (child_sign(child, div(direction + 1, 2)) * (-1)^(direction - 1)) > 0
-end
+# function has_sibling(child::Int, direction::Int)
+#   return (child_sign(child, div(direction + 1, 2)) * (-1)^(direction - 1)) > 0
+# end
 
 
 # Obtain leaf cells that fulfill a given criterion.
@@ -427,6 +431,7 @@ function refine_unbalanced!(t::ParallelTree, cell_ids)
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
       t.original_cell_ids[child_id] = 0
+      t.domain_ids[child_id] = t.domain_ids[cell_id]
 
       # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
@@ -672,6 +677,7 @@ function invalidate!(t::ParallelTree, first::Int, last::Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
   t.original_cell_ids[first:last] .= typemin(Int)
+  t.domain_ids[first:last] .= typemin(Int)
 
   return nothing
 end
@@ -797,15 +803,7 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
-end
-function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  raw_copy!(c, c, first, last, destination)
-end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
-  raw_copy!(target, source, from, from, destination)
-end
-function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-  raw_copy!(c, c, from, from, destination)
+  copy_data!(target.domain_ids, source.domain_ids, first, last, destination)
 end
 
 
@@ -817,6 +815,7 @@ function reset_data_structures!(t::ParallelTree{NDIMS}) where NDIMS
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
+  t.domain_ids = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end

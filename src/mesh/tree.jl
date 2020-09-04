@@ -798,15 +798,6 @@ function raw_copy!(target::Tree, source::Tree, first::Int, last::Int, destinatio
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
 end
-function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  raw_copy!(c, c, first, last, destination)
-end
-function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
-  raw_copy!(target, source, from, from, destination)
-end
-function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
-  raw_copy!(c, c, from, from, destination)
-end
 
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
