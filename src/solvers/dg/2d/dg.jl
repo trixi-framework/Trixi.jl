@@ -1273,7 +1273,7 @@ end
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
@@ -1318,26 +1318,9 @@ end
   end
 end
 
-
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, _, dg::Dg2D)
-  # Do not use the thread_cache here since that reduces the performance significantly
-  # (which we do not fully understand right now)
-  # @unpack f1_threaded, f2_threaded = cache
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  cache = (;f1_threaded, f2_threaded)
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
-  end
-end
-
-@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, cache, dg::Dg2D, alpha=true)
+@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, thread_cache, dg::Dg2D, alpha=true)
   @unpack volume_flux_function, dsplit_transposed = dg
-  @unpack f1_threaded, f2_threaded = cache
+  @unpack f1_threaded, f2_threaded = thread_cache
 
   # Choose thread-specific pre-allocated container
   f1 = f1_threaded[Threads.threadid()]
