@@ -29,6 +29,11 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
   # Reset timer
   reset_timer!(timer())
 
+  # Initialize MPI
+  if !MPI.Initialized()
+    MPI.Init()
+  end
+
   # Read command line or keyword arguments and parse parameters file
   init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
