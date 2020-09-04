@@ -100,21 +100,20 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
   # initial center of the vortex
-  inicenter = [0,0]
+  inicenter = SVector(0.0, 0.0)
   # size and strength of the vortex
   iniamplitude = 0.2
   # base flow
-  prim=[1.0,1.0,1.0,10.0]
-  vel=prim[2:3]
-  rt=prim[4]/prim[1]                      # ideal gas equation
-  cent=(inicenter+vel*t)                  # advection of center
-  cent=x-cent                             # distance to centerpoint
-  #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
+  prim = [1.0,1.0,1.0,10.0]
+  vel = prim[2:3]
+  rt = prim[4]/prim[1]                  # ideal gas equation
+  cent = (inicenter+vel*t)              # advection of center
+  cent = x-cent                         # distance to centerpoint
+  #cent=cross(iniaxis,cent)             # distance to axis, tangent vector, length r
   # cross product with iniaxis = [0,0,1]
   helper =  cent[1]
-  cent[1] = -cent[2]
-  cent[2] = helper
-  r2=cent[1]^2+cent[2]^2
+  cent = SVector(-cent[2], helper)
+  r2 = cent[1]^2 + cent[2]^2
   du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
   dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
   prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
@@ -127,7 +126,7 @@ end
 function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -136,9 +135,9 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p = r > 0.5 ? 1.0 : 1.245
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  p   = r > 0.5 ? 1.0 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
@@ -146,7 +145,7 @@ end
 function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -155,16 +154,16 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p = r > 0.5 ? 1.0E-3 : 1.245
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  p   = r > 0.5 ? 1.0E-3 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -179,16 +178,16 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
 
   # Calculate primitive variables
   rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -203,9 +202,9 @@ function initial_conditions_medium_sedov_blast_wave(x, t, equation::Compressible
 
   # Calculate primitive variables
   rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
