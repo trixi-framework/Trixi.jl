@@ -104,23 +104,27 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   # size and strength of the vortex
   iniamplitude = 0.2
   # base flow
-  prim = [1.0,1.0,1.0,10.0]
-  vel = prim[2:3]
-  rt = prim[4]/prim[1]                  # ideal gas equation
-  cent = (inicenter+vel*t)              # advection of center
-  cent = x-cent                         # distance to centerpoint
-  #cent=cross(iniaxis,cent)             # distance to axis, tangent vector, length r
+  rho = 1.0
+  v1 = 1.0
+  v2 = 1.0
+  vel = SVector(v1, v2)
+  p = 10.0
+  vec = SVector(v1, v2)
+  rt = p / rho                  # ideal gas equation
+  cent = inicenter + vel*t      # advection of center
+  cent = x - cent               # distance to centerpoint
+  #cent=cross(iniaxis,cent)     # distance to axis, tangent vector, length r
   # cross product with iniaxis = [0,0,1]
-  helper =  cent[1]
-  cent = SVector(-cent[2], helper)
+  cent = SVector(-cent[2], cent[1])
   r2 = cent[1]^2 + cent[2]^2
   du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
   dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-  prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
-  prim[2:3]=prim[2:3]+du*cent #v
-  prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-  rho,rho_v1,rho_v2,rho_e = prim2cons(prim, equation)
-  return @SVector [rho, rho_v1, rho_v2, rho_e]
+  rho = rho * (1+dtemp)^(1\(equation.gamma-1))
+  vel = vel + du*cent
+  v1, v2 = vel
+  p = p * (1+dtemp)^(equation.gamma/(equation.gamma-1))
+  prim = SVector(rho, v1, v2, p)
+  return prim2cons(prim, equation)
 end
 
 function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
