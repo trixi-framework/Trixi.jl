@@ -14,7 +14,23 @@ const parameters = Dict{Symbol,Any}()
 
 # Parse parameters file into global dict
 function parse_parameters_file(filename)
-  parameters[:default] = parsefile(filename)
+  if is_parallel()
+    # If parallel, read in file on root domain and distribute to other domains
+    if is_mpi_root()
+      buffer = read(filename)
+      buffer_length = Int[length(buffer)]
+      MPI.Bcast!(buffer_length, mpi_root(), mpi_comm())
+      MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+    else
+      buffer_length = Int[0]
+      MPI.Bcast!(buffer_length, mpi_root(), mpi_comm())
+      buffer = Vector{UInt8}(undef, buffer_length[1])
+      MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+    end
+    parameters[:default] = parse(String(buffer))
+  else
+    parameters[:default] = parsefile(filename)
+  end
   parameters[:default]["parameters_file"] = filename
 end
 

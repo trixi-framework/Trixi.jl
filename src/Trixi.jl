@@ -14,7 +14,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using Pkg.TOML: parsefile
+using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
