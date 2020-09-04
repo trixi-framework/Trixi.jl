@@ -49,9 +49,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "multiply_dimensionwise" begin
       nodes_in  = [0.0, 0.5, 1.0]
       nodes_out = [0.0, 1/3, 2/3, 1.0]
-      vdm = Trixi.polynomial_interpolation_matrix(nodes_in, nodes_out)
+      matrix = Trixi.polynomial_interpolation_matrix(nodes_in, nodes_out)
       data_in = [3.0 4.5 6.0]
-      @test Trixi.multiply_dimensionwise(data_in, vdm) ≈ [3.0 4.0 5.0 6.0]
+      @test Trixi.multiply_dimensionwise(matrix, data_in) ≈ [3.0 4.0 5.0 6.0]
 
       n_vars   = 3
       size_in  = 4
@@ -59,16 +59,16 @@ isdir(outdir) && rm(outdir, recursive=true)
       matrix   = randn(size_out, size_in)
       # 1D
       data_in  = randn(n_vars, size_in)
-      data_out = Trixi.multiply_dimensionwise_naive(data_in, matrix)
-      @test data_out ≈ Trixi.multiply_dimensionwise(data_in, matrix)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test data_out ≈ Trixi.multiply_dimensionwise(matrix, data_in)
       # 2D
       data_in  = randn(n_vars, size_in, size_in)
-      data_out = Trixi.multiply_dimensionwise_naive(data_in, matrix)
-      @test data_out ≈ Trixi.multiply_dimensionwise(data_in, matrix)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test data_out ≈ Trixi.multiply_dimensionwise(matrix, data_in)
       # 3D
       data_in  = randn(n_vars, size_in, size_in, size_in)
-      data_out = Trixi.multiply_dimensionwise_naive(data_in, matrix)
-      @test data_out ≈ Trixi.multiply_dimensionwise(data_in, matrix)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test data_out ≈ Trixi.multiply_dimensionwise(matrix, data_in)
     end
   end
 

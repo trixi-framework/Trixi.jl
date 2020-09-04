@@ -729,8 +729,8 @@ function calc_error_norms(dg::Dg2D, t)
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    multiply_dimensionwise!(u, view(dg.elements.u, :, :, :, element_id),                dg.analysis_vandermonde, u_tmp1)
-    multiply_dimensionwise!(x, view(dg.elements.node_coordinates, :, :, :, element_id), dg.analysis_vandermonde, x_tmp1)
+    multiply_dimensionwise!(u, dg.analysis_vandermonde, view(dg.elements.u,                :, :, :, element_id), u_tmp1)
+    multiply_dimensionwise!(x, dg.analysis_vandermonde, view(dg.elements.node_coordinates, :, :, :, element_id), x_tmp1)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
@@ -1604,8 +1604,8 @@ function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
           end
         end
       end
-      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), u_large, dg.mortar_forward_upper)
-      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), u_large, dg.mortar_forward_lower)
+      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), dg.mortar_forward_upper, u_large)
+      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), dg.mortar_forward_lower, u_large)
     else # large_sides[m] == 2 -> large element on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
@@ -1622,8 +1622,8 @@ function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
           end
         end
       end
-      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), u_large, dg.mortar_forward_upper)
-      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), u_large, dg.mortar_forward_lower)
+      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), dg.mortar_forward_upper, u_large)
+      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), dg.mortar_forward_lower, u_large)
     end
   end
 end
@@ -2051,6 +2051,34 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
 
     # Project small fluxes to large element
+    # if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+    #   if dg.l2mortars.orientations[m] == 1
+    #     # L2 mortars in x-direction
+    #     direction = 2
+    #   else
+    #     # L2 mortars in y-direction
+    #     direction = 4
+    #   end
+    # else # large_sides[m] == 2 -> large element on right side
+    #   if dg.l2mortars.orientations[m] == 1
+    #     # L2 mortars in x-direction
+    #     direction = 1
+    #   else
+    #     # L2 mortars in y-direction
+    #     direction = 3
+    #   end
+    # end
+    # multiply_dimensionwise!(
+    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper)
+    # multiply_dimensionwise!(
+    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_lower, fstar_lower, true, true)
+
+    # for v in 1:nvariables(dg)
+    #   @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
+    #                                       dg.l2mortar_reverse_lower * fstar_lower[v, :])
+    #   surface_flux_values[v, :, direction, large_element_id] .= large_surface_flux_values
+    # end
+
     for v in 1:nvariables(dg)
       @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
                                           dg.l2mortar_reverse_lower * fstar_lower[v, :])
@@ -2072,6 +2100,7 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
       end
     end
+
   end
 end
 
@@ -2273,7 +2302,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
-    multiply_dimensionwise!(modal, indicator, dg.inverse_vandermonde_legendre, modal_tmp1)
+    multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0

@@ -771,8 +771,8 @@ function calc_error_norms(dg::Dg3D, t)
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    multiply_dimensionwise!(u, view(dg.elements.u, :, :, :, :, element_id),                dg.analysis_vandermonde, u_tmp1, u_tmp2)
-    multiply_dimensionwise!(x, view(dg.elements.node_coordinates, :, :, :, :, element_id), dg.analysis_vandermonde, x_tmp1, x_tmp2)
+    multiply_dimensionwise!(u, dg.analysis_vandermonde, view(dg.elements.u, :, :, :, :, element_id),                u_tmp1, u_tmp2)
+    multiply_dimensionwise!(x, dg.analysis_vandermonde, view(dg.elements.node_coordinates, :, :, :, :, element_id), x_tmp1, x_tmp2)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
@@ -2462,7 +2462,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
     # Convert to modal representation
-    multiply_dimensionwise!(modal, indicator, dg.inverse_vandermonde_legendre, modal_tmp1, modal_tmp2)
+    multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1, modal_tmp2)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
