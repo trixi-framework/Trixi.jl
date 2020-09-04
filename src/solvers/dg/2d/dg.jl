@@ -240,8 +240,10 @@ function create_thread_cache_2d(n_variables, n_nodes)
   f2_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   fstar1_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
   fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
 
   indicator_threaded  = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   modal_threaded      = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
@@ -249,6 +251,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
             fstar_upper_threaded, fstar_lower_threaded,
+            noncons_diamond_upper_threaded, noncons_diamond_lower_threaded,
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
@@ -1878,21 +1881,12 @@ calc_mortar_flux!(dg::Dg2D) = calc_mortar_flux!(dg, dg.mortar_type)
 calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
                                                                        have_nonconservative_terms(dg.equations), dg.l2mortars, dg.thread_cache)
 function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{true}, mortars, cache)
+                           nonconservative_terms::Val{true}, mortars, thread_cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-
-  noncons_diamond_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  @unpack fstar_upper_threaded, fstar_lower_threaded,
+          noncons_diamond_upper_threaded, noncons_diamond_lower_threaded = thread_cache
 
   Threads.@threads for m in 1:dg.n_l2mortars
-    large_element_id = dg.l2mortars.neighbor_ids[3, m]
-    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
-    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
-
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
@@ -1914,8 +1908,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientations[m], equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientations[m], equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
@@ -1926,65 +1920,18 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientations[m], equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientations[m], equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
       end
     end
 
-    # Copy flux small to small
-    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      end
-    else # large_sides[m] == 2 -> small elements on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      end
-    end
-
-    # Project small fluxes to large element
-    for v in 1:nvariables(dg)
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                          (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
-                                            dg.l2mortar_reverse_lower *
-                                          (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
-        end
-      else # large_sides[m] == 2 -> large element on right side
-        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                        (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
-                                            dg.l2mortar_reverse_lower *
-                                        (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
-        end
-      end
-    end
+    @. fstar_upper += noncons_diamond_upper
+    @. fstar_lower += noncons_diamond_lower
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
+                                    fstar_upper, fstar_lower)
   end
 end
 
@@ -1995,10 +1942,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
   Threads.@threads for m in 1:dg.n_l2mortars
-    large_element_id = dg.l2mortars.neighbor_ids[3, m]
-    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
-    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
-
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
@@ -2007,58 +1950,69 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
     calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
 
-    # Copy flux small to small
-    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        direction = 1
-      else
-        # L2 mortars in y-direction
-        direction = 3
-      end
-    else # large_sides[m] == 2 -> small elements on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        direction = 2
-      else
-        # L2 mortars in y-direction
-        direction = 4
-      end
-    end
-    surface_flux_values[:, :, direction, upper_element_id] .= fstar_upper
-    surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
-
-    # Project small fluxes to large element
-    if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        direction = 2
-      else
-        # L2 mortars in y-direction
-        direction = 4
-      end
-    else # large_sides[m] == 2 -> large element on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        direction = 1
-      else
-        # L2 mortars in y-direction
-        direction = 3
-      end
-    end
-
-    for v in 1:nvariables(dg)
-      @views surface_flux_values[v, :, direction, large_element_id] .=
-        (dg.l2mortar_reverse_upper * fstar_upper[v, :] + dg.l2mortar_reverse_lower * fstar_lower[v, :])
-    end
-    # The code above could be replaced by the following code. However, the relative efficiency
-    # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
-    # Using StaticArrays for both makes the code above faster for common test cases.
-    # multiply_dimensionwise!(
-    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper,
-    #                                                                 dg.l2mortar_reverse_lower, fstar_lower)
-
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
+                                    fstar_upper, fstar_lower)
   end
+end
+
+@inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
+                                                 fstar_upper, fstar_lower)
+  large_element_id = dg.l2mortars.neighbor_ids[3, m]
+  upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+  lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+
+  # Copy flux small to small
+  if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
+    end
+  else # large_sides[m] == 2 -> small elements on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
+    end
+  end
+  surface_flux_values[:, :, direction, upper_element_id] .= fstar_upper
+  surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
+
+  # Project small fluxes to large element
+  if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
+    end
+  else # large_sides[m] == 2 -> large element on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
+    end
+  end
+
+  for v in 1:nvariables(dg)
+    @views surface_flux_values[v, :, direction, large_element_id] .=
+      (dg.l2mortar_reverse_upper * fstar_upper[v, :] + dg.l2mortar_reverse_lower * fstar_lower[v, :])
+  end
+  # The code above could be replaced by the following code. However, the relative efficiency
+  # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
+  # Using StaticArrays for both makes the code above faster for common test cases.
+  # multiply_dimensionwise!(
+  #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper,
+  #                                                                 dg.l2mortar_reverse_lower, fstar_lower)
+
+  return nothing
 end
 
 

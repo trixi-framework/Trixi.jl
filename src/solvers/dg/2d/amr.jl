@@ -413,7 +413,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha1     = dg.element_variables[:blending_factor]
     alpha1_tmp = dg.element_variables[:blending_factor_tmp]
     calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
-                           Val(dg.shock_indicator_variable), dg.thread_cache, dg)
+                           dg.shock_indicator_variable, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
