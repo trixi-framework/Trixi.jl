@@ -97,7 +97,11 @@ function multiply_dimensionwise(matrix::AbstractMatrix, data_in::AbstractArray{<
 end
 
 
-# in-place version of multiply_dimensionwise
+# In the following, tere are several optimized in-place version of multiply_dimensionwise.
+# These make use of the macro `@tullio` from Tullio.jl, which basically uses an Einstein
+# summation convention syntax.
+
+# 1D version
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::AbstractMatrix,
                                  data_in ::AbstractArray{<:Any, 2})
   @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
@@ -105,6 +109,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::Abst
   return nothing
 end
 
+# 1D version, apply matrixJ to data_inJ
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
                                  data_in2::AbstractArray{<:Any, 2})
@@ -113,6 +118,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::Abs
   return nothing
 end
 
+# 2D version
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 3},
                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2)))
@@ -126,6 +132,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::Abst
   return nothing
 end
 
+# 2D version, apply matrixJ to dimension J of data_in
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
                                  matrix1::AbstractMatrix, matrix2::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 3},
@@ -140,6 +147,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
   return nothing
 end
 
+# 2D version, apply matrixJ to dimension J of data_in and add the result to data_out
 function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
                                      matrix1::AbstractMatrix, matrix2::AbstractMatrix,
                                      data_in:: AbstractArray{<:Any, 3},
@@ -154,6 +162,7 @@ function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
   return nothing
 end
 
+# 3D version
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 4},
                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
@@ -171,6 +180,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
   return nothing
 end
 
+# 3D version, apply matrixJ to dimension J of data_in
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
                                  matrix1::AbstractMatrix, matrix2::AbstractMatrix, matrix3::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 4},
@@ -189,6 +199,7 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
   return nothing
 end
 
+# 3D version, apply matrixJ to dimension J of data_in and add the result to data_out
 function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
                                      matrix1::AbstractMatrix, matrix2::AbstractMatrix, matrix3::AbstractMatrix,
                                      data_in:: AbstractArray{<:Any, 4},

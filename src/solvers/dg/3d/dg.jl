@@ -203,8 +203,6 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
       SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
-      # mortar_forward_upper, mortar_forward_lower,
-      # l2mortar_reverse_upper, l2mortar_reverse_lower,
       SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
@@ -220,6 +218,7 @@ end
 function create_thread_cache_3d(n_variables, n_nodes)
   # Type alias only for convenience
   A5d     = Array{Float64, 5}
+  A4d     = Array{Float64, 4}
   A4dp1_x = Array{Float64, 4}
   A4dp1_y = Array{Float64, 4}
   A4dp1_z = Array{Float64, 4}
@@ -242,10 +241,10 @@ function create_thread_cache_3d(n_variables, n_nodes)
   noncons_diamond_lower_left_threaded  = A3d[A3d(undef, n_variables, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   noncons_diamond_lower_right_threaded = A3d[A3d(undef, n_variables, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
-  indicator_threaded  = [zeros(1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [zeros(1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [zeros(1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_tmp2_threaded = [zeros(1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  indicator_threaded  = [A4d(undef, 1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A4d(undef, 1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [A4d(undef, 1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_tmp2_threaded = [A4d(undef, 1, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded, f3_threaded,
             fstar1_threaded, fstar2_threaded, fstar3_threaded,
@@ -1812,8 +1811,13 @@ function prolong2mortars!(dg::Dg3D, mortar_type::Val{:l2}, thread_cache)
   end
 end
 
-@inline function interpolate_mortar_values!(dg::Dg3D, ::Val{:l2}, leftright, m,
-                                            u_large, fstar_tmp1)
+"""
+    interpolate_mortar_values!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
+
+Interpolate `u_large` to `dg.l2mortars.u_[upper/lower]_[left/right]` for mortar `m`
+using the forward mortar operators of `dg` and `fstar_tmp1` as temporary storage.
+"""
+@inline function interpolate_mortar_values!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_right, leftright, :, :, :, m), dg.mortar_forward_upper, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_lower, u_large, fstar_tmp1)
@@ -2125,10 +2129,24 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
       end
     end
 
-    @. fstar_upper_left  += noncons_diamond_upper_left
-    @. fstar_upper_right += noncons_diamond_upper_right
-    @. fstar_lower_left  += noncons_diamond_lower_left
-    @. fstar_lower_right += noncons_diamond_lower_right
+    # the code below is equivalent to
+    # @. fstar_upper_left  += noncons_diamond_upper_left
+    # @. fstar_upper_right += noncons_diamond_upper_right
+    # @. fstar_lower_left  += noncons_diamond_lower_left
+    # @. fstar_lower_right += noncons_diamond_lower_right
+    # but slightly faster
+    for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+      fstar_upper_left[v, i, j]  += noncons_diamond_upper_left[v, i, j]
+    end
+    for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+      fstar_upper_right[v, i, j] += noncons_diamond_upper_right[v, i, j]
+    end
+    for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+      fstar_lower_left[v, i, j]  += noncons_diamond_lower_left[v, i, j]
+    end
+    for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
+      fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
+    end
     copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
                                     fstar_upper_left, fstar_upper_right,
                                     fstar_lower_left, fstar_lower_right,
@@ -2136,6 +2154,15 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
   end
 end
 
+"""
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
+                                    fstar_upper_left, fstar_upper_right,
+                                    fstar_lower_left, fstar_lower_right,
+                                    fstar_tmp1)
+
+Copy/project `fstar_[upper/lower]_[left/right` to `surface_flux_values` for mortar `m`
+using the reverse mortar operators of `dg` and `fstar_tmp1` as temporary storage.
+"""
 @inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
                                                  fstar_upper_left, fstar_upper_right,
                                                  fstar_lower_left, fstar_lower_right,

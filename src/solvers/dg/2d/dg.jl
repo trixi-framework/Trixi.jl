@@ -230,6 +230,7 @@ end
 function create_thread_cache_2d(n_variables, n_nodes)
   # Type alias only for convenience
   A4d     = Array{Float64, 4}
+  A3d     = Array{Float64, 3}
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
   MA2d    = MArray{Tuple{n_variables, n_nodes}, Float64}
@@ -245,9 +246,9 @@ function create_thread_cache_2d(n_variables, n_nodes)
   noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  indicator_threaded  = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  indicator_threaded  = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
             fstar1_threaded, fstar2_threaded,
@@ -1578,8 +1579,13 @@ function prolong2mortars!(dg::Dg2D, mortar_type::Val{:l2})
   end
 end
 
-@inline function interpolate_mortar_values!(dg::Dg2D, ::Val{:l2}, leftright, m,
-                                            u_large)
+"""
+    interpolate_mortar_values!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+
+Interpolate `u_large` to `dg.l2mortars.u_[upper/lower]` for mortar `m`
+using the forward mortar operators of `dg`.
+"""
+@inline function interpolate_mortar_values!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper, leftright, :, :, m), dg.mortar_forward_upper, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower, leftright, :, :, m), dg.mortar_forward_lower, u_large)
   return nothing
@@ -1925,6 +1931,12 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
   end
 end
 
+"""
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m, fstar_upper, fstar_lower)
+
+Copy/project `fstar_[upper/lower]` to `surface_flux_values` for mortar `m`
+using the reverse mortar operators of `dg`.
+"""
 @inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
                                                  fstar_upper, fstar_lower)
   large_element_id = dg.l2mortars.neighbor_ids[3, m]
