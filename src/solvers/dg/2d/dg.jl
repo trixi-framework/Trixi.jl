@@ -122,8 +122,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  mortar_forward_upper = calc_forward_upper(n_nodes)
-  mortar_forward_lower = calc_forward_lower(n_nodes)
+  mortar_forward_upper   = calc_forward_upper(n_nodes)
+  mortar_forward_lower   = calc_forward_lower(n_nodes)
   l2mortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss))
   l2mortar_reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss))
   ecmortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
@@ -212,9 +212,13 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
+      #TODO
+      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper),   SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
+      # mortar_forward_upper,   mortar_forward_lower,
+      # l2mortar_reverse_upper, l2mortar_reverse_lower,
+      # ecmortar_reverse_upper, ecmortar_reverse_lower,
       SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
@@ -242,7 +246,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes) for _ in 1:Threads.nthreads()]
+  u_large_threaded     = A2d[A2d(undef, n_variables, n_nodes) for _ in 1:Threads.nthreads()]
 
   indicator_threaded  = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   modal_threaded      = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
@@ -1584,36 +1588,42 @@ function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
     end
 
     # Interpolate large element face data to small interface locations
-    for v in 1:nvariables(dg)
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          for l in 1:nnodes(dg)
+    if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u_large[v, l] = dg.elements.u[v, nnodes(dg), l, large_element_id]
           end
-        else
-          # L2 mortars in y-direction
-          for l in 1:nnodes(dg)
+        end
+      else
+        # L2 mortars in y-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
-      else # large_sides[m] == 2 -> large element on right side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          for l in 1:nnodes(dg)
+      end
+      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), u_large, dg.mortar_forward_upper)
+      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), u_large, dg.mortar_forward_lower)
+    else # large_sides[m] == 2 -> large element on right side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u_large[v, l] = dg.elements.u[v, 1, l, large_element_id]
           end
-        else
-          # L2 mortars in y-direction
-          for l in 1:nnodes(dg)
+        end
+      else
+        # L2 mortars in y-direction
+        for l in 1:nnodes(dg)
+          for v in 1:nvariables(dg)
             u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
           end
         end
-        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
       end
+      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), u_large, dg.mortar_forward_upper)
+      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), u_large, dg.mortar_forward_lower)
     end
   end
 end
