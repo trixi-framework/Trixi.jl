@@ -1867,6 +1867,27 @@ calc_mortar_flux!(dg::Dg2D) = calc_mortar_flux!(dg, dg.mortar_type)
 # Calculate and store fluxes and nonconservative terms across L2 mortars
 calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
                                                                        have_nonconservative_terms(dg.equations), dg.l2mortars, dg.thread_cache)
+
+# Calculate and store fluxes across L2 mortars
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
+                           nonconservative_terms::Val{false}, mortars, cache)
+  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+  Threads.@threads for m in 1:dg.n_l2mortars
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+    # Calculate fluxes
+    calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
+    calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
+
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
+                                    fstar_upper, fstar_lower)
+  end
+end
+
 function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
                            nonconservative_terms::Val{true}, mortars, thread_cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
@@ -1917,26 +1938,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
 
     @. fstar_upper += noncons_diamond_upper
     @. fstar_lower += noncons_diamond_lower
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
-                                    fstar_upper, fstar_lower)
-  end
-end
-
-# Calculate and store fluxes across L2 mortars
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{false}, mortars, cache)
-  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-
-  Threads.@threads for m in 1:dg.n_l2mortars
-    # Choose thread-specific pre-allocated container
-    fstar_upper = fstar_upper_threaded[Threads.threadid()]
-    fstar_lower = fstar_lower_threaded[Threads.threadid()]
-
-    # Calculate fluxes
-    calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
-    calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
-
     copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
                                     fstar_upper, fstar_lower)
   end

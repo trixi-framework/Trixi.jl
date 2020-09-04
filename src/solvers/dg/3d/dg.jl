@@ -1835,7 +1835,7 @@ end
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_right, leftright, :, :, :, m), dg.mortar_forward_upper, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_lower, u_large, fstar_tmp1)
-  multiply_dimensionwise!(view(dg.l2mortars.u_lower_right, leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_upper, u_large, fstar_tmp1)
+  multiply_dimensionwise!(view(dg.l2mortars.u_lower_right, leftright, :, :, :, m), dg.mortar_forward_upper, dg.mortar_forward_lower, u_large, fstar_tmp1)
   return nothing
 end
 
@@ -2037,24 +2037,20 @@ calc_mortar_flux!(dg::Dg3D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elemen
                                                                        have_nonconservative_terms(dg.equations), dg.l2mortars, dg.thread_cache)
 # Calculate and store fluxes across L2 mortars
 function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{false}, mortars, cache)
+                           nonconservative_terms::Val{false}, mortars, thread_cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
            neighbor_ids, orientations) = mortars
   @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-           fstar_lower_left_threaded, fstar_lower_right_threaded) = cache
+           fstar_lower_left_threaded, fstar_lower_right_threaded,
+           fstar_tmp1_threaded) = thread_cache
 
   Threads.@threads for m in 1:dg.n_l2mortars
-    lower_left_element_id  = dg.l2mortars.neighbor_ids[1, m]
-    lower_right_element_id = dg.l2mortars.neighbor_ids[2, m]
-    upper_left_element_id  = dg.l2mortars.neighbor_ids[3, m]
-    upper_right_element_id = dg.l2mortars.neighbor_ids[4, m]
-    large_element_id       = dg.l2mortars.neighbor_ids[5, m]
-
     # Choose thread-specific pre-allocated container
     fstar_upper_left  = fstar_upper_left_threaded[Threads.threadid()]
     fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
     fstar_lower_left  = fstar_lower_left_threaded[Threads.threadid()]
     fstar_lower_right = fstar_lower_right_threaded[Threads.threadid()]
+    fstar_tmp1        = fstar_tmp1_threaded[Threads.threadid()]
 
     # Calculate fluxes
     calc_fstar!(fstar_upper_left,  u_upper_left,  m, orientations, dg)
@@ -2062,123 +2058,20 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
     calc_fstar!(fstar_lower_left,  u_lower_left,  m, orientations, dg)
     calc_fstar!(fstar_lower_right, u_lower_right, m, orientations, dg)
 
-    # Copy flux small to small
-    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, :, 1, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 1, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 1, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 1, lower_right_element_id] .= fstar_lower_right
-      elseif dg.l2mortars.orientations[m] == 2
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, :, 3, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 3, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 3, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 3, lower_right_element_id] .= fstar_lower_right
-      else
-        # L2 mortars in z-direction
-        surface_flux_values[:, :, :, 5, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 5, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 5, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 5, lower_right_element_id] .= fstar_lower_right
-      end
-    else # large_sides[m] == 2 -> small elements on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, :, 2, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 2, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 2, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 2, lower_right_element_id] .= fstar_lower_right
-      elseif dg.l2mortars.orientations[m] == 2
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, :, 4, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 4, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 4, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 4, lower_right_element_id] .= fstar_lower_right
-      else
-        # L2 mortars in z-direction
-        surface_flux_values[:, :, :, 6, upper_left_element_id]  .= fstar_upper_left
-        surface_flux_values[:, :, :, 6, upper_right_element_id] .= fstar_upper_right
-        surface_flux_values[:, :, :, 6, lower_left_element_id]  .= fstar_lower_left
-        surface_flux_values[:, :, :, 6, lower_right_element_id] .= fstar_lower_right
-      end
-    end
-
-    # Project small fluxes to large element
-    for v in 1:nvariables(dg)
-      @views large_surface_flux_values = ((dg.l2mortar_reverse_lower *
-                                           fstar_upper_left[v, :, :] *
-                                           transpose(dg.l2mortar_reverse_upper)) +
-                                          (dg.l2mortar_reverse_upper *
-                                           fstar_upper_right[v, :, :] *
-                                           transpose(dg.l2mortar_reverse_upper)) +
-                                          (dg.l2mortar_reverse_lower *
-                                           fstar_lower_left[v, :, :] *
-                                           transpose(dg.l2mortar_reverse_lower)) +
-                                          (dg.l2mortar_reverse_upper *
-                                           fstar_lower_right[v, :, :] *
-                                           transpose(dg.l2mortar_reverse_lower)))
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, :, 2, large_element_id] .= large_surface_flux_values
-        elseif dg.l2mortars.orientations[m] == 2
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, :, 4, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in z-direction
-          surface_flux_values[v, :, :, 6, large_element_id] .= large_surface_flux_values
-        end
-      else # large_sides[m] == 2 -> large element on right side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, :, 1, large_element_id] .= large_surface_flux_values
-        elseif dg.l2mortars.orientations[m] == 2
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, :, 3, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in z-direction
-          surface_flux_values[v, :, :, 5, large_element_id] .= large_surface_flux_values
-        end
-      end
-    end
+    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
+                                    fstar_upper_left, fstar_upper_right,
+                                    fstar_lower_left, fstar_lower_right,
+                                    fstar_tmp1)
   end
 end
-
-# Calculate surface integrals and update u_t
-calc_surface_integral!(dg::Dg3D) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux_values, dg)
-function calc_surface_integral!(u_t, surface_flux_values, dg::Dg3D)
-  @unpack lhat = dg
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    for m in 1:nnodes(dg), l in 1:nnodes(dg)
-      for v in 1:nvariables(dg)
-        # surface at -x
-        u_t[v, 1,          l, m, element_id] -= surface_flux_values[v, l, m, 1, element_id] * lhat[1,          1]
-        # surface at +x
-        u_t[v, nnodes(dg), l, m, element_id] += surface_flux_values[v, l, m, 2, element_id] * lhat[nnodes(dg), 2]
-        # surface at -y
-        u_t[v, l, 1,          m, element_id] -= surface_flux_values[v, l, m, 3, element_id] * lhat[1,          1]
-        # surface at +y
-        u_t[v, l, nnodes(dg), m, element_id] += surface_flux_values[v, l, m, 4, element_id] * lhat[nnodes(dg), 2]
-        # surface at -z
-        u_t[v, l, m, 1,          element_id] -= surface_flux_values[v, l, m, 5, element_id] * lhat[1,          1]
-        # surfac   e at +z
-        u_t[v, l, m, nnodes(dg), element_id] += surface_flux_values[v, l, m, 6, element_id] * lhat[nnodes(dg), 2]
-      end
-    end
-  end
-end
-
 
 # Calculate and store fluxes with nonconservative terms across L2 mortars
 function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{true}, mortars, cache)
+                           nonconservative_terms::Val{true}, mortars, thread_cache)
   @unpack (u_lower_left, u_lower_right, u_upper_left, u_upper_right,
            neighbor_ids, orientations) = mortars
   @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-           fstar_lower_left_threaded, fstar_lower_right_threaded) = cache
+           fstar_lower_left_threaded, fstar_lower_right_threaded) = thread_cache
 
   # Pre-allocate data structures to speed up computation (thread-safe)
   A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
@@ -2376,6 +2269,112 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
           # L2 mortars in z-direction
           surface_flux_values[v, :, :, 5, large_element_id] .= large_surface_flux_values
         end
+      end
+    end
+  end
+end
+
+@inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
+                                                 fstar_upper_left, fstar_upper_right,
+                                                 fstar_lower_left, fstar_lower_right,
+                                                 fstar_tmp1)
+    lower_left_element_id  = dg.l2mortars.neighbor_ids[1, m]
+    lower_right_element_id = dg.l2mortars.neighbor_ids[2, m]
+    upper_left_element_id  = dg.l2mortars.neighbor_ids[3, m]
+    upper_right_element_id = dg.l2mortars.neighbor_ids[4, m]
+    large_element_id       = dg.l2mortars.neighbor_ids[5, m]
+
+  # Copy flux small to small
+  if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    elseif dg.l2mortars.orientations[m] == 2
+      # L2 mortars in y-direction
+      direction = 3
+    else # if dg.l2mortars.orientations[m] == 3
+      # L2 mortars in z-direction
+      direction = 5
+    end
+  else # large_sides[m] == 2 -> small elements on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    elseif dg.l2mortars.orientations[m] == 2
+      # L2 mortars in y-direction
+      direction = 4
+    else # if dg.l2mortars.orientations[m] == 3
+      # L2 mortars in z-direction
+      direction = 6
+    end
+  end
+  surface_flux_values[:, :, :, direction, upper_left_element_id]  .= fstar_upper_left
+  surface_flux_values[:, :, :, direction, upper_right_element_id] .= fstar_upper_right
+  surface_flux_values[:, :, :, direction, lower_left_element_id]  .= fstar_lower_left
+  surface_flux_values[:, :, :, direction, lower_right_element_id] .= fstar_lower_right
+
+  # Project small fluxes to large element
+  if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    elseif dg.l2mortars.orientations[m] == 2
+      # L2 mortars in y-direction
+      direction = 4
+    else # if dg.l2mortars.orientations[m] == 3
+      # L2 mortars in z-direction
+      direction = 6
+    end
+  else # large_sides[m] == 2 -> small elements on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    elseif dg.l2mortars.orientations[m] == 2
+      # L2 mortars in y-direction
+      direction = 3
+    else # if dg.l2mortars.orientations[m] == 3
+      # L2 mortars in z-direction
+      direction = 5
+    end
+  end
+
+  multiply_dimensionwise!(
+    view(surface_flux_values, :, :, :, direction, large_element_id),
+    dg.l2mortar_reverse_lower, dg.l2mortar_reverse_upper, fstar_upper_left, fstar_tmp1)
+  add_multiply_dimensionwise!(
+    view(surface_flux_values, :, :, :, direction, large_element_id),
+    dg.l2mortar_reverse_upper, dg.l2mortar_reverse_upper, fstar_upper_right, fstar_tmp1)
+  add_multiply_dimensionwise!(
+    view(surface_flux_values, :, :, :, direction, large_element_id),
+    dg.l2mortar_reverse_lower, dg.l2mortar_reverse_lower, fstar_lower_left, fstar_tmp1)
+  add_multiply_dimensionwise!(
+    view(surface_flux_values, :, :, :, direction, large_element_id),
+    dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, fstar_lower_right, fstar_tmp1)
+
+  return nothing
+end
+
+
+# Calculate surface integrals and update u_t
+calc_surface_integral!(dg::Dg3D) = calc_surface_integral!(dg.elements.u_t, dg.elements.surface_flux_values, dg)
+function calc_surface_integral!(u_t, surface_flux_values, dg::Dg3D)
+  @unpack lhat = dg
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    for m in 1:nnodes(dg), l in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        # surface at -x
+        u_t[v, 1,          l, m, element_id] -= surface_flux_values[v, l, m, 1, element_id] * lhat[1,          1]
+        # surface at +x
+        u_t[v, nnodes(dg), l, m, element_id] += surface_flux_values[v, l, m, 2, element_id] * lhat[nnodes(dg), 2]
+        # surface at -y
+        u_t[v, l, 1,          m, element_id] -= surface_flux_values[v, l, m, 3, element_id] * lhat[1,          1]
+        # surface at +y
+        u_t[v, l, nnodes(dg), m, element_id] += surface_flux_values[v, l, m, 4, element_id] * lhat[nnodes(dg), 2]
+        # surface at -z
+        u_t[v, l, m, 1,          element_id] -= surface_flux_values[v, l, m, 5, element_id] * lhat[1,          1]
+        # surfac   e at +z
+        u_t[v, l, m, nnodes(dg), element_id] += surface_flux_values[v, l, m, 6, element_id] * lhat[nnodes(dg), 2]
       end
     end
   end

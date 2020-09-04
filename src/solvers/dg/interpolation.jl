@@ -140,6 +140,20 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
   return nothing
 end
 
+function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
+                                     matrix1::AbstractMatrix, matrix2::AbstractMatrix,
+                                     data_in:: AbstractArray{<:Any, 3},
+                                     tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix1, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[v, i, j]     = matrix1[i, ii] * data_in[v, ii, j]
+
+  # Interpolate in y-direction
+  @tullio threads=false data_out[v, i, j] += matrix2[j, jj] * tmp1[v, i, jj]
+
+  return nothing
+end
+
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::AbstractMatrix,
                                  data_in:: AbstractArray{<:Any, 4},
                                  tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
