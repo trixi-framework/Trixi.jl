@@ -421,7 +421,7 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
-function noncons_interface_flux!(u_left, u_right, orientation, equation::IdealGlmMhdEquations3D)
+function noncons_interface_flux(u_left, u_right, orientation, equation::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
 

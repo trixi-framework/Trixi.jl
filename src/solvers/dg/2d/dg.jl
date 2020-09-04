@@ -1793,14 +1793,14 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
   # Pre-allocate data structures to speed up computation (thread-safe)
   fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
-  noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_primary_threaded   = [A2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
 
   Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
     fstar = fstar_threaded[Threads.threadid()]
 
-    noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
+    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
@@ -1813,10 +1813,10 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     for i in 1:nnodes(dg)
       # Call pointwise nonconservative term
       u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, s)
-      noncons_primary   = noncons_interface_flux!(u_ll, u_rr, orientations[s], equations(dg))
-      noncons_secondary = noncons_interface_flux!(u_rr, u_ll, orientations[s], equations(dg))
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[s], equations(dg))
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[s], equations(dg))
       # Save to primary and secondary temporay storage
-      set_node_vars!(noncons_diamond_primary, noncons_primary, dg, i)
+      set_node_vars!(noncons_diamond_primary,   noncons_primary,   dg, i)
       set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i)
     end
 
@@ -1936,8 +1936,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux!(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux!(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
@@ -1948,8 +1948,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux!(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux!(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
