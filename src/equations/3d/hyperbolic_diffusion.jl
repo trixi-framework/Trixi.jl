@@ -233,12 +233,13 @@ end
 cons2prim(cons, equation::HyperbolicDiffusionEquations3D) =  cons
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations3D)
-  entropy = similar(cons)
-  @. entropy[1, :, :, :, :] = cons[1, :, :, :, :]
-  @. entropy[2:4, :, :, :, :] = equation.Lr^2 * cons[2:4, :, :, :, :]
+function cons2entropy(u, equation::HyperbolicDiffusionEquations3D)
+  w1 = u[1]
+  w2 = equation.Lr^2 * u[2]
+  w3 = equation.Lr^2 * u[3]
+  w4 = equation.Lr^2 * u[4]
 
-  return entropy
+  return SVector(w1, w2, w3, w4)
 end
 
 

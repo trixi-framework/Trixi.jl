@@ -693,12 +693,11 @@ is divided by the total volume of the computational domain.
 Calculate the integral of the time derivative of the entropy, i.e.,
 ∫(∂S/∂t)dΩ = ∫(∂S/∂u ⋅ ∂u/∂t)dΩ:
 ```julia
-# Compute entropy variables
-entropy_vars = cons2entropy(...)
-
 # Calculate integral of entropy time derivative
-dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, k, element_id, dg, entropy_vars, u_t
-  sum(entropy_vars[:, i, j, k, element_id] .* u_t[:, i, j, k, element_id])
+dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, k, element_id, dg, u, u_t
+  u_node   = get_node_vars(u,   dg, i, j, k, element_id)
+  u_t_node = get_node_vars(u_t, dg, i, j, k, element_id)
+  dot(cons2entropy(u_node, equations(dg)), u_t_node)
 end
 ```
 """
@@ -772,8 +771,8 @@ function calc_error_norms(dg::Dg3D, t)
             3, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
 
   # Set up data structures
-  l2_error   = zeros(nvariables(equation))
-  linf_error = zeros(nvariables(equation))
+  l2_error   = @SVector zeros(nvariables(equation))
+  linf_error = @SVector zeros(nvariables(equation))
 
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
@@ -785,15 +784,15 @@ function calc_error_norms(dg::Dg3D, t)
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for k in 1:n_nodes_analysis, j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
-      u_exact = dg.initial_conditions(view(x, :, i, j, k), t, equation)
+      u_exact = dg.initial_conditions(get_node_coords(x, dg, i, j, k), t, equation)
       diff = u_exact - get_node_vars(u, dg, i, j, k)
-      @. l2_error += diff^2 * weights[i] * weights[j] * weights[k] * jacobian_volume
-      @. linf_error = max(linf_error, abs(diff))
+      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_volume)
+      linf_error = @. max(linf_error, abs(diff))
     end
   end
 
   # For L2 error, divide by total volume
-  @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
+  l2_error = @. sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
 end
@@ -801,15 +800,14 @@ end
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg3D, t)
-  # Compute entropy variables for all elements and nodes with current solution u
-  dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
-
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, k, element_id, dg, dsdu, u_t
-    sum(dsdu[:,i,j,k,element_id].*u_t[:,i,j,k,element_id])
+  dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, k, element_id, dg, u, u_t
+    u_node   = get_node_vars(u,   dg, i, j, k, element_id)
+    u_t_node = get_node_vars(u_t, dg, i, j, k, element_id)
+    dot(cons2entropy(u_node, equations(dg)), u_t_node)
   end
 
   return dsdu_ut
@@ -935,7 +933,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
   println(" sim. time:      " * @sprintf("%10.8e", time))
 
   # Level information (only show for AMR)
-  if parameter("amr_interval", 0) > 0
+  if parameter("amr_interval", 0)::Int > 0
     levels = Vector{Int}(undef, dg.n_elements)
     for element_id in 1:dg.n_elements
       levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
@@ -970,12 +968,8 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  # Calculate L2/Linf errors
-  if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
-    l2_error, linf_error = calc_error_norms(dg, time)
-  else
-    error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
-  end
+  # Calculate L2/Linf errors, which are also returned by analyze_solution
+   l2_error, linf_error = calc_error_norms(dg, time)
 
   # L2 error
   if :l2_error in dg.analysis_quantities

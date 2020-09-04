@@ -756,41 +756,32 @@ function cons2prim(cons, equation::CompressibleEulerEquations2D)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations2D)
-  entropy = similar(cons)
-  v = zeros(2,n_nodes,n_nodes,n_elements)
-  v_square = zeros(n_nodes,n_nodes,n_elements)
-  p = zeros(n_nodes,n_nodes,n_elements)
-  s = zeros(n_nodes,n_nodes,n_elements)
-  rho_p = zeros(n_nodes,n_nodes,n_elements)
+function cons2entropy(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
 
-  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
-  @. p[ :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
-                            cons[3, :, :, :] * v[2, :, :, :])))
-  @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
-  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :]
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+  s = log(p) - equation.gamma*log(rho)
+  rho_p = rho / p
 
-  @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
-                           0.5*rho_p[:,:,:]*v_square[:,:,:]
-  @. entropy[2, :, :, :] = rho_p[:,:,:]*v[1,:,:,:]
-  @. entropy[3, :, :, :] = rho_p[:,:,:]*v[2,:,:,:]
-  @. entropy[4, :, :, :] = -rho_p[:,:,:]
+  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w2 = rho_p * v1
+  w3 = rho_p * v2
+  w4 = -rho_p
 
-  return entropy
+  return SVector(w1, w2, w3, w4)
 end
 
 
 # Convert primitive to conservative variables
 function prim2cons(prim, equation::CompressibleEulerEquations2D)
-  cons = similar(prim)
-  cons[1] = prim[1]
-  cons[2] = prim[2] * prim[1]
-  cons[3] = prim[3] * prim[1]
-  cons[4] = prim[4]/(equation.gamma-1)+1/2*(cons[2] * prim[2] + cons[3] * prim[3])
-  return cons
+  cons1 = prim[1]
+  cons2 = prim[2] * prim[1]
+  cons3 = prim[3] * prim[1]
+  cons4 = prim[4]/(equation.gamma-1)+1/2*(cons2 * prim[2] + cons3 * prim[3])
+  return SVector(cons1, cons2, cons3, cons4)
 end
 
 

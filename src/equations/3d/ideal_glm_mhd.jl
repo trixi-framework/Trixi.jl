@@ -509,62 +509,43 @@ end
 
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::IdealGlmMhdEquations3D)
-  entropy = similar(cons)
-  v = zeros(3, n_nodes, n_nodes, n_nodes, n_elements)
-  B = zeros(3, n_nodes, n_nodes, n_nodes, n_elements)
-  v_square = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  p = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  s = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  rho_p = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  # velocities
-  @. v[1, :, :, :, :] = cons[2, :, :, :, :] / cons[1, :, :, :, :]
-  @. v[2, :, :, :, :] = cons[3, :, :, :, :] / cons[1, :, :, :, :]
-  @. v[3, :, :, :, :] = cons[4, :, :, :, :] / cons[1, :, :, :, :]
-  # magnetic fields
-  @. B[1, :, :, :, :] = cons[6, :, :, :, :]
-  @. B[2, :, :, :, :] = cons[7, :, :, :, :]
-  @. B[3, :, :, :, :] = cons[8, :, :, :, :]
-  # kinetic energy, pressure, entropy
-  @. v_square[ :, :, :, :] = (v[1, :, :, :, :]*v[1, :, :, :, :] +
-                              v[2, :, :, :, :]*v[2, :, :, :, :] +
-                              v[3, :, :, :, :]*v[3, :, :, :, :])
-  @. p[ :, :, :, :] = ((equation.gamma - 1)*(cons[5, :, :, :, :] -
-                                             0.5*cons[1, :, :, :, :]*v_square[:,:,:, :] -
-                    0.5*(B[1, :, :, :, :]*B[1, :, :, :, :] + B[2, :, :, :, :]*B[2, :, :, :, :] +
-                         B[3, :, :, :, :]*B[3, :, :, :, :])
-                    - 0.5*cons[9, :, :, :, :]*cons[9, :, :, :, :]))
-  @. s[ :, :, :, :] = log(p[:, :, :, :]) - equation.gamma*log(cons[1, :, :, :, :])
-  @. rho_p[ :, :, :, :] = cons[1, :, :, :, :] / p[ :, :, :, :]
+function cons2entropy(u, equation::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  v_square = v1^2 + v2^2 + v3^2
+  p = (equation.gamma - 1) * (rho_e - 0.5*rho*v_square - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  s = log(p) - equation.gamma*log(rho)
+  rho_p = rho / p
 
-  @. entropy[1, :, :, :, :] = ((equation.gamma - s[:,:,:,:])/(equation.gamma-1) -
-                               0.5*rho_p[:,:,:,:]*v_square[:,:,:,:])
-  @. entropy[2, :, :, :, :] =  rho_p[:,:,:,:]*v[1,:,:,:,:]
-  @. entropy[3, :, :, :, :] =  rho_p[:,:,:,:]*v[2,:,:,:,:]
-  @. entropy[4, :, :, :, :] =  rho_p[:,:,:,:]*v[3,:,:,:,:]
-  @. entropy[5, :, :, :, :] = -rho_p[:,:,:,:]
-  @. entropy[6, :, :, :, :] =  rho_p[:,:,:,:]*B[1,:,:,:,:]
-  @. entropy[7, :, :, :, :] =  rho_p[:,:,:,:]*B[2,:,:,:,:]
-  @. entropy[8, :, :, :, :] =  rho_p[:,:,:,:]*B[3,:,:,:,:]
-  @. entropy[9, :, :, :, :] =  rho_p[:,:,:,:]*cons[9,:,:,:,:]
+  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w2 = rho_p * v1
+  w3 = rho_p * v2
+  w4 = rho_p * v3
+  w5 = -rho_p
+  w6 = rho_p * B1
+  w7 = rho_p * B2
+  w8 = rho_p * B3
+  w9 = rho_p * psi
 
-  return entropy
+  return SVector(w1, w2, w3, w4, w5, w6, w7, w8, w9)
 end
+
 
 # Convert primitive to conservative variables
 function prim2cons(prim, equation::IdealGlmMhdEquations3D)
-  cons = similar(prim)
-  cons[1] = prim[1]
-  cons[2] = prim[2] * prim[1]
-  cons[3] = prim[3] * prim[1]
-  cons[4] = prim[4] * prim[1]
-  cons[5] = prim[5]/(equation.gamma-1)+0.5*(cons[2]*prim[2] + cons[3]*prim[3] + cons[4]*prim[4])+
+  cons1 = prim[1]
+  cons2 = prim[2] * prim[1]
+  cons3 = prim[3] * prim[1]
+  cons4 = prim[4] * prim[1]
+  cons5 = prim[5]/(equation.gamma-1)+0.5*(cons2*prim[2] + cons3*prim[3] + cons4*prim[4])+
             0.5*(prim[6]*prim[6] + prim[7]*prim[7] + prim[8]*prim[8] + 0.5*prim[9]*prim[9])
-  cons[6] = prim[6]
-  cons[7] = prim[7]
-  cons[8] = prim[8]
-  cons[9] = prim[9]
-  return cons
+  cons6 = prim[6]
+  cons7 = prim[7]
+  cons8 = prim[8]
+  cons9 = prim[9]
+  return SVector(cons1, cons2, cons3, cons4, cons5, cons6, cons7, cons8, cons9)
 end
 
 

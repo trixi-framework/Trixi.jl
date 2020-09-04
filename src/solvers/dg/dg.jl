@@ -19,6 +19,8 @@ abstract type AbstractDg{NDIMS, POLYDEG} <: AbstractSolver{NDIMS} end
 # Return number of degrees of freedom
 @inline ndofs(dg::AbstractDg) = dg.n_elements * nnodes(dg)^ndims(dg)
 
+@inline get_node_coords(x, dg::AbstractDg, indices...) = SVector(ntuple(idx -> x[idx, indices...], ndims(dg)))
+
 @inline get_node_vars(u, dg::AbstractDg, indices...) = SVector(ntuple(v -> u[v, indices...], nvariables(dg)))
 
 @inline function get_surface_node_vars(u, dg::AbstractDg, indices...)
