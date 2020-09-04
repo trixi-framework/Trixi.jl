@@ -1262,13 +1262,6 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-# NOTE: The version for nonconservative_terms::Val{true} uses temporary storage and need to allocate.
-#       The other version does not need this temporary storage but more assignments.
-#       In preliminary tests, the second version is faster.
-#       Currently, the nonconservative terms for IdealMhdEquations are only implemented
-#       for the first version. That's why we use a dispatch here.
-#       We should find a way to generalize the way we handle nonconservative terms,
-#       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
@@ -1281,6 +1274,8 @@ function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, c
 end
 
 @inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg2D, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can get optimized away due to constant propagation.
   @unpack volume_flux_function, dsplit = dg
 
   # Calculate volume integral in one element
@@ -1748,26 +1743,19 @@ end
 function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg2D)
   #TODO temporary workaround while implementing the other stuff
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u,
-                       nonconservative_terms, dg.interfaces.orientations, dg)
+                       nonconservative_terms, dg.interfaces.orientations, dg, dg.thread_cache)
 end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg2D)
-
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-
-  noncons_diamond_primary_threaded   = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+                              orientations, dg::Dg2D, thread_cache)
+  fstar_threaded                     = thread_cache.fstar_upper_threaded
+  noncons_diamond_primary_threaded   = thread_cache.noncons_diamond_upper_threaded
+  noncons_diamond_secondary_threaded = thread_cache.noncons_diamond_lower_threaded
 
   Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
-    fstar = fstar_threaded[Threads.threadid()]
-
+    fstar                     = fstar_threaded[Threads.threadid()]
     noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 

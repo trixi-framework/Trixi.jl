@@ -1380,7 +1380,7 @@ end
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg3D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg3D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
@@ -1439,24 +1439,6 @@ end
       integral_contribution = alpha * dsplit[kk, k] * flux
       add_to_node_vars!(u_t, integral_contribution, dg, i, j, kk, element_id)
     end
-  end
-end
-
-
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, _, dg::Dg3D)
-  # Do not use the thread_cache here since that reduces the performance significantly
-  # (which we do not fully understand right now)
-  # @unpack f1_threaded, f2_threaded, f3_threaded = cache
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  A5d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  f1_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
-  f3_threaded = [A5d(undef) for _ in 1:Threads.nthreads()]
-  cache = (;f1_threaded, f2_threaded, f3_threaded)
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
 end
 
@@ -1915,21 +1897,19 @@ end
 function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO temporary workaround while implementing the other stuff
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
-                       dg.interfaces.orientations, dg)
+                       dg.interfaces.orientations, dg, dg.thread_cache)
 end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg3D)
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-  fstar_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_primary_threaded   = [A3d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+                              orientations, dg::Dg3D, thread_cache)
+  fstar_threaded                     = thread_cache.fstar_upper_left_threaded
+  noncons_diamond_primary_threaded   = thread_cache.noncons_diamond_upper_left_threaded
+  noncons_diamond_secondary_threaded = thread_cache.noncons_diamond_upper_right_threaded
 
   Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
-    fstar = fstar_threaded[Threads.threadid()]
+    fstar                     = fstar_threaded[Threads.threadid()]
     noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
