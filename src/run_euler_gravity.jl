@@ -1,5 +1,10 @@
 function init_simulation_euler_gravity()
-  # Print starup message
+  # TODO: Coupled simulations are not yet tested for parallel runs
+  if is_parallel()
+    error("coupled simulations are not yet tested for parallel runs")
+  end
+
+  # Print startup message
   print_startup_message()
 
   # Get number of dimensions
