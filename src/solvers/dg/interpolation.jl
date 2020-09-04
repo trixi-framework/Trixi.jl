@@ -171,6 +171,42 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
   return nothing
 end
 
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
+                                 matrix1::AbstractMatrix, matrix2::AbstractMatrix, matrix3::AbstractMatrix,
+                                 data_in:: AbstractArray{<:Any, 4},
+                                 tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix1, 2), size(matrix1, 2)),
+                                 tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix1, 1), size(matrix1, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
+
+  # Interpolate in y-direction
+  @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
+
+  # Interpolate in z-direction
+  @tullio threads=false data_out[v, i, j, k] = matrix3[k, kk] * tmp2[v, i, j, kk]
+
+  return nothing
+end
+
+function add_multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
+                                     matrix1::AbstractMatrix, matrix2::AbstractMatrix, matrix3::AbstractMatrix,
+                                     data_in:: AbstractArray{<:Any, 4},
+                                     tmp1=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix1, 2), size(matrix1, 2)),
+                                     tmp2=zeros(eltype(data_out), size(data_out, 1), size(matrix1, 1), size(matrix1, 1), size(matrix1, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[v, i, j, k]     = matrix1[i, ii] * data_in[v, ii, j, k]
+
+  # Interpolate in y-direction
+  @tullio threads=false tmp2[v, i, j, k]     = matrix2[j, jj] * tmp1[v, i, jj, k]
+
+  # Interpolate in z-direction
+  @tullio threads=false data_out[v, i, j, k] += matrix3[k, kk] * tmp2[v, i, j, kk]
+
+  return nothing
+end
+
 
 # Calculate the Dhat matrix
 function calc_dhat(nodes, weights)
