@@ -100,13 +100,15 @@ end
 # in-place version of multiply_dimensionwise
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::AbstractMatrix,
                                  data_in ::AbstractArray{<:Any, 2})
-  @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii] + data_out[v, i]
+  @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii]
 
   return nothing
 end
-function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::AbstractMatrix,
-                                 data_in ::AbstractArray{<:Any, 2}, α::Number, β::Number)
-  @tullio threads=false data_out[v, i] = matrix[i, ii] * data_in[v, ii] * α + data_out[v, i] * β
+
+function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
+                                 data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,
+                                 data_in2::AbstractArray{<:Any, 2})
+  @tullio threads=false data_out[v, i] = matrix1[i, ii] * data_in1[v, ii] + matrix2[i, ii] * data_in2[v, ii]
 
   return nothing
 end

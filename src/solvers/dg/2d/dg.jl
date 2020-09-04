@@ -212,13 +212,9 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      #TODO
       SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper),   SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
-      # mortar_forward_upper,   mortar_forward_lower,
-      # l2mortar_reverse_upper, l2mortar_reverse_lower,
-      # ecmortar_reverse_upper, ecmortar_reverse_lower,
       SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
@@ -246,14 +242,13 @@ function create_thread_cache_2d(n_variables, n_nodes)
   fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  u_large_threaded     = A2d[A2d(undef, n_variables, n_nodes) for _ in 1:Threads.nthreads()]
 
   indicator_threaded  = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   modal_threaded      = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [zeros(1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
-            fstar_upper_threaded, fstar_lower_threaded, u_large_threaded,
+            fstar_upper_threaded, fstar_lower_threaded,
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
@@ -1531,18 +1526,13 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg::Dg2D) = prolong2mortars!(dg, dg.mortar_type, dg.thread_cache)
+prolong2mortars!(dg::Dg2D) = prolong2mortars!(dg, dg.mortar_type)
 
 # Prolong solution to mortars (l2mortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
+function prolong2mortars!(dg::Dg2D, ::Val{:l2})
   equation = equations(dg)
 
-  # Local storage for interface data of large element
-  # u_large_threaded = [zeros(nvariables(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
-  @unpack u_large_threaded = thread_cache
-
   Threads.@threads for m in 1:dg.n_l2mortars
-    u_large = u_large_threaded[Threads.threadid()]
 
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
@@ -1591,46 +1581,34 @@ function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
     if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        for l in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u_large[v, l] = dg.elements.u[v, nnodes(dg), l, large_element_id]
-          end
-        end
+        u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+        multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), dg.mortar_forward_upper, u_large)
+        multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), dg.mortar_forward_lower, u_large)
       else
         # L2 mortars in y-direction
-        for l in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
-          end
-        end
+        u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+        multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), dg.mortar_forward_upper, u_large)
+        multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), dg.mortar_forward_lower, u_large)
       end
-      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 1, :, :, m), dg.mortar_forward_upper, u_large)
-      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 1, :, :, m), dg.mortar_forward_lower, u_large)
     else # large_sides[m] == 2 -> large element on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        for l in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u_large[v, l] = dg.elements.u[v, 1, l, large_element_id]
-          end
-        end
+        u_large = view(dg.elements.u, :, 1, :, large_element_id)
+        multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), dg.mortar_forward_upper, u_large)
+        multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), dg.mortar_forward_lower, u_large)
       else
         # L2 mortars in y-direction
-        for l in 1:nnodes(dg)
-          for v in 1:nvariables(dg)
-            u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
-          end
-        end
+        u_large = view(dg.elements.u, :, :, 1, large_element_id)
+        multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), dg.mortar_forward_upper, u_large)
+        multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), dg.mortar_forward_lower, u_large)
       end
-      multiply_dimensionwise!(view(dg.l2mortars.u_upper, 2, :, :, m), dg.mortar_forward_upper, u_large)
-      multiply_dimensionwise!(view(dg.l2mortars.u_lower, 2, :, :, m), dg.mortar_forward_lower, u_large)
     end
   end
 end
 
 
 # Prolong solution to mortars (ecmortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:ec}, thread_cache)
+function prolong2mortars!(dg::Dg2D, ::Val{:ec})
   equation = equations(dg)
 
   Threads.@threads for m in 1:dg.n_ecmortars
@@ -2051,68 +2029,47 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
 
     # Project small fluxes to large element
-    # if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-    #   if dg.l2mortars.orientations[m] == 1
-    #     # L2 mortars in x-direction
-    #     direction = 2
-    #   else
-    #     # L2 mortars in y-direction
-    #     direction = 4
-    #   end
-    # else # large_sides[m] == 2 -> large element on right side
-    #   if dg.l2mortars.orientations[m] == 1
-    #     # L2 mortars in x-direction
-    #     direction = 1
-    #   else
-    #     # L2 mortars in y-direction
-    #     direction = 3
-    #   end
-    # end
-    # multiply_dimensionwise!(
-    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper)
-    # multiply_dimensionwise!(
-    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_lower, fstar_lower, true, true)
-
-    # for v in 1:nvariables(dg)
-    #   @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
-    #                                       dg.l2mortar_reverse_lower * fstar_lower[v, :])
-    #   surface_flux_values[v, :, direction, large_element_id] .= large_surface_flux_values
-    # end
-
-    for v in 1:nvariables(dg)
-      @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
-                                          dg.l2mortar_reverse_lower * fstar_lower[v, :])
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
-        end
-      else # large_sides[m] == 2 -> large element on right side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
-        end
+    if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        direction = 2
+      else
+        # L2 mortars in y-direction
+        direction = 4
+      end
+    else # large_sides[m] == 2 -> large element on right side
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        direction = 1
+      else
+        # L2 mortars in y-direction
+        direction = 3
       end
     end
+
+    for v in 1:nvariables(dg)
+      @views surface_flux_values[v, :, direction, large_element_id] .=
+        (dg.l2mortar_reverse_upper * fstar_upper[v, :] + dg.l2mortar_reverse_lower * fstar_lower[v, :])
+    end
+    # The code above could be replaced by the following code. However, the relative efficiency
+    # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
+    # Using StaticArrays for both makes the code above faster for common test cases.
+    # multiply_dimensionwise!(
+    #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper,
+    #                                                                 dg.l2mortar_reverse_lower, fstar_lower)
 
   end
 end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg::Dg2D, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, v,
-                                                             dg.ecmortars.neighbor_ids,
-                                                             dg.ecmortars.u_lower,
-                                                             dg.ecmortars.u_upper,
-                                                             dg.ecmortars.u_large,
-                                                             dg.ecmortars.orientations)
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, ::Val{:ec},
+calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
+                                                                       dg.ecmortars.neighbor_ids,
+                                                                       dg.ecmortars.u_lower,
+                                                                       dg.ecmortars.u_upper,
+                                                                       dg.ecmortars.u_large,
+                                                                       dg.ecmortars.orientations)
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:ec},
                            neighbor_ids,
                            u_lower, u_upper, u_large,
                            orientations)
@@ -2134,9 +2091,9 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, ::Val{:ec},
   PL2R_lower = dg.ecmortar_reverse_lower
 
   Threads.@threads for m in 1:dg.n_ecmortars
-    large_element_id = dg.ecmortars.neighbor_ids[3, m]
-    upper_element_id = dg.ecmortars.neighbor_ids[2, m]
-    lower_element_id = dg.ecmortars.neighbor_ids[1, m]
+    large_element_id = neighbor_ids[3, m]
+    upper_element_id = neighbor_ids[2, m]
+    lower_element_id = neighbor_ids[1, m]
 
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
