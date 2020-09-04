@@ -1827,7 +1827,7 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
-    left_neighbor_direction = 2 * orientations[s]
+    left_neighbor_direction  = 2 * orientations[s]
     right_neighbor_direction = 2 * orientations[s] - 1
 
     # Copy flux to left and right element storage
@@ -1846,7 +1846,7 @@ end
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
 calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
-                                                    dg, time)
+                                                          dg, time)
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
@@ -2033,24 +2033,22 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux_values[:, :, 1, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 1, lower_element_id] .= fstar_lower
+        direction = 1
       else
         # L2 mortars in y-direction
-        surface_flux_values[:, :, 3, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 3, lower_element_id] .= fstar_lower
+        direction = 3
       end
     else # large_sides[m] == 2 -> small elements on left side
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
-        surface_flux_values[:, :, 2, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 2, lower_element_id] .= fstar_lower
+        direction = 2
       else
         # L2 mortars in y-direction
-        surface_flux_values[:, :, 4, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 4, lower_element_id] .= fstar_lower
+        direction = 4
       end
     end
+    surface_flux_values[:, :, direction, upper_element_id] .= fstar_upper
+    surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
 
     # Project small fluxes to large element
     for v in 1:nvariables(dg)
