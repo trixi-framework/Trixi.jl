@@ -90,7 +90,7 @@ function init_simulation()
 
   # Initialize mesh
   if restart
-    if_parallel() && error("restarting not yet implemented in parallel") # TODO
+    is_parallel() && error("restarting not yet implemented in parallel") # TODO parallel
     print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
     println("done")
