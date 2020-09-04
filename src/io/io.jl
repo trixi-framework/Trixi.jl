@@ -29,7 +29,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
 
     # Read data
     varnames = varnames_cons(equation)
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Check if variable name matches
       var = file["variables_$v"]
       if (name = read(attrs(var)["name"])) != varnames[v]
@@ -86,12 +86,12 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     varnames = varnames_cons(equation)
 
     # Store each variable of the solution
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Convert to 1D array
       if ndims(dg) == 2
-        file["variables_$v"] = data[v, :, :, :][:]
+        file["variables_$v"] = vec(data[v, :, :, :])
       elseif ndims(dg) == 3
-        file["variables_$v"] = data[v, :, :, :, :][:]
+        file["variables_$v"] = vec(data[v, :, :, :, :])
       else
         error("Unsupported number of spatial dimensions: ", ndims(dg))
       end
@@ -139,12 +139,12 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
 
     # Add coordinates as 1D arrays
     if ndims(dg) == 2
-      file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
-      file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
+      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :])
+      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :])
     elseif ndims(dg) == 3
-      file["x"] = dg.elements.node_coordinates[1, :, :, :, :][:]
-      file["y"] = dg.elements.node_coordinates[2, :, :, :, :][:]
-      file["z"] = dg.elements.node_coordinates[3, :, :, :, :][:]
+      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :, :])
+      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :, :])
+      file["z"] = vec(dg.elements.node_coordinates[3, :, :, :, :])
     else
       error("Unsupported number of spatial dimensions: ", ndims(dg))
     end
@@ -161,12 +161,12 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     end
 
     # Store each variable of the solution
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Convert to 1D array
       if ndims(dg) == 2
-        file["variables_$v"] = data[v, :, :, :][:]
+        file["variables_$v"] = vec(data[v, :, :, :])
       elseif ndims(dg) == 3
-        file["variables_$v"] = data[v, :, :, :, :][:]
+        file["variables_$v"] = vec(data[v, :, :, :, :])
       else
         error("Unsupported number of spatial dimensions: ", ndims(dg))
       end
