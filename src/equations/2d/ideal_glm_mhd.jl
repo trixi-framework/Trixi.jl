@@ -483,31 +483,22 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::IdealGlmMhdEquations2D)
-  prim = similar(cons)
-  @. prim[1, :, :, :] = cons[1, :, :, :]
-  @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. prim[3, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  @. prim[4, :, :, :] = cons[4, :, :, :] / cons[1, :, :, :]
-  @. prim[5, :, :, :] = ((equation.gamma - 1)
-                         *(cons[5, :, :, :] - 0.5 * (cons[2, :, :, :] * prim[2, :, :, :] +
-                                                     cons[3, :, :, :] * prim[3, :, :, :] +
-                                                     cons[4, :, :, :] * prim[4, :, :, :])
-                                            - 0.5 * (cons[6, :, :, :] * cons[6, :, :, :] +
-                                                     cons[7, :, :, :] * cons[7, :, :, :] +
-                                                     cons[8, :, :, :] * cons[8, :, :, :])
-                                            - 0.5 * cons[9, :, :, :] * cons[9, :, :, :]))
-  @. prim[6, :, :, :] = cons[6, :, :, :]
-  @. prim[7, :, :, :] = cons[7, :, :, :]
-  @. prim[8, :, :, :] = cons[8, :, :, :]
-  @. prim[9, :, :, :] = cons[9, :, :, :]
-  return prim
+function cons2prim(u, equation::IdealGlmMhdEquations2D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equation.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+
+  return SVector(rho, v1, v2, v3, p, B1, B2, B3, psi)
 end
 
 
 # Convert conservative variables to entropy
-function cons2entropy(u, equation::IdealGlmMhdEquations2D)
+@inline function cons2entropy(u, equation::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
@@ -531,18 +522,16 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::IdealGlmMhdEquations2D)
-  cons1 = prim[1]
-  cons2 = prim[2] * prim[1]
-  cons3 = prim[3] * prim[1]
-  cons4 = prim[4] * prim[1]
-  cons5 = prim[5]/(equation.gamma-1)+0.5*(cons2*prim[2] + cons3*prim[3] + cons4*prim[4])+
-            0.5*(prim[6]*prim[6] + prim[7]*prim[7] + prim[8]*prim[8] + 0.5*prim[9]*prim[9])
-  cons6 = prim[6]
-  cons7 = prim[7]
-  cons8 = prim[8]
-  cons9 = prim[9]
-  return SVector(cons1, cons2, cons3, cons4, cons5, cons6, cons7, cons8, cons9)
+@inline function prim2cons(prim, equation::IdealGlmMhdEquations2D)
+  rho, v1, v2, v3, p, B1, B2, B3, psi = prim
+
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_v3 = rho * v3
+  rho_e = p/(equation.gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
+                                 0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
+
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 end
 
 

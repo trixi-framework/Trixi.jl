@@ -109,17 +109,17 @@ end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::LinearScalarAdvectionEquation2D) = cons
+@inline cons2prim(u, equation::LinearScalarAdvectionEquation2D) = u
 
 # Convert conservative variables to entropy variables
-cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
+@inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
 
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(cons::Real, ::LinearScalarAdvectionEquation2D) = cons^2 / 2
-@inline entropy(cons, equation::LinearScalarAdvectionEquation2D) = entropy(cons[1], equation)
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline entropy(u, equation::LinearScalarAdvectionEquation2D) = entropy(u[1], equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons::Real, ::LinearScalarAdvectionEquation2D) = cons^2 / 2
-@inline energy_total(cons, equation::LinearScalarAdvectionEquation2D) = energy_total(cons[1], equation)
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)

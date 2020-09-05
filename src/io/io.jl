@@ -156,7 +156,12 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
       data = dg.elements.u
       varnames = varnames_cons(equation)
     else
-      data = cons2prim(dg.elements.u, equation)
+      # Reinterpret the solution array as an array of conservative variables,
+      # compute the primitive variables via broadcasting, and reinterpret the
+      # result as a plain array of floating point numbers
+      data = Array(reinterpret(eltype(dg.elements.u),
+             cons2prim.(reinterpret(SVector{nvariables(dg),eltype(dg.elements.u)}, dg.elements.u),
+                        Ref(equations(dg)))))
       varnames = varnames_prim(equation)
     end
 

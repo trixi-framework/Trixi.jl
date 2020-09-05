@@ -643,21 +643,19 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::CompressibleEulerEquations3D)
-  prim = similar(cons)
-  @. prim[1, :, :, :, :] = cons[1, :, :, :, :]
-  @. prim[2, :, :, :, :] = cons[2, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[3, :, :, :, :] = cons[3, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[4, :, :, :, :] = cons[4, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[5, :, :, :, :] = ((equation.gamma - 1)
-                            * (cons[5, :, :, :, :] - 1/2 * (cons[2, :, :, :, :] * prim[2, :, :, :, :] +
-                                                            cons[3, :, :, :, :] * prim[3, :, :, :, :] +
-                                                            cons[4, :, :, :, :] * prim[4, :, :, :, :])))
-  return prim
+@inline function cons2prim(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2 + v3^2))
+
+  return SVector(rho, v1, v2, v3, p)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(u, equation::CompressibleEulerEquations3D)
+@inline function cons2entropy(u, equation::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
   v1 = rho_v1 / rho
@@ -679,14 +677,13 @@ end
 
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::CompressibleEulerEquations3D)
-  cons = similar(prim)
-  cons1 = prim[1]
-  cons2 = prim[2] * prim[1]
-  cons3 = prim[3] * prim[1]
-  cons4 = prim[4] * prim[1]
-  cons5 = prim[5]/(equation.gamma - 1) + 1/2 * (cons2 * prim[2] + cons3 * prim[3] + cons4 * prim[4])
-  return SVector(cons1, cons2, cons3, cons4, cons5)
+@inline function prim2cons(prim, equation::CompressibleEulerEquations3D)
+  rho, v1, v2, v3, p = prim
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_v3 = rho * v3
+  rho_e  = p/(equation.gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 
