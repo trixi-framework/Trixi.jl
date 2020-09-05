@@ -99,7 +99,7 @@ function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, pe
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
   t.original_cell_ids[1] = 0
-  t.domain_ids[1] = 0
+  t.domain_ids[1] = typemin(Int)
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)

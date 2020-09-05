@@ -8,6 +8,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
+  first_cell_by_domain::Vector{Int}
+  n_cells_by_domain::Vector{Int}
 
   function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType}
     # Verify that NDIMS is an integer
@@ -18,6 +20,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
     m.tree = TreeType{NDIMS}(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = false
+    m.first_cell_by_domain = Int[]
+    m.n_cells_by_domain = Int[]
 
     return m
   end
@@ -32,6 +36,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
     m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = false
+    m.first_cell_by_domain = Int[]
+    m.n_cells_by_domain = Int[]
 
     return m
   end
@@ -86,8 +92,14 @@ function generate_mesh()
     refine!(mesh.tree)
   end
 
+  # Partition mesh
+  if is_parallel()
+    partition(mesh)
+  end
+
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])
+    is_parallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -97,6 +109,7 @@ function generate_mesh()
 
   # Apply coarsening patches
   @timeit timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
+    is_parallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -160,4 +173,40 @@ function get_restart_mesh_filename(restart_filename)
 
   # Construct and return filename
   return joinpath(dirname, mesh_file)
+end
+
+
+# Partition mesh using a static domain decomposition algorithm based on leaf cell count alone
+# Return first cell id for each domain
+function partition(mesh)
+  # Determine number of leaf cells per domain
+  leaves = leaf_cells(mesh.tree)
+  n_leaves_per_domain = fill(div(length(leaves), n_domains()), n_domains())
+  for d in 1:rem(length(leaves), n_domains())
+    n_leaves_per_domain[d] += 1
+  end
+  @assert sum(n_leaves_per_domain) == length(leaves)
+
+  # Assign domain ids to all cells such that all ancestors of each cell - if not yet assigned to a
+  # domain - belong to the same domain
+  mesh.first_cell_by_domain = similar(n_leaves_per_domain)
+  mesh.n_cells_by_domain = similar(n_leaves_per_domain)
+
+  leaf_count = 0
+  last_id = leaves[n_leaves_per_domain[1]]
+  mesh.first_cell_by_domain[1] = 1
+  mesh.n_cells_by_domain[1] = last_id
+  mesh.tree.domain_ids[1:last_id] .= 0
+  for d in 2:length(n_leaves_per_domain)
+    leaf_count += n_leaves_per_domain[d-1]
+    last_id = leaves[leaf_count + n_leaves_per_domain[d]]
+    mesh.first_cell_by_domain[d] = mesh.first_cell_by_domain[d-1] + mesh.n_cells_by_domain[d-1]
+    mesh.n_cells_by_domain[d] = last_id - mesh.first_cell_by_domain[d] + 1
+    mesh.tree.domain_ids[mesh.first_cell_by_domain[d]:last_id] .= d-1
+  end
+
+  @assert all(x->x >= 0, mesh.tree.domain_ids[1:length(mesh.tree)])
+  @assert sum(mesh.n_cells_by_domain) == length(mesh.tree)
+
+  return nothing
 end
