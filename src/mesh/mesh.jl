@@ -8,8 +8,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
-  first_cell_by_domain::Vector{Int}
-  n_cells_by_domain::Vector{Int}
+  first_cell_by_domain::OffsetVector{Int, Vector{Int}}
+  n_cells_by_domain::OffsetVector{Int, Vector{Int}}
 
   function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType}
     # Verify that NDIMS is an integer
@@ -20,8 +20,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
     m.tree = TreeType{NDIMS}(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = false
-    m.first_cell_by_domain = Int[]
-    m.n_cells_by_domain = Int[]
+    m.first_cell_by_domain = OffsetVector(Int[], 0)
+    m.n_cells_by_domain = OffsetVector(Int[], 0)
 
     return m
   end
@@ -36,8 +36,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
     m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = false
-    m.first_cell_by_domain = Int[]
-    m.n_cells_by_domain = Int[]
+    m.first_cell_by_domain = OffsetVector(Int[], 0)
+    m.n_cells_by_domain = OffsetVector(Int[], 0)
 
     return m
   end
@@ -181,8 +181,9 @@ end
 function partition(mesh)
   # Determine number of leaf cells per domain
   leaves = leaf_cells(mesh.tree)
-  n_leaves_per_domain = fill(div(length(leaves), n_domains()), n_domains())
-  for d in 1:rem(length(leaves), n_domains())
+  n_leaves_per_domain = OffsetArray(fill(div(length(leaves), n_domains()), n_domains()),
+                                    0:(n_domains() - 1))
+  for d in 0:(rem(length(leaves), n_domains()) - 1)
     n_leaves_per_domain[d] += 1
   end
   @assert sum(n_leaves_per_domain) == length(leaves)
@@ -193,16 +194,16 @@ function partition(mesh)
   mesh.n_cells_by_domain = similar(n_leaves_per_domain)
 
   leaf_count = 0
-  last_id = leaves[n_leaves_per_domain[1]]
-  mesh.first_cell_by_domain[1] = 1
-  mesh.n_cells_by_domain[1] = last_id
+  last_id = leaves[n_leaves_per_domain[0]]
+  mesh.first_cell_by_domain[0] = 1
+  mesh.n_cells_by_domain[0] = last_id
   mesh.tree.domain_ids[1:last_id] .= 0
-  for d in 2:length(n_leaves_per_domain)
+  for d in 1:(length(n_leaves_per_domain)-1)
     leaf_count += n_leaves_per_domain[d-1]
     last_id = leaves[leaf_count + n_leaves_per_domain[d]]
     mesh.first_cell_by_domain[d] = mesh.first_cell_by_domain[d-1] + mesh.n_cells_by_domain[d-1]
     mesh.n_cells_by_domain[d] = last_id - mesh.first_cell_by_domain[d] + 1
-    mesh.tree.domain_ids[mesh.first_cell_by_domain[d]:last_id] .= d-1
+    mesh.tree.domain_ids[mesh.first_cell_by_domain[d]:last_id] .= d
   end
 
   @assert all(x->x >= 0, mesh.tree.domain_ids[1:length(mesh.tree)])

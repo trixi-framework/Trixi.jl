@@ -21,6 +21,7 @@ using Random: seed!
 
 using HDF5: h5open, attrs
 using MPI # We use all symbols, but for now we always prefix with `MPI.`, e.g., `MPI.Init()`
+using OffsetArrays: OffsetArray, OffsetVector
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
