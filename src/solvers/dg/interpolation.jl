@@ -97,7 +97,7 @@ function multiply_dimensionwise(matrix::AbstractMatrix, data_in::AbstractArray{<
 end
 
 
-# In the following, tere are several optimized in-place version of multiply_dimensionwise.
+# In the following, there are several optimized in-place versions of multiply_dimensionwise.
 # These make use of the macro `@tullio` from Tullio.jl, which basically uses an Einstein
 # summation convention syntax.
 
