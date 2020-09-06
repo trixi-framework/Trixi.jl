@@ -1782,42 +1782,42 @@ function prolong2mortars!(dg::Dg3D, mortar_type::Val{:l2}, thread_cache)
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         u_large = view(dg.elements.u, :, nnodes(dg), :, :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       elseif dg.l2mortars.orientations[m] == 2
         # L2 mortars in y-direction
         u_large = view(dg.elements.u, :, :, nnodes(dg), :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       else # dg.l2mortars.orientations[m] == 3
         # L2 mortars in z-direction
         u_large = view(dg.elements.u, :, :, :, nnodes(dg), large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       end
     else # large_sides[m] == 2 -> large element on right side
       leftright = 2
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         u_large = view(dg.elements.u, :, 1, :, :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       elseif dg.l2mortars.orientations[m] == 2
         # L2 mortars in y-direction
         u_large = view(dg.elements.u, :, :, 1, :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       else # dg.l2mortars.orientations[m] == 3
         # L2 mortars in z-direction
         u_large = view(dg.elements.u, :, :, :, 1, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large, fstar_tmp1)
       end
     end
   end
 end
 
 """
-    interpolate_mortar_values!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
+    element_solutions_to_mortars!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
 
 Interpolate `u_large` to `dg.l2mortars.u_[upper/lower]_[left/right]` for mortar `m`
 using the forward mortar operators of `dg` and `fstar_tmp1` as temporary storage.
 """
-@inline function interpolate_mortar_values!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
+@inline function element_solutions_to_mortars!(dg::Dg3D, ::Val{:l2}, leftright, m, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper_right, leftright, :, :, :, m), dg.mortar_forward_upper, dg.mortar_forward_upper, u_large, fstar_tmp1)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower_left,  leftright, :, :, :, m), dg.mortar_forward_lower, dg.mortar_forward_lower, u_large, fstar_tmp1)
@@ -2042,10 +2042,10 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
     calc_fstar!(fstar_lower_left,  u_lower_left,  m, orientations, dg)
     calc_fstar!(fstar_lower_right, u_lower_right, m, orientations, dg)
 
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
-                                    fstar_upper_left, fstar_upper_right,
-                                    fstar_lower_left, fstar_lower_right,
-                                    fstar_tmp1)
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper_left, fstar_upper_right,
+                               fstar_lower_left, fstar_lower_right,
+                               fstar_tmp1)
   end
 end
 
@@ -2147,26 +2147,26 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2},
     for j in 1:nnodes(dg), i in 1:nnodes(dg), v in 1:nvariables(dg)
       fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
     end
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
-                                    fstar_upper_left, fstar_upper_right,
-                                    fstar_lower_left, fstar_lower_right,
-                                    fstar_tmp1)
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper_left, fstar_upper_right,
+                               fstar_lower_left, fstar_lower_right,
+                               fstar_tmp1)
   end
 end
 
 """
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
-                                    fstar_upper_left, fstar_upper_right,
-                                    fstar_lower_left, fstar_lower_right,
-                                    fstar_tmp1)
+    mortar_fluxes_to_elements!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
+                               fstar_upper_left, fstar_upper_right,
+                               fstar_lower_left, fstar_lower_right,
+                               fstar_tmp1)
 
 Copy/project `fstar_[upper/lower]_[left/right` to `surface_flux_values` for mortar `m`
 using the reverse mortar operators of `dg` and `fstar_tmp1` as temporary storage.
 """
-@inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
-                                                 fstar_upper_left, fstar_upper_right,
-                                                 fstar_lower_left, fstar_lower_right,
-                                                 fstar_tmp1)
+@inline function mortar_fluxes_to_elements!(surface_flux_values, dg::Dg3D, mortar_type::Val{:l2}, m,
+                                            fstar_upper_left, fstar_upper_right,
+                                            fstar_lower_left, fstar_lower_right,
+                                            fstar_tmp1)
     lower_left_element_id  = dg.l2mortars.neighbor_ids[1, m]
     lower_right_element_id = dg.l2mortars.neighbor_ids[2, m]
     upper_left_element_id  = dg.l2mortars.neighbor_ids[3, m]

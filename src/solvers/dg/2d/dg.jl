@@ -1558,34 +1558,34 @@ function prolong2mortars!(dg::Dg2D, mortar_type::Val{:l2})
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
       else
         # L2 mortars in y-direction
         u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
       end
     else # large_sides[m] == 2 -> large element on right side
       leftright = 2
       if dg.l2mortars.orientations[m] == 1
         # L2 mortars in x-direction
         u_large = view(dg.elements.u, :, 1, :, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
       else
         # L2 mortars in y-direction
         u_large = view(dg.elements.u, :, :, 1, large_element_id)
-        interpolate_mortar_values!(dg, mortar_type, leftright, m, u_large)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
       end
     end
   end
 end
 
 """
-    interpolate_mortar_values!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+    element_solutions_to_mortars!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
 
 Interpolate `u_large` to `dg.l2mortars.u_[upper/lower]` for mortar `m`
 using the forward mortar operators of `dg`.
 """
-@inline function interpolate_mortar_values!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+@inline function element_solutions_to_mortars!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper, leftright, :, :, m), dg.mortar_forward_upper, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower, leftright, :, :, m), dg.mortar_forward_lower, u_large)
   return nothing
@@ -1871,8 +1871,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
     calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
 
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
-                                    fstar_upper, fstar_lower)
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper, fstar_lower)
   end
 end
 
@@ -1926,19 +1926,19 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
 
     @. fstar_upper += noncons_diamond_upper
     @. fstar_lower += noncons_diamond_lower
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg, mortar_type, m,
-                                    fstar_upper, fstar_lower)
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper, fstar_lower)
   end
 end
 
 """
-    copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m, fstar_upper, fstar_lower)
+    mortar_fluxes_to_elements!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m, fstar_upper, fstar_lower)
 
 Copy/project `fstar_[upper/lower]` to `surface_flux_values` for mortar `m`
 using the reverse mortar operators of `dg`.
 """
-@inline function copy_and_project_mortar_fluxes!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
-                                                 fstar_upper, fstar_lower)
+@inline function mortar_fluxes_to_elements!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
+                                            fstar_upper, fstar_lower)
   large_element_id = dg.l2mortars.neighbor_ids[3, m]
   upper_element_id = dg.l2mortars.neighbor_ids[2, m]
   lower_element_id = dg.l2mortars.neighbor_ids[1, m]
