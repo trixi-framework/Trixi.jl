@@ -21,11 +21,14 @@ using Profile: clear_malloc_data
 using Random: seed!
 
 using HDF5: h5open, attrs
-using LoopVectorization: @avx
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
-using Tullio: @tullio
 using UnPack: @unpack
+
+# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
+# Hence, we need `using LoopVectorization` after loading Tullio and before using @tullio.
+using Tullio: @tullio
+using LoopVectorization
 
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
