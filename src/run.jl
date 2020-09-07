@@ -211,9 +211,10 @@ function init_simulation()
           | time integration:   $(get_name(time_integration_function))
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
-          | #parallel threads:  $(Threads.nthreads())
+          | #MPI domains:       $(n_domains())
+          | #threads/domain:    $(Threads.nthreads())
           |
-          | Solver
+          | Solver (local)
           | | solver:           $solver_name
           | | polydeg:          $polydeg
           | | CFL:              $cfl
@@ -226,7 +227,7 @@ function init_simulation()
           | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
-          | Mesh
+          | Mesh (global)
           | | #cells:           $(length(mesh.tree))
           | | #leaf cells:      $n_leaf_cells
           | | minimum level:    $min_level
