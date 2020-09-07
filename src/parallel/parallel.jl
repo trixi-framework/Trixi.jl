@@ -1,3 +1,20 @@
+"""
+    init_mpi
+
+Initialize MPI by calling `MPI.Initialized()`. The function will check if MPI is already initialized
+and if yes, do nothing, thus it is safe to call it multiple times.
+"""
+function init_mpi()
+  if !MPI.Initialized()
+    # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
+    provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
+    @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
+  end
+
+  return nothing
+end
+
+
 @inline mpi_comm() = MPI.COMM_WORLD
 
 @inline domain_id(comm) = MPI.Comm_rank(comm)

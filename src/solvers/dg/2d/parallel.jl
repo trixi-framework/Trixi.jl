@@ -1,12 +1,3 @@
-function init_mpi()
-  if !MPI.Initialized()
-    # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
-    provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
-    @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
-  end
-end
-
-
 # Count the number of MPI interfaces that need to be created
 function count_required_mpi_interfaces(mesh::TreeMesh{2}, cell_ids)
   count = 0
