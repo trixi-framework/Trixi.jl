@@ -784,6 +784,10 @@ function calc_error_norms(dg::Dg2D, t::Float64)
   end
 
   # For L2 error, divide by total volume
+  if is_parallel()
+    MPI.Reduce!(l2_error, +, mpi_root(), mpi_comm())
+    MPI.Reduce!(linf_error, max, mpi_root(), mpi_comm())
+  end
   @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
@@ -859,17 +863,19 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   equation = equations(dg)
 
   # General information
-  println()
-  println("-"^80)
-  println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
-  println("-"^80)
-  println(" #timesteps:     " * @sprintf("% 14d", step) *
-          "               " *
-          " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-  println(" dt:             " * @sprintf("%10.8e", dt) *
-          "               " *
-          " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
-  println(" sim. time:      " * @sprintf("%10.8e", time))
+  if is_mpi_root()
+    println()
+    println("-"^80)
+    println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
+    println("-"^80)
+    println(" #timesteps:     " * @sprintf("% 14d", step) *
+            "               " *
+            " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+    println(" dt:             " * @sprintf("%10.8e", dt) *
+            "               " *
+            " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+    println(" sim. time:      " * @sprintf("%10.8e", time))
+  end
 
   # Level information (only show for AMR)
   if parameter("amr_interval", 0) > 0
@@ -898,13 +904,15 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if any(q in dg.analysis_quantities for q in
-         (:l2_error, :linf_error, :conservation_error, :residual))
-    print(" Variable:    ")
-    for v in 1:nvariables(equation)
-      @printf("   %-14s", varnames_cons(equation)[v])
+  if is_mpi_root()
+    if any(q in dg.analysis_quantities for q in
+          (:l2_error, :linf_error, :conservation_error, :residual))
+      print(" Variable:    ")
+      for v in 1:nvariables(equation)
+        @printf("   %-14s", varnames_cons(equation)[v])
+      end
+      println()
     end
-    println()
   end
 
   # Calculate L2/Linf errors
@@ -914,24 +922,26 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
   end
 
-  # L2 error
-  if :l2_error in dg.analysis_quantities
-    print(" L2 error:    ")
-    for v in 1:nvariables(equation)
-      @printf("  % 10.8e", l2_error[v])
-      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+  if is_mpi_root()
+    # L2 error
+    if :l2_error in dg.analysis_quantities
+      print(" L2 error:    ")
+      for v in 1:nvariables(equation)
+        @printf("  % 10.8e", l2_error[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+      end
+      println()
     end
-    println()
-  end
 
-  # Linf error
-  if :linf_error in dg.analysis_quantities
-    print(" Linf error:  ")
-    for v in 1:nvariables(equation)
-      @printf("  % 10.8e", linf_error[v])
-      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+    # Linf error
+    if :linf_error in dg.analysis_quantities
+      print(" Linf error:  ")
+      for v in 1:nvariables(equation)
+        @printf("  % 10.8e", linf_error[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+      end
+      println()
     end
-    println()
   end
 
   # Conservation errror
@@ -968,11 +978,17 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
-    duds_ut = calc_entropy_timederivative(dg, time)
-    print(" ∑∂S/∂U ⋅ Uₜ: ")
-    @printf("  % 10.8e", duds_ut)
-    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
-    println()
+    dsdu_ut = calc_entropy_timederivative(dg, time)
+    if is_parallel()
+      dsdu_ut_buffer = [dsdu_ut]
+      MPI.Reduce!(dsdu_ut_buffer, +, mpi_root(), mpi_comm())
+    end
+    if is_mpi_root()
+      print(" ∑∂S/∂U ⋅ Uₜ: ")
+      @printf("  % 10.8e", dsdu_ut)
+      dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
+      println()
+    end
   end
 
   # Entropy
@@ -1084,8 +1100,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  println("-"^80)
-  println()
+  if is_mpi_root()
+    println("-"^80)
+    println()
+  end
 
   # Add line break and close analysis file if it was opened
   if dg.save_analysis
@@ -2303,6 +2321,12 @@ function calc_dt(dg::Dg2D, cfl)
     dt = calc_max_dt(dg.elements.u, element_id,
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
     min_dt = min(min_dt, dt)
+  end
+
+  if is_parallel()
+    min_dt_buffer = [min_dt]
+    MPI.Allreduce!(min_dt_buffer, min, mpi_comm())
+    min_dt = min_dt_buffer[1]
   end
 
   return min_dt

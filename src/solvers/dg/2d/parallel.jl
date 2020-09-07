@@ -1,3 +1,12 @@
+function init_mpi()
+  if !MPI.Initialized()
+    # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
+    provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
+    @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
+  end
+end
+
+
 # Count the number of MPI interfaces that need to be created
 function count_required_mpi_interfaces(mesh::TreeMesh{2}, cell_ids)
   count = 0
@@ -88,7 +97,11 @@ function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMe
       end
 
       # Set orientation (x -> 1, y -> 2)
-      mpi_interfaces.orientations[count] = div(direction, 2)
+      if direction in (1, 2) # x-direction
+        mpi_interfaces.orientations[count] = 1
+      else # y-direction
+        mpi_interfaces.orientations[count] = 2
+      end
     end
   end
 
@@ -103,12 +116,14 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
 
   # Determine neighbor domains and sides for MPI interfaces
   neighbor_domain_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
-  # The global interface id is the smaller of the (globally unique) neighbor cell ids
+  # The global interface id is the smaller of the (globally unique) neighbor cell ids, multiplied by
+  # number of directions (2 * ndims) plus direction minus one
   global_interface_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
   my_domain_id = domain_id()
   for interface_id in 1:nmpiinterfaces(mpi_interfaces)
     orientation = mpi_interfaces.orientations[interface_id]
     remote_side = mpi_interfaces.remote_sides[interface_id]
+    # Direction is from local cell to remote cell
     if orientation == 1 # MPI interface in x-direction
       if remote_side == 1 # remote cell on the "left" of MPI interface
         direction = 1
@@ -126,7 +141,12 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     local_cell_id = elements.cell_ids[local_element_id]
     remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
     neighbor_domain_ids[interface_id] = tree.domain_ids[remote_cell_id]
-    global_interface_ids[interface_id] = min(local_cell_id, remote_cell_id)
+    if local_cell_id < remote_cell_id
+      global_interface_ids[interface_id] = 2 * ndims(tree) * local_cell_id + direction - 1
+    else
+      global_interface_ids[interface_id] = (2 * ndims(tree) * remote_cell_id +
+                                            opposite_direction(direction) - 1)
+    end
   end
 
   # Get sorted, unique neighbor domain ids
@@ -169,22 +189,125 @@ end
 
 
 function prolong2mpiinterfaces!(dg::Dg2D)
+  equation = equations(dg)
+
+  Threads.@threads for s in 1:dg.n_mpi_interfaces
+    local_element_id = dg.mpi_interfaces.local_element_ids[s]
+    if dg.mpi_interfaces.orientations[s] == 1 # interface in x-direction
+      if dg.mpi_interfaces.remote_sides[s] == 1 # local element in positive direction
+        for j in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.mpi_interfaces.u[2, v, j, s] = dg.elements.u[v,          1, j, local_element_id]
+        end
+      else # local element in negative direction
+        for j in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.mpi_interfaces.u[1, v, j, s] = dg.elements.u[v, nnodes(dg), j, local_element_id]
+        end
+      end
+    else # interface in y-direction
+      if dg.mpi_interfaces.remote_sides[s] == 1 # local element in positive direction
+        for i in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.mpi_interfaces.u[2, v, i, s] = dg.elements.u[v, i,          1, local_element_id]
+        end
+      else # local element in negative direction
+        for i in 1:nnodes(dg), v in 1:nvariables(dg)
+          dg.mpi_interfaces.u[1, v, i, s] = dg.elements.u[v, i, nnodes(dg), local_element_id]
+        end
+      end
+    end
+  end
 end
 
 
 function start_mpi_send!(dg::Dg2D)
-  error("pack buffers")
+  data_size = nvariables(dg) * nnodes(dg)^(ndims(dg) - 1)
+
+  for d in 1:length(dg.mpi_neighbor_domain_ids)
+    send_buffer = dg.mpi_send_buffers[d]
+
+    for (index, s) in enumerate(dg.mpi_neighbor_interfaces[d])
+      first = (index - 1) * data_size + 1
+      last =  (index - 1) * data_size + data_size
+
+      if dg.mpi_interfaces.remote_sides[s] == 1 # local element in positive direction
+        @views send_buffer[first:last] .= vec(dg.mpi_interfaces.u[2, :, :, s])
+      else # local element in negative direction
+        @views send_buffer[first:last] .= vec(dg.mpi_interfaces.u[1, :, :, s])
+      end
+    end
+  end
+
+  # Start sending
   for (index, d) in enumerate(dg.mpi_neighbor_domain_ids)
-    mpi_send_requests[index] = MPI.Isend(dg.mpi_send_buffers[index], d, domain_id(), mpi_comm())
+    dg.mpi_send_requests[index] = MPI.Isend(dg.mpi_send_buffers[index], d, domain_id(), mpi_comm())
   end
 end
 
 
 function finish_mpi_receive!(dg::Dg2D)
+  data_size = nvariables(dg) * nnodes(dg)^(ndims(dg) - 1)
+
+  # Start receiving and unpack received data until all communication is finished
+  d, _ = MPI.Waitany!(dg.mpi_recv_requests)
+  while d != 0
+    recv_buffer = dg.mpi_recv_buffers[d]
+
+    for (index, s) in enumerate(dg.mpi_neighbor_interfaces[d])
+      first = (index - 1) * data_size + 1
+      last =  (index - 1) * data_size + data_size
+
+      if dg.mpi_interfaces.remote_sides[s] == 1 # local element in positive direction
+        @views vec(dg.mpi_interfaces.u[1, :, :, s]) .= recv_buffer[first:last]
+      else # local element in negative direction
+        @views vec(dg.mpi_interfaces.u[2, :, :, s]) .= recv_buffer[first:last]
+      end
+    end
+
+    d, _ = MPI.Waitany!(dg.mpi_recv_requests)
+  end
 end
 
 
-function calc_mpi_interface_flux!(dg::Dg2D)
+# Calculate and store the surface fluxes (standard Riemann and nonconservative parts) at an MPI interface
+# OBS! Regarding the nonconservative terms: 1) currently only needed for the MHD equations
+#                                           2) not implemented for MPI
+calc_mpi_interface_flux!(dg::Dg2D) = calc_mpi_interface_flux!(dg.elements.surface_flux_values,
+                                                              have_nonconservative_terms(dg.equations),
+                                                              dg)
+
+function calc_mpi_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg2D)
+  @unpack surface_flux_function = dg
+  @unpack u, local_element_ids, orientations, remote_sides = dg.mpi_interfaces
+
+  Threads.@threads for s in 1:dg.n_mpi_interfaces
+    # Get local neighboring element
+    element_id = local_element_ids[s]
+
+    # Determine interface direction with respect to element:
+    if orientations[s] == 1 # interface in x-direction
+      if remote_sides[s] == 1 # local element in positive direction
+        direction = 1
+      else # local element in negative direction
+        direction = 2
+      end
+    else # interface in y-direction
+      if remote_sides[s] == 1 # local element in positive direction
+        direction = 3
+      else # local element in negative direction
+        direction = 4
+      end
+    end
+
+    for i in 1:nnodes(dg)
+      # Call pointwise Riemann solver
+      u_ll, u_rr = get_surface_node_vars(u, dg, i, s)
+      flux = surface_flux_function(u_ll, u_rr, orientations[s], equations(dg))
+
+      # Copy flux to local element storage
+      for v in 1:nvariables(dg)
+        surface_flux_values[v, i, direction, element_id] = flux[v]
+      end
+    end
+  end
 end
 
 

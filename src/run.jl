@@ -30,9 +30,7 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
   reset_timer!(timer())
 
   # Initialize MPI
-  if !MPI.Initialized()
-    MPI.Init()
-  end
+  init_mpi()
 
   # Read command line or keyword arguments and parse parameters file
   init_parameters(parameters_file; verbose=verbose,
@@ -91,28 +89,32 @@ function init_simulation()
   # Initialize mesh
   if restart
     is_parallel() && error("restarting not yet implemented in parallel") # TODO parallel
-    print("Loading mesh... ")
+    is_mpi_root() && print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
-    println("done")
+    is_parallel() && MPI.Barrier(mpi_comm())
+    is_mpi_root() && println("done")
   else
-    print("Creating mesh... ")
+    is_mpi_root() && print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
     mesh.unsaved_changes = false
-    println("done")
+    is_parallel() && MPI.Barrier(mpi_comm())
+    is_mpi_root() && println("done")
   end
 
   # Initialize system of equations
-  print("Initializing system of equations... ")
+  is_mpi_root() && print("Initializing system of equations... ")
   equations_name = parameter("equations")
   equations = make_equations(equations_name, ndims_)
-  println("done")
+  is_parallel() && MPI.Barrier(mpi_comm())
+  is_mpi_root() && println("done")
 
   # Initialize solver
-  print("Initializing solver... ")
+  is_mpi_root() && print("Initializing solver... ")
   solver_name = parameter("solver", valid=["dg"])
   solver = make_solver(solver_name, equations, mesh)
-  println("done")
+  is_parallel() && MPI.Barrier(mpi_comm())
+  is_mpi_root() && println("done")
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be flux_central,
@@ -130,16 +132,18 @@ function init_simulation()
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
-    print("Loading restart file...")
+    is_mpi_root() && print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
-    println("done")
+    is_parallel() && MPI.Barrier(mpi_comm())
+    is_mpi_root() && println("done")
   else
-    print("Applying initial conditions... ")
+    is_mpi_root() && print("Applying initial conditions... ")
     t_start = parameter("t_start")
     time = t_start
     step = 0
     set_initial_conditions!(solver, time)
-    println("done")
+    is_parallel() && MPI.Barrier(mpi_comm())
+    is_mpi_root() && println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
@@ -232,8 +236,8 @@ function init_simulation()
           | | minimum dx:       $min_dx
           | | maximum dx:       $max_dx
           """
-  println()
-  println(s)
+  is_mpi_root() && println()
+  is_mpi_root() && println(s)
 
   # Set up main loop
   save_final_solution = parameter("save_final_solution", true)
@@ -317,21 +321,26 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations2D
-      if maximum(abs, view(solver.elements.u_t, 1, :, :, :)) <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-        println("-"^80)
-        println()
-        finalstep = true
+    if solver.equations isa AbstractHyperbolicDiffusionEquations
+      if solver.equations isa HyperbolicDiffusionEquations2D
+        resid = maximum(abs, view(solver.elements.u_t, 1, :, :, :))
+      elseif solver.equations isa HyperbolicDiffusionEquations3D
+        resid = maximum(abs, view(solver.elements.u_t, 1, :, :, :, :))
+      else
+        error("unsupported system of equations")
       end
-    end
-    if solver.equations isa HyperbolicDiffusionEquations3D
-      if maximum(abs, view(solver.elements.u_t, 1, :, :, :, :)) <= solver.equations.resid_tol
+
+      if is_parallel()
+        resid_buffer = [resid]
+        MPI.Allreduce!(resid_buffer, max, mpi_comm())
+        resid = resid_buffer[1]
+      end
+
+      if resid <= solver.equations.resid_tol
         println()
         println("-"^80)
-        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("  Steady state tolerance of ", solver.equations.resid_tol,
+                " reached at time ", time)
         println("-"^80)
         println()
         finalstep = true
@@ -341,9 +350,16 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     # Analyze solution errors
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       # Calculate absolute and relative runtime
+      if is_parallel()
+        total_dofs = ndofs(solver)
+      else
+        dofs_buffer = [ndofs(solver)]
+        MPI.Reduce!(dofs_buffer, +, mpi_root(), mpi_comm())
+        total_dofs = dofs_buffer[1]
+      end
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /
-                          (n_analysis_timesteps * ndofs(solver)))
+                          (n_analysis_timesteps * total_dofs))
 
       # Analyze solution
       l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
@@ -353,13 +369,13 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       analysis_start_time = time_ns()
       output_time = 0.0
       n_analysis_timesteps = 0
-      if finalstep
+      if finalstep && is_mpi_root()
         println("-"^80)
         println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
         println("-"^80)
         println()
       end
-    elseif alive_interval > 0 && step % alive_interval == 0
+    elseif alive_interval > 0 && step % alive_interval == 0 && is_mpi_root()
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
               step, dt, time, runtime_absolute)
@@ -425,8 +441,10 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   end
 
   # Print timer information
-  print_timer(timer(), title="Trixi.jl", allocations=true, linechars=:ascii, compact=false)
-  println()
+  if is_mpi_root()
+    print_timer(timer(), title="Trixi.jl", allocations=true, linechars=:ascii, compact=false)
+    println()
+  end
 
   # Return error norms for EOC calculation
   return l2_error, linf_error, varnames_cons(solver.equations)
@@ -443,7 +461,12 @@ refinement level will be increased by 1. Parameters can be overriden by specifyi
 additional keyword arguments, which are passed to the respective call to `run`..
 """
 function convtest(parameters_file, iterations; parameters...)
-  @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
+  # Initialize MPI
+  init_mpi()
+
+  if is_mpi_root()
+    @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
+  end
 
   # Types of errors to be calcuated
   errors = Dict(:L2 => Float64[], :Linf => Float64[])
@@ -453,7 +476,7 @@ function convtest(parameters_file, iterations; parameters...)
 
   # Run trixi and extract errors
   for i = 1:iterations
-    println(string("Running convtest iteration ", i, "/", iterations))
+    is_mpi_root() && println(string("Running convtest iteration ", i, "/", iterations))
     l2_error, linf_error, variablenames = run(parameters_file; refinement_level_increment = i - 1,
                                               parameters...)
 
@@ -474,44 +497,46 @@ function convtest(parameters_file, iterations; parameters...)
   eocs = Dict(kind => log.(error[2:end, :] ./ error[1:end-1, :]) ./ log(1 / 2) for (kind, error) in errorsmatrix)
 
 
-  for (kind, error) in errorsmatrix
-    println(kind)
+  if is_mpi_root()
+    for (kind, error) in errorsmatrix
+      println(kind)
 
-    for v in variablenames
-      @printf("%-20s", v)
-    end
-    println("")
-
-    for k = 1:nvariables
-      @printf("%-10s", "error")
-      @printf("%-10s", "EOC")
-    end
-    println("")
-
-    # Print errors for the first iteration
-    for k = 1:nvariables
-      @printf("%-10.2e", error[1, k])
-      @printf("%-10s", "-")
-    end
-    println("")
-
-    # For the following iterations print errors and EOCs
-    for j = 2:iterations
-      for k = 1:nvariables
-        @printf("%-10.2e", error[j, k])
-        @printf("%-10.2f", eocs[kind][j-1, k])
+      for v in variablenames
+        @printf("%-20s", v)
       end
       println("")
-    end
-    println("")
 
-    # Print mean EOCs
-    for k = 1:nvariables
-      @printf("%-10s", "mean")
-      @printf("%-10.2f", sum(eocs[kind][:, k]) ./ length(eocs[kind][:, k]))
+      for k = 1:nvariables
+        @printf("%-10s", "error")
+        @printf("%-10s", "EOC")
+      end
+      println("")
+
+      # Print errors for the first iteration
+      for k = 1:nvariables
+        @printf("%-10.2e", error[1, k])
+        @printf("%-10s", "-")
+      end
+      println("")
+
+      # For the following iterations print errors and EOCs
+      for j = 2:iterations
+        for k = 1:nvariables
+          @printf("%-10.2e", error[j, k])
+          @printf("%-10.2f", eocs[kind][j-1, k])
+        end
+        println("")
+      end
+      println("")
+
+      # Print mean EOCs
+      for k = 1:nvariables
+        @printf("%-10s", "mean")
+        @printf("%-10.2f", sum(eocs[kind][:, k]) ./ length(eocs[kind][:, k]))
+      end
+      println("")
+      println("-"^80)
     end
-    println("")
-    println("-"^80)
   end
 end
 
