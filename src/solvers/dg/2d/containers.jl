@@ -63,6 +63,34 @@ end
 ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 
+# Container data structure (structure-of-arrays style) for DG MPI interfaces
+struct MpiInterfaceContainer2D{NVARS, POLYDEG} <: AbstractContainer
+  u::Array{Float64, 4}           # [leftright, variables, i, interfaces]
+  local_element_ids::Vector{Int} # [interfaces]
+  orientations::Vector{Int}      # [interfaces]
+  remote_sides::Vector{Int}      # [interfaces]
+end
+
+
+function MpiInterfaceContainer2D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POLYDEG}
+  # Initialize fields with defaults
+  n_nodes = POLYDEG + 1
+  u = fill(NaN, 2, NVARS, n_nodes, capacity)
+  local_element_ids = fill(typemin(Int), capacity)
+  orientations = fill(typemin(Int), capacity)
+  remote_sides = fill(typemin(Int), capacity)
+
+  mpi_interfaces = MpiInterfaceContainer2D{NVARS, POLYDEG}(u, local_element_ids, orientations,
+                                                           remote_sides)
+
+  return mpi_interfaces
+end
+
+
+# Return number of interfaces
+nmpiinterfaces(mpi_interfaces::MpiInterfaceContainer2D) = length(mpi_interfaces.orientations)
+
+
 # Container data structure (structure-of-arrays style) for DG boundaries
 struct BoundaryContainer2D{NVARS, POLYDEG} <: AbstractContainer
   u::Array{Float64, 4}                # [leftright, variables, i, boundaries]

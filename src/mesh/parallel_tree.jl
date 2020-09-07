@@ -170,6 +170,9 @@ has_child(t::ParallelTree, cell_id::Int, child::Int) = t.child_ids[child, cell_i
 # Check if cell has a neighbor at the same refinement level in the given direction
 has_neighbor(t::ParallelTree, cell_id::Int, direction::Int) = t.neighbor_ids[direction, cell_id] > 0
 
+# Check if cell is own cell, i.e., belongs to this MPI domain
+is_own_cell(t::ParallelTree, cell_id) = t.domain_ids[cell_id] == domain_id()
+
 # Check if cell has a coarse neighbor, i.e., with one refinement level lower
 function has_coarse_neighbor(t::ParallelTree, cell_id::Int, direction::Int)
   return has_parent(t, cell_id) && has_neighbor(t, t.parent_ids[cell_id], direction)
@@ -280,6 +283,15 @@ end
 
 # Return an array with the ids of all leaf cells
 leaf_cells(t::ParallelTree) = filter_leaf_cells((cell_id)->true, t)
+
+
+# Return an array with the ids of all leaf cells for a given domain
+leaf_cells_by_domain(t::ParallelTree, domain_id) = filter_leaf_cells(t) do cell_id
+                                                     t.domain_ids[cell_id] == domain_id
+                                                   end
+
+# Return an array with the ids of all local leaf cells
+local_leaf_cells(t::ParallelTree) = leaf_cells_by_domain(t, domain_id())
 
 
 # Count the number of leaf cells.

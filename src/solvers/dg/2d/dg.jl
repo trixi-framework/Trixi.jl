@@ -18,6 +18,9 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   interfaces::InterfaceContainer2D{NVARS, POLYDEG}
   n_interfaces::Int
 
+  mpi_interfaces::MpiInterfaceContainer2D{NVARS, POLYDEG}
+  n_mpi_interfaces::Int
+
   boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
 
@@ -63,6 +66,13 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
+  mpi_neighbor_domain_ids::Vector{Int}
+  mpi_neighbor_interfaces::Vector{Vector{Int}}
+  mpi_send_buffers::Vector{Vector{Float64}}
+  mpi_recv_buffers::Vector{Vector{Float64}}
+  mpi_send_requests::Vector{MPI.Request}
+  mpi_recv_requests::Vector{MPI.Request}
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -73,8 +83,12 @@ end
 
 # Convenience constructor to create DG solver instance
 function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
-  # Get cells for which an element needs to be created (i.e., all leaf cells)
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  # Get local cells for which an element needs to be created (i.e., all leaf cells)
+  if is_parallel()
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+  else
+    leaf_cell_ids = leaf_cells(mesh.tree)
+  end
 
   # Initialize element container
   elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
@@ -83,6 +97,10 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   # Initialize interface container
   interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_interfaces = ninterfaces(interfaces)
+
+  # Initialize MPI interface container
+  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
 
   # Initialize boundaries
   boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
@@ -95,7 +113,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity checks
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && is_serial()
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -184,6 +202,24 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
+  # Set up MPI neighbor connectivity and communication data structures
+  if is_parallel()
+    (mpi_neighbor_domain_ids,
+     mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+    (mpi_send_buffers,
+     mpi_recv_buffers,
+     mpi_send_requests,
+     mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                   Val(NDIMS), Val(NVARS), Val(POLYDEG))
+  else
+    mpi_neighbor_domain_ids = Int[]
+    mpi_neighbor_interfaces = Vector{Int}[]
+    mpi_send_buffers = Vector{Float64}[]
+    mpi_recv_buffers = Vector{Float64}[]
+    mpi_send_requests = MPI.Request[]
+    mpi_recv_requests = MPI.Request[]
+  end
+
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
@@ -203,6 +239,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       initial_conditions, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
+      mpi_interfaces, n_mpi_interfaces,
       boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
@@ -219,6 +256,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
+      mpi_neighbor_domain_ids, mpi_neighbor_interfaces,
+      mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -271,8 +310,44 @@ function count_required_interfaces(mesh::TreeMesh{2}, cell_ids)
       end
 
       # Skip if neighbor has children
-      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
-      if has_children(mesh.tree, neighbor_id)
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is on different domain -> create MPI interface instead
+      if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      count += 1
+    end
+  end
+
+  return count
+end
+
+
+# Count the number of MPI interfaces that need to be created
+function count_required_mpi_interfaces(mesh::TreeMesh{2}, cell_ids)
+  count = 0
+
+  # Iterate over all cells
+  for cell_id in cell_ids
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, current cell is small or at boundary and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is on this domain -> create regular interface instead
+      if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -394,6 +469,19 @@ function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDE
 end
 
 
+# Create MPI interface container, initialize interface data, and return interface container for further use
+function init_mpi_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+  # Initialize container
+  n_mpi_interfaces = count_required_mpi_interfaces(mesh, cell_ids)
+  mpi_interfaces = MpiInterfaceContainer2D{NVARS, POLYDEG}(n_mpi_interfaces)
+
+  # Connect elements with interfaces
+  init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh)
+
+  return mpi_interfaces
+end
+
+
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
 # NVARS: number of variables
@@ -477,6 +565,11 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{2})
         continue
       end
 
+      # Skip if neighbor is on different domain -> create MPI interface instead
+      if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
       # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
       interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
@@ -489,6 +582,54 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{2})
 
   @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
                                             "expectations $(ninterfaces(interfaces))")
+end
+
+
+# Initialize connectivity between elements and interfaces
+function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMesh{2})
+  # Reset interface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via mpi_interfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is on this domain -> create regular interface instead
+      if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Create interface between elements
+      count += 1
+      mpi_interfaces.local_element_ids[count] = element_id
+
+      if direction in (2, 4) # element is "left" of interface, remote cell is "right" of interface
+        mpi_interfaces.remote_sides[count] = 2
+      else
+        mpi_interfaces.remote_sides[count] = 1
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      mpi_interfaces.orientations[count] = div(direction, 2)
+    end
+  end
+
+  @assert count == nmpiinterfaces(mpi_interfaces) ("Actual interface count ($count) does not match "
+                                                   * "expectations $(nmpiinterfaces(mpi_interfaces))")
 end
 
 
@@ -624,6 +765,70 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
 
   @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
                                       "expectations $(nmortars(mortars))")
+end
+
+
+# Initialize connectivity between MPI neighbor domains
+function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh{2})
+  tree = mesh.tree
+
+  # Determine neighbor domains and sides for MPI interfaces
+  neighbor_domain_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
+  my_domain_id = domain_id()
+  for interface_id in 1:nmpiinterfaces(mpi_interfaces)
+    orientation = mpi_interfaces.orientations[interface_id]
+    remote_side = mpi_interfaces.remote_sides[interface_id]
+    if orientation == 1 # MPI interface in x-direction
+      if remote_side == 1 # remote cell on the "left" of MPI interface
+        direction = 1
+      else # remote cell on the "right" of MPI interface
+        direction = 2
+      end
+    else # MPI interface in y-direction
+      if remote_side == 1 # remote cell on the "left" of MPI interface
+        direction = 3
+      else # remote cell on the "right" of MPI interface
+        direction = 4
+      end
+    end
+    local_element_id = mpi_interfaces.local_element_ids[interface_id]
+    local_cell_id = elements.cell_ids[local_element_id]
+    remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
+    neighbor_domain_ids[interface_id] = tree.domain_ids[remote_cell_id]
+  end
+
+  # Get sorted, unique neighbor domain ids
+  mpi_neighbor_domain_ids = unique(sort(neighbor_domain_ids))
+
+  # For each neighbor domain id, init connectivity data structures
+  mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_domain_ids))
+  for (index, d) in enumerate(mpi_neighbor_domain_ids)
+    count_ = count(x->(x == d), neighbor_domain_ids)
+    mpi_neighbor_interfaces[index] = findall(x->(x == d), neighbor_domain_ids)
+  end
+
+  # Sanity check that we counted all interfaces exactly once
+  @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
+
+  return mpi_neighbor_domain_ids, mpi_neighbor_interfaces
+end
+
+
+# Initialize MPI data structures
+function init_mpi_data_structures(mpi_neighbor_interfaces, ::Val{NDIMS}, ::Val{NVARS},
+                                  ::Val{POLYDEG}) where {NDIMS, NVARS, POLYDEG}
+  data_size = NVARS * (POLYDEG + 1)^(NDIMS - 1)
+  mpi_send_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
+  mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
+  for index in 1:length(mpi_neighbor_interfaces)
+    mpi_send_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
+    mpi_recv_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
+  end
+
+  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+
+  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
 end
 
 
@@ -1138,8 +1343,17 @@ end
 
 # Calculate time derivative
 function rhs!(dg::Dg2D, t_stage)
+  # Start to receive MPI data
+  is_parallel() && @timeit timer() "start MPI receive" start_mpi_receive!(dg)
+
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
+
+  # Prolong solution to MPI interfaces
+  is_parallel() && @timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(dg)
+
+  # Start to send MPI data
+  is_parallel() && @timeit timer() "start MPI send" start_mpi_send!(dg)
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -1162,6 +1376,12 @@ function rhs!(dg::Dg2D, t_stage)
   # Calculate mortar fluxes
   @timeit timer() "mortar flux" calc_mortar_flux!(dg)
 
+  # Finish to receive MPI data
+  is_parallel() && @timeit timer() "finish MPI receive" finish_mpi_receive!(dg)
+
+  # Calculate MPI interface fluxes
+  is_parallel() && @timeit timer() "MPI interface flux" calc_mpi_interface_flux!(dg)
+
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg)
 
@@ -1170,6 +1390,9 @@ function rhs!(dg::Dg2D, t_stage)
 
   # Calculate source terms
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
+
+  # Finish to send MPI data
+  is_parallel() && @timeit timer() "finish MPI send" finish_mpi_send!(dg)
 end
 
 
