@@ -49,6 +49,7 @@ include("l2projection.jl")
 include("2d/containers.jl")
 include("2d/dg.jl")
 include("2d/amr.jl")
+include("2d/parallel.jl")
 
 # Include 3D implementation
 include("3d/containers.jl")
