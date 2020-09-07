@@ -44,7 +44,7 @@ end
 
 function start_mpi_receive!(dg::Dg2D)
   for (index, d) in enumerate(dg.mpi_neighbor_domain_ids)
-    mpi_recv_requests[index] = MPI.Irecv!(dg.mpi_recv_buffers[index], d, d, mpi_comm())
+    dg.mpi_recv_requests[index] = MPI.Irecv!(dg.mpi_recv_buffers[index], d, d, mpi_comm())
   end
 end
 
@@ -103,6 +103,8 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
 
   # Determine neighbor domains and sides for MPI interfaces
   neighbor_domain_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
+  # The global interface id is the smaller of the (globally unique) neighbor cell ids
+  global_interface_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
   my_domain_id = domain_id()
   for interface_id in 1:nmpiinterfaces(mpi_interfaces)
     orientation = mpi_interfaces.orientations[interface_id]
@@ -124,15 +126,21 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     local_cell_id = elements.cell_ids[local_element_id]
     remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
     neighbor_domain_ids[interface_id] = tree.domain_ids[remote_cell_id]
+    global_interface_ids[interface_id] = min(local_cell_id, remote_cell_id)
   end
 
   # Get sorted, unique neighbor domain ids
   mpi_neighbor_domain_ids = unique(sort(neighbor_domain_ids))
 
+  # Sort interfaces by global interface id
+  p = sortperm(global_interface_ids)
+  neighbor_domain_ids .= neighbor_domain_ids[p]
+  interface_ids = collect(1:nmpiinterfaces(mpi_interfaces))[p]
+
   # For each neighbor domain id, init connectivity data structures
   mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_domain_ids))
   for (index, d) in enumerate(mpi_neighbor_domain_ids)
-    mpi_neighbor_interfaces[index] = findall(x->(x == d), neighbor_domain_ids)
+    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_domain_ids)]
   end
 
   # Sanity check that we counted all interfaces exactly once
