@@ -54,17 +54,6 @@ end
 end
 
 
-"""
-    calc_error_norms([func=(u,equation)->u,] solver, t)
-
-Calculate the discrete L2 and L∞ errors of `func` applied to the conservative variables of
-the problem encapsulated by `solver` at time `t`, where `func` is called as `func(u, equation)`.
-"""
-function calc_error_norms end
-
-@inline calc_error_norms(dg::AbstractDg, t) = calc_error_norms(cons2cons, dg, t)
-
-
 # Include utilities
 include("interpolation.jl")
 include("l2projection.jl")
