@@ -14,6 +14,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
+using LinearAlgebra: dot
 using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
@@ -25,6 +26,11 @@ using OffsetArrays: OffsetArray, OffsetVector
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
+
+# Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
+# Hence, we need `using LoopVectorization` after loading Tullio and before using @tullio.
+using Tullio: @tullio
+using LoopVectorization
 
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
@@ -45,9 +51,9 @@ include("run.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations2D,
-       IdealGlmMhdEquations2D,
-       HyperbolicDiffusionEquations2D,
+export CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 export flux_central, flux_lax_friedrichs,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal

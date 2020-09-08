@@ -46,12 +46,29 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
     end
 
-    @testset "interpolate_nodes" begin
-      nodes_in = [0.0, 0.5, 1.0]
+    @testset "multiply_dimensionwise" begin
+      nodes_in  = [0.0, 0.5, 1.0]
       nodes_out = [0.0, 1/3, 2/3, 1.0]
-      vdm = Trixi.polynomial_interpolation_matrix(nodes_in, nodes_out)
+      matrix = Trixi.polynomial_interpolation_matrix(nodes_in, nodes_out)
       data_in = [3.0 4.5 6.0]
-      @test Trixi.interpolate_nodes(data_in, vdm, 1) == [3.0 4.0 5.0 6.0]
+      @test isapprox(Trixi.multiply_dimensionwise(matrix, data_in), [3.0 4.0 5.0 6.0])
+
+      n_vars   = 3
+      size_in  = 4
+      size_out = 5
+      matrix   = randn(size_out, size_in)
+      # 1D
+      data_in  = randn(n_vars, size_in)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test isapprox(data_out, Trixi.multiply_dimensionwise(matrix, data_in))
+      # 2D
+      data_in  = randn(n_vars, size_in, size_in)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test isapprox(data_out, Trixi.multiply_dimensionwise(matrix, data_in))
+      # 3D
+      data_in  = randn(n_vars, size_in, size_in, size_in)
+      data_out = Trixi.multiply_dimensionwise_naive(matrix, data_in)
+      @test isapprox(data_out, Trixi.multiply_dimensionwise(matrix, data_in))
     end
   end
 
