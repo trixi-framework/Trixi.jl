@@ -20,7 +20,8 @@ abstract type AbstractDg{NDIMS, POLYDEG} <: AbstractSolver{NDIMS} end
 @inline ndofs(dg::AbstractDg) = dg.n_elements * nnodes(dg)^ndims(dg)
 
 """
-     get_node_coords(x, dg::AbstractDg, indices...)
+    get_node_coords(x, dg::AbstractDg, indices...)
+
 Return an `ndims(dg)`-dimensional `SVector` for the DG node specified via the `i, j, k, element_id` indices (3D) or `i, j, element_id` indices (2D).
 """
 @inline get_node_coords(x, dg::AbstractDg, indices...) = SVector(ntuple(idx -> x[idx, indices...], ndims(dg)))
