@@ -156,7 +156,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "blob", "density_pulse", "sedov_self_gravity"]))
+                                   valid=["n/a", "gauss", "blob", "blob2",  "density_pulse", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -167,7 +167,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                    valid=["density", "density_pressure", "pressure"]))
+                                    valid=["density", "density_pressure", "pressure", "total_energy"]))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -920,6 +920,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
           " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
   println(" sim. time:      " * @sprintf("%10.8e", time))
 
+  println(" #DOF:           " * @sprintf("% 14d", dg.n_elements*(polydeg(dg)+1)^ndims(mesh)))
   # Level information (only show for AMR)
   if parameter("amr_interval", 0) > 0
     levels = Vector{Int}(undef, dg.n_elements)
@@ -1214,12 +1215,17 @@ function set_initial_conditions!(dg::Dg3D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
+  s0 = equation.s0
   for element_id in 1:dg.n_elements
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
       dg.elements.u[:, i, j, k, element_id] .= dg.initial_conditions(
           dg.elements.node_coordinates[:, i, j, k, element_id], time, equation)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      p = (equation.gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
+      s0 = min(s0, log(p/u_node[1]^equation.gamma))
     end
   end
+  equation.s0 = s0
 end
 
 
@@ -1228,6 +1234,9 @@ function rhs!(dg::Dg3D, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
+  # Apply positivity preserving limiter of Zhang and Shu
+  @timeit timer() " positivity limtier of Zhang and Shu" apply_positivity_limiter!(dg)
+  
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
 
@@ -1259,10 +1268,169 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
+# Calculate volume integral and update u_t
+apply_positivity_limiter!(dg::Dg3D) = apply_positivity_limiter!(dg.elements.u, dg)
+
+# Apply positivity limiter of Zhan and Shu to nodal values elements.u
+# Or invariant domain limiter of Yi Jiang (PhD thesis Iowa State)
+# Only works for CompressibleEuler3D 
+function apply_positivity_limiter!(u, dg::Dg3D)
+  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001)
+  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001)
+  #apply_positivity_limiter_entropy!(u, dg::Dg3D, 0.0001)
+end
+
+# Apply positivity limiter of Zhan and Shu to nodal values elements.u
+# density
+function apply_positivity_limiter_density!(u, dg::Dg3D, threshold)
+  @unpack weights = dg
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Dermine minimum density
+    rho_min = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      rho_min = min(rho_min, u_node[1])
+    end
+    U1_mean = 0.0
+    U2_mean = 0.0
+    U3_mean = 0.0
+    U4_mean = 0.0
+    U5_mean = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
+      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
+      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
+      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
+      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
+    end
+    # Detect if limiting is necessary
+    Theta_rho = 1
+    if rho_min < threshold 
+      Theta_rho = (U1_mean - threshold) / (U1_mean - rho_min)
+    end
+    Theta = min(1, Theta_rho)
+    # Apply limiter if necessary
+    if Theta < 1
+      #println("apply PP limiter 1 ", Theta_rho)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
+        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
+        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
+        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
+        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
+      end
+    end
+  end
+end
+
+# Apply positivity limiter of Zhan and Shu to nodal values elements.u
+# pressure
+function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold)
+  @unpack weights = dg
+  gamma = equations(dg).gamma
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Dermine minimum density, pressure and maximum convex entropy estimate
+    p_min = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      p = (gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
+      p_min = min(p_min, p)
+    end
+    # Determine mean value of element
+    U1_mean = 0.0
+    U2_mean = 0.0
+    U3_mean = 0.0
+    U4_mean = 0.0
+    U5_mean = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
+      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
+      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
+      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
+      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
+    end
+    # Detect if limiting is necessary
+    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean[4]^2) / U1_mean)
+    Theta_p = 1
+    if p_min < threshold 
+      Theta_p = (p_mean - threshold) / (p_mean - p_min)
+    end
+    Theta = min(1, Theta_p)
+    # Apply limiter if necessary
+    if Theta < 1
+      #println("apply PP limiter 2 ", Theta_p)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
+        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
+        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
+        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
+        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
+      end
+    end
+  end
+end
+
+# Apply positivity limiter of Zhan and Shu to nodal values elements.u
+# entropy
+function apply_positivity_limiter_entropy!(u, dg::Dg3D, threshold)
+  @unpack weights = dg
+  gamma = equations(dg).gamma
+  s0 = equations(dg).s0
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Dermine minimum density, pressure and maximum convex entropy estimate
+    q_max = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      p = (gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
+      q_max = max(q_max, u_node[1]*(s0 -  log(p/u_node[1]^gamma)))
+    end
+    # Determine mean value of element
+    U1_mean = 0.0
+    U2_mean = 0.0
+    U3_mean = 0.0
+    U4_mean = 0.0
+    U5_mean = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
+      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
+      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
+      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
+      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
+    end
+    # Detect if limiting is necessary
+    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean[4]^2) / U1_mean)
+    q_mean = U1_mean * (s0 - log(p_mean / U1_mean^gamma))
+    Theta_q = 1
+    if q_max > 0 # maybe use threshold
+      Theta_q = (0 - q_mean) / (q_max - q_mean)  
+    end
+    Theta = min(1, Theta_q)
+    # Apply limiter if necessary
+    if Theta < 1
+      #println("apply PP limiter 3 ", Theta_q)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
+        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
+        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
+        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
+        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
+      end
+    end
+  end
+end
+
+
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
-
 
 # Calculate 3D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, f3, u, element_id, dg::Dg3D)
@@ -2314,13 +2482,111 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
     end
   end
 end
 
+# Calculate blending factors used for shock capturing, or AMR control
+function calc_lohner_estimate!(alpha, alpha_pre_smooth, u,
+                               alpha_max, alpha_min, do_smoothing,
+                               indicator_variable, dg::Dg3D)
+  # Calculate blending factor
+  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
 
+  Threads.@threads for element_id in 1:dg.n_elements
+    indicator = indicator_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+
+    # dirty Lohner estimate, direction by direction, assuming constant nodes
+    # only works/makes sense for polydeg >= 2
+    #f_wave = 0.2 #parameter to avoid small scale fluctuations
+    f_wave = 0.2
+    estimate = 0.0
+    # x direction
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 2:nnodes(dg)-1
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i+1, j, k]
+      um = indicator[1, i-1, j, k]
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+    # y direction
+    for k in 1:nnodes(dg), j in 2:nnodes(dg)-1, i in 1:nnodes(dg)
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i, j+1, k]
+      um = indicator[1, i, j-1, k]
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+    # z direction
+    for k in 2:nnodes(dg)-1, j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i, j, k+1]
+      um = indicator[1, i, j, k-1]
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+
+    alpha[element_id] = estimate
+
+#    # Take care of the case close to pure DG
+#    if (alpha[element_id] < alpha_min)
+#      alpha[element_id] = 0.
+#    end
+#
+#    # Take care of the case close to pure FV
+#    if (alpha[element_id] > 1-alpha_min)
+#      alpha[element_id] = 1.
+#    end
+#
+#    # Clip the maximum amount of FV allowed
+#    alpha[element_id] = min(alpha_max, alpha[element_id])
+  end
+
+  if (do_smoothing)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_pre_smooth .= alpha
+
+    # Loop over interfaces
+    for interface_id in 1:dg.n_interfaces
+      # Get neighboring element ids
+      left  = dg.interfaces.neighbor_ids[1, interface_id]
+      right = dg.interfaces.neighbor_ids[2, interface_id]
+
+      # Apply smoothing
+      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+    end
+
+    # Loop over L2 mortars
+    for l2mortar_id in 1:dg.n_l2mortars
+      # Get neighboring element ids
+      lower_left  = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+      lower_right = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+      upper_left  = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+      upper_right = dg.l2mortars.neighbor_ids[4, l2mortar_id]
+      large       = dg.l2mortars.neighbor_ids[5, l2mortar_id]
+
+      # Apply smoothing
+      alpha[lower_left] = max(alpha_pre_smooth[lower_left],
+                              0.5 * alpha_pre_smooth[large], alpha[lower_left])
+      alpha[lower_right] = max(alpha_pre_smooth[lower_right],
+                               0.5 * alpha_pre_smooth[large], alpha[lower_right])
+      alpha[upper_left] = max(alpha_pre_smooth[upper_left],
+                              0.5 * alpha_pre_smooth[large], alpha[upper_left])
+      alpha[upper_right] = max(alpha_pre_smooth[upper_right],
+                               0.5 * alpha_pre_smooth[large], alpha[upper_right])
+
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
+    end
+  end
+
+end
 """
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
@@ -2328,8 +2594,8 @@ Given blending factors `alpha` and the solver `dg`, fill
 `element_ids_dg` with the IDs of elements using a pure DG scheme and
 `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
 """
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::Dg3D)
   empty!(element_ids_dg)
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::Dg3D)
   empty!(element_ids_dgfv)
 
   for element_id in 1:dg.n_elements

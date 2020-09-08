@@ -4,14 +4,16 @@
 
 The compressible Euler equations for an ideal gas in three space dimensions.
 """
-struct CompressibleEulerEquations3D <: AbstractCompressibleEulerEquations{3, 5}
+mutable struct CompressibleEulerEquations3D <: AbstractCompressibleEulerEquations{3, 5}
   gamma::Float64
+  s0::Float64
 end
 
 function CompressibleEulerEquations3D()
   gamma = parameter("gamma", 1.4)
+  s0 = 1.0e100
 
-  CompressibleEulerEquations3D(gamma)
+  CompressibleEulerEquations3D(gamma,s0)
 end
 
 
@@ -657,6 +659,138 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
 end
 
 
+function flux_hllc_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  e_ll  = rho_e_ll / rho_ll
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  c_ll = sqrt(equation.gamma*p_ll/rho_ll)
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  e_rr  = rho_e_rr / rho_rr
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  c_rr = sqrt(equation.gamma*p_rr/rho_rr)
+
+  # Obtain left and right fluxes
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
+
+  if orientation == 1 # x-direction
+    vel_L = v1_ll 
+    vel_R = v1_rr
+  elseif orientation == 2 # y-direction
+    vel_L = v2_ll
+    vel_R = v2_rr
+  else # z-direction
+    vel_L = v3_ll
+    vel_R = v3_rr
+  end
+  sMu_L = -c_ll
+  sMu_R =  c_rr
+  Ssl = vel_L + sMu_L
+  Ssr = vel_R + sMu_R
+  M_ll = abs(vel_L)/c_ll
+  M_rr = abs(vel_R)/c_rr
+
+  #if Ssl >= 0.0 && Ssr > 0.0
+  if Ssl >= 0.0 
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+    f4 = f_ll[4]
+    f5 = f_ll[5]
+  #elseif Ssr <= 0.0 && Ssl < 0.0
+  elseif Ssr <= 0.0 
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+    f4 = f_rr[4]
+    f5 = f_rr[5]
+  else
+    SStar = (p_rr - p_ll + rho_ll*vel_L*sMu_L - rho_rr*vel_R*sMu_R) / (rho_ll*sMu_L - rho_rr*sMu_R)
+    UHll1 = 0.0
+    UHll2 = 0.0
+    UHll3 = 0.0
+    UHll4 = 0.0
+    UHll5 = 0.0
+    yet_another_parameter = 0.3
+    if  abs(p_rr - p_ll) > yet_another_parameter*abs(vel_R-vel_L)*max(sqrt(equation.gamma*rho_ll*p_ll), sqrt(equation.gamma*rho_rr*p_rr))
+      f_shock = 1.0
+    else
+      if M_ll > 1.0 && M_rr > 1.0
+        f_shock = 1.0
+      elseif M_ll < 1.0 && M_rr < 1.0
+        f_shock = 1.0
+      else
+        f_shock = 0.0
+        UHll1 = (Ssr*rho_rr - Ssl*rho_ll + f_ll[1] - f_rr[1]) / (Ssr - Ssl) 
+        UHll2 = (Ssr*rho_v1_rr - Ssl*rho_v1_ll + f_ll[2] - f_rr[2]) / (Ssr - Ssl) 
+        UHll3 = (Ssr*rho_v2_rr - Ssl*rho_v2_ll + f_ll[3] - f_rr[3]) / (Ssr - Ssl) 
+        UHll4 = (Ssr*rho_v3_rr - Ssl*rho_v3_ll + f_ll[4] - f_rr[4]) / (Ssr - Ssl) 
+        UHll5 = (Ssr*rho_e_rr  - Ssl*rho_e_ll  + f_ll[5] - f_rr[5]) / (Ssr - Ssl) 
+      end
+    end
+    if Ssl <= 0.0 && SStar >= 0.0
+      densStar = rho_ll*sMu_L / (Ssl-SStar)
+      enerStar = e_ll+(SStar - vel_L)*(SStar+p_ll/rho_ll/sMu_L)
+      UStar1 = densStar
+      UStar5 = densStar*enerStar
+      if orientation == 1 # x-direction
+        UStar2 = densStar*SStar
+        UStar3 = densStar*v2_ll
+        UStar4 = densStar*v3_ll
+      elseif orientation == 2 # y-direction
+        UStar2 = densStar*v1_ll
+        UStar3 = densStar*SStar
+        UStar4 = densStar*v3_ll
+      else # z-direction
+        UStar2 = densStar*v1_ll
+        UStar3 = densStar*v2_ll
+        UStar4 = densStar*SStar
+      end
+      f1 = f_ll[1]+Ssl*(f_shock*UStar1+(1-f_shock)*UHll1 - rho_ll)
+      f2 = f_ll[2]+Ssl*(f_shock*UStar2+(1-f_shock)*UHll2 - rho_v1_ll)
+      f3 = f_ll[3]+Ssl*(f_shock*UStar3+(1-f_shock)*UHll3 - rho_v2_ll)
+      f4 = f_ll[4]+Ssl*(f_shock*UStar4+(1-f_shock)*UHll4 - rho_v3_ll)
+      f5 = f_ll[5]+Ssl*(f_shock*UStar5+(1-f_shock)*UHll5 - rho_e_ll)
+    else
+      densStar = rho_rr*sMu_R / (Ssr-SStar)
+      enerStar = e_rr+(SStar - vel_R)*(SStar+p_rr/rho_rr/sMu_R)
+      UStar1 = densStar
+      UStar5 = densStar*enerStar
+      if orientation == 1 # x-direction
+        UStar2 = densStar*SStar
+        UStar3 = densStar*v2_rr
+        UStar4 = densStar*v3_rr
+      elseif orientation == 2 # y-direction
+        UStar2 = densStar*v1_rr
+        UStar3 = densStar*SStar
+        UStar4 = densStar*v3_rr
+      else # z-direction
+        UStar  = densStar*[1, v1_rr, v2_rr, SStar, enerStar]
+        UStar2 = densStar*v1_rr
+        UStar3 = densStar*v2_rr
+        UStar4 = densStar*SStar
+      end
+      f1 = f_rr[1]+Ssr*(f_shock*UStar1+(1-f_shock)*UHll1 - rho_rr)
+      f2 = f_rr[2]+Ssr*(f_shock*UStar2+(1-f_shock)*UHll2 - rho_v1_rr)
+      f3 = f_rr[3]+Ssr*(f_shock*UStar3+(1-f_shock)*UHll3 - rho_v2_rr)
+      f4 = f_rr[4]+Ssr*(f_shock*UStar4+(1-f_shock)*UHll4 - rho_v3_rr)
+      f5 = f_rr[5]+Ssr*(f_shock*UStar5+(1-f_shock)*UHll5 - rho_e_rr)
+    end
+  end
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+
+
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::CompressibleEulerEquations3D, dg)
@@ -756,6 +890,11 @@ end
   return rho
 end
 
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:total_energy},
+                                equation::CompressibleEulerEquations3D)
+  # Indicator variable is rho
+  return rho_e
+end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density_pressure},
@@ -798,8 +937,8 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equation::CompressibleEulerEquations3D)
-  # Mathematical entropy
   S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+  # Mathematical entropy
 
   return S
 end
