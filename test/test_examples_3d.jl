@@ -126,7 +126,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_density_pulse.toml"),
             l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
             linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
-            source_terms=Trixi.source_terms_harmonic)
+            source_terms=Trixi.source_terms_harmonic,
+            extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"])
   end
   @testset "parameters_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_taylor_green_vortex.toml"),
@@ -196,7 +197,19 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.0038729054515012624, 0.00903693761037057, 0.0041729297273898815, 0.01160504558506348, 0.006241548790045999, 0.009227641613254402, 0.0034580608435846143, 0.011684993365513006, 0.0022068452165023645],
             linf = [0.012628629484152443, 0.03265276295369954, 0.012907838374176334, 0.044746702024108326, 0.02796611265824822, 0.03453054781110626, 0.010261557301859958, 0.044762592434299864, 0.010012319622784436])
   end
-  # too expensive for CI
+  @testset "parameters_mortar_alfven_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mortar_alfven_wave.toml"),
+            l2   = [0.0021484102061835623, 0.006826504155492453, 0.0030653111370061784, 0.008735898256361025, 0.0051601878379492335, 0.007157480202233399, 0.0028291977973972948, 0.008815052614117018, 0.0022321821323698257],
+            linf = [0.012956870409227328, 0.05529249146399706, 0.020854504834048836, 0.05898012498637771, 0.03162799656904003, 0.05512773554440975, 0.017941374395225362, 0.060061114374191496, 0.013036070296136178],
+            t_end = 0.25)
+  end
+  # 3D Orszag-Tang included to exercise all terms in the HLL flux
+  @testset "parameters_orszag_tang.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_orszag_tang.toml"),
+            l2   = [0.0043911605751115424, 0.04144735653371165, 0.04150129965650717, 0.04150353600000829, 0.036931197750736805, 0.021125598820694595, 0.032956068087418154, 0.03296235602392588, 6.318083915607208e-6],
+            linf = [0.01789383976134809, 0.08496187610572214, 0.08909116075943745, 0.08505952838326755, 0.10443373959204932, 0.05387852204182135, 0.08812990990777562, 0.07804874749131957, 8.138512446081734e-5],
+            t_end = 0.06)
+  end  # too expensive for CI
   # @testset "parameters_sedov_shock_capturing.toml with n_steps_max = 2" begin
   #   test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_shock_capturing.toml"),
   #           l2   = [0.00015213881280510253, 0.001481110249423103, 0.0014811102494231387, 0.001481110249423187, 0.002940437008367858],

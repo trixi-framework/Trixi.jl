@@ -116,7 +116,7 @@ julia> using Trixi2Img
 ```
 and generate a contour plot of the results with
 ```julia
-julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
+julia> trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
 ```
 This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
 that can be opened with any image viewer:

@@ -232,25 +232,26 @@ end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::HyperbolicDiffusionEquations2D) = cons
+@inline cons2prim(u, equation::HyperbolicDiffusionEquations2D) = u
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations2D)
-  entropy = similar(cons)
-  @. entropy[1, :, :, :] = cons[1, :, :, :]
-  @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]
-  @. entropy[3, :, :, :] = equation.Lr*equation.Lr*cons[3, :, :, :]
+@inline function cons2entropy(u, equation::HyperbolicDiffusionEquations2D)
+  phi, q1, q2 = u
+  w1 = phi
+  w2 = equation.Lr^2 * q1
+  w3 = equation.Lr^2 * q2
 
-  return entropy
+  return SVector(w1, w2, w3)
 end
 
 
-# Calculate entropy for a conservative state `cons` (here: same as total energy)
-@inline entropy(cons, equation::HyperbolicDiffusionEquations2D) = energy_total(cons, equation)
+# Calculate entropy for a conservative state `u` (here: same as total energy)
+@inline entropy(u, equation::HyperbolicDiffusionEquations2D) = energy_total(u, equation)
 
 
-# Calculate total energy for a conservative state `cons`
-@inline function energy_total(cons, equation::HyperbolicDiffusionEquations2D)
+# Calculate total energy for a conservative state `u`
+@inline function energy_total(u, equation::HyperbolicDiffusionEquations2D)
   # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
-  return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
+  phi, q1, q2 = u
+  return 0.5 * (phi^2 + equation.Lr^2 * (q1^2 + q2^2))
 end

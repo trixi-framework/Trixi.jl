@@ -8,7 +8,7 @@
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.2.0.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.2.2.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 <!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
 
 <p align="center">
@@ -91,7 +91,7 @@ julia> using Trixi2Img
 ```
 and generate a contour plot of the results with
 ```julia
-julia> Trixi2Img.convert(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
+julia> trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
 ```
 This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
 that can be opened with any image viewer:
