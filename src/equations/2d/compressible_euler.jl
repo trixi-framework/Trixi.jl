@@ -818,6 +818,19 @@ function cons2prim(cons, equation::CompressibleEulerEquations2D)
   return prim
 end
 
+# Convert conservative variables to potential
+function cons2pot(cons, equation::CompressibleEulerEquations2D)
+  pot = similar(cons)
+  @. pot[1, :, :, :] = cons[1, :, :, :]
+  @. pot[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
+  @. pot[3, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
+  @. pot[4, :, :, :] = equation.p0 * (((equation.gamma - 1)
+                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * pot[2, :, :, :] +
+                                                      cons[3, :, :, :] * pot[3, :, :, :]))) 
+                         / equation.p0 )^(1-equation.kappa) / (equation.R_d * cons[1, :, :, :])
+  return pot
+end
+
 # Convert conservative variables to entropy
 function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations2D)
   entropy = similar(cons)
