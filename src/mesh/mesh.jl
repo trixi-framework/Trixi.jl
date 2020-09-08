@@ -181,6 +181,7 @@ end
 function partition(mesh)
   # Determine number of leaf cells per domain
   leaves = leaf_cells(mesh.tree)
+  @assert length(leaves) > n_domains()
   n_leaves_per_domain = OffsetArray(fill(div(length(leaves), n_domains()), n_domains()),
                                     0:(n_domains() - 1))
   for d in 0:(rem(length(leaves), n_domains()) - 1)

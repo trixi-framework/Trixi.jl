@@ -880,7 +880,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   end
 
   # Level information (only show for AMR)
-  if parameter("amr_interval", 0) > 0
+  if parameter("amr_interval", 0) > 0 && is_mpi_root()
     levels = Vector{Int}(undef, dg.n_elements)
     for element_id in 1:dg.n_elements
       levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
@@ -894,7 +894,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     end
     println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
   end
-  println()
+  is_mpi_root() && println()
 
   # Open file for appending and store time step and time information
   if dg.save_analysis
