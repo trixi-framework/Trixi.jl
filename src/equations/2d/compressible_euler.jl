@@ -100,34 +100,37 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
   # initial center of the vortex
-  inicenter = [0,0]
+  inicenter = SVector(0.0, 0.0)
   # size and strength of the vortex
   iniamplitude = 0.2
   # base flow
-  prim=[1.0,1.0,1.0,10.0]
-  vel=prim[2:3]
-  rt=prim[4]/prim[1]                      # ideal gas equation
-  cent=(inicenter+vel*t)                  # advection of center
-  cent=x-cent                             # distance to centerpoint
-  #cent=cross(iniaxis,cent)               # distance to axis, tangent vector, length r
+  rho = 1.0
+  v1 = 1.0
+  v2 = 1.0
+  vel = SVector(v1, v2)
+  p = 10.0
+  vec = SVector(v1, v2)
+  rt = p / rho                  # ideal gas equation
+  cent = inicenter + vel*t      # advection of center
+  cent = x - cent               # distance to centerpoint
+  #cent=cross(iniaxis,cent)     # distance to axis, tangent vector, length r
   # cross product with iniaxis = [0,0,1]
-  helper =  cent[1]
-  cent[1] = -cent[2]
-  cent[2] = helper
-  r2=cent[1]^2+cent[2]^2
+  cent = SVector(-cent[2], cent[1])
+  r2 = cent[1]^2 + cent[2]^2
   du = iniamplitude/(2*π)*exp(0.5*(1-r2)) # vel. perturbation
   dtemp = -(equation.gamma-1)/(2*equation.gamma*rt)*du^2            # isentrop
-  prim[1]=prim[1]*(1+dtemp)^(1\(equation.gamma-1))
-  prim[2:3]=prim[2:3]+du*cent #v
-  prim[4]=prim[4]*(1+dtemp)^(equation.gamma/(equation.gamma-1))
-  rho,rho_v1,rho_v2,rho_e = prim2cons(prim, equation)
-  return @SVector [rho, rho_v1, rho_v2, rho_e]
+  rho = rho * (1+dtemp)^(1\(equation.gamma-1))
+  vel = vel + du*cent
+  v1, v2 = vel
+  p = p * (1+dtemp)^(equation.gamma/(equation.gamma-1))
+  prim = SVector(rho, v1, v2, p)
+  return prim2cons(prim, equation)
 end
 
 function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -136,9 +139,9 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p = r > 0.5 ? 1.0 : 1.245
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  p   = r > 0.5 ? 1.0 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
@@ -146,7 +149,7 @@ end
 function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -155,16 +158,16 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-  p = r > 0.5 ? 1.0E-3 : 1.245
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  p   = r > 0.5 ? 1.0E-3 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -179,16 +182,16 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
 
   # Calculate primitive variables
   rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
 function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
-  inicenter = [0, 0]
+  inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   y_norm = x[2] - inicenter[2]
   r = sqrt(x_norm^2 + y_norm^2)
@@ -203,9 +206,9 @@ function initial_conditions_medium_sedov_blast_wave(x, t, equation::Compressible
 
   # Calculate primitive variables
   rho = 1.0
-  v1 = 0.0
-  v2 = 0.0
-  p = r > r0 ? p0_outer : p0_inner
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
 
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
@@ -744,65 +747,54 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::CompressibleEulerEquations2D)
-  prim = similar(cons)
-  @. prim[1, :, :, :] = cons[1, :, :, :]
-  @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. prim[3, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  @. prim[4, :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * prim[2, :, :, :] +
-                                                      cons[3, :, :, :] * prim[3, :, :, :])))
-  return prim
+@inline function cons2prim(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+
+  return SVector(rho, v1, v2, p)
 end
 
+
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations2D)
-  entropy = similar(cons)
-  v = zeros(2,n_nodes,n_nodes,n_elements)
-  v_square = zeros(n_nodes,n_nodes,n_elements)
-  p = zeros(n_nodes,n_nodes,n_elements)
-  s = zeros(n_nodes,n_nodes,n_elements)
-  rho_p = zeros(n_nodes,n_nodes,n_elements)
+@inline function cons2entropy(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
 
-  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
-  @. p[ :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
-                            cons[3, :, :, :] * v[2, :, :, :])))
-  @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
-  @. rho_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :]
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+  s = log(p) - equation.gamma*log(rho)
+  rho_p = rho / p
 
-  @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
-                           0.5*rho_p[:,:,:]*v_square[:,:,:]
-  @. entropy[2, :, :, :] = rho_p[:,:,:]*v[1,:,:,:]
-  @. entropy[3, :, :, :] = rho_p[:,:,:]*v[2,:,:,:]
-  @. entropy[4, :, :, :] = -rho_p[:,:,:]
+  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w2 = rho_p * v1
+  w3 = rho_p * v2
+  w4 = -rho_p
 
-  return entropy
+  return SVector(w1, w2, w3, w4)
 end
 
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::CompressibleEulerEquations2D)
-  cons = similar(prim)
-  cons[1] = prim[1]
-  cons[2] = prim[2] * prim[1]
-  cons[3] = prim[3] * prim[1]
-  cons[4] = prim[4]/(equation.gamma-1)+1/2*(cons[2] * prim[2] + cons[3] * prim[3])
-  return cons
+@inline function prim2cons(prim, equation::CompressibleEulerEquations2D)
+  rho, v1, v2, p = prim
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e  = p/(equation.gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
+  return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
                                  equation::CompressibleEulerEquations2D)
-  for j in 1:n_nodes
-    for i in 1:n_nodes
-      indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
-                                          cons[3, i, j, element_id], cons[4, i, j, element_id],
-                                          indicator_variable, equation)
-    end
+  for j in 1:n_nodes, i in 1:n_nodes
+    indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
+                                        cons[3, i, j, element_id], cons[4, i, j, element_id],
+                                        indicator_variable, equation)
   end
 end
 
