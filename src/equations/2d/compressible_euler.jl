@@ -5,13 +5,26 @@
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerEquations2D <: AbstractCompressibleEulerEquations{2, 4}
+  c_p::Float64
+  c_v::Float64
+  R_d::Float64
+  kappa::Float64
   gamma::Float64
+  _grav::Float64
+  p0::Float64
 end
 
 function CompressibleEulerEquations2D()
-  gamma = parameter("gamma", 1.4)
+  c_p = parameter("c_p",1004)
+  c_v = parameter("c_v",717)
+  R_d = parameter("R_d",c_p-c_v)
+  kappa = parameter("kappa",(c_p-c_v)/c_p)
+  gamma = parameter("gamma", c_p/c_v)
+  _grav = parameter("_grav",9.81)
+  p0 = parameter("p0",1.e5)
 
-  CompressibleEulerEquations2D(gamma)
+
+  CompressibleEulerEquations2D(c_p,c_v,R_d,kappa,gamma,_grav,p0)
 end
 
 
@@ -30,6 +43,41 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   p = 1
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+
+"""
+Warm bubble test from paper:
+Wicker, L. J., and W. C. Skamarock, 1998: A time-splitting scheme
+for the elastic equations incorporating second-order Runge–Kutta
+time differencing. Mon. Wea. Rev., 126, 1992–1999.
+"""
+
+function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquations2D)
+
+  xc = 0
+  zc = 2000
+  r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
+  rc = 2000
+  θ_ref = 300
+  Δθ = 0
+
+  if r <= rc
+     Δθ = 2 * cospi(0.5*r/rc)^2
+  end
+
+  #Perturbed state:
+  θ = θ_ref + Δθ # potential temperature
+  π_exner = 1 - equation._grav / (equation.c_p * θ) * x[2] # exner pressure
+  ρ = equation.p0 / (equation.R_d * θ) * (π_exner)^(equation.c_v / equation.R_d) # density
+  p = equation.p0 * (1-equation.kappa * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_p / equation.R_d)
+  T = p / (equation.R_d * ρ)
+
+  v1 = 20
+  v2 = 0
+  ρ_v1 = ρ * v1
+  ρ_v2 = ρ * v2
+  ρ_e = ρ * equation.c_v * T + 1/2 * ρ * (v1^2 + v2^2)  
+  return @SVector [ρ, ρ_v1, ρ_v2, ρ_e]
 end
 
 """
@@ -399,6 +447,21 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
     ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
   end
 
+  return nothing
+end
+
+function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
+# println("element_id ",element_id, " ",x[1, 1, 1, element_id]," ",x[2, 1, 1, element_id])
+# println("u 1 ",u[1, 1, 1, element_id])
+# println("u 2 ",u[2, 1, 1, element_id])
+# println("u 3 ",u[3, 1, 1, element_id])
+# println("u 4 ",u[4, 1, 1, element_id])
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    ut[3, i, j, element_id] +=  -equation._grav * u[1, i, j, element_id]
+    ut[4, i, j, element_id] +=  -equation._grav * u[3, i, j, element_id]
+  end
   return nothing
 end
 
