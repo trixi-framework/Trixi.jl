@@ -26,6 +26,11 @@ Return an `ndims(dg)`-dimensional `SVector` for the DG node specified via the `i
 """
 @inline get_node_coords(x, dg::AbstractDg, indices...) = SVector(ntuple(idx -> x[idx, indices...], ndims(dg)))
 
+"""
+    get_node_vars(u, dg::AbstractDg, indices...)
+
+Return an `nvariables(dg)`-dimensional `SVector` of the conservative variables for the DG node specified via the `i, j, k, element_id` indices (3D) or `i, j, element_id` indices (2D).
+"""
 @inline get_node_vars(u, dg::AbstractDg, indices...) = SVector(ntuple(v -> u[v, indices...], nvariables(dg)))
 
 @inline function get_surface_node_vars(u, dg::AbstractDg, indices...)
