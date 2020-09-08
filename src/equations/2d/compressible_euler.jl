@@ -951,6 +951,17 @@ end
   return s
 end
 
+# Calculate potential temperature for a conservative state `cons`
+@inline function pottemp_thermodynamic(cons, equation::CompressibleEulerEquations2D)
+  # Pressure
+  p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
+
+  # Potential temperature
+  pot = equation.p0 * (p / equation.p0)^(1 - equation.kappa) / (equation.R_d * cons[1])
+
+  return pot
+end
+
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equation::CompressibleEulerEquations2D)
