@@ -1263,17 +1263,12 @@ function set_initial_conditions!(dg::Dg3D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
-  s0 = equation.s0
   for element_id in 1:dg.n_elements
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
       dg.elements.u[:, i, j, k, element_id] .= dg.initial_conditions(
           dg.elements.node_coordinates[:, i, j, k, element_id], time, equation)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      p = (equation.gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
-      s0 = min(s0, log(p/u_node[1]^equation.gamma))
     end
   end
-  equation.s0 = s0
 end
 
 
@@ -1319,13 +1314,14 @@ end
 # Calculate volume integral and update u_t
 apply_positivity_limiter!(dg::Dg3D) = apply_positivity_limiter!(dg.elements.u, dg, equations(dg))
 
+# Only implemented and tested for compressible Euler equations in 3D
+function apply_positivity_limiter!(u, dg::Dg3D, equation::AbstractEquation)
+end
+
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
-# Or invariant domain limiter of Yi Jiang (PhD thesis Iowa State)
-# Only works for CompressibleEuler3D 
 function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
   apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
   apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
-  #apply_positivity_limiter_entropy!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
@@ -1422,59 +1418,6 @@ function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold, equation::Co
     end
   end
 end
-
-# Apply positivity limiter of Zhan and Shu to nodal values elements.u
-# entropy
-function apply_positivity_limiter_entropy!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
-  @unpack weights = dg
-  gamma = equation.gamma
-  s0 = equation.s0
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Dermine minimum density, pressure and maximum convex entropy estimate
-    q_max = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      p = (gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
-      q_max = max(q_max, u_node[1]*(s0 -  log(p/u_node[1]^gamma)))
-    end
-    # Determine mean value of element
-    U1_mean = 0.0
-    U2_mean = 0.0
-    U3_mean = 0.0
-    U4_mean = 0.0
-    U5_mean = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
-      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
-      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
-      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
-      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
-    end
-    # Detect if limiting is necessary
-    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean[4]^2) / U1_mean)
-    q_mean = U1_mean * (s0 - log(p_mean / U1_mean^gamma))
-    Theta_q = 1
-    if q_max > 0 # maybe use threshold
-      Theta_q = (0 - q_mean) / (q_max - q_mean)  
-    end
-    Theta = min(1, Theta_q)
-    # Apply limiter if necessary
-    if Theta < 1
-      #println("apply PP limiter 3 ", Theta_q)
-      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
-        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
-        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
-        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
-        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
-      end
-    end
-  end
-end
-
 
 
 # Calculate volume integral and update u_t
