@@ -38,6 +38,17 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
 end
 
 
+"""
+    calc_error_norms([func=(u,equation)->u,] solver, t)
+
+Calculate the discrete L2 and L∞ errors of `func` applied to the conservative variables of
+the problem encapsulated by `solver` at time `t`, where `func` is called as `func(u, equation)`.
+"""
+function calc_error_norms end
+
+@inline calc_error_norms(solver::AbstractSolver, t) = calc_error_norms(cons2cons, solver, t)
+
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 

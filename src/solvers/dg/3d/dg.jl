@@ -750,7 +750,7 @@ integrate(u, dg::Dg3D; normalize=true) = integrate(identity, u, dg; normalize=no
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(dg::Dg3D, t)
+function calc_error_norms(func, dg::Dg3D, t)
   # Gather necessary information
   equation = equations(dg)
   n_nodes_analysis = size(dg.analysis_vandermonde, 1)
@@ -770,8 +770,8 @@ function calc_error_norms(dg::Dg3D, t)
             3, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
 
   # Set up data structures
-  l2_error   = @SVector zeros(nvariables(equation))
-  linf_error = @SVector zeros(nvariables(equation))
+  l2_error   = zero(func(get_node_vars(dg.elements.u, dg, 1, 1, 1, 1), equation))
+  linf_error = zero(func(get_node_vars(dg.elements.u, dg, 1, 1, 1, 1), equation))
 
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
@@ -784,7 +784,7 @@ function calc_error_norms(dg::Dg3D, t)
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for k in 1:n_nodes_analysis, j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
       u_exact = dg.initial_conditions(get_node_coords(x, dg, i, j, k), t, equation)
-      diff = u_exact - get_node_vars(u, dg, i, j, k)
+      diff = func(u_exact, equation) - func(get_node_vars(u, dg, i, j, k), equation)
       l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))
     end
@@ -968,7 +968,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
   end
 
   # Calculate L2/Linf errors, which are also returned by analyze_solution
-   l2_error, linf_error = calc_error_norms(dg, time)
+  l2_error, linf_error = calc_error_norms(dg, time)
 
   # L2 error
   if :l2_error in dg.analysis_quantities
@@ -1020,6 +1020,37 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
       dg.save_analysis && @printf(f, "  % 10.8e", res)
     end
     println()
+  end
+
+  # L2/L∞ errors of the primitive variables
+  if :l2_error_primitive in dg.analysis_quantities || :linf_error_primitive in dg.analysis_quantities
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time)
+
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_prim(equation)[v])
+    end
+    println()
+
+    # L2 error
+    if :l2_error_primitive in dg.analysis_quantities
+      print(" L2 error prim.: ")
+      for v in 1:nvariables(equation)
+        @printf("%10.8e   ", l2_error_prim[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", l2_error_prim[v])
+      end
+      println()
+    end
+
+    # L∞ error
+    if :linf_error_primitive in dg.analysis_quantities
+      print(" Linf error pri.:")
+      for v in 1:nvariables(equation)
+        @printf("%10.8e   ", linf_error_prim[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", linf_error_prim[v])
+      end
+      println()
+    end
   end
 
   # Entropy time derivative
@@ -1179,6 +1210,16 @@ function save_analysis_header(filename, quantities, equation::AbstractEquation{3
     if :residual in quantities
       for v in varnames_cons(equation)
         @printf(f, "   %-14s", "res_" * v)
+      end
+    end
+    if :l2_error_primitive in quantities
+      for v in varnames_prim(equation)
+        @printf(f, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error_primitive in quantities
+      for v in varnames_prim(equation)
+        @printf(f, "   %-14s", "linf_" * v)
       end
     end
     if :dsdu_ut in quantities

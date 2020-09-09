@@ -120,7 +120,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_density_pulse.toml"),
             l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
             linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
-            source_terms=Trixi.source_terms_harmonic)
+            source_terms=Trixi.source_terms_harmonic,
+            extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"])
   end
   @testset "parameters_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_taylor_green_vortex.toml"),
