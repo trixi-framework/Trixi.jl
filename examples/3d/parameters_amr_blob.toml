@@ -35,7 +35,7 @@ initial_refinement_level = 2
 ####################################################################################################
 # AMR
 adapt_initial_condition = false
-amr_indicator = "standard"
+amr_indicator = "blob"
 amr_interval = 3
 amr_alpha_max = 1.0 
 amr_alpha_min = 0.0001

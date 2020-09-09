@@ -157,7 +157,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "standard",  "density_pulse", "sedov_self_gravity"]))
+                                   valid=["n/a", "gauss", "blob",  "density_pulse", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -168,7 +168,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                                  valid=["density", "density_pressure", "pressure", "total_energy"])))
+                                                  valid=["density", "density_pressure", "pressure"])))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -1320,8 +1320,10 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
-  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  #if dg.amr_indicator === :blob
+  #  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  #  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  #end
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
@@ -1398,7 +1400,7 @@ function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold, equation::Co
       U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
     end
     # Detect if limiting is necessary
-    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean[4]^2) / U1_mean)
+    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean^2) / U1_mean)
     Theta_p = 1
     if p_min < threshold 
       Theta_p = (p_mean - threshold) / (p_mean - p_min)
@@ -2044,8 +2046,8 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
 end
 
 # Calculate and store Riemann and nonconservative fluxes across interfaces
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO temporary workaround while implementing the other stuff
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
                        dg.interfaces.orientations, dg, dg.thread_cache)
 end
@@ -2561,9 +2563,7 @@ end
 
 # Calculate blending factors used for shock capturing, or AMR control
 function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
-  # dirty Lohner estimate, direction by direction, assuming constant nodes
-  # only works/makes sense for polydeg >= 2
-
+  @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)" 
   # Calculate blending factor
   @unpack indicator_threaded = thread_cache
 
@@ -2580,6 +2580,7 @@ function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_mi
       u0 = indicator[1, i, j, k]
       up = indicator[1, i+1, j, k]
       um = indicator[1, i-1, j, k]
+      # dirty Lohner estimate, direction by direction, assuming constant nodes
       estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
     end
     # y direction

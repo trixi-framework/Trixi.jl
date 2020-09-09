@@ -314,7 +314,7 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
         lambda[element_id] = 0.0
       end
     end
-  elseif dg.amr_indicator === :standard                                                                 
+  elseif dg.amr_indicator === :blob
     base_level = 1
     max_level = 6                                                                                   
     blending_factor_threshold1 = 0.3 # Löhner original choice

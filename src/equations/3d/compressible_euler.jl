@@ -4,16 +4,14 @@
 
 The compressible Euler equations for an ideal gas in three space dimensions.
 """
-mutable struct CompressibleEulerEquations3D <: AbstractCompressibleEulerEquations{3, 5}
+struct CompressibleEulerEquations3D <: AbstractCompressibleEulerEquations{3, 5}
   gamma::Float64
-  s0::Float64
 end
 
 function CompressibleEulerEquations3D()
   gamma = parameter("gamma", 1.4)
-  s0 = 1.0e100
 
-  CompressibleEulerEquations3D(gamma,s0)
+  CompressibleEulerEquations3D(gamma)
 end
 
 
@@ -855,16 +853,10 @@ end
   return rho
 end
 
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:total_energy},
-                                equation::CompressibleEulerEquations3D)
-  # Indicator variable is rho
-  return rho_e
-end
-
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density_pressure},
-                                equation::CompressibleEulerEquations3D)
   v1 = rho_v1/rho
+                                equation::CompressibleEulerEquations3D)
   v2 = rho_v2/rho
   v3 = rho_v3/rho
 
