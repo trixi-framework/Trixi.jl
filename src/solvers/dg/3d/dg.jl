@@ -167,8 +167,8 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                    valid=["density", "density_pressure", "pressure", "total_energy"]))
+  shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
+                                                  valid=["density", "density_pressure", "pressure", "total_energy"])))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -2506,8 +2506,8 @@ end
 
 
 # Calculate stable time step size
-  min_dt = Inf
 function calc_dt(dg::Dg3D, cfl)
+  min_dt = Inf
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id,
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
