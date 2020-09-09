@@ -179,30 +179,30 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D)
   # gamma = 5/3 for this test case
   R = 1.0 # radius of the blob
   # background density
-  dens0 = 1.0
+  rho = 1.0
   Chi = 10.0 # density contrast
   # reference time of characteristic growth of KH instability equal to 1.0
   tau_kh = 1.0
-  tau_cr = tau_kh/1.6 # crushing time
+  tau_cr = tau_kh / 1.6 # crushing time
   # determine background velocity
-  velx0 = 2*R*sqrt(Chi)/tau_cr
-  vely0 = 0.0
-  velz0 = 0.0
+  v1 = 2 * R * sqrt(Chi) / tau_cr
+  v2 = 0.0
+  v3 = 0.0
   Ma0 = 2.7 # background flow Mach number Ma=v/c
-  c = velx0/Ma0 # sound speed
+  c = v1 / Ma0 # sound speed
   # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
-  p0 = c*c*dens0/equation.gamma
+  p = c * c * rho / equation.gamma
   # initial center of the blob
   inicenter = [-15, 0, 0]
-  x_rel = x-inicenter
+  x_rel = x - inicenter
   r = sqrt(x_rel[1]^2 + x_rel[2]^2 + x_rel[3]^2)
   # steepness of the tanh transition zone
   slope = 2
   # density blob
-  dens = dens0 + (Chi-1) * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
+  rho = rho + (Chi - 1) * 0.5 * (1 + (tanh(slope * (r + R)) - (tanh(slope *(r - R)) + 1)))
   # velocity blob is zero
-  velx = velx0 - velx0 * 0.5*(1+(tanh(slope*(r+R)) - (tanh(slope*(r-R)) + 1)))
-  return prim2cons(SVector(dens, velx, vely0, velz0, p0), equation)
+  v1 = v1 - v1 * 0.5 * (1 + (tanh(slope *(r + R)) - (tanh(slope *(r - R)) + 1)))
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
 
@@ -657,6 +657,12 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
 end
 
 
+ """
+    flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
+
+    Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
+    http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf
+"""
 function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll

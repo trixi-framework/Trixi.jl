@@ -2563,12 +2563,20 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
+      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
     end
   end
 end
 
+"""
+    calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
+
+Computes an indicator that models underresolution within a DG element. Adapted from FEM indicator by Löhner (1987), 
+also used in the FLASH code as standard AMR indicator. Indicator uses a specified indicator_variable to 
+estimate the second derivative of the solution locally.
+http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+"""
 # Calculate blending factors used for shock capturing, or AMR control
 function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
   @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)" 
