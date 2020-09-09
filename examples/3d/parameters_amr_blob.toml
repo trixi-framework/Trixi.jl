@@ -15,21 +15,14 @@ solver = "dg"
 polydeg = 3
 cfl = 0.9
 n_steps_max = 15000
-shock_indicator_variable = "total_energy"
+#shock_indicator_variable = "total_energy"
 #shock_indicator_variable = "density_pressure"
 #shock_indicator_variable = "pressure"
 shock_alpha_max = 0.01
 shock_alpha_min = 0.0001
-#volume_integral_type = "shock_capturing"
-#volume_integral_type = "weak_form"
 volume_integral_type = "split_form"
-#surface_flux = "flux_lax_friedrichs"
-surface_flux = "flux_hll"
-#surface_flux = "flux_hllc_hll"
-#volume_flux = "flux_central"
+surface_flux = "flux_hllc"
 volume_flux = "flux_ranocha"
-#volume_flux = "flux_chandrashekar"
-#volume_flux = "flux_shima_etal"
 
 ####################################################################################################
 # Mesh
@@ -47,7 +40,7 @@ initial_refinement_level = 2
 ####################################################################################################
 # AMR
 adapt_initial_condition = false
-amr_indicator = "blob2"
+amr_indicator = "standard"
 amr_interval = 3
 amr_alpha_max = 1.0 
 amr_alpha_min = 0.0001

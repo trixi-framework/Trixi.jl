@@ -157,7 +157,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "blob", "blob2",  "density_pulse", "sedov_self_gravity"]))
+                                   valid=["n/a", "gauss", "standard",  "density_pulse", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -1283,7 +1283,7 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Apply positivity preserving limiter of Zhang and Shu
-  @timeit timer() " positivity limtier of Zhang and Shu" apply_positivity_limiter!(dg)
+  @timeit timer() "PP limiter of Zhang&Shu" apply_positivity_limiter!(dg)
   
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -1317,20 +1317,20 @@ function rhs!(dg::Dg3D, t_stage)
 end
 
 # Calculate volume integral and update u_t
-apply_positivity_limiter!(dg::Dg3D) = apply_positivity_limiter!(dg.elements.u, dg)
+apply_positivity_limiter!(dg::Dg3D) = apply_positivity_limiter!(dg.elements.u, dg, equations(dg))
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # Or invariant domain limiter of Yi Jiang (PhD thesis Iowa State)
 # Only works for CompressibleEuler3D 
-function apply_positivity_limiter!(u, dg::Dg3D)
-  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001)
-  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001)
-  #apply_positivity_limiter_entropy!(u, dg::Dg3D, 0.0001)
+function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  #apply_positivity_limiter_entropy!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # density
-function apply_positivity_limiter_density!(u, dg::Dg3D, threshold)
+function apply_positivity_limiter_density!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
   @unpack weights = dg
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum density
@@ -1375,9 +1375,9 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # pressure
-function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold)
+function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
   @unpack weights = dg
-  gamma = equations(dg).gamma
+  gamma = equation.gamma
 
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum density, pressure and maximum convex entropy estimate
@@ -1425,10 +1425,10 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # entropy
-function apply_positivity_limiter_entropy!(u, dg::Dg3D, threshold)
+function apply_positivity_limiter_entropy!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
   @unpack weights = dg
-  gamma = equations(dg).gamma
-  s0 = equations(dg).s0
+  gamma = equation.gamma
+  s0 = equation.s0
 
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum density, pressure and maximum convex entropy estimate
@@ -2617,11 +2617,12 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 end
 
 # Calculate blending factors used for shock capturing, or AMR control
-function calc_lohner_estimate!(alpha, alpha_pre_smooth, u,
-                               alpha_max, alpha_min, do_smoothing,
-                               indicator_variable, dg::Dg3D)
+function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
+  # dirty Lohner estimate, direction by direction, assuming constant nodes
+  # only works/makes sense for polydeg >= 2
+
   # Calculate blending factor
-  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  @unpack indicator_threaded = thread_cache
 
   Threads.@threads for element_id in 1:dg.n_elements
     indicator = indicator_threaded[Threads.threadid()]
@@ -2629,10 +2630,7 @@ function calc_lohner_estimate!(alpha, alpha_pre_smooth, u,
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
 
-    # dirty Lohner estimate, direction by direction, assuming constant nodes
-    # only works/makes sense for polydeg >= 2
-    #f_wave = 0.2 #parameter to avoid small scale fluctuations
-    f_wave = 0.2
+    f_wave = 0.2 #parameter to avoid small scale fluctuations influencing the indicator
     estimate = 0.0
     # x direction
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 2:nnodes(dg)-1
@@ -2655,66 +2653,13 @@ function calc_lohner_estimate!(alpha, alpha_pre_smooth, u,
       um = indicator[1, i, j, k-1]
       estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
     end
-
+    # use the maximum as an DG element indicator
     alpha[element_id] = estimate
-
-#    # Take care of the case close to pure DG
-#    if (alpha[element_id] < alpha_min)
-#      alpha[element_id] = 0.
-#    end
-#
-#    # Take care of the case close to pure FV
-#    if (alpha[element_id] > 1-alpha_min)
-#      alpha[element_id] = 1.
-#    end
-#
-#    # Clip the maximum amount of FV allowed
-#    alpha[element_id] = min(alpha_max, alpha[element_id])
   end
-
-  if (do_smoothing)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_pre_smooth .= alpha
-
-    # Loop over interfaces
-    for interface_id in 1:dg.n_interfaces
-      # Get neighboring element ids
-      left  = dg.interfaces.neighbor_ids[1, interface_id]
-      right = dg.interfaces.neighbor_ids[2, interface_id]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for l2mortar_id in 1:dg.n_l2mortars
-      # Get neighboring element ids
-      lower_left  = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-      lower_right = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-      upper_left  = dg.l2mortars.neighbor_ids[3, l2mortar_id]
-      upper_right = dg.l2mortars.neighbor_ids[4, l2mortar_id]
-      large       = dg.l2mortars.neighbor_ids[5, l2mortar_id]
-
-      # Apply smoothing
-      alpha[lower_left] = max(alpha_pre_smooth[lower_left],
-                              0.5 * alpha_pre_smooth[large], alpha[lower_left])
-      alpha[lower_right] = max(alpha_pre_smooth[lower_right],
-                               0.5 * alpha_pre_smooth[large], alpha[lower_right])
-      alpha[upper_left] = max(alpha_pre_smooth[upper_left],
-                              0.5 * alpha_pre_smooth[large], alpha[upper_left])
-      alpha[upper_right] = max(alpha_pre_smooth[upper_right],
-                               0.5 * alpha_pre_smooth[large], alpha[upper_right])
-
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
-    end
-  end
-
 end
+
+
+
 """
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 

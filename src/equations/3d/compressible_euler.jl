@@ -659,7 +659,7 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
 end
 
 
-function flux_hllc_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
+function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
@@ -715,28 +715,6 @@ function flux_hllc_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquat
     f5 = f_rr[5]
   else
     SStar = (p_rr - p_ll + rho_ll*vel_L*sMu_L - rho_rr*vel_R*sMu_R) / (rho_ll*sMu_L - rho_rr*sMu_R)
-    UHll1 = 0.0
-    UHll2 = 0.0
-    UHll3 = 0.0
-    UHll4 = 0.0
-    UHll5 = 0.0
-    yet_another_parameter = 0.3
-    if  abs(p_rr - p_ll) > yet_another_parameter*abs(vel_R-vel_L)*max(sqrt(equation.gamma*rho_ll*p_ll), sqrt(equation.gamma*rho_rr*p_rr))
-      f_shock = 1.0
-    else
-      if M_ll > 1.0 && M_rr > 1.0
-        f_shock = 1.0
-      elseif M_ll < 1.0 && M_rr < 1.0
-        f_shock = 1.0
-      else
-        f_shock = 0.0
-        UHll1 = (Ssr*rho_rr - Ssl*rho_ll + f_ll[1] - f_rr[1]) / (Ssr - Ssl) 
-        UHll2 = (Ssr*rho_v1_rr - Ssl*rho_v1_ll + f_ll[2] - f_rr[2]) / (Ssr - Ssl) 
-        UHll3 = (Ssr*rho_v2_rr - Ssl*rho_v2_ll + f_ll[3] - f_rr[3]) / (Ssr - Ssl) 
-        UHll4 = (Ssr*rho_v3_rr - Ssl*rho_v3_ll + f_ll[4] - f_rr[4]) / (Ssr - Ssl) 
-        UHll5 = (Ssr*rho_e_rr  - Ssl*rho_e_ll  + f_ll[5] - f_rr[5]) / (Ssr - Ssl) 
-      end
-    end
     if Ssl <= 0.0 && SStar >= 0.0
       densStar = rho_ll*sMu_L / (Ssl-SStar)
       enerStar = e_ll+(SStar - vel_L)*(SStar+p_ll/rho_ll/sMu_L)
@@ -755,11 +733,11 @@ function flux_hllc_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquat
         UStar3 = densStar*v2_ll
         UStar4 = densStar*SStar
       end
-      f1 = f_ll[1]+Ssl*(f_shock*UStar1+(1-f_shock)*UHll1 - rho_ll)
-      f2 = f_ll[2]+Ssl*(f_shock*UStar2+(1-f_shock)*UHll2 - rho_v1_ll)
-      f3 = f_ll[3]+Ssl*(f_shock*UStar3+(1-f_shock)*UHll3 - rho_v2_ll)
-      f4 = f_ll[4]+Ssl*(f_shock*UStar4+(1-f_shock)*UHll4 - rho_v3_ll)
-      f5 = f_ll[5]+Ssl*(f_shock*UStar5+(1-f_shock)*UHll5 - rho_e_ll)
+      f1 = f_ll[1]+Ssl*(UStar1 - rho_ll)
+      f2 = f_ll[2]+Ssl*(UStar2 - rho_v1_ll)
+      f3 = f_ll[3]+Ssl*(UStar3 - rho_v2_ll)
+      f4 = f_ll[4]+Ssl*(UStar4 - rho_v3_ll)
+      f5 = f_ll[5]+Ssl*(UStar5 - rho_e_ll)
     else
       densStar = rho_rr*sMu_R / (Ssr-SStar)
       enerStar = e_rr+(SStar - vel_R)*(SStar+p_rr/rho_rr/sMu_R)
@@ -774,16 +752,15 @@ function flux_hllc_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquat
         UStar3 = densStar*SStar
         UStar4 = densStar*v3_rr
       else # z-direction
-        UStar  = densStar*[1, v1_rr, v2_rr, SStar, enerStar]
         UStar2 = densStar*v1_rr
         UStar3 = densStar*v2_rr
         UStar4 = densStar*SStar
       end
-      f1 = f_rr[1]+Ssr*(f_shock*UStar1+(1-f_shock)*UHll1 - rho_rr)
-      f2 = f_rr[2]+Ssr*(f_shock*UStar2+(1-f_shock)*UHll2 - rho_v1_rr)
-      f3 = f_rr[3]+Ssr*(f_shock*UStar3+(1-f_shock)*UHll3 - rho_v2_rr)
-      f4 = f_rr[4]+Ssr*(f_shock*UStar4+(1-f_shock)*UHll4 - rho_v3_rr)
-      f5 = f_rr[5]+Ssr*(f_shock*UStar5+(1-f_shock)*UHll5 - rho_e_rr)
+      f1 = f_rr[1]+Ssr*(UStar1 - rho_rr)
+      f2 = f_rr[2]+Ssr*(UStar2 - rho_v1_rr)
+      f3 = f_rr[3]+Ssr*(UStar3 - rho_v2_rr)
+      f4 = f_rr[4]+Ssr*(UStar4 - rho_v3_rr)
+      f5 = f_rr[5]+Ssr*(UStar5 - rho_e_rr)
     end
   end
   return SVector(f1, f2, f3, f4, f5)
