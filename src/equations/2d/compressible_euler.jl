@@ -12,6 +12,7 @@ struct CompressibleEulerEquations2D <: AbstractCompressibleEulerEquations{2, 4}
   gamma::Float64
   _grav::Float64
   p0::Float64
+  a::Float64
 end
 
 function CompressibleEulerEquations2D()
@@ -22,9 +23,10 @@ function CompressibleEulerEquations2D()
   gamma = parameter("gamma", c_p/c_v)
   _grav = parameter("_grav",9.81)
   p0 = parameter("p0",1.e5)
+  a = parameter("a",340.e0)
 
 
-  CompressibleEulerEquations2D(c_p,c_v,R_d,kappa,gamma,_grav,p0)
+  CompressibleEulerEquations2D(c_p,c_v,R_d,kappa,gamma,_grav,p0,a)
 end
 
 
@@ -62,7 +64,8 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquatio
   Δθ = 0
 
   if r <= rc
-     Δθ = 2 * cospi(0.5*r/rc)^2
+#    Δθ = 2 * cospi(0.5*r/rc)^2
+     Δθ = 0 * cospi(0.5*r/rc)^2
   end
 
   #Perturbed state:
@@ -707,6 +710,58 @@ See also Ranocha (2020)
   end
 
   return SVector(f1, f2, f3, f4)
+end
+
+"""
+function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+
+Chen, X., N. Andronova, B. Van Leer, J. E. Penner, J. P. Boyd, C. Jablonowski, and S. Lin, 2013: 
+A Control-Volume Model of the Compressible Euler Equations with a Vertical Lagrangian Coordinate. 
+Mon. Wea. Rev., 141, 2526–2544, https://doi.org/10.1175/MWR-D-12-00129.1.
+
+"""
+
+function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+
+  rhoM = 0.5 * (rho_ll + rho_rr)
+  if orientation == 1 # x-direction
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v1_rr - v1_ll) 
+    vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
+    println("x dir ",pM,"  ",vM)
+    println("u_ll ",u_ll)
+    println("u_rr ",u_rr)
+    if vM >= 0
+      f = u_ll * vM + pM * SVector(0, 1, 0, 0)
+      println(" fl ",f)
+    else
+      f = u_rr * vM + pM * SVector(0, 1, 0, 0)
+      println(" fr ",f)
+    end  
+  else # y-direction
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v2_rr - v2_ll) 
+    vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
+#   println("y dir ",pM,"  ",vM)
+#   println("u_ll ",u_ll)
+#   println("u_rr ",u_rr)
+    if vM >= 0
+      f = u_ll * vM + pM * SVector(0, 0, 1, 0)
+    else
+      f = u_rr * vM + pM * SVector(0, 0, 1, 0)
+    end  
+  end
+  return f
 end
 
 
