@@ -1,23 +1,22 @@
+abstract type AbstractTree{NDIMS} <: AbstractContainer end
+@inline Base.ndims(::AbstractTree{NDIMS}) where NDIMS = NDIMS
 
 include("tree.jl")
 include("parallel_tree.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
-mutable struct TreeMesh{NDIMS, TreeType}
+mutable struct TreeMesh{TreeType<:AbstractTree{NDIMS} where NDIMS}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
   first_cell_by_domain::OffsetVector{Int, Vector{Int}}
   n_cells_by_domain::OffsetVector{Int, Vector{Int}}
 
-  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType}
-    # Verify that NDIMS is an integer
-    @assert NDIMS == ndims(TreeType)
-
+  function TreeMesh{TreeType}(n_cells_max::Integer) where TreeType
     # Create mesh
     m = new()
-    m.tree = TreeType{NDIMS}(n_cells_max)
+    m.tree = TreeType(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = false
     m.first_cell_by_domain = OffsetVector(Int[], 0)
@@ -26,11 +25,8 @@ mutable struct TreeMesh{NDIMS, TreeType}
     return m
   end
 
-  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
-                                     domain_length, periodicity=true) where{NDIMS, TreeType} 
-    # Verify that NDIMS matches the tree
-    @assert NDIMS == ndims(TreeType)
-
+  function TreeMesh{TreeType}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
+                              domain_length, periodicity=true) where TreeType
     # Create mesh
     m = new()
     m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
@@ -43,14 +39,16 @@ mutable struct TreeMesh{NDIMS, TreeType}
   end
 end
 
+const TreeMesh1D = TreeMesh{TreeType} where {TreeType <: AbstractTree{1}}
+const TreeMesh2D = TreeMesh{TreeType} where {TreeType <: AbstractTree{2}}
+const TreeMesh3D = TreeMesh{TreeType} where {TreeType <: AbstractTree{3}}
+
 # Constructor for passing the dimension and mesh type as an argument
-function TreeMesh(::Val{NDIMS}, ::Val{TreeType}, args...) where {NDIMS, TreeType}
-  return TreeMesh{NDIMS, TreeType}(args...)
-end
+TreeMesh(::Type{TreeType}, args...) where TreeType = TreeMesh{TreeType}(args...)
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where TreeType
-  return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
+function TreeMesh{TreeType}(n::Int, center::Real, len::Real, periodicity=true) where {TreeType<:AbstractTree{1}}
+  return TreeMesh{TreeType}(n, [convert(Float64, center)], len, periodicity)
 end
 
 
@@ -78,12 +76,11 @@ function generate_mesh()
 
   # Create mesh
   if is_parallel()
-    @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), Val{ParallelTree{ndims_}}(),
-                                               n_cells_max,
+    @timeit timer() "creation" mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max,
                                                domain_center, domain_length, periodicity)
   else
-    @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), Val{Tree{ndims_}}(), n_cells_max,
-                                               domain_center, domain_length, periodicity)
+    @timeit timer() "creation" mesh = TreeMesh(Tree{ndims_}, n_cells_max, domain_center,
+                                               domain_length, periodicity)
   end
 
   # Create initial refinement
@@ -94,7 +91,7 @@ function generate_mesh()
 
   # Partition mesh
   if is_parallel()
-    partition(mesh)
+    partition!(mesh)
   end
 
   # Apply refinement patches
@@ -178,7 +175,7 @@ end
 
 # Partition mesh using a static domain decomposition algorithm based on leaf cell count alone
 # Return first cell id for each domain
-function partition(mesh)
+function partition!(mesh)
   # Determine number of leaf cells per domain
   leaves = leaf_cells(mesh.tree)
   @assert length(leaves) > n_domains()

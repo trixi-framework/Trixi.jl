@@ -19,7 +19,7 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
-mutable struct ParallelTree{NDIMS} <: AbstractContainer
+mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
   neighbor_ids::Matrix{Int}

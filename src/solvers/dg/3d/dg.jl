@@ -1,11 +1,12 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
+mutable struct Dg3D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
-                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG}
+                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG, MeshType}
   equations::Eqn
+  mesh_that_should_not_be_used::MeshType
 
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
@@ -69,7 +70,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh3D, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -189,7 +190,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Create actual DG solver instance
   dg = Dg3D(
-      equation,
+      equation, mesh,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
       elements, n_elements,
@@ -258,7 +259,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{3}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -289,7 +290,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{3}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -315,7 +316,7 @@ end
 
 
 # Count the number of mortars that need to be created
-function count_required_mortars(mesh::TreeMesh{3}, cell_ids)
+function count_required_mortars(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -344,7 +345,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+function init_elements(cell_ids, mesh::TreeMesh3D, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
   # Initialize container
   n_elements = length(cell_ids)
   elements = ElementContainer3D{NVARS, POLYDEG}(n_elements)
@@ -386,7 +387,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_interfaces(cell_ids, mesh::TreeMesh3D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer3D{NVARS, POLYDEG}(n_interfaces)
@@ -402,7 +403,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_boundaries(cell_ids, mesh::TreeMesh3D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
   boundaries = BoundaryContainer3D{NVARS, POLYDEG}(n_boundaries)
@@ -418,7 +419,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
+function init_mortars(cell_ids, mesh::TreeMesh3D, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -440,7 +441,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{3})
+function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -496,7 +497,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
+function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh3D)
   # Reset boundaries count
   count = 0
 
@@ -565,7 +566,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{3})
+function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))

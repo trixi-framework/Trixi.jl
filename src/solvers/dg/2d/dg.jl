@@ -1,11 +1,12 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
+mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
                   MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
-                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
+                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG, MeshType}
   equations::Eqn
+  mesh_that_should_not_be_used::MeshType
 
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
@@ -85,7 +86,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh, POLYDEG) where {NDIMS, NVARS}
   # Get local cells for which an element needs to be created (i.e., all leaf cells)
   if is_parallel()
     leaf_cell_ids = local_leaf_cells(mesh.tree)
@@ -250,7 +251,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Create actual DG solver instance
   dg = Dg2D(
-      equation,
+      equation, mesh,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
       elements, n_elements,
@@ -314,7 +315,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{2}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -350,7 +351,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{2}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -376,7 +377,7 @@ end
 
 
 # Count the number of mortars that need to be created
-function count_required_mortars(mesh::TreeMesh{2}, cell_ids)
+function count_required_mortars(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -405,7 +406,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+function init_elements(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
   # Initialize container
   n_elements = length(cell_ids)
   elements = ElementContainer2D{NVARS, POLYDEG}(n_elements)
@@ -447,7 +448,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_interfaces(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer2D{NVARS, POLYDEG}(n_interfaces)
@@ -463,7 +464,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_boundaries(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
   boundaries = BoundaryContainer2D{NVARS, POLYDEG}(n_boundaries)
@@ -479,7 +480,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
+function init_mortars(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -508,7 +509,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{2})
+function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -563,7 +564,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
+function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh2D)
   # Reset boundaries count
   count = 0
 
@@ -626,7 +627,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
+function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -1269,19 +1270,13 @@ function set_initial_conditions!(dg::Dg2D, time)
 end
 
 
-# Calculate time derivative
-function rhs!(dg::Dg2D, t_stage)
-  # Start to receive MPI data
-  is_parallel() && @timeit timer() "start MPI receive" start_mpi_receive!(dg)
+@inline rhs!(dg::Dg2D, t_stage) = rhs!(dg, t_stage, uses_mpi(dg))
 
+
+# Calculate time derivative
+function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{false})
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
-
-  # Prolong solution to MPI interfaces
-  is_parallel() && @timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(dg)
-
-  # Start to send MPI data
-  is_parallel() && @timeit timer() "start MPI send" start_mpi_send!(dg)
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -1304,12 +1299,6 @@ function rhs!(dg::Dg2D, t_stage)
   # Calculate mortar fluxes
   @timeit timer() "mortar flux" calc_mortar_flux!(dg)
 
-  # Finish to receive MPI data
-  is_parallel() && @timeit timer() "finish MPI receive" finish_mpi_receive!(dg)
-
-  # Calculate MPI interface fluxes
-  is_parallel() && @timeit timer() "MPI interface flux" calc_mpi_interface_flux!(dg)
-
   # Calculate surface integrals
   @timeit timer() "surface integral" calc_surface_integral!(dg)
 
@@ -1318,9 +1307,6 @@ function rhs!(dg::Dg2D, t_stage)
 
   # Calculate source terms
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
-
-  # Finish to send MPI data
-  is_parallel() && @timeit timer() "finish MPI send" finish_mpi_send!(dg)
 end
 
 

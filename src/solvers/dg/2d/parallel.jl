@@ -1,5 +1,60 @@
+# Calculate time derivative
+function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{true})
+  # Start to receive MPI data
+  @timeit timer() "start MPI receive" start_mpi_receive!(dg)
+
+  # Reset u_t
+  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
+
+  # Prolong solution to MPI interfaces
+  @timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(dg)
+
+  # Start to send MPI data
+  @timeit timer() "start MPI send" start_mpi_send!(dg)
+
+  # Calculate volume integral
+  @timeit timer() "volume integral" calc_volume_integral!(dg)
+
+  # Prolong solution to interfaces
+  @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
+
+  # Calculate interface fluxes
+  @timeit timer() "interface flux" calc_interface_flux!(dg)
+
+  # Prolong solution to boundaries
+  @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
+
+  # Calculate boundary fluxes
+  @timeit timer() "boundary flux" calc_boundary_flux!(dg, t_stage)
+
+  # Prolong solution to mortars
+  @timeit timer() "prolong2mortars" prolong2mortars!(dg)
+
+  # Calculate mortar fluxes
+  @timeit timer() "mortar flux" calc_mortar_flux!(dg)
+
+  # Finish to receive MPI data
+  @timeit timer() "finish MPI receive" finish_mpi_receive!(dg)
+
+  # Calculate MPI interface fluxes
+  @timeit timer() "MPI interface flux" calc_mpi_interface_flux!(dg)
+
+  # Calculate surface integrals
+  @timeit timer() "surface integral" calc_surface_integral!(dg)
+
+  # Apply Jacobian from mapping to reference element
+  @timeit timer() "Jacobian" apply_jacobian!(dg)
+
+  # Calculate source terms
+  @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
+
+  # Finish to send MPI data
+  @timeit timer() "finish MPI send" finish_mpi_send!(dg)
+end
+
+
 # Count the number of MPI interfaces that need to be created
-function count_required_mpi_interfaces(mesh::TreeMesh{2}, cell_ids)
+function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -30,7 +85,7 @@ end
 
 
 # Create MPI interface container, initialize interface data, and return interface container for further use
-function init_mpi_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_mpi_interfaces(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_mpi_interfaces = count_required_mpi_interfaces(mesh, cell_ids)
   mpi_interfaces = MpiInterfaceContainer2D{NVARS, POLYDEG}(n_mpi_interfaces)
@@ -50,7 +105,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMesh{2})
+function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMesh2D)
   # Reset interface count
   count = 0
 
@@ -102,7 +157,7 @@ end
 
 
 # Initialize connectivity between MPI neighbor domains
-function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh{2})
+function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh2D)
   tree = mesh.tree
 
   # Determine neighbor domains and sides for MPI interfaces
