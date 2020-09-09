@@ -60,6 +60,8 @@ mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
+  pp_limiter_apply::Bool
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -175,6 +177,9 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
+  # apply positivity preserving limiter of Zhang and Shu
+  pp_limiter_apply = parameter("pp_limiter_apply", false)
+
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
@@ -208,6 +213,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
+      pp_limiter_apply,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -1320,7 +1326,7 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  if dg.amr_indicator === :blob
+  if dg.pp_limiter_apply
     apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
     apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
   end
