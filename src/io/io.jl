@@ -155,9 +155,11 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     if solution_variables == "conservative"
       data = dg.elements.u
       varnames = varnames_cons(equation)
-    else
-#     data = cons2prim(dg.elements.u, equation)
+    elseif solution_variables == "pot"
       data = cons2pot(dg.elements.u, equation)
+      varnames = varnames_prim(equation)
+    else
+      data = cons2prim(dg.elements.u, equation)
       varnames = varnames_prim(equation)
     end
 

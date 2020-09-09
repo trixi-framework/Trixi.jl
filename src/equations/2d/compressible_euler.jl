@@ -64,8 +64,7 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquatio
   Δθ = 0
 
   if r <= rc
-#    Δθ = 2 * cospi(0.5*r/rc)^2
-     Δθ = 0 * cospi(0.5*r/rc)^2
+     Δθ = 2 * cospi(0.5*r/rc)^2
   end
 
   #Perturbed state:
@@ -75,7 +74,7 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquatio
   p = equation.p0 * (1-equation.kappa * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_p / equation.R_d)
   T = p / (equation.R_d * ρ)
 
-  v1 = 20
+  v1 = 0
   v2 = 0
   ρ_v1 = ρ * v1
   ρ_v2 = ρ * v2
@@ -454,11 +453,6 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
 end
 
 function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-# println("element_id ",element_id, " ",x[1, 1, 1, element_id]," ",x[2, 1, 1, element_id])
-# println("u 1 ",u[1, 1, 1, element_id])
-# println("u 2 ",u[2, 1, 1, element_id])
-# println("u 3 ",u[3, 1, 1, element_id])
-# println("u 4 ",u[4, 1, 1, element_id])
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
     x2 = x[2, i, j, element_id]
@@ -702,6 +696,7 @@ See also Ranocha (2020)
     f2 = f1 * v1_avg + p_avg
     f3 = f1 * v2_avg
     f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    println(" fr 1 ",SVector(f1, f2, f3, f4))
   else
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
@@ -735,30 +730,23 @@ function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquation
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
   p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
 
+
   rhoM = 0.5 * (rho_ll + rho_rr)
   if orientation == 1 # x-direction
     pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v1_rr - v1_ll) 
     vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
-    println("x dir ",pM,"  ",vM)
-    println("u_ll ",u_ll)
-    println("u_rr ",u_rr)
     if vM >= 0
-      f = u_ll * vM + pM * SVector(0, 1, 0, 0)
-      println(" fl ",f)
+      f = u_ll * vM + pM * SVector(0, 1, 0, v1_ll)
     else
-      f = u_rr * vM + pM * SVector(0, 1, 0, 0)
-      println(" fr ",f)
+      f = u_rr * vM + pM * SVector(0, 1, 0, v1_rr)
     end  
   else # y-direction
     pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v2_rr - v2_ll) 
     vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
-#   println("y dir ",pM,"  ",vM)
-#   println("u_ll ",u_ll)
-#   println("u_rr ",u_rr)
     if vM >= 0
-      f = u_ll * vM + pM * SVector(0, 0, 1, 0)
+      f = u_ll * vM + pM * SVector(0, 0, 1, v2_ll)
     else
-      f = u_rr * vM + pM * SVector(0, 0, 1, 0)
+      f = u_rr * vM + pM * SVector(0, 0, 1, v2_rr)
     end  
   end
   return f
