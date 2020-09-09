@@ -23,7 +23,7 @@ class 2N of Williamson.
       end
     end
   end
-  apply_positivity_limiter!(solver)
+  apply_positivity_preserving_limiter!(solver)
 end
 
 """

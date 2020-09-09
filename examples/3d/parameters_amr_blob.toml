@@ -19,6 +19,7 @@ volume_integral_type = "split_form"
 surface_flux = "flux_hllc"
 volume_flux = "flux_ranocha"
 pp_limiter_apply = true
+pp_limiter_threshold = 0.0001
 
 ####################################################################################################
 # Mesh

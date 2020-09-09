@@ -61,6 +61,7 @@ mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_smooth::Bool
 
   pp_limiter_apply::Bool
+  pp_limiter_threshold::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
@@ -179,6 +180,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # apply positivity preserving limiter of Zhang and Shu
   pp_limiter_apply = parameter("pp_limiter_apply", false)
+  pp_limiter_threshold = parameter("pp_limiter_threshold", 0.0001)
 
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
@@ -213,7 +215,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
-      pp_limiter_apply,
+      pp_limiter_apply, pp_limiter_threshold,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -1284,7 +1286,7 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Apply positivity preserving limiter of Zhang and Shu
-  @timeit timer() "PP limiter of Zhang&Shu" apply_positivity_limiter!(dg)
+  @timeit timer() "PP limiter of Zhang&Shu" apply_positivity_preserving_limiter!(dg)
   
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -1318,24 +1320,24 @@ function rhs!(dg::Dg3D, t_stage)
 end
 
 # Calculate volume integral and update u_t
-apply_positivity_limiter!(dg::AbstractDg) = apply_positivity_limiter!(dg.elements.u, dg, equations(dg))
+apply_positivity_preserving_limiter!(dg::AbstractDg) = apply_positivity_preserving_limiter!(dg.elements.u, dg, equations(dg))
 
 # Only implemented and tested for compressible Euler equations in 3D
-function apply_positivity_limiter!(u, dg::AbstractDg, equation::AbstractEquation)
+function apply_positivity_preserving_limiter!(u, dg::AbstractDg, equation::AbstractEquation)
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
-function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+function apply_positivity_preserving_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
   if dg.pp_limiter_apply
-    apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
-    apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+    apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+    apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
   end
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # density
-function apply_positivity_limiter_density!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
-  @unpack weights = dg
+function apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  @unpack weights, pp_limiter_threshold = dg
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum density
     rho_min = 0.0
@@ -1358,8 +1360,8 @@ function apply_positivity_limiter_density!(u, dg::Dg3D, threshold, equation::Com
     end
     # Detect if limiting is necessary
     Theta_rho = 1
-    if rho_min < threshold 
-      Theta_rho = (U1_mean - threshold) / (U1_mean - rho_min)
+    if rho_min < pp_limiter_threshold 
+      Theta_rho = (U1_mean - pp_limiter_threshold) / (U1_mean - rho_min)
     end
     Theta = min(1, Theta_rho)
     # Apply limiter if necessary
@@ -1379,8 +1381,8 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # pressure
-function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold, equation::CompressibleEulerEquations3D)
-  @unpack weights = dg
+function apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  @unpack weights, pp_limiter_threshold = dg
   gamma = equation.gamma
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1408,8 +1410,8 @@ function apply_positivity_limiter_pressure!(u, dg::Dg3D, threshold, equation::Co
     # Detect if limiting is necessary
     p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean^2) / U1_mean)
     Theta_p = 1
-    if p_min < threshold 
-      Theta_p = (p_mean - threshold) / (p_mean - p_min)
+    if p_min < pp_limiter_threshold 
+      Theta_p = (p_mean - pp_limiter_threshold) / (p_mean - p_min)
     end
     Theta = min(1, Theta_p)
     # Apply limiter if necessary
