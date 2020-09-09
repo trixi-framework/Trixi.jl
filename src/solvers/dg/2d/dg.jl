@@ -809,8 +809,12 @@ function calc_error_norms(func, dg::Dg2D, t)
 
   # For L2 error, divide by total volume
   if is_parallel()
-    MPI.Reduce!(l2_error, +, mpi_root(), mpi_comm())
-    MPI.Reduce!(linf_error, max, mpi_root(), mpi_comm())
+    global_l2_error = Vector(l2_error)
+    global_linf_error = Vector(linf_error)
+    MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
+    MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+    l2_error = convert(typeof(l2_error), global_l2_error)
+    linf_error = convert(typeof(linf_error), global_linf_error)
   end
   l2_error = @. sqrt(l2_error / dg.analysis_total_volume)
 
