@@ -31,7 +31,7 @@ mutable struct Tree{NDIMS} <: AbstractContainer
   length::Int
   dummy::Int
 
-  center_level_0::MVector{NDIMS, Float64}
+  center_level_0::SVector{NDIMS, Float64}
   length_level_0::Float64
   periodicity::NTuple{NDIMS, Bool}
 
@@ -55,7 +55,7 @@ mutable struct Tree{NDIMS} <: AbstractContainer
     t.length = 0
     t.dummy = capacity + 1
 
-    t.center_level_0 = @MVector fill(NaN, NDIMS)
+    t.center_level_0 = @SVector fill(NaN, NDIMS)
     t.length_level_0 = NaN
 
     return t
