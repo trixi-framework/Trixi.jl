@@ -2588,7 +2588,7 @@ function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_mi
       u0 = indicator[1, i, j, k]
       up = indicator[1, i+1, j, k]
       um = indicator[1, i-1, j, k]
-      # dirty Lohner estimate, direction by direction, assuming constant nodes
+      # dirty Löhner estimate, direction by direction, assuming constant nodes
       estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
     end
     # y direction
