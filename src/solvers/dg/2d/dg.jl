@@ -73,6 +73,8 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   mpi_recv_buffers::Vector{Vector{Float64}}
   mpi_send_requests::Vector{MPI.Request}
   mpi_recv_requests::Vector{MPI.Request}
+  n_elements_global::Int
+  first_element_global_id::Int
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
@@ -212,6 +214,17 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
      mpi_send_requests,
      mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
                                                    Val(NDIMS), Val(NVARS), Val(POLYDEG))
+
+    # Determine total number of elements and the global element id of the first element
+    n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
+    first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
+    if is_mpi_root()
+      # With Exscan, the result on the first rank is undefined
+      first_element_global_id = 1
+    else
+      # On all other ranks we need to add one, since Julia has one-based indices
+      first_element_global_id += 1
+    end
   else
     mpi_neighbor_domain_ids = Int[]
     mpi_neighbor_interfaces = Vector{Int}[]
@@ -219,6 +232,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
     mpi_recv_buffers = Vector{Float64}[]
     mpi_send_requests = MPI.Request[]
     mpi_recv_requests = MPI.Request[]
+    n_elements_global = n_elements
+    first_element_global_id = 1
   end
 
   # Initialize element variables such that they are available in the first solution file
@@ -259,6 +274,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
       mpi_neighbor_domain_ids, mpi_neighbor_interfaces,
       mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
+      n_elements_global, first_element_global_id,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
