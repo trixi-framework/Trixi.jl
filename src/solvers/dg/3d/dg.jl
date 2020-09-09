@@ -1312,10 +1312,10 @@ function rhs!(dg::Dg3D, t_stage)
 end
 
 # Calculate volume integral and update u_t
-apply_positivity_limiter!(dg::Dg3D) = apply_positivity_limiter!(dg.elements.u, dg, equations(dg))
+apply_positivity_limiter!(dg::AbstractDg) = apply_positivity_limiter!(dg.elements.u, dg, equations(dg))
 
 # Only implemented and tested for compressible Euler equations in 3D
-function apply_positivity_limiter!(u, dg::Dg3D, equation::AbstractEquation)
+function apply_positivity_limiter!(u, dg::AbstractDg, equation::AbstractEquation)
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
