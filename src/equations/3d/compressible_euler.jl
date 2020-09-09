@@ -855,8 +855,8 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
 @inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density_pressure},
-  v1 = rho_v1/rho
                                 equation::CompressibleEulerEquations3D)
+  v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
 

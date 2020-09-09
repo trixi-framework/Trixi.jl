@@ -1320,10 +1320,10 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 function apply_positivity_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  #if dg.amr_indicator === :blob
-  #  apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
-  #  apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
-  #end
+  if dg.amr_indicator === :blob
+    apply_positivity_limiter_density!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+    apply_positivity_limiter_pressure!(u, dg::Dg3D, 0.0001, equation::CompressibleEulerEquations3D)
+  end
 end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
@@ -2611,8 +2611,8 @@ Given blending factors `alpha` and the solver `dg`, fill
 `element_ids_dg` with the IDs of elements using a pure DG scheme and
 `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
 """
-  empty!(element_ids_dg)
 function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::Dg3D)
+  empty!(element_ids_dg)
   empty!(element_ids_dgfv)
 
   for element_id in 1:dg.n_elements
@@ -2623,5 +2623,5 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
     else
       push!(element_ids_dgfv, element_id)
     end
-  end
 end
+  end
