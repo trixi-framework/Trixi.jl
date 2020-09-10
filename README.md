@@ -28,6 +28,7 @@ installation and postprocessing procedures. Its features include:
 * Nodal discontinuous Galerkin spectral element methods
   * Kinetic energy-preserving and entropy-stable split forms
   * Entropy-stable shock capturing
+  * Positivity-preserving limiting
 * Explicit low-storage Runge-Kutta time integration
 * Square/cubic domains with periodic and Dirichlet boundary conditions
 * Multiple governing equations:
