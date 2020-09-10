@@ -23,7 +23,7 @@ function CompressibleEulerEquations2D()
   gamma = parameter("gamma", c_p/c_v)
   _grav = parameter("_grav",9.81)
   p0 = parameter("p0",1.e5)
-  a = parameter("a",340.e0)
+  a = parameter("a",360.e0)
 
 
   CompressibleEulerEquations2D(c_p,c_v,R_d,kappa,gamma,_grav,p0,a)
@@ -736,17 +736,20 @@ function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquation
     pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v1_rr - v1_ll) 
     vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
     if vM >= 0
-      f = u_ll * vM + pM * SVector(0, 1, 0, v1_ll)
+      f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
     else
-      f = u_rr * vM + pM * SVector(0, 1, 0, v1_rr)
+      f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
+#     f = u_rr * vM + pM * SVector(0, 1, 0, 0)
     end  
   else # y-direction
     pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v2_rr - v2_ll) 
     vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
     if vM >= 0
-      f = u_ll * vM + pM * SVector(0, 0, 1, v2_ll)
+#     f = u_ll * vM + pM * SVector(0, 0, 1, 0)
+      f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
     else
-      f = u_rr * vM + pM * SVector(0, 0, 1, v2_rr)
+#     f = u_rr * vM + pM * SVector(0, 0, 1, 0)
+      f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
     end  
   end
   return f

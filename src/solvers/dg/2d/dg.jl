@@ -1840,8 +1840,10 @@ function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
     # Fill outer boundary state
     # FIXME: This should be replaced by a proper boundary condition
     for i in 1:nnodes(dg)
-      @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-        node_coordinates[:, i, b], time, equations(dg))
+#     @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
+#       node_coordinates[:, i, b], time, equations(dg))
+      u[3 - neighbor_sides[b], :, i, b] .= u[neighbor_sides[b], :, i, b]
+      u[3 - neighbor_sides[b], 3, i, b] = -u[neighbor_sides[b], 3, i, b]
     end
 
     # Get neighboring element

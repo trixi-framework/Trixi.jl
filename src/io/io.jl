@@ -151,7 +151,7 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
-                                   valid=["conservative", "primitive"])
+                                   valid=["conservative", "primitive", "pot"])
     if solution_variables == "conservative"
       data = dg.elements.u
       varnames = varnames_cons(equation)
