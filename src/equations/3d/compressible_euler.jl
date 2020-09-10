@@ -693,7 +693,7 @@ function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations
   sqrt_rho_rr = sqrt(rho_rr)
   sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
   if orientation == 1 # x-direction
-    vel_L = v1_ll 
+    vel_L = v1_ll
     vel_R = v1_rr
     ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2 + (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr)^2
   elseif orientation == 2 # y-direction
@@ -847,6 +847,26 @@ end
   rho_v3 = rho * v3
   rho_e  = p/(equation.gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
+end
+
+
+@inline function density(u, equation::CompressibleEulerEquations3D)
+  rho = u[1]
+  return rho
+end
+
+
+@inline function pressure(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  p = (equation.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
+  return p
+end
+
+
+@inline function density_pressure(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  rho_times_p = (equation.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2))
+  return rho_times_p
 end
 
 
