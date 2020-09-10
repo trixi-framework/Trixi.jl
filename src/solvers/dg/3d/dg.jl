@@ -939,7 +939,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
           " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
   println(" sim. time:      " * @sprintf("%10.8e", time))
 
-  println(" #DOF:           " * @sprintf("% 14d", dg.n_elements*(polydeg(dg)+1)^ndims(mesh)))
+  println(" #DOF:           " * @sprintf("% 14d", ndofs(dg)))
   # Level information (only show for AMR)
   if parameter("amr_interval", 0)::Int > 0
     levels = Vector{Int}(undef, dg.n_elements)
