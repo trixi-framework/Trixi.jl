@@ -60,8 +60,8 @@ mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
-  pp_limiter_apply::Bool
-  pp_limiter_threshold::Float64
+  positivity_preserving_limiter_apply::Bool
+  positivity_preserving_limiter_threshold::Float64
 
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
@@ -179,8 +179,8 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
   # apply positivity preserving limiter of Zhang and Shu
-  pp_limiter_apply = parameter("pp_limiter_apply", false)
-  pp_limiter_threshold = parameter("pp_limiter_threshold", 0.0001)
+  positivity_preserving_limiter_apply = parameter("positivity_preserving_limiter_apply", false)
+  positivity_preserving_limiter_threshold = parameter("positivity_preserving_limiter_threshold", 0.0001)
 
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
@@ -215,7 +215,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
-      pp_limiter_apply, pp_limiter_threshold,
+      positivity_preserving_limiter_apply, positivity_preserving_limiter_threshold,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -1328,7 +1328,7 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 function apply_positivity_preserving_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  if dg.pp_limiter_apply
+  if dg.positivity_preserving_limiter_apply
     apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
     apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
   end
@@ -1336,8 +1336,48 @@ end
 
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # density
+function apply_positivity_preserving_limiter_XXX!(func, u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  @unpack weights, positivity_preserving_limiter_threshold = dg
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Dermine minimum value
+    value_min = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      value_min = min(value_min, func(u_node, equation))
+    end
+    U1_mean = 0.0
+    U2_mean = 0.0
+    U3_mean = 0.0
+    U4_mean = 0.0
+    U5_mean = 0.0
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
+      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
+      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
+      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
+      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
+    end
+    # Detect if limiting is necessary
+    if value_min < positivity_preserving_limiter_threshold 
+      value_mean = func([U1_mean, U2_mean, U3_mean, U4_mean, U5_mean], equation)
+      Theta = (value_mean - positivity_preserving_limiter_threshold) / (value_mean - value_min)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
+        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
+        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
+        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
+        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
+      end
+    end
+  end
+end
+
+# Apply positivity limiter of Zhan and Shu to nodal values elements.u
+# density
 function apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  @unpack weights, pp_limiter_threshold = dg
+  @unpack weights, positivity_preserving_limiter_threshold = dg
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum density
     rho_min = 0.0
@@ -1360,8 +1400,8 @@ function apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::Com
     end
     # Detect if limiting is necessary
     Theta_rho = 1
-    if rho_min < pp_limiter_threshold 
-      Theta_rho = (U1_mean - pp_limiter_threshold) / (U1_mean - rho_min)
+    if rho_min < positivity_preserving_limiter_threshold 
+      Theta_rho = (U1_mean - positivity_preserving_limiter_threshold) / (U1_mean - rho_min)
     end
     Theta = min(1, Theta_rho)
     # Apply limiter if necessary
@@ -1382,7 +1422,7 @@ end
 # Apply positivity limiter of Zhan and Shu to nodal values elements.u
 # pressure
 function apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  @unpack weights, pp_limiter_threshold = dg
+  @unpack weights, positivity_preserving_limiter_threshold = dg
   gamma = equation.gamma
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1410,8 +1450,8 @@ function apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::Co
     # Detect if limiting is necessary
     p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean^2) / U1_mean)
     Theta_p = 1
-    if p_min < pp_limiter_threshold 
-      Theta_p = (p_mean - pp_limiter_threshold) / (p_mean - p_min)
+    if p_min < positivity_preserving_limiter_threshold 
+      Theta_p = (p_mean - positivity_preserving_limiter_threshold) / (p_mean - p_min)
     end
     Theta = min(1, Theta_p)
     # Apply limiter if necessary
@@ -2572,7 +2612,8 @@ end
 """
     calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
 
-Computes an indicator that models underresolution within a DG element. Adapted from FEM indicator by Löhner (1987), 
+Computes an indicator that models underresolution within a DG element. 
+Adapted from FEM indicator by Löhner (1987, https://doi.org/10.1016/0045-7825(87)90098-3), 
 also used in the FLASH code as standard AMR indicator. Indicator uses a specified indicator_variable to 
 estimate the second derivative of the solution locally.
 http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000

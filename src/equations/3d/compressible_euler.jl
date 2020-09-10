@@ -662,6 +662,7 @@ end
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
 http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf
+Signal speeds: https://sci-hub.tw/https://doi.org/10.1137/S1064827593260140
 """
 function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
@@ -686,31 +687,41 @@ function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations
   f_ll = calcflux(u_ll, orientation, equation)
   f_rr = calcflux(u_rr, orientation, equation)
 
+
+  # Compute Roe averages
+  sqrt_rho_ll = sqrt(rho_ll)
+  sqrt_rho_rr = sqrt(rho_rr)
+  sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
   if orientation == 1 # x-direction
     vel_L = v1_ll 
     vel_R = v1_rr
+    ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2 + (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr)^2
   elseif orientation == 2 # y-direction
     vel_L = v2_ll
     vel_R = v2_rr
+    ekin_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr)^2 + (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr)^2
   else # z-direction
     vel_L = v3_ll
     vel_R = v3_rr
+    ekin_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr)^2 + (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2
   end
-  sMu_L = -c_ll
-  sMu_R =  c_rr
-  Ssl = vel_L + sMu_L
-  Ssr = vel_R + sMu_R
-  M_ll = abs(vel_L)/c_ll
-  M_rr = abs(vel_R)/c_rr
+  vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
+  ekin_roe = 0.5 * (vel_roe^2 + ekin_roe / sum_sqrt_rho^2)
+  H_ll = (rho_e_ll + p_ll) / rho_ll
+  H_rr = (rho_e_rr + p_rr) / rho_rr
+  H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
+  c_roe = sqrt((equation.gamma - 1) * (H_roe - ekin_roe))
+  Ssl = min(vel_L - c_ll, vel_roe - c_roe)
+  Ssr = max(vel_R + c_rr, vel_roe + c_roe)
+  sMu_L = Ssl - vel_L
+  sMu_R = Ssr - vel_R
 
-  #if Ssl >= 0.0 && Ssr > 0.0
   if Ssl >= 0.0 
     f1 = f_ll[1]
     f2 = f_ll[2]
     f3 = f_ll[3]
     f4 = f_ll[4]
     f5 = f_ll[5]
-  #elseif Ssr <= 0.0 && Ssl < 0.0
   elseif Ssr <= 0.0 
     f1 = f_rr[1]
     f2 = f_rr[2]
@@ -719,7 +730,8 @@ function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations
     f5 = f_rr[5]
   else
     SStar = (p_rr - p_ll + rho_ll*vel_L*sMu_L - rho_rr*vel_R*sMu_R) / (rho_ll*sMu_L - rho_rr*sMu_R)
-    if Ssl <= 0.0 && SStar >= 0.0
+    #if Ssl <= 0.0 && SStar >= 0.0
+    if Ssl <= 0.0 <= SStar
       densStar = rho_ll*sMu_L / (Ssl-SStar)
       enerStar = e_ll + (SStar - vel_L) * (SStar + p_ll / (rho_ll * sMu_L))
       UStar1 = densStar
