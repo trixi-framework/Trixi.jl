@@ -932,10 +932,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
             " run time:       " * @sprintf("%10.8e s", runtime_absolute))
     println(" dt:             " * @sprintf("%10.8e", dt) *
             "               " *
-            " PID (total):    " * @sprintf("%10.8e s", runtime_relative))
+            " PID        :    " * @sprintf("%10.8e s", runtime_relative))
     println(" sim. time:      " * @sprintf("%10.8e", time) *
             "               " *
-            " PID (serial):   " * @sprintf("%10.8e s", runtime_relative * n_domains()))
+            " PID × #domains: " * @sprintf("%10.8e s", runtime_relative * n_domains()))
   end
 
   # Level information (only show for AMR)

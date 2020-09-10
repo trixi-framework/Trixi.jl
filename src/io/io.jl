@@ -75,7 +75,7 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     attrs(file)["equations"] = get_name(equation)
     attrs(file)["polydeg"] = polydeg(dg)
     attrs(file)["n_vars"] = nvariables(dg)
-    attrs(file)["n_elements"] = dg.n_elements
+    attrs(file)["n_elements"] = dg.n_elements_global
     attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attrs(file)["time"] = time
     attrs(file)["dt"] = dt
@@ -85,20 +85,78 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     data = dg.elements.u
     varnames = varnames_cons(equation)
 
-    # Store each variable of the solution
-    for v in 1:nvariables(dg)
-      # Convert to 1D array
-      if ndims(dg) == 2
-        file["variables_$v"] = vec(data[v, :, :, :])
-      elseif ndims(dg) == 3
-        file["variables_$v"] = vec(data[v, :, :, :, :])
-      else
-        error("Unsupported number of spatial dimensions: ", ndims(dg))
-      end
+    # If in parallel, only write from MPI root (poor man's version of parallel I/O)
+    if is_parallel() # Parallel I/O version
+      element_size = nnodes(dg)^ndims(dg)
+      counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain)) * Cint(element_size)
 
-      # Add variable name as attribute
-      var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      # Store data in buffer
+      if is_mpi_root()
+        first_buffer_index = (dg.first_element_global_id - 1) * element_size + 1
+        local_data_size = element_size * dg.n_elements
+        last_buffer_index = first_buffer_index + local_data_size - 1
+
+        # Create buffer for global element data
+        buffer = Vector{eltype(data)}(undef, element_size * dg.n_elements_global)
+
+        # Store each variable of the solution
+        for v in 1:nvariables(dg)
+          # Convert to 1D array and store in global buffer
+          if ndims(dg) == 2
+            buffer[first_buffer_index:last_buffer_index] = vec(data[v, :, :, :])
+          elseif ndims(dg) == 3
+            buffer[first_buffer_index:last_buffer_index] = vec(data[v, :, :, :, :])
+          else
+            error("Unsupported number of spatial dimensions: ", ndims(dg))
+          end
+
+          # Collect data on root domain
+          # Note: `collect(...)` is required since we store domain info in OffsetArrays
+          MPI.Gatherv!(nothing, buffer, counts, mpi_root(), mpi_comm())
+
+          # Write to file
+          file["variables_$v"] = buffer
+
+          # Add variable name as attribute
+          var = file["variables_$v"]
+          attrs(var)["name"] = varnames[v]
+        end
+      else # On non-root domains
+        # Create buffer for local element data
+        buffer = Vector{eltype(data)}(undef, element_size * dg.n_elements)
+
+        # Store each variable of the solution
+        for v in 1:nvariables(dg)
+          # Convert to 1D array and store in global buffer
+          if ndims(dg) == 2
+            buffer[:] = vec(data[v, :, :, :])
+          elseif ndims(dg) == 3
+            buffer[:] = vec(data[v, :, :, :, :])
+          else
+            error("Unsupported number of spatial dimensions: ", ndims(dg))
+          end
+
+          # Collect data on root domain
+          # Note: `collect(...)` is required since we store domain info in OffsetArrays
+          MPI.Gatherv!(buffer, nothing, counts, mpi_root(), mpi_comm())
+        end
+      end
+    else # Serial I/O version
+      # Store each variable of the solution
+      for v in 1:nvariables(dg)
+        # Convert to 1D array
+        if ndims(dg) == 2
+          file["variables_$v"] = vec(data[v, :, :, :])
+        elseif ndims(dg) == 3
+          file["variables_$v"] = vec(data[v, :, :, :, :])
+        else
+          error("Unsupported number of spatial dimensions: ", ndims(dg))
+        end
+
+        # Add variable name as attribute
+        var = file["variables_$v"]
+        attrs(var)["name"] = varnames[v]
+      end
     end
   end
 end
