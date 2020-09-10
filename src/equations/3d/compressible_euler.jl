@@ -660,8 +660,8 @@ end
  """
     flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
 
-    Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
-    http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf
+Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
+http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf
 """
 function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
   # Calculate primitive variables and speed of sound
