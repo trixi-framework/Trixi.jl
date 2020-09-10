@@ -43,9 +43,6 @@ amr_alpha_min = 0.0001
 
 ####################################################################################################
 # I/O
-# save_initial_solution = false
 analysis_interval = 200
 solution_interval = 200
-solution_variables = "primitive"
 restart_interval = 200
-output_format = "hdf5"
