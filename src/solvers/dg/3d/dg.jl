@@ -6,7 +6,6 @@ mutable struct Dg3D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
                   InverseVandermondeLegendre, MortarMatrix,
                   VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG, MeshType}
   equations::Eqn
-  mesh_that_should_not_be_used::MeshType
 
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
@@ -125,8 +124,8 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
-  NAna = 2 * (n_nodes) - 1
-  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
+  analysis_polydeg = 2 * (n_nodes) - 1
+  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(analysis_polydeg + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndims(mesh)
@@ -188,9 +187,30 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
+  # Convert all performance-critical fields to StaticArrays types
+  nodes           = SVector{POLYDEG+1}(nodes)
+  weights         = SVector{POLYDEG+1}(weights)
+  inverse_weights = SVector{POLYDEG+1}(inverse_weights)
+  lhat = SMatrix{POLYDEG+1,2}(lhat)
+  dhat              = SMatrix{POLYDEG+1,POLYDEG+1}(dhat)
+  dsplit            = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit)
+  dsplit_transposed = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed)
+  mortar_forward_upper   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper)
+  mortar_forward_lower   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower)
+  l2mortar_reverse_upper = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper)
+  l2mortar_reverse_lower = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower)
+  analysis_nodes          = SVector{analysis_polydeg+1}(analysis_nodes)
+  analysis_weights        = SVector{analysis_polydeg+1}(analysis_weights)
+  analysis_weights_volume = SVector{analysis_polydeg+1}(analysis_weights_volume)
+
   # Create actual DG solver instance
-  dg = Dg3D(
-      equation, mesh,
+  dg = Dg3D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(source_terms),
+            typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
+            typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),
+            typeof(mortar_forward_upper), typeof(analysis_nodes), typeof(analysis_vandermonde)}(
+      equation,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
       elements, n_elements,
@@ -198,13 +218,13 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       boundaries, n_boundaries,
       mortar_type,
       l2mortars, n_l2mortars,
-      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
+      nodes, weights, inverse_weights,
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
-      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
-      SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
-      SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
+      dhat, dsplit, dsplit_transposed,
+      mortar_forward_upper, mortar_forward_lower,
+      l2mortar_reverse_upper, l2mortar_reverse_lower,
+      analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
