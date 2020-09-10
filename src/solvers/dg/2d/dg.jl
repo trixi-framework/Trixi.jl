@@ -73,6 +73,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
   mpi_recv_buffers::Vector{Vector{Float64}}
   mpi_send_requests::Vector{MPI.Request}
   mpi_recv_requests::Vector{MPI.Request}
+  n_elements_by_domain::OffsetArray{Int, 1, Array{Int, 1}}
   n_elements_global::Int
   first_element_global_id::Int
 
@@ -215,8 +216,15 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
      mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
                                                    Val(NDIMS), Val(NVARS), Val(POLYDEG))
 
-    # Determine total number of elements and the global element id of the first element
+    # Determine local and total number of elements
+    n_elements_by_domain = Vector{Int}(undef, n_domains())
+    n_elements_by_domain[domain_id() + 1] = n_elements
+    MPI.Allgather!(n_elements_by_domain, 1, mpi_comm())
+    n_elements_by_domain = OffsetArray(n_elements_by_domain, 0:(n_domains() - 1))
     n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
+    @assert n_elements_global == sum(n_elements_by_domain) "error in total number of elements"
+
+    # Determine the global element id of the first element
     first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
     if is_mpi_root()
       # With Exscan, the result on the first rank is undefined
@@ -232,6 +240,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
     mpi_recv_buffers = Vector{Float64}[]
     mpi_send_requests = MPI.Request[]
     mpi_recv_requests = MPI.Request[]
+    n_elements_by_domain = OffsetArray([n_elements], 0:0)
     n_elements_global = n_elements
     first_element_global_id = 1
   end
@@ -297,7 +306,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
       mpi_neighbor_domain_ids, mpi_neighbor_interfaces,
       mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
-      n_elements_global, first_element_global_id,
+      n_elements_by_domain, n_elements_global, first_element_global_id,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
