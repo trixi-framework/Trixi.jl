@@ -1286,7 +1286,7 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Apply positivity preserving limiter of Zhang and Shu
-  @timeit timer() "PP limiter of Zhang&Shu" apply_positivity_preserving_limiter!(dg)
+  @timeit timer() "positivity preserving limiter" apply_positivity_preserving_limiter!(dg)
   
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
@@ -1319,156 +1319,50 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
-# Calculate volume integral and update u_t
-apply_positivity_preserving_limiter!(dg::AbstractDg) = apply_positivity_preserving_limiter!(dg.elements.u, dg, equations(dg))
-
-# Only implemented and tested for compressible Euler equations in 3D
-function apply_positivity_preserving_limiter!(u, dg::AbstractDg, equation::AbstractEquation)
-end
-
-# Apply positivity limiter of Zhan and Shu to nodal values elements.u
-function apply_positivity_preserving_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(dg::Dg3D) 
   if dg.positivity_preserving_limiter_apply
-    apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-    apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+    apply_positivity_preserving_limiter!(dg.elements.u, dg, equations(dg))
   end
 end
 
-# Apply positivity limiter of Zhan and Shu to nodal values elements.u
-# density
-function apply_positivity_preserving_limiter_XXX!(func, u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  apply_positivity_preserving_limiter!(density, u, dg::Dg3D, equation)
+  apply_positivity_preserving_limiter!(pressure, u, dg::Dg3D, equation)
+end
+
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+# https://www.brown.edu/research/projects/scientific-computing/sites/brown.edu.research.projects.scientific-computing/files/uploads/On%20positivity%20preserving%20high%20order%20discontinuous%20Galerkin%20schemes.pdf
+function apply_positivity_preserving_limiter!(func, u, dg::Dg3D, equation)
   @unpack weights, positivity_preserving_limiter_threshold = dg
   Threads.@threads for element_id in 1:dg.n_elements
     # Dermine minimum value
-    value_min = 0.0
+    value_min = Inf
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
+      u_node = get_node_vars(u, dg, i, j, k, element_id)
       value_min = min(value_min, func(u_node, equation))
-    end
-    U1_mean = 0.0
-    U2_mean = 0.0
-    U3_mean = 0.0
-    U4_mean = 0.0
-    U5_mean = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
-      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
-      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
-      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
-      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
     end
     # Detect if limiting is necessary
     if value_min < positivity_preserving_limiter_threshold 
-      value_mean = func([U1_mean, U2_mean, U3_mean, U4_mean, U5_mean], equation)
-      Theta = (value_mean - positivity_preserving_limiter_threshold) / (value_mean - value_min)
+      u_mean = SVector(ntuple(_ -> 0.0, nvariables(equation))) 
       for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
-        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
-        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
-        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
-        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
+        u_node = get_node_vars(u, dg, i, j, k, element_id)
+        u_mean += u_node * weights[i] * weights[j] * weights[k] 
+      end
+      # Note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2.
+      u_mean = u_mean / 2^ndims(dg)
+      # We compute the value directly with the mean values, as we assume that Jensen's inequality
+      # holds (e.g. pressure for compressible Euler equations)
+      value_mean = func(u_mean, equation)
+      theta = (value_mean - positivity_preserving_limiter_threshold) / (value_mean - value_min)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(u, dg, i, j, k, element_id)
+        set_node_vars!(u, theta * u_node + (1-theta) * u_mean, dg, i, j, k, element_id)
       end
     end
   end
 end
-
-# Apply positivity limiter of Zhan and Shu to nodal values elements.u
-# density
-function apply_positivity_preserving_limiter_density!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  @unpack weights, positivity_preserving_limiter_threshold = dg
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Dermine minimum density
-    rho_min = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      rho_min = min(rho_min, u_node[1])
-    end
-    U1_mean = 0.0
-    U2_mean = 0.0
-    U3_mean = 0.0
-    U4_mean = 0.0
-    U5_mean = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
-      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
-      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
-      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
-      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
-    end
-    # Detect if limiting is necessary
-    Theta_rho = 1
-    if rho_min < positivity_preserving_limiter_threshold 
-      Theta_rho = (U1_mean - positivity_preserving_limiter_threshold) / (U1_mean - rho_min)
-    end
-    Theta = min(1, Theta_rho)
-    # Apply limiter if necessary
-    if Theta < 1
-      #println("apply PP limiter 1 ", Theta_rho)
-      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
-        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
-        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
-        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
-        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
-      end
-    end
-  end
-end
-
-# Apply positivity limiter of Zhan and Shu to nodal values elements.u
-# pressure
-function apply_positivity_preserving_limiter_pressure!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
-  @unpack weights, positivity_preserving_limiter_threshold = dg
-  gamma = equation.gamma
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    # Dermine minimum density, pressure and maximum convex entropy estimate
-    p_min = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      p = (gamma-1) * (u_node[5] - 0.5 * (u_node[2]^2 + u_node[3]^2 + u_node[4]^2) / u_node[1])
-      p_min = min(p_min, p)
-    end
-    # Determine mean value of element
-    U1_mean = 0.0
-    U2_mean = 0.0
-    U3_mean = 0.0
-    U4_mean = 0.0
-    U5_mean = 0.0
-    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-      u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-      U1_mean += u_node[1] * weights[i] * weights[j] * weights[k] / 8.0
-      U2_mean += u_node[2] * weights[i] * weights[j] * weights[k] / 8.0 
-      U3_mean += u_node[3] * weights[i] * weights[j] * weights[k] / 8.0
-      U4_mean += u_node[4] * weights[i] * weights[j] * weights[k] / 8.0
-      U5_mean += u_node[5] * weights[i] * weights[j] * weights[k] / 8.0
-    end
-    # Detect if limiting is necessary
-    p_mean = (gamma-1) * (U5_mean - 0.5 * (U2_mean^2 + U3_mean^2 + U4_mean^2) / U1_mean)
-    Theta_p = 1
-    if p_min < positivity_preserving_limiter_threshold 
-      Theta_p = (p_mean - positivity_preserving_limiter_threshold) / (p_mean - p_min)
-    end
-    Theta = min(1, Theta_p)
-    # Apply limiter if necessary
-    if Theta < 1
-      #println("apply PP limiter 2 ", Theta_p)
-      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-        u_node = get_node_vars(dg.elements.u, dg, i, j, k, element_id)
-        dg.elements.u[1,i,j,k,element_id] = Theta * u_node[1] + (1-Theta) * U1_mean 
-        dg.elements.u[2,i,j,k,element_id] = Theta * u_node[2] + (1-Theta) * U2_mean 
-        dg.elements.u[3,i,j,k,element_id] = Theta * u_node[3] + (1-Theta) * U3_mean 
-        dg.elements.u[4,i,j,k,element_id] = Theta * u_node[4] + (1-Theta) * U4_mean 
-        dg.elements.u[5,i,j,k,element_id] = Theta * u_node[5] + (1-Theta) * U5_mean 
-      end
-    end
-  end
-end
-
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
@@ -2610,7 +2504,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 end
 
 """
-    calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
+    calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
 
 Computes an indicator that models underresolution within a DG element. 
 Adapted from FEM indicator by Löhner (1987, https://doi.org/10.1016/0045-7825(87)90098-3), 
@@ -2619,7 +2513,7 @@ estimate the second derivative of the solution locally.
 http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
 # Calculate blending factors used for shock capturing, or AMR control
-function calc_loehner_indicator!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing, indicator_variable, thread_cache, dg::Dg3D)
+function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
   @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)" 
   # Calculate blending factor
   @unpack indicator_threaded = thread_cache

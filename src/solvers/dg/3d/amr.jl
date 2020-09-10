@@ -325,27 +325,21 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
         length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)                       
       dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)           
     end                                                                                             
-    if (!haskey(dg.element_variables, :amr_indicator_values_tmp) ||                                 
-        length(dg.element_variables[:amr_indicator_values_tmp]) != dg.n_elements)                   
-      dg.element_variables[:amr_indicator_values_tmp] = Vector{Float64}(undef, dg.n_elements)       
-    end                                                                                             
                                                                                                     
     alpha     = dg.element_variables[:amr_indicator_values]                                         
-    alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]                                     
-    calc_loehner_indicator!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density),dg.thread_cache, dg)                                                       
+    calc_loehner_indicator!(alpha, dg.elements.u, Val(:density), dg.thread_cache, dg)                                                       
                                                                                                     
-    # (Re-)initialize element variable storage for blending factor                                  
-    if (!haskey(dg.element_variables, :blending_factor) ||                                          
-        length(dg.element_variables[:blending_factor]) != dg.n_elements)                            
-      dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)                
-    end                                                                                             
-    if (!haskey(dg.element_variables, :blending_factor_tmp) ||                                      
-        length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)                        
-      dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)            
-    end                                                                                             
-    
     # OPTIONAL: use max level were shock capturing is maxed
+    # (Re-)initialize element variable storage for blending factor                                  
+    #if (!haskey(dg.element_variables, :blending_factor) ||                                          
+    #    length(dg.element_variables[:blending_factor]) != dg.n_elements)                            
+    #  dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)                
+    #end                                                                                             
+    #if (!haskey(dg.element_variables, :blending_factor_tmp) ||                                      
+    #    length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)                        
+    #  dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)            
+    #end                                                                                             
+    
     #alpha1     = dg.element_variables[:blending_factor]                                             
     #alpha1_tmp = dg.element_variables[:blending_factor_tmp]                                         
     #calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
