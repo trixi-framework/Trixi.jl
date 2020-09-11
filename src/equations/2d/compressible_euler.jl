@@ -74,7 +74,7 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquatio
   p = equation.p0 * (1-equation.kappa * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_p / equation.R_d)
   T = p / (equation.R_d * ρ)
 
-  v1 = 0
+  v1 = 20
   v2 = 0
   ρ_v1 = ρ * v1
   ρ_v2 = ρ * v2
@@ -739,16 +739,13 @@ function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquation
       f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
     else
       f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
-#     f = u_rr * vM + pM * SVector(0, 1, 0, 0)
     end  
   else # y-direction
     pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v2_rr - v2_ll) 
     vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
     if vM >= 0
-#     f = u_ll * vM + pM * SVector(0, 0, 1, 0)
       f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
     else
-#     f = u_rr * vM + pM * SVector(0, 0, 1, 0)
       f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
     end  
   end
