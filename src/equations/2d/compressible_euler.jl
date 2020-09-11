@@ -788,24 +788,24 @@ end
 end
 
 
-@inline function density(u, equation::CompressibleEulerEquations2D)
-  rho = u[1]
-  return rho
-end
+#@inline function density(u, equation::CompressibleEulerEquations2D)
+#  rho = u[1]
+#  return rho
+#end
 
 
-@inline function pressure(u, equation::CompressibleEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
-  p = (equation.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
-  return p
-end
+#@inline function pressure(u, equation::CompressibleEulerEquations2D)
+#  rho, rho_v1, rho_v2, rho_e = u
+#  p = (equation.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+#  return p
+#end
 
 
-@inline function density_pressure(u, equation::CompressibleEulerEquations2D)
-  rho, rho_v1, rho_v2, rho_e = u
-  rho_times_p = (equation.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
-  return rho_times_p
-end
+#@inline function density_pressure(u, equation::CompressibleEulerEquations2D)
+#  rho, rho_v1, rho_v2, rho_e = u
+#  rho_times_p = (equation.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
+#  return rho_times_p
+#end
 
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
