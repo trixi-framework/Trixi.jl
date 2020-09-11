@@ -60,6 +60,9 @@ mutable struct Dg3D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
+  positivity_preserving_limiter_apply::Bool
+  positivity_preserving_limiter_threshold::Float64
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -157,7 +160,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "density_pulse", "sedov_self_gravity"]))
+                                   valid=["n/a", "gauss", "blob",  "density_pulse", "sedov_self_gravity"]))
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -168,12 +171,16 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # variable used to compute the shock capturing indicator
   shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                        valid=["density", "density_pressure", "pressure"])))
+                                                  valid=["density", "density_pressure", "pressure"])))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
+
+  # apply positivity preserving limiter of Zhang and Shu
+  positivity_preserving_limiter_apply = parameter("positivity_preserving_limiter_apply", false)
+  positivity_preserving_limiter_threshold = parameter("positivity_preserving_limiter_threshold", 0.0001)
 
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
@@ -208,6 +215,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
+      positivity_preserving_limiter_apply, positivity_preserving_limiter_threshold,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -931,6 +939,7 @@ function analyze_solution(dg::Dg3D, mesh::TreeMesh, time::Real, dt::Real, step::
           " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
   println(" sim. time:      " * @sprintf("%10.8e", time))
 
+  println(" #DOF:           " * @sprintf("% 14d", ndofs(dg)))
   # Level information (only show for AMR)
   if parameter("amr_interval", 0)::Int > 0
     levels = Vector{Int}(undef, dg.n_elements)
@@ -1276,6 +1285,9 @@ function rhs!(dg::Dg3D, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
+  # Apply positivity preserving limiter of Zhang and Shu
+  @timeit timer() "positivity preserving limiter" apply_positivity_preserving_limiter!(dg)
+  
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
 
@@ -1307,10 +1319,53 @@ function rhs!(dg::Dg3D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(dg::Dg3D) 
+  if dg.positivity_preserving_limiter_apply
+    apply_positivity_preserving_limiter!(dg.elements.u, dg, equations(dg))
+  end
+end
+
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(u, dg::Dg3D, equation::CompressibleEulerEquations3D)
+  apply_positivity_preserving_limiter!(density, u, dg::Dg3D, equation)
+  apply_positivity_preserving_limiter!(pressure, u, dg::Dg3D, equation)
+end
+
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+# https://www.brown.edu/research/projects/scientific-computing/sites/brown.edu.research.projects.scientific-computing/files/uploads/On%20positivity%20preserving%20high%20order%20discontinuous%20Galerkin%20schemes.pdf
+function apply_positivity_preserving_limiter!(func, u, dg::Dg3D, equation)
+  @unpack weights, positivity_preserving_limiter_threshold = dg
+  Threads.@threads for element_id in 1:dg.n_elements
+    # Dermine minimum value
+    value_min = Inf
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u_node = get_node_vars(u, dg, i, j, k, element_id)
+      value_min = min(value_min, func(u_node, equation))
+    end
+    # Detect if limiting is necessary
+    if value_min < positivity_preserving_limiter_threshold 
+      u_mean = SVector(ntuple(_ -> 0.0, nvariables(equation))) 
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(u, dg, i, j, k, element_id)
+        u_mean += u_node * weights[i] * weights[j] * weights[k] 
+      end
+      # Note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2.
+      u_mean = u_mean / 2^ndims(dg)
+      # We compute the value directly with the mean values, as we assume that Jensen's inequality
+      # holds (e.g. pressure for compressible Euler equations)
+      value_mean = func(u_mean, equation)
+      theta = (value_mean - positivity_preserving_limiter_threshold) / (value_mean - value_min)
+      for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+        u_node = get_node_vars(u, dg, i, j, k, element_id)
+        set_node_vars!(u, theta * u_node + (1-theta) * u_mean, dg, i, j, k, element_id)
+      end
+    end
+  end
+end
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg3D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
-
 
 # Calculate 3D twopoint flux (element version)
 @inline function calcflux_twopoint!(f1, f2, f3, u, element_id, dg::Dg3D)
@@ -1933,8 +1988,8 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
 end
 
 # Calculate and store Riemann and nonconservative fluxes across interfaces
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   #TODO temporary workaround while implementing the other stuff
+function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg3D)
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u, nonconservative_terms,
                        dg.interfaces.orientations, dg, dg.thread_cache)
 end
@@ -2448,6 +2503,57 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
   end
 end
 
+"""
+    calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
+
+Computes an indicator that models underresolution within a DG element. 
+Adapted from FEM indicator by Löhner (1987, https://doi.org/10.1016/0045-7825(87)90098-3), 
+also used in the FLASH code as standard AMR indicator. Indicator uses a specified indicator_variable to 
+estimate the second derivative of the solution locally.
+http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+"""
+# Calculate blending factors used for shock capturing, or AMR control
+function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
+  @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)" 
+  # Calculate blending factor
+  @unpack indicator_threaded = thread_cache
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    indicator = indicator_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+
+    f_wave = 0.2 #parameter to avoid small scale fluctuations influencing the indicator
+    estimate = 0.0
+    # x direction
+    for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 2:nnodes(dg)-1
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i+1, j, k]
+      um = indicator[1, i-1, j, k]
+      # dirty Löhner estimate, direction by direction, assuming constant nodes
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+    # y direction
+    for k in 1:nnodes(dg), j in 2:nnodes(dg)-1, i in 1:nnodes(dg)
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i, j+1, k]
+      um = indicator[1, i, j-1, k]
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+    # z direction
+    for k in 2:nnodes(dg)-1, j in 1:nnodes(dg), i in 1:nnodes(dg)
+      u0 = indicator[1, i, j, k]
+      up = indicator[1, i, j, k+1]
+      um = indicator[1, i, j, k-1]
+      estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
+    end
+    # use the maximum as an DG element indicator
+    alpha[element_id] = estimate
+  end
+end
+
+
 
 """
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
@@ -2468,5 +2574,5 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
     else
       push!(element_ids_dgfv, element_id)
     end
-  end
 end
+  end

@@ -379,7 +379,6 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
   elseif dg.amr_indicator === :blob
     base_level = 4
     max_level = 7
-    # to make the simulation smaller and quicker wall clock time, choose super_max_level = 6
     super_max_level = 7
     blending_factor_threshold0 = 0.3
     blending_factor_threshold1 = 0.003

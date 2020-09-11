@@ -314,6 +314,62 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
         lambda[element_id] = 0.0
       end
     end
+  elseif dg.amr_indicator === :blob
+    base_level = 1
+    max_level = 6                                                                                   
+    blending_factor_threshold1 = 0.3 # Löhner original choice
+    blending_factor_threshold2 = 0.1 # Löhner original choice
+                                                                                                    
+    # (Re-)initialize element variable storage for blending factor                                  
+    if (!haskey(dg.element_variables, :amr_indicator_values) ||                                     
+        length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)                       
+      dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)           
+    end                                                                                             
+                                                                                                    
+    alpha     = dg.element_variables[:amr_indicator_values]                                         
+    calc_loehner_indicator!(alpha, dg.elements.u, Val(:density), dg.thread_cache, dg)                                                       
+                                                                                                    
+    # OPTIONAL: use max level were shock capturing is maxed
+    # (Re-)initialize element variable storage for blending factor                                  
+    #if (!haskey(dg.element_variables, :blending_factor) ||                                          
+    #    length(dg.element_variables[:blending_factor]) != dg.n_elements)                            
+    #  dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)                
+    #end                                                                                             
+    #if (!haskey(dg.element_variables, :blending_factor_tmp) ||                                      
+    #    length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)                        
+    #  dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)            
+    #end                                                                                             
+    
+    #alpha1     = dg.element_variables[:blending_factor]                                             
+    #alpha1_tmp = dg.element_variables[:blending_factor_tmp]                                         
+    #calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
+    #                       dg.shock_indicator_variable, dg.thread_cache, dg)                                    
+                                                                                                    
+    # Iterate over all elements                                                                     
+    for element_id in 1:dg.n_elements                                                               
+      cell_id = dg.elements.cell_ids[element_id]                                                    
+      actual_level = mesh.tree.levels[cell_id]                                                      
+      target_level = actual_level                                                                   
+      # adapt for the amr indicator                                                                 
+      if alpha[element_id] >= blending_factor_threshold1                                            
+        target_level = max_level                                                              
+      elseif alpha[element_id] <= blending_factor_threshold2                                        
+        target_level = base_level                                                                   
+      end                                                                                           
+      # make sure that a highly troubled shock cell is not coarsened                                
+      #if isapprox.(dg.shock_alpha_max, alpha1[element_id], atol=1e-12)                              
+      #  target_level = max_level                                                                    
+      #end                                                                                           
+      # Compare target level with actual level to set indicator                                     
+      if actual_level < target_level                                                                
+        lambda[element_id] = 1.0                                                                    
+      elseif actual_level > target_level                                                            
+        lambda[element_id] = -1.0                                                                   
+      else                                                                                          
+        lambda[element_id] = 0.0                                                                    
+      end                                                                                           
+
+    end
   elseif dg.amr_indicator === :density_pulse
     # Works with initial_conditions_density_pulse for compressible Euler equations
     base_level = 4

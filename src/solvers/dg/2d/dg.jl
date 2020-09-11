@@ -1216,6 +1216,10 @@ function rhs!(dg::Dg2D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
+# TODO: implement 2D!!!
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(dg::Dg2D)
+end
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
