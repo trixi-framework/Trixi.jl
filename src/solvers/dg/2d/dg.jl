@@ -177,8 +177,10 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                                  valid=["density", "density_pressure", "pressure"])))
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  shock_indicator_variable = eval(Symbol(parameter("shock_indicator_variable", "density_pressure")))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -2237,7 +2239,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
@@ -2319,6 +2321,17 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
+  end
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function cons2indicator!(indicator, u, element_id, indicator_variable, dg::Dg2D)
+  eqs = equations(dg)
+
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, element_id)
+    indicator[1, i, j] = indicator_variable(u_node, eqs)
   end
 end
 
