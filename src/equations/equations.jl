@@ -1,22 +1,18 @@
 
-# Base type from which all systems of equations types inherit from
-abstract type AbstractEquation{NDIMS, NVARS} end
-
-
 # Retrieve number of variables from equation type
-@inline nvariables(::Type{AbstractEquation{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
+@inline nvariables(::Type{AbstractEquations{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
 
 # Retrieve number of variables from equation instance
-@inline nvariables(::AbstractEquation{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
+@inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
 
 # Add method to show some information on system of equations
-function Base.show(io::IO, equation::AbstractEquation)
+function Base.show(io::IO, equation::AbstractEquations)
   print(io, "name = ", get_name(equation), ", n_vars = ", nvariables(equation))
 end
 
 
-@inline Base.ndims(::AbstractEquation{NDIMS}) where NDIMS = NDIMS
+@inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
 
 
 # Create an instance of a system of equation type based on a given name
@@ -59,18 +55,18 @@ function make_equations(name::String, ndims_)
 end
 
 
-have_nonconservative_terms(::AbstractEquation) = Val(false)
-default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu_ut)
+have_nonconservative_terms(::AbstractEquations) = Val(false)
+default_analysis_quantities(::AbstractEquations) = (:l2_error, :linf_error, :dsdu_ut)
 
 
 """
-    flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
+    flux_central(u_ll, u_rr, orientation, equation::AbstractEquations)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
 DG method (except floating point errors).
 """
-@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
+@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquations)
   # Calculate regular 1D fluxes
   f_ll = calcflux(u_ll, orientation, equation)
   f_rr = calcflux(u_rr, orientation, equation)
@@ -80,28 +76,28 @@ DG method (except floating point errors).
 end
 
 
-@inline cons2cons(u, equation::AbstractEquation) = u
+@inline cons2cons(u, equation::AbstractEquations) = u
 
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("2d/linear_scalar_advection.jl")
 include("3d/linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
-abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("2d/compressible_euler.jl")
 include("3d/compressible_euler.jl")
 
 # Ideal MHD
-abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("2d/ideal_glm_mhd.jl")
 include("3d/ideal_glm_mhd.jl")
 
 # Diffusion equation: first order hyperbolic system
-abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
+abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("2d/hyperbolic_diffusion.jl")
 include("3d/hyperbolic_diffusion.jl")

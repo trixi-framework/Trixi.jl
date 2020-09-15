@@ -30,15 +30,22 @@ using UnPack: @unpack
 using Tullio: @tullio
 using LoopVectorization
 
+
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
 export globals
+
+# Basic abstract types creating the hierarchy
+abstract type AbstractEquations{NDIMS, NVARS} end
+
+
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
+include("semidiscretization.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 include("amr/amr.jl")

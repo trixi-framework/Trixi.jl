@@ -13,7 +13,7 @@ eval_if_not_function(func::Function) = func
 
 
 # Create an instance of a solver based on a given name
-function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
+function make_solver(name::String, equations::AbstractEquations, mesh::TreeMesh;
                      surface_flux_function=nothing, volume_flux_function=nothing)
   if name == "dg"
     # "eval is evil"
