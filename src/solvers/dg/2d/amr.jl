@@ -352,7 +352,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -397,7 +397,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -458,7 +458,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -497,7 +497,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

@@ -170,8 +170,10 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                                  valid=["density", "density_pressure", "pressure"])))
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  shock_indicator_variable = eval(Symbol(parameter("shock_indicator_variable", "density_pressure")))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -1287,7 +1289,7 @@ function rhs!(dg::Dg3D, t_stage)
 
   # Apply positivity preserving limiter of Zhang and Shu
   @timeit timer() "positivity preserving limiter" apply_positivity_preserving_limiter!(dg)
-  
+
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
 
@@ -1320,7 +1322,7 @@ function rhs!(dg::Dg3D, t_stage)
 end
 
 # Apply positivity limiter of Zhang and Shu to nodal values elements.u
-function apply_positivity_preserving_limiter!(dg::Dg3D) 
+function apply_positivity_preserving_limiter!(dg::Dg3D)
   if dg.positivity_preserving_limiter_apply
     apply_positivity_preserving_limiter!(dg.elements.u, dg, equations(dg))
   end
@@ -1344,11 +1346,11 @@ function apply_positivity_preserving_limiter!(func, u, dg::Dg3D, equation)
       value_min = min(value_min, func(u_node, equation))
     end
     # Detect if limiting is necessary
-    if value_min < positivity_preserving_limiter_threshold 
-      u_mean = SVector(ntuple(_ -> 0.0, nvariables(equation))) 
+    if value_min < positivity_preserving_limiter_threshold
+      u_mean = SVector(ntuple(_ -> 0.0, nvariables(equation)))
       for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
         u_node = get_node_vars(u, dg, i, j, k, element_id)
-        u_mean += u_node * weights[i] * weights[j] * weights[k] 
+        u_mean += u_node * weights[i] * weights[j] * weights[k]
       end
       # Note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2.
       u_mean = u_mean / 2^ndims(dg)
@@ -2421,7 +2423,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     modal_tmp2 = modal_tmp2_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1, modal_tmp2)
@@ -2506,15 +2508,15 @@ end
 """
     calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
 
-Computes an indicator that models underresolution within a DG element. 
-Adapted from FEM indicator by Löhner (1987, https://doi.org/10.1016/0045-7825(87)90098-3), 
-also used in the FLASH code as standard AMR indicator. Indicator uses a specified indicator_variable to 
+Computes an indicator that models underresolution within a DG element.
+Adapted from FEM indicator by Löhner (1987, https://doi.org/10.1016/0045-7825(87)90098-3),
+also used in the FLASH code as standard AMR indicator. Indicator uses a specified indicator_variable to
 estimate the second derivative of the solution locally.
 http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
 # Calculate blending factors used for shock capturing, or AMR control
 function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg::Dg3D)
-  @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)" 
+  @assert nnodes(dg)>=3 "implementation of Loehner indicator only works for nnodes>=3 (polydeg>1)"
   # Calculate blending factor
   @unpack indicator_threaded = thread_cache
 
@@ -2522,13 +2524,13 @@ function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg:
     indicator = indicator_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
     f_wave = 0.2 #parameter to avoid small scale fluctuations influencing the indicator
     estimate = 0.0
     # x direction
     for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 2:nnodes(dg)-1
-      u0 = indicator[1, i, j, k]
+      u0 = indicator[1, i,   j, k]
       up = indicator[1, i+1, j, k]
       um = indicator[1, i-1, j, k]
       # dirty Löhner estimate, direction by direction, assuming constant nodes
@@ -2536,7 +2538,7 @@ function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg:
     end
     # y direction
     for k in 1:nnodes(dg), j in 2:nnodes(dg)-1, i in 1:nnodes(dg)
-      u0 = indicator[1, i, j, k]
+      u0 = indicator[1, i, j,   k]
       up = indicator[1, i, j+1, k]
       um = indicator[1, i, j-1, k]
       estimate = max(estimate, abs(up - 2 * u0 + um)/(abs(up - u0)+abs(u0-um) + f_wave * (abs(up)+ 2 * abs(u0) + abs(um))))
@@ -2553,6 +2555,16 @@ function calc_loehner_indicator!(alpha, u, indicator_variable, thread_cache, dg:
   end
 end
 
+
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function cons2indicator!(indicator, u, element_id, indicator_variable, dg::Dg3D)
+  eqs = equations(dg)
+
+  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, k, element_id)
+    indicator[1, i, j, k] = indicator_variable(u_node, eqs)
+  end
+end
 
 
 """
