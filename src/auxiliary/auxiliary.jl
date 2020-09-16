@@ -2,6 +2,13 @@ include("containers.jl")
 include("math.jl")
 
 
+# Enable debug timings `timeit_debug timer() "name" stuff...`.
+# This allows us to disable timings completely by executing
+# `TimerOutputs.disable_debug_timings(Trixi)`
+# and to enable them again by executing
+# `TimerOutputs.enable_debug_timings(Trixi)`
+timeit_debug_enabled() = true
+
 # Store main timer for global timing of functions
 const main_timer = TimerOutput()
 

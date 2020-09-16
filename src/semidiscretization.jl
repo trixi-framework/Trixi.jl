@@ -89,6 +89,7 @@ end
 function rhs!(du, u, semi::Semidiscretization, t)
   @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
 
+  # TODO: Taal decide, do we need to pass the mesh?
   rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
 end
 

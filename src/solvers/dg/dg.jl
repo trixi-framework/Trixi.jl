@@ -119,7 +119,8 @@ abstract type AbstractBasisSBP{RealT<:Real} end
 
 abstract type AbstractMortar{RealT<:Real} end
 
-struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+# TODO: Taal refactor, weird inheritance to use get_node_vars etc.
+struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral} <: AbstractDg{0,0}
   basis::Basis
   mortar::Mortar
   surface_flux::SurfaceFlux
@@ -139,6 +140,9 @@ end
 include("interpolation.jl")
 include("l2projection.jl")
 include("lobatto_legendre.jl") # TODO: Taal new
+
+const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+
 
 # Include 2D implementation
 include("2d/containers.jl")

@@ -22,7 +22,7 @@ using Random: seed!
 
 using HDF5: h5open, attrs
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
-using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
+using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
