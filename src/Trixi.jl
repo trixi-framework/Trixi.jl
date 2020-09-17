@@ -20,6 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
+using DiffEqBase: ODEProblem
 using HDF5: h5open, attrs
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
@@ -70,7 +71,7 @@ export TreeMesh
 export DGSEM,
        VolumeIntegralWeakForm
 
-export Semidiscretization
+export Semidiscretization, semidiscretize, compute_coefficients
 
 export examples_dir, get_examples, default_example
 

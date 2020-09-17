@@ -67,13 +67,20 @@ end
 # end
 
 
-# TODO: Taal implement
-# function allocate_coefficients(mesh::TreeMesh{2}, equations, dg::DG, cache)
-# end
+function allocate_coefficients(mesh::TreeMesh{2}, equations, dg::DG, cache)
+  zeros(real(dg), nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+end
 
-# TODO: Taal implement
-# function compute_coefficients!(u, func, mesh::TreeMesh{2}, equations, dg::DG, cache)
-# end
+function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG, cache)
+
+  Threads.@threads for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      x_node = get_node_coords(cache.elements.node_coordinates, mesh, equations, dg, i, j, element)
+      u_node = func(x_node, t, equations)
+      set_node_vars!(u, u_node, mesh, equations, dg, i, j, element)
+    end
+  end
+end
 
 # TODO: Taal refactor timer, allowing users to pass a custom timer?
 
@@ -127,18 +134,18 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
 
   Threads.@threads for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, dg, i, j, element)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
 
       flux1 = calcflux(u_node, 1, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_neg_adjoint[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, dg, ii, j, element)
+        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
       flux2 = calcflux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_neg_adjoint[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, dg, i, jj, element)
+        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
       end
     end
   end
@@ -200,18 +207,18 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
 
   Threads.@threads for interface in eachinterface(dg, cache)
     # Get neighboring elements
-    left_id  = neighbor_ids[1, s]
-    right_id = neighbor_ids[2, s]
+    left_id  = neighbor_ids[1, interface]
+    right_id = neighbor_ids[2, interface]
 
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
-    left_direction  = 2 * orientations[s]
-    right_direction = 2 * orientations[s] - 1
+    left_direction  = 2 * orientations[interface]
+    right_direction = 2 * orientations[interface] - 1
 
     for i in eachnode(dg)
       # Call pointwise Riemann solver
-      u_ll, u_rr = get_surface_node_vars(u, dg, i, interface)
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
       flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
       # Copy flux to left and right element storage
@@ -287,18 +294,19 @@ end
 
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
+  @unpack surface_flux_values = cache.elements
 
   Threads.@threads for element in eachelement(dg, cache)
     for l in eachnode(dg)
       for v in eachvariable(equations)
         # surface at -x
-        du[v, 1,          l, element] -= surface_flux_values[v, l, 1, element] * lhat[1,          1]
+        du[v, 1,          l, element] -= surface_flux_values[v, l, 1, element] * boundary_interpolation[1,          1]
         # surface at +x
-        du[v, nnodes(dg), l, element] += surface_flux_values[v, l, 2, element] * lhat[nnodes(dg), 2]
+        du[v, nnodes(dg), l, element] += surface_flux_values[v, l, 2, element] * boundary_interpolation[nnodes(dg), 2]
         # surface at -y
-        du[v, l, 1,          element] -= surface_flux_values[v, l, 3, element] * lhat[1,          1]
+        du[v, l, 1,          element] -= surface_flux_values[v, l, 3, element] * boundary_interpolation[1,          1]
         # surface at +y
-        du[v, l, nnodes(dg), element] += surface_flux_values[v, l, 4, element] * lhat[nnodes(dg), 2]
+        du[v, l, nnodes(dg), element] += surface_flux_values[v, l, 4, element] * boundary_interpolation[nnodes(dg), 2]
       end
     end
   end

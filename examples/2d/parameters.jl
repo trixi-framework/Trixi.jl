@@ -1,7 +1,9 @@
 
+using OrdinaryDiffEq
 using Trixi
 
-advectionvelocity = (0.2, -0.3)
+advectionvelocity = (1.0, 1.0)
+# advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 initial_conditions = initial_conditions_convergence_test
@@ -20,17 +22,18 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = Semidis
+semi = Semidiscretization(mesh, equations, initial_conditions, solver)
 
+# TODO: Taal implement, printing stuff at the beginning (optionally)
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 2.0)
+ode = semidiscretize(semi, tspan)
+
+sol = solve(ode, Tsit5(), save_everystep=false)
 
 # TODO: Taal, restart
 # restart = true
 # restart_filename = "out/restart_000100.h5"
-
-
-
 
 # TODO: Taal, CFL
 # cfl = 0.8

@@ -72,6 +72,40 @@ end
 @inline ndofs(semi::Semidiscretization) = ndofs(semi.mesh, semi.solver, semi.cache)
 
 
+
+@inline function get_node_coords(x, semi::Semidiscretization, indices...)
+  @unpack equations, solver = semi
+
+  get_node_coords(x, equations, solver, indices...)
+end
+
+@inline function get_node_vars(u, semi::Semidiscretization, indices...)
+  @unpack equations, solver = semi
+
+  get_node_vars(u, equations, solver, indices...)
+end
+
+@inline function get_surface_node_vars(u, semi::Semidiscretization, indices...)
+  @unpack equations, solver = semi
+
+  get_surface_node_vars(u, equations, solver, indices...)
+end
+
+@inline function set_node_vars!(u, u_node, semi::Semidiscretization, indices...)
+  @unpack equations, solver = semi
+
+  set_node_vars!(u, u_node, equations, solver, indices...)
+  return nothing
+end
+
+@inline function add_to_node_vars!(u, u_node, semi::Semidiscretization, indices...)
+  @unpack equations, solver = semi
+
+  add_to_node_vars!(u, u_node, equations, solver, indices...)
+  return nothing
+end
+
+
 function integrate(func, u, semi::Semidiscretization; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
@@ -86,17 +120,28 @@ function calc_error_norms(func, u, t, semi::Semidiscretization)
 end
 
 
-function compute_coefficients(func, semi::Semidiscretization)
+function compute_coefficients(t, semi::Semidiscretization)
+  compute_coefficients(semi.initial_conditions, t, semi)
+end
+
+function compute_coefficients(func, t, semi::Semidiscretization)
   @unpack mesh, equations, solver, cache = semi
 
   u = allocate_coefficients(mesh, equations, solver, cache)
-  compute_coefficients!(u, func, semi)
+  compute_coefficients!(u, func, t, semi)
+  u
 end
 
-function compute_coefficients!(u, func, semi::Semidiscretization)
+function compute_coefficients!(u, func, t, semi::Semidiscretization)
   @unpack mesh, equations, solver, cache = semi
 
-  compute_coefficients!(u, func, mesh, equations, solver, cache)
+  compute_coefficients!(u, func, t, mesh, equations, solver, cache)
+end
+
+
+function semidiscretize(semi::Semidiscretization, tspan)
+  u0 = compute_coefficients(first(tspan), semi)
+  ODEProblem(rhs!, u0, tspan, semi)
 end
 
 
@@ -109,12 +154,11 @@ function rhs!(du, u, semi::Semidiscretization, t)
 end
 
 
-
 # TODO: Taal implement/interface
-struct CacheVariable{X}
-  cache::X
-  visualize::Bool
-end
+# struct CacheVariable{X}
+#   cache::X
+#   visualize::Bool
+# end
 
 
 

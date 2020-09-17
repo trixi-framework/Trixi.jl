@@ -119,8 +119,7 @@ abstract type AbstractBasisSBP{RealT<:Real} end
 
 abstract type AbstractMortar{RealT<:Real} end
 
-# TODO: Taal refactor, weird inheritance to use get_node_vars etc.
-struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral} <: AbstractDg{0,0}
+struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
   basis::Basis
   mortar::Mortar
   surface_flux::SurfaceFlux
@@ -154,10 +153,40 @@ end
 
 # TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg))
 @inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
-@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(cache.elements))
-@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(cache.interfaces))
-@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(cache.boundaries))
-@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(cache.mortars))
+@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
+@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
+@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
+@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+
+@inline nelements(dg::DG, cache)   = nelements(cache.elements)
+@inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
+@inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
+@inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
+
+
+@inline get_node_coords(x, equations, solver::DG, indices...) = SVector(ntuple(idx -> x[idx, indices...], ndims(equations)))
+
+@inline get_node_vars(u, equations, solver::DG, indices...) = SVector(ntuple(v -> u[v, indices...], nvariables(equations)))
+
+@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
+  u_ll = SVector(ntuple(v -> u[1, v, indices...], nvariables(equations)))
+  u_rr = SVector(ntuple(v -> u[2, v, indices...], nvariables(equations)))
+  return u_ll, u_rr
+end
+
+@inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] = u_node[v]
+  end
+  return nothing
+end
+
+@inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] += u_node[v]
+  end
+  return nothing
+end
 
 
 # Include utilities
