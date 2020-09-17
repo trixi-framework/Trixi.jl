@@ -14,6 +14,12 @@ struct HyperbolicDiffusionEquations2D <: AbstractHyperbolicDiffusionEquations{2,
   resid_tol::Float64
 end
 
+function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
+  Tr = Lr^2 / nu
+  HyperbolicDiffusionEquations2D(Lr, Tr, nu, resid_tol)
+end
+
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
 function HyperbolicDiffusionEquations2D()
   # diffusion coefficient
   nu = parameter("nu", 1.0)

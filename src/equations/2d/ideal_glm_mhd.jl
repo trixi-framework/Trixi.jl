@@ -9,9 +9,14 @@ mutable struct IdealGlmMhdEquations2D <: AbstractIdealGlmMhdEquations{2, 9}
   c_h::Float64 # GLM cleaning speed
 end
 
+function IdealGlmMhdEquations2D(gamma)
+  IdealGlmMhdEquations2D(gamma, zero(gamma))
+end
+
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
 function IdealGlmMhdEquations2D()
-  gamma = parameter("gamma", 1.4)
-  c_h = 0.0   # GLM cleaning wave speed
+  gamma::Float64 = parameter("gamma", 1.4)
+  c_h = zero(gamma)
   IdealGlmMhdEquations2D(gamma, c_h)
 end
 

@@ -13,7 +13,7 @@ struct LobattoLegendreBasis{RealT<:Real, NNODES, InverseVandermondeLegendre<:Abs
   derivative_neg_adjoint    ::DerivativeMatrix # dhat, neg. adjoint wrt the SBP dot product
 end
 
-function LobattoLegendreBasis(polydeg::Integer, RealT=Float64)
+function LobattoLegendreBasis(RealT, polydeg::Integer)
   nnodes_ = polydeg + 1
   nodes, weights = gauss_lobatto_nodes_weights(nnodes_)
   inverse_weights = inv.(weights)
@@ -42,12 +42,20 @@ function LobattoLegendreBasis(polydeg::Integer, RealT=Float64)
   derivative_split_transpose = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split_transpose))
   derivative_neg_adjoint     = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_neg_adjoint))
 
-  LobattoLegendreBasis{RealT, nnodes_, typeof(boundary_interpolation), typeof(derivative_matrix)}(
+  return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
     inverse_vandermonde_legendre, boundary_interpolation,
     derivative_matrix, derivative_split, derivative_split_transpose, derivative_neg_adjoint
   )
 end
+
+LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
+
+function Base.show(io::IO, basis::LobattoLegendreBasis{RealT}) where {RealT}
+  print(io, "LobattoLegendreBasis{", RealT, "} with polynomials of degree ", polydeg(basis))
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis{RealT}) where {RealT}
 
 @inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
@@ -72,16 +80,22 @@ function MortarL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   l2mortar_reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
 
   # type conversions to make use of StaticArrays etc.
-  mortar_forward_upper   = SMatrix{nnodes_, nnodes_}(mortar_forward_upper)
-  mortar_forward_lower   = SMatrix{nnodes_, nnodes_}(mortar_forward_lower)
-  l2mortar_reverse_upper = SMatrix{nnodes_, nnodes_}(l2mortar_reverse_upper)
-  l2mortar_reverse_lower = SMatrix{nnodes_, nnodes_}(l2mortar_reverse_lower)
+  mortar_forward_upper   = SMatrix{nnodes_, nnodes_}(convert.(RealT, mortar_forward_upper))
+  mortar_forward_lower   = SMatrix{nnodes_, nnodes_}(convert.(RealT, mortar_forward_lower))
+  l2mortar_reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2mortar_reverse_upper))
+  l2mortar_reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2mortar_reverse_lower))
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(mortar_forward_upper)}(
     mortar_forward_upper, mortar_forward_lower,
     l2mortar_reverse_upper, l2mortar_reverse_lower
   )
 end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
+  print(io, "LobattoLegendreMortarL2{", RealT, "} with polynomials of degree ", polydeg(mortar))
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
 
 @inline nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
@@ -126,6 +140,7 @@ end
 ###############################################################################
 # Polynomial derivative and interpolation functions
 
+# TODO: Taal refactor, allow other RealT below and adapt constructors above accordingly
 
 # Calculate the Dhat matrix
 function calc_dhat(nodes, weights)

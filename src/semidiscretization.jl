@@ -44,7 +44,22 @@ function Semidiscretization(mesh, equations, initial_conditions, solver;
   cache = create_cache(mesh, equations, boundary_conditions, solver, RealT)
 
   Semidiscretization{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
-    mesh, equations, initial_conditions, source_terms, solver, cache)
+    mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+end
+
+# TODO: Taal bikeshedding, implement a method with reduced information and the signature
+# function Base.show(io::IO, semi::Semidiscretization)
+function Base.show(io::IO, ::MIME"text/plain", semi::Semidiscretization)
+  println(io, "Semidiscretization using")
+  println(io, "- ", semi.mesh)
+  println(io, "- ", semi.equations)
+  println(io, "- ", semi.initial_conditions)
+  println(io, "- ", semi.boundary_conditions)
+  println(io, "- ", semi.source_terms)
+  print(io, "- cache with fields:")
+  for key in keys(semi.cache)
+    print(io, " ", key)
+  end
 end
 
 

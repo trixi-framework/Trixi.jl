@@ -8,7 +8,12 @@
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquations)
-  print(io, "name = ", get_name(equation), ", n_vars = ", nvariables(equation))
+  print(io, get_name(equation), " with ")
+  if nvariables(equation) == 1
+    print(io, "one variable")
+  else
+    print(io, nvariables(equation), " variables")
+  end
 end
 
 

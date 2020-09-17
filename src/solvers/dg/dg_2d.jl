@@ -37,20 +37,11 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # Shall we store them there?
 
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (cache..., create_cache(mesh, equations, dg.volume_integral)...)
-  cache = (cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
 
   return cache
 end
-
-# TODO: Taal dimension agnostic
-@inline eachnode(dg::DG) = Base.OneTo(nnodes(dg))
-@inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
-
-@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(cache.elements))
-@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(cache.interfaces))
-@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(cache.boundaries))
-@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(cache.mortars))
 
 
 # function create_cache(mesh::TreeMesh{2}, equations, ::VolumeIntegralFluxDifferencing)
@@ -61,9 +52,10 @@ end
 #   # TODO: Taal implement
 # end
 
-# function create_cache(mesh::TreeMesh{2}, equations, ::LobattoLegendreMortarL2)
-#   # TODO: Taal implement
-# end
+function create_cache(mesh::TreeMesh{2}, equations, ::LobattoLegendreMortarL2)
+  # TODO: Taal implement if necessary
+  NamedTuple()
+end
 
 
 # TODO: Taal implement
@@ -156,14 +148,14 @@ end
 
 # TODO: Taal implement
 # function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
-#   volume_integral::VolumeIntegralFluxDifferencing,
-#   dg::DGSEM, cache)
+#                                volume_integral::VolumeIntegralFluxDifferencing,
+#                                dg::DGSEM, cache)
 # end
 
 # TODO: Taal implement
 # function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
-#   volume_integral::VolumeIntegralShockCapturingHG,
-#   dg::DGSEM, cache)
+#                                volume_integral::VolumeIntegralShockCapturingHG,
+#                                dg::DGSEM, cache)
 # end
 
 
@@ -293,7 +285,6 @@ function calc_mortar_flux!(cache, equations, dg::DGSEM)
 end
 
 
-# TODO: Taal implement
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
 
@@ -315,10 +306,12 @@ function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM
   return nothing
 end
 
-# TODO: Taal implement
+
 function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
+
   Threads.@threads for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
+
     for j in eachnode(dg), i in eachnode(dg)
       for v in eachvariable(equations)
         du[v, i, j, element] *= factor

@@ -2,7 +2,7 @@ include("containers.jl")
 include("math.jl")
 
 
-# Enable debug timings `timeit_debug timer() "name" stuff...`.
+# Enable debug timings `@timeit_debug timer() "name" stuff...`.
 # This allows us to disable timings completely by executing
 # `TimerOutputs.disable_debug_timings(Trixi)`
 # and to enable them again by executing

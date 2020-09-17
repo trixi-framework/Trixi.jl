@@ -127,6 +127,18 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   volume_integral::VolumeIntegral
 end
 
+# TODO: Taal bikeshedding, implement a method with reduced information and the signature
+# function Base.show(io::IO, dg::DG{RealT}) where {RealT}
+function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
+  println(io, "DG{", RealT, "} using")
+  println(io, "- ", dg.basis)
+  println(io, "- ", dg.mortar)
+  println(io, "- ", dg.surface_flux)
+  println(io, "- ", dg.volume_integral)
+end
+
+@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
+
 @inline nnodes(dg::DG) = nnodes(dg.basis)
 
 # TODO: Taal refactor, use case?
@@ -136,6 +148,18 @@ end
 @inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
+
+# TODO: Taal refactor, where to put this?
+@inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
+
+# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg))
+@inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
+@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(cache.elements))
+@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(cache.interfaces))
+@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(cache.boundaries))
+@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(cache.mortars))
+
+
 # Include utilities
 include("interpolation.jl")
 include("l2projection.jl")
@@ -143,6 +167,16 @@ include("lobatto_legendre.jl") # TODO: Taal new
 
 const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
 
+function DGSEM(RealT, polydeg::Integer, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  mortar = MortarL2(basis)
+
+  return DG{RealT, typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+    basis, mortar, surface_flux, volume_integral
+  )
+end
+
+DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
 # Include 2D implementation
 include("2d/containers.jl")

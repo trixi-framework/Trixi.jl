@@ -4,12 +4,13 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations2D <: AbstractCompressibleEulerEquations{2, 4}
-  gamma::Float64
+struct CompressibleEulerEquations2D{RealT} <: AbstractCompressibleEulerEquations{2, 4}
+  gamma::RealT
 end
 
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
 function CompressibleEulerEquations2D()
-  gamma = parameter("gamma", 1.4)
+  gamma::Float64 = parameter("gamma", 1.4)
 
   CompressibleEulerEquations2D(gamma)
 end
