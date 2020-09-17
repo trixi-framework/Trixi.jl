@@ -87,6 +87,32 @@ end
 # function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
 
 
+function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  # Calculate boundary state based on exact equation
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_trans))
+  u_boundary =  @SVector [scalar]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equation::LinearScalarAdvectionEquation2D)
   a = equation.advectionvelocity[orientation]
