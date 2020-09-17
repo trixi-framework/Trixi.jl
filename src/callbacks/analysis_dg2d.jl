@@ -15,7 +15,7 @@ function AnalysisCallback(semi::Semidiscretization;
                           save_analysis=false, analysis_filename="analysis.dat",
                           extra_analysis_quantities=Symbol[])
   # when is the callback activated
-  condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || isempty(integrator.opts.tstops))
+  condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t == integrator.sol.prob.tspan[2])
 
   @unpack equations, solver = semi
   analysis_quantities = vcat(collect(Symbol.(default_analysis_quantities(equations))),
