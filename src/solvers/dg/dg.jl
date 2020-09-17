@@ -138,7 +138,6 @@ end
 
 @inline Base.real(dg::DG{RealT}) where {RealT} = RealT
 
-@inline nnodes(dg::DG) = nnodes(dg.basis)
 
 # TODO: Taal refactor, use case?
 # Deprecate in favor of nnodes or order_of_accuracy?
@@ -158,6 +157,7 @@ end
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
 
+@inline nnodes(dg::DG) = nnodes(dg.basis)
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
@@ -206,6 +206,9 @@ function DGSEM(RealT, polydeg::Integer, surface_flux=flux_central, volume_integr
 end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
+
+
+SolutionAnalyzer(dg::DG) = SolutionAnalyzer(dg.basis)
 
 # Include 2D implementation
 include("2d/containers.jl")

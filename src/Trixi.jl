@@ -21,6 +21,7 @@ using Profile: clear_malloc_data
 using Random: seed!
 
 using DiffEqBase: ODEProblem
+using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using HDF5: h5open, attrs
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
@@ -50,6 +51,7 @@ include("semidiscretization.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 include("amr/amr.jl")
+include("callbacks/callbacks.jl")
 
 # Include top-level run method
 include("run.jl")
@@ -72,6 +74,8 @@ export DGSEM,
        VolumeIntegralWeakForm
 
 export Semidiscretization, semidiscretize, compute_coefficients
+
+export AnalysisCallback
 
 export examples_dir, get_examples, default_example
 

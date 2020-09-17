@@ -62,10 +62,6 @@ end
 # function integrate(func, u, mesh::TreeMesh{2}, equations, dg::DG, cache; normalize=true)
 # end
 
-# TODO: Taal implement
-# function calc_error_norms(func, u, t, mesh::TreeMesh{2}, equations, initial_conditions, dg::DG, cache)
-# end
-
 
 function allocate_coefficients(mesh::TreeMesh{2}, equations, dg::DG, cache)
   zeros(real(dg), nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
@@ -75,9 +71,9 @@ function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG,
 
   Threads.@threads for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, mesh, equations, dg, i, j, element)
+      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       u_node = func(x_node, t, equations)
-      set_node_vars!(u, u_node, mesh, equations, dg, i, j, element)
+      set_node_vars!(u, u_node, equations, dg, i, j, element)
     end
   end
 end

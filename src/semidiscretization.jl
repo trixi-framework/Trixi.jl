@@ -113,11 +113,12 @@ function integrate(func, u, semi::Semidiscretization; normalize=true)
 end
 
 
-function calc_error_norms(func, u, t, semi::Semidiscretization)
+function calc_error_norms(func, u, t, analyzer, semi::Semidiscretization)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
 
-  calc_error_norms(func, u, t, mesh, equations, initial_conditions, solver, cache)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
+calc_error_norms(u, t, analyzer, semi::Semidiscretization) = calc_error_norms(cons2cons, u, t, analyzer, semi)
 
 
 function compute_coefficients(t, semi::Semidiscretization)
@@ -170,7 +171,7 @@ end
 # - ndofs(mesh, solver, cache)
 # - create_cache(mesh, equations, boundary_conditions, solver)
 # - integrate(func, u, mesh, equations, solver, cache)
-# - calc_error_norms(func, u, t, mesh, equations, initial_conditions, solver, cache)
+# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)

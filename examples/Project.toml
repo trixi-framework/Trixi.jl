@@ -1,3 +1,4 @@
 [deps]
+DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"

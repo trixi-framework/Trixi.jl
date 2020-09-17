@@ -137,6 +137,44 @@ end
 
 
 
+abstract type SolutionAnalyzer{RealT<:Real} end
+
+struct LobattoLegendreAnalyzer{RealT<:Real, NNODES, Vandermonde<:AbstractMatrix{RealT}} <: SolutionAnalyzer{RealT}
+  nodes  ::SVector{NNODES, RealT}
+  weights::SVector{NNODES, RealT}
+  vandermonde::Vandermonde
+end
+
+function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}, analysis_polydeg=2*polydeg(basis)) where {RealT}
+  nnodes_ = analysis_polydeg + 1
+  nodes, weights = gauss_lobatto_nodes_weights(nnodes_)
+
+  vandermonde = polynomial_interpolation_matrix(basis.nodes, nodes)
+
+  # type conversions to make use of StaticArrays etc.
+  nodes   = SVector{nnodes_}(convert.(RealT, nodes))
+  weights = SVector{nnodes_}(convert.(RealT, weights))
+
+  vandermonde = convert.(RealT, vandermonde)
+
+  return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(vandermonde)}(
+    nodes, weights, vandermonde,
+  )
+end
+
+function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
+  print(io, "LobattoLegendreAnalyzer{", RealT, "} with polynomials of degree ", polydeg(analyzer))
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
+
+@inline nnodes(analyzer::LobattoLegendreAnalyzer{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline eachnode(analyzer::LobattoLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
+
+@inline polydeg(analyzer::LobattoLegendreAnalyzer) = nnodes(analyzer) - 1
+
+
+
 ###############################################################################
 # Polynomial derivative and interpolation functions
 

@@ -11,7 +11,7 @@ struct HyperbolicDiffusionEquations2D <: AbstractHyperbolicDiffusionEquations{2,
   Lr::Float64
   Tr::Float64
   nu::Float64
-  resid_tol::Float64
+  resid_tol::Float64 # TODO Taal refactor, might be a parameter of a specialized steady-state solver?
 end
 
 function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
