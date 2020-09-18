@@ -1,4 +1,26 @@
 
+
+mutable struct PerformanceCounter
+  ncalls_since_readout::Int
+  runtime::Float64
+end
+
+PerformanceCounter() = PerformanceCounter(0, 0.0)
+
+function Base.take!(counter::PerformanceCounter)
+  time_per_call = counter.runtime / counter.ncalls_since_readout
+  counter.ncalls_since_readout = 0
+  counter.runtime = 0.0
+  return time_per_call
+end
+
+function Base.put!(counter::PerformanceCounter, runtime::Real)
+  counter.ncalls_since_readout += 1
+  counter.runtime += runtime
+end
+
+
+
 # TODO: Taal Mesh<:AbstractMesh{NDIMS}, Equations<:AbstractEquations{NDIMS} ?
 """
     Semidiscretization
@@ -24,6 +46,8 @@ struct Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions
 
   cache::Cache
 
+  performance_counter::PerformanceCounter
+
   function Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}(
       mesh::Mesh, equations::Equations,
       initial_conditions::InitialConditions, boundary_conditions::BoundaryConditions,
@@ -31,7 +55,9 @@ struct Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions
       solver::Solver, cache::Cache) where {Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
 
-    new(mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+    performance_counter = PerformanceCounter()
+
+    new(mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache, performance_counter)
   end
 end
 
@@ -151,7 +177,12 @@ function rhs!(du, u, semi::Semidiscretization, t)
   @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
 
   # TODO: Taal decide, do we need to pass the mesh?
-  rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  time_start = time_ns()
+  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  runtime = time_ns() - time_start
+  put!(semi.performance_counter, runtime)
+
+  return nothing
 end
 
 

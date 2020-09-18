@@ -75,7 +75,7 @@ export DGSEM,
 
 export Semidiscretization, semidiscretize, compute_coefficients
 
-export AnalysisCallback
+export AliveCallback, AnalysisCallback
 
 export examples_dir, get_examples, default_example
 

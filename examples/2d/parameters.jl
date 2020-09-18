@@ -29,8 +29,10 @@ semi = Semidiscretization(mesh, equations, initial_conditions, solver)
 
 # TODO: Taal, analysis
 # extra_analysis_quantities = ["entropy", "energy_total"]
-analysis_callback = AnalysisCallback(semi, analysis_interval=10)
-callbacks = CallbackSet(analysis_callback)
+analysis_interval = 100
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval)
+callbacks = CallbackSet(analysis_callback, alive_callback)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -39,6 +41,8 @@ ode = semidiscretize(semi, tspan)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=2.5e-02,
             save_everystep=false, callback=callbacks);
 # sol = solve(ode, Tsit5(), save_everystep=false, callback=callbacks);
+
+nothing
 
 # TODO: Taal, restart
 # restart = true
