@@ -83,10 +83,7 @@ function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquati
 end
 
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
-
-
+# Apply boundary conditions
 function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::LinearScalarAdvectionEquation2D)
@@ -113,7 +110,6 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
 end
 
 
-# Set initial conditions at physical location `x` for time `t`
 function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
                                    equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
@@ -130,6 +126,10 @@ function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surfac
 
   return flux
 end
+
+
+# Pre-defined source terms should be implemented as
+# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
 
 
 # Calculate 1D flux in for a single point
