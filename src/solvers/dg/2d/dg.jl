@@ -21,7 +21,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
 
   boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
-  n_boundaries_per_direction::SVector{4, Int}
+  n_boundaries_per_direction::NTuple{4, Int}
 
   mortar_type::MortarType
   l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
