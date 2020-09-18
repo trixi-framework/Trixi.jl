@@ -113,6 +113,25 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
 end
 
 
+# Set initial conditions at physical location `x` for time `t`
+function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
+                                   equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  u_boundary = @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equation::LinearScalarAdvectionEquation2D)
   a = equation.advectionvelocity[orientation]
