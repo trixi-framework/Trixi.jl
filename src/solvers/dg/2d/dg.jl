@@ -663,7 +663,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
     boundary_conditions = eval.(Symbol.([bcs for _ in 1:n_directions(mesh.tree)]))
   end
 
-  # Sanity checks about specifying boundary conditions
+  # Sanity check about specifying boundary conditions
   for direction in 1:n_directions(mesh.tree)
     bc = boundary_conditions[direction]
     count = n_boundaries_per_direction[direction]
@@ -677,16 +677,10 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
       dir = "+y"
     end
 
-    # Check #1: All directions with boundaries should have function boundary conditions
-    if count > 0 && !(bc isa Function)
+    # All directions with boundaries should have a boundary condition
+    if count > 0 && isnothing(bc)
       error("Found $(count) boundaries in the $(dir)-direction, but corresponding boundary " *
-            "condition '$(get_name(bc))' is not a function")
-    end
-
-    # Check #2: All boundary conditions should be a function or "nothing"
-    if !(bc isa Function || bc === nothing)
-      error("Bad parameter: boundary condition '$(get_name(bc))' in the $(dir)-direction must " *
-            "be either a function or 'nothing'")
+            "condition is '$(get_name(bc))'")
     end
   end
 
