@@ -1,9 +1,9 @@
 ####################################################################################################
 # Simulation
-ndims = 2
+ndims = 1
 # equations = "CompressibleEulerEquations"
 equations = "LinearScalarAdvectionEquation"
-advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+advectionvelocity = [1.0] # Need only for linarscalaradvection
 
 initial_conditions = "initial_conditions_convergence_test"
 #initial_conditions = "initial_conditions_constant"
@@ -30,8 +30,8 @@ extra_analysis_quantities = ["entropy", "energy_total"]
 ####################################################################################################
 # Mesh
 n_cells_max = 30000
-coordinates_min = [-1, -1]
-coordinates_max =  [1, 1]
+coordinates_min = [-1]
+coordinates_max =  [1]
 initial_refinement_level = 4
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
