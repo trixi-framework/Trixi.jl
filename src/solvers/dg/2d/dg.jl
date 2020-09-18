@@ -1908,38 +1908,51 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
-                                                          dg, time,
-                                                          dg.boundary_conditions...)
-function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time, boundary_conditions...)
+calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
+
+function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
+  @unpack n_boundaries_per_direction, boundary_conditions = dg
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction + 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[1], 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[2], 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[3], 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[4], 4, firsts[4], lasts[4])
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values, dg::Dg2D, time, boundary_condition,
+                                          direction, first_boundary_id, last_boundary_id)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
-  # Calculate indices
-  lasts = accumulate(+, dg.n_boundaries_per_direction)
-  firsts = lasts - dg.n_boundaries_per_direction + 1
+  Threads.@threads for b in first_boundary_id:last_boundary_id
+    # Get neighboring element
+    neighbor_id = neighbor_ids[b]
 
-  for direction in 1:4
-    Threads.@threads for b in firsts[direction]:lasts[direction]
-      # Get neighboring element
-      neighbor_id = neighbor_ids[b]
+    for i in 1:nnodes(dg)
+      # Get boundary flux
+      u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+      end
+      x = get_node_coords(node_coordinates, dg, i, b)
+      flux = boundary_condition(u_inner, orientations[b], direction, x, time, surface_flux_function,
+                                equations(dg))
 
-      for i in 1:nnodes(dg)
-        # Get boundary flux
-        u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-        if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
-          u_inner = u_ll
-        else # Element is on the right, boundary on the left
-          u_inner = u_rr
-        end
-        x = get_node_coords(node_coordinates, dg, i, b)
-        flux = boundary_conditions[direction](u_inner, orientations[b], direction, x, time,
-                                              surface_flux_function, equations(dg))
-
-        # Copy flux to left and right element storage
-        for v in 1:nvariables(dg)
-          surface_flux_values[v, i, direction, neighbor_id] = flux[v]
-        end
+      # Copy flux to left and right element storage
+      for v in 1:nvariables(dg)
+        surface_flux_values[v, i, direction, neighbor_id] = flux[v]
       end
     end
   end
