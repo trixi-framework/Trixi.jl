@@ -21,7 +21,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
 
   boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
-  n_boundaries_per_direction::NTuple{4, Int}
+  n_boundaries_per_direction::SVector{4, Int}
 
   mortar_type::MortarType
   l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
@@ -575,7 +575,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
                                             "expectations $(nboundaries(boundaries))")
   @assert sum(counts_per_direction) == count
 
-  return n_boundaries_per_direction = SVector(counts_per_direction)
+  return SVector(counts_per_direction)
 end
 
 
