@@ -657,6 +657,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
   if bcs isa AbstractArray
     boundary_conditions = eval.(Symbol.(bcs))
   else
+    # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
     boundary_conditions = eval.(Symbol.([bcs for _ in 1:n_directions(mesh.tree)]))
   end
 
