@@ -515,6 +515,8 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
   counts_per_direction = MVector(0, 0, 0, 0)
 
   # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+  # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
+  #            obviating the need to store the boundary condition to be applied explicitly.
   # Loop over directions
   for direction in 1:n_directions(mesh.tree)
     # Iterate over all elements to find missing neighbors and to connect to boundaries
