@@ -1,6 +1,6 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
+                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
                   MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
@@ -29,7 +29,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
   n_ecmortars::Int
 
-  boundary_conditions
+  boundary_conditions::BoundaryConditions
 
   nodes::VectorNnodes
   weights::VectorNnodes
@@ -216,7 +216,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      boundary_conditions,
+      Tuple(boundary_conditions),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
