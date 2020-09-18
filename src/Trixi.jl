@@ -20,8 +20,9 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
-using DiffEqBase: ODEProblem
+using DiffEqBase: ODEProblem, get_du
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
+using EllipsisNotation # ..
 using HDF5: h5open, attrs
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!

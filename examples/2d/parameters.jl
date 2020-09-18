@@ -28,10 +28,10 @@ semi = Semidiscretization(mesh, equations, initial_conditions, solver)
 # TODO: Taal implement, printing stuff at the beginning (optionally)
 
 # TODO: Taal, analysis
-# extra_analysis_quantities = ["entropy", "energy_total"]
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval,
+                                     extra_analysis_quantities=[:entropy, :energy_total])
 callbacks = CallbackSet(analysis_callback, alive_callback)
 
 tspan = (0.0, 1.0)
@@ -39,7 +39,7 @@ ode = semidiscretize(semi, tspan)
 
 # that's the value of dt chosen by Trixi.run("examples/2d/parameters.toml")
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=2.5e-02,
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks); # requires https://github.com/SciML/OrdinaryDiffEq.jl/pull/1272
 # sol = solve(ode, Tsit5(), save_everystep=false, callback=callbacks);
 
 nothing

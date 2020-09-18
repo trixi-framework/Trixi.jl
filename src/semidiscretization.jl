@@ -132,10 +132,20 @@ end
 end
 
 
+function integrate(func, semi::Semidiscretization, u, args...; normalize=true)
+  @unpack mesh, equations, solver, cache = semi
+
+  integrate(func, mesh, equations, solver, cache, u, args..., normalize=normalize)
+end
+
 function integrate(func, u, semi::Semidiscretization; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
-  integrate(func, u, mesh, equations, solver, cache)
+  integrate(func, u, mesh, equations, solver, cache, normalize=normalize)
+end
+
+function integrate(u, semi::Semidiscretization; normalize=true)
+  integrate(cons2cons, u, semi; normalize=normalize)
 end
 
 
@@ -201,7 +211,8 @@ end
 # - real(solver)
 # - ndofs(mesh, solver, cache)
 # - create_cache(mesh, equations, boundary_conditions, solver)
-# - integrate(func, u, mesh, equations, solver, cache)
+# - integrate(func, mesh, equations, solver, cache, u; normalize=true)
+# - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
