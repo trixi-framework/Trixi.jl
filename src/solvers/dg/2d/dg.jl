@@ -353,12 +353,19 @@ function init_elements(cell_ids, mesh::TreeMesh{2}, RealT, nvars, polydeg)
   n_elements = length(cell_ids)
   elements = ElementContainer2D{RealT, nvars, polydeg}(n_elements)
 
-  # Store cell ids
-  elements.cell_ids .= cell_ids
-
   # Determine node locations
   n_nodes = polydeg + 1
   nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  init_elements!(elements, cell_ids, mesh, nodes)
+  return elements
+end
+
+function init_elements!(elements, cell_ids, mesh::TreeMesh{2}, nodes)
+  n_nodes = length(nodes)
+
+  # Store cell ids
+  elements.cell_ids .= cell_ids
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:nelements(elements)
