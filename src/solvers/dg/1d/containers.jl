@@ -8,7 +8,7 @@ struct ElementContainer1D{NVARS, POLYDEG} <: AbstractContainer
   inverse_jacobian::Vector{Float64}      # [elements]
   node_coordinates::Array{Float64, 3}    # [orientation, i, elements]
   surface_ids::Matrix{Int}               # [direction, elements]
-  surface_flux_values::Array{Float64, 3} # [variables, direction, elements]   #i weg ?
+  surface_flux_values::Array{Float64, 3} # [variables, direction, elements] 
   cell_ids::Vector{Int}                  # [elements]
 end
 

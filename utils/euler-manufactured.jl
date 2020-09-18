@@ -17,7 +17,6 @@ julia> euler2d()
 julia> euler3d()
 =#
 
-
 using Reduce
 @force using Reduce.Algebra
 
@@ -41,6 +40,24 @@ source_rho_v2 := df(rho_v2, t) + df(rho * v1 * v2, x)    + df(rho * v2^2 + p, y)
 source_rho_e  := df(rho_e, t)  + df((rho_e + p) * v1, x) + df((rho_e + p) * v2, y);
 =#
 
+
+function euler1d()
+  quote
+    ini = c + a * sin(ω * (x - t))
+    rho = ini
+    rho_v1 = ini
+    rho_e = ini^2
+
+    v1 = rho_v1 / rho
+    p = (γ - 1) * (rho_e - 1/2 * rho * v1^2)
+
+    source_rho    = df(rho, t)    + df(rho_v1, x)
+    source_rho_v1 = df(rho_v1, t) + df(rho * v1^2 + p, x)   #+ df(rho * v1 * v2, y)
+    source_rho_e  = df(rho_e, t)  + df((rho_e + p) * v1, x) #+ df((rho_e + p) * v2, y)
+  end |> rcall
+end
+
+
 function euler2d()
   quote
     ini = c + a * sin(ω * (x + y - t))
@@ -52,7 +69,6 @@ function euler2d()
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     p = (γ - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
-
     source_rho    = df(rho, t)    + df(rho_v1, x)           + df(rho_v2, y)
     source_rho_v1 = df(rho_v1, t) + df(rho * v1^2 + p, x)   + df(rho * v1 * v2, y)
     source_rho_v2 = df(rho_v2, t) + df(rho * v1 * v2, x)    + df(rho * v2^2 + p, y)

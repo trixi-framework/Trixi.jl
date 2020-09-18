@@ -1477,6 +1477,8 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
   end
 end
 
+#TODO 1D?
+
 # Calculate and store Riemann and nonconservative fluxes across interfaces
 function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg1D)
   #TODO temporary workaround while implementing the other stuff
