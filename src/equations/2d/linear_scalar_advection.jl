@@ -84,20 +84,9 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation2D)
-  # Calculate boundary state based on exact equation
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  c = 1.0
-  A = 0.5
-  L = 2
-  f = 1/L
-  omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_trans))
-  u_boundary =  @SVector [scalar]
+function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
+                                   equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_gauss(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -110,12 +99,58 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
 end
 
 
-function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
-                                   equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_convergence_test(x, t, equation)
 
-  u_boundary = @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x_y(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_y(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary

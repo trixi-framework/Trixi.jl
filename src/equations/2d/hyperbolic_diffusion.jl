@@ -159,10 +159,7 @@ end
 function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::HyperbolicDiffusionEquations2D)
-  phi = 0.0
-  q1  = 0.0
-  q2  = 0.0
-  u_boundary = @SVector [phi, q1, q2]
+  u_boundary = initial_conditions_sedov_self_gravity(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary

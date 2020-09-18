@@ -347,19 +347,7 @@ end
 function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::CompressibleEulerEquations2D)
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  ini = c + A * sin(ω * (x[1] + x[2] - t))
-
-  rho = ini
-  rho_v1 = ini
-  rho_v2 = ini
-  rho_e = ini^2
-
-  u_boundary = @SVector [rho, rho_v1, rho_v2, rho_e]
+  u_boundary = initial_conditions_convergence_test(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
