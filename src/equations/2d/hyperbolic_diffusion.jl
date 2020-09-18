@@ -106,7 +106,6 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
   return @SVector [phi, q1, q2]
 end
 
-
 function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
   phi = 0.0
@@ -114,6 +113,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusi
   q2  = 0.0
   return @SVector [phi, q1, q2]
 end
+
 
 # Apply boundary conditions
 function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
@@ -154,6 +154,26 @@ function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction
 
   return flux
 end
+
+
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::HyperbolicDiffusionEquations2D)
+  phi = 0.0
+  q1  = 0.0
+  q2  = 0.0
+  u_boundary = @SVector [phi, q1, q2]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 
 # Apply source terms
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
