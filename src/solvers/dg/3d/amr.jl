@@ -49,7 +49,7 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -69,6 +69,7 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
 end
@@ -190,7 +191,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -210,6 +211,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
 end
