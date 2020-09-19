@@ -344,6 +344,44 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
+# Apply boundary conditions
+function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::CompressibleEulerEquations2D)
+  u_boundary = initial_conditions_convergence_test(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::CompressibleEulerEquations2D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_conditions_sedov_self_gravity
+  rho = 1e-5
+  v1 = 0.0
+  v2 = 0.0
+  p = 1e-5
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, p), equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`

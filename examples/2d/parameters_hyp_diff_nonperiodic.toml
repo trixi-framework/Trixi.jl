@@ -5,6 +5,10 @@ equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
 initial_conditions = "initial_conditions_poisson_nonperiodic"
+boundary_conditions = ["boundary_conditions_poisson_nonperiodic",
+                       "boundary_conditions_poisson_nonperiodic",
+                       "nothing",
+                       "nothing"]
 
 surface_flux = "flux_lax_friedrichs"
 source_terms = "source_terms_poisson_nonperiodic"

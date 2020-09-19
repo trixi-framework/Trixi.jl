@@ -29,7 +29,7 @@ using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer,
 using UnPack: @unpack
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
-# Hence, we need `using LoopVectorization` after loading Tullio and before using @tullio.
+# Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
 using Tullio: @tullio
 using LoopVectorization
 

@@ -206,6 +206,32 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D)
 end
 
 
+
+# Apply boundary conditions
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::CompressibleEulerEquations3D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_conditions_sedov_self_gravity
+  rho = 1e-5
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  p = 1e-5
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, v3, p), equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_conditions`

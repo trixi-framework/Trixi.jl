@@ -4,6 +4,7 @@ ndims = 2
 equations = "CompressibleEulerEquations"
 
 initial_conditions = "initial_conditions_convergence_test"
+boundary_conditions = "boundary_conditions_convergence_test"
 # initial_conditions = "initial_conditions_constant"
 surface_flux = "flux_lax_friedrichs"
 source_terms = "source_terms_convergence_test"

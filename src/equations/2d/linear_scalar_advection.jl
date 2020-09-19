@@ -90,6 +90,70 @@ function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquati
 end
 
 
+# Apply boundary conditions
+function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
+                                   equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_gauss(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x_y(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_y(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
 

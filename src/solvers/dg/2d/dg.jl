@@ -1,10 +1,10 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
-                  MortarType, VolumeIntegralType, ShockIndicatorVariable,
-                  VectorNnodes, MatrixNnodes, MatrixNnodes2,
-                  InverseVandermondeLegendre, MortarMatrix,
-                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
+                    SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                    MortarType, VolumeIntegralType, ShockIndicatorVariable,
+                    VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                    InverseVandermondeLegendre, MortarMatrix,
+                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -21,12 +21,15 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
 
   boundaries::BoundaryContainer2D{Float64, NVARS, POLYDEG}
   n_boundaries::Int
+  n_boundaries_per_direction::SVector{4, Int}
 
   mortar_type::MortarType
   l2mortars::L2MortarContainer2D{Float64, NVARS, POLYDEG}
   n_l2mortars::Int
   ecmortars::EcMortarContainer2D{Float64, NVARS, POLYDEG}
   n_ecmortars::Int
+
+  boundary_conditions::BoundaryConditions
 
   nodes::VectorNnodes
   weights::VectorNnodes
@@ -86,7 +89,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
@@ -100,6 +103,9 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
+
+  # Initialize boundary conditions
+  boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
 
   # Initialize interpolation data structures
   n_nodes = POLYDEG + 1
@@ -206,10 +212,11 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
       initial_conditions, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
-      boundaries, n_boundaries,
+      boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
+      Tuple(boundary_conditions),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
@@ -421,9 +428,9 @@ function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, PO
   boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
-  init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
 
-  return boundaries
+  return boundaries, n_boundaries_per_direction
 end
 
 
@@ -524,13 +531,19 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
   # Reset boundaries count
   count = 0
 
-  # Iterate over all elements to find missing neighbors and to connect to boundaries
-  for element_id in 1:nelements(elements)
-    # Get cell id
-    cell_id = elements.cell_ids[element_id]
+  # Initialize boundary counts
+  counts_per_direction = MVector(0, 0, 0, 0)
 
-    # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+  # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+  # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
+  #            obviating the need to store the boundary condition to be applied explicitly.
+  # Loop over directions
+  for direction in 1:n_directions(mesh.tree)
+    # Iterate over all elements to find missing neighbors and to connect to boundaries
+    for element_id in 1:nelements(elements)
+      # Get cell id
+      cell_id = elements.cell_ids[element_id]
+
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -543,6 +556,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
 
       # Create boundary
       count += 1
+      counts_per_direction[direction] += 1
 
       # Set neighbor element id
       boundaries.neighbor_ids[count] = element_id
@@ -579,6 +593,9 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
 
   @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
                                             "expectations $(nboundaries(boundaries))")
+  @assert sum(counts_per_direction) == count
+
+  return SVector(counts_per_direction)
 end
 
 
@@ -651,6 +668,43 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
 
   @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
                                       "expectations $(nmortars(mortars))")
+end
+
+
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  bcs = parameter("boundary_conditions", ["nothing", "nothing", "nothing", "nothing"])
+  if bcs isa AbstractArray
+    boundary_conditions = eval_if_not_function.(bcs)
+  else
+    # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
+    boundary_conditions = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
+  end
+
+  # Sanity check about specifying boundary conditions
+  for direction in 1:n_directions(mesh.tree)
+    bc = boundary_conditions[direction]
+    count = n_boundaries_per_direction[direction]
+    if direction == 1
+      dir = "-x"
+    elseif direction == 2
+      dir = "+x"
+    elseif direction == 3
+      dir = "-y"
+    else
+      dir = "+y"
+    end
+
+    # All directions with boundaries should have a boundary condition
+    if count > 0 && isnothing(bc)
+      error("Found $(count) boundaries in the $(dir)-direction, but corresponding boundary " *
+            "condition is '$(get_name(bc))'")
+    end
+  end
+
+  return boundary_conditions
 end
 
 
@@ -1868,44 +1922,47 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
-                                                          dg, time)
+calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
+
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
+  @unpack n_boundaries_per_direction, boundary_conditions = dg
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[1], 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[2], 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[3], 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[4], 4, firsts[4], lasts[4])
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values, dg::Dg2D, time, boundary_condition,
+                                          direction, first_boundary_id, last_boundary_id)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
-  Threads.@threads for b in 1:dg.n_boundaries
-    # Fill outer boundary state
-    # FIXME: This should be replaced by a proper boundary condition
-    for i in 1:nnodes(dg)
-      @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-        node_coordinates[:, i, b], time, equations(dg))
-    end
-
+  Threads.@threads for b in first_boundary_id:last_boundary_id
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
 
-    # Determine boundary direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    if orientations[b] == 1 # Boundary in x-direction
-      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
-        direction = 2
-      else # Element is on the right, boundary on the left
-        direction = 1
-      end
-    else # Boundary in y-direction
-      if neighbor_sides[b] == 1 # Element is below, boundary is above
-        direction = 4
-      else # Element is above, boundary is below
-        direction = 3
-      end
-    end
-
     for i in 1:nnodes(dg)
-      # Call pointwise Riemann solver
+      # Get boundary flux
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux_function(u_ll, u_rr, orientations[b], equations(dg))
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+      end
+      x = get_node_coords(node_coordinates, dg, i, b)
+      flux = boundary_condition(u_inner, orientations[b], direction, x, time, surface_flux_function,
+                                equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
