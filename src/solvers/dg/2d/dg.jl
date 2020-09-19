@@ -296,7 +296,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       elements, n_elements,
       interfaces, n_interfaces,
       mpi_interfaces, n_mpi_interfaces,
-      boundaries, n_boundaries, n_boundaries_per_direction,,
+      boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
@@ -748,7 +748,7 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh2D)
 end
 
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh2D)
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.

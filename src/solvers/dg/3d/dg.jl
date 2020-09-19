@@ -726,7 +726,7 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh3D)
 end
 
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{3})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh3D)
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
