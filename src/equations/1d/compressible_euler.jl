@@ -346,27 +346,18 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   for i in 1:n_nodes
     x1 = x[1, i, element_id]
 
-    si, co = sincos((x1 - t)*ω)
-    tmp1 = co * A * ω
-    tmp2 = si * A
-    tmp3 = γ - 1
-    tmp4 = (2*c - 1)*tmp3
-    tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-    tmp6 = tmp2 + c
+    si, co = sincos((t - x1)*ω)
+    tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
 
-    ut[1, i, element_id] += tmp1
-    ut[2, i, element_id] += tmp5
-    #ut[3, i, j, element_id] += tmp5
-    ut[3, i, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1       #TODO change from 2D to 1D
+    ut[2, i, element_id] += tmp
+    ut[3, i, element_id] += tmp
 
     # Original terms (without performanc enhancements)
-    # ut[1, i, element_id] += cos((x1 - t)*ω)*A*ω
-    # ut[2, i, element_id] += (2*sin((x1 - t)*ω)*A*γ - 2*sin((x1 - t)*ω)*A +
-    #                             2*c*γ - 2*c - γ + 2)*cos((x1 - t)*ω)*A*ω
-    # ut[3, i, element_id] += (2*sin((x1 - t)*ω)*A*γ - 2*sin((x1 - t)*ω)*A +
-    #                             2*c*γ - 2*c - γ + 2)*cos((x1 - t)*ω)*A*ω
-    # ut[4, i, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-    #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
+    # ut[1, i, element_id] += 0
+    # ut[2, i, element_id] += (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+    #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+    # ut[3, i, element_id] += (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+    #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
   end
 
   return nothing
