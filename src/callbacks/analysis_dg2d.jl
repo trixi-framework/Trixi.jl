@@ -77,8 +77,8 @@ function integrate(func, u::AbstractArray{<:Any,4},
 end
 
 
-function calc_entropy_timederivative(du::AbstractArray{<:Any,4}, u,
-                                     mesh::TreeMesh{2}, equations, dg::DG, cache)
+function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u, t,
+                 mesh::TreeMesh{2}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   dsdu_ut = integrate(mesh, equations, dg, cache, u, du) do u, i, j, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, element)
@@ -88,3 +88,9 @@ function calc_entropy_timederivative(du::AbstractArray{<:Any,4}, u,
 
   return dsdu_ut
 end
+
+# TODO: Taal implement
+# function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
+#   mesh::TreeMesh{2}, equations, dg::DG, cache)
+# function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
+#     mesh::TreeMesh{2}, equations, dg::DG, cache)

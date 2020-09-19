@@ -47,27 +47,29 @@ end
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, InitialStateIntegrals}
+mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
   start_time::Float64
   save_analysis::Bool
   analysis_filename::String
-  analysis_quantities::Vector{Symbol}
   analyzer::Analyzer
+  analysis_errors::Vector{Symbol}
+  analysis_integrals::AnalysisIntegrals
   initial_state_integrals::InitialStateIntegrals
 end
 
 function AnalysisCallback(semi::Semidiscretization;
                           analysis_interval=0,
                           save_analysis=false, analysis_filename="analysis.dat",
-                          extra_analysis_quantities=Symbol[])
+                          extra_analysis_errors=Symbol[],
+                          analysis_errors=union(default_analysis_errors(semi.equations), extra_analysis_errors),
+                          extra_analysis_integrals=(),
+                          analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals))
   # when is the callback activated
   condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t in integrator.sol.prob.tspan)
 
   @unpack equations, solver = semi
-  analysis_quantities = vcat(collect(Symbol.(default_analysis_quantities(equations))),
-                             extra_analysis_quantities)
-  analysis_callback = AnalysisCallback(0.0, save_analysis, analysis_filename, analysis_quantities,
-                                       SolutionAnalyzer(solver),
+  analysis_callback = AnalysisCallback(0.0, save_analysis, analysis_filename, SolutionAnalyzer(solver),
+                                       analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
 
   DiscreteCallback(condition, analysis_callback,
@@ -81,6 +83,51 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
+  @unpack save_analysis, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+
+  # write header of output file
+  save_analysis && open(analysis_filename, "w") do io
+    @printf(io, "#%-8s", "timestep")
+    @printf(io, "  %-14s", "time")
+    @printf(io, "  %-14s", "dt")
+    if :l2_error in analysis_errors
+      for v in varnames_cons(semi.equations)
+        @printf(io, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error in analysis_errors
+      for v in varnames_cons(semi.equations)
+        @printf(io, "   %-14s", "linf_" * v)
+      end
+    end
+    if :conservation_error in analysis_errors
+      for v in varnames_cons(semi.equations)
+        @printf(io, "   %-14s", "cons_" * v)
+      end
+    end
+    if :residual in analysis_errors
+      for v in varnames_cons(semi.equations)
+        @printf(io, "   %-14s", "res_" * v)
+      end
+    end
+    if :l2_error_primitive in analysis_errors
+      for v in varnames_prim(semi.equations)
+        @printf(io, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error_primitive in analysis_errors
+      for v in varnames_prim(semi.equations)
+        @printf(io, "   %-14s", "linf_" * v)
+      end
+    end
+
+    for quantity in analysis_integrals
+      @printf(io, "   %-14s", pretty_form_file(quantity))
+    end
+
+    println(io)
+  end
+
   analysis_callback.start_time = time_ns()
   analysis_callback(integrator)
   return nothing
@@ -92,12 +139,13 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
-  @unpack save_analysis, analysis_filename, analysis_quantities, analyzer = analysis_callback
+  @unpack save_analysis, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
   println(io, "AnalysisCallback with")
   println(io, "- save_analysis: ", save_analysis)
   println(io, "- analysis_filename: ", analysis_filename)
-  println(io, "- analysis_quantities: ", analysis_quantities)
   println(io, "- analyzer: ", analyzer)
+  println(io, "- analysis_errors: ", analysis_errors)
+  println(io, "- analysis_integrals: ", analysis_integrals)
 end
 
 
@@ -105,7 +153,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 @timeit_debug timer() "analyze solution" begin
   semi = integrator.p
   @unpack mesh, equations, solver, cache = semi
-  @unpack analyzer, analysis_quantities = analysis_callback
+  @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   @unpack u, dt, t, iter = integrator
 
   runtime_absolute = 1.0e-9 * (time_ns() - analysis_callback.start_time)
@@ -143,7 +191,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
   # end
   println()
 
-  # TODO: Taal implement, save_analysis
   # Open file for appending and store time step and time information
   if analysis_callback.save_analysis
     io = open(analysis_callback.analysis_filename, "a")
@@ -152,9 +199,17 @@ function (analysis_callback::AnalysisCallback)(integrator)
     @printf(io, "  %10.8e", dt)
   end
 
+  # the time derivative can be unassigned before the first step is made
+  if t == integrator.sol.prob.tspan[1]
+    du = similar(u)
+    @notimeit timer() rhs!(du, u, semi, t)
+  else
+    du = get_du(integrator)
+  end
+
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if any(q in analysis_quantities for q in
+  if any(q in analysis_errors for q in
          (:l2_error, :linf_error, :conservation_error, :residual))
     print(" Variable:    ")
     for v in eachvariable(equations)
@@ -167,7 +222,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   l2_error, linf_error = calc_error_norms(u, t, analyzer, semi)
 
   # L2 error
-  if :l2_error in analysis_quantities
+  if :l2_error in analysis_errors
     print(" L2 error:    ")
     for v in eachvariable(equations)
       @printf("  % 10.8e", l2_error[v])
@@ -177,7 +232,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   end
 
   # Linf error
-  if :linf_error in analysis_quantities
+  if :linf_error in analysis_errors
     print(" Linf error:  ")
     for v in eachvariable(equations)
       @printf("  % 10.8e", linf_error[v])
@@ -187,7 +242,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   end
 
   # Conservation errror
-  if :conservation_error in analysis_quantities
+  if :conservation_error in analysis_errors
     @unpack analysis_callback = analysis_callback
     state_integrals = integrate(u, semi)
 
@@ -201,11 +256,11 @@ function (analysis_callback::AnalysisCallback)(integrator)
   end
 
   # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
-  if :residual in analysis_quantities
+  if :residual in analysis_errors
     print(" max(|Uₜ|):   ")
     for v in eachvariable(equations)
       # Calculate maximum absolute value of Uₜ
-      @views res = maximum(abs, view(integrator.du, v, ..))
+      @views res = maximum(abs, view(du, v, ..))
       @printf("  % 10.8e", res)
       analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
     end
@@ -213,7 +268,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   end
 
   # L2/L∞ errors of the primitive variables
-  if :l2_error_primitive in analysis_quantities || :linf_error_primitive in analysis_quantities
+  if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
     l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, semi, t)
 
     print(" Variable:    ")
@@ -223,7 +278,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     println()
 
     # L2 error
-    if :l2_error_primitive in analysis_quantities
+    if :l2_error_primitive in analysis_errors
       print(" L2 error prim.: ")
       for v in eachvariable(equations)
         @printf("%10.8e   ", l2_error_prim[v])
@@ -233,7 +288,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     end
 
     # L∞ error
-    if :linf_error_primitive in analysis_quantities
+    if :linf_error_primitive in analysis_errors
       print(" Linf error pri.:")
       for v in eachvariable(equations)
         @printf("%10.8e   ", linf_error_prim[v])
@@ -243,44 +298,15 @@ function (analysis_callback::AnalysisCallback)(integrator)
     end
   end
 
-  # Entropy time derivative
-  if :dsdu_ut in analysis_quantities
-    if t == integrator.sol.prob.tspan[1]
-      du = similar(u)
-      @notimeit timer() rhs!(du, u, semi, t)
-    else
-      du = get_du(integrator)
-    end
-    duds_ut = calc_entropy_timederivative(du, u, mesh, equations, solver, cache)
-    print(" ∑∂S/∂U ⋅ Uₜ: ")
-    @printf("  % 10.8e", duds_ut)
-    analysis_callback.save_analysis && @printf(io, "  % 10.8e", duds_ut)
+
+  # additional
+  for quantity in analysis_integrals
+    res = analyze(quantity, du, u, t, mesh, equations, solver, cache)
+    @printf(" %-12s:", pretty_form_repl(quantity))
+    @printf("  % 10.8e", res)
+    analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
     println()
   end
-
-  # Entropy
-  if :entropy in analysis_quantities
-    s = integrate(entropy, u, semi)
-    print(" ∑S:          ")
-    @printf("  % 10.8e", s)
-    analysis_callback.save_analysis && @printf(io, "  % 10.8e", s)
-    println()
-  end
-
-  # Total energy
-  if :energy_total in analysis_quantities
-    e_total = integrate(energy_total, u, semi)
-    print(" ∑e_total:    ")
-    @printf("  % 10.8e", e_total)
-    analysis_callback.save_analysis && @printf(io, "  % 10.8e", e_total)
-    println()
-  end
-
-  # TODO: Taal implement additional analysis quantities
-  # TODO: Taal refactor, use a tuple of functions that compute the stuff?
-  #       We could check the numer of supported arguments and use
-  #       integrate(func, u, semi) for func(u_node, equations)
-  #       integrate(func, semi, u) for func(u, indices..., equations, solver, args...)
 
   println("-"^80)
   println()
@@ -295,4 +321,26 @@ function (analysis_callback::AnalysisCallback)(integrator)
   return l2_error, linf_error
 end end
 
+
+# some common analysis_integrals
+# to support another analysis integral, you can overload
+# Trixi.analyze, Trixi.pretty_form_repl, Trixi.pretty_form_file
+function analyze(quantity, du, u, t, mesh, equations, solver, cache)
+  integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
+end
+pretty_form_repl(quantity) = get_name(quantity)
+pretty_form_file(quantity) = get_name(quantity)
+
+
+function entropy_timederivative end
+pretty_form_repl(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
+pretty_form_file(::typeof(entropy_timederivative)) = "dsdu_ut"
+
+pretty_form_repl(::typeof(entropy)) = "∑S"
+
+pretty_form_repl(::typeof(energy_total)) = "∑e_total"
+pretty_form_file(::typeof(energy_total)) = "e_total"
+
+
+# specialized implementations specific to some solvers
 include("analysis_dg2d.jl")

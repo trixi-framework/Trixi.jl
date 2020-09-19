@@ -78,6 +78,8 @@ export Semidiscretization, semidiscretize, compute_coefficients
 
 export AliveCallback, AnalysisCallback
 
+export entropy, energy_total
+
 export examples_dir, get_examples, default_example
 
 
