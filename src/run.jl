@@ -309,13 +309,16 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Check steady-state integration residual
-    if maximum(abs, view(solver.elements.u_t, 1, ..)) <= solver.equations.resid_tol
-      println()
-      println("-"^80)
-      println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
-      println("-"^80)
-      println()
-      finalstep = true
+    if solver.equations isa HyperbolicDiffusionEquations2D ||
+      solver.equations isa HyperbolicDiffusionEquations3D
+      if maximum(abs, view(solver.elements.u_t, 1, ..)) <= solver.equations.resid_tol
+        println()
+        println("-"^80)
+        println("  Steady state tolerance of ",solver.equations.resid_tol," reached at time ",time)
+        println("-"^80)
+        println()
+        finalstep = true
+      end
     end
 
     # Analyze solution errors
@@ -580,7 +583,7 @@ function compute_jacobian_dg(parameters_file; verbose=false, parameters...)
     res_m = vec(dg.elements.u_t) |> copy
     # restore linearisation state
     dg.elements.u[idx] = u0[idx]
-    # central second order finite difference 
+    # central second order finite difference
     J[:,idx] = (res_p - res_m) / (2 * epsilon)
   end
 
