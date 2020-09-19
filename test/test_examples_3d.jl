@@ -42,7 +42,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
             l2   = [6.607840408143593e-16],
             linf = [5.773159728050814e-15],
-            initial_conditions=Trixi.initial_conditions_linear_z, periodicity=false)
+            initial_conditions=Trixi.initial_conditions_linear_z,
+            boundary_conditions=Trixi.boundary_conditions_linear_z, periodicity=false)
   end
   @testset "parameters_source_terms.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_source_terms.toml"),

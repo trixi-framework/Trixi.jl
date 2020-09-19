@@ -1909,7 +1909,7 @@ function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
 
   # Calculate indices
   lasts = accumulate(+, n_boundaries_per_direction)
-  firsts = lasts - n_boundaries_per_direction + 1
+  firsts = lasts - n_boundaries_per_direction .+ 1
 
   # Calc boundary fluxes in each direction
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
