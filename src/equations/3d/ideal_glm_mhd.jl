@@ -537,59 +537,24 @@ end
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::IdealGlmMhdEquations3D)
-  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
-    indicator[1, i, j, k] = cons2indicator(cons[1, i, j, k, element_id],
-                                           cons[2, i, j, k, element_id],
-                                           cons[3, i, j, k, element_id],
-                                           cons[4, i, j, k, element_id],
-                                           cons[5, i, j, k, element_id],
-                                           cons[6, i, j, k, element_id],
-                                           cons[7, i, j, k, element_id],
-                                           cons[8, i, j, k, element_id],
-                                           cons[9, i, j, k, element_id],
-                                           indicator_variable, equation)
-  end
-end
-
-
-
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:density}, equation::IdealGlmMhdEquations3D)
-  # Indicator variable is rho
+@inline function density(u, equation::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   return rho
 end
 
-
-
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:pressure}, equation::IdealGlmMhdEquations3D)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  # Indicator variable is p
-  p = (equation.gamma - 1)*(rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2)
-                                  - 0.5*(B1^2 + B2^2 + B3^2)
-                                  - 0.5*psi^2)
+@inline function pressure(u, equation::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  p = (equation.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+                                  - 0.5 * (B1^2 + B2^2 + B3^2)
+                                  - 0.5 * psi^2)
   return p
 end
 
-
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi,
-                                ::Val{:density_pressure}, equation::IdealGlmMhdEquations3D)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-  # Calculate pressure
-  p = (equation.gamma - 1)*(rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2)
-                                  - 0.5*(B1^2 + B2^2 + B3^2)
-                                  - 0.5*psi^2)
-  # Indicator variable is rho * p
+@inline function density_pressure(u, equation::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
+  p = (equation.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+                                  - 0.5 * (B1^2 + B2^2 + B3^2)
+                                  - 0.5 * psi^2)
   return rho * p
 end
 

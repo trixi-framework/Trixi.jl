@@ -47,7 +47,7 @@ function refine!(dg::Dg2D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -68,6 +68,7 @@ function refine!(dg::Dg2D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
   dg.ecmortars = ecmortars
@@ -181,7 +182,7 @@ function coarsen!(dg::Dg2D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -202,6 +203,7 @@ function coarsen!(dg::Dg2D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
   dg.ecmortars = ecmortars
@@ -352,7 +354,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -379,7 +381,6 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
   elseif dg.amr_indicator === :blob
     base_level = 4
     max_level = 7
-    # to make the simulation smaller and quicker wall clock time, choose super_max_level = 6
     super_max_level = 7
     blending_factor_threshold0 = 0.3
     blending_factor_threshold1 = 0.003
@@ -398,7 +399,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -459,7 +460,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -498,7 +499,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

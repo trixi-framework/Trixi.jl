@@ -1,6 +1,6 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
+                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
                   MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
@@ -24,12 +24,15 @@ mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
 
   boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
+  n_boundaries_per_direction::SVector{4, Int}
 
   mortar_type::MortarType
   l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
   n_l2mortars::Int
   ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
   n_ecmortars::Int
+
+  boundary_conditions::BoundaryConditions
 
   nodes::VectorNnodes
   weights::VectorNnodes
@@ -107,7 +110,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
@@ -121,6 +124,9 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
+
+  # Initialize boundary conditions
+  boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
 
   # Initialize interpolation data structures
   n_nodes = POLYDEG + 1
@@ -198,8 +204,10 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Val(Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                                  valid=["density", "density_pressure", "pressure"])))
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  shock_indicator_variable = eval(Symbol(parameter("shock_indicator_variable", "density_pressure")))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -278,7 +286,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   # Create actual DG solver instance
   dg = Dg2D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
             typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
-            typeof(source_terms),
+            typeof(source_terms), typeof(boundary_conditions),
             typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
             typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),
             typeof(mortar_forward_upper), typeof(analysis_nodes), typeof(analysis_vandermonde)}(
@@ -288,10 +296,11 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       elements, n_elements,
       interfaces, n_interfaces,
       mpi_interfaces, n_mpi_interfaces,
-      boundaries, n_boundaries,
+      boundaries, n_boundaries, n_boundaries_per_direction,,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
+      boundary_conditions,
       nodes, weights, inverse_weights,
       inverse_vandermonde_legendre, lhat,
       volume_integral_type,
@@ -501,9 +510,9 @@ function init_boundaries(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG
   boundaries = BoundaryContainer2D{NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
-  init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
 
-  return boundaries
+  return boundaries, n_boundaries_per_direction
 end
 
 
@@ -599,13 +608,19 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh2D)
   # Reset boundaries count
   count = 0
 
-  # Iterate over all elements to find missing neighbors and to connect to boundaries
-  for element_id in 1:nelements(elements)
-    # Get cell id
-    cell_id = elements.cell_ids[element_id]
+  # Initialize boundary counts
+  counts_per_direction = MVector(0, 0, 0, 0)
 
-    # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+  # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+  # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
+  #            obviating the need to store the boundary condition to be applied explicitly.
+  # Loop over directions
+  for direction in 1:n_directions(mesh.tree)
+    # Iterate over all elements to find missing neighbors and to connect to boundaries
+    for element_id in 1:nelements(elements)
+      # Get cell id
+      cell_id = elements.cell_ids[element_id]
+
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -618,6 +633,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh2D)
 
       # Create boundary
       count += 1
+      counts_per_direction[direction] += 1
 
       # Set neighbor element id
       boundaries.neighbor_ids[count] = element_id
@@ -654,6 +670,9 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh2D)
 
   @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
                                             "expectations $(nboundaries(boundaries))")
+  @assert sum(counts_per_direction) == count
+
+  return SVector(counts_per_direction)
 end
 
 
@@ -726,6 +745,43 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh2D)
 
   @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
                                       "expectations $(nmortars(mortars))")
+end
+
+
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  bcs = parameter("boundary_conditions", ["nothing", "nothing", "nothing", "nothing"])
+  if bcs isa AbstractArray
+    boundary_conditions = eval_if_not_function.(bcs)
+  else
+    # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
+    boundary_conditions = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
+  end
+
+  # Sanity check about specifying boundary conditions
+  for direction in 1:n_directions(mesh.tree)
+    bc = boundary_conditions[direction]
+    count = n_boundaries_per_direction[direction]
+    if direction == 1
+      dir = "-x"
+    elseif direction == 2
+      dir = "+x"
+    elseif direction == 3
+      dir = "-y"
+    else
+      dir = "+y"
+    end
+
+    # All directions with boundaries should have a boundary condition
+    if count > 0 && isnothing(bc)
+      error("Found $(count) boundaries in the $(dir)-direction, but corresponding boundary " *
+            "condition is '$(get_name(bc))'")
+    end
+  end
+
+  return Tuple(boundary_conditions)
 end
 
 
@@ -1340,6 +1396,10 @@ function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{false})
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
+# TODO: implement 2D!!!
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(dg::Dg2D)
+end
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
@@ -1966,44 +2026,47 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
-                                                          dg, time)
+calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
+
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
+  @unpack n_boundaries_per_direction, boundary_conditions = dg
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[1], 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[2], 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[3], 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[4], 4, firsts[4], lasts[4])
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values, dg::Dg2D, time, boundary_condition,
+                                          direction, first_boundary_id, last_boundary_id)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
-  Threads.@threads for b in 1:dg.n_boundaries
-    # Fill outer boundary state
-    # FIXME: This should be replaced by a proper boundary condition
-    for i in 1:nnodes(dg)
-      @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-        node_coordinates[:, i, b], time, equations(dg))
-    end
-
+  Threads.@threads for b in first_boundary_id:last_boundary_id
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
 
-    # Determine boundary direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    if orientations[b] == 1 # Boundary in x-direction
-      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
-        direction = 2
-      else # Element is on the right, boundary on the left
-        direction = 1
-      end
-    else # Boundary in y-direction
-      if neighbor_sides[b] == 1 # Element is below, boundary is above
-        direction = 4
-      else # Element is above, boundary is below
-        direction = 3
-      end
-    end
-
     for i in 1:nnodes(dg)
-      # Call pointwise Riemann solver
+      # Get boundary flux
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux_function(u_ll, u_rr, orientations[b], equations(dg))
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+      end
+      x = get_node_coords(node_coordinates, dg, i, b)
+      flux = boundary_condition(u_inner, orientations[b], direction, x, time, surface_flux_function,
+                                equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
@@ -2363,7 +2426,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
@@ -2445,6 +2508,17 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
+  end
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function cons2indicator!(indicator, u, element_id, indicator_variable, dg::Dg2D)
+  eqs = equations(dg)
+
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, element_id)
+    indicator[1, i, j] = indicator_variable(u_node, eqs)
   end
 end
 
