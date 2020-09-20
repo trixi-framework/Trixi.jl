@@ -309,8 +309,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Check steady-state integration residual
-    if solver.equations isa HyperbolicDiffusionEquations2D ||
-      solver.equations isa HyperbolicDiffusionEquations3D
+    if solver.equations isa AbstractHyperbolicDiffusionEquations
       if maximum(abs, view(solver.elements.u_t, 1, ..)) <= solver.equations.resid_tol
         println()
         println("-"^80)
