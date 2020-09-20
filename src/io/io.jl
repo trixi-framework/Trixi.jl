@@ -38,7 +38,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      dg.elements.u[v, ..] = read(file["variables_$v"])
+      dg.elements.u[v, :, ..] = read(file["variables_$v"])
     end
   end
 
@@ -82,7 +82,7 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     # Store each variable of the solution
     for v in 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = vec(data[v, ..])
+      file["variables_$v"] = vec(data[v, :, ..])
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -156,7 +156,7 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     # Store each variable of the solution
     for v in 1:nvariables(dg)
       # Convert to 1D array
-      file["variables_$v"] = vec(data[v, ..])
+      file["variables_$v"] = vec(data[v, :, ..])
 
       # Add variable name as attribute
       var = file["variables_$v"]
