@@ -6,7 +6,7 @@ The linear scalar advection equation
 ```math
 \partial_t u + a \partial_1 u  = 0
 ```
-in one space dimensions with constant velocity `a`.
+in one space dimension with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation1D <: AbstractLinearScalarAdvectionEquation{1, 1}
   sources::String

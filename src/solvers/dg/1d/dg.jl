@@ -78,9 +78,8 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
 
   # Sanity checks
-  if isperiodic(mesh.tree) #&& n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 1*n_elem")
+  if isperiodic(mesh.tree)
+    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains, n_surf must be the same as 1*n_elem")
   end
 
   # Initialize interpolation data structures
