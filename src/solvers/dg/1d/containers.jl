@@ -8,7 +8,7 @@ struct ElementContainer1D{NVARS, POLYDEG} <: AbstractContainer
   inverse_jacobian::Vector{Float64}      # [elements]
   node_coordinates::Array{Float64, 3}    # [orientation, i, elements]
   surface_ids::Matrix{Int}               # [direction, elements]
-  surface_flux_values::Array{Float64, 3} # [variables, direction, elements] 
+  surface_flux_values::Array{Float64, 3} # [variables, direction, elements]
   cell_ids::Vector{Int}                  # [elements]
 end
 
@@ -40,7 +40,7 @@ nelements(elements::ElementContainer1D) = length(elements.cell_ids)
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 struct InterfaceContainer1D{NVARS, POLYDEG} <: AbstractContainer
-  u::Array{Float64, 3}      # [leftright, variables, i, interfaces]
+  u::Array{Float64, 3}      # [leftright, variables, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
 end
@@ -65,7 +65,7 @@ ninterfaces(interfaces::InterfaceContainer1D) = length(interfaces.orientations)
 
 # Container data structure (structure-of-arrays style) for DG boundaries
 struct BoundaryContainer1D{NVARS, POLYDEG} <: AbstractContainer
-  u::Array{Float64, 3}                # [leftright, variables,boundaries]
+  u::Array{Float64, 3}                # [leftright, variables, boundaries]
   neighbor_ids::Vector{Int}           # [boundaries]
   orientations::Vector{Int}           # [boundaries]
   neighbor_sides::Vector{Int}         # [boundaries]

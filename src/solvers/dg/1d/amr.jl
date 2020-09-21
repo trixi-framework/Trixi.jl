@@ -46,15 +46,14 @@ function refine!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
 
 
   # Sanity check
-  if isperiodic(mesh.tree) #&& n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 1*n_elem")
+  if isperiodic(mesh.tree)
+    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains, n_surf must be the same as 1*n_elem")
   end
 
   # Update DG instance with new data
@@ -64,62 +63,39 @@ function refine!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
 end
 
 
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u, element_id, old_u, old_element_id, dg::Dg1D)
   # Store new element ids
-  lower_left_id  = element_id
-  lower_right_id = element_id + 1
-  #upper_left_id  = element_id + 2
-  #upper_right_id = element_id + 3
+  left_id  = element_id
+  right_id = element_id + 1
 
-  # Interpolate to lower left element
+  # Interpolate to left element
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, old_element_id) # * forward_lower[i, k]      #TODO
+      acc += get_node_vars(old_u, dg, k, old_element_id)
     end
-    set_node_vars!(u, acc, dg, i, lower_left_id)
+    set_node_vars!(u, acc, dg, i, left_id)
   end
 
-  # Interpolate to bottom lower left element
+  # Interpolate to left element
   #multiply_dimensionwise!(
   #  view(u,     :, :, lower_left_id), forward_lower,
   #  view(old_u, :, :, old_element_id))
 
-  # Interpolate to lower right element
+  # Interpolate to right element
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, old_element_id)# * forward_upper[i, k]
+      acc += get_node_vars(old_u, dg, k, old_element_id)
     end
-    set_node_vars!(u, acc, dg, i, lower_right_id)
+    set_node_vars!(u, acc, dg, i, right_id)
   end
 
-  #  Interpolate to lower right element
-  #multiply_dimensionwise!(
-  #  view(u,     :, :,  lower_right_id), forward_upper,
-  #  view(old_u, :, :, old_element_id))
-
-  # Interpolate to upper left element
-  #for j in 1:nnodes(dg), i in 1:nnodes(dg)
-  #  acc = zero(get_node_vars(u, dg, i, j, element_id))
-  #  for l in 1:nnodes(dg), k in 1:nnodes(dg)
-  #    acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
-  #  end
-  #  set_node_vars!(u, acc, dg, i, j, upper_left_id)
-  #end
-
-  # Interpolate to upper right element
-  #for j in 1:nnodes(dg), i in 1:nnodes(dg)
-  #  acc = zero(get_node_vars(u, dg, i, j, element_id))
-  #  for l in 1:nnodes(dg), k in 1:nnodes(dg)
-  #    acc += get_node_vars(old_u, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
-  #  end
-  #  set_node_vars!(u, acc, dg, i, j, upper_right_id)
-  #end
 end
 
 
@@ -181,13 +157,12 @@ function coarsen!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Sanity check
-  if isperiodic(mesh.tree) #&& n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 1*n_elem")
+  if isperiodic(mesh.tree)
+    @assert n_interfaces == 1*n_elements ("For 1D and periodic domains, n_surf must be the same as 1*n_elem")
   end
 
   # Update DG instance with new data
@@ -197,39 +172,28 @@ function coarsen!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
 end
 
 
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u, element_id, old_u, old_element_id, dg::Dg1D)
   # Store old element ids
-  lower_left_id  = old_element_id
-  lower_right_id = old_element_id + 1
-  #upper_left_id  = old_element_id + 2
-  #upper_right_id = old_element_id + 3
+  left_id  = old_element_id
+  right_id = old_element_id + 1
 
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
 
-    # Project from lower left element
+    # Project from left element
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, lower_left_id) #* reverse_lower[i, k] #* reverse_lower[j, l]   #TODO
+      acc += get_node_vars(old_u, dg, k, left_id) #* reverse_lower[i, k] #* reverse_lower[j, l]
     end
 
-    # Project from lower right element
+    # Project from right element
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, lower_right_id) #* reverse_upper[i, k] #* reverse_lower[j, l]
+      acc += get_node_vars(old_u, dg, k, right_id) #* reverse_upper[i, k] #* reverse_lower[j, l]
     end
-
-    # Project from upper left element
-    #for l in 1:nnodes(dg), k in 1:nnodes(dg)
-    #  acc += get_node_vars(old_u, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
-    #end
-
-    # Project from upper right element
-    #for l in 1:nnodes(dg), k in 1:nnodes(dg)
-    #  acc += get_node_vars(old_u, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
-    #end
 
     # Update value
     set_node_vars!(u, acc, dg, i, element_id)
@@ -342,7 +306,7 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -387,7 +351,7 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, false,
-                           Val(:density), dg.thread_cache, dg)
+                           density, dg.thread_cache, dg)
 
     # (Re-)initialize element variable storage for blending factor
     if (!haskey(dg.element_variables, :blending_factor) ||
@@ -448,7 +412,7 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
@@ -487,7 +451,7 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg.thread_cache, dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
