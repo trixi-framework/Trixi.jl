@@ -45,8 +45,17 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 end
 
 
-# function create_cache(mesh::TreeMesh{2}, equations, ::VolumeIntegralFluxDifferencing)
-#   # TODO: Taal implement
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing)
+  create_cache(mesh, equations, have_nonconservative_terms(equations), volume_integral)
+end
+
+function create_cache(mesh::TreeMesh{2}, equations, nonconservative_terms::Val{false}, ::VolumeIntegralFluxDifferencing)
+  NamedTuple()
+end
+
+# function create_cache(mesh::TreeMesh{2}, equations, nonconservative_terms::Val{true}, ::VolumeIntegralFluxDifferencing)
+#   # TODO: Taal implement if necessary
+#   NamedTuple()
 # end
 
 # function create_cache(mesh::TreeMesh{2}, equations, ::VolumeIntegralShockCapturingHG)
@@ -89,7 +98,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, equations, dg.volume_integral, dg, cache)
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, equations, have_nonconservative_terms(equations), dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
   # TODO: Taal decide order of arguments, consistent vs. modified cache first?
@@ -124,7 +133,7 @@ end
 
 
 # TODO: Taal implement
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations, nonconservative_terms::Val{false},
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
   @unpack derivative_neg_adjoint = dg.basis
@@ -151,13 +160,73 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
 end
 
 # TODO: Taal implement
-# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
-#                                volume_integral::VolumeIntegralFluxDifferencing,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations, nonconservative_terms,
+                               volume_integral::VolumeIntegralFluxDifferencing,
+                               dg::DGSEM, cache)
+  Threads.@threads for element in eachelement(dg, cache)
+    split_form_kernel!(du, u, equations, nonconservative_terms, volume_integral.volume_flux, dg, cache, element)
+  end
+end
+
+@inline function split_form_kernel!(du, u, equations, nonconservative_terms::Val{false},
+                                    volume_flux, dg::DGSEM, cache,
+                                    element, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can (hopefully) be optimized away due to constant propagation.
+  @unpack derivative_split = dg.basis
+
+  # Calculate volume integral in one element
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+    # x direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 1, equations)
+    integral_contribution = alpha * derivative_split[i, i] * flux
+    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
+    # use symmetry of the volume flux for the remaining terms
+    for ii in (i+1):nnodes(dg)
+      u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
+      flux = volume_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = alpha * derivative_split[i, ii] * flux
+      add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, element)
+      integral_contribution = alpha * derivative_split[ii, i] * flux
+      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+    end
+
+    # y direction
+    # use consistency of the volume flux to make this evaluation cheaper
+    flux = calcflux(u_node, 2, equations)
+    integral_contribution = alpha * derivative_split[j, j] * flux
+    add_to_node_vars!(du, integral_contribution, equations, dg, i, j, element)
+    # use symmetry of the volume flux for the remaining terms
+    for jj in (j+1):nnodes(dg)
+      u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
+      flux = volume_flux(u_node, u_node_jj, 2, equations)
+      integral_contribution = alpha * derivative_split[j, jj] * flux
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  element)
+      integral_contribution = alpha * derivative_split[jj, j] * flux
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+    end
+  end
+end
+
+
+# TODO: Taal implement
+# @inline function split_form_kernel!(du, u, equations, nonconservative_terms::Val{true},
+#                                     volume_flux, dg::DGSEM, cache,
+#                                     element, alpha=true)
+# end
+
+
+# TODO: Taal implement
+# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations, nonconservative_terms::Val{false},
+#                                volume_integral::VolumeIntegralShockCapturingHG,
 #                                dg::DGSEM, cache)
 # end
 
 # TODO: Taal implement
-# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations,
+# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, equations, nonconservative_terms::Val{true},
 #                                volume_integral::VolumeIntegralShockCapturingHG,
 #                                dg::DGSEM, cache)
 # end

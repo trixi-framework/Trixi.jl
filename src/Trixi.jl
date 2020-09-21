@@ -67,12 +67,13 @@ export CompressibleEulerEquations2D, CompressibleEulerEquations3D,
 export flux_central, flux_lax_friedrichs, flux_hll,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
-export initial_conditions_convergence_test
+export initial_conditions_convergence_test,
+       initial_conditions_weak_blast_wave
 
 export TreeMesh
 
 export DGSEM,
-       VolumeIntegralWeakForm
+       VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing
 
 export Semidiscretization, semidiscretize, compute_coefficients
 
