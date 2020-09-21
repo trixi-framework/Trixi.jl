@@ -94,6 +94,44 @@ function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusi
   return @SVector [phi, q1, q2, q3]
 end
 
+
+# Apply boundary conditions
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::HyperbolicDiffusionEquations3D)
+  u_boundary = initial_conditions_sedov_self_gravity(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction, x, t,
+                                                 surface_flux_function,
+                                                 equation::HyperbolicDiffusionEquations3D)
+  # elliptic equation: -νΔϕ = f
+  phi =  2.0 *      cos(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3]) + 2.0 # ϕ
+  q1  = -2.0 * pi * sin(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_x
+  q2  =  4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
+  q3  =  4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
+  u_boundary = @SVector [phi, q1, q2, q3]
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Apply source terms
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
