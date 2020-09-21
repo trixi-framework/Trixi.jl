@@ -65,8 +65,8 @@ function __init__()
   init_mpi()
 
   # Initialize global MPI state
-  MPI_RANK[] = MPI.Comm_rank(mpi_comm())
-  MPI_SIZE[] = MPI.Comm_size(mpi_comm())
+  MPI_RANK[] = MPI.Comm_rank(MPI.COMM_WORLD)
+  MPI_SIZE[] = MPI.Comm_size(MPI.COMM_WORLD)
   MPI_IS_PARALLEL[] = MPI_SIZE[] > 1
   MPI_IS_SERIAL[] = !MPI_IS_PARALLEL[]
   MPI_IS_ROOT[] = MPI_IS_SERIAL[] || MPI_RANK[] == 0
