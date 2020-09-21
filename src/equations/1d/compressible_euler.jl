@@ -1,7 +1,7 @@
 @doc raw"""
     CompressibleEulerEquations1D
 
-The compressible Euler equations for an ideal gas in two space dimensions.
+The compressible Euler equations for an ideal gas in one space dimension.
 """
 struct CompressibleEulerEquations1D <: AbstractCompressibleEulerEquations{1, 3}
   gamma::Float64
@@ -421,11 +421,10 @@ end
   rho, rho_v1, rho_e = u
   v1 = rho_v1/rho
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
-  if orientation == 1
-    f1 = rho_v1
-    f2 = rho_v1 * v1 + p
-    f3 = (rho_e + p) * v1
-  end
+  # Ignore orientation since it is always "1" in 1D
+  f1 = rho_v1
+  f2 = rho_v1 * v1 + p
+  f3 = (rho_e + p) * v1
   return SVector(f1, f2, f3)
 end
 
@@ -638,12 +637,10 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1
     f1 = f_ll[1]
     f2 = f_ll[2]
     f3 = f_ll[3]
-    #f4 = f_ll[4]
   elseif Ssr <= 0.0 && Ssl < 0.0
     f1 = f_rr[1]
     f2 = f_rr[2]
     f3 = f_rr[3]
-    #f4 = f_rr[4]
   else
     f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
     f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)

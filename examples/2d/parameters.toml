@@ -6,8 +6,8 @@ equations = "LinearScalarAdvectionEquation"
 advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 initial_conditions = "initial_conditions_convergence_test"
-#initial_conditions = "initial_conditions_constant"
-#initial_conditions = "initial_conditions_linear_x_y"
+# initial_conditions = "initial_conditions_constant"
+# initial_conditions = "initial_conditions_linear_x_y"
 surface_flux = "flux_lax_friedrichs"
 # source_terms =
 t_start = 0.0
@@ -21,7 +21,7 @@ t_end   = 1.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.2
+cfl = 0.8
 n_steps_max = 10000
 analysis_interval = 100
 extra_analysis_quantities = ["entropy", "energy_total"]
