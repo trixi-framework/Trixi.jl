@@ -67,8 +67,9 @@ export CompressibleEulerEquations2D, CompressibleEulerEquations3D,
 export flux_central, flux_lax_friedrichs, flux_hll,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
+# TODO: Taal decide, which initial conditions will be used/exported
 export initial_conditions_convergence_test,
-       initial_conditions_weak_blast_wave
+       initial_conditions_weak_blast_wave, initial_conditions_gauss
 
 export TreeMesh
 
