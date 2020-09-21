@@ -52,7 +52,7 @@ function init_parameters(parameters_file=nothing; verbose=false, refinement_leve
   globals[:verbose] = verbose
 
   # Parse parameters file
-  @timeit timer() "read parameter file" parse_parameters_file(parameters_file)
+  @timeit timer() "read parameter file" parse_parameters_file(parameters_file, mpi_parallel())
 
   # Override specified parameters
   for (parameter, value) in parameters

@@ -73,9 +73,9 @@ function __init__()
 
   # Initialize methods for dispatching on parallel execution
   if MPI_IS_PARALLEL[]
-    eval(:(mpi_parallel() = Val{true}))
+    eval(:(mpi_parallel() = Val(true)))
   else
-    eval(:(mpi_parallel() = Val{false}))
+    eval(:(mpi_parallel() = Val(false)))
   end
 end
 
