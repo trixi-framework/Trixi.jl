@@ -29,9 +29,6 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
   # Reset timer
   reset_timer!(timer())
 
-  # Initialize MPI
-  init_mpi()
-
   # Read command line or keyword arguments and parse parameters file
   init_parameters(parameters_file; verbose=verbose,
       refinement_level_increment=refinement_level_increment, parameters...)
@@ -462,9 +459,6 @@ refinement level will be increased by 1. Parameters can be overriden by specifyi
 additional keyword arguments, which are passed to the respective call to `run`..
 """
 function convtest(parameters_file, iterations; parameters...)
-  # Initialize MPI
-  init_mpi()
-
   if is_mpi_root()
     @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
   end
