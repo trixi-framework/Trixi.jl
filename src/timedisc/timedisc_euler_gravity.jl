@@ -101,18 +101,10 @@ function update_gravity!(solver, u_euler, gravity_parameters)
     end
 
     # this is an absolute tolerance check
-    if ndims(solver) == 2
-      if maximum(abs, @views solver.elements.u_t[1, :, :, :]) <= solver.equations.resid_tol
-        # println("  Gravity solution tolerance ", solver.equations.resid_tol,
-        #         " reached in iterations ",iteration)
-        finalstep = true
-      end
-    else
-      if maximum(abs, @views solver.elements.u_t[1, :, :, :, :]) <= solver.equations.resid_tol
-        # println("  Gravity solution tolerance ", solver.equations.resid_tol,
-        #         " reached in iterations ",iteration)
-        finalstep = true
-      end
+    if maximum(abs, @views solver.elements.u_t[1, .., :]) <= solver.equations.resid_tol
+      # println("  Gravity solution tolerance ", solver.equations.resid_tol,
+      #         " reached in iterations ",iteration)
+      finalstep = true
     end
   end
 
@@ -134,11 +126,7 @@ function timestep_gravity_2N!(solver::AbstractSolver, t, dt, u_euler, gravity_pa
 
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 (spatial mean value)
-    if ndims(solver) == 2
-      @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-    else
-      @views @. solver.elements.u_t[1,:,:,:,:] += grav_scale*(u_euler[1,:,:,:,:] - rho0)
-    end
+    @views @. solver.elements.u_t[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
 
     # now take the RK step
     @timeit timer() "Runge-Kutta step" begin
@@ -178,11 +166,7 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    if ndims(solver) == 2
-      @views @. solver.elements.u_t[1,:,:,:] += grav_scale*(u_euler[1,:,:,:] - rho0)
-    else
-      @views @. solver.elements.u_t[1,:,:,:,:] += grav_scale*(u_euler[1,:,:,:,:] - rho0)
-    end
+    @views @. solver.elements.u_t[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
 
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
