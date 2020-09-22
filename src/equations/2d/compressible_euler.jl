@@ -784,6 +784,16 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return dt
 end
 
+@inline function max_abs_speeds(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  c = sqrt(equation.gamma * p / rho)
+
+  return abs(v1) + c, abs(v2) + c
+end
+
 
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equation::CompressibleEulerEquations2D)

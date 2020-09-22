@@ -486,6 +486,19 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return dt
 end
 
+@inline function max_abs_speeds(u, equation::IdealGlmMhdEquations2D)
+  rho, rho_v1, rho_v2, rho_v3, _ = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
+  cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
+  cf_max = max(cf_x_direction, cf_y_direction)
+  equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
+
+  return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction
+end
+
 
 # Convert conservative variables to primitive
 function cons2prim(u, equation::IdealGlmMhdEquations2D)

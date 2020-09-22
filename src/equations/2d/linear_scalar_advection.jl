@@ -178,6 +178,16 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 end
 
+@inline have_constant_speed(::LinearScalarAdvectionEquation2D) = Val(true)
+
+@inline function max_abs_speeds(u, eq::LinearScalarAdvectionEquation2D)
+  max_abs_speeds(eq)
+end
+
+@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation2D)
+  return eq.advectionvelocity
+end
+
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LinearScalarAdvectionEquation2D) = u

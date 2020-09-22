@@ -294,6 +294,17 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return dt
 end
 
+@inline have_constant_speed(::HyperbolicDiffusionEquations2D) = Val(true)
+
+@inline function max_abs_speeds(u, eq::HyperbolicDiffusionEquations2D)
+  max_abs_speeds(eq)
+end
+
+@inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
+  λ = sqrt(eq.nu / eq.Tr)
+  return λ, λ
+end
+
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::HyperbolicDiffusionEquations2D) = u

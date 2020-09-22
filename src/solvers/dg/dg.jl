@@ -133,7 +133,7 @@ function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
   println(io, "- ", dg.basis)
   println(io, "- ", dg.mortar)
   println(io, "- ", dg.surface_flux)
-  println(io, "- ", dg.volume_integral)
+  print(io,   "- ", dg.volume_integral)
 end
 
 @inline Base.real(dg::DG{RealT}) where {RealT} = RealT

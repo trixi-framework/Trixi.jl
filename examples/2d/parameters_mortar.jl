@@ -38,20 +38,19 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
-# TODO: Taal, CFL
-# cfl = 1.0
-# n_steps_max = 10000
+
+stepsize_callback = StepsizeCallback(cfl=2.0)
 
 # TODO: Taal, IO
 # # save_initial_solution = false
 # solution_interval = 100
 # solution_variables = "primitive"
 # restart_interval = 10
-callbacks = CallbackSet(analysis_callback, alive_callback)
+callbacks = CallbackSet(stepsize_callback, analysis_callback, alive_callback)
 
-# that's the value of dt chosen by Trixi.run("examples/2d/parameters.toml")
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=5.0e-02,
-            save_everystep=false, callback=callbacks); # requires https://github.com/SciML/OrdinaryDiffEq.jl/pull/1272
+
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
+            save_everystep=false, callback=callbacks);
 # sol = solve(ode, Tsit5(), save_everystep=false, callback=callbacks);
 
 nothing

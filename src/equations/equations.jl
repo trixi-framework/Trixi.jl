@@ -61,6 +61,8 @@ end
 
 
 have_nonconservative_terms(::AbstractEquations) = Val(false)
+have_constant_speed(::AbstractEquations) = Val(false)
+
 # TODO: Taal refactor, remove default_analysis_quantities
 default_analysis_quantities(::AbstractEquations) = (:l2_error, :linf_error, :dsdu_ut)
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)

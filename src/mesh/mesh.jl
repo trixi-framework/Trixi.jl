@@ -103,7 +103,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS}) where {NDI
   println(io, "- length_level_0: ", mesh.tree.length_level_0)
   println(io, "- periodicity   : ", mesh.tree.periodicity)
   println(io, "- capacity      : ", mesh.tree.capacity)
-  println(io, "- length        : ", mesh.tree.length)
+  print(io,   "- length        : ", mesh.tree.length)
 end
 
 
