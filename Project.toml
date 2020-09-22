@@ -19,6 +19,7 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+EllipsisNotation = "0.4"
 HDF5 = "0.13"
 LinearMaps = "2.7"
 LoopVectorization = "0.8.25"
