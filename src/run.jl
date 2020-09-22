@@ -320,13 +320,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 
     # Check steady-state integration residual
     if solver.equations isa AbstractHyperbolicDiffusionEquations
-      if solver.equations isa HyperbolicDiffusionEquations2D
-        resid = maximum(abs, view(solver.elements.u_t, 1, :, :, :))
-      elseif solver.equations isa HyperbolicDiffusionEquations3D
-        resid = maximum(abs, view(solver.elements.u_t, 1, :, :, :, :))
-      else
-        error("unsupported system of equations")
-      end
+      resid = maximum(abs, view(solver.elements.u_t, 1, .., :))
 
       if is_parallel()
         resid_buffer = [resid]
@@ -620,7 +614,7 @@ function compute_jacobian_dg(parameters_file; verbose=false, parameters...)
     res_m = vec(dg.elements.u_t) |> copy
     # restore linearisation state
     dg.elements.u[idx] = u0[idx]
-    # central second order finite difference 
+    # central second order finite difference
     J[:,idx] = (res_p - res_m) / (2 * epsilon)
   end
 

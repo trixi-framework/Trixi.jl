@@ -20,6 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
+using EllipsisNotation
 using HDF5: h5open, attrs
 using MPI # We use all symbols, but for now we always prefix with `MPI.`, e.g., `MPI.Init()`
 using OffsetArrays: OffsetArray, OffsetVector
