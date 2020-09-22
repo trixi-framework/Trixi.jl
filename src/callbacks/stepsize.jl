@@ -25,7 +25,7 @@ end
   @unpack mesh, equations, solver, cache = semi
   @unpack cfl_number = stepsize_callback
 
-  @timeit_debug timer() "calc_dt" dt = cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+  @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
   set_proposed_dt!(integrator, dt)
   integrator.opts.dtmax = dt
   integrator.dtcache = dt

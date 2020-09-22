@@ -85,7 +85,7 @@ function update_gravity!(solver, u_euler, gravity_parameters)
   # Iterate gravity solver until convergence or maximum number of iterations are reached
   while !finalstep
     # Calculate time step size
-    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl_gravity)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl_gravity)
 
     # Evolve solution by one pseudo-time step
     timestep_gravity(solver, time, dt, u_euler, gravity_parameters)

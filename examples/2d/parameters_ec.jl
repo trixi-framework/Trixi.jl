@@ -34,16 +34,15 @@ analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-# TODO: Taal, IO
-# # save_initial_solution = false
-# solution_interval = 100
-# solution_variables = "primitive"
-# restart_interval = 10
+save_solution = SaveSolutionCallback(solution_interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
 
 # TODO: Taal, restart
-# restart = true
-# restart_filename = "out/restart_000100.h5"
-callbacks = CallbackSet(stepsize_callback, analysis_callback, alive_callback)
+# restart_interval = 10
+
+callbacks = CallbackSet(stepsize_callback, analysis_callback, save_solution, alive_callback)
 
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),

@@ -78,7 +78,7 @@ export DGSEM,
 
 export Semidiscretization, semidiscretize, compute_coefficients
 
-export AliveCallback, AnalysisCallback, StepsizeCallback
+export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback
 
 export entropy, energy_total
 

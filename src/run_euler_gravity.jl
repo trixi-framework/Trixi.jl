@@ -15,7 +15,7 @@ function init_simulation_euler_gravity()
   begin
     print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
-    mesh.current_filename = save_mesh_file(mesh)
+    mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
     mesh.unsaved_changes = false
     println("done")
   end
@@ -71,7 +71,7 @@ function init_simulation_euler_gravity()
       end
 
       # Save mesh file
-      mesh.current_filename = save_mesh_file(mesh)
+      mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
       mesh.unsaved_changes = false
     end
   end
@@ -229,7 +229,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
     if isnan(dt)
@@ -311,7 +311,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
 
         # If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
-          mesh.current_filename = save_mesh_file(mesh, step)
+          mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"), step)
           mesh.unsaved_changes = false
         end
 

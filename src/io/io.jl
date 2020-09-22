@@ -165,21 +165,20 @@ end
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, timestep=-1)
+function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
   # Create output directory (if it does not exist)
-  output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
 
   # Determine file name based on existence of meaningful time step
-  if timestep >= 0
-    filename = joinpath(output_directory, @sprintf("mesh_%06d", timestep))
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
   else
-    filename = joinpath(output_directory, "mesh")
+    filename = joinpath(output_directory, "mesh.h5")
   end
 
   # Create output directory (if it does not exist)
   # Open file (clobber existing content)
-  h5open(filename * ".h5", "w") do file
+  h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
     attrs(file)["ndims"] = ndims(mesh)
@@ -199,5 +198,5 @@ function save_mesh_file(mesh::TreeMesh, timestep=-1)
     file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
   end
 
-  return filename * ".h5"
+  return filename
 end

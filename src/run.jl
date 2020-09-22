@@ -89,7 +89,7 @@ function init_simulation()
   else
     print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
-    mesh.current_filename = save_mesh_file(mesh)
+    mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
     mesh.unsaved_changes = false
     println("done")
   end
@@ -146,7 +146,7 @@ function init_simulation()
       end
 
       # Save mesh file
-      mesh.current_filename = save_mesh_file(mesh)
+      mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
       mesh.unsaved_changes = false
     end
   end
@@ -284,7 +284,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   first_loop_iteration = true
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
     if isnan(dt)
@@ -360,7 +360,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 
         # If mesh has changed, write a new mesh file name
         if mesh.unsaved_changes
-          mesh.current_filename = save_mesh_file(mesh, step)
+          mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"), step)
           mesh.unsaved_changes = false
         end
 
@@ -377,7 +377,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       @timeit timer() "I/O" begin
         # If mesh has changed, write a new mesh file
         if mesh.unsaved_changes
-          mesh.current_filename = save_mesh_file(mesh, step)
+          mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"), step)
           mesh.unsaved_changes = false
         end
 
