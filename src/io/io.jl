@@ -125,18 +125,6 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     attrs(file)["dt"] = dt
     attrs(file)["timestep"] = timestep
 
-    # Add coordinates as 1D arrays
-    if ndims(dg) == 2
-      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :])
-      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :])
-    elseif ndims(dg) == 3
-      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :, :])
-      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :, :])
-      file["z"] = vec(dg.elements.node_coordinates[3, :, :, :, :])
-    else
-      error("Unsupported number of spatial dimensions: ", ndims(dg))
-    end
-
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
                                    valid=["conservative", "primitive"])
