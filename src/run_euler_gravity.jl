@@ -176,10 +176,10 @@ function init_simulation_euler_gravity()
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
     @notimeit timer() rhs!(solver, time)
-    save_solution_file(solver, mesh, time, 0, step, "euler")
+    save_solution_file(solver, mesh, time, 0, step, "euler", mpi_parallel())
 
     @notimeit timer() rhs!(solver_gravity, time)
-    save_solution_file(solver_gravity, mesh, time, 0, step, "gravity")
+    save_solution_file(solver_gravity, mesh, time, 0, step, "gravity", mpi_parallel())
   end
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
@@ -320,8 +320,8 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
         end
 
         # Then write solution file
-        save_solution_file(solver, mesh, time, dt, step, "euler")
-        save_solution_file(solver_gravity, mesh, time, dt, step, "gravity")
+        save_solution_file(solver, mesh, time, dt, step, "euler", mpi_parallel())
+        save_solution_file(solver_gravity, mesh, time, dt, step, "gravity", mpi_parallel())
       end
       output_time += time_ns() - output_start_time
     end

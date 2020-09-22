@@ -252,7 +252,7 @@ function init_simulation()
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
     @notimeit timer() rhs!(solver, time)
-    save_solution_file(solver, mesh, time, 0, step)
+    save_solution_file(solver, mesh, time, 0, step, mpi_parallel())
   end
 
   # Print initial solution analysis and initialize solution analysis
@@ -397,7 +397,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         end
 
         # Then write solution file
-        save_solution_file(solver, mesh, time, dt, step)
+        save_solution_file(solver, mesh, time, dt, step, mpi_parallel())
       end
       output_time += time_ns() - output_start_time
     end
@@ -414,7 +414,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         end
 
         # Then write restart file
-        save_restart_file(solver, mesh, time, dt, step)
+        save_restart_file(solver, mesh, time, dt, step, mpi_parallel())
       end
       output_time += time_ns() - output_start_time
     end

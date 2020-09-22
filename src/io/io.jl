@@ -1,3 +1,4 @@
+include("parallel.jl")
 
 # Load restart file and store solution in solver
 function load_restart_file!(dg::AbstractDg, restart_filename)
@@ -54,7 +55,8 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # restarting.
-function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
+function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
+                           mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -85,78 +87,20 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     data = dg.elements.u
     varnames = varnames_cons(equation)
 
-    # If in parallel, only write from MPI root (poor man's version of parallel I/O)
-    if is_parallel() # Parallel I/O version
-      element_size = nnodes(dg)^ndims(dg)
-      counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain)) * Cint(element_size)
-
-      # Store data in buffer
-      if is_mpi_root()
-        first_buffer_index = (dg.first_element_global_id - 1) * element_size + 1
-        local_data_size = element_size * dg.n_elements
-        last_buffer_index = first_buffer_index + local_data_size - 1
-
-        # Create buffer for global element data
-        buffer = Vector{eltype(data)}(undef, element_size * dg.n_elements_global)
-
-        # Store each variable of the solution
-        for v in 1:nvariables(dg)
-          # Convert to 1D array and store in global buffer
-          if ndims(dg) == 2
-            buffer[first_buffer_index:last_buffer_index] = vec(data[v, :, :, :])
-          elseif ndims(dg) == 3
-            buffer[first_buffer_index:last_buffer_index] = vec(data[v, :, :, :, :])
-          else
-            error("Unsupported number of spatial dimensions: ", ndims(dg))
-          end
-
-          # Collect data on root domain
-          # Note: `collect(...)` is required since we store domain info in OffsetArrays
-          MPI.Gatherv!(nothing, buffer, counts, mpi_root(), mpi_comm())
-
-          # Write to file
-          file["variables_$v"] = buffer
-
-          # Add variable name as attribute
-          var = file["variables_$v"]
-          attrs(var)["name"] = varnames[v]
-        end
-      else # On non-root domains
-        # Create buffer for local element data
-        buffer = Vector{eltype(data)}(undef, element_size * dg.n_elements)
-
-        # Store each variable of the solution
-        for v in 1:nvariables(dg)
-          # Convert to 1D array and store in global buffer
-          if ndims(dg) == 2
-            buffer[:] = vec(data[v, :, :, :])
-          elseif ndims(dg) == 3
-            buffer[:] = vec(data[v, :, :, :, :])
-          else
-            error("Unsupported number of spatial dimensions: ", ndims(dg))
-          end
-
-          # Collect data on root domain
-          # Note: `collect(...)` is required since we store domain info in OffsetArrays
-          MPI.Gatherv!(buffer, nothing, counts, mpi_root(), mpi_comm())
-        end
+    # Store each variable of the solution
+    for v in 1:nvariables(dg)
+      # Convert to 1D array
+      if ndims(dg) == 2
+        file["variables_$v"] = vec(data[v, :, :, :])
+      elseif ndims(dg) == 3
+        file["variables_$v"] = vec(data[v, :, :, :, :])
+      else
+        error("Unsupported number of spatial dimensions: ", ndims(dg))
       end
-    else # Serial I/O version
-      # Store each variable of the solution
-      for v in 1:nvariables(dg)
-        # Convert to 1D array
-        if ndims(dg) == 2
-          file["variables_$v"] = vec(data[v, :, :, :])
-        elseif ndims(dg) == 3
-          file["variables_$v"] = vec(data[v, :, :, :, :])
-        else
-          error("Unsupported number of spatial dimensions: ", ndims(dg))
-        end
 
-        # Add variable name as attribute
-        var = file["variables_$v"]
-        attrs(var)["name"] = varnames[v]
-      end
+      # Add variable name as attribute
+      var = file["variables_$v"]
+      attrs(var)["name"] = varnames[v]
     end
   end
 end
@@ -164,7 +108,11 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system="")
+function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, mpi_parallel)
+  return save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, "", mpi_parallel)
+end
+function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system,
+                            mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)
@@ -194,18 +142,6 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     attrs(file)["time"] = time
     attrs(file)["dt"] = dt
     attrs(file)["timestep"] = timestep
-
-    # Add coordinates as 1D arrays
-    if ndims(dg) == 2
-      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :])
-      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :])
-    elseif ndims(dg) == 3
-      file["x"] = vec(dg.elements.node_coordinates[1, :, :, :, :])
-      file["y"] = vec(dg.elements.node_coordinates[2, :, :, :, :])
-      file["z"] = vec(dg.elements.node_coordinates[3, :, :, :, :])
-    else
-      error("Unsupported number of spatial dimensions: ", ndims(dg))
-    end
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
