@@ -20,7 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
-using DiffEqBase: ODEProblem, get_du, u_modified!, set_proposed_dt!
+using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs

@@ -27,3 +27,23 @@ function test_trixi_run(parameters_file; l2=nothing, linf=nothing, atol=200*eps(
     end
   end
 end
+
+
+function test_trixi_include(parameters_file; l2=nothing, linf=nothing, atol=200*eps(), rtol=0.001)
+
+  @test_nowarn include(parameters_file)
+  l2_measured, linf_measured = analysis_callback(sol)
+
+  # If present, compare L2 and Linf errors against reference values
+  if !isnothing(l2)
+    for (l2_expected, l2_actual) in zip(l2, l2_measured)
+      @test isapprox(l2_expected, l2_actual, atol=atol, rtol=rtol)
+    end
+  end
+
+  if !isnothing(linf)
+    for (linf_expected, linf_actual) in zip(linf, linf_measured)
+      @test isapprox(linf_expected, linf_actual, atol=atol, rtol=rtol)
+    end
+  end
+end

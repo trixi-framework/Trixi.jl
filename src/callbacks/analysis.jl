@@ -273,10 +273,20 @@ function (analysis_callback::AnalysisCallback)(integrator)
       println(io)
       close(io)
     end
-
-    # Return errors for EOC analysis
-    return l2_error, linf_error
   end
+
+  # Return errors for EOC analysis
+  return l2_error, linf_error
+end
+
+
+# used for error checks and EOC analysis
+function (cb::DiscreteCallback{Condition,Affect!})(sol::ODESolution) where {Condition, Affect!<:AnalysisCallback}
+  analysis_callback = cb.affect!
+  semi = sol.prob.p
+  @unpack analyzer = analysis_callback
+
+  l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi)
 end
 
 

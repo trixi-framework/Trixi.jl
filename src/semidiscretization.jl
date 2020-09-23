@@ -151,6 +151,12 @@ function integrate(u, semi::Semidiscretization; normalize=true)
 end
 
 
+function calc_error_norms(func, u::AbstractVector, t, analyzer, semi::Semidiscretization)
+  @unpack mesh, equations, initial_conditions, solver, cache = semi
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+
+  calc_error_norms(func, u_wrapped, t, analyzer, mesh, equations, initial_conditions, solver, cache)
+end
 function calc_error_norms(func, u, t, analyzer, semi::Semidiscretization)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
 
