@@ -63,14 +63,15 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       mesh.unsaved_changes = false
     end
 
-    save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback)
+    u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+    save_solution_file(u_wrapped, t, dt, iter, mesh, equations, solver, cache, solution_callback)
   end
 
   return nothing
 end
 
 
+# TODO: Taal refactor, move save_mesh_file?
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
-#
 
 include("save_solution_dg.jl")

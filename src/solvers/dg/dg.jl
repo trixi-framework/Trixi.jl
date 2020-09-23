@@ -189,6 +189,13 @@ end
 end
 
 
+function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
+  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
+  # cf. wrap_array
+  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+end
+
+
 # Include utilities
 include("interpolation.jl")
 include("l2projection.jl")

@@ -132,16 +132,18 @@ end
 end
 
 
-function integrate(func, semi::Semidiscretization, u, args...; normalize=true)
+function integrate(func, semi::Semidiscretization, u::AbstractVector, args...; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
-  integrate(func, mesh, equations, solver, cache, u, args..., normalize=normalize)
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  integrate(func, mesh, equations, solver, cache, u_wrapped, args..., normalize=normalize)
 end
 
-function integrate(func, u, semi::Semidiscretization; normalize=true)
+function integrate(func, u::AbstractVector, semi::Semidiscretization; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
-  integrate(func, u, mesh, equations, solver, cache, normalize=normalize)
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  integrate(func, u_wrapped, mesh, equations, solver, cache, normalize=normalize)
 end
 
 function integrate(u, semi::Semidiscretization; normalize=true)
@@ -165,8 +167,9 @@ function compute_coefficients(func, t, semi::Semidiscretization)
   @unpack mesh, equations, solver, cache = semi
 
   u = allocate_coefficients(mesh, equations, solver, cache)
-  compute_coefficients!(u, func, t, semi)
-  u
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  compute_coefficients!(u_wrapped, func, t, semi)
+  return u
 end
 
 function compute_coefficients!(u, func, t, semi::Semidiscretization)
@@ -178,7 +181,7 @@ end
 
 function semidiscretize(semi::Semidiscretization, tspan)
   u0 = compute_coefficients(first(tspan), semi)
-  ODEProblem(rhs!, u0, tspan, semi)
+  return ODEProblem(rhs!, u0, tspan, semi)
 end
 
 
@@ -186,9 +189,12 @@ end
 function rhs!(du, u, semi::Semidiscretization, t)
   @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
 
+  u_wrapped  = wrap_array(u,  mesh, equations, solver, cache)
+  du_wrapped = wrap_array(du, mesh, equations, solver, cache)
+
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  @timeit_debug timer() "rhs!" rhs!(du_wrapped, u_wrapped, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
@@ -211,9 +217,19 @@ end
 # - real(solver)
 # - ndofs(mesh, solver, cache)
 # - create_cache(mesh, equations, boundary_conditions, solver)
+# - wrap_array(u::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, mesh, equations, solver, cache, u; normalize=true)
 # - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+#
+# To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
+# Currently, the best option seems to be to let OrdinaryDiffEq.jl use `Vector`s,
+# which can be `resize!`ed for AMR. Then, we have to wrap these `Vector`s inside
+# Trixi.jl as our favorite multidimensional array type along the lines of
+# unsafe_wrap(Array{eltype(u), ndims(mesh)+2}, pointer(u), (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+# in the two-dimensional case. We would need to do this wrapping in every
+# method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
+# rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback

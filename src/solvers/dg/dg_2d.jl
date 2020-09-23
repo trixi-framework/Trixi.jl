@@ -74,14 +74,11 @@ function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMo
 end
 
 
-# TODO: Taal implement
-# function integrate(func, u, mesh::TreeMesh{2}, equations, dg::DG, cache; normalize=true)
-# end
-
-
-function allocate_coefficients(mesh::TreeMesh{2}, equations, dg::DG, cache)
-  zeros(real(dg), nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+function wrap_array(u::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
+  unsafe_wrap(Array{eltype(u), ndims(mesh)+2}, pointer(u),
+              (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
+
 
 function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
@@ -112,7 +109,9 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(cache, equations, dg)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
+                                                              have_nonconservative_terms(equations), equations,
+                                                              dg, cache)
 
   # Prolong solution to boundaries
   @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
@@ -124,7 +123,9 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "prolong2mortars" prolong2mortars!(cache, u, equations, dg.mortar, dg)
 
   # Calculate mortar fluxes
-  @timeit_debug timer() "mortar flux" calc_mortar_flux!(cache, equations, dg.mortar, dg)
+  @timeit_debug timer() "mortar flux" calc_mortar_flux!(cache.elements.surface_flux_values,
+                                                        have_nonconservative_terms(equations), equations,
+                                                        dg.mortar, dg, cache)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
@@ -139,7 +140,6 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-# TODO: Taal implement
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
@@ -167,7 +167,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
   return nothing
 end
 
-# TODO: Taal implement
+
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
@@ -220,7 +220,6 @@ end
   end
 end
 
-
 # TODO: Taal implement
 # @inline function split_form_kernel!(du, u, nonconservative_terms::Val{true}, equations,
 #                                     volume_flux, dg::DGSEM, cache,
@@ -267,13 +266,6 @@ function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
   return nothing
 end
 
-# TODO: Taal dimension agnostic
-@inline function calc_interface_flux!(cache, equations, dg::DG)
-  calc_interface_flux!(cache.elements.surface_flux_values,
-                       have_nonconservative_terms(equations), equations,
-                       dg, cache)
-end
-
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{false}, equations,
                               dg::DG, cache)
@@ -307,8 +299,8 @@ end
 
 # TODO: Taal implement
 # function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
-#   nonconservative_terms::Val{true}, equations,
-#   dg::DG, cache)
+#                               nonconservative_terms::Val{true}, equations,
+#                               dg::DG, cache)
 # end
 
 
@@ -356,7 +348,6 @@ function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DGSEM
 end
 
 
-# TODO: Taal implement
 function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations, mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
 
   Threads.@threads for mortar in eachmortar(dg, cache)
@@ -440,13 +431,6 @@ end
   return nothing
 end
 
-
-# TODO: Taal dimension agnostic
-@inline function calc_mortar_flux!(cache, equations, mortar_l2::LobattoLegendreMortarL2, dg::DG)
-  calc_mortar_flux!(cache.elements.surface_flux_values,
-                    have_nonconservative_terms(equations), equations,
-                    mortar_l2, dg, cache)
-end
 
 function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)

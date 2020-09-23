@@ -24,8 +24,9 @@ end
   semi = integrator.p
   @unpack mesh, equations, solver, cache = semi
   @unpack cfl_number = stepsize_callback
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
 
-  @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+  @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u_wrapped, t, mesh, have_constant_speed(equations), equations, solver, cache)
   set_proposed_dt!(integrator, dt)
   integrator.opts.dtmax = dt
   integrator.dtcache = dt
@@ -41,8 +42,9 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
   t = first(ode.tspan)
   semi = ode.p
   @unpack mesh, equations, solver, cache = semi
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
 
-  return cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+  return cfl_number * max_dt(u_wrapped, t, mesh, have_constant_speed(equations), equations, solver, cache)
 end
 
 
