@@ -34,14 +34,31 @@ end
 
 @testset "Displaying components 2D" begin
   @test_nowarn include(joinpath(EXAMPLES_DIR, "parameters.jl"))
-  display(mesh)
-  display(equations)
-  display(solver)
-  display(semi)
-  display(stepsize_callback)
-  display(analysis_callback)
-  display(save_solution)
-  display(alive_callback)
+
+  # test both short and long printing formats
+  @test_nowarn println(mesh)
+  @test_nowarn display(mesh)
+
+  @test_nowarn println(equations)
+  @test_nowarn display(equations)
+
+  @test_nowarn println(solver)
+  @test_nowarn display(solver)
+
+  @test_nowarn println(semi)
+  @test_nowarn display(semi)
+
+  @test_nowarn println(stepsize_callback)
+  @test_nowarn display(stepsize_callback)
+
+  @test_nowarn println(analysis_callback)
+  @test_nowarn display(analysis_callback)
+
+  @test_nowarn println(save_solution)
+  @test_nowarn display(save_solution)
+
+  @test_nowarn println(alive_callback)
+  @test_nowarn display(alive_callback)
 end
 
 
