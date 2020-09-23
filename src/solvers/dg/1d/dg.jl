@@ -22,6 +22,9 @@ mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   boundaries::BoundaryContainer1D{NVARS, POLYDEG}
   n_boundaries::Int
   n_boundaries_per_direction::SVector{2, Int}
+
+  n_l2mortars::Int # TODO: Only needed for simulation summary output -> fix me when Taal is alive
+
   boundary_conditions::BoundaryConditions
 
   nodes::VectorNnodes
@@ -78,6 +81,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
+  n_l2mortars = -1 # TODO: Only needed for simulation summary output -> fix me when Taal is alive
 
   # Sanity checks
   if isperiodic(mesh.tree)
@@ -186,6 +190,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       elements, n_elements,
       interfaces, n_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
+      n_l2mortars,
       Tuple(boundary_conditions),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),

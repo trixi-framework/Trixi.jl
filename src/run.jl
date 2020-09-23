@@ -195,68 +195,34 @@ function init_simulation()
     s *= "| | AMR interval:     $amr_interval\n"
     s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
   end
-  if ndims_ > 1
-    s *= """| n_steps_max:        $n_steps_max
-            | time integration:   $(get_name(time_integration_function))
-            | restart interval:   $restart_interval
-            | solution interval:  $solution_interval
-            | #parallel threads:  $(Threads.nthreads())
-            |
-            | Solver
-            | | solver:           $solver_name
-            | | polydeg:          $polydeg
-            | | CFL:              $cfl
-            | | volume integral:  $(get_name(solver.volume_integral_type))
-            | | volume flux:      $(get_name(solver.volume_flux_function))
-            | | surface flux:     $(get_name(solver.surface_flux_function))
-            | | #elements:        $(solver.n_elements)
-            | | #interfaces:      $(solver.n_interfaces)
-            | | #boundaries:      $(solver.n_boundaries)
-            | | #l2mortars:       $(solver.n_l2mortars)
-            | | #DOFs:            $(ndofs(solver))
-            |
-            | Mesh
-            | | #cells:           $(length(mesh.tree))
-            | | #leaf cells:      $n_leaf_cells
-            | | minimum level:    $min_level
-            | | maximum level:    $max_level
-            | | domain center:    $(join(domain_center, ", "))
-            | | domain length:    $domain_length
-            | | minimum dx:       $min_dx
-            | | maximum dx:       $max_dx
-            """
-  else
-    s *= """| n_steps_max:        $n_steps_max
-            | time integration:   $(get_name(time_integration_function))
-            | restart interval:   $restart_interval
-            | solution interval:  $solution_interval
-            | #parallel threads:  $(Threads.nthreads())
-            |
-            | Solver
-            | | solver:           $solver_name
-            | | polydeg:          $polydeg
-            | | CFL:              $cfl
-            | | volume integral:  $(get_name(solver.volume_integral_type))
-            | | volume flux:      $(get_name(solver.volume_flux_function))
-            | | surface flux:     $(get_name(solver.surface_flux_function))
-            | | #elements:        $(solver.n_elements)
-            | | #interfaces:      $(solver.n_interfaces)
-            | | #boundaries:      $(solver.n_boundaries)
-            | | #DOFs:            $(ndofs(solver))
-            |
-            | Mesh
-            | | #cells:           $(length(mesh.tree))
-            | | #leaf cells:      $n_leaf_cells
-            | | minimum level:    $min_level
-            | | maximum level:    $max_level
-            | | domain center:    $(join(domain_center, ", "))
-            | | domain length:    $domain_length
-            | | minimum dx:       $min_dx
-            | | maximum dx:       $max_dx
-            """
-
-  end
-
+  s *= """| n_steps_max:        $n_steps_max
+          | time integration:   $(get_name(time_integration_function))
+          | restart interval:   $restart_interval
+          | solution interval:  $solution_interval
+          | #parallel threads:  $(Threads.nthreads())
+          |
+          | Solver
+          | | solver:           $solver_name
+          | | polydeg:          $polydeg
+          | | CFL:              $cfl
+          | | volume integral:  $(get_name(solver.volume_integral_type))
+          | | volume flux:      $(get_name(solver.volume_flux_function))
+          | | surface flux:     $(get_name(solver.surface_flux_function))
+          | | #elements:        $(solver.n_elements)
+          | | #interfaces:      $(solver.n_interfaces)
+          | | #boundaries:      $(solver.n_boundaries)
+          | | #DOFs:            $(ndofs(solver))
+          |
+          | Mesh
+          | | #cells:           $(length(mesh.tree))
+          | | #leaf cells:      $n_leaf_cells
+          | | minimum level:    $min_level
+          | | maximum level:    $max_level
+          | | domain center:    $(join(domain_center, ", "))
+          | | domain length:    $domain_length
+          | | minimum dx:       $min_dx
+          | | maximum dx:       $max_dx
+          """
   println()
   println(s)
 
