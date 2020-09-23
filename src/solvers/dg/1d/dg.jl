@@ -1088,34 +1088,22 @@ calc_volume_integral!(dg::Dg1D) = calc_volume_integral!(dg.elements.u_t, dg.volu
 @inline function calcflux_twopoint!(f1, u, element_id, dg::Dg1D)
   @unpack volume_flux_function = dg
 
-    for i in 1:nnodes(dg)
-      # Set diagonal entries (= regular volume fluxes due to consistency)
-      u_node = get_node_vars(u, dg, i, element_id)
-      flux1 = calcflux(u_node, 1, equations(dg))
-      set_node_vars!(f1, flux1, dg, i, i)
+  for i in 1:nnodes(dg)
+    # Set diagonal entries (= regular volume fluxes due to consistency)
+    u_node = get_node_vars(u, dg, i, element_id)
+    flux1 = calcflux(u_node, 1, equations(dg))
+    set_node_vars!(f1, flux1, dg, i, i)
 
-      # Flux in x-direction
-      for l in (i+1):nnodes(dg)
-        u_ll = get_node_vars(u, dg, i, element_id)
-        u_rr = get_node_vars(u, dg, l, element_id)
-        flux = volume_flux_function(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
-        for v in 1:nvariables(dg)
-          f1[v, i, l] = f1[v, l, i] = flux[v]
-        end
+    # Flux in x-direction
+    for l in (i+1):nnodes(dg)
+      u_ll = get_node_vars(u, dg, i, element_id)
+      u_rr = get_node_vars(u, dg, l, element_id)
+      flux = volume_flux_function(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
+      for v in 1:nvariables(dg)
+        f1[v, i, l] = f1[v, l, i] = flux[v]
       end
     end
-
-  calcflux_twopoint_nonconservative!(f1, u, element_id, have_nonconservative_terms(equations(dg)), dg)
-end
-
-function calcflux_twopoint_nonconservative!(f1, u, element_id, nonconservative_terms::Val{false}, dg::Dg1D)
-  return nothing
-end
-
-function calcflux_twopoint_nonconservative!(f1, u, element_id, nonconservative_terms::Val{true}, dg::Dg1D)
-  #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-  #      For now, just dispatch to an existing function for the IdealMhdEquations
-  calcflux_twopoint_nonconservative!(f1, u, element_id, equations(dg), dg)
+  end
 end
 
 
@@ -1174,29 +1162,6 @@ end
       add_to_node_vars!(u_t, integral_contribution, dg, ii, element_id)
     end
 
-  end
-end
-
-@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, thread_cache, dg::Dg1D, alpha=true)
-  @unpack volume_flux_function, dsplit_transposed = dg
-  @unpack f1_threaded = thread_cache
-
-  # Choose thread-specific pre-allocated container
-  f1 = f1_threaded[Threads.threadid()]
-
-  # Calculate volume fluxes (one more dimension than weak form)
-  calcflux_twopoint!(f1, dg.elements.u, element_id, dg)
-
-  # Calculate volume integral in one element
-  for i in 1:nnodes(dg)
-    for v in 1:nvariables(dg)
-      # Use local accumulator to improve performance
-      acc = zero(eltype(u_t))
-      for l in 1:nnodes(dg)
-        acc += dsplit_transposed[l, i] * f1[v, l, i]
-      end
-      u_t[v, i, element_id] += alpha * acc
-    end
   end
 end
 
