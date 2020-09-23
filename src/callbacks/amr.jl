@@ -1,20 +1,57 @@
 
-# TODO: Taal design, how can we implement AMR as callbacks? Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
-# Currently, the best option seems to be to let OrdinaryDiffEq.jl use `Vector`s,
-# which can be `resize!`ed for AMR. Then, we have to wrap these `Vector`s inside
-# Trixi.jl as our favorite multidimensional array type along the lines of
-# unsafe_wrap(Array{eltype(u), ndims(mesh)+2}, pointer(u), (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
-# in the two-dimensional case. We would need to do this wrapping in every
-# method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
-# rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
-mutable struct AMRCallback{RealT, Indicator, Cache}
+mutable struct AMRCallback{RealT<:Real, Indicator, Cache}
   interval::Int
+  threshold_refinement::RealT
+  threshold_coarsening::RealT
+  indicator::Indicator
+  adaptor::Adaptor
+  cache::Cache
+end
+
+
+# TODO: Taal refactor, decide where to move this and implement everything
+"""
+    IndicatorHennemannGassner
+
+Indicator used for shock-capturing or AMR used by
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+struct IndicatorHennemannGassner{RealT<:Real}
   alpha_max::RealT
   alpha_min::RealT
   alpha_smooth::Bool
-  indicator::Indicator
-  cache::Cache
 end
+
+
+struct IndicatorTwoLevel{RealT<:Real, Indicator}
+  base_level::Int
+  base_threshold::RealT
+  max_level::Int
+  max_threshold::RealT
+  indicator::Indicator
+end
+
+
+"""
+    IndicatorLöhner (equivalent to IndicatorLoehner)
+
+AMR indicator adapted from a FEM indicator by Löhner (1987),
+also used in the FLASH code as standard AMR indicator.
+The indicator estimates a weighted second derivative of a
+specified variable locally.
+- Löhner (1987)
+  "An adaptive finite element scheme for transient problems in CFD"
+  [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+"""
+struct IndicatorLöhner{RealT<:Real, Variable}
+  f_wave::RealT
+  variable::Variable
+end
+
+const IndicatorLoehner = IndicatorLöhner
 
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature
@@ -24,13 +61,12 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
-  @unpack interval, alpha_max, alpha_min, alpha_smooth, indicator = amr_callback
+  @unpack interval, indicator, threshold_refinement, threshold_coarsening = amr_callback
   println(io, "AMRCallback with")
-  println(io, "- interval:     ", interval)
-  println(io, "- alpha_max:    ", alpha_max)
-  println(io, "- alpha_min:    ", alpha_min)
-  println(io, "- alpha_smooth: ", alpha_smooth)
-  print(io,   "- indicator:    ", indicator)
+  println(io, "- interval:  ", interval)
+  println(io, "- indicator: ", indicator)
+  println(io, "- threshold_refinement: ", indicator)
+  print(io,   "- threshold_coarsening: ", indicator)
 end
 
 

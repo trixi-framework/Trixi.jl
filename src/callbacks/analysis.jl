@@ -103,6 +103,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
+# TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   @unpack mesh, equations, solver, cache = semi

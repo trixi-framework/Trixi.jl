@@ -239,3 +239,4 @@ end
 # in the two-dimensional case. We would need to do this wrapping in every
 # method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
 # rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
+# Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
