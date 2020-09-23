@@ -3,7 +3,6 @@
 # - advection_mortar.jl
 # or something similar?
 
-using DiffEqCallbacks
 using OrdinaryDiffEq
 using Trixi
 

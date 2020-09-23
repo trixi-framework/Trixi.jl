@@ -3,7 +3,6 @@
 # - advection_amr.jl
 # or something similar?
 
-using DiffEqCallbacks
 using OrdinaryDiffEq
 using Trixi
 

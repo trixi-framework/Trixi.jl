@@ -3,7 +3,6 @@
 # - advection_basic.jl
 # or something similar? parameters.jl isn't really helpful...
 
-using DiffEqCallbacks
 using OrdinaryDiffEq
 using Trixi
 
