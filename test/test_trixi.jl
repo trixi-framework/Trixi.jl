@@ -31,6 +31,9 @@ end
 
 function test_trixi_include(parameters_file; l2=nothing, linf=nothing, atol=200*eps(), rtol=0.001)
 
+  println("#"^80)
+  println(parameters_file)
+
   @test_nowarn include(parameters_file)
   l2_measured, linf_measured = analysis_callback(sol)
 
@@ -46,4 +49,9 @@ function test_trixi_include(parameters_file; l2=nothing, linf=nothing, atol=200*
       @test isapprox(linf_expected, linf_actual, atol=atol, rtol=rtol)
     end
   end
+
+  println("#"^80)
+  println("\n\n")
+
+  return nothing
 end
