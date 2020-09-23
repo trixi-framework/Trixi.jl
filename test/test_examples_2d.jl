@@ -31,6 +31,20 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 end
 
+
+@testset "Displaying components 2D" begin
+  @test_nowarn include(joinpath(EXAMPLES_DIR, "parameters.jl"))
+  display(mesh)
+  display(equations)
+  display(solver)
+  display(semi)
+  display(stepsize_callback)
+  display(analysis_callback)
+  display(save_solution)
+  display(alive_callback)
+end
+
+
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
 

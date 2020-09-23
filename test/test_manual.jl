@@ -16,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "helper functions" begin
       t = Trixi.Tree(Val(1), 10, 0.0, 1.0)
-      @test_nowarn show(t)
+      @test_nowarn display(t)
       @test Trixi.ndims(t) == 1
       @test Trixi.ndims(Trixi.Tree{1}) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
@@ -188,9 +188,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
-    @test isnothing(show(c2d))
+    @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{1, 1}(1)
-    @test isnothing(show(c3d))
+    @test isnothing(display(c3d))
   end
 end
 
