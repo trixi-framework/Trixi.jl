@@ -49,6 +49,7 @@ include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
 include("semidiscretization.jl")
+include("semidiscretization_euler_gravity.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 include("amr/amr.jl")
@@ -67,9 +68,11 @@ export CompressibleEulerEquations2D, CompressibleEulerEquations3D,
 export flux_central, flux_lax_friedrichs, flux_hll,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
-# TODO: Taal decide, which initial conditions will be used/exported
+# TODO: Taal decide, which initial conditions and source terms will be used/exported
 export initial_conditions_convergence_test,
        initial_conditions_weak_blast_wave, initial_conditions_gauss
+
+export source_terms_harmonic
 
 export TreeMesh
 
@@ -77,6 +80,8 @@ export DGSEM,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
+
+export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
 export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback
 

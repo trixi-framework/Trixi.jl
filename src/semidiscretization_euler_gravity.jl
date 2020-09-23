@@ -1,0 +1,244 @@
+
+struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
+  background_density    ::RealT # aka rho0
+  gravitational_constant::RealT # aka G
+  cfl                   ::RealT
+  n_iterations_max      ::Int
+  timestep_gravity::TimestepGravity
+end
+
+function ParametersEulerGravity(; background_density=0.0,
+                                  gravitational_constant=1.0,
+                                  cfl=1.0,
+                                  n_iterations_max=10^6,
+                                  timestep_gravity=timestep_gravity_erk52_3Sstar!)
+  background_density, gravitational_constant, cfl = promote(background_density, gravitational_constant, cfl)
+  ParametersEulerGravity(background_density, gravitational_constant, cfl, n_iterations_max, timestep_gravity)
+end
+
+# TODO: Taal bikeshedding, implement a method with reduced information and the signature
+# function Base.show(io::IO, parameters::ParametersEulerGravity)
+function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
+  println(io, "ParametersEulerGravity using")
+  println(io, "- background_density:     ", parameters.background_density)
+  println(io, "- gravitational_constant: ", parameters.gravitational_constant)
+  println(io, "- cfl (gravity):    ", parameters.cfl)
+  println(io, "- n_iterations_max: ", parameters.n_iterations_max)
+  print(io,   "- timestep_gravity: ", parameters.timestep_gravity)
+end
+
+
+# TODO: Taal implement, AMR based on Euler, gravity adapts passively
+# TODO: Taal reafctor, output prepended with equation name or something similar
+"""
+    SemidiscretizationEulerGravity
+
+A struct containing everything needed to describe a spatial semidiscretization
+of a the compressible Euler equations with self-gravity, reformulating the
+Poisson equation for the gravitational potential as steady-state problem of
+the hyperblic diffusion equations.
+- Schlottke-Lakemper, Winters, Ranocha, Gassner (2020)
+  "A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics"
+  [arXiv: 2008.10593](https://arXiv.org/abs/2008.10593)
+"""
+struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
+                                      Parameters<:ParametersEulerGravity, Cache} <: AbstractSemidiscretization
+  semi_euler::SemiEuler
+  semi_gravity::SemiGravity
+  parameters::Parameters
+  performance_counter::PerformanceCounter
+  gravity_counter::PerformanceCounter
+  cache::Cache
+
+  function SemidiscretizationEulerGravity{SemiEuler, SemiGravity, Parameters, Cache}(
+      semi_euler::SemiEuler, semi_gravity::SemiGravity,
+      parameters::Parameters, cache::Cache) where {SemiEuler, SemiGravity,
+                                                   Parameters<:ParametersEulerGravity, Cache}
+    @assert ndims(semi_euler) == ndims(semi_gravity)
+    @assert typeof(semi_euler.mesh) == typeof(semi_gravity.mesh)
+    @assert polydeg(semi_euler.solver) == polydeg(semi_gravity.solver)
+
+    performance_counter = PerformanceCounter()
+    gravity_counter = PerformanceCounter()
+
+    new(semi_euler, semi_gravity, parameters, performance_counter, gravity_counter, cache)
+  end
+end
+
+function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters) where
+    {Mesh, SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
+           SemiGravity<:SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
+
+  u = compute_coefficients(0.0, semi_gravity)
+  du     = similar(u)
+  u_tmp1 = similar(u)
+  u_tmp2 = similar(u)
+  cache = (; u, du, u_tmp1, u_tmp2)
+
+  SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity), typeof(parameters), typeof(cache)}(
+    semi_euler, semi_gravity, parameters, cache)
+end
+
+# TODO: Taal bikeshedding, implement a method with reduced information and the signature
+# function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
+function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
+  println(io, "SemidiscretizationEulerGravity using")
+  print(io, "  "); show(io, mime, semi.semi_euler); println()
+  print(io, "  "); show(io, mime, semi.semi_gravity); println()
+  print(io, "  "); show(io, mime, semi.parameters); println()
+  print(io,   "- cache with fields:")
+  for key in keys(semi.cache)
+    print(io, " ", key)
+  end
+end
+
+
+@inline function mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)
+  mesh_equations_solver_cache(semi.semi_euler)
+end
+
+
+@inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
+  compute_coefficients(t, semi.semi_euler)
+end
+
+
+@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity)
+  calc_error_norms(func, u, t, analyzer, semi.semi_euler)
+end
+
+
+function rhs!(du, u, semi::SemidiscretizationEulerGravity, t)
+  @unpack semi_euler, semi_gravity, cache = semi
+
+  # standard semidiscretization of the compressible Euler equations
+  rhs!(du, u, semi_euler, t)
+
+  # compute gravitational potential and forces
+  update_gravity!(semi, u)
+
+  # add gravitational source source_terms to the Euler part
+  u_euler  = wrap_array(u , semi_euler)
+  du_euler = wrap_array(du, semi_euler)
+  u_gravity = wrap_array(cache.u, semi_gravity)
+  if ndims(semi_euler) == 2
+    @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
+    @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
+    @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
+                                     u_euler[3, .., :] * u_gravity[3, .., :])
+  elseif ndims(semi_euler) == 3
+    @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
+    @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
+    @views @. du_euler[4, .., :] -=  u_euler[1, .., :] * u_gravity[4, .., :]
+    @views @. du_euler[5, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
+                                     u_euler[3, .., :] * u_gravity[3, .., :] +
+                                     u_euler[4, .., :] * u_gravity[4, .., :])
+  else
+    error("Number of dimensions $(ndims(semi_euler)) not supported.")
+  end
+
+  return nothing
+end
+
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector)
+  @unpack semi_euler, semi_gravity, gravity_counter, parameters, cache = semi
+
+  u_euler = wrap_array(u, semi_euler)
+  u_gravity  = wrap_array(cache.u,  semi_gravity)
+  du_gravity = wrap_array(cache.du, semi_gravity)
+
+  # set up main loop
+  finalstep = false
+  @unpack n_iterations_max, cfl, timestep_gravity = parameters
+  @unpack resid_tol = semi_gravity.equations
+  iter = 0
+  t = zero(real(semi_gravity.solver))
+
+  # iterate gravity solver until convergence or maximum number of iterations are reached
+  @unpack equations = semi_gravity
+  while !finalstep
+    @timeit_debug timer() "calculate dt" dt = cfl * max_dt(u_gravity, t, semi_gravity.mesh, have_constant_speed(equations), equations,
+                                                     semi_gravity.solver, semi_gravity.cache)
+
+    # evolve solution by one pseudo-time step
+    time_start = time_ns()
+    timestep_gravity(cache, u_euler, t, dt, parameters, semi_gravity)
+    runtime = time_ns() - time_start
+    put!(gravity_counter, runtime)
+
+    # update iteration counter
+    iter += 1
+    t += dt
+
+    # check if we reached the maximum number of iterations
+    if n_iterations_max > 0 && iter >= n_iterations_max
+      # TODO: Taal debug
+      @error "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs, @views du_gravity[1, .., :]) t=t dt=dt
+      error()
+      finalstep = true
+    end
+
+    # this is an absolute tolerance check
+    if maximum(abs, @views du_gravity[1, .., :]) <= resid_tol
+      finalstep = true
+    end
+  end
+
+  return nothing
+end
+
+
+function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+                                  gamma1, gamma2, gamma3, beta, delta, c)
+  G    = gravity_parameters.gravitational_constant
+  rho0 = gravity_parameters.background_density
+  grav_scale = -4 * G * pi
+
+  @unpack u, du, u_tmp1, u_tmp2 = cache
+  u_tmp1 .= zero(eltype(u_tmp1))
+  u_tmp2 .= u
+  du_gravity = wrap_array(du, semi_gravity)
+  for stage in eachindex(c)
+    t_stage = t + dt * c[stage]
+    @timeit_debug timer() "rhs" rhs!(du, u, semi_gravity, t_stage)
+
+    # Source term: Jeans instability OR coupling convergence test OR blast wave
+    # put in gravity source term proportional to Euler density
+    # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
+    @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+
+    delta_stage   = delta[stage]
+    gamma1_stage  = gamma1[stage]
+    gamma2_stage  = gamma2[stage]
+    gamma3_stage  = gamma3[stage]
+    beta_stage_dt = beta[stage] * dt
+    @timeit_debug timer() "Runge-Kutta step" begin
+      Threads.@threads for idx in eachindex(u)
+        u_tmp1[idx] += delta_stage * u[idx]
+        u[idx]       = (gamma1_stage * u[idx] +
+                        gamma2_stage * u_tmp1[idx] +
+                        gamma3_stage * u_tmp2[idx] +
+                        beta_stage_dt * du[idx])
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 2
+  gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
+  gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03]
+  beta   = @SVector [4.5158640252832094E-01, 7.5974836561844006E-01, 3.7561630338850771E-01, 2.9356700007428856E-02, 2.5205285143494666E-01]
+  delta  = @SVector [1.0000000000000000E+00, 1.3011720142005145E-01, 2.6579275844515687E-01, 9.9687218193685878E-01, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00, 1.4280257701954349E+00, 7.1581334196229851E-01]
+
+  timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+                           gamma1, gamma2, gamma3, beta, delta, c)
+end

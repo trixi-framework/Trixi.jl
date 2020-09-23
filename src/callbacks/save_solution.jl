@@ -41,7 +41,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   mkpath(solution_callback.output_directory)
 
   semi = integrator.p
-  @unpack mesh = semi
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
   mesh.unsaved_changes = true
 
   if solution_callback.save_initial_solution
@@ -55,7 +55,7 @@ end
 function (solution_callback::SaveSolutionCallback)(integrator)
   @unpack u, t, dt, iter = integrator
   semi = integrator.p
-  @unpack mesh, equations, solver, cache = semi
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   @timeit_debug timer() "I/O" begin
     if mesh.unsaved_changes
@@ -67,6 +67,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     save_solution_file(u_wrapped, t, dt, iter, mesh, equations, solver, cache, solution_callback)
   end
 
+  u_modified!(integrator, false)
   return nothing
 end
 

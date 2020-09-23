@@ -20,15 +20,17 @@ function Base.put!(counter::PerformanceCounter, runtime::Real)
 end
 
 
+abstract type AbstractSemidiscretization end
 
-# TODO: Taal Mesh<:AbstractMesh{NDIMS}, Equations<:AbstractEquations{NDIMS} ?
+
+# TODO: Taal refactor, Mesh<:AbstractMesh{NDIMS}, Equations<:AbstractEquations{NDIMS} ?
 """
     SemidiscretizationHyperbolic
 
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
+struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache} <: AbstractSemidiscretization
   mesh::Mesh
 
   equations::Equations
@@ -95,7 +97,10 @@ end
 
 @inline nnodes(semi::SemidiscretizationHyperbolic) = nnodes(semi.solver)
 
-@inline ndofs(semi::SemidiscretizationHyperbolic) = ndofs(semi.mesh, semi.solver, semi.cache)
+@inline function ndofs(semi::AbstractSemidiscretization)
+  mesh, +, solver, cache = mesh_equations_solver_cache(semi)
+  ndofs(mesh, solver, cache)
+end
 
 
 
@@ -132,21 +137,33 @@ end
 end
 
 
-function integrate(func, semi::SemidiscretizationHyperbolic, u::AbstractVector, args...; normalize=true)
+@inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
+  return mesh, equations, solver, cache
+end
+
+
+function wrap_array(u::AbstractVector, semi::SemidiscretizationHyperbolic)
+  @unpack mesh, equations, solver, cache = semi
+  wrap_array(u, mesh, equations, solver, cache)
+end
+
+
+function integrate(func, semi::AbstractSemidiscretization, u::AbstractVector, args...; normalize=true)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u_wrapped = wrap_array(u, mesh, equations, solver, cache)
   integrate(func, mesh, equations, solver, cache, u_wrapped, args..., normalize=normalize)
 end
 
-function integrate(func, u::AbstractVector, semi::SemidiscretizationHyperbolic; normalize=true)
-  @unpack mesh, equations, solver, cache = semi
+function integrate(func, u::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u_wrapped = wrap_array(u, mesh, equations, solver, cache)
   integrate(func, u_wrapped, mesh, equations, solver, cache, normalize=normalize)
 end
 
-function integrate(u, semi::SemidiscretizationHyperbolic; normalize=true)
+function integrate(u, semi::AbstractSemidiscretization; normalize=true)
   integrate(cons2cons, u, semi; normalize=normalize)
 end
 
@@ -162,7 +179,7 @@ function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationHyperbol
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
-calc_error_norms(u, t, analyzer, semi::SemidiscretizationHyperbolic) = calc_error_norms(cons2cons, u, t, analyzer, semi)
+calc_error_norms(u, t, analyzer, semi::AbstractSemidiscretization) = calc_error_norms(cons2cons, u, t, analyzer, semi)
 
 
 function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
@@ -185,7 +202,7 @@ function compute_coefficients!(u, func, t, semi::SemidiscretizationHyperbolic)
 end
 
 
-function semidiscretize(semi::SemidiscretizationHyperbolic, tspan)
+function semidiscretize(semi::AbstractSemidiscretization, tspan)
   u0 = compute_coefficients(first(tspan), semi)
   return ODEProblem(rhs!, u0, tspan, semi)
 end

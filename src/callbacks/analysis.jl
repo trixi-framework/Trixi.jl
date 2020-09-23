@@ -11,6 +11,22 @@ mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, I
   initial_state_integrals::InitialStateIntegrals
 end
 
+
+# TODO: Taal bikeshedding, implement a method with less information and the signature
+# function Base.show(io::IO, analysis_callback::AnalysisCallback)
+# end
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
+  analysis_callback = cb.affect!
+  @unpack save_analysis, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
+  println(io, "AnalysisCallback with")
+  println(io, "- save_analysis: ", save_analysis)
+  println(io, "- analysis_filename: ", analysis_filename)
+  println(io, "- analyzer: ", analyzer)
+  println(io, "- analysis_errors: ", analysis_errors)
+  print(io,   "- analysis_integrals: ", analysis_integrals)
+end
+
+
 function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           analysis_interval=0,
                           save_analysis=false, analysis_filename="analysis.dat",
@@ -21,7 +37,7 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
   # when is the callback activated
   condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t in integrator.sol.prob.tspan)
 
-  @unpack equations, solver = semi
+  _, equations, solver, _ = mesh_equations_solver_cache(semi)
   analysis_callback = AnalysisCallback(0.0, save_analysis, analysis_filename, SolutionAnalyzer(solver),
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
@@ -31,9 +47,11 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                    initialize=initialize!)
 end
 
+
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
   initial_state_integrals = integrate(u, semi)
+  _, equations, _, _ = mesh_equations_solver_cache(semi)
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
@@ -45,32 +63,32 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
     @printf(io, "  %-14s", "time")
     @printf(io, "  %-14s", "dt")
     if :l2_error in analysis_errors
-      for v in varnames_cons(semi.equations)
+      for v in varnames_cons(equations)
         @printf(io, "   %-14s", "l2_" * v)
       end
     end
     if :linf_error in analysis_errors
-      for v in varnames_cons(semi.equations)
+      for v in varnames_cons(equations)
         @printf(io, "   %-14s", "linf_" * v)
       end
     end
     if :conservation_error in analysis_errors
-      for v in varnames_cons(semi.equations)
+      for v in varnames_cons(equations)
         @printf(io, "   %-14s", "cons_" * v)
       end
     end
     if :residual in analysis_errors
-      for v in varnames_cons(semi.equations)
+      for v in varnames_cons(equations)
         @printf(io, "   %-14s", "res_" * v)
       end
     end
     if :l2_error_primitive in analysis_errors
-      for v in varnames_prim(semi.equations)
+      for v in varnames_prim(equations)
         @printf(io, "   %-14s", "l2_" * v)
       end
     end
     if :linf_error_primitive in analysis_errors
-      for v in varnames_prim(semi.equations)
+      for v in varnames_prim(equations)
         @printf(io, "   %-14s", "linf_" * v)
       end
     end
@@ -88,25 +106,10 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
-# TODO: Taal bikeshedding, implement a method with less information and the signature
-# function Base.show(io::IO, analysis_callback::AnalysisCallback)
-# end
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
-  analysis_callback = cb.affect!
-  @unpack save_analysis, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
-  println(io, "AnalysisCallback with")
-  println(io, "- save_analysis: ", save_analysis)
-  println(io, "- analysis_filename: ", analysis_filename)
-  println(io, "- analyzer: ", analyzer)
-  println(io, "- analysis_errors: ", analysis_errors)
-  print(io,   "- analysis_integrals: ", analysis_integrals)
-end
-
-
 # TODO: Taal refactor, allow passing an IO object (which could be devnull to avoid cluttering the console)
 function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
-  @unpack mesh, equations, solver, cache = semi
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   @unpack dt, t, iter = integrator
   u = wrap_array(integrator.u, mesh, equations, solver, cache)
@@ -150,8 +153,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Open file for appending and store time step and time information
     if analysis_callback.save_analysis
       io = open(analysis_callback.analysis_filename, "a")
-      @printf(io, "% 9d", step)
-      @printf(io, "  %10.8e", time)
+      @printf(io, "% 9d", iter)
+      @printf(io, "  %10.8e", t)
       @printf(io, "  %10.8e", dt)
     end
 
@@ -275,6 +278,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
       close(io)
     end
   end
+
+  u_modified!(integrator, false)
 
   # Return errors for EOC analysis
   return l2_error, linf_error
