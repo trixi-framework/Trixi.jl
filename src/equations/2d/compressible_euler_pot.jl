@@ -36,13 +36,14 @@ function CompressibleEulerPotEquations2D()
   _grav = parameter("_grav",9.81)
   p0 = parameter("p0",1.e5)
   L00 = parameter("L00",2.5000e6 + (c_pl - c_pv) * 273.15)
+  println("L00 ",L00)
   cS = parameter("cS",360.e0)
 
   n=1000
   z=zeros(n+1)
   Val=zeros(n+1,4)
-  r_t0 = 2.e-2
-  θ_e0 = 320
+  r_t0 = 0 #2.e-2
+  θ_e0 = 300 #320
   Δz = 10
 
   function ResMoisture(z, y, yPrime)
@@ -212,6 +213,42 @@ function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::Co
   return nothing
 end
 
+function source_terms_moist_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerPotEquations2D)
+
+  RelCloud = 1
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    ρ = u[1, i, j, element_id]
+    ρ_θ = u[4, i, j, element_id]
+    ρ_qv = u[5, i, j, element_id]
+    ρ_qc = u[6, i, j, element_id]
+    ut[3, i, j, element_id] +=  -equation._grav * ρ
+
+    ρ_d = ρ - ρ_qv - ρ_qc
+    c_pml = equation.c_pd * ρ_d + equation.c_pv * ρ_qv + equation.c_pl * ρ_qc
+    c_vml = equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc
+    R_m   = equation.R_d * ρ_d + equation.R_v * ρ_qv
+    κ_M = R_m / c_pml
+    p = (equation.R_d * ρ_θ / equation.p0^κ_M)^(1 / (1 - κ_M))
+    T = p / R_m
+    T_C = T - 273.15
+    p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
+    a = p_vs / (equation.R_v * T) - ρ_qv
+    b = ρ_qc
+    ρ_q_cond = RelCloud * (a + b - sqrt(a * a + b * b))
+    L = equation.L00 - (equation.c_pl - equation.c_pv) * T
+    ut[4, i, j, element_id] += ρ_θ * ((-L / (c_pml * T) -
+                        log(p / equation.p0) * κ_M * (equation.R_v / R_m - equation.c_pv / c_pml) +
+                        equation.R_v / R_m) * ρ_q_cond +
+                        (log(p / equation.p0) * κ_M * (equation.c_pl / c_pml)) * (-ρ_q_cond))
+
+    ut[5, i, j, element_id] +=  ρ_q_cond
+    ut[6, i, j, element_id] += -ρ_q_cond
+  end
+  return nothing
+end
+
 """
 Moist bubble test from paper:
 Bryan, G. H., and J. M. Fritsch, 2002: 
@@ -246,26 +283,8 @@ function initial_conditions_moist_bubble(x, t, equation::CompressibleEulerPotEqu
   ρ_θ = ρ * (ρ_θ_r / ρ_r * (z - z_l) + ρ_θ_l / ρ_l * (z_r - z)) / equation.Δz
   ρ_qv = ρ * (ρ_qv_r / ρ_r * (z - z_l) + ρ_qv_l / ρ_l * (z_r - z)) / equation.Δz
   ρ_qc = ρ * (ρ_qc_r / ρ_r * (z - z_l) + ρ_qc_l / ρ_l * (z_r - z)) / equation.Δz
-  if z < 1
-    println(" z_l ",z_l, " ρ_θ_l ",ρ_θ_l)  
-    println(" z_r ",z_r, " ρ_θ_r ",ρ_θ_r)  
-    println(" z   ",z  , " ρ_θ   ",ρ_θ  )  
-  end  
 
   ρ, ρ_θ, ρ_qv, ρ_qc = PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleEulerPotEquations2D)
-
-  if z<200
-    ρ_d = ρ - ρ_qv - ρ_qc
-    κ_M = (equation.R_d * ρ_d + equation.R_v * ρ_qv) / (equation.c_pd * ρ_d + equation.c_pv * ρ_qv + equation.c_pl * ρ_qc)
-    p = (equation.R_d * ρ_θ / equation.p0^κ_M)^(1 / (1 - κ_M))
-    T = p / (equation.R_d * ρ_d + equation.R_v * ρ_qv)
-    p_d = equation.R_d * ρ_d * T
-    L = equation.L00 - (equation.c_pl - equation.c_pv) * T
-    AA = T * (p_d / equation.p0)^(-equation.R_d * ρ_d/
-         (equation.c_pd * ρ_d + equation.c_pl * (ρ_qv + ρ_qc))) * exp(L * ρ_qv / ((equation.c_pd * ρ_d + equation.c_pl * (ρ_qv + ρ_qc)) * T))
-    println(" AA ",AA," z ",z)     
-  end  
-
 
   ρ_v1 = 0
   ρ_v2 = 0
@@ -279,7 +298,7 @@ function PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleE
   xc = 0
   zc = 2000
   rc = 2000
-  Δθ_e = 2
+  Δθ = 2
 
   r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
   ρ_d = ρ - ρ_qv - ρ_qc
@@ -287,9 +306,9 @@ function PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleE
   p_loc = equation.p0 *(equation.R_d * ρ_θ / equation.p0)^(1/(1-κ_M))
   T_loc = p_loc / (equation.R_d * ρ_d + equation.R_v * ρ_qv)
 
-  if r < rc && Δθ_e > 0 
-    θ_dens = ρ_θ / ρ * (p_loc / equation.p0)^(κ_M - equation.κ) * (1 + Δθ_e * cospi(0.5*r/rc)^2 / 320)
-    θ_dens_new = θ_dens * (1 + Δθ_e * cospi(0.5*r/rc)^2 / 320)
+  if r < rc && Δθ > 0 
+    θ_dens = ρ_θ / ρ * (p_loc / equation.p0)^(κ_M - equation.κ)
+    θ_dens_new = θ_dens * (1 + Δθ * cospi(0.5*r/rc)^2 / 300)
     rt =(ρ_qv + ρ_qc) / ρ_d 
     rv = ρ_qv / ρ_d
     θ_loc = θ_dens_new * (1 + rt)/(1 + (equation.R_v / equation.R_d) * rv)
@@ -528,7 +547,8 @@ function cons2pot(cons, equation::CompressibleEulerPotEquations2D)
   @. pot[3, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
 # @. pot[4, :, :, :] = cons[4, :, :, :] / cons[1, :, :, :]
   @. pot[5, :, :, :] = cons[5, :, :, :] / cons[1, :, :, :]
-  @. pot[6, :, :, :] = cons[6, :, :, :] / cons[1, :, :, :]
+  @. T = cons[1, :, :, :] - cons[5, :, :, :] - cons[6, :, :, :]
+  @. pot[6, :, :, :] = (cons[6, :, :, :] + cons[5, :, :, :]) / T
   return pot
 end
 

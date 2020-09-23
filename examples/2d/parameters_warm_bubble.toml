@@ -30,8 +30,8 @@ shock_alpha_max = 0.05
 shock_alpha_min = 0.0001
 #volume_integral_type = "shock_capturing"
 #volume_integral_type = "new_trick"
-volume_integral_type = "split_form"
-#volume_integral_type = "weak_form"
+#volume_integral_type = "split_form"
+volume_integral_type = "weak_form"
 #volume_integral_type = "entropy_fix"
 #volume_integral_type = "entropy_fix2"
 #
@@ -40,9 +40,9 @@ surface_flux = "flux_lmars"
 #surface_flux = "flux_chandrashekar"
 #surface_flux = "flux_shima_etal"
 #
-volume_flux = "flux_shima_etal"
+#volume_flux = "flux_shima_etal"
 #volume_flux = "flux_chandrashekar"
-#volume_flux = "flux_central"
+volume_flux = "flux_central"
 
 ####################################################################################################
 # Mesh
