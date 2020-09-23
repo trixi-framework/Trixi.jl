@@ -76,7 +76,7 @@ export TreeMesh
 export DGSEM,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing
 
-export Semidiscretization, semidiscretize, compute_coefficients
+export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback
 

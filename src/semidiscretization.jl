@@ -23,12 +23,12 @@ end
 
 # TODO: Taal Mesh<:AbstractMesh{NDIMS}, Equations<:AbstractEquations{NDIMS} ?
 """
-    Semidiscretization
+    SemidiscretizationHyperbolic
 
-A struct containing everything needed to describe a spatial Semidiscretization
+A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
+struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
   mesh::Mesh
 
   equations::Equations
@@ -48,7 +48,7 @@ struct Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions
 
   performance_counter::PerformanceCounter
 
-  function Semidiscretization{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}(
+  function SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}(
       mesh::Mesh, equations::Equations,
       initial_conditions::InitialConditions, boundary_conditions::BoundaryConditions,
       source_terms::SourceTerms,
@@ -63,20 +63,20 @@ end
 
 @inline source_terms_nothing(args...) = nothing
 
-function Semidiscretization(mesh, equations, initial_conditions, solver;
+function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
                             source_terms=source_terms_nothing,
                             boundary_conditions=nothing, RealT=real(solver))
 
   cache = create_cache(mesh, equations, boundary_conditions, solver, RealT)
 
-  Semidiscretization{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
+  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
 end
 
 # TODO: Taal bikeshedding, implement a method with reduced information and the signature
-# function Base.show(io::IO, semi::Semidiscretization)
-function Base.show(io::IO, ::MIME"text/plain", semi::Semidiscretization)
-  println(io, "Semidiscretization using")
+# function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
+function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
+  println(io, "SemidiscretizationHyperbolic using")
   println(io, "- ", semi.mesh)
   println(io, "- ", semi.equations)
   println(io, "- ", semi.initial_conditions)
@@ -89,42 +89,42 @@ function Base.show(io::IO, ::MIME"text/plain", semi::Semidiscretization)
 end
 
 
-@inline Base.ndims(semi::Semidiscretization) = ndims(semi.mesh)
+@inline Base.ndims(semi::SemidiscretizationHyperbolic) = ndims(semi.mesh)
 
-@inline nvariables(semi::Semidiscretization) = nvariables(semi.equations)
+@inline nvariables(semi::SemidiscretizationHyperbolic) = nvariables(semi.equations)
 
-@inline nnodes(semi::Semidiscretization) = nnodes(semi.solver)
+@inline nnodes(semi::SemidiscretizationHyperbolic) = nnodes(semi.solver)
 
-@inline ndofs(semi::Semidiscretization) = ndofs(semi.mesh, semi.solver, semi.cache)
+@inline ndofs(semi::SemidiscretizationHyperbolic) = ndofs(semi.mesh, semi.solver, semi.cache)
 
 
 
-@inline function get_node_coords(x, semi::Semidiscretization, indices...)
+@inline function get_node_coords(x, semi::SemidiscretizationHyperbolic, indices...)
   @unpack equations, solver = semi
 
   get_node_coords(x, equations, solver, indices...)
 end
 
-@inline function get_node_vars(u, semi::Semidiscretization, indices...)
+@inline function get_node_vars(u, semi::SemidiscretizationHyperbolic, indices...)
   @unpack equations, solver = semi
 
   get_node_vars(u, equations, solver, indices...)
 end
 
-@inline function get_surface_node_vars(u, semi::Semidiscretization, indices...)
+@inline function get_surface_node_vars(u, semi::SemidiscretizationHyperbolic, indices...)
   @unpack equations, solver = semi
 
   get_surface_node_vars(u, equations, solver, indices...)
 end
 
-@inline function set_node_vars!(u, u_node, semi::Semidiscretization, indices...)
+@inline function set_node_vars!(u, u_node, semi::SemidiscretizationHyperbolic, indices...)
   @unpack equations, solver = semi
 
   set_node_vars!(u, u_node, equations, solver, indices...)
   return nothing
 end
 
-@inline function add_to_node_vars!(u, u_node, semi::Semidiscretization, indices...)
+@inline function add_to_node_vars!(u, u_node, semi::SemidiscretizationHyperbolic, indices...)
   @unpack equations, solver = semi
 
   add_to_node_vars!(u, u_node, equations, solver, indices...)
@@ -132,44 +132,44 @@ end
 end
 
 
-function integrate(func, semi::Semidiscretization, u::AbstractVector, args...; normalize=true)
+function integrate(func, semi::SemidiscretizationHyperbolic, u::AbstractVector, args...; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
   u_wrapped = wrap_array(u, mesh, equations, solver, cache)
   integrate(func, mesh, equations, solver, cache, u_wrapped, args..., normalize=normalize)
 end
 
-function integrate(func, u::AbstractVector, semi::Semidiscretization; normalize=true)
+function integrate(func, u::AbstractVector, semi::SemidiscretizationHyperbolic; normalize=true)
   @unpack mesh, equations, solver, cache = semi
 
   u_wrapped = wrap_array(u, mesh, equations, solver, cache)
   integrate(func, u_wrapped, mesh, equations, solver, cache, normalize=normalize)
 end
 
-function integrate(u, semi::Semidiscretization; normalize=true)
+function integrate(u, semi::SemidiscretizationHyperbolic; normalize=true)
   integrate(cons2cons, u, semi; normalize=normalize)
 end
 
 
-function calc_error_norms(func, u::AbstractVector, t, analyzer, semi::Semidiscretization)
+function calc_error_norms(func, u::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
   u_wrapped = wrap_array(u, mesh, equations, solver, cache)
 
   calc_error_norms(func, u_wrapped, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
-function calc_error_norms(func, u, t, analyzer, semi::Semidiscretization)
+function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
-calc_error_norms(u, t, analyzer, semi::Semidiscretization) = calc_error_norms(cons2cons, u, t, analyzer, semi)
+calc_error_norms(u, t, analyzer, semi::SemidiscretizationHyperbolic) = calc_error_norms(cons2cons, u, t, analyzer, semi)
 
 
-function compute_coefficients(t, semi::Semidiscretization)
+function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
   compute_coefficients(semi.initial_conditions, t, semi)
 end
 
-function compute_coefficients(func, t, semi::Semidiscretization)
+function compute_coefficients(func, t, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
 
   u = allocate_coefficients(mesh, equations, solver, cache)
@@ -178,21 +178,21 @@ function compute_coefficients(func, t, semi::Semidiscretization)
   return u
 end
 
-function compute_coefficients!(u, func, t, semi::Semidiscretization)
+function compute_coefficients!(u, func, t, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
 
   compute_coefficients!(u, func, t, mesh, equations, solver, cache)
 end
 
 
-function semidiscretize(semi::Semidiscretization, tspan)
+function semidiscretize(semi::SemidiscretizationHyperbolic, tspan)
   u0 = compute_coefficients(first(tspan), semi)
   return ODEProblem(rhs!, u0, tspan, semi)
 end
 
 
 # TODO: Taal better name
-function rhs!(du, u, semi::Semidiscretization, t)
+function rhs!(du, u, semi::SemidiscretizationHyperbolic, t)
   @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
 
   u_wrapped  = wrap_array(u,  mesh, equations, solver, cache)

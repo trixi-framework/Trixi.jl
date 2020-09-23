@@ -22,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = Semidiscretization(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
@@ -49,6 +49,5 @@ callbacks = CallbackSet(stepsize_callback, analysis_callback, save_solution, ali
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-# sol = solve(ode, Tsit5(), save_everystep=false, callback=callbacks);
 
 nothing

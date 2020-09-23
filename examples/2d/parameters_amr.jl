@@ -22,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = Semidiscretization(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)

@@ -1,5 +1,5 @@
 
-mutable struct AMRCallback{RealT<:Real, Indicator, Cache}
+mutable struct AMRCallback{RealT<:Real, Indicator, Adaptor, Cache}
   interval::Int
   threshold_refinement::RealT
   threshold_coarsening::RealT

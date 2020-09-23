@@ -11,7 +11,7 @@ mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, I
   initial_state_integrals::InitialStateIntegrals
 end
 
-function AnalysisCallback(semi::Semidiscretization;
+function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           analysis_interval=0,
                           save_analysis=false, analysis_filename="analysis.dat",
                           extra_analysis_errors=Symbol[],
