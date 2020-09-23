@@ -211,6 +211,7 @@ function init_simulation()
           | | #elements:        $(solver.n_elements)
           | | #interfaces:      $(solver.n_interfaces)
           | | #boundaries:      $(solver.n_boundaries)
+          | | #l2mortars:       $(solver.n_l2mortars)
           | | #DOFs:            $(ndofs(solver))
           |
           | Mesh
