@@ -104,7 +104,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity]
+  if equation isa AbstractHyperbolicDiffusionEquations && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
   end
   dhat = calc_dhat(nodes, weights)
@@ -215,27 +215,17 @@ function create_thread_cache_1d(n_variables, n_nodes)
   A2dp1_x = Array{Float64, 2}
 
   MA1d    = MArray{Tuple{n_variables, n_nodes}, Float64}
-  A1d     = Array{Float64, 1}
 
-  # Pre-allocate data structures to speed up computation (thread-safe)                                          #TODO
+  # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded     = A3d[A3d(undef, n_variables, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  #f2_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   fstar1_threaded = A2dp1_x[A2dp1_x(undef, n_variables, n_nodes+1) for _ in 1:Threads.nthreads()]
-  #fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded           = [MA1d(undef) for _ in 1:Threads.nthreads()]
-  #fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_threaded = [MA1d(undef) for _ in 1:Threads.nthreads()]
-#  noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
 
   indicator_threaded  = [A2d(undef, 1, n_nodes) for _ in 1:Threads.nthreads()]
   modal_threaded      = [A2d(undef, 1, n_nodes) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A2d(undef, 1, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded,
             fstar1_threaded,
-            fstar_upper_threaded, #fstar_lower_threaded,
-            noncons_diamond_upper_threaded, #noncons_diamond_lower_threaded,
-            indicator_threaded, modal_threaded, modal_tmp1_threaded)
+            indicator_threaded, modal_threaded)
 end
 
 
@@ -1434,62 +1424,6 @@ function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{fa
 end
 
 
-# Calculate and store Riemann and nonconservative fluxes across interfaces
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg1D)
-  #TODO temporary workaround while implementing the other stuff
-  calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u,
-                       nonconservative_terms, dg.interfaces.orientations, dg, dg.thread_cache)
-end
-
-function calc_interface_flux!(surface_flux_values, neighbor_ids,
-                              u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg1D, thread_cache)
-  fstar_threaded                     = thread_cache.fstar_upper_threaded
-  noncons_diamond_primary_threaded   = thread_cache.noncons_diamond_upper_threaded
-  noncons_diamond_secondary_threaded = thread_cache.noncons_diamond_lower_threaded
-
-  Threads.@threads for s in 1:dg.n_interfaces
-    # Choose thread-specific pre-allocated container
-    fstar                     = fstar_threaded[Threads.threadid()]
-    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
-    noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
-
-    # Calculate flux
-    calc_fstar!(fstar, u_interfaces, s, orientations, dg)
-
-    # Compute the nonconservative numerical "flux" along an interface
-    # Done twice because left/right orientation matters så
-    # 1 -> primary element and 2 -> secondary element
-    # See Bohm et al. 2018 for details on the nonconservative diamond "flux"
-
-    # Call pointwise nonconservative term
-    u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, s)
-    noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[s], equations(dg))
-    noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[s], equations(dg))
-    # Save to primary and secondary temporay storage
-    set_node_vars!(noncons_diamond_primary,   noncons_primary,   dg)
-    set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg)
-
-    # Get neighboring elements
-    left_neighbor_id  = neighbor_ids[1, s]
-    right_neighbor_id = neighbor_ids[2, s]
-
-    # Determine interface direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    left_neighbor_direction  = 2 * orientations[s]
-    right_neighbor_direction = 2 * orientations[s] - 1
-
-    # Copy flux to left and right element storage
-    for v in 1:nvariables(dg)
-      surface_flux_values[v, left_neighbor_direction,  left_neighbor_id]  = (fstar[v] +
-          noncons_diamond_primary[v])
-      surface_flux_values[v, right_neighbor_direction, right_neighbor_id] = (fstar[v] +
-          noncons_diamond_secondary[v])
-    end
-  end
-end
-
-
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
 calc_boundary_flux!(dg::Dg1D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
@@ -1597,7 +1531,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
                                 indicator_variable, thread_cache, dg::Dg1D)
   # temporary buffers
-  @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
+  @unpack indicator_threaded, modal_threaded = thread_cache
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
