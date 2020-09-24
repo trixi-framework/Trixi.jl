@@ -19,15 +19,23 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [9.144681765639205e-6],
             linf = [6.437440532547356e-5])
   end
+
+  @testset "parameters_mortar.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_mortar.jl"),
+            l2   = [0.022356422238096973],
+            linf = [0.5043638249003257])
+  end
+
   @testset "parameters_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_ec.jl"),
             l2   = [0.06169846095311385, 0.05016515041472451, 0.05017264946347607, 0.22577667054257733],
             linf = [0.2954432920699207, 0.30754595417690045, 0.3074869003416839, 1.053744736882769])
   end
-  @testset "parameters_mortar.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_mortar.jl"),
-            l2   = [0.022356422238096973],
-            linf = [0.5043638249003257])
+
+  @testset "parameters_source_terms.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_source_terms.jl"),
+            l2   = [8.120578592425209e-6, 1.0733370429867915e-5, 1.073337042980614e-5, 3.753181552467947e-5],
+            linf = [1.875169907283869e-5, 2.487814009000111e-5, 2.48781400904452e-5, 9.571137504771343e-5])
   end
 end
 

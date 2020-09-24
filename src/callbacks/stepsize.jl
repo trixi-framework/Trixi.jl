@@ -32,16 +32,20 @@ end
 
 
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
-  @unpack u, t = integrator
-  semi = integrator.p
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  @unpack cfl_number = stepsize_callback
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
+  if !integrator.opts.adaptive
+    @unpack u, t = integrator
+    semi = integrator.p
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    @unpack cfl_number = stepsize_callback
+    u_wrapped = wrap_array(u, mesh, equations, solver, cache)
 
-  @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u_wrapped, t, mesh, have_constant_speed(equations), equations, solver, cache)
-  set_proposed_dt!(integrator, dt)
-  integrator.opts.dtmax = dt
-  integrator.dtcache = dt
+    @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u_wrapped, t, mesh, have_constant_speed(equations), equations, solver, cache)
+    set_proposed_dt!(integrator, dt)
+    integrator.opts.dtmax = dt
+    integrator.dtcache = dt
+  end
+
   u_modified!(integrator, false)
   return nothing
 end

@@ -46,6 +46,5 @@ callbacks = CallbackSet(stepsize_callback, analysis_callback, save_solution, ali
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-# sol = solve(ode, Tsit5(), save_everystep=false, callback=callbacks);
 
 nothing

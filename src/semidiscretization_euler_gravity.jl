@@ -79,8 +79,19 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     semi_euler, semi_gravity, parameters, cache)
 end
 
-# TODO: Taal bikeshedding, implement a method with reduced information and the signature
-# function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
+function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
+  print(io, "SemidiscretizationEulerGravity using")
+  print(io,       semi.semi_euler)
+  print(io, ", ", semi.semi_gravity)
+  print(io, ", ", semi.parameters)
+  print(io, ", cache(")
+  for (idx,key) in enumerate(keys(semi.cache))
+    idx > 1 && print(io, " ")
+    print(io, key)
+  end
+  print(io, "))")
+end
+
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
   println(io, "SemidiscretizationEulerGravity using")
   print(io, "  "); show(io, mime, semi.semi_euler); println()
@@ -141,6 +152,7 @@ function rhs!(du, u, semi::SemidiscretizationEulerGravity, t)
 end
 
 
+# TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
 function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector)
   @unpack semi_euler, semi_gravity, gravity_counter, parameters, cache = semi
 

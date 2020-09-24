@@ -574,7 +574,21 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
 end
 
 
-# TODO: Taal implement
+# TODO: Taal refactor, make source terms pointwise, possibly using traits to decide if they depend on u, if necessary for performance?
+function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms::Nothing, equations, dg::DG, cache)
+  return nothing
+end
+
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations, dg::DG, cache)
-  @assert source_terms === source_terms_nothing
+
+  Threads.@threads for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+      du_local = source_terms(u_local, x_local, t, equations)
+      add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+    end
+  end
+
+  return nothing
 end

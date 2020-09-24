@@ -421,6 +421,32 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
+function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations2D)
+  # Same settings as in `initial_conditions`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equation.gamma
+
+  x1, x2 = x
+  si, co = sincos((x1 + x2 - t)*ω)
+  tmp1 = co * A * ω
+  tmp2 = si * A
+  tmp3 = γ - 1
+  tmp4 = (2*c - 1)*tmp3
+  tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
+  tmp6 = tmp2 + c
+
+  du1 = tmp1
+  du2 = tmp5
+  du3 = tmp5
+  du4 = 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+
+  return SVector(du1, du2, du3, du4)
+end
+
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
   c = 2.0

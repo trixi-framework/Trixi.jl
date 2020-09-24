@@ -227,6 +227,17 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   return nothing
 end
 
+function source_terms_harmonic(u, x, t, equation::HyperbolicDiffusionEquations2D)
+  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  inv_Tr = inv(equation.Tr)
+  phi, q1, q2 = u
+
+  du2 = -inv_Tr * q1
+  du3 = -inv_Tr * q2
+
+  return SVector(0, du2, du3)
+end
+
 # The coupled EOC test does not require additional sources
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
   return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)

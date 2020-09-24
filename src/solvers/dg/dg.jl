@@ -217,6 +217,7 @@ DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegra
 
 SolutionAnalyzer(dg::DG) = SolutionAnalyzer(dg.basis)
 
+
 # Include 2D implementation
 include("2d/containers.jl")
 include("2d/dg.jl")

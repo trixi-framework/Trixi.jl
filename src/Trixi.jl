@@ -72,7 +72,7 @@ export flux_central, flux_lax_friedrichs, flux_hll,
 export initial_conditions_convergence_test,
        initial_conditions_weak_blast_wave, initial_conditions_gauss
 
-export source_terms_harmonic
+export source_terms_convergence_test, source_terms_harmonic
 
 export TreeMesh
 

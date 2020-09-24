@@ -63,11 +63,9 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   end
 end
 
-@inline source_terms_nothing(args...) = nothing
-
 function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
-                            source_terms=source_terms_nothing,
-                            boundary_conditions=nothing, RealT=real(solver))
+                                      source_terms=nothing,
+                                      boundary_conditions=nothing, RealT=real(solver))
 
   cache = create_cache(mesh, equations, boundary_conditions, solver, RealT)
 
@@ -76,7 +74,21 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solve
 end
 
 # TODO: Taal bikeshedding, implement a method with reduced information and the signature
-# function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
+function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
+  print(io, "SemidiscretizationHyperbolic(")
+  print(io,       semi.mesh)
+  print(io, ", ", semi.equations)
+  print(io, ", ", semi.initial_conditions)
+  print(io, ", ", semi.boundary_conditions)
+  print(io, ", ", semi.source_terms)
+  print(io, ", cache(")
+  for (idx,key) in enumerate(keys(semi.cache))
+    idx > 1 && print(io, " ")
+    print(io, key)
+  end
+  print(io, "))")
+end
+
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
   println(io, "SemidiscretizationHyperbolic using")
   println(io, "- ", semi.mesh)
