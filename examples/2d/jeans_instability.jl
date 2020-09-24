@@ -53,11 +53,31 @@ ode = semidiscretize(semi, tspan);
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
+
+Trixi.pretty_form_repl(::Val{:energy_potential}) = "∑e_potential"
+Trixi.pretty_form_file(::Val{:energy_potential}) = "e_potential"
+
+function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::SemidiscretizationEulerGravity)
+
+  u_gravity = Trixi.wrap_array(semi.cache.u, semi.semi_gravity)
+
+  mesh, equations_euler, dg, cache = Trixi.mesh_equations_solver_cache(semi.semi_euler)
+  _, equations_gravity, _, _ = Trixi.mesh_equations_solver_cache(semi.semi_gravity)
+
+  e_potential = Trixi.integrate(mesh, equations_euler, dg, cache, u_euler, equations_gravity, u_gravity) do u, i, j, element, equations_euler, dg, equations_gravity, u_gravity
+    u_euler_local   = Trixi.get_node_vars(u_euler,   equations_euler,   dg, i, j, element)
+    u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
+    # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
+    return (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+  end
+  return e_potential
+end
+
 analysis_callback = AnalysisCallback(semi_euler, analysis_interval=analysis_interval,
                                      save_analysis=true,
-                                     extra_analysis_integrals=(entropy, energy_total))
-# TODO: Taal implement, energy_kinetic, energy_internal, energy_potential
-# TODO: Taal implement, analysis specific to Euler+gravity ?
+                                     extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
+
+# TODO: Taal implement, more analysis specific to Euler+gravity ?
 # TODO: Taal implement, saving solutions etc. specific to Euler+gravity ?
 
 save_solution = SaveSolutionCallback(solution_interval=10,

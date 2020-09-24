@@ -271,7 +271,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # additional
     for quantity in analysis_integrals
-      res = analyze(quantity, du, u, t, mesh, equations, solver, cache)
+      res = analyze(quantity, du, u, t, semi)
       @printf(" %-12s:", pretty_form_repl(quantity))
       @printf("  % 10.8e", res)
       analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
@@ -308,6 +308,10 @@ end
 # some common analysis_integrals
 # to support another analysis integral, you can overload
 # Trixi.analyze, Trixi.pretty_form_repl, Trixi.pretty_form_file
+@inline function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  analyze(quantity, du, u, t, mesh, equations, solver, cache)
+end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
   integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
 end
@@ -323,6 +327,12 @@ pretty_form_repl(::typeof(entropy)) = "∑S"
 
 pretty_form_repl(::typeof(energy_total)) = "∑e_total"
 pretty_form_file(::typeof(energy_total)) = "e_total"
+
+pretty_form_repl(::typeof(energy_kinetic)) = "∑e_kinetic"
+pretty_form_file(::typeof(energy_kinetic)) = "e_kinetic"
+
+pretty_form_repl(::typeof(energy_internal)) = "∑e_internal"
+pretty_form_file(::typeof(energy_internal)) = "e_internal"
 
 
 # specialized implementations specific to some solvers

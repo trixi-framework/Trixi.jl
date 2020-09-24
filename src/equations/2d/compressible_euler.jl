@@ -937,8 +937,9 @@ end
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::CompressibleEulerEquations2D)
-  return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
+@inline function energy_kinetic(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+  return (rho_v1^2 + rho_v2^2) / (2 * rho)
 end
 
 

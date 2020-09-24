@@ -85,7 +85,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_
 
 export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback
 
-export entropy, energy_total
+export entropy, energy_total, energy_kinetic, energy_internal
 
 export examples_dir, get_examples, default_example
 
