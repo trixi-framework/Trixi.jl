@@ -122,16 +122,19 @@ end
 function rhs!(du, u, semi::SemidiscretizationEulerGravity, t)
   @unpack semi_euler, semi_gravity, cache = semi
 
-  # standard semidiscretization of the compressible Euler equations
-  rhs!(du, u, semi_euler, t)
-
-  # compute gravitational potential and forces
-  update_gravity!(semi, u)
-
-  # add gravitational source source_terms to the Euler part
   u_euler  = wrap_array(u , semi_euler)
   du_euler = wrap_array(du, semi_euler)
   u_gravity = wrap_array(cache.u, semi_gravity)
+
+  time_start = time_ns()
+
+  # standard semidiscretization of the compressible Euler equations
+  @timeit_debug timer() "Euler solver" rhs!(du, u, semi_euler, t)
+
+  # compute gravitational potential and forces
+  @timeit_debug timer() "gravity solver" update_gravity!(semi, u)
+
+  # add gravitational source source_terms to the Euler part
   if ndims(semi_euler) == 2
     @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
     @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
@@ -148,13 +151,16 @@ function rhs!(du, u, semi::SemidiscretizationEulerGravity, t)
     error("Number of dimensions $(ndims(semi_euler)) not supported.")
   end
 
+  runtime = time_ns() - time_start
+  put!(semi.performance_counter, runtime)
+
   return nothing
 end
 
 
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
 function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector)
-  @unpack semi_euler, semi_gravity, gravity_counter, parameters, cache = semi
+  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
   u_euler = wrap_array(u, semi_euler)
   u_gravity  = wrap_array(cache.u,  semi_gravity)
@@ -185,9 +191,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector
 
     # check if we reached the maximum number of iterations
     if n_iterations_max > 0 && iter >= n_iterations_max
-      # TODO: Taal debug
       @error "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs, @views du_gravity[1, .., :]) t=t dt=dt
-      error()
       finalstep = true
     end
 
@@ -213,7 +217,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
   du_gravity = wrap_array(du, semi_gravity)
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit_debug timer() "rhs" rhs!(du, u, semi_gravity, t_stage)
+    @timeit_debug timer() "rhs!" rhs!(du, u, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density

@@ -4,6 +4,7 @@
 mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
   start_time::Float64
   save_analysis::Bool
+  output_directory::String
   analysis_filename::String
   analyzer::Analyzer
   analysis_errors::Vector{Symbol}
@@ -17,9 +18,10 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
-  @unpack save_analysis, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
+  @unpack save_analysis, output_directory, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
   println(io, "AnalysisCallback with")
   println(io, "- save_analysis: ", save_analysis)
+  println(io, "- output_directory: ", output_directory)
   println(io, "- analysis_filename: ", analysis_filename)
   println(io, "- analyzer: ", analyzer)
   println(io, "- analysis_errors: ", analysis_errors)
@@ -29,7 +31,9 @@ end
 
 function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           analysis_interval=0,
-                          save_analysis=false, analysis_filename="analysis.dat",
+                          save_analysis=false,
+                          output_directory="out",
+                          analysis_filename="analysis.dat",
                           extra_analysis_errors=Symbol[],
                           analysis_errors=union(default_analysis_errors(semi.equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
@@ -38,7 +42,7 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
   condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t in integrator.sol.prob.tspan)
 
   _, equations, solver, _ = mesh_equations_solver_cache(semi)
-  analysis_callback = AnalysisCallback(0.0, save_analysis, analysis_filename, SolutionAnalyzer(solver),
+  analysis_callback = AnalysisCallback(0.0, save_analysis, output_directory, analysis_filename, SolutionAnalyzer(solver),
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
 
@@ -55,49 +59,54 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   analysis_callback = cb.affect!
   analysis_callback.initial_state_integrals = initial_state_integrals
-  @unpack save_analysis, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+  @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
-  # write header of output file
-  save_analysis && open(analysis_filename, "w") do io
-    @printf(io, "#%-8s", "timestep")
-    @printf(io, "  %-14s", "time")
-    @printf(io, "  %-14s", "dt")
-    if :l2_error in analysis_errors
-      for v in varnames_cons(equations)
-        @printf(io, "   %-14s", "l2_" * v)
+  if save_analysis
+    mkpath(output_directory)
+
+    # write header of output file
+    open(joinpath(output_directory, analysis_filename), "w") do io
+      @printf(io, "#%-8s", "timestep")
+      @printf(io, "  %-14s", "time")
+      @printf(io, "  %-14s", "dt")
+      if :l2_error in analysis_errors
+        for v in varnames_cons(equations)
+          @printf(io, "   %-14s", "l2_" * v)
+        end
       end
-    end
-    if :linf_error in analysis_errors
-      for v in varnames_cons(equations)
-        @printf(io, "   %-14s", "linf_" * v)
+      if :linf_error in analysis_errors
+        for v in varnames_cons(equations)
+          @printf(io, "   %-14s", "linf_" * v)
+        end
       end
-    end
-    if :conservation_error in analysis_errors
-      for v in varnames_cons(equations)
-        @printf(io, "   %-14s", "cons_" * v)
+      if :conservation_error in analysis_errors
+        for v in varnames_cons(equations)
+          @printf(io, "   %-14s", "cons_" * v)
+        end
       end
-    end
-    if :residual in analysis_errors
-      for v in varnames_cons(equations)
-        @printf(io, "   %-14s", "res_" * v)
+      if :residual in analysis_errors
+        for v in varnames_cons(equations)
+          @printf(io, "   %-14s", "res_" * v)
+        end
       end
-    end
-    if :l2_error_primitive in analysis_errors
-      for v in varnames_prim(equations)
-        @printf(io, "   %-14s", "l2_" * v)
+      if :l2_error_primitive in analysis_errors
+        for v in varnames_prim(equations)
+          @printf(io, "   %-14s", "l2_" * v)
+        end
       end
-    end
-    if :linf_error_primitive in analysis_errors
-      for v in varnames_prim(equations)
-        @printf(io, "   %-14s", "linf_" * v)
+      if :linf_error_primitive in analysis_errors
+        for v in varnames_prim(equations)
+          @printf(io, "   %-14s", "linf_" * v)
+        end
       end
+
+      for quantity in analysis_integrals
+        @printf(io, "   %-14s", pretty_form_file(quantity))
+      end
+
+      println(io)
     end
 
-    for quantity in analysis_integrals
-      @printf(io, "   %-14s", pretty_form_file(quantity))
-    end
-
-    println(io)
   end
 
   analysis_callback.start_time = time_ns()
@@ -152,7 +161,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # Open file for appending and store time step and time information
     if analysis_callback.save_analysis
-      io = open(analysis_callback.analysis_filename, "a")
+      io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
       @printf(io, "% 9d", iter)
       @printf(io, "  %10.8e", t)
       @printf(io, "  %10.8e", dt)
