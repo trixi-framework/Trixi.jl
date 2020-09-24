@@ -42,8 +42,8 @@ function CompressibleEulerPotEquations2D()
   n=1000
   z=zeros(n+1)
   Val=zeros(n+1,4)
-  r_t0 = 0 #2.e-2
-  θ_e0 = 300 #320
+  r_t0 = 2.e-2
+  θ_e0 = 320
   Δz = 10
 
   function ResMoisture(z, y, yPrime)
@@ -193,7 +193,7 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerPotEqua
   π_exner = 1 - equation._grav / (equation.c_pd * θ) * x[2] # exner pressure
   ρ = equation.p0 / (equation.R_d * θ) * (π_exner)^(equation.c_vd / equation.R_d) # density
 
-  v1 = 0
+  v1 = 20
   v2 = 0
   ρ_v1 = ρ * v1
   ρ_v2 = ρ * v2
@@ -286,8 +286,10 @@ function initial_conditions_moist_bubble(x, t, equation::CompressibleEulerPotEqu
 
   ρ, ρ_θ, ρ_qv, ρ_qc = PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleEulerPotEquations2D)
 
-  ρ_v1 = 0
-  ρ_v2 = 0
+  v1 = 20
+  v2 = 0
+  ρ_v1 = ρ * v1
+  ρ_v2 = ρ * v2
 
   return @SVector [ρ, ρ_v1, ρ_v2, ρ_θ, ρ_qv, ρ_qc]
 end
