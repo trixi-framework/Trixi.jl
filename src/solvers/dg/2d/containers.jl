@@ -2,7 +2,8 @@
 # Container data structure (structure-of-arrays style) for DG elements
 # TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
+# TODO: Taal refactor, mutable struct or resize! for AMR?
+mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                   # [variables, i, j, elements]
   u_t::Array{RealT, 4}                 # [variables, i, j, elements]
   u_tmp2::Array{RealT, 4}              # [variables, i, j, elements]
@@ -12,6 +13,19 @@ struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   surface_ids::Matrix{Int}             # [direction, elements]
   surface_flux_values::Array{RealT, 4} # [variables, i, direction, elements]
   cell_ids::Vector{Int}                # [elements]
+end
+
+function Base.copy!(dst::ElementContainer2D, src::ElementContainer2D)
+  dst.u = src.u
+  dst.u_t = src.u_t
+  dst.u_tmp2 = src.u_tmp2
+  dst.u_tmp3 = src.u_tmp3
+  dst.inverse_jacobian = src.inverse_jacobian
+  dst.node_coordinates = src.node_coordinates
+  dst.surface_ids = src.surface_ids
+  dst.surface_flux_values = src.surface_flux_values
+  dst.cell_ids = src.cell_ids
+  return nothing
 end
 
 
@@ -45,10 +59,18 @@ nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-struct InterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
+# TODO: Taal refactor, mutable struct or resize! for AMR?
+mutable struct InterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}        # [leftright, variables, i, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
+end
+
+function Base.copy!(dst::InterfaceContainer2D, src::InterfaceContainer2D)
+  dst.u = src.u
+  dst.neighbor_ids = src.neighbor_ids
+  dst.orientations = src.orientations
+  return nothing
 end
 
 
@@ -73,12 +95,22 @@ ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 # Container data structure (structure-of-arrays style) for DG boundaries
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
+# TODO: Taal refactor, mutable struct or resize! for AMR?
+mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
   orientations::Vector{Int}         # [boundaries]
   neighbor_sides::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3} # [orientation, i, elements]
+end
+
+function Base.copy!(dst::BoundaryContainer2D, src::BoundaryContainer2D)
+  dst.u = src.u
+  dst.neighbor_ids = src.neighbor_ids
+  dst.orientations = src.orientations
+  dst.neighbor_sides = src.neighbor_sides
+  dst.node_coordinates = src.node_coordinates
+  return nothing
 end
 
 
@@ -115,13 +147,23 @@ nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 # lower = 1 |    |
 #           |    |
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-struct L2MortarContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
+# TODO: Taal refactor, mutable struct or resize! for AMR?
+mutable struct L2MortarContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u_upper::Array{RealT, 4}  # [leftright, variables, i, mortars]
   u_lower::Array{RealT, 4}  # [leftright, variables, i, mortars]
   neighbor_ids::Matrix{Int} # [position, mortars]
   # Large sides: left -> 1, right -> 2
   large_sides::Vector{Int}  # [mortars]
   orientations::Vector{Int} # [mortars]
+end
+
+function Base.copy!(dst::L2MortarContainer2D, src::L2MortarContainer2D)
+  dst.u_upper = src.u_upper
+  dst.u_lower = src.u_lower
+  dst.neighbor_ids = src.neighbor_ids
+  dst.large_sides = src.large_sides
+  dst.orientations = src.orientations
+  return nothing
 end
 
 

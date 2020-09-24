@@ -20,8 +20,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                                RealT, nvariables(equations), polydeg(dg))
 
   # TODO: Taal implement BCs
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements,
-                               RealT, nvariables(equations), polydeg(dg))
+  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
+                                  RealT, nvariables(equations), polydeg(dg))
 
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          RealT, nvariables(equations), polydeg(dg), dg.mortar)

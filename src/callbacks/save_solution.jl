@@ -2,6 +2,7 @@
 # TODO: Taal, implement, save AMR indicator values
 # TODO: Taal, refactor, allow saving arbitrary functions of the conservative variables,
 # make solution_variables a function instead of a Symbol
+# TODO: Taal refactor, interval as part of the struct for printing
 mutable struct SaveSolutionCallback
   save_initial_solution::Bool
   save_final_solution::Bool

@@ -1,6 +1,7 @@
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
+# TODO: Taal refactor, interval as part of the struct for printing
 mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
   start_time::Float64
   save_analysis::Bool

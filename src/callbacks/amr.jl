@@ -1,59 +1,123 @@
 
-mutable struct AMRCallback{Indicator, Adaptor, Cache}
-  interval::Int
+struct AMRCallback{Indicator, Adaptor}
   indicator::Indicator
+  interval::Int
+  adapt_initial_conditions_only_refine::Bool
   adaptor::Adaptor
-  cache::Cache
 end
 
-function AMRCAllback(semi, indicator, adaptor; interval=5)
-  cache = create_cache(semi, indicator)
-  AMRCallback{typeof(indicator), typeof(adaptor), typeof(cache)}
+
+function AMRCallback(semi, indicator, adaptor; interval=5,
+                                               adapt_initial_conditions_only_refine=true)
+  # AMR every `interval` time steps
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0)
+
+  amr_callback = AMRCallback{typeof(indicator), typeof(adaptor)}(
+                  indicator, interval, adapt_initial_conditions_only_refine, adaptor)
+
+  DiscreteCallback(condition, amr_callback,
+                   save_positions=(false,false))
 end
 
-function AMRCAllback(semi, indicator; kwargs...)
+function AMRCallback(semi, indicator; kwargs...)
   adaptor = AdaptorAMR(semi)
-  AMRCAllback(semi, indicator, adaptor; kwargs...)
+  AMRCallback(semi, indicator, adaptor; kwargs...)
 end
 
-function AdaptorAMR(semi::AbstractSemidiscretization)
+function AdaptorAMR(semi; kwargs...)
   mesh, _, solver, _ = mesh_equations_solver_cache(semi)
-  AdaptorAMR(mesh, solver)
+  AdaptorAMR(mesh, solver; kwargs...)
+end
+
+
+# TODO: Taal bikeshedding, implement a method with less information and the signature
+# function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
+#   amr_callback = cb.affect!
+#   print(io, "AMRCallback")
+# end
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
+  amr_callback = cb.affect!
+  @unpack interval, indicator, adapt_initial_conditions_only_refine = amr_callback
+  println(io, "AMRCallback with")
+  println(io, "- indicator: ", indicator)
+  println(io, "- interval:  ", interval)
+  print(io,   "- adapt_initial_conditions_only_refine: ", adapt_initial_conditions_only_refine)
+end
+
+
+function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
+  amr_callback = cb.affect!
+  semi = ode.p
+
+  @timeit_debug timer() "initial condition AMR" begin
+    has_changed = amr_callback(ode.u0, semi,
+                               only_refine=amr_callback.adapt_initial_conditions_only_refine)
+
+    # iterate until mesh does not change anymore
+    while has_changed
+      ode.u0 .= compute_coefficients(ode.tspan[1], semi)
+      has_changed = amr_callback(ode.u0, semi,
+                                 only_refine=amr_callback.adapt_initial_conditions_only_refine)
+    end
+  end
+
+  return nothing
+end
+
+
+function (amr_callback::AMRCallback)(integrator; kwargs...)
+  @unpack u = integrator
+  semi = integrator.p
+
+  has_changed = amr_callback(u, semi; kwargs...)
+  resize!(integrator, length(u))
+
+  u_modified!(integrator, has_changed)
+  return has_changed
+end
+
+
+@inline function (amr_callback::AMRCallback)(u::AbstractVector, semi::SemidiscretizationHyperbolic; kwargs...)
+  amr_callback(u, mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
 
 # TODO: Taal refactor, decide where to move this and implement everything
-"""
-    IndicatorHennemannGassner
+# """
+#     IndicatorHennemannGassner
 
-Indicator used for shock-capturing or AMR used by
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-struct IndicatorHennemannGassner{RealT<:Real}
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-end
+# Indicator used for shock-capturing or AMR used by
+# - Hennemann, Gassner (2020)
+#   "A provably entropy stable subcell shock capturing approach for high order split form DG"
+#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+# """
+# struct IndicatorHennemannGassner{RealT<:Real}
+#   alpha_max::RealT
+#   alpha_min::RealT
+#   alpha_smooth::Bool
+# end
 
 
-struct IndicatorTwoLevel{RealT<:Real, Indicator}
+# TODO: Taal document
+struct IndicatorTwoLevel{RealT<:Real, Indicator, Cache}
   base_level::Int
   base_threshold::RealT
   max_level::Int
   max_threshold::RealT
   indicator::Indicator
+  cache::Cache
 end
 
-function IndicatorTwoLevel(indicator; base_level=1, base_threshold=0.0,
-                                      max_level =1, max_threshold =1.0)
+function IndicatorTwoLevel(semi, indicator; base_level=1, base_threshold=0.0,
+                                            max_level =1, max_threshold =1.0)
   base_threshold, max_threshold = promote(base_threshold, max_threshold)
-  IndicatorTwoLevel{typeof(base_threashold), typeof(indicator)}(
-    base_level, base_threshold, max_level, max_threshold, indicator
+  cache = indicator_cache(semi)
+  IndicatorTwoLevel{typeof(base_threshold), typeof(indicator), typeof(cache)}(
+    base_level, base_threshold, max_level, max_threshold, indicator, cache
   )
 end
 
+indicator_cache(semi) = indicator_cache(mesh_equations_solver_cache(semi)...)
 
 
 """
@@ -67,58 +131,23 @@ The indicator estimates a weighted second derivative of a specified variable loc
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
-struct IndicatorLöhner{RealT<:Real, Variable}
+struct IndicatorLöhner{RealT<:Real, Variable, Cache}
   f_wave::RealT # TODO: Taal, better name and documentation
   variable::Variable
+  cache::Cache
 end
 
-function IndicatorLöhner(; f_wave=0.2, variable=first)
-  return IndicatorLöhner{typeof(f_wave), typeof(variable)}(f_wave, variable)
+function IndicatorLöhner(semi; f_wave=0.2, variable=first)
+  cache = löhner_cache(semi)
+  return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
+
+löhner_cache(semi) = löhner_cache(mesh_equations_solver_cache(semi)...)
+
+Base.first(u, equations::AbstractEquations) = first(u)
+
 
 const IndicatorLoehner = IndicatorLöhner
 
 
-# TODO: Taal bikeshedding, implement a method with less information and the signature
-# function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
-#   amr_callback = cb.affect!
-#   print(io, "AMRCallback")
-# end
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
-  amr_callback = cb.affect!
-  @unpack interval, indicator, threshold_refinement, threshold_coarsening = amr_callback
-  println(io, "AMRCallback with")
-  println(io, "- interval:  ", interval)
-  println(io, "- indicator: ", indicator)
-  println(io, "- threshold_refinement: ", indicator)
-  print(io,   "- threshold_coarsening: ", indicator)
-end
-
-
-function AMRCallback(indicator; interval=5,
-                                alpha_max=1.0, alpha_min=0.0, alpha_smooth=false)
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0)
-
-  # TODO: Taal, implement
-  error("TODO")
-  amr_callback = AMRCallback(0.0)
-
-  DiscreteCallback(condition, amr_callback,
-                   save_positions=(false,false),
-                   initialize=initialize!)
-end
-
-
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
-  reset_timer!(timer())
-  amr_callback = cb.affect!
-  # TODO: Taal, implement
-  return nothing
-end
-
-
-function (amr_callback::AMRCallback)(integrator)
-  # TODO: Taal, implement
-
-  return nothing
-end
+include("amr_dg2d.jl")
