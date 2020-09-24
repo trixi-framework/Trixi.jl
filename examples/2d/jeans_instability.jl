@@ -49,7 +49,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan);
 
-# TODO: Taal implement, printing stuff (Logo etc.) at the beginning (optionally)
+summary_callback = SummaryCallback()
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -87,7 +87,7 @@ save_solution = SaveSolutionCallback(solution_interval=10,
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-callbacks = CallbackSet(stepsize_callback, analysis_callback, save_solution, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
 
 
 ###############################################################################

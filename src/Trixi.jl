@@ -83,7 +83,7 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
-export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback
+export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback, SummaryCallback
 
 export entropy, energy_total, energy_kinetic, energy_internal
 

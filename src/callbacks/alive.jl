@@ -26,6 +26,7 @@ end
 
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AliveCallback}
+
   reset_timer!(timer())
   alive_callback = cb.affect!
   alive_callback.start_time = time_ns()

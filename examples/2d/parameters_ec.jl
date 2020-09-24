@@ -25,7 +25,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
-# TODO: Taal implement, printing stuff (Logo etc.) at the beginning (optionally)
+summary_callback = SummaryCallback()
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -41,7 +41,7 @@ save_solution = SaveSolutionCallback(solution_interval=100,
 # TODO: Taal, restart
 # restart_interval = 10
 
-callbacks = CallbackSet(stepsize_callback, analysis_callback, save_solution, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
 
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),

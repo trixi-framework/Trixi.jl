@@ -126,8 +126,15 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   volume_integral::VolumeIntegral
 end
 
-# TODO: Taal bikeshedding, implement a method with reduced information and the signature
-# function Base.show(io::IO, dg::DG{RealT}) where {RealT}
+function Base.show(io::IO, dg::DG{RealT}) where {RealT}
+  print(io, "DG{", RealT, "}(")
+  print(io,      dg.basis)
+  print(io, ", ", dg.mortar)
+  print(io, ", ", dg.surface_flux)
+  print(io, ", ", dg.volume_integral)
+  print(io, ")")
+end
+
 function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
   println(io, "DG{", RealT, "} using")
   println(io, "- ", dg.basis)
