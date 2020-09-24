@@ -20,13 +20,11 @@ end
 function parse_parameters_file(filename, mpi_parallel::Val{true})
   if is_mpi_root()
     buffer = read(filename)
-    buffer_length = Int[length(buffer)]
-    MPI.Bcast!(buffer_length, mpi_root(), mpi_comm())
+    MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
     MPI.Bcast!(buffer, mpi_root(), mpi_comm())
   else
-    buffer_length = Int[0]
-    MPI.Bcast!(buffer_length, mpi_root(), mpi_comm())
-    buffer = Vector{UInt8}(undef, buffer_length[1])
+    count = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())
+    buffer = Vector{UInt8}(undef, count[])
     MPI.Bcast!(buffer, mpi_root(), mpi_comm())
   end
   parameters[:default] = parse(String(buffer))
