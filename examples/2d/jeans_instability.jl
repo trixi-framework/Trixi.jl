@@ -7,7 +7,7 @@ using Trixi
 gamma = 5/3
 equations_euler = CompressibleEulerEquations2D(gamma)
 
-# the initial conditions could also just be defined here
+# TODO: Taal, define initial_conditions_jeans_instability here for Euler
 initial_conditions = Trixi.initial_conditions_jeans_instability
 
 polydeg = 3
@@ -26,6 +26,8 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 resid_tol = 1.0e-4
 equations_gravity = HyperbolicDiffusionEquations2D(resid_tol)
+
+# TODO: Taal, define initial_conditions_jeans_instability here for gravity
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 

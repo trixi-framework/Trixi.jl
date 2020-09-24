@@ -37,12 +37,13 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           extra_analysis_errors=Symbol[],
                           analysis_errors=union(default_analysis_errors(semi.equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
-                          analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals))
+                          analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals),
+                          kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t in integrator.sol.prob.tspan)
 
   _, equations, solver, _ = mesh_equations_solver_cache(semi)
-  analysis_callback = AnalysisCallback(0.0, save_analysis, output_directory, analysis_filename, SolutionAnalyzer(solver),
+  analysis_callback = AnalysisCallback(0.0, save_analysis, output_directory, analysis_filename, SolutionAnalyzer(solver; kwargs...),
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
 

@@ -1,4 +1,7 @@
 
+# Basic abstract types creating the hierarchy
+abstract type AbstractEquations{NDIMS, NVARS} end
+
 # Retrieve number of variables from equation type
 @inline nvariables(::Type{AbstractEquations{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
 

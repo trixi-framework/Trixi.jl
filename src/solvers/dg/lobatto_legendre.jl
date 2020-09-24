@@ -147,7 +147,7 @@ struct LobattoLegendreAnalyzer{RealT<:Real, NNODES, Vandermonde<:AbstractMatrix{
   vandermonde::Vandermonde
 end
 
-function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}, analysis_polydeg=2*polydeg(basis)) where {RealT}
+function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2*polydeg(basis)) where {RealT}
   nnodes_ = analysis_polydeg + 1
   nodes, weights = gauss_lobatto_nodes_weights(nnodes_)
 
@@ -175,6 +175,49 @@ end
 
 @inline polydeg(analyzer::LobattoLegendreAnalyzer) = nnodes(analyzer) - 1
 
+
+
+abstract type AdaptorAMR{RealT<:Real} end
+
+abstract type AdaptorL2{RealT<:Real} end
+
+struct LobattoLegendreAdaptorL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
+  forward_upper::MortarMatrix
+  forward_lower::MortarMatrix
+  reverse_upper::MortarMatrix
+  reverse_lower::MortarMatrix
+end
+
+function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
+  nnodes_ = nnodes(basis)
+  forward_upper   = calc_forward_upper(nnodes_)
+  forward_lower   = calc_forward_lower(nnodes_)
+  l2reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss))
+  l2reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
+
+  # type conversions to make use of StaticArrays etc.
+  forward_upper   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_upper))
+  forward_lower   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_lower))
+  l2reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_upper))
+  l2reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_lower))
+
+  LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper)}(
+    forward_upper, forward_lower,
+    l2reverse_upper, l2reverse_lower
+  )
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreAdaptorL2{RealT}) where {RealT}
+  print(io, "LobattoLegendreAdaptorL2{", RealT, "} with polynomials of degree ", polydeg(mortar))
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
+
+@inline Base.real(mortar::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
+
+@inline nnodes(mortar::LobattoLegendreAdaptorL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
+
+@inline polydeg(mortar::LobattoLegendreAdaptorL2) = nnodes(mortar) - 1
 
 
 ###############################################################################

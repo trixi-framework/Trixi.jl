@@ -222,7 +222,9 @@ end
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
 
-SolutionAnalyzer(dg::DG) = SolutionAnalyzer(dg.basis)
+SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
+
+AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 
 
 # Include 2D implementation

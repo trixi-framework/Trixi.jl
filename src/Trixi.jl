@@ -34,13 +34,14 @@ using Tullio: @tullio
 using LoopVectorization
 
 
+# TODO: Taal remove globals
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
 export globals
 
-# Basic abstract types creating the hierarchy
-abstract type AbstractEquations{NDIMS, NVARS} end
 
+# TODO: Taal, decide where to define the entry points of our type hierarchy,
+# e.g. AbstractEquations etc.
 
 
 # Include all top-level source files
@@ -55,6 +56,7 @@ include("timedisc/timedisc.jl")
 include("amr/amr.jl")
 include("callbacks/callbacks.jl")
 
+# TODO: Taal remove run
 # Include top-level run method
 include("run.jl")
 
@@ -83,7 +85,10 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
-export AliveCallback, AnalysisCallback, SaveSolutionCallback, StepsizeCallback, SummaryCallback
+export AMRCallback, SummaryCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback, AliveCallback
+
+export IndicatorTwoLevel, IndicatorLöhner, IndicatorLoehner
+export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal
 

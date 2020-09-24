@@ -1,11 +1,24 @@
 
-mutable struct AMRCallback{RealT<:Real, Indicator, Adaptor, Cache}
+mutable struct AMRCallback{Indicator, Adaptor, Cache}
   interval::Int
-  threshold_refinement::RealT
-  threshold_coarsening::RealT
   indicator::Indicator
   adaptor::Adaptor
   cache::Cache
+end
+
+function AMRCAllback(semi, indicator, adaptor; interval=5)
+  cache = create_cache(semi, indicator)
+  AMRCallback{typeof(indicator), typeof(adaptor), typeof(cache)}
+end
+
+function AMRCAllback(semi, indicator; kwargs...)
+  adaptor = AdaptorAMR(semi)
+  AMRCAllback(semi, indicator, adaptor; kwargs...)
+end
+
+function AdaptorAMR(semi::AbstractSemidiscretization)
+  mesh, _, solver, _ = mesh_equations_solver_cache(semi)
+  AdaptorAMR(mesh, solver)
 end
 
 
@@ -33,22 +46,34 @@ struct IndicatorTwoLevel{RealT<:Real, Indicator}
   indicator::Indicator
 end
 
+function IndicatorTwoLevel(indicator; base_level=1, base_threshold=0.0,
+                                      max_level =1, max_threshold =1.0)
+  base_threshold, max_threshold = promote(base_threshold, max_threshold)
+  IndicatorTwoLevel{typeof(base_threashold), typeof(indicator)}(
+    base_level, base_threshold, max_level, max_threshold, indicator
+  )
+end
+
+
 
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 
-AMR indicator adapted from a FEM indicator by Löhner (1987),
-also used in the FLASH code as standard AMR indicator.
-The indicator estimates a weighted second derivative of a
-specified variable locally.
+AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
+FLASH code as standard AMR indicator.
+The indicator estimates a weighted second derivative of a specified variable locally.
 - Löhner (1987)
   "An adaptive finite element scheme for transient problems in CFD"
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
 struct IndicatorLöhner{RealT<:Real, Variable}
-  f_wave::RealT
+  f_wave::RealT # TODO: Taal, better name and documentation
   variable::Variable
+end
+
+function IndicatorLöhner(; f_wave=0.2, variable=first)
+  return IndicatorLöhner{typeof(f_wave), typeof(variable)}(f_wave, variable)
 end
 
 const IndicatorLoehner = IndicatorLöhner

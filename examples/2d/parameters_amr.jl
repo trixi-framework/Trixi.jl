@@ -42,13 +42,14 @@ save_solution = SaveSolutionCallback(solution_interval=100,
 # TODO: Taal, IO
 # restart_interval = 10
 
-# TODO: Taal, AMR
-# amr_interval = 5
-# amr_callback = AMRCallback(amr_interval=5, amr_indicator=amr_indicator_gauss)
+amr_indicator = IndicatorTwoLevel(IndicatorLöhner(),
+                                  base_level=4, base_threshold=0.1,
+                                  max_level =6, max_threshold =0.3)
+amr_callback = AMRCAllback(semi, amr_indicator, interval=5)
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
+callbacks = CallbackSet(amr_callback, summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
 
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
