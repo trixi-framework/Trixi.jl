@@ -26,5 +26,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   show(io, MIME"text/plain"(), solver)
   println(io, "\n")
 
+  # TODO: Taal decide, shall we also print some information about the ODE problem/algorithm?
+
   return nothing
 end
