@@ -1,11 +1,16 @@
 
 function save_solution_file(u, time, dt, timestep,
                             mesh, equations, dg::DG, cache,
-                            solution_callback)
+                            solution_callback;
+                            system="")
   @unpack output_directory, solution_variables = solution_callback
 
   # Filename without extension based on current time step
-  filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+  if isempty(system)
+    filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+  else
+    filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
+  end
 
   # Convert time and time step size to floats
   time = convert(Float64, time)

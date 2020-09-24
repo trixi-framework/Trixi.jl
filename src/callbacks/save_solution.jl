@@ -55,7 +55,7 @@ end
 function (solution_callback::SaveSolutionCallback)(integrator)
   @unpack u, t, dt, iter = integrator
   semi = integrator.p
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   @timeit_debug timer() "I/O" begin
     if mesh.unsaved_changes
@@ -63,14 +63,19 @@ function (solution_callback::SaveSolutionCallback)(integrator)
       mesh.unsaved_changes = false
     end
 
-    u_wrapped = wrap_array(u, mesh, equations, solver, cache)
-    save_solution_file(u_wrapped, t, dt, iter, mesh, equations, solver, cache, solution_callback)
+    save_solution_file(u, t, dt, iter, semi, solution_callback)
   end
 
   u_modified!(integrator, false)
   return nothing
 end
 
+
+@inline function save_solution_file(u, t, dt, iter, semi::AbstractSemidiscretization, solution_callback)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  save_solution_file(u_wrapped, t, dt, iter, mesh, equations, solver, cache, solution_callback)
+end
 
 # TODO: Taal refactor, move save_mesh_file?
 # function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl

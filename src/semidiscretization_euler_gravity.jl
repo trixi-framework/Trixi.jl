@@ -29,7 +29,6 @@ end
 
 
 # TODO: Taal implement, AMR based on Euler, gravity adapts passively
-# TODO: Taal reafctor, output prepended with equation name or something similar
 """
     SemidiscretizationEulerGravity
 
@@ -257,4 +256,22 @@ function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameter
 
   timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
                            gamma1, gamma2, gamma3, beta, delta, c)
+end
+
+
+# TODO: Taal decide, where should specific parts like these be?
+@inline function save_solution_file(u::AbstractVector, t, dt, iter,
+                                    semi::SemidiscretizationEulerGravity, solution_callback)
+
+  u_euler = wrap_array(u, semi.semi_euler)
+  filename_euler = save_solution_file(u_euler, t, dt, iter,
+                                      mesh_equations_solver_cache(semi.semi_euler)...,
+                                      solution_callback, system="euler")
+
+  u_gravity = wrap_array(u, semi.semi_gravity)
+  filename_gravity = save_solution_file(u_euler, t, dt, iter,
+                                        mesh_equations_solver_cache(semi.semi_euler)...,
+                                        solution_callback, system="gravity")
+
+  return filename_euler, filename_gravity
 end

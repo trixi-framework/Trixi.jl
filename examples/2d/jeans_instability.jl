@@ -77,9 +77,6 @@ analysis_callback = AnalysisCallback(semi_euler, analysis_interval=analysis_inte
                                      save_analysis=true,
                                      extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
 
-# TODO: Taal implement, more analysis specific to Euler+gravity ?
-# TODO: Taal implement, saving solutions etc. specific to Euler+gravity ?
-
 save_solution = SaveSolutionCallback(solution_interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
