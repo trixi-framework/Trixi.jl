@@ -807,7 +807,9 @@ dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg,
 end
 ```
 """
-function integrate(func, dg::Dg2D, args...; normalize=true)
+integrate(func, dg::Dg2D, args...; normalize=true) = integrate(func, dg, uses_mpi(dg), args...;
+                                                               normalize=normalize)
+function integrate(func, dg::Dg2D, uses_mpi::Val{false}, args...; normalize=true)
   # Initialize integral with zeros of the right shape
   integral = zero(func(1, 1, 1, dg, args...))
 
@@ -848,18 +850,21 @@ Calculate the integral over all conservative variables:
 state_integrals = integrate(dg.elements.u, dg)
 ```
 """
-function integrate(func, u, dg::Dg2D; normalize=true)
+integrate(func, u, dg::Dg2D; normalize=true) = integrate(func, u, dg, uses_mpi(dg);
+                                                         normalize=normalize)
+function integrate(func, u, dg::Dg2D, uses_mpi::Val{false}; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
-  return integrate(func_wrapped, dg, u; normalize=normalize)
+  return integrate(func_wrapped, dg, Val(false), u; normalize=normalize)
 end
 integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(func, dg::Dg2D, t)
+calc_error_norms(func, dg::Dg2D, t) = calc_error_norms(func, dg, t, uses_mpi(dg))
+function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{false})
   # Gather necessary information
   equation = equations(dg)
   n_nodes_analysis = size(dg.analysis_vandermonde, 1)
@@ -896,14 +901,6 @@ function calc_error_norms(func, dg::Dg2D, t)
   end
 
   # For L2 error, divide by total volume
-  if is_parallel()
-    global_l2_error = Vector(l2_error)
-    global_linf_error = Vector(linf_error)
-    MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
-    l2_error = convert(typeof(l2_error), global_l2_error)
-    linf_error = convert(typeof(linf_error), global_linf_error)
-  end
   l2_error = @. sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
@@ -911,12 +908,13 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg2D, t)
+calc_entropy_timederivative(dg::Dg2D, t) = calc_entropy_timederivative(dg, t, uses_mpi(dg))
+function calc_entropy_timederivative(dg::Dg2D, t, uses_mpi)
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
+  dsdu_ut = integrate(dg, uses_mpi, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
     u_node   = get_node_vars(u,   dg, i, j, element_id)
     u_t_node = get_node_vars(u_t, dg, i, j, element_id)
     dot(cons2entropy(u_node, equations(dg)), u_t_node)
@@ -929,7 +927,8 @@ end
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
-function calc_mhd_solenoid_condition(dg::Dg2D, t::Float64)
+calc_mhd_solenoid_condition(dg::Dg2D, t) = calc_mhd_solenoid_condition(dg, t, mpi_parallel())
+function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{false})
   @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
 
   # Local copy of standard derivative matrix
@@ -973,29 +972,30 @@ performance index is specified in `runtime_relative`.
 **Note:** Keep order of analysis quantities in sync with
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
-function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                          runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step,
+                          runtime_absolute, runtime_relative; solver_gravity=nothing)
+  analyze_solution(dg, mesh, time, dt, step, runtime_absolute, runtime_relative, uses_mpi(dg),
+                   solver_gravity=solver_gravity)
+end
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_absolute,
+                          runtime_relative, uses_mpi::Val{false}; solver_gravity=nothing)
   equation = equations(dg)
 
   # General information
-  if is_mpi_root()
-    println()
-    println("-"^80)
-    println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
-    println("-"^80)
-    println(" #timesteps:     " * @sprintf("% 14d", step) *
-            "               " *
-            " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-    println(" dt:             " * @sprintf("%10.8e", dt) *
-            "               " *
-            " PID        :    " * @sprintf("%10.8e s", runtime_relative))
-    println(" sim. time:      " * @sprintf("%10.8e", time) *
-            "               " *
-            " PID × #domains: " * @sprintf("%10.8e s", runtime_relative * n_domains()))
-  end
+  println()
+  println("-"^80)
+  println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
+  println("-"^80)
+  println(" #timesteps:     " * @sprintf("% 14d", step) *
+          "               " *
+          " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+  println(" dt:             " * @sprintf("%10.8e", dt) *
+          "               " *
+          " Time/DOF/step:  " * @sprintf("%10.8e s", runtime_relative))
+  println(" sim. time:      " * @sprintf("%10.8e", time))
 
   # Level information (only show for AMR)
-  if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
+  if parameter("amr_interval", 0)::Int > 0
     levels = Vector{Int}(undef, dg.n_elements)
     for element_id in 1:dg.n_elements
       levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
@@ -1009,7 +1009,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     end
     println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
   end
-  is_mpi_root() && println()
+  println()
 
   # Open file for appending and store time step and time information
   if dg.save_analysis
@@ -1021,40 +1021,36 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if is_mpi_root()
-    if any(q in dg.analysis_quantities for q in
-          (:l2_error, :linf_error, :conservation_error, :residual))
-      print(" Variable:    ")
-      for v in 1:nvariables(equation)
-        @printf("   %-14s", varnames_cons(equation)[v])
-      end
-      println()
+  if any(q in dg.analysis_quantities for q in
+        (:l2_error, :linf_error, :conservation_error, :residual))
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_cons(equation)[v])
     end
+    println()
   end
 
   # Calculate L2/Linf errors, which are also returned by analyze_solution
   l2_error, linf_error = calc_error_norms(dg, time)
 
-  if is_mpi_root()
-    # L2 error
-    if :l2_error in dg.analysis_quantities
-      print(" L2 error:    ")
-      for v in 1:nvariables(equation)
-        @printf("  % 10.8e", l2_error[v])
-        dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
-      end
-      println()
+  # L2 error
+  if :l2_error in dg.analysis_quantities
+    print(" L2 error:    ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", l2_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
     end
+    println()
+  end
 
-    # Linf error
-    if :linf_error in dg.analysis_quantities
-      print(" Linf error:  ")
-      for v in 1:nvariables(equation)
-        @printf("  % 10.8e", linf_error[v])
-        dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
-      end
-      println()
+  # Linf error
+  if :linf_error in dg.analysis_quantities
+    print(" Linf error:  ")
+    for v in 1:nvariables(equation)
+      @printf("  % 10.8e", linf_error[v])
+      dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
     end
+    println()
   end
 
   # Conservation errror
@@ -1123,16 +1119,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
     dsdu_ut = calc_entropy_timederivative(dg, time)
-    if is_parallel()
-      dsdu_ut_buffer = [dsdu_ut]
-      MPI.Reduce!(dsdu_ut_buffer, +, mpi_root(), mpi_comm())
-    end
-    if is_mpi_root()
-      print(" ∑∂S/∂U ⋅ Uₜ: ")
-      @printf("  % 10.8e", dsdu_ut)
-      dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
-      println()
-    end
+    print(" ∑∂S/∂U ⋅ Uₜ: ")
+    @printf("  % 10.8e", dsdu_ut)
+    dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
+    println()
   end
 
   # Entropy
@@ -1244,10 +1234,8 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  if is_mpi_root()
-    println("-"^80)
-    println()
-  end
+  println("-"^80)
+  println()
 
   # Add line break and close analysis file if it was opened
   if dg.save_analysis
@@ -1357,10 +1345,8 @@ function set_initial_conditions!(dg::Dg2D, time)
 end
 
 
-@inline rhs!(dg::Dg2D, t_stage) = rhs!(dg, t_stage, uses_mpi(dg))
-
-
 # Calculate time derivative
+@inline rhs!(dg::Dg2D, t_stage) = rhs!(dg, t_stage, uses_mpi(dg))
 function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{false})
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0

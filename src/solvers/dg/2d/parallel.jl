@@ -360,3 +360,349 @@ end
 function finish_mpi_send!(dg::Dg2D)
   MPI.Waitall!(dg.mpi_send_requests)
 end
+
+
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_absolute,
+                          runtime_relative, uses_mpi::Val{true}; solver_gravity=nothing)
+  equation = equations(dg)
+
+  # General information
+  mpi_println()
+  mpi_println("-"^80)
+  mpi_println(" Simulation running '", get_name(equation), "' with POLYDEG = ", polydeg(dg))
+  mpi_println("-"^80)
+  mpi_println(" #timesteps:     " * @sprintf("% 14d", step) *
+              "               " *
+              " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+  mpi_println(" dt:             " * @sprintf("%10.8e", dt) *
+              "               " *
+              " PID:            " * @sprintf("%10.8e s", runtime_relative))
+  mpi_println(" sim. time:      " * @sprintf("%10.8e", time) *
+              "               " *
+              " PID × #domains: " * @sprintf("%10.8e s", runtime_relative * n_domains()))
+
+  # Level information (only show for AMR)
+  if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
+    levels = Vector{Int}(undef, dg.n_elements)
+    for element_id in 1:dg.n_elements
+      levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+    end
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    mpi_println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+    for level = max_level:-1:min_level+1
+      mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+    end
+    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
+  end
+  mpi_println()
+
+  # Open file for appending and store time step and time information
+  if dg.save_analysis && is_mpi_root()
+    f = open(dg.analysis_filename, "a")
+    @printf(f, "% 9d", step)
+    @printf(f, "  %10.8e", time)
+    @printf(f, "  %10.8e", dt)
+  end
+
+  # Calculate and print derived quantities (error norms, entropy etc.)
+  # Variable names required for L2 error, Linf error, and conservation error
+  if is_mpi_root()
+    if any(q in dg.analysis_quantities for q in
+          (:l2_error, :linf_error, :conservation_error, :residual))
+      print(" Variable:    ")
+      for v in 1:nvariables(equation)
+        @printf("   %-14s", varnames_cons(equation)[v])
+      end
+      println()
+    end
+  end
+
+  # Calculate L2/Linf errors, which are also returned by analyze_solution
+  l2_error, linf_error = calc_error_norms(dg, time)
+
+  if is_mpi_root()
+    # L2 error
+    if :l2_error in dg.analysis_quantities
+      print(" L2 error:    ")
+      for v in 1:nvariables(equation)
+        @printf("  % 10.8e", l2_error[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", l2_error[v])
+      end
+      println()
+    end
+
+    # Linf error
+    if :linf_error in dg.analysis_quantities
+      print(" Linf error:  ")
+      for v in 1:nvariables(equation)
+        @printf("  % 10.8e", linf_error[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", linf_error[v])
+      end
+      println()
+    end
+  end
+
+  # Conservation errror
+  if :conservation_error in dg.analysis_quantities
+    # Calculate state integrals
+    state_integrals = integrate(dg.elements.u, dg)
+
+    # Store initial state integrals at first invocation
+    if isempty(dg.initial_state_integrals)
+      dg.initial_state_integrals = zeros(nvariables(equation))
+      dg.initial_state_integrals .= state_integrals
+    end
+
+    if is_mpi_root()
+      print(" |∑U - ∑U₀|:  ")
+      for v in 1:nvariables(equation)
+        err = abs(state_integrals[v] - dg.initial_state_integrals[v])
+        @printf("  % 10.8e", err)
+        dg.save_analysis && @printf(f, "  % 10.8e", err)
+      end
+      println()
+    end
+  end
+
+  # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
+  if :residual in dg.analysis_quantities
+    mpi_print(" max(|Uₜ|):   ")
+    for v in 1:nvariables(equation)
+      # Calculate maximum absolute value of Uₜ
+      res = maximum(abs, view(dg.elements.u_t, v, :, :, :))
+      res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())[]
+      is_mpi_root() && @printf("  % 10.8e", res)
+      is_mpi_root() && dg.save_analysis && @printf(f, "  % 10.8e", res)
+    end
+    mpi_println()
+  end
+
+  # L2/L∞ errors of the primitive variables
+  if :l2_error_primitive in dg.analysis_quantities || :linf_error_primitive in dg.analysis_quantities
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time)
+
+    if is_mpi_root()
+      print(" Variable:    ")
+      for v in 1:nvariables(equation)
+        @printf("   %-14s", varnames_prim(equation)[v])
+      end
+      println()
+
+      # L2 error
+      if :l2_error_primitive in dg.analysis_quantities
+        print(" L2 error prim.: ")
+        for v in 1:nvariables(equation)
+          @printf("%10.8e   ", l2_error_prim[v])
+          dg.save_analysis && @printf(f, "  % 10.8e", l2_error_prim[v])
+        end
+        println()
+      end
+
+      # L∞ error
+      if :linf_error_primitive in dg.analysis_quantities
+        print(" Linf error pri.:")
+        for v in 1:nvariables(equation)
+          @printf("%10.8e   ", linf_error_prim[v])
+          dg.save_analysis && @printf(f, "  % 10.8e", linf_error_prim[v])
+        end
+        println()
+      end
+    end
+  end
+
+  # Entropy time derivative
+  if :dsdu_ut in dg.analysis_quantities
+    dsdu_ut = calc_entropy_timederivative(dg, time)
+    if is_mpi_root()
+      print(" ∑∂S/∂U ⋅ Uₜ: ")
+      @printf("  % 10.8e", dsdu_ut)
+      dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
+      println()
+    end
+  end
+
+  # Entropy
+  if :entropy in dg.analysis_quantities
+    s = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return entropy(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑S:          ")
+      @printf("  % 10.8e", s)
+      dg.save_analysis && @printf(f, "  % 10.8e", s)
+      println()
+    end
+  end
+
+  # Total energy
+  if :energy_total in dg.analysis_quantities
+    e_total = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return energy_total(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑e_total:    ")
+      @printf("  % 10.8e", e_total)
+      dg.save_analysis && @printf(f, "  % 10.8e", e_total)
+      println()
+    end
+  end
+
+  # Kinetic energy
+  if :energy_kinetic in dg.analysis_quantities
+    e_kinetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return energy_kinetic(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑e_kinetic:  ")
+      @printf("  % 10.8e", e_kinetic)
+      dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
+      println()
+    end
+  end
+
+  # Internal energy
+  if :energy_internal in dg.analysis_quantities
+    e_internal = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return energy_internal(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑e_internal: ")
+      @printf("  % 10.8e", e_internal)
+      dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
+      println()
+    end
+  end
+
+  # Magnetic energy
+  if :energy_magnetic in dg.analysis_quantities
+    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return energy_magnetic(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑e_magnetic: ")
+      @printf("  % 10.8e", e_magnetic)
+      dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+      println()
+    end
+  end
+
+  # Potential energy
+  if :energy_potential in dg.analysis_quantities
+    # FIXME: This should be implemented properly for multiple coupled solvers
+    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
+    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+
+    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
+      cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
+      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
+      return (cons_euler[1] - 1.5e7) * cons_gravity[1]
+    end
+    if is_mpi_root()
+      print(" ∑e_pot:      ")
+      @printf("  % 10.8e", e_potential)
+      dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
+      println()
+    end
+  end
+
+  # Solenoidal condition ∇ ⋅ B = 0
+  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
+    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+  end
+  if is_mpi_root()
+    # L2 norm of ∇ ⋅ B
+    if :l2_divb in dg.analysis_quantities
+      print(" L2 ∇ ⋅B:     ")
+      @printf("  % 10.8e", l2_divb)
+      dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
+      println()
+    end
+    # Linf norm of ∇ ⋅ B
+    if :linf_divb in dg.analysis_quantities
+      print(" Linf ∇ ⋅B:   ")
+      @printf("  % 10.8e", linf_divb)
+      dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+      println()
+    end
+  end
+
+  # Cross helicity
+  if :cross_helicity in dg.analysis_quantities
+    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+      cons = get_node_vars(u, dg, i, j, element_id)
+      return cross_helicity(cons, equations(dg))
+    end
+    if is_mpi_root()
+      print(" ∑H_c:        ")
+      @printf("  % 10.8e", h_c)
+      dg.save_analysis && @printf(f, "  % 10.8e", h_c)
+      println()
+    end
+  end
+
+  if is_mpi_root()
+    println("-"^80)
+    println()
+
+    # Add line break and close analysis file if it was opened
+    if dg.save_analysis
+      println(f)
+      close(f)
+    end
+  end
+
+  # Return errors for EOC analysis
+  return l2_error, linf_error
+end
+
+
+# OBS! Global results are only calculated on root domain
+function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{true})
+  l2_error, linf_error = calc_error_norms(func, dg, t, Val(false))
+
+  # Since the local L2 norm is already normalized and square-rooted, we need to undo this first
+  global_l2_error = Vector(l2_error.^2 .* dg.analysis_total_volume)
+  global_linf_error = Vector(linf_error)
+  MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+  l2_error = convert(typeof(l2_error), global_l2_error)
+  linf_error = convert(typeof(linf_error), global_linf_error)
+
+  l2_error = @. sqrt(l2_error / dg.analysis_total_volume)
+
+  return l2_error, linf_error
+end
+
+
+function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{true})
+  l2_divb, linf_divb = calc_mhd_solenoid_condition(func, dg, t, Val(false))
+
+  # Since the local L2 norm is already normalized and square-rooted, we need to undo this first
+  global_l2_divb = Vector(l2_divb.^2 .* dg.analysis_total_volume)
+  global_linf_divb = Vector(linf_divb)
+  MPI.Reduce!(global_l2_divb, +, mpi_root(), mpi_comm())
+  MPI.Reduce!(global_linf_divb, max, mpi_root(), mpi_comm())
+  l2_divb = convert(typeof(l2_divb), global_l2_divb)
+  linf_divb = convert(typeof(linf_divb), global_linf_divb)
+
+  l2_divb = @. sqrt(l2_divb / dg.analysis_total_volume)
+
+  return l2_divb, linf_divb
+end
+
+
+# OBS! Global results are only calculated on root domain
+function integrate(func, dg::Dg2D, uses_mpi::Val{true}, args...; normalize=true)
+  integral = integrate(func, dg, Val(false), args...; normalize=normalize)
+  integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+
+  return is_mpi_root() ? integral[] : integral
+end

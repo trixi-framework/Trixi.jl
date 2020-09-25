@@ -40,3 +40,6 @@ const MPI_IS_ROOT = Ref(true)
 @inline is_mpi_root() = MPI_IS_ROOT[]
 
 @inline mpi_root() = 0
+
+@inline mpi_println(args...) = is_mpi_root() && println(args...)
+@inline mpi_print(args...) = is_mpi_root() && print(args...)
