@@ -1,12 +1,16 @@
 
+summary_callback(integrator) = false
+summary_callback(u, t, integrator) = u_modified!(integrator, false)
+
 function SummaryCallback()
-  condition = (u, t, integrator) -> false
-
-  affect! = (integrator) -> u_modified!(integrator, false)
-
-  DiscreteCallback(condition, affect!,
+  DiscreteCallback(summary_callback, summary_callback,
                    save_positions=(false,false),
                    initialize=initialize_summary_callback)
+end
+
+
+function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(summary_callback)}
+  print(io, "SummaryCallback")
 end
 
 
@@ -25,6 +29,18 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   println(io, "\n")
   show(io, MIME"text/plain"(), solver)
   println(io, "\n")
+
+  callbacks = integrator.opts.callback
+  if callbacks isa CallbackSet
+    for cb in callbacks.continuous_callbacks
+      show(io, MIME"text/plain"(), cb)
+      println(io, "\n")
+    end
+    for cb in callbacks.discrete_callbacks
+      show(io, MIME"text/plain"(), cb)
+      println(io, "\n")
+    end
+  end
 
   # TODO: Taal decide, shall we also print some information about the ODE problem/algorithm?
 

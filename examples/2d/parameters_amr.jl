@@ -6,6 +6,8 @@
 using OrdinaryDiffEq
 using Trixi
 
+###############################################################################
+# semidiscretization of the linear advection equation
 advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
@@ -24,17 +26,21 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 1 # TODO: Taal debug
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
-save_solution = SaveSolutionCallback(solution_interval=100,
+save_solution = SaveSolutionCallback(solution_interval=1, # TODO: Taal debug
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
@@ -51,9 +57,11 @@ amr_callback(ode) # adapt the initial condition
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(amr_callback, summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
 
 
+###############################################################################
+# run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
 

@@ -100,7 +100,10 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
   end
 
  # Return true if there were any cells coarsened or refined, otherwise false
- return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+ has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+ mesh.unsaved_changes = has_changed # TODO: Taal decide, where shall we set this?
+
+ return has_changed
 end
 
 # function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl

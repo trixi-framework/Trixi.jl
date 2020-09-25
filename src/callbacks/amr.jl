@@ -40,7 +40,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   @unpack interval, indicator, adapt_initial_conditions_only_refine = amr_callback
   println(io, "AMRCallback with")
   println(io, "- indicator: ", indicator)
-  println(io, "- interval:  ", interval)
+  println(io, "- interval: ", interval)
   print(io,   "- adapt_initial_conditions_only_refine: ", adapt_initial_conditions_only_refine)
 end
 
@@ -50,14 +50,12 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
   semi = ode.p
 
   @timeit_debug timer() "initial condition AMR" begin
-    has_changed = amr_callback(ode.u0, semi,
-                               only_refine=amr_callback.adapt_initial_conditions_only_refine)
-
     # iterate until mesh does not change anymore
+    has_changed = true
     while has_changed
-      ode.u0 .= compute_coefficients(ode.tspan[1], semi)
       has_changed = amr_callback(ode.u0, semi,
                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
+      ode.u0 .= compute_coefficients(ode.tspan[1], semi)
     end
   end
 
@@ -69,7 +67,9 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
   @unpack u = integrator
   semi = integrator.p
 
+  println("AMRCallback: active") # TODO: Taal debug
   has_changed = amr_callback(u, semi; kwargs...)
+  println("AMRCallback: has_changed=", has_changed) # TODO: Taal debug
   resize!(integrator, length(u))
 
   u_modified!(integrator, has_changed)
@@ -120,6 +120,26 @@ end
 indicator_cache(semi) = indicator_cache(mesh_equations_solver_cache(semi)...)
 
 
+function Base.show(io::IO, indicator::IndicatorTwoLevel)
+  print(io, "IndicatorTwoLevel(")
+  print(io, indicator.indicator)
+  print(io, ", base_level=", indicator.base_level)
+  print(io, ", base_threshold=", indicator.base_threshold)
+  print(io, ", max_level=", indicator.max_level)
+  print(io, ", max_threshold=", indicator.max_threshold)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorTwoLevel)
+  println(io, "IndicatorTwoLevel with")
+  println(io, "- ", indicator.indicator)
+  println(io, "- base_level:     ", indicator.base_level)
+  println(io, "- base_threshold: ", indicator.base_threshold)
+  println(io, "- max_level:      ", indicator.max_level)
+  print(io,   "- max_threshold:  ", indicator.max_threshold)
+end
+
+
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 
@@ -144,10 +164,20 @@ end
 
 löhner_cache(semi) = löhner_cache(mesh_equations_solver_cache(semi)...)
 
-Base.first(u, equations::AbstractEquations) = first(u)
-
+function Base.show(io::IO, indicator::IndicatorLöhner)
+  print(io, "IndicatorLöhner(")
+  print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
+#   println(io, "IndicatorLöhner with")
+#   println(io, "- indicator: ", indicator.indicator)
+# end
 
 const IndicatorLoehner = IndicatorLöhner
+
+
+Base.first(u, equations::AbstractEquations) = first(u)
 
 
 include("amr_dg2d.jl")

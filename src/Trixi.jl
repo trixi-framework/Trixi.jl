@@ -85,7 +85,7 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
-export AMRCallback, SummaryCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback, AliveCallback
+export SummaryCallback, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback, AliveCallback
 
 export IndicatorTwoLevel, IndicatorLöhner, IndicatorLoehner
 export density, pressure, density_pressure

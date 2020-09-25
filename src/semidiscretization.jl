@@ -102,6 +102,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
   for key in keys(semi.cache)
     print(io, " ", key)
   end
+  print(io, "\nTotal number of degrees of freedom: ", ndofs(semi))
 end
 
 
