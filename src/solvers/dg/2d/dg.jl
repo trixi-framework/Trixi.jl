@@ -70,13 +70,13 @@ mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
-  mpi_neighbor_domain_ids::Vector{Int}
+  mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}
   mpi_send_buffers::Vector{Vector{Float64}}
   mpi_recv_buffers::Vector{Vector{Float64}}
   mpi_send_requests::Vector{MPI.Request}
   mpi_recv_requests::Vector{MPI.Request}
-  n_elements_by_domain::OffsetArray{Int, 1, Array{Int, 1}}
+  n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
   n_elements_global::Int
   first_element_global_id::Int
 
@@ -216,7 +216,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Set up MPI neighbor connectivity and communication data structures
   if is_parallel()
-    (mpi_neighbor_domain_ids,
+    (mpi_neighbor_ranks,
      mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
     (mpi_send_buffers,
      mpi_recv_buffers,
@@ -225,12 +225,12 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
                                                    Val(NDIMS), Val(NVARS), Val(POLYDEG))
 
     # Determine local and total number of elements
-    n_elements_by_domain = Vector{Int}(undef, n_domains())
-    n_elements_by_domain[domain_id() + 1] = n_elements
-    MPI.Allgather!(n_elements_by_domain, 1, mpi_comm())
-    n_elements_by_domain = OffsetArray(n_elements_by_domain, 0:(n_domains() - 1))
+    n_elements_by_rank = Vector{Int}(undef, n_mpi_ranks())
+    n_elements_by_rank[mpi_rank() + 1] = n_elements
+    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(n_mpi_ranks() - 1))
     n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
-    @assert n_elements_global == sum(n_elements_by_domain) "error in total number of elements"
+    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
 
     # Determine the global element id of the first element
     first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
@@ -242,13 +242,13 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       first_element_global_id += 1
     end
   else
-    mpi_neighbor_domain_ids = Int[]
+    mpi_neighbor_ranks = Int[]
     mpi_neighbor_interfaces = Vector{Int}[]
     mpi_send_buffers = Vector{Float64}[]
     mpi_recv_buffers = Vector{Float64}[]
     mpi_send_requests = MPI.Request[]
     mpi_recv_requests = MPI.Request[]
-    n_elements_by_domain = OffsetArray([n_elements], 0:0)
+    n_elements_by_rank = OffsetArray([n_elements], 0:0)
     n_elements_global = n_elements
     first_element_global_id = 1
   end
@@ -313,9 +313,9 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
-      mpi_neighbor_domain_ids, mpi_neighbor_interfaces,
+      mpi_neighbor_ranks, mpi_neighbor_interfaces,
       mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
-      n_elements_by_domain, n_elements_global, first_element_global_id,
+      n_elements_by_rank, n_elements_global, first_element_global_id,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -377,7 +377,7 @@ function count_required_interfaces(mesh::TreeMesh2D, cell_ids)
         continue
       end
 
-      # Skip if neighbor is on different domain -> create MPI interface instead
+      # Skip if neighbor is on different rank -> create MPI interface instead
       if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
@@ -583,7 +583,7 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D)
         continue
       end
 
-      # Skip if neighbor is on different domain -> create MPI interface instead
+      # Skip if neighbor is on different rank -> create MPI interface instead
       if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end

@@ -26,7 +26,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
   levels::Vector{Int}
   coordinates::Matrix{Float64}
   original_cell_ids::Vector{Int}
-  domain_ids::Vector{Int}
+  mpi_ranks::Vector{Int}
 
   capacity::Int
   length::Int
@@ -51,7 +51,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, NDIMS, capacity + 1)
     t.original_cell_ids = fill(typemin(Int), capacity + 1)
-    t.domain_ids = fill(typemin(Int), capacity + 1)
+    t.mpi_ranks = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
@@ -99,7 +99,7 @@ function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, pe
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
   t.original_cell_ids[1] = 0
-  t.domain_ids[1] = typemin(Int)
+  t.mpi_ranks[1] = typemin(Int)
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
@@ -137,7 +137,7 @@ function Base.show(io::IO, t::ParallelTree{NDIMS}) where NDIMS
   println(io, "t.levels[1:l] = $(t.levels[1:l])")
   println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
   println(io, "t.original_cell_ids[1:l] = $(t.original_cell_ids[1:l])")
-  println(io, "t.domain_ids[1:l] = $(t.domain_ids[1:l])")
+  println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
@@ -170,8 +170,8 @@ has_child(t::ParallelTree, cell_id::Int, child::Int) = t.child_ids[child, cell_i
 # Check if cell has a neighbor at the same refinement level in the given direction
 has_neighbor(t::ParallelTree, cell_id::Int, direction::Int) = t.neighbor_ids[direction, cell_id] > 0
 
-# Check if cell is own cell, i.e., belongs to this MPI domain
-is_own_cell(t::ParallelTree, cell_id) = t.domain_ids[cell_id] == domain_id()
+# Check if cell is own cell, i.e., belongs to this MPI rank
+is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
 
 # Check if cell has a coarse neighbor, i.e., with one refinement level lower
 function has_coarse_neighbor(t::ParallelTree, cell_id::Int, direction::Int)
@@ -285,13 +285,13 @@ end
 leaf_cells(t::ParallelTree) = filter_leaf_cells((cell_id)->true, t)
 
 
-# Return an array with the ids of all leaf cells for a given domain
-leaf_cells_by_domain(t::ParallelTree, domain_id) = filter_leaf_cells(t) do cell_id
-                                                     t.domain_ids[cell_id] == domain_id
-                                                   end
+# Return an array with the ids of all leaf cells for a given rank
+leaf_cells_by_rank(t::ParallelTree, rank) = filter_leaf_cells(t) do cell_id
+                                              t.mpi_ranks[cell_id] == rank
+                                            end
 
 # Return an array with the ids of all local leaf cells
-local_leaf_cells(t::ParallelTree) = leaf_cells_by_domain(t, domain_id())
+local_leaf_cells(t::ParallelTree) = leaf_cells_by_rank(t, mpi_rank())
 
 
 # Count the number of leaf cells.
@@ -443,7 +443,7 @@ function refine_unbalanced!(t::ParallelTree, cell_ids)
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
       t.original_cell_ids[child_id] = 0
-      t.domain_ids[child_id] = t.domain_ids[cell_id]
+      t.mpi_ranks[child_id] = t.mpi_ranks[cell_id]
 
       # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
@@ -689,7 +689,7 @@ function invalidate!(t::ParallelTree, first::Int, last::Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
   t.original_cell_ids[first:last] .= typemin(Int)
-  t.domain_ids[first:last] .= typemin(Int)
+  t.mpi_ranks[first:last] .= typemin(Int)
 
   return nothing
 end
@@ -815,7 +815,7 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
-  copy_data!(target.domain_ids, source.domain_ids, first, last, destination)
+  copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
 end
 
 
@@ -827,7 +827,7 @@ function reset_data_structures!(t::ParallelTree{NDIMS}) where NDIMS
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
-  t.domain_ids = Vector{Int}(undef, t.capacity + 1)
+  t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end

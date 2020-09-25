@@ -11,8 +11,8 @@ mutable struct TreeMesh{TreeType<:AbstractTree{NDIMS} where NDIMS}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
-  first_cell_by_domain::OffsetVector{Int, Vector{Int}}
-  n_cells_by_domain::OffsetVector{Int, Vector{Int}}
+  first_cell_by_rank::OffsetVector{Int, Vector{Int}}
+  n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
   function TreeMesh{TreeType}(n_cells_max::Integer) where TreeType
     # Create mesh
@@ -20,8 +20,8 @@ mutable struct TreeMesh{TreeType<:AbstractTree{NDIMS} where NDIMS}
     m.tree = TreeType(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = false
-    m.first_cell_by_domain = OffsetVector(Int[], 0)
-    m.n_cells_by_domain = OffsetVector(Int[], 0)
+    m.first_cell_by_rank = OffsetVector(Int[], 0)
+    m.n_cells_by_rank = OffsetVector(Int[], 0)
 
     return m
   end
@@ -33,8 +33,8 @@ mutable struct TreeMesh{TreeType<:AbstractTree{NDIMS} where NDIMS}
     m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = false
-    m.first_cell_by_domain = OffsetVector(Int[], 0)
-    m.n_cells_by_domain = OffsetVector(Int[], 0)
+    m.first_cell_by_rank = OffsetVector(Int[], 0)
+    m.n_cells_by_rank = OffsetVector(Int[], 0)
 
     return m
   end
@@ -176,38 +176,37 @@ end
 
 
 # Partition mesh using a static domain decomposition algorithm based on leaf cell count alone
-# Return first cell id for each domain
 function partition!(mesh)
-  # Determine number of leaf cells per domain
+  # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
-  @assert length(leaves) > n_domains()
-  n_leaves_per_domain = OffsetArray(fill(div(length(leaves), n_domains()), n_domains()),
-                                    0:(n_domains() - 1))
-  for d in 0:(rem(length(leaves), n_domains()) - 1)
-    n_leaves_per_domain[d] += 1
+  @assert length(leaves) > n_mpi_ranks()
+  n_leaves_per_rank = OffsetArray(fill(div(length(leaves), n_mpi_ranks()), n_mpi_ranks()),
+                                  0:(n_mpi_ranks() - 1))
+  for d in 0:(rem(length(leaves), n_mpi_ranks()) - 1)
+    n_leaves_per_rank[d] += 1
   end
-  @assert sum(n_leaves_per_domain) == length(leaves)
+  @assert sum(n_leaves_per_rank) == length(leaves)
 
-  # Assign domain ids to all cells such that all ancestors of each cell - if not yet assigned to a
-  # domain - belong to the same domain
-  mesh.first_cell_by_domain = similar(n_leaves_per_domain)
-  mesh.n_cells_by_domain = similar(n_leaves_per_domain)
+  # Assign MPI ranks to all cells such that all ancestors of each cell - if not yet assigned to a
+  # rank - belong to the same rank
+  mesh.first_cell_by_rank = similar(n_leaves_per_rank)
+  mesh.n_cells_by_rank = similar(n_leaves_per_rank)
 
   leaf_count = 0
-  last_id = leaves[n_leaves_per_domain[0]]
-  mesh.first_cell_by_domain[0] = 1
-  mesh.n_cells_by_domain[0] = last_id
-  mesh.tree.domain_ids[1:last_id] .= 0
-  for d in 1:(length(n_leaves_per_domain)-1)
-    leaf_count += n_leaves_per_domain[d-1]
-    last_id = leaves[leaf_count + n_leaves_per_domain[d]]
-    mesh.first_cell_by_domain[d] = mesh.first_cell_by_domain[d-1] + mesh.n_cells_by_domain[d-1]
-    mesh.n_cells_by_domain[d] = last_id - mesh.first_cell_by_domain[d] + 1
-    mesh.tree.domain_ids[mesh.first_cell_by_domain[d]:last_id] .= d
+  last_id = leaves[n_leaves_per_rank[0]]
+  mesh.first_cell_by_rank[0] = 1
+  mesh.n_cells_by_rank[0] = last_id
+  mesh.tree.mpi_ranks[1:last_id] .= 0
+  for d in 1:(length(n_leaves_per_rank)-1)
+    leaf_count += n_leaves_per_rank[d-1]
+    last_id = leaves[leaf_count + n_leaves_per_rank[d]]
+    mesh.first_cell_by_rank[d] = mesh.first_cell_by_rank[d-1] + mesh.n_cells_by_rank[d-1]
+    mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
+    mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
   end
 
-  @assert all(x->x >= 0, mesh.tree.domain_ids[1:length(mesh.tree)])
-  @assert sum(mesh.n_cells_by_domain) == length(mesh.tree)
+  @assert all(x->x >= 0, mesh.tree.mpi_ranks[1:length(mesh.tree)])
+  @assert sum(mesh.n_cells_by_rank) == length(mesh.tree)
 
   return nothing
 end

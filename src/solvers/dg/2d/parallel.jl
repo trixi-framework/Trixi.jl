@@ -71,7 +71,7 @@ function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
         continue
       end
 
-      # Skip if neighbor is on this domain -> create regular interface instead
+      # Skip if neighbor is on this rank -> create regular interface instead
       if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
@@ -98,7 +98,7 @@ end
 
 
 function start_mpi_receive!(dg::Dg2D)
-  for (index, d) in enumerate(dg.mpi_neighbor_domain_ids)
+  for (index, d) in enumerate(dg.mpi_neighbor_ranks)
     dg.mpi_recv_requests[index] = MPI.Irecv!(dg.mpi_recv_buffers[index], d, d, mpi_comm())
   end
 end
@@ -127,7 +127,7 @@ function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMe
         continue
       end
 
-      # Skip if neighbor is on this domain -> create regular interface instead
+      # Skip if neighbor is on this MPI rank -> create regular interface instead
       if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
@@ -156,16 +156,15 @@ function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMe
 end
 
 
-# Initialize connectivity between MPI neighbor domains
+# Initialize connectivity between MPI neighbor ranks
 function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh2D)
   tree = mesh.tree
 
-  # Determine neighbor domains and sides for MPI interfaces
-  neighbor_domain_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
+  # Determine neighbor ranks and sides for MPI interfaces
+  neighbor_ranks = fill(-1, nmpiinterfaces(mpi_interfaces))
   # The global interface id is the smaller of the (globally unique) neighbor cell ids, multiplied by
   # number of directions (2 * ndims) plus direction minus one
   global_interface_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
-  my_domain_id = domain_id()
   for interface_id in 1:nmpiinterfaces(mpi_interfaces)
     orientation = mpi_interfaces.orientations[interface_id]
     remote_side = mpi_interfaces.remote_sides[interface_id]
@@ -186,7 +185,7 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     local_element_id = mpi_interfaces.local_element_ids[interface_id]
     local_cell_id = elements.cell_ids[local_element_id]
     remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
-    neighbor_domain_ids[interface_id] = tree.domain_ids[remote_cell_id]
+    neighbor_ranks[interface_id] = tree.mpi_ranks[remote_cell_id]
     if local_cell_id < remote_cell_id
       global_interface_ids[interface_id] = 2 * ndims(tree) * local_cell_id + direction - 1
     else
@@ -195,24 +194,24 @@ function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh
     end
   end
 
-  # Get sorted, unique neighbor domain ids
-  mpi_neighbor_domain_ids = unique(sort(neighbor_domain_ids))
+  # Get sorted, unique neighbor ranks
+  mpi_neighbor_ranks = unique(sort(neighbor_ranks))
 
   # Sort interfaces by global interface id
   p = sortperm(global_interface_ids)
-  neighbor_domain_ids .= neighbor_domain_ids[p]
+  neighbor_ranks .= neighbor_ranks[p]
   interface_ids = collect(1:nmpiinterfaces(mpi_interfaces))[p]
 
-  # For each neighbor domain id, init connectivity data structures
-  mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_domain_ids))
-  for (index, d) in enumerate(mpi_neighbor_domain_ids)
-    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_domain_ids)]
+  # For each neighbor rank, init connectivity data structures
+  mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+  for (index, d) in enumerate(mpi_neighbor_ranks)
+    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_ranks)]
   end
 
   # Sanity check that we counted all interfaces exactly once
   @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
 
-  return mpi_neighbor_domain_ids, mpi_neighbor_interfaces
+  return mpi_neighbor_ranks, mpi_neighbor_interfaces
 end
 
 
@@ -267,7 +266,7 @@ end
 function start_mpi_send!(dg::Dg2D)
   data_size = nvariables(dg) * nnodes(dg)^(ndims(dg) - 1)
 
-  for d in 1:length(dg.mpi_neighbor_domain_ids)
+  for d in 1:length(dg.mpi_neighbor_ranks)
     send_buffer = dg.mpi_send_buffers[d]
 
     for (index, s) in enumerate(dg.mpi_neighbor_interfaces[d])
@@ -283,8 +282,8 @@ function start_mpi_send!(dg::Dg2D)
   end
 
   # Start sending
-  for (index, d) in enumerate(dg.mpi_neighbor_domain_ids)
-    dg.mpi_send_requests[index] = MPI.Isend(dg.mpi_send_buffers[index], d, domain_id(), mpi_comm())
+  for (index, d) in enumerate(dg.mpi_neighbor_ranks)
+    dg.mpi_send_requests[index] = MPI.Isend(dg.mpi_send_buffers[index], d, mpi_rank(), mpi_comm())
   end
 end
 
@@ -379,7 +378,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
               " PID:            " * @sprintf("%10.8e s", runtime_relative))
   mpi_println(" sim. time:      " * @sprintf("%10.8e", time) *
               "               " *
-              " PID × #domains: " * @sprintf("%10.8e s", runtime_relative * n_domains()))
+              " PID × #ranks:   " * @sprintf("%10.8e s", runtime_relative * n_mpi_ranks()))
 
   # Level information (only show for AMR)
   if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
@@ -664,7 +663,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
 end
 
 
-# OBS! Global results are only calculated on root domain
+# OBS! Global results are only calculated on MPI root
 function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{true})
   l2_error, linf_error = calc_error_norms(func, dg, t, Val(false))
 
@@ -699,7 +698,7 @@ function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{true})
 end
 
 
-# OBS! Global results are only calculated on root domain
+# OBS! Global results are only calculated on MPI root
 function integrate(func, dg::Dg2D, uses_mpi::Val{true}, args...; normalize=true)
   integral = integrate(func, dg, Val(false), args...; normalize=normalize)
   integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())

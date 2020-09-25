@@ -5,9 +5,9 @@ function load_restart_file!(dg::AbstractDg, restart_filename, mpi_parallel::Val{
   time = NaN
   step = -1
 
-  # Calculate node counts by domain
+  # Calculate node counts by MPI rank
   element_size = nnodes(dg)^ndims(dg)
-  node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain)) * Cint(element_size)
+  node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_rank)) * Cint(element_size)
 
   if is_mpi_root()
     # Open file
@@ -59,9 +59,9 @@ end
 
 function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
                            mpi_parallel::Val{true})
-  # Calculate node counts by domain
+  # Calculate node counts by MPI rank
   element_size = nnodes(dg)^ndims(dg)
-  node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain)) * Cint(element_size)
+  node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_rank)) * Cint(element_size)
 
   # Restart files always store conservative variables
   data = dg.elements.u
@@ -119,9 +119,9 @@ end
 function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system,
                             mpi_parallel::Val{true})
 
-  # Calculate element and node counts by domain
+  # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(dg)
-  element_counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain))
+  element_counts = convert(Vector{Cint}, collect(dg.n_elements_by_rank))
   node_counts = element_counts * Cint(element_size)
 
   # Convert to primitive variables if requested
@@ -206,7 +206,7 @@ end
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, timestep, mpi_parallel::Val{true})
-  # Since the mesh is replicated on all domains, only save from root domain
+  # Since the mesh is replicated on all ranks, only save from MPI root
   if !is_mpi_root()
     return
   end

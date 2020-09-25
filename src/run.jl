@@ -207,8 +207,8 @@ function init_simulation()
           | time integration:   $(get_name(time_integration_function))
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
-          | #MPI domains:       $(n_domains())
-          | #threads/domain:    $(Threads.nthreads())
+          | #MPI ranks:         $(n_mpi_ranks())
+          | #threads/rank:      $(Threads.nthreads())
           |
           | Solver (local)
           | | solver:           $solver_name
