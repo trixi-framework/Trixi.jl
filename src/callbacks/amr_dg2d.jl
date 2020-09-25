@@ -370,12 +370,13 @@ end
 
 function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
   indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
+  cache.element_variables[:indicator_amr] = indicator_value # register the indicator to save it in solution files
   return (; indicator_value)
 end
 
-# TODO: Taal refactor, merge the two loops of IndicatorTwoLevel and IndicatorLöhner?
-function (indicator::IndicatorTwoLevel)(u::AbstractArray{<:Any,4},
-                                        mesh::TreeMesh{2}, equations, dg::DG, cache)
+# TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner?
+function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any,4},
+                                          mesh::TreeMesh{2}, equations, dg::DG, cache)
 
   @unpack indicator_value = indicator.cache
   resize!(indicator_value, nelements(dg, cache))
@@ -390,7 +391,13 @@ function (indicator::IndicatorTwoLevel)(u::AbstractArray{<:Any,4},
     target_level = actual_level
     if alpha[element] > indicator.max_threshold
       target_level = indicator.max_level
-    elseif alpha[element] < indicator.base_threshold
+    elseif alpha[element] > indicator.med_threshold
+      if indicator.med_level > 0
+        target_level = indicator.med_level
+        # otherwise, target_level = actual_level
+        # set med_level = -1 to implicitly use med_level = actual_level
+      end
+    else
       target_level = indicator.base_level
     end
 
@@ -411,6 +418,7 @@ end
 function löhner_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
 
   alpha = Vector{real(dg)}(undef, nelements(dg, cache))
+  cache.element_variables[:indicator_loehner] = alpha # register the indicator to save it in solution files
 
   A = Array{real(dg), ndims(mesh)}
   indicator_threaded = [A(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
@@ -457,6 +465,39 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
 
     # use the maximum as DG element indicator
     alpha[element] = estimate
+  end
+
+  return alpha
+end
+
+
+
+function indicator_max_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+
+  alpha = Vector{real(dg)}(undef, nelements(dg, cache))
+  cache.element_variables[:indicator_max] = alpha # register the indicator to save it in solution files
+
+  A = Array{real(dg), ndims(mesh)}
+  indicator_threaded = [A(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+
+  return (; alpha, indicator_threaded)
+end
+
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4},
+                                       mesh, equations, dg::DGSEM, cache)
+  @unpack alpha, indicator_threaded = indicator_max.cache
+  resize!(alpha, nelements(dg, cache))
+
+  Threads.@threads for element in eachelement(dg, cache)
+    indicator = indicator_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      indicator[i, j] = indicator_max.variable(u_local, equations)
+    end
+
+    alpha[element] = maximum(indicator)
   end
 
   return alpha

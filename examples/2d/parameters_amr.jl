@@ -48,17 +48,18 @@ save_solution = SaveSolutionCallback(solution_interval=100,
 # TODO: Taal, IO
 # restart_interval = 10
 
-amr_indicator = IndicatorTwoLevel(semi, IndicatorLöhner(semi),
-                                  base_level=4, base_threshold=0.1,
-                                  max_level =6, max_threshold =0.3)
+amr_indicator = IndicatorThreeLevel(semi, Trixi.IndicatorMax(semi),
+                                    base_level=4,
+                                    med_level=5, med_threshold=0.1,
+                                    max_level=6, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_indicator,
-                           interval=100, adapt_initial_conditions_only_refine=true) # TODO: Taal debug
-                          #  interval=5, adapt_initial_conditions_only_refine=true)
+                           interval=5, adapt_initial_conditions_only_refine=true)
 amr_callback(ode) # adapt the initial condition
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
+# callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback); # TODO: Taal debug
 
 
 ###############################################################################

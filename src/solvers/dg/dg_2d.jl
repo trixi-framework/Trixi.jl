@@ -3,6 +3,7 @@
 
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                       boundary_conditions, dg::DG, RealT)
+  # TODO: Taal cleanup
   # element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   # cache::Dict{Symbol, Any}
   # thread_cache::Any # to make fully-typed output more readable
@@ -26,7 +27,9 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          RealT, nvariables(equations), polydeg(dg), dg.mortar)
 
-  cache = (; elements, interfaces, boundaries, mortars)
+  element_variables = Dict{Symbol, Any}()
+
+  cache = (; elements, interfaces, boundaries, mortars, element_variables)
 
   # TODO: Taal refactor
   # For me,

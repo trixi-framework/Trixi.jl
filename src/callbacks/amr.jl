@@ -63,12 +63,12 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
 end
 
 
-function (amr_callback::AMRCallback)(integrator; kwargs...)
+function (amr_callback::AMRCallback)(integrator)
   @unpack u = integrator
   semi = integrator.p
 
   println("AMRCallback: active") # TODO: Taal debug
-  has_changed = amr_callback(u, semi; kwargs...)
+  has_changed = amr_callback(u, semi)
   println("AMRCallback: has_changed=", has_changed) # TODO: Taal debug
   println("AMRCallback: mesh.unsaved_changes=", semi.mesh.unsaved_changes) # TODO: Taal debug
   println("AMRCallback: length(u)=", length(u)) # TODO: Taal debug
@@ -103,44 +103,47 @@ end
 
 
 # TODO: Taal document
-struct IndicatorTwoLevel{RealT<:Real, Indicator, Cache}
+struct IndicatorThreeLevel{RealT<:Real, Indicator, Cache}
   base_level::Int
-  base_threshold::RealT
-  max_level::Int
+  med_level ::Int
+  max_level ::Int
+  med_threshold::RealT
   max_threshold::RealT
   indicator::Indicator
   cache::Cache
 end
 
-function IndicatorTwoLevel(semi, indicator; base_level=1, base_threshold=0.0,
-                                            max_level =1, max_threshold =1.0)
-  base_threshold, max_threshold = promote(base_threshold, max_threshold)
+function IndicatorThreeLevel(semi, indicator; base_level=1,
+                                              med_level=base_level, med_threshold=0.0,
+                                              max_level=base_level, max_threshold=1.0)
+  med_threshold, max_threshold = promote(med_threshold, max_threshold)
   cache = indicator_cache(semi)
-  IndicatorTwoLevel{typeof(base_threshold), typeof(indicator), typeof(cache)}(
-    base_level, base_threshold, max_level, max_threshold, indicator, cache
-  )
+  IndicatorThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
+    base_level, med_level, max_level, med_threshold, max_threshold, indicator, cache)
 end
 
 indicator_cache(semi) = indicator_cache(mesh_equations_solver_cache(semi)...)
 
 
-function Base.show(io::IO, indicator::IndicatorTwoLevel)
-  print(io, "IndicatorTwoLevel(")
+function Base.show(io::IO, indicator::IndicatorThreeLevel)
+  print(io, "IndicatorThreeLevel(")
   print(io, indicator.indicator)
   print(io, ", base_level=", indicator.base_level)
-  print(io, ", base_threshold=", indicator.base_threshold)
-  print(io, ", max_level=", indicator.max_level)
+  print(io, ", med_level=",  indicator.med_level)
+  print(io, ", max_level=",  indicator.max_level)
+  print(io, ", med_threshold=", indicator.med_threshold)
   print(io, ", max_threshold=", indicator.max_threshold)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorTwoLevel)
-  println(io, "IndicatorTwoLevel with")
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorThreeLevel)
+  println(io, "IndicatorThreeLevel with")
   println(io, "- ", indicator.indicator)
-  println(io, "- base_level:     ", indicator.base_level)
-  println(io, "- base_threshold: ", indicator.base_threshold)
-  println(io, "- max_level:      ", indicator.max_level)
-  print(io,   "- max_threshold:  ", indicator.max_threshold)
+  println(io, "- base_level: ", indicator.base_level)
+  println(io, "- med_level:  ", indicator.med_level)
+  println(io, "- max_level:  ", indicator.max_level)
+  println(io, "- med_threshold: ", indicator.med_threshold)
+  print(io,   "- max_threshold: ", indicator.max_threshold)
 end
 
 
@@ -179,6 +182,30 @@ end
 # end
 
 const IndicatorLoehner = IndicatorLöhner
+
+
+# TODO: Taal decide, shall we keep this?
+struct IndicatorMax{Variable, Cache}
+  variable::Variable
+  cache::Cache
+end
+
+function IndicatorMax(semi; variable=first)
+  cache = indicator_max_cache(semi)
+  return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
+end
+
+indicator_max_cache(semi) = indicator_max_cache(mesh_equations_solver_cache(semi)...)
+
+function Base.show(io::IO, indicator::IndicatorMax)
+  print(io, "IndicatorMax(")
+  print(io, "variable=", indicator.variable, ")")
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
+#   println(io, "IndicatorMax with")
+#   println(io, "- indicator: ", indicator.indicator)
+# end
 
 
 Base.first(u, equations::AbstractEquations) = first(u)

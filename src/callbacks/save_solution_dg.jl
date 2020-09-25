@@ -55,16 +55,15 @@ function save_solution_file(u, time, dt, timestep,
       attrs(var)["name"] = varnames[v]
     end
 
-    # TODO: Taal implement, save element variables
     # Store element variables
-    # for (v, (key, element_variables)) in enumerate(cache.element_variables)
-    #   # Add to file
-    #   file["element_variables_$v"] = element_variables
+    for (v, (key, element_variables)) in enumerate(cache.element_variables)
+      # Add to file
+      file["element_variables_$v"] = element_variables
 
-    #   # Add variable name as attribute
-    #   var = file["element_variables_$v"]
-    #   attrs(var)["name"] = string(key)
-    # end
+      # Add variable name as attribute
+      var = file["element_variables_$v"]
+      attrs(var)["name"] = string(key)
+    end
   end
 
   return filename
