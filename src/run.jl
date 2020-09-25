@@ -52,7 +52,7 @@ function init_parameters(parameters_file=nothing; verbose=false, refinement_leve
   globals[:verbose] = verbose
 
   # Parse parameters file
-  @timeit timer() "read parameter file" parse_parameters_file(parameters_file, mpi_parallel())
+  @timeit timer() "read parameter file" parse_parameters_file(parameters_file)
 
   # Override specified parameters
   for (parameter, value) in parameters
@@ -85,7 +85,6 @@ function init_simulation()
 
   # Initialize mesh
   if restart
-    is_parallel() && error("restarting not yet implemented in parallel") # TODO parallel
     is_mpi_root() && print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
     is_parallel() && MPI.Barrier(mpi_comm())
@@ -252,7 +251,7 @@ function init_simulation()
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
     @notimeit timer() rhs!(solver, time)
-    save_solution_file(solver, mesh, time, 0, step, mpi_parallel())
+    save_solution_file(solver, mesh, time, 0, step)
   end
 
   # Print initial solution analysis and initialize solution analysis
@@ -391,7 +390,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         end
 
         # Then write solution file
-        save_solution_file(solver, mesh, time, dt, step, mpi_parallel())
+        save_solution_file(solver, mesh, time, dt, step)
       end
       output_time += time_ns() - output_start_time
     end
@@ -408,7 +407,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         end
 
         # Then write restart file
-        save_restart_file(solver, mesh, time, dt, step, mpi_parallel())
+        save_restart_file(solver, mesh, time, dt, step)
       end
       output_time += time_ns() - output_start_time
     end

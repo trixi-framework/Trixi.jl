@@ -13,6 +13,7 @@ const parameters = Dict{Symbol,Any}()
 
 
 # Parse parameters file into global dict
+parse_parameters_file(filename) = parse_parameters_file(filename, mpi_parallel())
 function parse_parameters_file(filename, mpi_parallel::Val{false})
   parameters[:default] = parsefile(filename)
   parameters[:default]["parameters_file"] = filename

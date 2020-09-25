@@ -5,40 +5,52 @@ function load_restart_file!(dg::AbstractDg, restart_filename, mpi_parallel::Val{
   time = NaN
   step = -1
 
-  # Open file
-  h5open(restart_filename, "r") do file
-    equation = equations(dg)
+  # Calculate node counts by domain
+  element_size = nnodes(dg)^ndims(dg)
+  node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_domain)) * Cint(element_size)
 
-    # Read attributes to perform some sanity checks
-    if read(attrs(file)["ndims"]) != ndims(dg)
-      error("restart mismatch: ndims in solver differs from value in restart file")
-    end
-    if read(attrs(file)["equations"]) != get_name(equation)
-      error("restart mismatch: equations in solver differs from value in restart file")
-    end
-    if read(attrs(file)["polydeg"]) != polydeg(dg)
-      error("restart mismatch: polynomial degree in solver differs from value in restart file")
-    end
-    if read(attrs(file)["n_elements"]) != dg.n_elements_global
-      error("restart mismatch: polynomial degree in solver differs from value in restart file")
-    end
-
-    # Read time and time step
-    time = read(attrs(file)["time"])
-    step = read(attrs(file)["timestep"])
-
-    # Read data
-    varnames = varnames_cons(equation)
-    for v in 1:nvariables(dg)
-      # Check if variable name matches
-      var = file["variables_$v"]
-      if (name = read(attrs(var)["name"])) != varnames[v]
-        error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
+  if is_mpi_root()
+    # Open file
+    h5open(restart_filename, "r") do file
+      # Read attributes to perform some sanity checks
+      if read(attrs(file)["ndims"]) != ndims(dg)
+        error("restart mismatch: ndims in solver differs from value in restart file")
+      end
+      if read(attrs(file)["equations"]) != get_name(equations(dg))
+        error("restart mismatch: equations in solver differs from value in restart file")
+      end
+      if read(attrs(file)["polydeg"]) != polydeg(dg)
+        error("restart mismatch: polynomial degree in solver differs from value in restart file")
+      end
+      if read(attrs(file)["n_elements"]) != dg.n_elements_global
+        error("restart mismatch: polynomial degree in solver differs from value in restart file")
       end
 
+      # Read time and time step
+      time = read(attrs(file)["time"])
+      step = read(attrs(file)["timestep"])
+      MPI.Bcast!(Ref(time), mpi_root(), mpi_comm())
+      MPI.Bcast!(Ref(step), mpi_root(), mpi_comm())
+
+      # Read data
+      varnames = varnames_cons(equations(dg))
+      for v in 1:nvariables(dg)
+        # Check if variable name matches
+        var = file["variables_$v"]
+        if (name = read(attrs(var)["name"])) != varnames[v]
+          error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
+        end
+
+        # Read variable
+        dg.elements.u[v, .., :] = MPI.Scatterv(read(file["variables_$v"]), node_counts, mpi_root(), mpi_comm())
+      end
+    end
+  else # on non-root ranks, receive data from root
+    time = MPI.Bcast!(Ref(time), mpi_root(), mpi_comm())[]
+    step = MPI.Bcast!(Ref(step), mpi_root(), mpi_comm())[]
+    for v in 1:nvariables(dg)
       # Read variable
-      println("Reading variables_$v ($name)...")
-      dg.elements.u[v, .., :] = read(file["variables_$v"])
+      dg.elements.u[v, .., :] = MPI.Scatterv(eltype(dg.elements.u)[], node_counts, mpi_root(), mpi_comm())
     end
   end
 
@@ -191,3 +203,46 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
   end
 end
 
+
+# Save current mesh with some context information as an HDF5 file.
+function save_mesh_file(mesh::TreeMesh, timestep, mpi_parallel::Val{true})
+  # Since the mesh is replicated on all domains, only save from root domain
+  if !is_mpi_root()
+    return
+  end
+
+  # Create output directory (if it does not exist)
+  output_directory = parameter("output_directory", "out")
+  mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep >= 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d", timestep))
+  else
+    filename = joinpath(output_directory, "mesh")
+  end
+
+  # Create output directory (if it does not exist)
+  # Open file (clobber existing content)
+  h5open(filename * ".h5", "w") do file
+    # Add context information as attributes
+    n_cells = length(mesh.tree)
+    attrs(file)["ndims"] = ndims(mesh)
+    attrs(file)["n_cells"] = n_cells
+    attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
+    attrs(file)["minimum_level"] = minimum_level(mesh.tree)
+    attrs(file)["maximum_level"] = maximum_level(mesh.tree)
+    attrs(file)["center_level_0"] = mesh.tree.center_level_0
+    attrs(file)["length_level_0"] = mesh.tree.length_level_0
+    attrs(file)["periodicity"] = collect(mesh.tree.periodicity)
+
+    # Add tree data
+    file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
+    file["child_ids"] = @view mesh.tree.child_ids[:, 1:n_cells]
+    file["neighbor_ids"] = @view mesh.tree.neighbor_ids[:, 1:n_cells]
+    file["levels"] = @view mesh.tree.levels[1:n_cells]
+    file["coordinates"] = @view mesh.tree.coordinates[:, 1:n_cells]
+  end
+
+  return filename * ".h5"
+end

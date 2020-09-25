@@ -1,20 +1,19 @@
 include("parallel.jl")
 
 # Load restart file and store solution in solver
-function load_restart_file!(dg::AbstractDg, restart_filename)
+load_restart_file!(dg, restart_filename) = load_restart_file!(dg, restart_filename, mpi_parallel())
+function load_restart_file!(dg::AbstractDg, restart_filename, mpi_parallel::Val{false})
   # Create variables to be returned later
   time = NaN
   step = -1
 
   # Open file
   h5open(restart_filename, "r") do file
-    equation = equations(dg)
-
     # Read attributes to perform some sanity checks
     if read(attrs(file)["ndims"]) != ndims(dg)
       error("restart mismatch: ndims in solver differs from value in restart file")
     end
-    if read(attrs(file)["equations"]) != get_name(equation)
+    if read(attrs(file)["equations"]) != get_name(equations(dg))
       error("restart mismatch: equations in solver differs from value in restart file")
     end
     if read(attrs(file)["polydeg"]) != polydeg(dg)
@@ -29,7 +28,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
     step = read(attrs(file)["timestep"])
 
     # Read data
-    varnames = varnames_cons(equation)
+    varnames = varnames_cons(equations(dg))
     for v in 1:nvariables(dg)
       # Check if variable name matches
       var = file["variables_$v"]
@@ -38,7 +37,6 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
       end
 
       # Read variable
-      println("Reading variables_$v ($name)...")
       dg.elements.u[v, .., :] = read(file["variables_$v"])
     end
   end
@@ -49,6 +47,8 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # restarting.
+save_restart_file(dg, mesh, time, dt, timestep) = save_restart_file(dg, mesh, time, dt, timestep,
+                                                                    mpi_parallel())
 function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
                            mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
@@ -64,11 +64,9 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
 
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
-    equation = equations(dg)
-
     # Add context information as attributes
     attrs(file)["ndims"] = ndims(dg)
-    attrs(file)["equations"] = get_name(equation)
+    attrs(file)["equations"] = get_name(equations(dg))
     attrs(file)["polydeg"] = polydeg(dg)
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements_global
@@ -79,7 +77,7 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
 
     # Restart files always store conservative variables
     data = dg.elements.u
-    varnames = varnames_cons(equation)
+    varnames = varnames_cons(equations(dg))
 
     # Store each variable of the solution
     for v in 1:nvariables(dg)
@@ -96,8 +94,9 @@ end
 
 # Save current DG solution with some context information as a HDF5 file for
 # postprocessing.
-function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, mpi_parallel)
-  return save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, "", mpi_parallel)
+function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system="")
+  return save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system,
+                            mpi_parallel())
 end
 function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, system,
                             mpi_parallel::Val{false})
@@ -118,11 +117,9 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
 
   # Open file (clobber existing content)
   h5open(filename * ".h5", "w") do file
-    equation = equations(dg)
-
     # Add context information as attributes
     attrs(file)["ndims"] = ndims(dg)
-    attrs(file)["equations"] = get_name(equation)
+    attrs(file)["equations"] = get_name(equations(dg))
     attrs(file)["polydeg"] = polydeg(dg)
     attrs(file)["n_vars"] = nvariables(dg)
     attrs(file)["n_elements"] = dg.n_elements
@@ -136,7 +133,7 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
                                    valid=["conservative", "primitive"])
     if solution_variables == "conservative"
       data = dg.elements.u
-      varnames = varnames_cons(equation)
+      varnames = varnames_cons(equations(dg))
     else
       # Reinterpret the solution array as an array of conservative variables,
       # compute the primitive variables via broadcasting, and reinterpret the
@@ -144,7 +141,7 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
       data = Array(reinterpret(eltype(dg.elements.u),
              cons2prim.(reinterpret(SVector{nvariables(dg),eltype(dg.elements.u)}, dg.elements.u),
                         Ref(equations(dg)))))
-      varnames = varnames_prim(equation)
+      varnames = varnames_prim(equations(dg))
     end
 
     # Store each variable of the solution
@@ -171,7 +168,8 @@ end
 
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::TreeMesh, timestep=-1)
+save_mesh_file(mesh, mpi_parallel) = save_mesh_file(mesh, -1, mpi_parallel)
+function save_mesh_file(mesh::TreeMesh, timestep, mpi_parallel::Val{false})
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
   mkpath(output_directory)

@@ -3,6 +3,7 @@ abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
 include("tree.jl")
 include("parallel_tree.jl")
+include("parallel.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
@@ -89,11 +90,6 @@ function generate_mesh()
     refine!(mesh.tree)
   end
 
-  # Partition mesh
-  if is_parallel()
-    partition!(mesh)
-  end
-
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])
     is_parallel() && error("non-uniform meshes not supported in parallel")
@@ -114,12 +110,18 @@ function generate_mesh()
     end
   end
 
+  # Partition mesh
+  if is_parallel()
+    partition!(mesh)
+  end
+
   return mesh
 end
 
 
 # Load existing mesh from file
-function load_mesh(restart_filename)
+load_mesh(restart_filename) = load_mesh(restart_filename, mpi_parallel())
+function load_mesh(restart_filename, mpi_parallel::Val{false})
   # Get number of spatial dimensions
   ndims_ = parameter("ndims")
 
@@ -127,7 +129,7 @@ function load_mesh(restart_filename)
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max)
+  @timeit timer() "creation" mesh = TreeMesh(Tree{ndims_}, n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)
