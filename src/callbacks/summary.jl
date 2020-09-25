@@ -1,5 +1,5 @@
 
-summary_callback(integrator) = false
+summary_callback(integrator) = t == false
 summary_callback(u, t, integrator) = u_modified!(integrator, false)
 
 function SummaryCallback()
@@ -44,5 +44,14 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 
   # TODO: Taal decide, shall we also print some information about the ODE problem/algorithm?
 
+  reset_timer!(timer())
+
   return nothing
+end
+
+
+function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Condition, Affect!<:typeof(summary_callback)}
+  print_timer(io, timer(), title="Trixi.jl",
+              allocations=true, linechars=:ascii, compact=false)
+  println(io)
 end

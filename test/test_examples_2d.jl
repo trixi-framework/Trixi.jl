@@ -26,6 +26,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.5043638249003257])
   end
 
+  @testset "parameters_amr.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_amr.jl"),
+            l2   = [0.12518146315141132],
+            linf = [0.9976001873456246])
+  end
+
   @testset "parameters_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_ec.jl"),
             l2   = [0.06169846095311385, 0.05016515041472451, 0.05017264946347607, 0.22577667054257733],

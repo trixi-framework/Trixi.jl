@@ -25,6 +25,8 @@ function SaveSolutionCallback(; solution_interval=0,
                                 save_final_solution=true,
                                 output_directory="out",
                                 solution_variables=:primitive)
+  # Checking for floating point equality is OK here as `DifferentialEquations.jl`
+  # sets the time exactly to the final time in the last iteration
   condition = (u, t, integrator) -> solution_interval > 0 && ((integrator.iter % solution_interval == 0) || (save_final_solution && t == integrator.sol.prob.tspan[2]))
 
   solution_callback = SaveSolutionCallback(save_initial_solution, save_final_solution,

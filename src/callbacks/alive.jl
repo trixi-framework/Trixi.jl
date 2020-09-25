@@ -27,7 +27,6 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AliveCallback}
 
-  reset_timer!(timer())
   alive_callback = cb.affect!
   alive_callback.start_time = time_ns()
   return nothing
@@ -35,18 +34,16 @@ end
 
 
 function (alive_callback::AliveCallback)(integrator)
-  # Checking for floating point equality is OK here as `DifferentialEquations.jl` sets the time exactly to the final time in the last iteration
-  if integrator.t == integrator.sol.prob.tspan[2]
+  @unpack t, dt, iter = integrator
+
+  # Checking for floating point equality is OK here as `DifferentialEquations.jl`
+  # sets the time exactly to the final time in the last iteration
+  if t == integrator.sol.prob.tspan[2]
     println("-"^80)
     println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
     println("-"^80)
     println()
-
-    print_timer(timer(), title="Trixi.jl",
-                allocations=true, linechars=:ascii, compact=false)
-    println()
   else
-    @unpack t, dt, iter = integrator
     runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
     @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
             iter, dt, t, runtime_absolute)

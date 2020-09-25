@@ -53,22 +53,18 @@ amr_indicator = IndicatorThreeLevel(semi, IndicatorMax(semi),
                                     med_level=5, med_threshold=0.1,
                                     max_level=6, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_indicator,
-                           interval=5, adapt_initial_conditions_only_refine=true)
-amr_callback(ode) # adapt the initial condition
+                           interval=5,
+                           adapt_initial_conditions=true,
+                           adapt_initial_conditions_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # TODO: Taal decide, first AMR or save solution etc.
 callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
 
-
 ###############################################################################
 # run the simulation
-# TODO: Taal debug, there seems to be something wrong with resize! and
-#       CarpenterKennedy2N54 in OrdinaryDiffEq.jl
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
-#             save_everystep=false, callback=callbacks);
-sol = solve(ode, BS3(), #adaptive=false, dt=2.0e-2,
+# TODO: Taal requires https://github.com/SciML/OrdinaryDiffEq.jl/pull/1278
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-
-nothing
+summary_callback() # print the timer summary

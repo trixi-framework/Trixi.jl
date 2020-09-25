@@ -53,5 +53,4 @@ callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, 
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-
-nothing
+summary_callback() # print the timer summary

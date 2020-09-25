@@ -2,21 +2,25 @@
 struct AMRCallback{Indicator, Adaptor}
   indicator::Indicator
   interval::Int
+  adapt_initial_conditions::Bool
   adapt_initial_conditions_only_refine::Bool
   adaptor::Adaptor
 end
 
 
 function AMRCallback(semi, indicator, adaptor; interval=5,
+                                               adapt_initial_conditions=true,
                                                adapt_initial_conditions_only_refine=true)
   # AMR every `interval` time steps
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0)
 
   amr_callback = AMRCallback{typeof(indicator), typeof(adaptor)}(
-                  indicator, interval, adapt_initial_conditions_only_refine, adaptor)
+                  indicator, interval, adapt_initial_conditions,
+                  adapt_initial_conditions_only_refine, adaptor)
 
   DiscreteCallback(condition, amr_callback,
-                   save_positions=(false,false))
+                   save_positions=(false,false),
+                   initialize=initialize!)
 end
 
 function AMRCallback(semi, indicator; kwargs...)
@@ -37,25 +41,25 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
-  @unpack interval, indicator, adapt_initial_conditions_only_refine = amr_callback
   println(io, "AMRCallback with")
-  println(io, "- indicator: ", indicator)
-  println(io, "- interval: ", interval)
-  print(io,   "- adapt_initial_conditions_only_refine: ", adapt_initial_conditions_only_refine)
+  println(io, "- indicator: ", amr_callback.indicator)
+  println(io, "- interval: ", amr_callback.interval)
+  println(io, "- adapt_initial_conditions: ", amr_callback.adapt_initial_conditions)
+  print(io,   "- adapt_initial_conditions_only_refine: ", amr_callback.adapt_initial_conditions_only_refine)
 end
 
 
-function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
-  semi = ode.p
+  semi = integrator.p
 
   @timeit_debug timer() "initial condition AMR" begin
     # iterate until mesh does not change anymore
     has_changed = true
     while has_changed
-      has_changed = amr_callback(ode.u0, semi,
+      has_changed = amr_callback(integrator,
                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
-      ode.u0 .= compute_coefficients(ode.tspan[1], semi)
+      integrator.u .= compute_coefficients(t, semi)
     end
   end
 
@@ -63,13 +67,35 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
 end
 
 
-function (amr_callback::AMRCallback)(integrator)
+# TODO: Taal remove?
+# function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
+#   amr_callback = cb.affect!
+#   semi = ode.p
+
+#   @timeit_debug timer() "strange" sleep(0.5)
+
+#   @timeit_debug timer() "initial condition AMR" begin
+#     # iterate until mesh does not change anymore
+#     has_changed = true
+#     while has_changed
+#       has_changed = amr_callback(ode.u0, semi,
+#                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
+#       ode.u0 .= compute_coefficients(ode.tspan[1], semi)
+#     end
+#   end
+
+#   return nothing
+# end
+
+
+function (amr_callback::AMRCallback)(integrator; kwargs...)
   @unpack u = integrator
   semi = integrator.p
 
-  has_changed = amr_callback(u, semi)
-  resize!(integrator, length(u))
-
+  @timeit_debug timer() "AMR" begin
+    has_changed = amr_callback(u, semi; kwargs...)
+    resize!(integrator, length(u))
+  end
 
   u_modified!(integrator, has_changed)
   return has_changed
