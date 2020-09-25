@@ -44,7 +44,10 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
-  mesh.unsaved_changes = true
+  @timeit_debug timer() "I/O" begin
+    mesh.current_filename = save_mesh_file(mesh, solution_callback.output_directory)
+    mesh.unsaved_changes = false
+  end
 
   if solution_callback.save_initial_solution
     solution_callback(integrator)

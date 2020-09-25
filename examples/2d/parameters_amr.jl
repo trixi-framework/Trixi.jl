@@ -48,7 +48,7 @@ save_solution = SaveSolutionCallback(solution_interval=100,
 # TODO: Taal, IO
 # restart_interval = 10
 
-amr_indicator = IndicatorThreeLevel(semi, Trixi.IndicatorMax(semi),
+amr_indicator = IndicatorThreeLevel(semi, IndicatorMax(semi),
                                     base_level=4,
                                     med_level=5, med_threshold=0.1,
                                     max_level=6, max_threshold=0.6)
@@ -58,13 +58,17 @@ amr_callback(ode) # adapt the initial condition
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
-# callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback); # TODO: Taal debug
+# TODO: Taal decide, first AMR or save solution etc.
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
 
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
+# TODO: Taal debug, there seems to be something wrong with resize! and
+#       CarpenterKennedy2N54 in OrdinaryDiffEq.jl
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
+#             save_everystep=false, callback=callbacks);
+sol = solve(ode, BS3(), #adaptive=false, dt=2.0e-2,
             save_everystep=false, callback=callbacks);
 
 nothing

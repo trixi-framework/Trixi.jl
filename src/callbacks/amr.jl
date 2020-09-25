@@ -67,14 +67,9 @@ function (amr_callback::AMRCallback)(integrator)
   @unpack u = integrator
   semi = integrator.p
 
-  println("AMRCallback: active") # TODO: Taal debug
   has_changed = amr_callback(u, semi)
-  println("AMRCallback: has_changed=", has_changed) # TODO: Taal debug
-  println("AMRCallback: mesh.unsaved_changes=", semi.mesh.unsaved_changes) # TODO: Taal debug
-  println("AMRCallback: length(u)=", length(u)) # TODO: Taal debug
-  println("AMRCallback: nelements=", nelements(semi.solver, semi.cache)) # TODO: Taal debug
-  println("AMRCallback: #DOFs=", ndofs(semi)) # TODO: Taal debug
   resize!(integrator, length(u))
+
 
   u_modified!(integrator, has_changed)
   return has_changed

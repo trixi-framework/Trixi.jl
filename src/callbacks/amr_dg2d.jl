@@ -102,10 +102,11 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
   end
 
  # Return true if there were any cells coarsened or refined, otherwise false
-#  @show refined_original_cells # TODO: Taal debug
-#  @show coarsened_original_cells # TODO: Taal debug
  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
- mesh.unsaved_changes = has_changed # TODO: Taal decide, where shall we set this?
+ if has_changed # TODO: Taal decide, where shall we set this?
+  # don't set it to has_changed since there can be changes from earlier calls
+  mesh.unsaved_changes = true
+ end
 
  return has_changed
 end
@@ -140,10 +141,6 @@ function refine!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::D
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
-  println("refine!") # TODO: Taal debug
-  @show old_n_elements # TODO: Taal debug
-  @show nelements(dg, cache) # TODO: Taal debug
-  # @show cells_to_refine # TODO: Taal debug
 
   resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u_wrapped = wrap_array(u, mesh, equations, dg, cache)
@@ -267,10 +264,6 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
-  println("coarsen!") # TODO: Taal debug
-  @show old_n_elements # TODO: Taal debug
-  @show nelements(dg, cache) # TODO: Taal debug
-  # @show child_cells_to_coarsen # TODO: Taal debug
 
   resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u_wrapped = wrap_array(u, mesh, equations, dg, cache)
