@@ -9,6 +9,8 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
   @timeit timer() "indicator" lambda = indicator(u_wrapped, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
+  @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
+
   to_refine  = Int[]
   to_coarsen = Int[]
   for element in eachelement(dg, cache)
@@ -81,17 +83,17 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
     # been removed, since this is the information that is expected by the solver
     removed_child_cells = zeros(Int, n_children_per_cell(mesh.tree) * length(coarsened_original_cells))
     for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
-      for child in 1:n_children_per_cell(tree)
-        removed_child_cells[n_children_per_cell(tree) * (index-1) + child] = coarse_cell_id + child
+      for child in 1:n_children_per_cell(mesh.tree)
+        removed_child_cells[n_children_per_cell(mesh.tree) * (index-1) + child] = coarse_cell_id + child
       end
     end
 
     # coarsen solver
-    @timeit timer() "solver" new_size = coarsen!(u, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timeit timer() "solver" new_size = coarsen!(u, adaptor, mesh, equations, dg, cache, removed_child_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
-    #     coarsen!(ps, mesh, refined_original_cells)
+    #     coarsen!(ps, mesh, removed_child_cells)
     #   end
     # end
   else
@@ -100,6 +102,8 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
   end
 
  # Return true if there were any cells coarsened or refined, otherwise false
+#  @show refined_original_cells # TODO: Taal debug
+#  @show coarsened_original_cells # TODO: Taal debug
  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
  mesh.unsaved_changes = has_changed # TODO: Taal decide, where shall we set this?
 
@@ -136,6 +140,10 @@ function refine!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::D
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
+  println("refine!") # TODO: Taal debug
+  @show old_n_elements # TODO: Taal debug
+  @show nelements(dg, cache) # TODO: Taal debug
+  # @show cells_to_refine # TODO: Taal debug
 
   resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u_wrapped = wrap_array(u, mesh, equations, dg, cache)
@@ -259,6 +267,10 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
+  println("coarsen!") # TODO: Taal debug
+  @show old_n_elements # TODO: Taal debug
+  @show nelements(dg, cache) # TODO: Taal debug
+  # @show child_cells_to_coarsen # TODO: Taal debug
 
   resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u_wrapped = wrap_array(u, mesh, equations, dg, cache)
@@ -303,7 +315,7 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
 
   # Initialize new mortar containers
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         RealT, nvariables(equations), polydeg(dg), dg.mortar)
+                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
   copy!(cache.mortars, mortars)
 
   # Sanity check
@@ -319,6 +331,8 @@ end
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u, element_id, old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
+  @unpack reverse_upper, reverse_lower = adaptor
+
   # Store old element ids
   lower_left_id  = old_element_id
   lower_right_id = old_element_id + 1
