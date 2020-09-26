@@ -171,13 +171,13 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # the time derivative can be unassigned before the first step is made
     if t == integrator.sol.prob.tspan[1]
-      u_vector  = integrator.u
-      du_vector = similar(u_vector)
-      @notimeit timer() rhs!(du_vector, u_vector, semi, t)
+      u_ode  = integrator.u
+      du_ode = similar(u_ode)
+      @notimeit timer() rhs!(du_ode, u_ode, semi, t)
     else
-      du_vector = get_du(integrator)
+      du_ode = get_du(integrator)
     end
-    du = wrap_array(du_vector, mesh, equations, solver, cache)
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     # Calculate and print derived quantities (error norms, entropy etc.)
     # Variable names required for L2 error, Linf error, and conservation error

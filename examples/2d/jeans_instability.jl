@@ -61,7 +61,7 @@ Trixi.pretty_form_file(::Val{:energy_potential}) = "e_potential"
 
 function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::SemidiscretizationEulerGravity)
 
-  u_gravity = Trixi.wrap_array(semi.cache.u, semi.semi_gravity)
+  u_gravity = Trixi.wrap_array(semi.cache.u_ode, semi.semi_gravity)
 
   mesh, equations_euler, dg, cache = Trixi.mesh_equations_solver_cache(semi.semi_euler)
   _, equations_gravity, _, _ = Trixi.mesh_equations_solver_cache(semi.semi_gravity)

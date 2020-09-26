@@ -78,10 +78,10 @@ function (solution_callback::SaveSolutionCallback)(integrator)
 end
 
 
-@inline function save_solution_file(u, t, dt, iter, semi::AbstractSemidiscretization, solution_callback)
+@inline function save_solution_file(u_ode::AbstractVector, t, dt, iter, semi::AbstractSemidiscretization, solution_callback)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
-  save_solution_file(u_wrapped, t, dt, iter, mesh, equations, solver, cache, solution_callback)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback)
 end
 
 # TODO: Taal refactor, move save_mesh_file?

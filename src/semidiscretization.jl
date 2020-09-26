@@ -158,24 +158,58 @@ end
 end
 
 
-function wrap_array(u::AbstractVector, semi::SemidiscretizationHyperbolic)
+# To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
+# Since the caches of the SciML ecosystem are immutable structs, we cannot simply
+# change the underlying arrays therein. Hence, to support changing the number of
+# DOFs, we need to use `resize!`. In some sense, this will force us to write more
+# efficient code, since `resize!` will make use of previously allocated memory
+# instead of allocating memory from scratch every time.
+#
+# However, multidimensional `Array`s don't support `resize!`. One option might be
+# to use ElasticArrays.jl. But I don't really like that approach. Needing to use
+# ElasticArray doesn't feel completely good to me, since we also want to experiment
+# with other array types such as PaddedMatrices.jl, see trixi-framework/Trixi.jl#166.
+# Then, we would need to wrap an Array inside something from PaddedMatrices.jl inside
+# something from ElasticArrays.jl - or the other way round? Is that possible at all?
+# If we go further, this looks like it could easily explode.
+#
+# Currently, the best option seems to be to let OrdinaryDiffEq.jl use `Vector`s,
+# which can be `resize!`ed for AMR. Then, we have to wrap these `Vector`s inside
+# Trixi.jl as our favorite multidimensional array type. We need to do this wrapping
+# in every method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
+# rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
+#
+# This wrapping will also allow us to experiment more easily with additional
+# kinds of wrapping, e.g. HybridArrays.jl or PaddedMatrices.jl to inform the
+# compiler about the sizes of the first few dimensions in DG methods, i.e.
+# nvariables(equations) and nnodes(dg).
+#
+# In some sense, having plain multidimensional `Array`s not support `resize!`
+# isn't necessarily a bug (although it would be nice to add this possibility to
+# base Julia) but can turn out to be a feature for us, because it will aloow us
+# more specializations.
+# Since we can use multiple dispatch, these kinds of specializations can be
+# tailored specifically to each combinations of mesh/solver etc.
+#
+# Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
+function wrap_array(u_ode::AbstractVector, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
-  wrap_array(u, mesh, equations, solver, cache)
+  wrap_array(u_ode, mesh, equations, solver, cache)
 end
 
 
-function integrate(func, semi::AbstractSemidiscretization, u::AbstractVector, args...; normalize=true)
+function integrate(func, semi::AbstractSemidiscretization, u_ode::AbstractVector, args...; normalize=true)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
-  integrate(func, mesh, equations, solver, cache, u_wrapped, args..., normalize=normalize)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  integrate(func, mesh, equations, solver, cache, u, args..., normalize=normalize)
 end
 
-function integrate(func, u::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
+function integrate(func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
-  integrate(func, u_wrapped, mesh, equations, solver, cache, normalize=normalize)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  integrate(func, u, mesh, equations, solver, cache, normalize=normalize)
 end
 
 function integrate(u, semi::AbstractSemidiscretization; normalize=true)
@@ -183,9 +217,9 @@ function integrate(u, semi::AbstractSemidiscretization; normalize=true)
 end
 
 
-function calc_error_norms(func, u::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic)
+function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
+  u_wrapped = wrap_array(u_ode, mesh, equations, solver, cache)
 
   calc_error_norms(func, u_wrapped, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
@@ -204,10 +238,10 @@ end
 function compute_coefficients(func, t, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
 
-  u = allocate_coefficients(mesh, equations, solver, cache)
-  u_wrapped = wrap_array(u, mesh, equations, solver, cache)
-  compute_coefficients!(u_wrapped, func, t, semi)
-  return u
+  u_ode = allocate_coefficients(mesh, equations, solver, cache)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+  compute_coefficients!(u, func, t, semi)
+  return u_ode
 end
 
 function compute_coefficients!(u, func, t, semi::SemidiscretizationHyperbolic)
@@ -218,33 +252,26 @@ end
 
 
 function semidiscretize(semi::AbstractSemidiscretization, tspan)
-  u0 = compute_coefficients(first(tspan), semi)
-  return ODEProblem(rhs!, u0, tspan, semi)
+  u0_ode = compute_coefficients(first(tspan), semi)
+  return ODEProblem(rhs!, u0_ode, tspan, semi)
 end
 
 
 # TODO: Taal better name
-function rhs!(du, u, semi::SemidiscretizationHyperbolic, t)
+function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
   @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
 
-  u_wrapped  = wrap_array(u,  mesh, equations, solver, cache)
-  du_wrapped = wrap_array(du, mesh, equations, solver, cache)
+  u  = wrap_array(u_ode,  mesh, equations, solver, cache)
+  du = wrap_array(du_ode, mesh, equations, solver, cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du_wrapped, u_wrapped, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
   return nothing
 end
-
-
-# TODO: Taal implement/interface
-# struct CacheVariable{X}
-#   cache::X
-#   visualize::Bool
-# end
 
 
 
@@ -255,7 +282,7 @@ end
 # - real(solver)
 # - ndofs(mesh, solver, cache)
 # - create_cache(mesh, equations, boundary_conditions, solver)
-# - wrap_array(u::AbstractVector, mesh, equations, solver, cache)
+# - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, mesh, equations, solver, cache, u; normalize=true)
 # - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
@@ -263,12 +290,3 @@ end
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
 #
-# To implement AMR and use OrdinaryDiffEq.jl etc., we have to be a bit creative.
-# Currently, the best option seems to be to let OrdinaryDiffEq.jl use `Vector`s,
-# which can be `resize!`ed for AMR. Then, we have to wrap these `Vector`s inside
-# Trixi.jl as our favorite multidimensional array type along the lines of
-# unsafe_wrap(Array{eltype(u), ndims(mesh)+2}, pointer(u), (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
-# in the two-dimensional case. We would need to do this wrapping in every
-# method exposed to OrdinaryDiffEq, i.e. in the first levels of things like
-# rhs!, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback
-# Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275

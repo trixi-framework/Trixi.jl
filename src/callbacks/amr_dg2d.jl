@@ -1,12 +1,12 @@
 
 # TODO: Taal dimension agnostic
-function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG, cache;
                                      only_refine=false, only_coarsen=false)
   @unpack indicator, adaptor = amr_callback
 
-  u_wrapped = wrap_array(u, mesh, equations, dg, cache)
-  @timeit timer() "indicator" lambda = indicator(u_wrapped, mesh, equations, dg, cache)
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  @timeit timer() "indicator" lambda = indicator(u, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
   @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
@@ -28,7 +28,7 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
     @timeit timer() "mesh" refined_original_cells = refine!(mesh.tree, to_refine)
 
     # refine solver
-    @timeit timer() "solver" new_size = refine!(u, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timeit timer() "solver" new_size = refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -89,7 +89,7 @@ function (amr_callback::AMRCallback)(u::AbstractVector, mesh::TreeMesh,
     end
 
     # coarsen solver
-    @timeit timer() "solver" new_size = coarsen!(u, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    @timeit timer() "solver" new_size = coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -114,7 +114,7 @@ end
 # function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
 
 
-function refine!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, cells_to_refine)
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -130,8 +130,8 @@ function refine!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::D
 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
-  old_u = copy(u)
-  old_u_wrapped = wrap_array(old_u, mesh, equations, dg, cache)
+  old_u_ode = copy(u_ode)
+  old_u     = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
   # Get new list of leaf cells
   leaf_cell_ids = leaf_cells(tree)
@@ -142,24 +142,25 @@ function refine!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::D
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
 
-  resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-  u_wrapped = wrap_array(u, mesh, equations, dg, cache)
+  resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
 
   # Loop over all elements in old container and either copy them or refine them
   element_id = 1
   for old_element_id in 1:old_n_elements
     if needs_refinement[old_element_id]
       # Refine element and store solution directly in new data structure
-      refine_element!(u_wrapped, element_id, old_u_wrapped, old_element_id,
+      refine_element!(u, element_id, old_u, old_element_id,
                       adaptor, equations, dg)
       element_id += 2^ndims(mesh)
     else
       # Copy old element data to new element container
-      @views u_wrapped[:, .., element_id] .= old_u_wrapped[:, .., old_element_id]
+      @views u[:, .., element_id] .= old_u[:, .., old_element_id]
       element_id += 1
     end
   end
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
                                real(dg), nvariables(equations), polydeg(dg))
@@ -186,7 +187,7 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u, element_id, old_u, old_element_id,
+function refine_element!(u::AbstractArray{<:Any,4}, element_id, old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack forward_upper, forward_lower = adaptor
 
@@ -238,7 +239,7 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -253,8 +254,8 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
-  old_u = copy(u)
-  old_u_wrapped = wrap_array(old_u, mesh, equations, dg, cache)
+  old_u_ode = copy(u_ode)
+  old_u     = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
   # Get new list of leaf cells
   leaf_cell_ids = leaf_cells(mesh.tree)
@@ -265,8 +266,8 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
   copy!(cache.elements, elements)
   @assert nelements(dg, cache) == nelements(elements)
 
-  resize!(u, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-  u_wrapped = wrap_array(u, mesh, equations, dg, cache)
+  resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
 
   # Loop over all elements in old container and either copy them or coarsen them
   skip = 0
@@ -285,17 +286,18 @@ function coarsen!(u::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::
       @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
 
       # Coarsen elements and store solution directly in new data structure
-      coarsen_elements!(u_wrapped, element_id, old_u_wrapped, old_element_id,
+      coarsen_elements!(u, element_id, old_u, old_element_id,
                         adaptor, equations, dg)
       element_id += 1
       skip = 2^ndims(mesh) - 1
     else
       # Copy old element data to new element container
-      @views u_wrapped[:, .., element_id] .= old_u_wrapped[:, .., old_element_id]
+      @views u[:, .., element_id] .= old_u[:, .., old_element_id]
       element_id += 1
     end
   end
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
                                real(dg), nvariables(equations), polydeg(dg))
@@ -322,7 +324,7 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u, element_id, old_u, old_element_id,
+function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id, old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack reverse_upper, reverse_lower = adaptor
 
@@ -364,6 +366,7 @@ end
 function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
   indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
   cache.element_variables[:indicator_amr] = indicator_value # register the indicator to save it in solution files
+
   return (; indicator_value)
 end
 
@@ -440,10 +443,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
       u0 = indicator[i,   j]
       up = indicator[i+1, j]
       um = indicator[i-1, j]
-      # dirty Löhner estimate, direction by direction, assuming constant nodes
-      num = abs(up - 2 * u0 + um)
-      den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
-      estimate = max(estimate, num / den)
+      estimate = max(estimate, löhner(um, u0, up))
     end
 
     for j in 2:nnodes(dg)-1, i in eachnode(dg)
@@ -451,9 +451,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
       u0 = indicator[i, j, ]
       up = indicator[i, j+1]
       um = indicator[i, j-1]
-      num = abs(up - 2 * u0 + um)
-      den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
-      estimate = max(estimate, num / den)
+      estimate = max(estimate, löhner(um, u0, up))
     end
 
     # use the maximum as DG element indicator
@@ -461,6 +459,13 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
   end
 
   return alpha
+end
+
+# dirty Löhner estimate, direction by direction, assuming constant nodes
+@inline function (löhner::IndicatorLöhner)(um::Real, u0::Real, up::Real)
+  num = abs(up - 2 * u0 + um)
+  den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
+  return num / den
 end
 
 

@@ -12,6 +12,8 @@ isdir(outdir) && rm(outdir, recursive=true)
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
+@testset "2D" begin
+
 # Run basic tests
 @testset "Examples 2D" begin
   @testset "parameters.jl" begin
@@ -84,5 +86,7 @@ end
 
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
+
+end # 2D
 
 end #module

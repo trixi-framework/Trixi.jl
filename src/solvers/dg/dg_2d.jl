@@ -77,8 +77,8 @@ function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMo
 end
 
 
-function wrap_array(u::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
-  unsafe_wrap(Array{eltype(u), ndims(mesh)+2}, pointer(u),
+function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
+  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
               (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 

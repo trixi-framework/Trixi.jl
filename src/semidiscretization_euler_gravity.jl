@@ -68,11 +68,11 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     {Mesh, SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
            SemiGravity<:SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
 
-  u = compute_coefficients(0.0, semi_gravity)
-  du     = similar(u)
-  u_tmp1 = similar(u)
-  u_tmp2 = similar(u)
-  cache = (; u, du, u_tmp1, u_tmp2)
+  u_ode = compute_coefficients(0.0, semi_gravity)
+  du_ode     = similar(u_ode)
+  u_tmp1_ode = similar(u_ode)
+  u_tmp2_ode = similar(u_ode)
+  cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
 
   SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity), typeof(parameters), typeof(cache)}(
     semi_euler, semi_gravity, parameters, cache)
@@ -118,20 +118,20 @@ end
 end
 
 
-function rhs!(du, u, semi::SemidiscretizationEulerGravity, t)
+function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   @unpack semi_euler, semi_gravity, cache = semi
 
-  u_euler  = wrap_array(u , semi_euler)
-  du_euler = wrap_array(du, semi_euler)
-  u_gravity = wrap_array(cache.u, semi_gravity)
+  u_euler   = wrap_array(u_ode , semi_euler)
+  du_euler  = wrap_array(du_ode, semi_euler)
+  u_gravity = wrap_array(cache.u_ode, semi_gravity)
 
   time_start = time_ns()
 
   # standard semidiscretization of the compressible Euler equations
-  @timeit_debug timer() "Euler solver" rhs!(du, u, semi_euler, t)
+  @timeit_debug timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
 
   # compute gravitational potential and forces
-  @timeit_debug timer() "gravity solver" update_gravity!(semi, u)
+  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode)
 
   # add gravitational source source_terms to the Euler part
   if ndims(semi_euler) == 2
@@ -158,12 +158,12 @@ end
 
 
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
-function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector)
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
-  u_euler = wrap_array(u, semi_euler)
-  u_gravity  = wrap_array(cache.u,  semi_gravity)
-  du_gravity = wrap_array(cache.du, semi_gravity)
+  u_euler    = wrap_array(u_ode,        semi_euler)
+  u_gravity  = wrap_array(cache.u_ode,  semi_gravity)
+  du_gravity = wrap_array(cache.du_ode, semi_gravity)
 
   # set up main loop
   finalstep = false
@@ -175,8 +175,9 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u::AbstractVector
   # iterate gravity solver until convergence or maximum number of iterations are reached
   @unpack equations = semi_gravity
   while !finalstep
-    @timeit_debug timer() "calculate dt" dt = cfl * max_dt(u_gravity, t, semi_gravity.mesh, have_constant_speed(equations), equations,
-                                                     semi_gravity.solver, semi_gravity.cache)
+    @timeit_debug timer() "calculate dt" dt = cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+                                                           have_constant_speed(equations), equations,
+                                                           semi_gravity.solver, semi_gravity.cache)
 
     # evolve solution by one pseudo-time step
     time_start = time_ns()
@@ -210,13 +211,13 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
   rho0 = gravity_parameters.background_density
   grav_scale = -4 * G * pi
 
-  @unpack u, du, u_tmp1, u_tmp2 = cache
-  u_tmp1 .= zero(eltype(u_tmp1))
-  u_tmp2 .= u
-  du_gravity = wrap_array(du, semi_gravity)
+  @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
+  u_tmp1_ode .= zero(eltype(u_tmp1_ode))
+  u_tmp2_ode .= u_ode
+  du_gravity = wrap_array(du_ode, semi_gravity)
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit_debug timer() "rhs!" rhs!(du, u, semi_gravity, t_stage)
+    @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
@@ -229,12 +230,12 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
     @timeit_debug timer() "Runge-Kutta step" begin
-      Threads.@threads for idx in eachindex(u)
-        u_tmp1[idx] += delta_stage * u[idx]
-        u[idx]       = (gamma1_stage * u[idx] +
-                        gamma2_stage * u_tmp1[idx] +
-                        gamma3_stage * u_tmp2[idx] +
-                        beta_stage_dt * du[idx])
+      Threads.@threads for idx in eachindex(u_ode)
+        u_tmp1_ode[idx] += delta_stage * u_ode[idx]
+        u_ode[idx]       = (gamma1_stage * u_ode[idx] +
+                            gamma2_stage * u_tmp1_ode[idx] +
+                            gamma3_stage * u_tmp2_ode[idx] +
+                            beta_stage_dt * du_ode[idx])
       end
     end
   end
@@ -260,17 +261,17 @@ end
 
 
 # TODO: Taal decide, where should specific parts like these be?
-@inline function save_solution_file(u::AbstractVector, t, dt, iter,
+@inline function save_solution_file(u_ode::AbstractVector, t, dt, iter,
                                     semi::SemidiscretizationEulerGravity, solution_callback)
 
-  u_euler = wrap_array(u, semi.semi_euler)
+  u_euler = wrap_array(u_ode, semi.semi_euler)
   filename_euler = save_solution_file(u_euler, t, dt, iter,
                                       mesh_equations_solver_cache(semi.semi_euler)...,
                                       solution_callback, system="euler")
 
-  u_gravity = wrap_array(u, semi.semi_gravity)
-  filename_gravity = save_solution_file(u_euler, t, dt, iter,
-                                        mesh_equations_solver_cache(semi.semi_euler)...,
+  u_gravity = wrap_array(semi.cache.u_ode, semi.semi_gravity)
+  filename_gravity = save_solution_file(u_gravity, t, dt, iter,
+                                        mesh_equations_solver_cache(semi.semi_gravity)...,
                                         solution_callback, system="gravity")
 
   return filename_euler, filename_gravity

@@ -102,8 +102,8 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
 end
 
 
-@inline function (amr_callback::AMRCallback)(u::AbstractVector, semi::SemidiscretizationHyperbolic; kwargs...)
-  amr_callback(u, mesh_equations_solver_cache(semi)...; kwargs...)
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector, semi::SemidiscretizationHyperbolic; kwargs...)
+  amr_callback(u_ode, mesh_equations_solver_cache(semi)...; kwargs...)
 end
 
 
