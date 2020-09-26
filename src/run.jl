@@ -324,12 +324,12 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       end
 
       if resid <= solver.equations.resid_tol
-        println()
-        println("-"^80)
-        println("  Steady state tolerance of ", solver.equations.resid_tol,
-                " reached at time ", time)
-        println("-"^80)
-        println()
+        mpi_println()
+        mpi_println("-"^80)
+        mpi_println("  Steady state tolerance of ", solver.equations.resid_tol,
+                    " reached at time ", time)
+        mpi_println("-"^80)
+        mpi_println()
         finalstep = true
       end
     end
