@@ -705,3 +705,12 @@ function integrate(func, dg::Dg2D, uses_mpi::Val{true}, args...; normalize=true)
 
   return is_mpi_root() ? integral[] : integral
 end
+
+
+# Calculate stable time step size
+function calc_dt(dg::Dg2D, cfl, uses_mpi::Val{true})
+  min_dt = calc_dt(dg, cfl, Val(false))
+  min_dt = MPI.Allreduce!(Ref(min_dt), min, mpi_comm())[]
+
+  return min_dt
+end

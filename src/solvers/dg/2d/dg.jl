@@ -2379,18 +2379,13 @@ end
 
 
 # Calculate stable time step size
-function calc_dt(dg::Dg2D, cfl)
+@inline calc_dt(dg, cfl) = calc_dt(dg, cfl, uses_mpi(dg))
+function calc_dt(dg::Dg2D, cfl, uses_mpi::Val{false})
   min_dt = Inf
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id,
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
     min_dt = min(min_dt, dt)
-  end
-
-  if is_parallel()
-    min_dt_buffer = [min_dt]
-    MPI.Allreduce!(min_dt_buffer, min, mpi_comm())
-    min_dt = min_dt_buffer[1]
   end
 
   return min_dt
