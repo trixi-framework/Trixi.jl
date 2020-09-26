@@ -9,7 +9,9 @@ function init_mpi()
     return nothing
   end
 
-  if !MPI.Initialized()
+  if MPI.Initialized()
+    @assert MPI.Query_thread() >= MPI.THREAD_FUNNELED "MPI already initialized with insufficient threading support"
+  else
     # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
     provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
     @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
