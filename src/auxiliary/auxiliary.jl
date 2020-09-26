@@ -132,7 +132,7 @@ function print_startup_message()
        ██║   ██║  ██║██║██╔╝ ██╗██║
        ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
     """
-  println(s)
+  mpi_println(s)
 end
 
 

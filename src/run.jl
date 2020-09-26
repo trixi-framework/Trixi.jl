@@ -70,9 +70,7 @@ end
 
 function init_simulation()
   # Print starup message
-  if is_mpi_root()
-    print_startup_message()
-  end
+  print_startup_message()
 
   # Get number of dimensions
   ndims_ = parameter("ndims")::Int
@@ -85,32 +83,32 @@ function init_simulation()
 
   # Initialize mesh
   if restart
-    is_mpi_root() && print("Loading mesh... ")
+    mpi_print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
     is_parallel() && MPI.Barrier(mpi_comm())
-    is_mpi_root() && println("done")
+    mpi_println("done")
   else
-    is_mpi_root() && print("Creating mesh... ")
+    mpi_print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
     mesh.unsaved_changes = false
     is_parallel() && MPI.Barrier(mpi_comm())
-    is_mpi_root() && println("done")
+    mpi_println("done")
   end
 
   # Initialize system of equations
-  is_mpi_root() && print("Initializing system of equations... ")
+  mpi_print("Initializing system of equations... ")
   equations_name = parameter("equations")
   equations = make_equations(equations_name, ndims_)
   is_parallel() && MPI.Barrier(mpi_comm())
-  is_mpi_root() && println("done")
+  mpi_println("done")
 
   # Initialize solver
-  is_mpi_root() && print("Initializing solver... ")
+  mpi_print("Initializing solver... ")
   solver_name = parameter("solver", valid=["dg"])
   solver = make_solver(solver_name, equations, mesh)
   is_parallel() && MPI.Barrier(mpi_comm())
-  is_mpi_root() && println("done")
+  mpi_println("done")
 
   # Sanity checks
   # If DG volume integral type is weak form, volume flux type must be flux_central,
@@ -128,18 +126,18 @@ function init_simulation()
   adapt_initial_conditions = parameter("adapt_initial_conditions", true)
   adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
   if restart
-    is_mpi_root() && print("Loading restart file...")
+    mpi_print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
     is_parallel() && MPI.Barrier(mpi_comm())
-    is_mpi_root() && println("done")
+    mpi_println("done")
   else
-    is_mpi_root() && print("Applying initial conditions... ")
+    mpi_print("Applying initial conditions... ")
     t_start = parameter("t_start")
     time = t_start
     step = 0
     set_initial_conditions!(solver, time)
     is_parallel() && MPI.Barrier(mpi_comm())
-    is_mpi_root() && println("done")
+    mpi_println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
@@ -233,8 +231,8 @@ function init_simulation()
           | | minimum dx:       $min_dx
           | | maximum dx:       $max_dx
           """
-  is_mpi_root() && println()
-  is_mpi_root() && println(s)
+  mpi_println()
+  mpi_println(s)
 
   # Set up main loop
   save_final_solution = parameter("save_final_solution", true)
@@ -360,11 +358,11 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       analysis_start_time = time_ns()
       output_time = 0.0
       n_analysis_timesteps = 0
-      if finalstep && is_mpi_root()
-        println("-"^80)
-        println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
-        println("-"^80)
-        println()
+      if finalstep
+        mpi_println("-"^80)
+        mpi_println("Trixi simulation run finished.    Final time: $time    Time steps: $step")
+        mpi_println("-"^80)
+        mpi_println()
       end
     elseif alive_interval > 0 && step % alive_interval == 0 && is_mpi_root()
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
@@ -464,7 +462,7 @@ function convtest(parameters_file, iterations; parameters...)
 
   # Run trixi and extract errors
   for i = 1:iterations
-    is_mpi_root() && println(string("Running convtest iteration ", i, "/", iterations))
+    mpi_println(string("Running convtest iteration ", i, "/", iterations))
     l2_error, linf_error, variablenames = run(parameters_file; refinement_level_increment = i - 1,
                                               parameters...)
 
