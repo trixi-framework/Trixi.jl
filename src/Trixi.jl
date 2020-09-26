@@ -62,22 +62,7 @@ export examples_dir, get_examples, default_example
 
 
 function __init__()
-  # Initialize MPI
   init_mpi()
-
-  # Initialize global MPI state
-  MPI_RANK[] = MPI.Comm_rank(MPI.COMM_WORLD)
-  MPI_SIZE[] = MPI.Comm_size(MPI.COMM_WORLD)
-  MPI_IS_PARALLEL[] = MPI_SIZE[] > 1
-  MPI_IS_SERIAL[] = !MPI_IS_PARALLEL[]
-  MPI_IS_ROOT[] = MPI_IS_SERIAL[] || MPI_RANK[] == 0
-
-  # Initialize methods for dispatching on parallel execution
-  if MPI_IS_PARALLEL[]
-    eval(:(mpi_parallel() = Val(true)))
-  else
-    eval(:(mpi_parallel() = Val(false)))
-  end
 end
 
 
