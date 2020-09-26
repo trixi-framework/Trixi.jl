@@ -320,9 +320,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       resid = maximum(abs, view(solver.elements.u_t, 1, .., :))
 
       if is_parallel()
-        resid_buffer = [resid]
-        MPI.Allreduce!(resid_buffer, max, mpi_comm())
-        resid = resid_buffer[1]
+        resid = MPI.Allreduce!(Ref(resid), max, mpi_comm())[]
       end
 
       if resid <= solver.equations.resid_tol
@@ -340,11 +338,10 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       # Calculate absolute and relative runtime
       if is_parallel()
-        total_dofs = ndofs(solver)
+        total_dofs = MPI.Reduce!(Ref(ndofs(solver)), +, mpi_root(), mpi_comm())
+        total_dofs = is_mpi_root() ? total_dofs[] : -1
       else
-        dofs_buffer = [ndofs(solver)]
-        MPI.Reduce!(dofs_buffer, +, mpi_root(), mpi_comm())
-        total_dofs = dofs_buffer[1]
+        total_dofs = ndofs(solver)
       end
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       runtime_relative = ((time_ns() - analysis_start_time - output_time) / 10^9 /

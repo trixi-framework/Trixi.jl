@@ -471,9 +471,9 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
     for v in 1:nvariables(equation)
       # Calculate maximum absolute value of Uₜ
       res = maximum(abs, view(dg.elements.u_t, v, :, :, :))
-      res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())[]
-      is_mpi_root() && @printf("  % 10.8e", res)
-      is_mpi_root() && dg.save_analysis && @printf(f, "  % 10.8e", res)
+      res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
+      is_mpi_root() && @printf("  % 10.8e", res[])
+      is_mpi_root() && dg.save_analysis && @printf(f, "  % 10.8e", res[])
     end
     mpi_println()
   end
