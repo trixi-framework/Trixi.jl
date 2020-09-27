@@ -2395,6 +2395,12 @@ end
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
                                 indicator_variable, thread_cache, dg::Dg2D)
+  calc_blending_factors!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing,
+                         indicator_variable, thread_cache, dg, uses_mpi(dg))
+end
+function calc_blending_factors!(alpha, alpha_pre_smooth, u,
+                                alpha_max, alpha_min, do_smoothing,
+                                indicator_variable, thread_cache, dg::Dg2D, uses_mpi::Val{false})
   # temporary buffers
   @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
   # magic parameters
@@ -2447,48 +2453,54 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
   end
 
   if (do_smoothing)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_pre_smooth .= alpha
+    smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi)
+  end
+end
 
-    # Loop over interfaces
-    for interface_id in 1:dg.n_interfaces
-      # Get neighboring element ids
-      left  = dg.interfaces.neighbor_ids[1, interface_id]
-      right = dg.interfaces.neighbor_ids[2, interface_id]
 
-      # Apply smoothing
-      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-    end
+smooth_alpha!(alpha, alpha_pre_smooth, dg::Dg2D) = smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi(dg))
+function smooth_alpha!(alpha, alpha_pre_smooth, dg::Dg2D, uses_mpi::Val{false})
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_pre_smooth .= alpha
 
-    # Loop over L2 mortars
-    for l2mortar_id in 1:dg.n_l2mortars
-      # Get neighboring element ids
-      lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-      upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-      large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+  # Loop over interfaces
+  for interface_id in 1:dg.n_interfaces
+    # Get neighboring element ids
+    left  = dg.interfaces.neighbor_ids[1, interface_id]
+    right = dg.interfaces.neighbor_ids[2, interface_id]
 
-      # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-    end
+    # Apply smoothing
+    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+  end
 
-    # Loop over EC mortars
-    for ecmortar_id in 1:dg.n_ecmortars
-      # Get neighboring element ids
-      lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-      upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-      large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+  # Loop over L2 mortars
+  for l2mortar_id in 1:dg.n_l2mortars
+    # Get neighboring element ids
+    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-      # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-    end
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  end
+
+  # Loop over EC mortars
+  for ecmortar_id in 1:dg.n_ecmortars
+    # Get neighboring element ids
+    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
   end
 end
 
