@@ -41,7 +41,7 @@ end
     @unpack cfl_number = stepsize_callback
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    @timeit_debug timer() "calculate dt" dt = cfl_number * max_dt(u, t, mesh,
+    dt = @timeit_debug timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
                                                                   have_constant_speed(equations), equations,
                                                                   solver, cache)
     set_proposed_dt!(integrator, dt)

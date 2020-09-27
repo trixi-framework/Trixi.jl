@@ -70,7 +70,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm) = NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple(), NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
@@ -105,13 +105,58 @@ Shock-capturing volume integral type for DG methods proposed by
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, ShockIndicatorVariable, RealT<:Real} <: AbstractVolumeIntegral
+struct VolumeIntegralShockCapturingHG{VolumeFluxDG, VolumeFluxFV, Indicator} <: AbstractVolumeIntegral
   volume_flux_dg::VolumeFluxDG # symmetric, e.g. split-form or entropy-conservative
-  volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g.entropy-dissipative
-  shock_indicator_variable::ShockIndicatorVariable
-  shock_alpha_max::RealT
-  shock_alpha_min::RealT
-  shock_alpha_smooth::Bool
+  volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+  indicator::Indicator
+end
+
+function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
+                                                   volume_flux_fv=flux_lax_friedrichs)
+  VolumeIntegralShockCapturingHG{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
+    volume_flux_dg, volume_flux_fv, indicator)
+end
+
+# TODO: Taal implement
+"""
+    IndicatorHennemannGassner
+
+Indicator used for shock-capturing or AMR used by
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+struct IndicatorHennemannGassner{RealT<:Real, Variable}
+  alpha_max::RealT
+  alpha_min::RealT
+  alpha_smooth::Bool
+  variable::Variable
+end
+
+function IndicatorHennemannGassner(; alpha_max=0.5,
+                                     alpha_min=0.001,
+                                     alpha_smooth=true,
+                                     variable=first)
+  alpha_max, alpha_min = promote(alpha_max, alpha_min)
+  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable)}(
+    alpha_max, alpha_min, alpha_smooth, variable)
+end
+
+function Base.show(io::IO, indicator::IndicatorHennemannGassner)
+  print(io, "IndicatorHennemannGassner(")
+  print(io, indicator.variable)
+  print(io, ", alpha_max=", indicator.alpha_max)
+  print(io, ", alpha_min=", indicator.alpha_min)
+  print(io, ", alpha_smooth=", indicator.alpha_smooth)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
+  println(io, "IndicatorHennemannGassner(")
+  println(io, "- ", indicator.variable)
+  println(io, "- alpha_max:    ", indicator.alpha_max)
+  println(io, "- alpha_min:    ", indicator.alpha_min)
+  print(io,   "- alpha_smooth: ", indicator.alpha_smooth)
 end
 
 
@@ -128,7 +173,7 @@ end
 
 function Base.show(io::IO, dg::DG{RealT}) where {RealT}
   print(io, "DG{", RealT, "}(")
-  print(io,      dg.basis)
+  print(io,       dg.basis)
   print(io, ", ", dg.mortar)
   print(io, ", ", dg.surface_flux)
   print(io, ", ", dg.volume_integral)

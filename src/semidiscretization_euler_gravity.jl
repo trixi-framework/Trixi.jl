@@ -175,7 +175,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   # iterate gravity solver until convergence or maximum number of iterations are reached
   @unpack equations = semi_gravity
   while !finalstep
-    @timeit_debug timer() "calculate dt" dt = cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+    dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
                                                            have_constant_speed(equations), equations,
                                                            semi_gravity.solver, semi_gravity.cache)
 

@@ -62,7 +62,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   domain_length = maximum(coordinates_max .- coordinates_min)
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(n_cells_max, domain_center, domain_length, periodicity)
+  mesh = @timeit timer() "creation" TreeMesh(n_cells_max, domain_center, domain_length, periodicity)
 
   # Create initial refinement
   @timeit timer() "initial refinement" for _ in 1:initial_refinement_level
@@ -130,7 +130,7 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
+  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
                                              domain_length, periodicity)
 
   # Create initial refinement
@@ -171,7 +171,7 @@ function load_mesh(restart_filename)
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Val{ndims_}(), n_cells_max)
+  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)

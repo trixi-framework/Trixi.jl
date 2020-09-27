@@ -6,7 +6,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   @unpack indicator, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  @timeit timer() "indicator" lambda = indicator(u, mesh, equations, dg, cache)
+  lambda = @timeit timer() "indicator" indicator(u, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
   @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
@@ -25,10 +25,10 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
     # refine mesh
-    @timeit timer() "mesh" refined_original_cells = refine!(mesh.tree, to_refine)
+    refined_original_cells = @timeit timer() "mesh" refine!(mesh.tree, to_refine)
 
     # refine solver
-    @timeit timer() "solver" new_size = refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    new_size = @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -77,7 +77,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
-    @timeit timer() "mesh" coarsened_original_cells = coarsen!(mesh.tree, to_coarsen)
+    coarsened_original_cells = @timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -89,7 +89,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     end
 
     # coarsen solver
-    @timeit timer() "solver" new_size = coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    new_size = @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -371,36 +371,38 @@ function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
 end
 
 # TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner?
+#       But that would remove the simplest possibility to write that stuff to a file...
+#       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any,4},
                                           mesh::TreeMesh{2}, equations, dg::DG, cache)
 
   @unpack indicator_value = indicator.cache
   resize!(indicator_value, nelements(dg, cache))
 
-  alpha = indicator.indicator(u, mesh, equations, dg, cache)
+  alpha = indicator.indicator(u, equations, dg, cache)
 
   Threads.@threads for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
-    actual_level = mesh.tree.levels[cell_id]
+    current_level = mesh.tree.levels[cell_id]
 
     # set target level
-    target_level = actual_level
+    target_level = current_level
     if alpha[element] > indicator.max_threshold
       target_level = indicator.max_level
     elseif alpha[element] > indicator.med_threshold
       if indicator.med_level > 0
         target_level = indicator.med_level
-        # otherwise, target_level = actual_level
-        # set med_level = -1 to implicitly use med_level = actual_level
+        # otherwise, target_level = current_level
+        # set med_level = -1 to implicitly use med_level = current_level
       end
     else
       target_level = indicator.base_level
     end
 
     # compare target level with actual level to set indicator
-    if actual_level < target_level
+    if current_level < target_level
       indicator_value[element] = 1 # refine!
-    elseif actual_level > target_level
+    elseif current_level > target_level
       indicator_value[element] = -1 # coarsen!
     else
       indicator_value[element] = 0 # we're good
@@ -422,8 +424,7 @@ function löhner_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
   return (; alpha, indicator_threaded)
 end
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4},
-                                   mesh, equations, dg::DGSEM, cache)
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
   @unpack alpha, indicator_threaded = löhner.cache
   resize!(alpha, nelements(dg, cache))
@@ -481,8 +482,7 @@ function indicator_max_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
   return (; alpha, indicator_threaded)
 end
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4},
-                                       mesh, equations, dg::DGSEM, cache)
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack alpha, indicator_threaded = indicator_max.cache
   resize!(alpha, nelements(dg, cache))
 

@@ -6,6 +6,9 @@
 using OrdinaryDiffEq
 using Trixi
 
+###############################################################################
+# semidiscretization of the linear advection equation
+
 advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
@@ -27,6 +30,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+
+
+###############################################################################
+# ODE solvers, callbacks etc.
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -50,6 +57,9 @@ stepsize_callback = StepsizeCallback(cfl=2.0)
 
 callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
 
+
+###############################################################################
+# run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);

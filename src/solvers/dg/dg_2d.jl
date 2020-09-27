@@ -27,10 +27,6 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          RealT, nvariables(equations), polydeg(dg), dg.mortar)
 
-  element_variables = Dict{Symbol, Any}()
-
-  cache = (; elements, interfaces, boundaries, mortars, element_variables)
-
   # TODO: Taal refactor
   # For me,
   # - surface_ids, cell_ids in elements
@@ -40,30 +36,51 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # seem to be important information about the mesh.
   # Shall we store them there?
 
+  cache = (; elements, interfaces, boundaries, mortars)
+
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral)...)
+  cache_tmp, element_variables_tmp = create_cache(mesh, equations, dg.volume_integral, dg)
+  cache = (;cache..., cache_tmp...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+
+  element_variables = Dict{Symbol, Any}()
+  for key in keys(element_variables_tmp)
+    element_variables[key] = element_variables_tmp[key]
+  end
+  cache = (;cache..., element_variables)
 
   return cache
 end
 
 
-function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing)
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral)
 end
 
 function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing)
-  NamedTuple()
+  NamedTuple(), NamedTuple()
 end
 
 # function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing)
 #   # TODO: Taal implement if necessary
-#   NamedTuple()
+#   NamedTuple(), NamedTuple()
 # end
 
-# function create_cache(mesh::TreeMesh{2}, equations, ::VolumeIntegralShockCapturingHG)
-#   # TODO: Taal implement
-# end
+
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
+  element_ids_dg   = Int[]
+  element_ids_dgfv = Int[]
+
+  A3dp1_x = Array{real(dg), 3}
+  A3dp1_y = Array{real(dg), 3}
+  fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+
+  cache, element_variables = create_cache(volume_integral.indicator, equations, dg)
+
+  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded), element_variables
+end
+
 
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2)
   # TODO: Taal compare performance of different types
@@ -230,17 +247,229 @@ end
 # end
 
 
-# TODO: Taal implement
-# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms::Val{false}, equations,
-#                                volume_integral::VolumeIntegralShockCapturingHG,
-#                                dg::DGSEM, cache)
-# end
 
-# TODO: Taal implement
-# function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms::Val{true}, equations,
-#                                volume_integral::VolumeIntegralShockCapturingHG,
-#                                dg::DGSEM, cache)
-# end
+# TODO: Taal refactor, unify cache variants of indicators such as
+# - indicator_hg::IndicatorHennemannGassner
+# - löhner::IndicatorLöhner
+# - indicator_max::IndicatorMax
+# Shall they get the equations and/or the solver as argument when they are constructd?
+function create_cache(indicator_hg::IndicatorHennemannGassner, equations, dg::DGSEM)
+  alpha = Vector{real(dg)}()
+  # register the indicator to save it in solution files
+  element_variables = (blending_factor=alpha)
+  alpha_tmp = similar(alpha)
+  cache_indicator = (; alpha, alpha_tmp)
+
+  # TODO: Taal refactor, remove the leading 1 index?
+  A = Array{real(dg), 3}
+  indicator_threaded  = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+
+  return (; cache_indicator..., indicator_threaded, modal_threaded, modal_tmp1_threaded), element_variables
+end
+
+
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
+  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
+  @unpack alpha, indicator_threaded, modal_threaded, modal_tmp1_threaded = cache
+  # TODO: Taal refactor, when to resize! stuff changed possibly by AMR?
+  resize!(alpha, nelements(dg, cache))
+  if alpha_smooth
+    @unpack alpha_tmp = cache
+    resize!(alpha_tmp, nelements(dg, cache))
+  end
+
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+
+  Threads.@threads for element in eachelement(dg, cache)
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    for j in eachnode(dg), i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      indicator[1, i, j] = indicator_hg.variable(u_local, equations)
+    end
+
+    # Convert to modal representation
+    multiply_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
+
+    # Calculate total energies for all modes, without highest, without two highest
+    total_energy = zero(eltype(modal))
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+      total_energy += modal[1, i, j]^2
+    end
+    total_energy_clip1 = zero(eltype(modal))
+    for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
+      total_energy_clip1 += modal[1, i, j]^2
+    end
+    total_energy_clip2 = zero(eltype(modal))
+    for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
+      total_energy_clip2 += modal[1, i, j]^2
+    end
+
+    # Calculate energy in lower modes
+    energy = max((total_energy - total_energy_clip1) / total_energy,
+                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
+
+    alpha[element] = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
+
+    # Take care of the case close to pure DG
+    if (alpha[element] < alpha_min)
+      alpha[element] = zero(eltype(alpha))
+    end
+
+    # Take care of the case close to pure FV
+    if (alpha[element] > 1 - alpha_min)
+      alpha[element] = one(eltype(alpha))
+    end
+
+    # Clip the maximum amount of FV allowed
+    alpha[element] = min(alpha_max, alpha[element])
+  end
+
+  if (alpha_smooth)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_tmp .= alpha
+
+    # Loop over interfaces
+    for interface in eachinterface(dg, cache)
+      # Get neighboring element ids
+      left  = cache.interfaces.neighbor_ids[1, interface]
+      right = cache.interfaces.neighbor_ids[2, interface]
+
+      # Apply smoothing
+      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
+      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
+    end
+
+    # Loop over L2 mortars
+    for mortar in eachmortar(dg, cache)
+      # Get neighboring element ids
+      lower = cache.mortars.neighbor_ids[1, mortar]
+      upper = cache.mortars.neighbor_ids[2, mortar]
+      large = cache.mortars.neighbor_ids[3, mortar]
+
+      # Apply smoothing
+      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
+      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
+    end
+  end
+
+  return alpha
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralShockCapturingHG,
+                               dg::DGSEM, cache)
+  @unpack element_ids_dg, element_ids_dgfv = cache
+  @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
+
+  # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+  alpha = @timeit_debug timer() "blending factors" indicator(u, equations, dg, cache)
+
+  # Determine element ids for DG-only and blended DG-FV volume integral
+  pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
+
+  # Loop over pure DG elements
+  @timeit_debug timer() "pure DG" Threads.@threads for element in element_ids_dg
+    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
+  end
+
+  # Loop over blended DG-FV elements
+  @timeit_debug timer() "blended DG-FV" Threads.@threads for element in element_ids_dgfv
+    alpha_element = alpha[element]
+
+    # Calculate DG volume integral contribution
+    split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element, 1 - alpha_element)
+
+    # Calculate FV volume integral contribution
+    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, alpha_element)
+  end
+
+  return nothing
+end
+
+@inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4},
+                            equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
+  @unpack fstar1_threaded, fstar2_threaded = cache
+  @unpack inverse_weights = dg.basis
+
+  # Calculate FV two-point fluxes
+  fstar1 = fstar1_threaded[Threads.threadid()]
+  fstar2 = fstar2_threaded[Threads.threadid()]
+  calcflux_fv!(fstar1, fstar2, u, equations, volume_flux_fv, dg, element)
+
+  # Calculate FV volume integral contribution
+  for j in eachnode(dg), i in eachnode(dg)
+    for v in eachvariable(equations)
+      du[v, i, j, element] += ( alpha *
+                                (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
+                                 inverse_weights[j] * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
+
+    end
+  end
+
+  return nothing
+end
+
+@inline function calcflux_fv!(fstar1, fstar2, u::AbstractArray{<:Any,4}, equations, volume_flux_fv, dg::DGSEM, element)
+
+  fstar1[:, 1,            :] .= zero(eltype(fstar1))
+  fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
+
+  for j in eachnode(dg), i in 2:nnodes(dg)
+    u_ll = get_node_vars(u, equations, dg, i-1, j, element)
+    u_rr = get_node_vars(u, equations, dg, i,   j, element)
+    flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
+    set_node_vars!(fstar1, flux, equations, dg, i, j)
+  end
+
+  fstar2[:, :, 1           ] .= zero(eltype(fstar2))
+  fstar2[:, :, nnodes(dg)+1] .= zero(eltype(fstar2))
+
+  for j in 2:nnodes(dg), i in eachnode(dg)
+    u_ll = get_node_vars(u, equations, dg, i, j-1, element)
+    u_rr = get_node_vars(u, equations, dg, i, j,   element)
+    flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
+    set_node_vars!(fstar2, flux, equations, dg, i, j)
+  end
+
+  return nothing
+end
+
+# TODO: Taal dimension agnostic
+"""
+    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
+
+Given blending factors `alpha` and the solver `dg`, fill
+`element_ids_dg` with the IDs of elements using a pure DG scheme and
+`element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+"""
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG, cache)
+  empty!(element_ids_dg)
+  empty!(element_ids_dgfv)
+
+  for element in eachelement(dg, cache)
+    # Clip blending factor for values close to zero (-> pure DG)
+    dg_only = isapprox(alpha[element], 0, atol=1e-12)
+    if dg_only
+      push!(element_ids_dg, element)
+    else
+      push!(element_ids_dgfv, element)
+    end
+  end
+
+  return nothing
+end
 
 
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)

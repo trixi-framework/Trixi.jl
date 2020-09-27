@@ -92,6 +92,7 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
   @unpack u = integrator
   semi = integrator.p
 
+  has_changed = false
   @timeit_debug timer() "AMR" begin
     has_changed = amr_callback(u, semi; kwargs...)
     resize!(integrator, length(u))
@@ -105,22 +106,6 @@ end
 @inline function (amr_callback::AMRCallback)(u_ode::AbstractVector, semi::SemidiscretizationHyperbolic; kwargs...)
   amr_callback(u_ode, mesh_equations_solver_cache(semi)...; kwargs...)
 end
-
-
-# TODO: Taal refactor, decide where to move this and implement everything
-# """
-#     IndicatorHennemannGassner
-
-# Indicator used for shock-capturing or AMR used by
-# - Hennemann, Gassner (2020)
-#   "A provably entropy stable subcell shock capturing approach for high order split form DG"
-#   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-# """
-# struct IndicatorHennemannGassner{RealT<:Real}
-#   alpha_max::RealT
-#   alpha_min::RealT
-#   alpha_smooth::Bool
-# end
 
 
 # TODO: Taal document

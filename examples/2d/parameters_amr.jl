@@ -8,6 +8,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the linear advection equation
+
 advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
@@ -62,8 +63,10 @@ stepsize_callback = StepsizeCallback(cfl=1.6)
 # TODO: Taal decide, first AMR or save solution etc.
 callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
 
+
 ###############################################################################
 # run the simulation
+
 # TODO: Taal requires https://github.com/SciML/OrdinaryDiffEq.jl/pull/1278
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);

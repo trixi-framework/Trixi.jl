@@ -5,6 +5,8 @@
 using OrdinaryDiffEq
 using Trixi
 
+###############################################################################
+# semidiscretization of the compressible Euler equations
 equations = CompressibleEulerEquations2D(1.4)
 
 initial_conditions = initial_conditions_weak_blast_wave
@@ -21,6 +23,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+
+
+###############################################################################
+# ODE solvers, callbacks etc.
 
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
@@ -43,6 +49,9 @@ save_solution = SaveSolutionCallback(solution_interval=100,
 
 callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
 
+
+###############################################################################
+# run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
