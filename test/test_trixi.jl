@@ -29,12 +29,32 @@ function test_trixi_run(parameters_file; l2=nothing, linf=nothing, atol=200*eps(
 end
 
 
-function test_trixi_include(parameters_file; l2=nothing, linf=nothing, atol=200*eps(), rtol=0.001)
+
+walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
+walkexpr(f, x) = f(x)
+
+function mapexpr(expr; kwargs...)
+  walkexpr(expr) do x
+    if x isa Expr
+      for (key,val) in kwargs
+        if x.head === Symbol("=") && x.args[1] === Symbol(key)
+          x.args[2] = :( $val )
+          # dump(x)
+        end
+      end
+    end
+    return x
+  end
+end
+
+function test_trixi_include(parameters_file; l2=nothing, linf=nothing,
+                                             atol=200*eps(), rtol=0.001,
+                                             kwargs...)
 
   println("#"^80)
   println(parameters_file)
 
-  @test_nowarn include(parameters_file)
+  @test_nowarn include(ex -> mapexpr(ex; kwargs...), parameters_file)
   l2_measured, linf_measured = analysis_callback(sol)
 
   # If present, compare L2 and Linf errors against reference values
