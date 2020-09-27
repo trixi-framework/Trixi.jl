@@ -65,6 +65,7 @@ function refine!(dg::Dg3D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   # Update DG instance with new data
   dg.elements = elements
   dg.n_elements = n_elements
+  dg.n_elements_global = n_elements
   dg.interfaces = interfaces
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
@@ -207,6 +208,7 @@ function coarsen!(dg::Dg3D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   # Update DG instance with new data
   dg.elements = elements
   dg.n_elements = n_elements
+  dg.n_elements_global = n_elements
   dg.interfaces = interfaces
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries

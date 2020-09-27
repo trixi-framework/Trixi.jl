@@ -66,6 +66,8 @@ mutable struct Dg3D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
   positivity_preserving_limiter_apply::Bool
   positivity_preserving_limiter_threshold::Float64
 
+  n_elements_global::Int
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -168,6 +170,9 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "blob",  "density_pulse", "sedov_self_gravity"]))
 
+  # Set global number of elements
+  n_elements_global = n_elements
+
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
   # maximum and minimum alpha for shock capturing
@@ -246,6 +251,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
       positivity_preserving_limiter_apply, positivity_preserving_limiter_threshold,
+      n_elements_global,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
