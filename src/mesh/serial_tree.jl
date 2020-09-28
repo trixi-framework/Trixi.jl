@@ -1,5 +1,5 @@
 
-# Composite type that represents a NDIMS-dimensional tree (parallel version).
+# Composite type that represents a NDIMS-dimensional tree (serial version).
 #
 # Implements everything required for AbstractContainer.
 #
@@ -19,14 +19,13 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
-mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
+mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
   neighbor_ids::Matrix{Int}
   levels::Vector{Int}
   coordinates::Matrix{Float64}
   original_cell_ids::Vector{Int}
-  mpi_ranks::Vector{Int}
 
   capacity::Int
   length::Int
@@ -36,7 +35,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
   length_level_0::Float64
   periodicity::NTuple{NDIMS, Bool}
 
-  function ParallelTree{NDIMS}(capacity::Integer) where NDIMS
+  function SerialTree{NDIMS}(capacity::Integer) where NDIMS
     # Verify that NDIMS is an integer
     @assert NDIMS isa Integer
 
@@ -51,7 +50,6 @@ mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
     t.levels = fill(typemin(Int), capacity + 1)
     t.coordinates = fill(NaN, NDIMS, capacity + 1)
     t.original_cell_ids = fill(typemin(Int), capacity + 1)
-    t.mpi_ranks = fill(typemin(Int), capacity + 1)
 
     t.capacity = capacity
     t.length = 0
@@ -66,13 +64,13 @@ end
 
 
 # Constructor for passing the dimension as an argument
-ParallelTree(::Val{NDIMS}, args...) where NDIMS = ParallelTree{NDIMS}(args...)
+SerialTree(::Val{NDIMS}, args...) where NDIMS = SerialTree{NDIMS}(args...)
 
 # Create and initialize tree
-function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
+function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
                  length::Real, periodicity=true) where NDIMS
   # Create instance
-  t = ParallelTree{NDIMS}(capacity)
+  t = SerialTree{NDIMS}(capacity)
 
   # Initialize root cell
   init!(t, center, length, periodicity)
@@ -81,11 +79,11 @@ function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-ParallelTree{1}(cap::Int, center::Real, len::Real, periodicity=true) = ParallelTree{1}(cap, [convert(Float64, center)], len, periodicity)
+SerialTree{1}(cap::Int, center::Real, len::Real, periodicity=true) = SerialTree{1}(cap, [convert(Float64, center)], len, periodicity)
 
 
 # Clear tree with deleting data structures, store center and length, and create root cell
-function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, periodicity=true)
+function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, periodicity=true)
   clear!(t)
 
   # Set domain information
@@ -99,7 +97,6 @@ function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, pe
   t.levels[1] = 0
   t.coordinates[:, 1] .= t.center_level_0
   t.original_cell_ids[1] = 0
-  t.mpi_ranks[1] = typemin(Int)
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
@@ -128,7 +125,7 @@ end
 
 
 # Convenience output for debugging
-function Base.show(io::IO, t::ParallelTree{NDIMS}) where NDIMS
+function Base.show(io::IO, t::SerialTree{NDIMS}) where NDIMS
   l = t.length
   println(io, '*'^20)
   println(io, "t.parent_ids[1:l] = $(t.parent_ids[1:l])")
@@ -137,7 +134,6 @@ function Base.show(io::IO, t::ParallelTree{NDIMS}) where NDIMS
   println(io, "t.levels[1:l] = $(t.levels[1:l])")
   println(io, "transpose(t.coordinates[:, 1:l]) = $(transpose(t.coordinates[:, 1:l]))")
   println(io, "t.original_cell_ids[1:l] = $(t.original_cell_ids[1:l])")
-  println(io, "t.mpi_ranks[1:l] = $(t.mpi_ranks[1:l])")
   println(io, "t.capacity = $(t.capacity)")
   println(io, "t.length = $(t.length)")
   println(io, "t.dummy = $(t.dummy)")
@@ -147,23 +143,10 @@ function Base.show(io::IO, t::ParallelTree{NDIMS}) where NDIMS
 end
 
 
-# Check if cell is own cell, i.e., belongs to this MPI rank
-is_own_cell(t::ParallelTree, cell_id) = t.mpi_ranks[cell_id] == mpi_rank()
-
-
-# Return an array with the ids of all leaf cells for a given rank
-leaf_cells_by_rank(t::ParallelTree, rank) = filter_leaf_cells(t) do cell_id
-                                              t.mpi_ranks[cell_id] == rank
-                                            end
-
-# Return an array with the ids of all local leaf cells
-local_leaf_cells(t::ParallelTree) = leaf_cells_by_rank(t, mpi_rank())
-
-
 # Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::ParallelTree, cell_ids)
+function refine_unbalanced!(t::SerialTree, cell_ids)
   # Store actual ids refined cells (shifted due to previous insertions)
   refined = zeros(Int, length(cell_ids))
 
@@ -194,7 +177,6 @@ function refine_unbalanced!(t::ParallelTree, cell_ids)
       t.coordinates[:, child_id] .= child_coordinates(
           t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
       t.original_cell_ids[child_id] = 0
-      t.mpi_ranks[child_id] = t.mpi_ranks[cell_id]
 
       # For determining neighbors, use neighbor connections of parent cell
       for direction in 1:n_directions(t)
@@ -239,7 +221,7 @@ end
 # Reset range of cells to values that are prone to cause errors as soon as they are used.
 #
 # Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
-function invalidate!(t::ParallelTree, first::Int, last::Int)
+function invalidate!(t::SerialTree, first::Int, last::Int)
   @assert first > 0
   @assert last <= t.capacity + 1
 
@@ -250,7 +232,6 @@ function invalidate!(t::ParallelTree, first::Int, last::Int)
   t.levels[first:last] .= typemin(Int)
   t.coordinates[:, first:last] .= NaN
   t.original_cell_ids[first:last] .= typemin(Int)
-  t.mpi_ranks[first:last] .= typemin(Int)
 
   return nothing
 end
@@ -259,7 +240,7 @@ end
 # Raw copy operation for ranges of cells.
 #
 # This method is used by the higher-level copy operations for AbstractContainer
-function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last::Int, destination::Int)
+function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int, destination::Int)
   copy_data!(target.parent_ids, source.parent_ids, first, last, destination)
   copy_data!(target.child_ids, source.child_ids, first, last, destination,
              n_children_per_cell(target))
@@ -268,19 +249,17 @@ function raw_copy!(target::ParallelTree, source::ParallelTree, first::Int, last:
   copy_data!(target.levels, source.levels, first, last, destination)
   copy_data!(target.coordinates, source.coordinates, first, last, destination, ndims(target))
   copy_data!(target.original_cell_ids, source.original_cell_ids, first, last, destination)
-  copy_data!(target.mpi_ranks, source.mpi_ranks, first, last, destination)
 end
 
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::ParallelTree{NDIMS}) where NDIMS
+function reset_data_structures!(t::SerialTree{NDIMS}) where NDIMS
   t.parent_ids = Vector{Int}(undef, t.capacity + 1)
   t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
   t.neighbor_ids = Matrix{Int}(undef, 2*NDIMS, t.capacity + 1)
   t.levels = Vector{Int}(undef, t.capacity + 1)
   t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
   t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
-  t.mpi_ranks = Vector{Int}(undef, t.capacity + 1)
 
   invalidate!(t, 1, capacity(t) + 1)
 end

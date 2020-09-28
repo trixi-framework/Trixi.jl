@@ -1,7 +1,5 @@
-abstract type AbstractTree{NDIMS} <: AbstractContainer end
-@inline Base.ndims(::AbstractTree{NDIMS}) where NDIMS = NDIMS
-
-include("tree.jl")
+include("abstract_tree.jl")
+include("serial_tree.jl")
 include("parallel_tree.jl")
 include("parallel.jl")
 
@@ -79,7 +77,7 @@ function generate_mesh()
   if is_parallel()
     tree_type = ParallelTree{ndims_}
   else
-    tree_type = Tree{ndims_}
+    tree_type = SerialTree{ndims_}
   end
   @timeit timer() "creation" mesh = TreeMesh(tree_type, n_cells_max, domain_center,
                                              domain_length, periodicity)
@@ -129,7 +127,7 @@ function load_mesh(restart_filename, mpi_parallel::Val{false})
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(Tree{ndims_}, n_cells_max)
+  @timeit timer() "creation" mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)
