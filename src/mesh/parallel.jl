@@ -46,17 +46,7 @@ function load_mesh(restart_filename, mpi_parallel::Val{true})
   @timeit timer() "creation" mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
 
   # Determine mesh filename
-  if is_mpi_root()
-    filename = get_restart_mesh_filename(restart_filename)
-    buffer = Vector{UInt8}(filename)
-    MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
-    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
-  else # non-root ranks
-    count = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())
-    buffer = Vector{UInt8}(undef, count[])
-    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
-    filename = String(buffer)
-  end
+  filename = get_restart_mesh_filename(restart_filename, Val(true))
   mesh.current_filename = filename
   mesh.unsaved_changes = false
 
@@ -112,3 +102,27 @@ function load_mesh(restart_filename, mpi_parallel::Val{true})
   return mesh
 end
 
+function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{true})
+  # Get directory name
+  dirname, _ = splitdir(restart_filename)
+
+  if is_mpi_root()
+    # Read mesh filename from restart file
+    mesh_file = ""
+    h5open(restart_filename, "r") do file
+      mesh_file = read(attrs(file)["mesh_file"])
+    end
+
+    buffer = Vector{UInt8}(mesh_file)
+    MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
+    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+  else # non-root ranks
+    count = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())
+    buffer = Vector{UInt8}(undef, count[])
+    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+    mesh_file = String(buffer)
+  end
+
+  # Construct and return filename
+  return joinpath(dirname, mesh_file)
+end

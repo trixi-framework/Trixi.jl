@@ -130,7 +130,7 @@ function load_mesh(restart_filename, mpi_parallel::Val{false})
   @timeit timer() "creation" mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
 
   # Determine mesh filename
-  filename = get_restart_mesh_filename(restart_filename)
+  filename = get_restart_mesh_filename(restart_filename, Val(false))
   mesh.current_filename = filename
   mesh.unsaved_changes = false
 
@@ -158,7 +158,8 @@ end
 
 
 # Obtain the mesh filename from a restart file
-function get_restart_mesh_filename(restart_filename)
+get_restart_mesh_filename(restart_filename) = get_restart_mesh_filename(restart_filename, mpi_parallel())
+function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 
