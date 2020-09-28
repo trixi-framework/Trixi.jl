@@ -77,12 +77,12 @@ function generate_mesh()
 
   # Create mesh
   if is_parallel()
-    @timeit timer() "creation" mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max,
-                                               domain_center, domain_length, periodicity)
+    tree_type = ParallelTree{ndims_}
   else
-    @timeit timer() "creation" mesh = TreeMesh(Tree{ndims_}, n_cells_max, domain_center,
-                                               domain_length, periodicity)
+    tree_type = Tree{ndims_}
   end
+  @timeit timer() "creation" mesh = TreeMesh(tree_type, n_cells_max, domain_center,
+                                             domain_length, periodicity)
 
   # Create initial refinement
   initial_refinement_level = parameter("initial_refinement_level")
