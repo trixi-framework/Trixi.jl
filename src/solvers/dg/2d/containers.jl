@@ -161,7 +161,7 @@ nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents
-function Base.show(io::IO, c::L2MortarContainer2D{NVARS, POLYDEG}) where {NVARS, POLYDEG}
+function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer2D{NVARS, POLYDEG}) where {NVARS, POLYDEG}
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper)
     println(io, "c.u_upper[$idx] = $(c.u_upper[idx])")
