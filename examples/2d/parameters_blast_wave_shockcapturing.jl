@@ -1,5 +1,5 @@
 # TODO: Taal refactor, rename to
-# - euler_blast_wave_shockcapturing_amr.jl
+# - euler_blast_wave_shockcapturing.jl
 # or something similar?
 
 using OrdinaryDiffEq
@@ -15,12 +15,12 @@ initial_conditions = initial_conditions_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-indicator_hg = IndicatorHennemannGassner(basis, equations,
+indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_hg;
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)

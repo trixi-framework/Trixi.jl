@@ -142,13 +142,24 @@ struct IndicatorHennemannGassner{RealT<:Real, Variable, Cache} <: AbstractIndica
   cache::Cache
 end
 
-function IndicatorHennemannGassner(basis, equations;
+function IndicatorHennemannGassner(equations, basis;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
                                    variable=first)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorHennemannGassner, equations, basis)
+  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
+    alpha_max, alpha_min, alpha_smooth, variable, cache)
+end
+
+function IndicatorHennemannGassner(semi;
+                                   alpha_max=0.5,
+                                   alpha_min=0.001,
+                                   alpha_smooth=true,
+                                   variable=first)
+  alpha_max, alpha_min = promote(alpha_max, alpha_min)
+  cache = create_cache!(semi.cache.element_variables, IndicatorHennemannGassner, semi)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end

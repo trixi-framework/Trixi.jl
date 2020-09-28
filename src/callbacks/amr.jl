@@ -170,9 +170,14 @@ struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
   cache::Cache
 end
 
+function IndicatorLöhner(basis, equations; f_wave=0.2, variable=first)
+  cache = create_cache(IndicatorLöhner, equations, basis)
+  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
+end
+
 function IndicatorLöhner(semi::AbstractSemidiscretization; f_wave=0.2, variable=first)
   cache = create_cache!(semi.cache.element_variables, IndicatorLöhner, semi)
-  return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
+  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
 
@@ -190,9 +195,14 @@ const IndicatorLoehner = IndicatorLöhner
 
 
 # TODO: Taal decide, shall we keep this?
-struct IndicatorMax{Variable, Cache} <: AbstractIndicator
+struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
   cache::Cache
+end
+
+function IndicatorMax(basis, equations::AbstractEquations; variable=first)
+  cache = create_cache(IndicatorMax, equations, basis)
+  IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 function IndicatorMax(semi; variable=first)
