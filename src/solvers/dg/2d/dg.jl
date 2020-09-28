@@ -857,7 +857,7 @@ function integrate(func, u, dg::Dg2D, uses_mpi::Val{false}; normalize=true)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
-  return integrate(func_wrapped, dg, Val(false), u; normalize=normalize)
+  return integrate(func_wrapped, dg, uses_mpi, u; normalize=normalize)
 end
 integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
