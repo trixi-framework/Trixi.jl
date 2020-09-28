@@ -3,14 +3,14 @@ function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{true})
   # Start to receive MPI data
   @timeit timer() "start MPI receive" start_mpi_receive!(dg)
 
-  # Reset u_t
-  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
-
   # Prolong solution to MPI interfaces
   @timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(dg)
 
   # Start to send MPI data
   @timeit timer() "start MPI send" start_mpi_send!(dg)
+
+  # Reset u_t
+  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(dg)
