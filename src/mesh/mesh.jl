@@ -7,7 +7,7 @@ include("parallel.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
-mutable struct TreeMesh{TreeType<:AbstractTree{NDIMS} where NDIMS}
+mutable struct TreeMesh{TreeType<:AbstractTree}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
