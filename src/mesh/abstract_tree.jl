@@ -1,8 +1,7 @@
 abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
 # Type traits to obtain dimension
-@inline Base.ndims(::Type{AbstractTree{NDIMS}}) where NDIMS = NDIMS
-@inline Base.ndims(t::AbstractTree{NDIMS}) where NDIMS = NDIMS
+@inline Base.ndims(::AbstractTree{NDIMS}) where NDIMS = NDIMS
 
 
 # Auxiliary methods to allow semantic queries on the tree
