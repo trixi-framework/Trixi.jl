@@ -61,7 +61,7 @@ To start Trixi in parallel with MPI, there are three options:
 
    julia> MPI.install_mpiexecjl(destdir="/somewhere/in/your/PATH")
    ```
-   Then, to execute a Trixi in parallel, execute the following command from your
+   Then, to execute Trixi in parallel, execute the following command from your
    command line:
    ```bash
    mpiexecjl -n 3 julia --project=. -e 'using Trixi; Trixi.run("examples/2d/parameters.toml")'
@@ -96,4 +96,3 @@ To start Trixi in parallel with MPI, there are three options:
    [available](https://github.com/tmux/tmux/wiki/Getting-Started) and once you
    get the hang of it, developing Trixi in parallel becomes much smoother this
    way.
-
