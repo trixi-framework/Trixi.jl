@@ -274,6 +274,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 end
 
 
+# This function can be called during the construction of the cache used in a
+# semidiscretization.
+# `create_cache!(element_variables, args...)` returns a cache and is allowed to
+# update the `element_variables` with (pointers to) parts of the created cache.
+# By default, no `element_variables` are set and we fall back to `create_cache`.
+create_cache!(element_variables, args...) = create_cache(args...)
+
 
 # TODO: Taal interface
 # New mesh/solver combinations have to implement

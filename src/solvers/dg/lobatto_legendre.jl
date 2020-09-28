@@ -57,10 +57,11 @@ end
 # TODO: Taal bikeshedding, implement a method with extended information and the signature
 # function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis{RealT}) where {RealT}
 
+@inline Base.real(basis::LobattoLegendreBasis{RealT}) where {RealT} = RealT
+
 @inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
-
 
 
 abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
@@ -213,11 +214,11 @@ end
 # TODO: Taal bikeshedding, implement a method with extended information and the signature
 # function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
 
-@inline Base.real(mortar::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
+@inline Base.real(adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
 
-@inline nnodes(mortar::LobattoLegendreAdaptorL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
+@inline nnodes(adaptor::LobattoLegendreAdaptorL2{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
-@inline polydeg(mortar::LobattoLegendreAdaptorL2) = nnodes(mortar) - 1
+@inline polydeg(adaptor::LobattoLegendreAdaptorL2) = nnodes(adaptor) - 1
 
 
 ###############################################################################

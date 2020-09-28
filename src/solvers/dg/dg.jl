@@ -70,7 +70,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple(), NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
@@ -117,7 +117,15 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
-# TODO: Taal implement
+
+
+abstract type AbstractIndicator end
+
+function create_cache!(element_variables, typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
+  create_cache!(element_variables, typ, mesh_equations_solver_cache(semi)...)
+end
+
+
 """
     IndicatorHennemannGassner
 
@@ -126,20 +134,23 @@ Indicator used for shock-capturing or AMR used by
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-struct IndicatorHennemannGassner{RealT<:Real, Variable}
+struct IndicatorHennemannGassner{RealT<:Real, Variable, Cache} <: AbstractIndicator
   alpha_max::RealT
   alpha_min::RealT
   alpha_smooth::Bool
   variable::Variable
+  cache::Cache
 end
 
-function IndicatorHennemannGassner(; alpha_max=0.5,
-                                     alpha_min=0.001,
-                                     alpha_smooth=true,
-                                     variable=first)
+function IndicatorHennemannGassner(basis, equations;
+                                   alpha_max=0.5,
+                                   alpha_min=0.001,
+                                   alpha_smooth=true,
+                                   variable=first)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable)}(
-    alpha_max, alpha_min, alpha_smooth, variable)
+  cache = create_cache(IndicatorHennemannGassner, equations, basis)
+  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
+    alpha_max, alpha_min, alpha_smooth, variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorHennemannGassner)
@@ -156,7 +167,11 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
   println(io, "- ", indicator.variable)
   println(io, "- alpha_max:    ", indicator.alpha_max)
   println(io, "- alpha_min:    ", indicator.alpha_min)
-  print(io,   "- alpha_smooth: ", indicator.alpha_smooth)
+  println(io, "- alpha_smooth: ", indicator.alpha_smooth)
+  print(io,   "- cache with fields:")
+  for key in keys(semi.cache)
+    print(io, " ", key)
+  end
 end
 
 
@@ -255,13 +270,21 @@ include("lobatto_legendre.jl") # TODO: Taal new
 
 const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
 
-function DGSEM(RealT, polydeg::Integer, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
-  basis = LobattoLegendreBasis(RealT, polydeg)
+function DGSEM(basis::LobattoLegendreBasis,
+               surface_flux=flux_central,
+               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
   mortar = MortarL2(basis)
 
-  return DG{RealT, typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
-    basis, mortar, surface_flux, volume_integral
-  )
+  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+    basis, mortar, surface_flux, volume_integral)
+end
+
+function DGSEM(RealT, polydeg::Integer,
+               surface_flux=flux_central,
+               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+
+  return DGSEM(basis, surface_flux, volume_integral)
 end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)

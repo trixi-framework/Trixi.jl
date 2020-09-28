@@ -132,6 +132,21 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::Abst
   return nothing
 end
 
+# 2D version for scalars
+function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 2},
+                                        matrix::AbstractMatrix,
+                                        data_in:: AbstractArray{<:Any, 2},
+                                        tmp1=zeros(eltype(data_out), size(matrix, 1), size(matrix, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false     tmp1[i, j] = matrix[i, ii] * data_in[ii, j]
+
+  # Interpolate in y-direction
+  @tullio threads=false data_out[i, j] = matrix[j, jj] * tmp1[i, jj]
+
+  return nothing
+end
+
 # 2D version, apply matrixJ to dimension J of data_in
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3},
                                  matrix1::AbstractMatrix, matrix2::AbstractMatrix,

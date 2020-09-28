@@ -79,7 +79,8 @@ export source_terms_convergence_test, source_terms_harmonic
 
 export TreeMesh
 
-export DGSEM,
+export DG,
+       DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner
 

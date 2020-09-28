@@ -3,11 +3,6 @@
 
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                       boundary_conditions, dg::DG, RealT)
-  # TODO: Taal cleanup
-  # element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
-  # cache::Dict{Symbol, Any}
-  # thread_cache::Any # to make fully-typed output more readable
-
   # Create the basic cache
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
@@ -36,17 +31,14 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # seem to be important information about the mesh.
   # Shall we store them there?
 
+  element_variables = Dict{Symbol, Any}()
   cache = (; elements, interfaces, boundaries, mortars)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache_tmp, element_variables_tmp = create_cache(mesh, equations, dg.volume_integral, dg)
-  cache = (;cache..., cache_tmp...)
-  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache!(element_variables, mesh, equations, dg.volume_integral, dg)...)
+  cache = (;cache..., create_cache!(element_variables, mesh, equations, dg.mortar)...)
 
-  element_variables = Dict{Symbol, Any}()
-  for key in keys(element_variables_tmp)
-    element_variables[key] = element_variables_tmp[key]
-  end
+  # finally, add the element variables to make them accessible for IO
   cache = (;cache..., element_variables)
 
   return cache
@@ -58,16 +50,17 @@ function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeInteg
 end
 
 function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing)
-  NamedTuple(), NamedTuple()
+  NamedTuple()
 end
 
 # function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing)
 #   # TODO: Taal implement if necessary
-#   NamedTuple(), NamedTuple()
+#   NamedTuple()
 # end
 
 
-function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
+function create_cache!(element_variables, mesh::TreeMesh{2}, equations,
+                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
 
@@ -76,9 +69,9 @@ function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeInteg
   fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
   fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
-  cache, element_variables = create_cache(volume_integral.indicator, equations, dg)
+  create_cache!(element_variables, volume_integral.indicator, equations, dg.basis)
 
-  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded), element_variables
+  return (; element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded)
 end
 
 
@@ -247,36 +240,46 @@ end
 # end
 
 
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
-# TODO: Taal refactor, unify cache variants of indicators such as
-# - indicator_hg::IndicatorHennemannGassner
-# - löhner::IndicatorLöhner
-# - indicator_max::IndicatorMax
-# Shall they get the equations and/or the solver as argument when they are constructd?
-function create_cache(indicator_hg::IndicatorHennemannGassner, equations, dg::DGSEM)
-  alpha = Vector{real(dg)}()
-  # register the indicator to save it in solution files
-  element_variables = (blending_factor=alpha)
+  alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
-  cache_indicator = (; alpha, alpha_tmp)
 
-  # TODO: Taal refactor, remove the leading 1 index?
-  A = Array{real(dg), 3}
-  indicator_threaded  = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, 1, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
-  return (; cache_indicator..., indicator_threaded, modal_threaded, modal_tmp1_threaded), element_variables
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+end
+
+# this method is used when the indicator is used for shock-capturing volume integrals
+function create_cache!(element_variables, indicator_hg::IndicatorHennemannGassner, equations::AbstractEquations{2}, basis)
+
+  # register the indicator to save it in solution files
+  element_variables[:blending_factor] = indicator_hg.cache.alpha
+  return indicator_hg.cache
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache!(element_variables, typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+
+  cache = create_cache(typ, equations, dg.basis)
+  # register the indicator to save it in solution files
+  element_variables[:indicator_hg] = cache.alpha
+
+  return cache
 end
 
 
 function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, indicator_threaded, modal_threaded, modal_tmp1_threaded = cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
   # TODO: Taal refactor, when to resize! stuff changed possibly by AMR?
+  #       Shall we implement resize!(semi::AbstractSemidiscretization) ?
   resize!(alpha, nelements(dg, cache))
   if alpha_smooth
-    @unpack alpha_tmp = cache
     resize!(alpha_tmp, nelements(dg, cache))
   end
 
@@ -292,24 +295,24 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4}, eq
     # Calculate indicator variables at Gauss-Lobatto nodes
     for j in eachnode(dg), i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[1, i, j] = indicator_hg.variable(u_local, equations)
+      indicator[i, j] = indicator_hg.variable(u_local, equations)
     end
 
     # Convert to modal representation
-    multiply_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
+    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = zero(eltype(modal))
     for j in 1:nnodes(dg), i in 1:nnodes(dg)
-      total_energy += modal[1, i, j]^2
+      total_energy += modal[i, j]^2
     end
     total_energy_clip1 = zero(eltype(modal))
     for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
-      total_energy_clip1 += modal[1, i, j]^2
+      total_energy_clip1 += modal[i, j]^2
     end
     total_energy_clip2 = zero(eltype(modal))
     for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
-      total_energy_clip2 += modal[1, i, j]^2
+      total_energy_clip2 += modal[i, j]^2
     end
 
     # Calculate energy in lower modes

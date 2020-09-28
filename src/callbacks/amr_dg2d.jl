@@ -365,7 +365,8 @@ end
 
 function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
   indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
-  cache.element_variables[:indicator_amr] = indicator_value # register the indicator to save it in solution files
+  # register the indicator to save it in solution files
+  cache.element_variables[:indicator_amr] = indicator_value
 
   return (; indicator_value)
 end
@@ -413,16 +414,36 @@ function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any,4},
 end
 
 
-function löhner_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
-  alpha = Vector{real(dg)}(undef, nelements(dg, cache))
-  cache.element_variables[:indicator_loehner] = alpha # register the indicator to save it in solution files
+  alpha = Vector{real(basis)}()
 
-  A = Array{real(dg), ndims(mesh)}
-  indicator_threaded = [A(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  # TODO: Taal refactor, leading 1 index?
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, indicator_threaded)
 end
+
+# this method is used when the indicator is used for shock-capturing volume integrals
+function create_cache!(element_variables, indicator_löhner::IndicatorLöhner, equations::AbstractEquations{2}, basis)
+
+  # register the indicator to save it in solution files
+  element_variables[:blending_factor] = indicator_löhner.cache.alpha
+  return indicator_löhner.cache
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache!(element_variables, typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+
+  cache = create_cache(typ, equations, dg.basis)
+  # register the indicator to save it in solution files
+  element_variables[:indicator_loehner] = cache.alpha
+
+  return cache
+end
+
 
 function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
@@ -471,16 +492,36 @@ end
 
 
 
-function indicator_max_cache(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
 
-  alpha = Vector{real(dg)}(undef, nelements(dg, cache))
-  cache.element_variables[:indicator_max] = alpha # register the indicator to save it in solution files
+  alpha = Vector{real(basis)}()
 
-  A = Array{real(dg), ndims(mesh)}
-  indicator_threaded = [A(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  # TODO: Taal refactor, leading 1 index?
+  A = Array{real(basis), ndims(equations)}
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, indicator_threaded)
 end
+
+# this method is used when the indicator is used for shock-capturing volume integrals
+function create_cache!(element_variables, indicator_max::IndicatorMax, equations::AbstractEquations{2}, basis)
+
+  # register the indicator to save it in solution files
+  element_variables[:blending_factor] = indicator_max.cache.alpha
+  return indicator_max.cache
+end
+
+# this method is used when the indicator is constructed as for AMR
+function create_cache!(element_variables, typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+
+  cache = create_cache(typ, equations, dg.basis)
+  # register the indicator to save it in solution files
+  element_variables[:indicator_max] = cache.alpha
+
+  return cache
+end
+
 
 function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack alpha, indicator_threaded = indicator_max.cache

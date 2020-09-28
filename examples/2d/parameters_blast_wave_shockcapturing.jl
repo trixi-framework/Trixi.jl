@@ -14,14 +14,16 @@ initial_conditions = initial_conditions_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
-indicator_hg = IndicatorHennemannGassner(alpha_max=0.5,
+basis = LobattoLegendreBasis(3)
+indicator_hg = IndicatorHennemannGassner(basis, equations,
+                                         alpha_max=0.5,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_hg;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
-solver = DGSEM(3, surface_flux, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2, -2)
 coordinates_max = ( 2,  2)

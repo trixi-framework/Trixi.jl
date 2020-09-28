@@ -164,18 +164,17 @@ The indicator estimates a weighted second derivative of a specified variable loc
   [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
-struct IndicatorLöhner{RealT<:Real, Variable, Cache}
+struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
   f_wave::RealT # TODO: Taal, better name and documentation
   variable::Variable
   cache::Cache
 end
 
-function IndicatorLöhner(semi; f_wave=0.2, variable=first)
-  cache = löhner_cache(semi)
+function IndicatorLöhner(semi::AbstractSemidiscretization; f_wave=0.2, variable=first)
+  cache = create_cache!(semi.cache.element_variables, IndicatorLöhner, semi)
   return IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
-löhner_cache(semi) = löhner_cache(mesh_equations_solver_cache(semi)...)
 
 function Base.show(io::IO, indicator::IndicatorLöhner)
   print(io, "IndicatorLöhner(")
@@ -191,17 +190,15 @@ const IndicatorLoehner = IndicatorLöhner
 
 
 # TODO: Taal decide, shall we keep this?
-struct IndicatorMax{Variable, Cache}
+struct IndicatorMax{Variable, Cache} <: AbstractIndicator
   variable::Variable
   cache::Cache
 end
 
 function IndicatorMax(semi; variable=first)
-  cache = indicator_max_cache(semi)
+  cache = create_cache!(semi.cache.element_variables, IndicatorMax, semi)
   return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
-
-indicator_max_cache(semi) = indicator_max_cache(mesh_equations_solver_cache(semi)...)
 
 function Base.show(io::IO, indicator::IndicatorMax)
   print(io, "IndicatorMax(")
