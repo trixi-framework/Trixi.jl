@@ -64,7 +64,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
     while has_changed
       has_changed = amr_callback(integrator,
                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
-      integrator.u .= compute_coefficients(t, semi)
+      compute_coefficients!(integrator.u, t, semi)
     end
   end
 
@@ -99,10 +99,12 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
 
   @timeit_debug timer() "AMR" begin
     has_changed = amr_callback(u_ode, semi; kwargs...)
-    resize!(integrator, length(u_ode))
+    if has_changed
+      resize!(integrator, length(u_ode))
+    end
+    u_modified!(integrator, has_changed)
   end
 
-  u_modified!(integrator, has_changed)
   return has_changed
 end
 

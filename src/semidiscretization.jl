@@ -239,13 +239,17 @@ function compute_coefficients(func, t, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
 
   u_ode = allocate_coefficients(mesh, equations, solver, cache)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
-  compute_coefficients!(u, func, t, semi)
+  compute_coefficients!(u_ode, func, t, semi)
   return u_ode
 end
 
-function compute_coefficients!(u, func, t, semi::SemidiscretizationHyperbolic)
+function compute_coefficients!(u_ode::AbstractVector, t, semi::SemidiscretizationHyperbolic)
+  compute_coefficients!(u_ode, semi.initial_conditions, t, semi)
+end
+
+function compute_coefficients!(u_ode::AbstractVector, func, t, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
 
   compute_coefficients!(u, func, t, mesh, equations, solver, cache)
 end

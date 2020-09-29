@@ -67,7 +67,6 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analy
 ###############################################################################
 # run the simulation
 
-# TODO: Taal requires https://github.com/SciML/OrdinaryDiffEq.jl/pull/1278
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
