@@ -28,7 +28,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     refined_original_cells = @timeit timer() "mesh" refine!(mesh.tree, to_refine)
 
     # refine solver
-    new_size = @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -89,7 +89,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     end
 
     # coarsen solver
-    new_size = @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
     # TODO: Taal implement, passive solvers?
     # if !isempty(passive_solvers)
     #   @timeit timer() "passive solvers" for ps in passive_solvers
@@ -122,7 +122,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
 
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
-  tree = mesh.tree
+
   # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
   elements_to_refine = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
                                           cells_to_refine)
@@ -134,13 +134,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
   old_u     = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
   # Get new list of leaf cells
-  leaf_cell_ids = leaf_cells(tree)
+  leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize new elements container
   elements = init_elements(leaf_cell_ids, mesh,
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
-  @assert nelements(dg, cache) == nelements(elements)
+  @assert nelements(dg, cache) == nelements(elements) # TODO: Taal debug
+  @assert nelements(dg, cache) > old_n_elements # TODO: Taal debug
 
   resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -159,6 +160,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
       element_id += 1
     end
   end
+  @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))" # TODO: Taal debug
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
@@ -196,6 +198,18 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id, old_u, old_eleme
   lower_right_id = element_id + 1
   upper_left_id  = element_id + 2
   upper_right_id = element_id + 3
+
+  # TODO: Taal debug
+  @assert old_element_id >= 1
+  @assert size(old_u, 1) == nvariables(equations)
+  @assert size(old_u, 2) == nnodes(dg)
+  @assert size(old_u, 3) == nnodes(dg)
+  @assert size(old_u, 4) >= old_element_id
+  @assert     element_id >= 1
+  @assert size(    u, 1) == nvariables(equations)
+  @assert size(    u, 2) == nnodes(dg)
+  @assert size(    u, 3) == nnodes(dg)
+  @assert size(    u, 4) >= element_id + 3
 
   # Interpolate to lower left element
   for j in eachnode(dg), i in eachnode(dg)
@@ -264,7 +278,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, 
   elements = init_elements(leaf_cell_ids, mesh,
                            real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.elements, elements)
-  @assert nelements(dg, cache) == nelements(elements)
+  @assert nelements(dg, cache) == nelements(elements) # TODO: Taal debug
+  @assert nelements(dg, cache) < old_n_elements # TODO: Taal debug
 
   resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
   u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -296,6 +311,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, 
       element_id += 1
     end
   end
+  @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))" # TODO: Taal debug
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
@@ -334,6 +350,18 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id, old_u, old_ele
   upper_left_id  = old_element_id + 2
   upper_right_id = old_element_id + 3
 
+  # TODO: Taal debug
+  @assert old_element_id >= 1
+  @assert size(old_u, 1) == nvariables(equations)
+  @assert size(old_u, 2) == nnodes(dg)
+  @assert size(old_u, 3) == nnodes(dg)
+  @assert size(old_u, 4) >= old_element_id + 3
+  @assert     element_id >= 1
+  @assert size(    u, 1) == nvariables(equations)
+  @assert size(    u, 2) == nnodes(dg)
+  @assert size(    u, 3) == nnodes(dg)
+  @assert size(    u, 4) >= element_id
+
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
 
@@ -364,10 +392,8 @@ end
 
 
 function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
-  indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
-  # register the indicator to save it in solution files
-  cache.element_variables[:indicator_amr] = indicator_value
 
+  indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
   return (; indicator_value)
 end
 
@@ -419,29 +445,15 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{2},
 
   alpha = Vector{real(basis)}()
 
-  # TODO: Taal refactor, leading 1 index?
   A = Array{real(basis), ndims(equations)}
   indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, indicator_threaded)
 end
 
-# this method is used when the indicator is used for shock-capturing volume integrals
-function create_cache!(element_variables, indicator_löhner::IndicatorLöhner, equations::AbstractEquations{2}, basis)
-
-  # register the indicator to save it in solution files
-  element_variables[:blending_factor] = indicator_löhner.cache.alpha
-  return indicator_löhner.cache
-end
-
 # this method is used when the indicator is constructed as for AMR
-function create_cache!(element_variables, typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-
-  cache = create_cache(typ, equations, dg.basis)
-  # register the indicator to save it in solution files
-  element_variables[:indicator_loehner] = cache.alpha
-
-  return cache
+function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+  create_cache(typ, equations, dg.basis)
 end
 
 
@@ -497,29 +509,15 @@ function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, bas
 
   alpha = Vector{real(basis)}()
 
-  # TODO: Taal refactor, leading 1 index?
   A = Array{real(basis), ndims(equations)}
   indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, indicator_threaded)
 end
 
-# this method is used when the indicator is used for shock-capturing volume integrals
-function create_cache!(element_variables, indicator_max::IndicatorMax, equations::AbstractEquations{2}, basis)
-
-  # register the indicator to save it in solution files
-  element_variables[:blending_factor] = indicator_max.cache.alpha
-  return indicator_max.cache
-end
-
 # this method is used when the indicator is constructed as for AMR
-function create_cache!(element_variables, typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-
+function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
   cache = create_cache(typ, equations, dg.basis)
-  # register the indicator to save it in solution files
-  element_variables[:indicator_max] = cache.alpha
-
-  return cache
 end
 
 

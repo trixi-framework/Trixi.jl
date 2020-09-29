@@ -1,7 +1,7 @@
 
 function save_solution_file(u, time, dt, timestep,
                             mesh, equations, dg::DG, cache,
-                            solution_callback;
+                            solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback
 
@@ -56,9 +56,9 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Store element variables
-    for (v, (key, element_variables)) in enumerate(cache.element_variables)
+    for (v, (key, element_variable)) in enumerate(element_variables)
       # Add to file
-      file["element_variables_$v"] = element_variables
+      file["element_variables_$v"] = element_variable
 
       # Add variable name as attribute
       var = file["element_variables_$v"]

@@ -49,6 +49,11 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback::AMRCallback)
+  get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback.indicator, amr_callback)
+end
+
+
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
   semi = integrator.p
@@ -152,6 +157,18 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorThreeLevel)
 end
 
 
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache, indicator::IndicatorThreeLevel, amr_callback::AMRCallback)
+  # call the indicator to get up-to-date values for IO
+  indicator.indicator(u, equations, solver, cache)
+  get_element_variables!(element_variables, indicator.indicator, amr_callback)
+end
+
+function get_element_variables!(element_variables, indicator::AbstractIndicator, ::AMRCallback)
+  element_variables[:indicator_amr] = indicator.cache.alpha
+  return nothing
+end
+
+
 """
     IndicatorLöhner (equivalent to IndicatorLoehner)
 
@@ -175,7 +192,7 @@ function IndicatorLöhner(basis, equations; f_wave=0.2, variable=first)
 end
 
 function IndicatorLöhner(semi::AbstractSemidiscretization; f_wave=0.2, variable=first)
-  cache = create_cache!(semi.cache.element_variables, IndicatorLöhner, semi)
+  cache = create_cache(IndicatorLöhner, semi)
   IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
@@ -205,7 +222,7 @@ function IndicatorMax(basis, equations::AbstractEquations; variable=first)
 end
 
 function IndicatorMax(semi; variable=first)
-  cache = create_cache!(semi.cache.element_variables, IndicatorMax, semi)
+  cache = create_cache(IndicatorMax, semi)
   return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 

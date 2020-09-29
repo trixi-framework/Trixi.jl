@@ -22,6 +22,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          RealT, nvariables(equations), polydeg(dg), dg.mortar)
 
+  cache = (; elements, interfaces, boundaries, mortars)
+
   # TODO: Taal refactor
   # For me,
   # - surface_ids, cell_ids in elements
@@ -31,15 +33,9 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # seem to be important information about the mesh.
   # Shall we store them there?
 
-  element_variables = Dict{Symbol, Any}()
-  cache = (; elements, interfaces, boundaries, mortars)
-
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache!(element_variables, mesh, equations, dg.volume_integral, dg)...)
-  cache = (;cache..., create_cache!(element_variables, mesh, equations, dg.mortar)...)
-
-  # finally, add the element variables to make them accessible for IO
-  cache = (;cache..., element_variables)
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
 
   return cache
 end
@@ -59,8 +55,8 @@ end
 # end
 
 
-function create_cache!(element_variables, mesh::TreeMesh{2}, equations,
-                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
 
@@ -68,8 +64,6 @@ function create_cache!(element_variables, mesh::TreeMesh{2}, equations,
   A3dp1_y = Array{real(dg), 3}
   fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
   fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
-
-  create_cache!(element_variables, volume_integral.indicator, equations, dg.basis)
 
   return (; element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded)
 end
@@ -258,22 +252,9 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
   return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
-# this method is used when the indicator is used for shock-capturing volume integrals
-function create_cache!(element_variables, indicator_hg::IndicatorHennemannGassner, equations::AbstractEquations{2}, basis)
-
-  # register the indicator to save it in solution files
-  element_variables[:blending_factor] = indicator_hg.cache.alpha
-  return indicator_hg.cache
-end
-
 # this method is used when the indicator is constructed as for AMR
-function create_cache!(element_variables, typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-
-  cache = create_cache(typ, equations, dg.basis)
-  # register the indicator to save it in solution files
-  element_variables[:indicator_hg] = cache.alpha
-
-  return cache
+function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
+  create_cache(typ, equations, dg.basis)
 end
 
 

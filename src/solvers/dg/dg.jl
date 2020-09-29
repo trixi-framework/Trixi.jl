@@ -58,6 +58,8 @@ end
 
 abstract type AbstractVolumeIntegral end
 
+get_element_variables!(element_variables, u, mesh, equations, volume_integral::AbstractVolumeIntegral, dg, cache) = nothing
+
 """
     VolumeIntegralWeakForm
 
@@ -118,12 +120,25 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
 end
 
 
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
+  # call the indicator to get up-to-date values for IO
+  volume_integral.indicator(u, equations, dg, cache)
+  get_element_variables!(element_variables, volume_integral.indicator, volume_integral)
+end
+
 
 abstract type AbstractIndicator end
 
-function create_cache!(element_variables, typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
-  create_cache!(element_variables, typ, mesh_equations_solver_cache(semi)...)
+function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
+  create_cache(typ, mesh_equations_solver_cache(semi)...)
 end
+
+function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingHG)
+  element_variables[:indicator_shock_capturing] = indicator.cache.alpha
+  return nothing
+end
+
 
 
 """
@@ -159,7 +174,7 @@ function IndicatorHennemannGassner(semi;
                                    alpha_smooth=true,
                                    variable=first)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache!(semi.cache.element_variables, IndicatorHennemannGassner, semi)
+  cache = create_cache(IndicatorHennemannGassner, semi)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end
@@ -216,12 +231,16 @@ end
 
 @inline Base.real(dg::DG{RealT}) where {RealT} = RealT
 
-
 # TODO: Taal refactor, use case?
 # Deprecate in favor of nnodes or order_of_accuracy?
 @inline polydeg(dg::DG) = polydeg(dg.basis)
 
 @inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+
+
+function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
+  get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
+end
 
 
 
