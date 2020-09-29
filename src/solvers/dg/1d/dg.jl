@@ -395,7 +395,6 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{1})
       end
 
       interfaces.neighbor_ids[1, count] = element_id
-
       # Set orientation (x -> 1)
       interfaces.orientations[count] = 1
     end
@@ -1128,17 +1127,17 @@ end
 
 # Calculate volume integral (DGSEM in split form)
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg1D)
-  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
+  calc_volume_integral!(u_t, volume_integral_type, dg.thread_cache, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg1D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, cache, dg::Dg1D)
   Threads.@threads for element_id in 1:dg.n_elements
-    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
+    split_form_kernel!(u_t, element_id, cache, dg)
   end
 end
 
-@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg1D, alpha=true)
+@inline function split_form_kernel!(u_t, element_id, cache, dg::Dg1D, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
   # This can get optimized away due to constant propagation.
   @unpack volume_flux_function, dsplit = dg
@@ -1212,13 +1211,13 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
 
   # Loop over pure DG elements
   @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
-    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg)
+    split_form_kernel!(u_t, element_id, thread_cache, dg)
   end
 
   # Loop over blended DG-FV elements
   @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
     # Calculate DG volume integral contribution
-    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
+    split_form_kernel!(u_t, element_id, thread_cache, dg, 1 - alpha[element_id])
 
     # Calculate FV two-point fluxes
     fstar1 = fstar1_threaded[Threads.threadid()]
@@ -1227,8 +1226,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Calculate FV volume integral contribution
     for i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
-        u_t[v, i, element_id] += ( alpha[element_id] *
-                                        (inverse_weights[i] * (fstar1[v, i+1] - fstar1[v, i]) ) )
+        u_t[v, i, element_id] += ( alpha[element_id] * (inverse_weights[i] * (fstar1[v, i+1] - fstar1[v, i]) ) )
 
       end
     end
@@ -1360,10 +1358,9 @@ end
 # Calculate and store the surface fluxes (standard Riemann and nonconservative parts) at an interface
 # OBS! Regarding the nonconservative terms: 1) currently only needed for the MHD equations
 #                                           2) not implemented for boundaries
-calc_interface_flux!(dg::Dg1D) = calc_interface_flux!(dg.elements.surface_flux_values,
-                                                      have_nonconservative_terms(dg.equations), dg)
+calc_interface_flux!(dg::Dg1D) = calc_interface_flux!(dg.elements.surface_flux_values, dg)
 
-function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{false}, dg::Dg1D)
+function calc_interface_flux!(surface_flux_values,  dg::Dg1D)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, orientations = dg.interfaces
 
