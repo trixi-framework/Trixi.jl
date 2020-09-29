@@ -58,13 +58,14 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   amr_callback = cb.affect!
   semi = integrator.p
 
-  @timeit_debug timer() "initial condition AMR" begin
+  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
     # iterate until mesh does not change anymore
     has_changed = true
     while has_changed
       has_changed = amr_callback(integrator,
                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
       compute_coefficients!(integrator.u, t, semi)
+      u_modified!(integrator, true)
     end
   end
 
@@ -73,24 +74,22 @@ end
 
 
 # TODO: Taal remove?
-# function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
-#   amr_callback = cb.affect!
-#   semi = ode.p
+function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
+  amr_callback = cb.affect!
+  semi = ode.p
 
-#   @timeit_debug timer() "strange" sleep(0.5)
+  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
+    # iterate until mesh does not change anymore
+    has_changed = true
+    while has_changed
+      has_changed = amr_callback(ode.u0, semi,
+                                 only_refine=amr_callback.adapt_initial_conditions_only_refine)
+      compute_coefficients!(ode.u0, ode.tspan[1], semi)
+    end
+  end
 
-#   @timeit_debug timer() "initial condition AMR" begin
-#     # iterate until mesh does not change anymore
-#     has_changed = true
-#     while has_changed
-#       has_changed = amr_callback(ode.u0, semi,
-#                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
-#       ode.u0 .= compute_coefficients(ode.tspan[1], semi)
-#     end
-#   end
-
-#   return nothing
-# end
+  return nothing
+end
 
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
