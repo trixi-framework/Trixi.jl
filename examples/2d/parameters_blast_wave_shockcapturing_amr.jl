@@ -38,7 +38,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5) # TODO: Taal debug, 12.5
+tspan = (0.0, 12.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -56,11 +56,11 @@ amr_indicator = IndicatorThreeLevel(semi, indicator_amr,
                                     base_level=4,
                                     max_level=6, max_threshold=0.1)
 amr_callback = AMRCallback(semi, amr_indicator,
-                           interval=5,
+                           interval=1, # TODO: Taal debug interval=5
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.25) # TODO: Taal debug
+stepsize_callback = StepsizeCallback(cfl=0.25) # TODO: Taal debug cfl=1.0
 
 save_solution = SaveSolutionCallback(solution_interval=10, # TODO: Taal debug, 100
                                      save_initial_solution=true,
@@ -73,8 +73,8 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analy
 ###############################################################################
 # run the simulation
 
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
-#             save_everystep=false, callback=callbacks);
-sol = solve(ode, BS3(), #adaptive=false, dt=stepsize_callback(ode),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
+# sol = solve(ode, BS3(), #adaptive=false, dt=stepsize_callback(ode), # TODO: Taal debug
+#             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

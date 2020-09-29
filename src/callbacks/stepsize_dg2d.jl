@@ -14,6 +14,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
       catch e
         @show i, j, element
         u_node = get_node_vars(u, equations, dg, i, j, element)
+        @show u_node
         @show density(u_node, equations)
         @show pressure(u_node, equations)
         throw(e)
