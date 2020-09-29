@@ -3,6 +3,7 @@
 # TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 # TODO: Taal refactor, mutable struct or resize! for AMR?
+# TODO: Taal refactor, surface_ids does not seem to be used anywhere?
 mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                   # [variables, i, j, elements]
   u_t::Array{RealT, 4}                 # [variables, i, j, elements]
@@ -16,15 +17,15 @@ mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContai
 end
 
 function Base.copy!(dst::ElementContainer2D, src::ElementContainer2D)
-  dst.u = src.u
-  dst.u_t = src.u_t
-  dst.u_tmp2 = src.u_tmp2
-  dst.u_tmp3 = src.u_tmp3
-  dst.inverse_jacobian = src.inverse_jacobian
-  dst.node_coordinates = src.node_coordinates
-  dst.surface_ids = src.surface_ids
+  dst.u                   = src.u
+  dst.u_t                 = src.u_t
+  dst.u_tmp2              = src.u_tmp2
+  dst.u_tmp3              = src.u_tmp3
+  dst.inverse_jacobian    = src.inverse_jacobian
+  dst.node_coordinates    = src.node_coordinates
+  dst.surface_ids         = src.surface_ids
   dst.surface_flux_values = src.surface_flux_values
-  dst.cell_ids = src.cell_ids
+  dst.cell_ids            = src.cell_ids
   return nothing
 end
 
@@ -67,7 +68,7 @@ mutable struct InterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractCont
 end
 
 function Base.copy!(dst::InterfaceContainer2D, src::InterfaceContainer2D)
-  dst.u = src.u
+  dst.u            = src.u
   dst.neighbor_ids = src.neighbor_ids
   dst.orientations = src.orientations
   return nothing
@@ -105,10 +106,10 @@ mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
 end
 
 function Base.copy!(dst::BoundaryContainer2D, src::BoundaryContainer2D)
-  dst.u = src.u
-  dst.neighbor_ids = src.neighbor_ids
-  dst.orientations = src.orientations
-  dst.neighbor_sides = src.neighbor_sides
+  dst.u                = src.u
+  dst.neighbor_ids     = src.neighbor_ids
+  dst.orientations     = src.orientations
+  dst.neighbor_sides   = src.neighbor_sides
   dst.node_coordinates = src.node_coordinates
   return nothing
 end
@@ -158,10 +159,10 @@ mutable struct L2MortarContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
 end
 
 function Base.copy!(dst::L2MortarContainer2D, src::L2MortarContainer2D)
-  dst.u_upper = src.u_upper
-  dst.u_lower = src.u_lower
+  dst.u_upper      = src.u_upper
+  dst.u_lower      = src.u_lower
   dst.neighbor_ids = src.neighbor_ids
-  dst.large_sides = src.large_sides
+  dst.large_sides  = src.large_sides
   dst.orientations = src.orientations
   return nothing
 end

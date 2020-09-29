@@ -180,7 +180,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
   println(io, "- alpha_min:    ", indicator.alpha_min)
   println(io, "- alpha_smooth: ", indicator.alpha_smooth)
   print(io,   "- cache with fields:")
-  for key in keys(semi.cache)
+  for key in keys(indicator.cache)
     print(io, " ", key)
   end
 end

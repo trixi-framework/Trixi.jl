@@ -89,13 +89,12 @@ end
 
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
-  @unpack u = integrator
+  u_ode = integrator.u
   semi = integrator.p
 
-  has_changed = false
   @timeit_debug timer() "AMR" begin
-    has_changed = amr_callback(u, semi; kwargs...)
-    resize!(integrator, length(u))
+    has_changed = amr_callback(u_ode, semi; kwargs...)
+    resize!(integrator, length(u_ode))
   end
 
   u_modified!(integrator, has_changed)

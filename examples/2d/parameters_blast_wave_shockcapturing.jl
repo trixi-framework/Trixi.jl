@@ -49,7 +49,7 @@ analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-save_solution = SaveSolutionCallback(solution_interval=10,
+save_solution = SaveSolutionCallback(solution_interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
