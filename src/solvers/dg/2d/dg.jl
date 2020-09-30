@@ -1,8 +1,9 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms,
-                  MortarType, VolumeIntegralType,
+                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                  MortarType, VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                  InverseVandermondeLegendre, MortarMatrix,
                   VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
   equations::Eqn
 
@@ -20,6 +21,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
 
   boundaries::BoundaryContainer2D{NVARS, POLYDEG}
   n_boundaries::Int
+  n_boundaries_per_direction::SVector{4, Int}
 
   mortar_type::MortarType
   l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
@@ -27,10 +29,12 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
   n_ecmortars::Int
 
+  boundary_conditions::BoundaryConditions
+
   nodes::VectorNnodes
   weights::VectorNnodes
   inverse_weights::VectorNnodes
-  inverse_vandermonde_legendre::MatrixNnodes
+  inverse_vandermonde_legendre::InverseVandermondeLegendre
   lhat::MatrixNnodes2
 
   volume_integral_type::VolumeIntegralType
@@ -38,12 +42,12 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   dsplit::MatrixNnodes
   dsplit_transposed::MatrixNnodes
 
-  mortar_forward_upper::MatrixNnodes
-  mortar_forward_lower::MatrixNnodes
-  l2mortar_reverse_upper::MatrixNnodes
-  l2mortar_reverse_lower::MatrixNnodes
-  ecmortar_reverse_upper::MatrixNnodes
-  ecmortar_reverse_lower::MatrixNnodes
+  mortar_forward_upper::MortarMatrix
+  mortar_forward_lower::MortarMatrix
+  l2mortar_reverse_upper::MortarMatrix
+  l2mortar_reverse_lower::MortarMatrix
+  ecmortar_reverse_upper::MortarMatrix
+  ecmortar_reverse_lower::MortarMatrix
 
   analysis_nodes::VectorAnalysisNnodes
   analysis_weights::VectorAnalysisNnodes
@@ -54,7 +58,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   save_analysis::Bool
   analysis_filename::String
 
-  shock_indicator_variable::Symbol
+  shock_indicator_variable::ShockIndicatorVariable
   shock_alpha_max::Float64
   shock_alpha_min::Float64
   shock_alpha_smooth::Bool
@@ -85,7 +89,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
@@ -99,6 +103,9 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
+
+  # Initialize boundary conditions
+  boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
 
   # Initialize interpolation data structures
   n_nodes = POLYDEG + 1
@@ -121,8 +128,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  mortar_forward_upper = calc_forward_upper(n_nodes)
-  mortar_forward_lower = calc_forward_lower(n_nodes)
+  mortar_forward_upper   = calc_forward_upper(n_nodes)
+  mortar_forward_lower   = calc_forward_lower(n_nodes)
   l2mortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss))
   l2mortar_reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss))
   ecmortar_reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
@@ -176,8 +183,10 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   shock_alpha_smooth = parameter("shock_alpha_smooth", true)
 
   # variable used to compute the shock capturing indicator
-  shock_indicator_variable = Symbol(parameter("shock_indicator_variable", "density_pressure",
-                                          valid=["density", "density_pressure", "pressure"]))
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  shock_indicator_variable = eval(Symbol(parameter("shock_indicator_variable", "density_pressure")))
 
   # maximum and minimum alpha for amr control
   amr_alpha_max = parameter("amr_alpha_max", 0.5)
@@ -203,19 +212,20 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       initial_conditions, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
-      boundaries, n_boundaries,
+      boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
+      Tuple(boundary_conditions),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
-      SMatrix{POLYDEG+1,POLYDEG+1}(inverse_vandermonde_legendre), SMatrix{POLYDEG+1,2}(lhat),
+      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
+      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper),   SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
       SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
       SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
-      SMatrix{analysis_polydeg+1,POLYDEG+1}(analysis_vandermonde), analysis_total_volume,
+      analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
@@ -228,28 +238,32 @@ end
 
 function create_thread_cache_2d(n_variables, n_nodes)
   # Type alias only for convenience
-  A4d = Array{Float64, 4}
+  A4d     = Array{Float64, 4}
+  A3d     = Array{Float64, 3}
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
-  MA2d = MArray{Tuple{n_variables, n_nodes}, Float64}
-  A2d = Array{Float64, 2}
+  MA2d    = MArray{Tuple{n_variables, n_nodes}, Float64}
+  A2d     = Array{Float64, 2}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
-  f1_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  f2_threaded      = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes)
-                          for _ in 1:Threads.nthreads()]
-  fstar1_threaded  = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes)
-                             for _ in 1:Threads.nthreads()]
-  fstar2_threaded  = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1)
-                             for _ in 1:Threads.nthreads()]
-  fstar_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  u_large_threaded = A2d[A2d(undef, n_variables, n_nodes)
-                         for _ in 1:Threads.nthreads()]
+  f1_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  f2_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar1_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
+  fstar_upper_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
 
-  return (; f1_threaded, f2_threaded, fstar1_threaded, fstar2_threaded,
-            fstar_upper_threaded, fstar_lower_threaded, u_large_threaded)
+  indicator_threaded  = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_threaded      = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+  modal_tmp1_threaded = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
+
+  return (; f1_threaded, f2_threaded,
+            fstar1_threaded, fstar2_threaded,
+            fstar_upper_threaded, fstar_lower_threaded,
+            noncons_diamond_upper_threaded, noncons_diamond_lower_threaded,
+            indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
 
@@ -404,9 +418,9 @@ function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDE
   boundaries = BoundaryContainer2D{NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
-  init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
 
-  return boundaries
+  return boundaries, n_boundaries_per_direction
 end
 
 
@@ -497,13 +511,19 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
   # Reset boundaries count
   count = 0
 
-  # Iterate over all elements to find missing neighbors and to connect to boundaries
-  for element_id in 1:nelements(elements)
-    # Get cell id
-    cell_id = elements.cell_ids[element_id]
+  # Initialize boundary counts
+  counts_per_direction = MVector(0, 0, 0, 0)
 
-    # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+  # OBS! Iterate over directions first, then over elements, and count boundaries in each direction
+  # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
+  #            obviating the need to store the boundary condition to be applied explicitly.
+  # Loop over directions
+  for direction in 1:n_directions(mesh.tree)
+    # Iterate over all elements to find missing neighbors and to connect to boundaries
+    for element_id in 1:nelements(elements)
+      # Get cell id
+      cell_id = elements.cell_ids[element_id]
+
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -516,6 +536,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
 
       # Create boundary
       count += 1
+      counts_per_direction[direction] += 1
 
       # Set neighbor element id
       boundaries.neighbor_ids[count] = element_id
@@ -552,6 +573,9 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
 
   @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
                                             "expectations $(nboundaries(boundaries))")
+  @assert sum(counts_per_direction) == count
+
+  return SVector(counts_per_direction)
 end
 
 
@@ -627,6 +651,43 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
 end
 
 
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+  # "eval is evil"
+  # This is a temporary hack until we have switched to a library based approach
+  # with pure Julia code instead of parameter files.
+  bcs = parameter("boundary_conditions", ["nothing", "nothing", "nothing", "nothing"])
+  if bcs isa AbstractArray
+    boundary_conditions = eval_if_not_function.(bcs)
+  else
+    # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
+    boundary_conditions = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
+  end
+
+  # Sanity check about specifying boundary conditions
+  for direction in 1:n_directions(mesh.tree)
+    bc = boundary_conditions[direction]
+    count = n_boundaries_per_direction[direction]
+    if direction == 1
+      dir = "-x"
+    elseif direction == 2
+      dir = "+x"
+    elseif direction == 3
+      dir = "-y"
+    else
+      dir = "+y"
+    end
+
+    # All directions with boundaries should have a boundary condition
+    if count > 0 && isnothing(bc)
+      error("Found $(count) boundaries in the $(dir)-direction, but corresponding boundary " *
+            "condition is '$(get_name(bc))'")
+    end
+  end
+
+  return boundary_conditions
+end
+
+
 """
     integrate(func, dg::Dg2D, args...; normalize=true)
 
@@ -641,12 +702,11 @@ is divided by the total volume of the computational domain.
 Calculate the integral of the time derivative of the entropy, i.e.,
 ∫(∂S/∂t)dΩ = ∫(∂S/∂u ⋅ ∂u/∂t)dΩ:
 ```julia
-# Compute entropy variables
-entropy_vars = cons2entropy(...)
-
 # Calculate integral of entropy time derivative
-dsdu_ut = integrate(dg, entropy_vars, dg.elements.u_t) do i, j, element_id, dg, entropy_vars, u_t
-  sum(entropy_vars[:, i, j, element_id] .* u_t[:, i, j, element_id])
+dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
+  u_node   = get_node_vars(u,   dg, i, j, element_id)
+  u_t_node = get_node_vars(u_t, dg, i, j, element_id)
+  dot(cons2entropy(u_node, equations(dg)), u_t_node)
 end
 ```
 """
@@ -702,40 +762,44 @@ integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=no
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(dg::Dg2D, t::Float64)
+function calc_error_norms(func, dg::Dg2D, t)
   # Gather necessary information
   equation = equations(dg)
-  n_nodes_analysis = length(dg.analysis_nodes)
+  n_nodes_analysis = size(dg.analysis_vandermonde, 1)
+
+  # pre-allocate buffers
+  u = zeros(eltype(dg.elements.u),
+            nvariables(dg), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1))
+  u_tmp1 = similar(u,
+            nvariables(dg), size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
+  x = zeros(eltype(dg.elements.node_coordinates),
+            2, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 1))
+  x_tmp1 = similar(x,
+            2, size(dg.analysis_vandermonde, 1), size(dg.analysis_vandermonde, 2))
 
   # Set up data structures
-  l2_error = zeros(nvariables(equation))
-  linf_error = zeros(nvariables(equation))
-  u_exact = zeros(nvariables(equation))
+  l2_error   = zero(func(get_node_vars(dg.elements.u, dg, 1, 1, 1), equation))
+  linf_error = zero(func(get_node_vars(dg.elements.u, dg, 1, 1, 1), equation))
 
   # Iterate over all elements for error calculations
   for element_id in 1:dg.n_elements
     # Interpolate solution and node locations to analysis nodes
-    u = interpolate_nodes(dg.elements.u[:, :, :, element_id],
-                          dg.analysis_vandermonde, nvariables(equation))
-    x = interpolate_nodes(dg.elements.node_coordinates[:, :, :, element_id],
-                          dg.analysis_vandermonde, ndims(dg))
+    multiply_dimensionwise!(u, dg.analysis_vandermonde, view(dg.elements.u,                :, :, :, element_id), u_tmp1)
+    multiply_dimensionwise!(x, dg.analysis_vandermonde, view(dg.elements.node_coordinates, :, :, :, element_id), x_tmp1)
 
     # Calculate errors at each analysis node
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    for j in 1:n_nodes_analysis
-      for i in 1:n_nodes_analysis
-        u_exact = @views dg.initial_conditions(x[:, i, j], t, equation)
-        diff = similar(u_exact)
-        @views @. diff = u_exact - u[:, i, j]
-        @. l2_error += diff^2 * weights[i] * weights[j] * jacobian_volume
-        @. linf_error = max(linf_error, abs(diff))
-      end
+    for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
+      u_exact = dg.initial_conditions(get_node_coords(x, dg, i, j), t, equation)
+      diff = func(u_exact, equation) - func(get_node_vars(u, dg, i, j), equation)
+      l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_volume)
+      linf_error = @. max(linf_error, abs(diff))
     end
   end
 
   # For L2 error, divide by total volume
-  @. l2_error = sqrt(l2_error / dg.analysis_total_volume)
+  l2_error = @. sqrt(l2_error / dg.analysis_total_volume)
 
   return l2_error, linf_error
 end
@@ -743,15 +807,14 @@ end
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
 function calc_entropy_timederivative(dg::Dg2D, t)
-  # Compute entropy variables for all elements and nodes with current solution u
-  dsdu = cons2entropy(dg.elements.u, nnodes(dg), dg.n_elements, equations(dg))
-
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, dsdu, dg.elements.u_t) do i, j, element_id, dg, dsdu, u_t
-    sum(dsdu[:,i,j,element_id].*u_t[:,i,j,element_id])
+  dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
+    u_node   = get_node_vars(u,   dg, i, j, element_id)
+    u_t_node = get_node_vars(u_t, dg, i, j, element_id)
+    dot(cons2entropy(u_node, equations(dg)), u_t_node)
   end
 
   return dsdu_ut
@@ -823,7 +886,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   println(" sim. time:      " * @sprintf("%10.8e", time))
 
   # Level information (only show for AMR)
-  if parameter("amr_interval", 0) > 0
+  if parameter("amr_interval", 0)::Int > 0
     levels = Vector{Int}(undef, dg.n_elements)
     for element_id in 1:dg.n_elements
       levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
@@ -858,12 +921,8 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  # Calculate L2/Linf errors
-  if :l2_error in dg.analysis_quantities || :linf_error in dg.analysis_quantities
-    l2_error, linf_error = calc_error_norms(dg, time)
-  else
-    error("Since `analyze_solution` returns L2/Linf errors, it is an error to not calculate them")
-  end
+  # Calculate L2/Linf errors, which are also returned by analyze_solution
+  l2_error, linf_error = calc_error_norms(dg, time)
 
   # L2 error
   if :l2_error in dg.analysis_quantities
@@ -910,11 +969,42 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
     print(" max(|Uₜ|):   ")
     for v in 1:nvariables(equation)
       # Calculate maximum absolute value of Uₜ
-      @views res = maximum(abs.(dg.elements.u_t[v, :, :, :]))
+      @views res = maximum(abs, view(dg.elements.u_t, v, :, :, :))
       @printf("  % 10.8e", res)
       dg.save_analysis && @printf(f, "  % 10.8e", res)
     end
     println()
+  end
+
+  # L2/L∞ errors of the primitive variables
+  if :l2_error_primitive in dg.analysis_quantities || :linf_error_primitive in dg.analysis_quantities
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time)
+
+    print(" Variable:    ")
+    for v in 1:nvariables(equation)
+      @printf("   %-14s", varnames_prim(equation)[v])
+    end
+    println()
+
+    # L2 error
+    if :l2_error_primitive in dg.analysis_quantities
+      print(" L2 error prim.: ")
+      for v in 1:nvariables(equation)
+        @printf("%10.8e   ", l2_error_prim[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", l2_error_prim[v])
+      end
+      println()
+    end
+
+    # L∞ error
+    if :linf_error_primitive in dg.analysis_quantities
+      print(" Linf error pri.:")
+      for v in 1:nvariables(equation)
+        @printf("%10.8e   ", linf_error_prim[v])
+        dg.save_analysis && @printf(f, "  % 10.8e", linf_error_prim[v])
+      end
+      println()
+    end
   end
 
   # Entropy time derivative
@@ -1085,6 +1175,16 @@ function save_analysis_header(filename, quantities, equation::AbstractEquation{2
         @printf(f, "   %-14s", "res_" * v)
       end
     end
+    if :l2_error_primitive in quantities
+      for v in varnames_prim(equation)
+        @printf(f, "   %-14s", "l2_" * v)
+      end
+    end
+    if :linf_error_primitive in quantities
+      for v in varnames_prim(equation)
+        @printf(f, "   %-14s", "linf_" * v)
+      end
+    end
     if :dsdu_ut in quantities
       @printf(f, "   %-14s", "dsdu_ut")
     end
@@ -1172,6 +1272,10 @@ function rhs!(dg::Dg2D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
+# TODO: implement 2D!!!
+# Apply positivity limiter of Zhang and Shu to nodal values elements.u
+function apply_positivity_preserving_limiter!(dg::Dg2D)
+end
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
@@ -1254,25 +1358,20 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-# NOTE: The version for nonconservative_terms::Val{true} uses temporary storage and need to allocate.
-#       The other version does not need this temporary storage but more assignments.
-#       In preliminary tests, the second version is faster.
-#       Currently, the nonconservative terms for IdealMhdEquations are only implemented
-#       for the first version. That's why we use a dispatch here.
-#       We should find a way to generalize the way we handle nonconservative terms,
-#       also for the weak form volume integral type.
 @inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{false}, cache, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
 end
 
 @inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{false}, cache, dg::Dg2D, alpha=true)
+  # true * [some floating point value] == [exactly the same floating point value]
+  # This can get optimized away due to constant propagation.
   @unpack volume_flux_function, dsplit = dg
 
   # Calculate volume integral in one element
@@ -1311,26 +1410,9 @@ end
   end
 end
 
-
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms::Val{true}, _, dg::Dg2D)
-  # Do not use the thread_cache here since that reduces the performance significantly
-  # (which we do not fully understand right now)
-  # @unpack f1_threaded, f2_threaded = cache
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  A4d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg)}, Float64}
-  f1_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  f2_threaded = [A4d(undef) for _ in 1:Threads.nthreads()]
-  cache = (;f1_threaded, f2_threaded)
-
-  Threads.@threads for element_id in 1:dg.n_elements
-    split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
-  end
-end
-
-@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, cache, dg::Dg2D, alpha=true)
+@inline function split_form_kernel!(u_t, element_id, nonconservative_terms::Val{true}, thread_cache, dg::Dg2D, alpha=true)
   @unpack volume_flux_function, dsplit_transposed = dg
-  @unpack f1_threaded, f2_threaded = cache
+  @unpack f1_threaded, f2_threaded = thread_cache
 
   # Choose thread-specific pre-allocated container
   f1 = f1_threaded[Threads.threadid()]
@@ -1392,7 +1474,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
-    Val(dg.shock_indicator_variable), dg)
+    dg.shock_indicator_variable, thread_cache, dg)
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
@@ -1522,18 +1604,11 @@ end
 
 
 # Prolong solution to mortars (select correct method based on mortar type)
-prolong2mortars!(dg::Dg2D) = prolong2mortars!(dg, dg.mortar_type, dg.thread_cache)
+prolong2mortars!(dg::Dg2D) = prolong2mortars!(dg, dg.mortar_type)
 
 # Prolong solution to mortars (l2mortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
-  equation = equations(dg)
-
-  # Local storage for interface data of large element
-  # u_large_threaded = [zeros(nvariables(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
-  @unpack u_large_threaded = thread_cache
-
+function prolong2mortars!(dg::Dg2D, mortar_type::Val{:l2})
   Threads.@threads for m in 1:dg.n_l2mortars
-    u_large = u_large_threaded[Threads.threadid()]
 
     large_element_id = dg.l2mortars.neighbor_ids[3, m]
     upper_element_id = dg.l2mortars.neighbor_ids[2, m]
@@ -1579,43 +1654,47 @@ function prolong2mortars!(dg::Dg2D, ::Val{:l2}, thread_cache)
     end
 
     # Interpolate large element face data to small interface locations
-    for v in 1:nvariables(dg)
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          for l in 1:nnodes(dg)
-            u_large[v, l] = dg.elements.u[v, nnodes(dg), l, large_element_id]
-          end
-        else
-          # L2 mortars in y-direction
-          for l in 1:nnodes(dg)
-            u_large[v, l] = dg.elements.u[v, l, nnodes(dg), large_element_id]
-          end
-        end
-        @views dg.l2mortars.u_upper[1, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[1, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
-      else # large_sides[m] == 2 -> large element on right side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          for l in 1:nnodes(dg)
-            u_large[v, l] = dg.elements.u[v, 1, l, large_element_id]
-          end
-        else
-          # L2 mortars in y-direction
-          for l in 1:nnodes(dg)
-            u_large[v, l] = dg.elements.u[v, l, 1, large_element_id]
-          end
-        end
-        @views dg.l2mortars.u_upper[2, v, :, m] .= dg.mortar_forward_upper * u_large[v, :]
-        @views dg.l2mortars.u_lower[2, v, :, m] .= dg.mortar_forward_lower * u_large[v, :]
+    if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+      leftright = 1
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+      else
+        # L2 mortars in y-direction
+        u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+      end
+    else # large_sides[m] == 2 -> large element on right side
+      leftright = 2
+      if dg.l2mortars.orientations[m] == 1
+        # L2 mortars in x-direction
+        u_large = view(dg.elements.u, :, 1, :, large_element_id)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+      else
+        # L2 mortars in y-direction
+        u_large = view(dg.elements.u, :, :, 1, large_element_id)
+        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
       end
     end
   end
 end
 
+"""
+    element_solutions_to_mortars!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+
+Interpolate `u_large` to `dg.l2mortars.u_[upper/lower]` for mortar `m`
+using the forward mortar operators of `dg`.
+"""
+@inline function element_solutions_to_mortars!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+  multiply_dimensionwise!(view(dg.l2mortars.u_upper, leftright, :, :, m), dg.mortar_forward_upper, u_large)
+  multiply_dimensionwise!(view(dg.l2mortars.u_lower, leftright, :, :, m), dg.mortar_forward_lower, u_large)
+  return nothing
+end
+
 
 # Prolong solution to mortars (ecmortar version)
-function prolong2mortars!(dg::Dg2D, ::Val{:ec}, thread_cache)
+function prolong2mortars!(dg::Dg2D, ::Val{:ec})
   equation = equations(dg)
 
   Threads.@threads for m in 1:dg.n_ecmortars
@@ -1765,27 +1844,20 @@ end
 function calc_interface_flux!(surface_flux_values, nonconservative_terms::Val{true}, dg::Dg2D)
   #TODO temporary workaround while implementing the other stuff
   calc_interface_flux!(surface_flux_values, dg.interfaces.neighbor_ids, dg.interfaces.u,
-                       nonconservative_terms, dg.interfaces.orientations, dg)
+                       nonconservative_terms, dg.interfaces.orientations, dg, dg.thread_cache)
 end
 
 function calc_interface_flux!(surface_flux_values, neighbor_ids,
                               u_interfaces, nonconservative_terms::Val{true},
-                              orientations, dg::Dg2D)
-
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
-
-  # Pre-allocate data structures to speed up computation (thread-safe)
-  fstar_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-
-  noncons_diamond_primary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_secondary_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+                              orientations, dg::Dg2D, thread_cache)
+  fstar_threaded                     = thread_cache.fstar_upper_threaded
+  noncons_diamond_primary_threaded   = thread_cache.noncons_diamond_upper_threaded
+  noncons_diamond_secondary_threaded = thread_cache.noncons_diamond_lower_threaded
 
   Threads.@threads for s in 1:dg.n_interfaces
     # Choose thread-specific pre-allocated container
-    fstar = fstar_threaded[Threads.threadid()]
-
-    noncons_diamond_primary = noncons_diamond_primary_threaded[Threads.threadid()]
+    fstar                     = fstar_threaded[Threads.threadid()]
+    noncons_diamond_primary   = noncons_diamond_primary_threaded[Threads.threadid()]
     noncons_diamond_secondary = noncons_diamond_secondary_threaded[Threads.threadid()]
 
     # Calculate flux
@@ -1798,10 +1870,10 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     for i in 1:nnodes(dg)
       # Call pointwise nonconservative term
       u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, s)
-      noncons_primary   = noncons_interface_flux!(u_ll, u_rr, orientations[s], equations(dg))
-      noncons_secondary = noncons_interface_flux!(u_rr, u_ll, orientations[s], equations(dg))
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[s], equations(dg))
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[s], equations(dg))
       # Save to primary and secondary temporay storage
-      set_node_vars!(noncons_diamond_primary, noncons_primary, dg, i)
+      set_node_vars!(noncons_diamond_primary,   noncons_primary,   dg, i)
       set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i)
     end
 
@@ -1812,7 +1884,7 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     # Determine interface direction with respect to elements:
     # orientation = 1: left -> 2, right -> 1
     # orientation = 2: left -> 4, right -> 3
-    left_neighbor_direction = 2 * orientations[s]
+    left_neighbor_direction  = 2 * orientations[s]
     right_neighbor_direction = 2 * orientations[s] - 1
 
     # Copy flux to left and right element storage
@@ -1830,46 +1902,47 @@ end
 
 # Calculate and store boundary flux across domain boundaries
 #NOTE: Do we need to dispatch on have_nonconservative_terms(dg.equations)?
-calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values,
-                                                    dg, time)
+calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
+
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
+  @unpack n_boundaries_per_direction, boundary_conditions = dg
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[1], 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[2], 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[3], 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
+                                   boundary_conditions[4], 4, firsts[4], lasts[4])
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values, dg::Dg2D, time, boundary_condition,
+                                          direction, first_boundary_id, last_boundary_id)
   @unpack surface_flux_function = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = dg.boundaries
 
-  Threads.@threads for b in 1:dg.n_boundaries
-    # Fill outer boundary state
-    # FIXME: This should be replaced by a proper boundary condition
-    for i in 1:nnodes(dg)
-#     @views u[3 - neighbor_sides[b], :, i, b] .= dg.initial_conditions(
-#       node_coordinates[:, i, b], time, equations(dg))
-      u[3 - neighbor_sides[b], :, i, b] .= u[neighbor_sides[b], :, i, b]
-      u[3 - neighbor_sides[b], 3, i, b] = -u[neighbor_sides[b], 3, i, b]
-    end
-
+  Threads.@threads for b in first_boundary_id:last_boundary_id
     # Get neighboring element
     neighbor_id = neighbor_ids[b]
 
-    # Determine boundary direction with respect to elements:
-    # orientation = 1: left -> 2, right -> 1
-    # orientation = 2: left -> 4, right -> 3
-    if orientations[b] == 1 # Boundary in x-direction
-      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
-        direction = 2
-      else # Element is on the right, boundary on the left
-        direction = 1
-      end
-    else # Boundary in y-direction
-      if neighbor_sides[b] == 1 # Element is below, boundary is above
-        direction = 4
-      else # Element is above, boundary is below
-        direction = 3
-      end
-    end
-
     for i in 1:nnodes(dg)
-      # Call pointwise Riemann solver
+      # Get boundary flux
       u_ll, u_rr = get_surface_node_vars(u, dg, i, b)
-      flux = surface_flux_function(u_ll, u_rr, orientations[b], equations(dg))
+      if neighbor_sides[b] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+      end
+      x = get_node_coords(node_coordinates, dg, i, b)
+      flux = boundary_condition(u_inner, orientations[b], direction, x, time, surface_flux_function,
+                                equations(dg))
 
       # Copy flux to left and right element storage
       for v in 1:nvariables(dg)
@@ -1886,22 +1959,34 @@ calc_mortar_flux!(dg::Dg2D) = calc_mortar_flux!(dg, dg.mortar_type)
 # Calculate and store fluxes and nonconservative terms across L2 mortars
 calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:l2}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
                                                                        have_nonconservative_terms(dg.equations), dg.l2mortars, dg.thread_cache)
+
+# Calculate and store fluxes across L2 mortars
 function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{true}, mortars, cache)
+                           nonconservative_terms::Val{false}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
 
-  # Type alias only for convenience
-  A2d = MArray{Tuple{nvariables(dg), nnodes(dg)}, Float64}
+  Threads.@threads for m in 1:dg.n_l2mortars
+    # Choose thread-specific pre-allocated container
+    fstar_upper = fstar_upper_threaded[Threads.threadid()]
+    fstar_lower = fstar_lower_threaded[Threads.threadid()]
 
-  noncons_diamond_upper_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = [A2d(undef) for _ in 1:Threads.nthreads()]
+    # Calculate fluxes
+    calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
+    calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
+
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper, fstar_lower)
+  end
+end
+
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
+                           nonconservative_terms::Val{true}, mortars, thread_cache)
+  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
+  @unpack fstar_upper_threaded, fstar_lower_threaded,
+          noncons_diamond_upper_threaded, noncons_diamond_lower_threaded = thread_cache
 
   Threads.@threads for m in 1:dg.n_l2mortars
-    large_element_id = dg.l2mortars.neighbor_ids[3, m]
-    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
-    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
-
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
     fstar_lower = fstar_lower_threaded[Threads.threadid()]
@@ -1923,8 +2008,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux!(u_upper_ll,u_upper_rr,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux!(u_lower_ll,u_lower_rr,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientations[m], equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientations[m], equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
@@ -1935,144 +2020,96 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux!(u_upper_rr,u_upper_ll,orientations[m],equations(dg))
-        noncons_lower = noncons_interface_flux!(u_lower_rr,u_lower_ll,orientations[m],equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientations[m], equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientations[m], equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
       end
     end
 
-    # Copy flux small to small
-    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 1, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 1, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 3, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 3, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      end
-    else # large_sides[m] == 2 -> small elements on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 2, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 2, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 4, upper_element_id] .= (fstar_upper + noncons_diamond_upper)
-        surface_flux_values[:, :, 4, lower_element_id] .= (fstar_lower + noncons_diamond_lower)
-      end
-    end
-
-    # Project small fluxes to large element
-    for v in 1:nvariables(dg)
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                          (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
-                                            dg.l2mortar_reverse_lower *
-                                          (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
-        end
-      else # large_sides[m] == 2 -> large element on right side
-        @views large_surface_flux_values = (dg.l2mortar_reverse_upper *
-                                        (fstar_upper[v, :] + noncons_diamond_upper[v,:]) +
-                                            dg.l2mortar_reverse_lower *
-                                        (fstar_lower[v, :] + noncons_diamond_lower[v,:]))
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
-        end
-      end
-    end
+    @. fstar_upper += noncons_diamond_upper
+    @. fstar_lower += noncons_diamond_lower
+    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                               fstar_upper, fstar_lower)
   end
 end
 
-# Calculate and store fluxes across L2 mortars
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
-                           nonconservative_terms::Val{false}, mortars, cache)
-  @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
-  @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+"""
+    mortar_fluxes_to_elements!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m, fstar_upper, fstar_lower)
 
-  Threads.@threads for m in 1:dg.n_l2mortars
-    large_element_id = dg.l2mortars.neighbor_ids[3, m]
-    upper_element_id = dg.l2mortars.neighbor_ids[2, m]
-    lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+Copy/project `fstar_[upper/lower]` to `surface_flux_values` for mortar `m`
+using the reverse mortar operators of `dg`.
+"""
+@inline function mortar_fluxes_to_elements!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
+                                            fstar_upper, fstar_lower)
+  large_element_id = dg.l2mortars.neighbor_ids[3, m]
+  upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+  lower_element_id = dg.l2mortars.neighbor_ids[1, m]
 
-    # Choose thread-specific pre-allocated container
-    fstar_upper = fstar_upper_threaded[Threads.threadid()]
-    fstar_lower = fstar_lower_threaded[Threads.threadid()]
-
-    # Calculate fluxes
-    calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
-    calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
-
-    # Copy flux small to small
-    if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 1, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 1, lower_element_id] .= fstar_lower
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 3, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 3, lower_element_id] .= fstar_lower
-      end
-    else # large_sides[m] == 2 -> small elements on left side
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        surface_flux_values[:, :, 2, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 2, lower_element_id] .= fstar_lower
-      else
-        # L2 mortars in y-direction
-        surface_flux_values[:, :, 4, upper_element_id] .= fstar_upper
-        surface_flux_values[:, :, 4, lower_element_id] .= fstar_lower
-      end
+  # Copy flux small to small
+  if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
     end
-
-    # Project small fluxes to large element
-    for v in 1:nvariables(dg)
-      @views large_surface_flux_values = (dg.l2mortar_reverse_upper * fstar_upper[v, :] +
-                                          dg.l2mortar_reverse_lower * fstar_lower[v, :])
-      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 2, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 4, large_element_id] .= large_surface_flux_values
-        end
-      else # large_sides[m] == 2 -> large element on right side
-        if dg.l2mortars.orientations[m] == 1
-          # L2 mortars in x-direction
-          surface_flux_values[v, :, 1, large_element_id] .= large_surface_flux_values
-        else
-          # L2 mortars in y-direction
-          surface_flux_values[v, :, 3, large_element_id] .= large_surface_flux_values
-        end
-      end
+  else # large_sides[m] == 2 -> small elements on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
     end
   end
+  surface_flux_values[:, :, direction, upper_element_id] .= fstar_upper
+  surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
+
+  # Project small fluxes to large element
+  if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
+    end
+  else # large_sides[m] == 2 -> large element on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
+    end
+  end
+
+  for v in 1:nvariables(dg)
+    @views surface_flux_values[v, :, direction, large_element_id] .=
+      (dg.l2mortar_reverse_upper * fstar_upper[v, :] + dg.l2mortar_reverse_lower * fstar_lower[v, :])
+  end
+  # The code above could be replaced by the following code. However, the relative efficiency
+  # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
+  # Using StaticArrays for both makes the code above faster for common test cases.
+  # multiply_dimensionwise!(
+  #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper,
+  #                                                                 dg.l2mortar_reverse_lower, fstar_lower)
+
+  return nothing
 end
 
 
 # Calculate and store fluxes across EC mortars
-calc_mortar_flux!(dg::Dg2D, v::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, v,
-                                                             dg.ecmortars.neighbor_ids,
-                                                             dg.ecmortars.u_lower,
-                                                             dg.ecmortars.u_upper,
-                                                             dg.ecmortars.u_large,
-                                                             dg.ecmortars.orientations)
-function calc_mortar_flux!(surface_flux_values, dg::Dg2D, ::Val{:ec},
+calc_mortar_flux!(dg::Dg2D, mortar_type::Val{:ec}) = calc_mortar_flux!(dg.elements.surface_flux_values, dg, mortar_type,
+                                                                       dg.ecmortars.neighbor_ids,
+                                                                       dg.ecmortars.u_lower,
+                                                                       dg.ecmortars.u_upper,
+                                                                       dg.ecmortars.u_large,
+                                                                       dg.ecmortars.orientations)
+function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:ec},
                            neighbor_ids,
                            u_lower, u_upper, u_large,
                            orientations)
@@ -2094,9 +2131,9 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, ::Val{:ec},
   PL2R_lower = dg.ecmortar_reverse_lower
 
   Threads.@threads for m in 1:dg.n_ecmortars
-    large_element_id = dg.ecmortars.neighbor_ids[3, m]
-    upper_element_id = dg.ecmortars.neighbor_ids[2, m]
-    lower_element_id = dg.ecmortars.neighbor_ids[1, m]
+    large_element_id = neighbor_ids[3, m]
+    upper_element_id = neighbor_ids[2, m]
+    lower_element_id = neighbor_ids[1, m]
 
     # Choose thread-specific pre-allocated container
     fstar_upper = fstar_upper_threaded[Threads.threadid()]
@@ -2246,22 +2283,23 @@ end
 # Calculate blending factors used for shock capturing, or amr control
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
-                                indicator_variable, dg::Dg2D)
-  # Calculate blending factor
-  indicator_threaded = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
-  modal_threaded     = [zeros(1, nnodes(dg), nnodes(dg)) for idx in 1:Threads.nthreads()]
+                                indicator_variable, thread_cache, dg::Dg2D)
+  # temporary buffers
+  @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
+  # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
   Threads.@threads for element_id in 1:dg.n_elements
-    indicator = indicator_threaded[Threads.threadid()]
-    modal     = modal_threaded[Threads.threadid()]
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    cons2indicator!(indicator, u, element_id, nnodes(dg), indicator_variable, equations(dg))
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
     # Convert to modal representation
-    nodal2modal!(modal, indicator, dg.inverse_vandermonde_legendre)
+    multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
@@ -2340,6 +2378,17 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
       alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
     end
+  end
+end
+
+
+# Convert conservative variables to indicator variable for discontinuities (elementwise version)
+@inline function cons2indicator!(indicator, u, element_id, indicator_variable, dg::Dg2D)
+  eqs = equations(dg)
+
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    u_node = get_node_vars(u, dg, i, j, element_id)
+    indicator[1, i, j] = indicator_variable(u_node, eqs)
   end
 end
 

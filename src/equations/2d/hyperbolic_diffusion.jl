@@ -106,7 +106,6 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
   return @SVector [phi, q1, q2]
 end
 
-
 function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
   phi = 0.0
@@ -114,6 +113,64 @@ function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusi
   q2  = 0.0
   return @SVector [phi, q1, q2]
 end
+
+
+# Apply boundary conditions
+function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+                                                  surface_flux_function,
+                                                  equation::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -νΔϕ = f
+  C   = 1.0/sinh(pi)
+  phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
+  q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
+  q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+  u_boundary = @SVector [phi, q1, q2]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction, x, t,
+                                                 surface_flux_function,
+                                                 equation::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -νΔϕ = f
+  phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
+  q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
+  q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+  u_boundary = @SVector [phi, q1, q2]
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::HyperbolicDiffusionEquations2D)
+  u_boundary = initial_conditions_sedov_self_gravity(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 
 # Apply source terms
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
@@ -232,25 +289,26 @@ end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::HyperbolicDiffusionEquations2D) = cons
+@inline cons2prim(u, equation::HyperbolicDiffusionEquations2D) = u
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-function cons2entropy(cons, n_nodes, n_elements, equation::HyperbolicDiffusionEquations2D)
-  entropy = similar(cons)
-  @. entropy[1, :, :, :] = cons[1, :, :, :]
-  @. entropy[2, :, :, :] = equation.Lr*equation.Lr*cons[2, :, :, :]
-  @. entropy[3, :, :, :] = equation.Lr*equation.Lr*cons[3, :, :, :]
+@inline function cons2entropy(u, equation::HyperbolicDiffusionEquations2D)
+  phi, q1, q2 = u
+  w1 = phi
+  w2 = equation.Lr^2 * q1
+  w3 = equation.Lr^2 * q2
 
-  return entropy
+  return SVector(w1, w2, w3)
 end
 
 
-# Calculate entropy for a conservative state `cons` (here: same as total energy)
-@inline entropy(cons, equation::HyperbolicDiffusionEquations2D) = energy_total(cons, equation)
+# Calculate entropy for a conservative state `u` (here: same as total energy)
+@inline entropy(u, equation::HyperbolicDiffusionEquations2D) = energy_total(u, equation)
 
 
-# Calculate total energy for a conservative state `cons`
-@inline function energy_total(cons, equation::HyperbolicDiffusionEquations2D)
+# Calculate total energy for a conservative state `u`
+@inline function energy_total(u, equation::HyperbolicDiffusionEquations2D)
   # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
-  return 0.5*(cons[1]^2 + equation.Lr^2 * (cons[2]^2 + cons[3]^2))
+  phi, q1, q2 = u
+  return 0.5 * (phi^2 + equation.Lr^2 * (q1^2 + q2^2))
 end

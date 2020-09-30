@@ -69,6 +69,23 @@ function initial_conditions_linear_z(x, t, equation::LinearScalarAdvectionEquati
 end
 
 
+# Apply boundary conditions
+function boundary_conditions_linear_z(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation3D)
+  u_boundary = initial_conditions_linear_z(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation3D)
 
@@ -95,17 +112,17 @@ end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::LinearScalarAdvectionEquation3D) = cons
+@inline cons2prim(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Convert conservative variables to entropy variables
-cons2entropy(cons, n_nodes, n_elements, equation::LinearScalarAdvectionEquation3D) = cons
+@inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(cons::Real, ::LinearScalarAdvectionEquation3D) = cons^2 / 2
-@inline entropy(cons, equation::LinearScalarAdvectionEquation3D) = entropy(cons[1], equation)
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons::Real, ::LinearScalarAdvectionEquation3D) = cons^2 / 2
-@inline energy_total(cons, equation::LinearScalarAdvectionEquation3D) = energy_total(cons[1], equation)
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline energy_total(u, equation::LinearScalarAdvectionEquation3D) = energy_total(u[1], equation)

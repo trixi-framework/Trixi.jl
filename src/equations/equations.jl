@@ -93,6 +93,9 @@ DG method (except floating point errors).
 end
 
 
+@inline cons2cons(u, equation::AbstractEquation) = u
+
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 

@@ -29,7 +29,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
 
     # Read data
     varnames = varnames_cons(equation)
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Check if variable name matches
       var = file["variables_$v"]
       if (name = read(attrs(var)["name"])) != varnames[v]
@@ -38,13 +38,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename)
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      if ndims(dg) == 2
-        dg.elements.u[v, :, :, :] = read(file["variables_$v"])
-      elseif ndims(dg) == 3
-        dg.elements.u[v, :, :, :, :] = read(file["variables_$v"])
-      else
-        error("Unsupported number of spatial dimensions: ", ndims(dg))
-      end
+      dg.elements.u[v, .., :] = read(file["variables_$v"])
     end
   end
 
@@ -86,15 +80,9 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep)
     varnames = varnames_cons(equation)
 
     # Store each variable of the solution
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Convert to 1D array
-      if ndims(dg) == 2
-        file["variables_$v"] = data[v, :, :, :][:]
-      elseif ndims(dg) == 3
-        file["variables_$v"] = data[v, :, :, :, :][:]
-      else
-        error("Unsupported number of spatial dimensions: ", ndims(dg))
-      end
+      file["variables_$v"] = vec(data[v, .., :])
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -137,18 +125,6 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
     attrs(file)["dt"] = dt
     attrs(file)["timestep"] = timestep
 
-    # Add coordinates as 1D arrays
-    if ndims(dg) == 2
-      file["x"] = dg.elements.node_coordinates[1, :, :, :][:]
-      file["y"] = dg.elements.node_coordinates[2, :, :, :][:]
-    elseif ndims(dg) == 3
-      file["x"] = dg.elements.node_coordinates[1, :, :, :, :][:]
-      file["y"] = dg.elements.node_coordinates[2, :, :, :, :][:]
-      file["z"] = dg.elements.node_coordinates[3, :, :, :, :][:]
-    else
-      error("Unsupported number of spatial dimensions: ", ndims(dg))
-    end
-
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
                                    valid=["conservative", "primitive", "pot"])
@@ -159,20 +135,19 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
       data = cons2pot(dg.elements.u, equation)
       varnames = varnames_prim(equation)
     else
-      data = cons2prim(dg.elements.u, equation)
+      # Reinterpret the solution array as an array of conservative variables,
+      # compute the primitive variables via broadcasting, and reinterpret the
+      # result as a plain array of floating point numbers
+      data = Array(reinterpret(eltype(dg.elements.u),
+             cons2prim.(reinterpret(SVector{nvariables(dg),eltype(dg.elements.u)}, dg.elements.u),
+                        Ref(equations(dg)))))
       varnames = varnames_prim(equation)
     end
 
     # Store each variable of the solution
-    for v = 1:nvariables(dg)
+    for v in 1:nvariables(dg)
       # Convert to 1D array
-      if ndims(dg) == 2
-        file["variables_$v"] = data[v, :, :, :][:]
-      elseif ndims(dg) == 3
-        file["variables_$v"] = data[v, :, :, :, :][:]
-      else
-        error("Unsupported number of spatial dimensions: ", ndims(dg))
-      end
+      file["variables_$v"] = vec(data[v, .., :])
 
       # Add variable name as attribute
       var = file["variables_$v"]

@@ -169,6 +169,68 @@ function initial_conditions_taylor_green_vortex(x, t, equation::CompressibleEule
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
+function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D)
+  # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+  # change discontinuity to tanh
+  # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+  # resolution 128^3, 256^3
+  # domain size is [-20.0,20.0]^3
+  # gamma = 5/3 for this test case
+  R = 1.0 # radius of the blob
+  # background density
+  rho = 1.0
+  Chi = 10.0 # density contrast
+  # reference time of characteristic growth of KH instability equal to 1.0
+  tau_kh = 1.0
+  tau_cr = tau_kh / 1.6 # crushing time
+  # determine background velocity
+  v1 = 2 * R * sqrt(Chi) / tau_cr
+  v2 = 0.0
+  v3 = 0.0
+  Ma0 = 2.7 # background flow Mach number Ma=v/c
+  c = v1 / Ma0 # sound speed
+  # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
+  p = c * c * rho / equation.gamma
+  # initial center of the blob
+  inicenter = [-15, 0, 0]
+  x_rel = x - inicenter
+  r = sqrt(x_rel[1]^2 + x_rel[2]^2 + x_rel[3]^2)
+  # steepness of the tanh transition zone
+  slope = 2
+  # density blob
+  rho = rho + (Chi - 1) * 0.5 * (1 + (tanh(slope * (r + R)) - (tanh(slope *(r - R)) + 1)))
+  # velocity blob is zero
+  v1 = v1 - v1 * 0.5 * (1 + (tanh(slope *(r + R)) - (tanh(slope *(r - R)) + 1)))
+  return prim2cons(SVector(rho, v1, v2, v3, p), equation)
+end
+
+
+
+# Apply boundary conditions
+function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                surface_flux_function,
+                                                equation::CompressibleEulerEquations3D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_conditions_sedov_self_gravity
+  rho = 1e-5
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  p = 1e-5
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, v3, p), equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
@@ -621,6 +683,132 @@ function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3
 end
 
 
+ """
+    flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
+
+Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro
+[Lecture slides](http://www.prague-sum.com/download/2012/Toro_2-HLLC-RiemannSolver.pdf)
+Signal speeds: [DOI: 10.1137/S1064827593260140](https://doi.org/10.1137/S1064827593260140)
+"""
+function flux_hllc(u_ll, u_rr, orientation, equation::CompressibleEulerEquations3D)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  e_ll  = rho_e_ll / rho_ll
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2 + v3_ll^2))
+  c_ll = sqrt(equation.gamma*p_ll/rho_ll)
+
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  e_rr  = rho_e_rr / rho_rr
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
+  c_rr = sqrt(equation.gamma*p_rr/rho_rr)
+
+  # Obtain left and right fluxes
+  f_ll = calcflux(u_ll, orientation, equation)
+  f_rr = calcflux(u_rr, orientation, equation)
+
+
+  # Compute Roe averages
+  sqrt_rho_ll = sqrt(rho_ll)
+  sqrt_rho_rr = sqrt(rho_rr)
+  sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
+  if orientation == 1 # x-direction
+    vel_L = v1_ll
+    vel_R = v1_rr
+    ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2 + (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr)^2
+  elseif orientation == 2 # y-direction
+    vel_L = v2_ll
+    vel_R = v2_rr
+    ekin_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr)^2 + (sqrt_rho_ll * v3_ll + sqrt_rho_rr * v3_rr)^2
+  else # z-direction
+    vel_L = v3_ll
+    vel_R = v3_rr
+    ekin_roe = (sqrt_rho_ll * v1_ll + sqrt_rho_rr * v1_rr)^2 + (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2
+  end
+  vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
+  ekin_roe = 0.5 * (vel_roe^2 + ekin_roe / sum_sqrt_rho^2)
+  H_ll = (rho_e_ll + p_ll) / rho_ll
+  H_rr = (rho_e_rr + p_rr) / rho_rr
+  H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
+  c_roe = sqrt((equation.gamma - 1) * (H_roe - ekin_roe))
+  Ssl = min(vel_L - c_ll, vel_roe - c_roe)
+  Ssr = max(vel_R + c_rr, vel_roe + c_roe)
+  sMu_L = Ssl - vel_L
+  sMu_R = Ssr - vel_R
+
+  if Ssl >= 0.0
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+    f4 = f_ll[4]
+    f5 = f_ll[5]
+  elseif Ssr <= 0.0
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+    f4 = f_rr[4]
+    f5 = f_rr[5]
+  else
+    SStar = (p_rr - p_ll + rho_ll*vel_L*sMu_L - rho_rr*vel_R*sMu_R) / (rho_ll*sMu_L - rho_rr*sMu_R)
+    if Ssl <= 0.0 <= SStar
+      densStar = rho_ll*sMu_L / (Ssl-SStar)
+      enerStar = e_ll + (SStar - vel_L) * (SStar + p_ll / (rho_ll * sMu_L))
+      UStar1 = densStar
+      UStar5 = densStar*enerStar
+      if orientation == 1 # x-direction
+        UStar2 = densStar*SStar
+        UStar3 = densStar*v2_ll
+        UStar4 = densStar*v3_ll
+      elseif orientation == 2 # y-direction
+        UStar2 = densStar*v1_ll
+        UStar3 = densStar*SStar
+        UStar4 = densStar*v3_ll
+      else # z-direction
+        UStar2 = densStar*v1_ll
+        UStar3 = densStar*v2_ll
+        UStar4 = densStar*SStar
+      end
+      f1 = f_ll[1]+Ssl*(UStar1 - rho_ll)
+      f2 = f_ll[2]+Ssl*(UStar2 - rho_v1_ll)
+      f3 = f_ll[3]+Ssl*(UStar3 - rho_v2_ll)
+      f4 = f_ll[4]+Ssl*(UStar4 - rho_v3_ll)
+      f5 = f_ll[5]+Ssl*(UStar5 - rho_e_ll)
+    else
+      densStar = rho_rr*sMu_R / (Ssr-SStar)
+      enerStar = e_rr + (SStar - vel_R) * (SStar + p_rr / (rho_rr * sMu_R))
+      UStar1 = densStar
+      UStar5 = densStar*enerStar
+      if orientation == 1 # x-direction
+        UStar2 = densStar*SStar
+        UStar3 = densStar*v2_rr
+        UStar4 = densStar*v3_rr
+      elseif orientation == 2 # y-direction
+        UStar2 = densStar*v1_rr
+        UStar3 = densStar*SStar
+        UStar4 = densStar*v3_rr
+      else # z-direction
+        UStar2 = densStar*v1_rr
+        UStar3 = densStar*v2_rr
+        UStar4 = densStar*SStar
+      end
+      f1 = f_rr[1]+Ssr*(UStar1 - rho_rr)
+      f2 = f_rr[2]+Ssr*(UStar2 - rho_v1_rr)
+      f3 = f_rr[3]+Ssr*(UStar3 - rho_v2_rr)
+      f4 = f_rr[4]+Ssr*(UStar4 - rho_v3_rr)
+      f5 = f_rr[5]+Ssr*(UStar5 - rho_e_rr)
+    end
+  end
+  return SVector(f1, f2, f3, f4, f5)
+end
+
+
+
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::CompressibleEulerEquations3D, dg)
@@ -643,108 +831,67 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::CompressibleEulerEquations3D)
-  prim = similar(cons)
-  @. prim[1, :, :, :, :] = cons[1, :, :, :, :]
-  @. prim[2, :, :, :, :] = cons[2, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[3, :, :, :, :] = cons[3, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[4, :, :, :, :] = cons[4, :, :, :, :] / cons[1, :, :, :, :]
-  @. prim[5, :, :, :, :] = ((equation.gamma - 1)
-                            * (cons[5, :, :, :, :] - 1/2 * (cons[2, :, :, :, :] * prim[2, :, :, :, :] +
-                                                            cons[3, :, :, :, :] * prim[3, :, :, :, :] +
-                                                            cons[4, :, :, :, :] * prim[4, :, :, :, :])))
-  return prim
+@inline function cons2prim(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2 + v3^2))
+
+  return SVector(rho, v1, v2, v3, p)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerEquations3D)
-  entropy = similar(cons)
-  v = zeros(3, n_nodes, n_nodes, n_nodes, n_elements)
-  v_square = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  p = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  s = zeros(n_nodes, n_nodes, n_nodes, n_elements)
-  rho_p = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+@inline function cons2entropy(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
-  @. v[1, :, :, :, :] = cons[2, :, :, :, :] / cons[1, :, :, :, :]
-  @. v[2, :, :, :, :] = cons[3, :, :, :, :] / cons[1, :, :, :, :]
-  @. v[3, :, :, :, :] = cons[4, :, :, :, :] / cons[1, :, :, :, :]
-  @. v_square[ :, :, :, :] = (v[1, :, :, :, :]*v[1, :, :, :, :] +
-                              v[2, :, :, :, :]*v[2, :, :, :, :] +
-                              v[3, :, :, :, :]*v[3, :, :, :, :])
-  @. p[:, :, :, :] = ((equation.gamma - 1)
-                       * (cons[5, :, :, :, :] - 1/2 * cons[1, :, :, :, :] * v_square[:, :, :, :]))
-  @. s[:, :, :, :] = log(p[:, :, :, :]) - equation.gamma*log(cons[1, :, :, :, :])
-  @. rho_p[:, :, :, :] = cons[1, :, :, :, :] / p[:, :, :, :]
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  v_square = v1^2 + v2^2 + v3^2
+  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+  s = log(p) - equation.gamma*log(rho)
+  rho_p = rho / p
 
-  @. entropy[1, :, :, :, :] = ((equation.gamma - s[:, :, :, :])/(equation.gamma - 1) -
-                               0.5*rho_p[:, :, :, :] * v_square[:, :, :, :])
-  @. entropy[2, :, :, :, :] = rho_p[:, :, :, :] * v[1, :, :, :, :]
-  @. entropy[3, :, :, :, :] = rho_p[:, :, :, :] * v[2, :, :, :, :]
-  @. entropy[4, :, :, :, :] = rho_p[:, :, :, :] * v[3, :, :, :, :]
-  @. entropy[5, :, :, :, :] = -rho_p[:, :, :, :]
+  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w2 = rho_p * v1
+  w3 = rho_p * v2
+  w4 = rho_p * v3
+  w5 = -rho_p
 
-  return entropy
+  return SVector(w1, w2, w3, w4, w5)
 end
 
 
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::CompressibleEulerEquations3D)
-  cons = similar(prim)
-  cons[1] = prim[1]
-  cons[2] = prim[2] * prim[1]
-  cons[3] = prim[3] * prim[1]
-  cons[4] = prim[4] * prim[1]
-  cons[5] = prim[5]/(equation.gamma - 1) + 1/2 * (cons[2] * prim[2] + cons[3] * prim[3] + cons[4] * prim[4])
-  return cons
+@inline function prim2cons(prim, equation::CompressibleEulerEquations3D)
+  rho, v1, v2, v3, p = prim
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_v3 = rho * v3
+  rho_e  = p/(equation.gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities (elementwise version)
-@inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::CompressibleEulerEquations3D)
-  for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
-    indicator[1, i, j, k] = cons2indicator(cons[1, i, j, k, element_id],
-                                           cons[2, i, j, k, element_id],
-                                           cons[3, i, j, k, element_id],
-                                           cons[4, i, j, k, element_id],
-                                           cons[5, i, j, k, element_id],
-                                           indicator_variable, equation)
-  end
-end
-
-
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density},
-                                equation::CompressibleEulerEquations3D)
-  # Indicator variable is rho
+@inline function density(u, equation::CompressibleEulerEquations3D)
+  rho = u[1]
   return rho
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:density_pressure},
-                                equation::CompressibleEulerEquations3D)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-
-  # Calculate pressure
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
-
-  # Indicator variable is rho * p
-  return rho * p
+@inline function pressure(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  p = (equation.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
+  return p
 end
 
 
-# Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(rho, rho_v1, rho_v2, rho_v3, rho_e, ::Val{:pressure},
-                                equation::CompressibleEulerEquations3D)
-  v1 = rho_v1/rho
-  v2 = rho_v2/rho
-  v3 = rho_v3/rho
-
-  # Indicator variable is p
-  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+@inline function density_pressure(u, equation::CompressibleEulerEquations3D)
+ rho, rho_v1, rho_v2, rho_v3, rho_e = u
+ rho_times_p = (equation.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2))
+ return rho_times_p
 end
 
 
@@ -762,8 +909,8 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons, equation::CompressibleEulerEquations3D)
-  # Mathematical entropy
   S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+  # Mathematical entropy
 
   return S
 end

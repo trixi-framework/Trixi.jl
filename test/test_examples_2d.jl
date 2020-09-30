@@ -75,6 +75,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.06159341742582756, 0.05012484425381723, 0.05013298724507752, 0.22537740506116724],
             linf = [0.29912627861573327, 0.30886767304359375, 0.3088108573487326, 1.0657556075017878])
   end
+  @testset "parameters_density_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_density_wave.toml"),
+            l2   = [0.001060077845747576, 0.00010600778457107525, 0.00021201556914875742, 2.6501946139091318e-5],
+            linf = [0.0065356386867677085, 0.0006535638688170142, 0.0013071277374487877, 0.0001633909674296774],
+            extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"], t_end=0.5)
+  end
   @testset "parameters_ec_mhd.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.toml"),
             l2   = [0.03607862694368351, 0.04281395008247395, 0.04280207686965749, 0.025746770192645763, 0.1611518499414067, 0.017455917249117023, 0.017456981264942977, 0.02688321120361229, 0.00015024027267648003],
@@ -192,7 +198,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_orszag_tang.toml"),
             l2   = [0.10797201158738569, 0.20183923675400306, 0.22965987220003012, 0.0, 0.2993862890890887, 0.156865945562645, 0.24280278839125313, 0.0, 0.0034424029849492947],
             linf = [0.5605977377102305, 0.509274304343078, 0.6612312950402195, 0.0, 0.9814914518422291, 0.39977774699748586, 0.6748004026413148, 0.0, 0.06802505466018915],
-            t_end = 0.06, surface_flux="flux_hll")
+            t_end = 0.06, surface_flux = "flux_hll")
   end
   @testset "parameters_ec_mortar.toml with shock_capturing" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mortar.toml"),
@@ -244,6 +250,7 @@ end
             linf = [6.8833827526759706e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_x_y",
+            boundary_conditions = "boundary_conditions_linear_x_y",
             periodicity=false)
   end
   @testset "parameters.toml with initial_conditions_linear_x" begin
@@ -252,6 +259,7 @@ end
             linf = [1.5543122344752192e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_x",
+            boundary_conditions = "boundary_conditions_linear_x",
             periodicity=false)
   end
   @testset "parameters.toml with initial_conditions_linear_y" begin
@@ -260,6 +268,7 @@ end
             linf = [3.552713678800501e-15],
             n_steps_max = 1,
             initial_conditions = "initial_conditions_linear_y",
+            boundary_conditions = "boundary_conditions_linear_y",
             periodicity=false)
   end
   # Compressible Euler

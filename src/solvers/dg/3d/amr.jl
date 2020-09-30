@@ -28,12 +28,14 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or refine them
+  u_tmp1 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+  u_tmp2 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
   element_id = 1
   for old_element_id in 1:old_n_elements
     if needs_refinement[old_element_id]
       # Refine element and store solution directly in new data structure
       refine_element!(elements.u, element_id, old_u, old_element_id,
-                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
+                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg, u_tmp1, u_tmp2)
       element_id += 2^ndims(dg)
     else
       # Copy old element data to new element container
@@ -47,7 +49,7 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -67,6 +69,7 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
 end
@@ -74,7 +77,7 @@ end
 
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u, element_id, old_u, old_element_id,
-                         forward_upper, forward_lower, dg::Dg3D)
+                         forward_upper, forward_lower, dg::Dg3D, u_tmp1, u_tmp2)
   # Store new element ids
   bottom_lower_left_id  = element_id
   bottom_lower_right_id = element_id + 1
@@ -86,100 +89,44 @@ function refine_element!(u, element_id, old_u, old_element_id,
   top_upper_right_id    = element_id + 7
 
   # Interpolate to bottom lower left element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_lower[i, ii]
-              * forward_lower[j, jj]
-              * forward_lower[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, bottom_lower_left_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_lower_left_id), forward_lower, forward_lower, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom lower right element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_upper[i, ii]
-              * forward_lower[j, jj]
-              * forward_lower[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, bottom_lower_right_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_lower_right_id), forward_upper, forward_lower, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom upper left element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_lower[i, ii]
-              * forward_upper[j, jj]
-              * forward_lower[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, bottom_upper_left_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_upper_left_id), forward_lower, forward_upper, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to bottom upper right element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_upper[i, ii]
-              * forward_upper[j, jj]
-              * forward_lower[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, bottom_upper_right_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_upper_right_id), forward_upper, forward_upper, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top lower left element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_lower[i, ii]
-              * forward_lower[j, jj]
-              * forward_upper[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, top_lower_left_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_lower_left_id), forward_lower, forward_lower, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top lower right element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_upper[i, ii]
-              * forward_lower[j, jj]
-              * forward_upper[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, top_lower_right_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_lower_right_id), forward_upper, forward_lower, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top upper left element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_lower[i, ii]
-              * forward_upper[j, jj]
-              * forward_upper[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, top_upper_left_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_upper_left_id), forward_lower, forward_upper, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   # Interpolate to top upper right element
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, old_element_id)
-              * forward_upper[i, ii]
-              * forward_upper[j, jj]
-              * forward_upper[k, kk])
-    end
-    set_node_vars!(u, acc, dg, i, j, k, top_upper_right_id)
-  end
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_upper_right_id), forward_upper, forward_upper, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 end
 
 
@@ -210,6 +157,8 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or coarsen them
+  u_tmp1 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
+  u_tmp2 = Array{Float64, 4}(undef, nvariables(dg), nnodes(dg), nnodes(dg), nnodes(dg))
   skip = 0
   element_id = 1
   for old_element_id in 1:old_n_elements
@@ -227,7 +176,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
 
       # Coarsen elements and store solution directly in new data structure
       coarsen_elements!(elements.u, element_id, old_u, old_element_id,
-                        dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg)
+                        dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg, u_tmp1, u_tmp2)
       element_id += 1
       skip = 2^ndims(dg) - 1
     else
@@ -242,7 +191,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
@@ -262,6 +211,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_interfaces = n_interfaces
   dg.boundaries = boundaries
   dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
   dg.l2mortars = l2mortars
   dg.n_l2mortars = n_l2mortars
 end
@@ -269,7 +219,7 @@ end
 
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u, element_id, old_u, old_element_id,
-                           reverse_upper, reverse_lower, dg::Dg3D)
+                           reverse_upper, reverse_lower, dg::Dg3D, u_tmp1, u_tmp2)
   # Store old element ids
   bottom_lower_left_id  = old_element_id
   bottom_lower_right_id = old_element_id + 1
@@ -280,76 +230,46 @@ function coarsen_elements!(u, element_id, old_u, old_element_id,
   top_upper_left_id     = old_element_id + 6
   top_upper_right_id    = old_element_id + 7
 
-  for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
-    acc = zero(get_node_vars(u, dg, i, j, k, element_id))
 
-    # Project from bottom lower left element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_lower_left_id)
-              * reverse_lower[i, ii]
-              * reverse_lower[j, jj]
-              * reverse_lower[k, kk])
-    end
+  # Project from bottom lower left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_lower,
+    view(old_u, :, :, :, :, bottom_lower_left_id), u_tmp1, u_tmp2)
 
-    # Project from bottom lower right element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_lower_right_id)
-              * reverse_upper[i, ii]
-              * reverse_lower[j, jj]
-              * reverse_lower[k, kk])
-    end
+  # Project from bottom lower right element_variables
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_lower,
+    view(old_u, :, :, :, :, bottom_lower_right_id), u_tmp1, u_tmp2)
 
-    # Project from bottom upper left element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_upper_left_id)
-              * reverse_lower[i, ii]
-              * reverse_upper[j, jj]
-              * reverse_lower[k, kk])
-    end
+  # Project from bottom upper left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_lower,
+    view(old_u, :, :, :, :, bottom_upper_left_id), u_tmp1, u_tmp2)
 
-    # Project from bottom upper right element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, bottom_upper_right_id)
-              * reverse_upper[i, ii]
-              * reverse_upper[j, jj]
-              * reverse_lower[k, kk])
-    end
+  # Project from bottom upper right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_lower,
+    view(old_u, :, :, :, :, bottom_upper_right_id), u_tmp1, u_tmp2)
 
-    # Project from top lower left element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_lower_left_id)
-              * reverse_lower[i, ii]
-              * reverse_lower[j, jj]
-              * reverse_upper[k, kk])
-    end
+  # Project from top lower left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_upper,
+    view(old_u, :, :, :, :, top_lower_left_id), u_tmp1, u_tmp2)
 
-    # Project from top lower right element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_lower_right_id)
-              * reverse_upper[i, ii]
-              * reverse_lower[j, jj]
-              * reverse_upper[k, kk])
-    end
+  # Project from top lower right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_upper,
+    view(old_u, :, :, :, :, top_lower_right_id), u_tmp1, u_tmp2)
 
-    # Project from top upper left element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_upper_left_id)
-              * reverse_lower[i, ii]
-              * reverse_upper[j, jj]
-              * reverse_upper[k, kk])
-    end
+  # Project from top upper left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_upper,
+    view(old_u, :, :, :, :, top_upper_left_id), u_tmp1, u_tmp2)
 
-    # Project from top upper right element
-    for kk in 1:nnodes(dg), jj in 1:nnodes(dg), ii in 1:nnodes(dg)
-      acc += (get_node_vars(old_u, dg, ii, jj, kk, top_upper_right_id)
-              * reverse_upper[i, ii]
-              * reverse_upper[j, jj]
-              * reverse_upper[k, kk])
-    end
-
-    # Update value
-    set_node_vars!(u, acc, dg, i, j, k, element_id)
-  end
+  # Project from top upper right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_upper,
+    view(old_u, :, :, :, :, top_upper_right_id), u_tmp1, u_tmp2)
 end
 
 
@@ -395,6 +315,62 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
       else
         lambda[element_id] = 0.0
       end
+    end
+  elseif dg.amr_indicator === :blob
+    base_level = 1
+    max_level = 6 # originally 6; set to 7 (or even 8) to get increased resolution
+    blending_factor_threshold1 = 0.3 # Löhner original choice
+    blending_factor_threshold2 = 0.1 # Löhner original choice
+
+    # (Re-)initialize element variable storage for blending factor
+    if (!haskey(dg.element_variables, :amr_indicator_values) ||
+        length(dg.element_variables[:amr_indicator_values]) != dg.n_elements)
+      dg.element_variables[:amr_indicator_values] = Vector{Float64}(undef, dg.n_elements)
+    end
+
+    alpha = dg.element_variables[:amr_indicator_values]
+    calc_loehner_indicator!(alpha, dg.elements.u, density, dg.thread_cache, dg)
+
+    # OPTIONAL: use max level were shock capturing is maxed
+    # (Re-)initialize element variable storage for blending factor
+    #if (!haskey(dg.element_variables, :blending_factor) ||
+    #    length(dg.element_variables[:blending_factor]) != dg.n_elements)
+    #  dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+    #end
+    #if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+    #    length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+    #  dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+    #end
+
+    #alpha1     = dg.element_variables[:blending_factor]
+    #alpha1_tmp = dg.element_variables[:blending_factor_tmp]
+    #calc_blending_factors!(alpha1, alpha1_tmp, dg.elements.u, dg.shock_alpha_max, dg.shock_alpha_min, true,
+    #                       dg.shock_indicator_variable, dg.thread_cache, dg)
+
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      cell_id = dg.elements.cell_ids[element_id]
+      actual_level = mesh.tree.levels[cell_id]
+      target_level = actual_level
+      # adapt for the amr indicator
+      if alpha[element_id] >= blending_factor_threshold1
+        target_level = max_level
+      elseif alpha[element_id] <= blending_factor_threshold2
+        target_level = base_level
+      end
+      # make sure that a highly troubled shock cell is not coarsened
+      #if isapprox.(dg.shock_alpha_max, alpha1[element_id], atol=1e-12)
+      #  target_level = max_level
+      #end
+      # Compare target level with actual level to set indicator
+      if actual_level < target_level
+        lambda[element_id] = 1.0
+      elseif actual_level > target_level
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
+
     end
   elseif dg.amr_indicator === :density_pulse
     # Works with initial_conditions_density_pulse for compressible Euler equations
@@ -444,7 +420,7 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
     alpha     = dg.element_variables[:amr_indicator_values]
     alpha_tmp = dg.element_variables[:amr_indicator_values_tmp]
     calc_blending_factors!(alpha, alpha_tmp, dg.elements.u, dg.amr_alpha_max, dg.amr_alpha_min, dg.amr_alpha_smooth,
-                           Val(:density_pressure), dg)
+                           density_pressure, dg.thread_cache, dg)
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements

@@ -83,6 +83,70 @@ function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquati
 end
 
 
+# Apply boundary conditions
+function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
+                                   equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_gauss(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x_y(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_x(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_x(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function boundary_conditions_linear_y(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LinearScalarAdvectionEquation2D)
+  u_boundary = initial_conditions_linear_y(x, t, equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
 
@@ -109,17 +173,17 @@ end
 
 
 # Convert conservative variables to primitive
-cons2prim(cons, equation::LinearScalarAdvectionEquation2D) = cons
+@inline cons2prim(u, equation::LinearScalarAdvectionEquation2D) = u
 
 # Convert conservative variables to entropy variables
-cons2entropy(cons, n_nodes, n_elements, equation::LinearScalarAdvectionEquation2D) = cons
+@inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
 
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(cons::Real, ::LinearScalarAdvectionEquation2D) = cons^2 / 2
-@inline entropy(cons, equation::LinearScalarAdvectionEquation2D) = entropy(cons[1], equation)
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline entropy(u, equation::LinearScalarAdvectionEquation2D) = entropy(u[1], equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons::Real, ::LinearScalarAdvectionEquation2D) = cons^2 / 2
-@inline energy_total(cons, equation::LinearScalarAdvectionEquation2D) = energy_total(cons[1], equation)
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline energy_total(u, equation::LinearScalarAdvectionEquation2D) = energy_total(u[1], equation)
