@@ -3,7 +3,7 @@ mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
                   VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
-                  InverseVandermondeLegendre,
+                  InverseVandermondeLegendre, MortarMatrix,
                   VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{1, POLYDEG}
   equations::Eqn
 
@@ -37,6 +37,11 @@ mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   dhat::MatrixNnodes
   dsplit::MatrixNnodes
   dsplit_transposed::MatrixNnodes
+
+  amr_refine_right::MortarMatrix
+  amr_refine_left::MortarMatrix
+  amr_coarsen_right::MortarMatrix
+  amr_coarsen_left::MortarMatrix
 
 
   analysis_nodes::VectorAnalysisNnodes
@@ -111,6 +116,11 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
+  # Initialize L2 mortar projection operators
+  amr_refine_right   = calc_forward_upper(n_nodes)
+  amr_refine_left   = calc_forward_lower(n_nodes)
+  amr_coarsen_right = calc_reverse_upper(n_nodes, Val(:gauss))
+  amr_coarsen_left = calc_reverse_lower(n_nodes, Val(:gauss))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -196,6 +206,8 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
       SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
+      SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_right),   SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_left),
+      SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_right), SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_left),
       SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,

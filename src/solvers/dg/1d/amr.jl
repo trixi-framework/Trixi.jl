@@ -32,7 +32,8 @@ function refine!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   for old_element_id in 1:old_n_elements
     if needs_refinement[old_element_id]
       # Refine element and store solution directly in new data structure
-      refine_element!(elements.u, element_id, old_u, old_element_id, dg)
+      refine_element!(elements.u, element_id, old_u, old_element_id,
+                      dg.amr_refine_right, dg.amr_refine_left, dg)
       element_id += 2^ndims(dg)
     else
       # Copy old element data to new element container
@@ -68,7 +69,8 @@ end
 
 
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u, element_id, old_u, old_element_id, dg::Dg1D)
+function refine_element!(u, element_id, old_u, old_element_id,
+                        refine_right, refine_left, dg::Dg1D)
   # Store new element ids
   left_id  = element_id
   right_id = element_id + 1
@@ -77,21 +79,21 @@ function refine_element!(u, element_id, old_u, old_element_id, dg::Dg1D)
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, old_element_id)
+      acc += get_node_vars(old_u, dg, k, old_element_id) * refine_left[i, k]
     end
     set_node_vars!(u, acc, dg, i, left_id)
   end
 
   # Interpolate to left element
   #multiply_dimensionwise!(
-  #  view(u,     :, :, lower_left_id), forward_lower,
-  #  view(old_u, :, :, old_element_id))
+  #  view(u,     :, :, left_id), refine_left,
+  #    view(old_u, :, :, old_element_id))
 
   # Interpolate to right element
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, old_element_id)
+      acc += get_node_vars(old_u, dg, k, old_element_id)  * refine_right[i, k]
     end
     set_node_vars!(u, acc, dg, i, right_id)
   end
@@ -142,7 +144,8 @@ function coarsen!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
       @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(dg)-1)]) "bad cell/element order"
 
       # Coarsen elements and store solution directly in new data structure
-      coarsen_elements!(elements.u, element_id, old_u, old_element_id, dg) #  dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg
+      coarsen_elements!(elements.u, element_id, old_u, old_element_id,
+                        dg.amr_coarsen_right, dg.amr_coarsen_left, dg)
       element_id += 1
       skip = 2^ndims(dg) - 1
     else
@@ -177,7 +180,8 @@ end
 
 
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u, element_id, old_u, old_element_id, dg::Dg1D)
+function coarsen_elements!(u, element_id, old_u, old_element_id,
+                            coarsen_right, coarsen_left, dg::Dg1D)
   # Store old element ids
   left_id  = old_element_id
   right_id = old_element_id + 1
@@ -187,12 +191,12 @@ function coarsen_elements!(u, element_id, old_u, old_element_id, dg::Dg1D)
 
     # Project from left element
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, left_id) #* reverse_lower[i, k] #* reverse_lower[j, l]
+      acc += get_node_vars(old_u, dg, k, left_id) * coarsen_left[i, k]
     end
 
     # Project from right element
     for k in 1:nnodes(dg)
-      acc += get_node_vars(old_u, dg, k, right_id) #* reverse_upper[i, k] #* reverse_lower[j, l]
+      acc += get_node_vars(old_u, dg, k, right_id) * coarsen_right[i, k]
     end
 
     # Update value
@@ -264,7 +268,7 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
     # Iterate over all elements
     for element_id in 1:dg.n_elements
       cell_id = dg.elements.cell_ids[element_id]
-      r = periodic_distance_1d(mesh.tree.coordinates[:, cell_id], center, domain_length)
+      r = periodic_distance_1d(mesh.tree.coordinates[cell_id], center, domain_length)
       if r < radius_high
         target_level = max_level
       elseif r < radius_low
