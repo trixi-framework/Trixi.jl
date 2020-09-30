@@ -410,6 +410,25 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
   return flux
 end
 
+function boundary_conditions_slip_wall(u_inner, orientation, direction, x, t,
+                                       surface_flux_function,
+                                       equation::CompressibleEulerEquations2D)
+  if orientation == 1 # interface in x-direction
+    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4])
+  else # interface in y-direction
+    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4])
+  end
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::CompressibleEulerEquations2D)
