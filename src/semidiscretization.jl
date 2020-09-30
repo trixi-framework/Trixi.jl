@@ -191,10 +191,14 @@ end
 # Since we can use multiple dispatch, these kinds of specializations can be
 # tailored specifically to each combinations of mesh/solver etc.
 #
+# Under the hood, `wrap_array(u_ode, mesh, equations, solver, cache)` might
+# (and probably will) use `unsafe_wrap`. Hence, you have to remember to
+# `GC.@preserve` temporaries that are only used indirectly via `wrap_array`
+# to avoid stochastic memory errors.
+#
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
-function wrap_array(u_ode::AbstractVector, semi::SemidiscretizationHyperbolic)
-  @unpack mesh, equations, solver, cache = semi
-  wrap_array(u_ode, mesh, equations, solver, cache)
+function wrap_array(u_ode::AbstractVector, semi::AbstractSemidiscretization)
+  wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
 
@@ -219,9 +223,9 @@ end
 
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, initial_conditions, solver, cache = semi
-  u_wrapped = wrap_array(u_ode, mesh, equations, solver, cache)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  calc_error_norms(func, u_wrapped, t, analyzer, mesh, equations, initial_conditions, solver, cache)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 end
 function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, initial_conditions, solver, cache = semi

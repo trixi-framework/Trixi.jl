@@ -81,11 +81,20 @@ function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMo
 end
 
 
-function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
+  # TODO: Taal performance, shall we use `@boundscheck` more often?
   @boundscheck begin
-    # TODO: Taal performance, remove assertion?
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
+  # We would like to use
+  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+  # but that results in
+  #   ERROR: LoadError: cannot resize array with shared data
+  # when we resize! `u_ode` during AMR.
+
+  # This is fast
+  # OBS! Remember to `GC.@preserve` possible copies of stuff that is only used indirectly
+  #      via `wrap_array` afterwards!
   unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
               (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end

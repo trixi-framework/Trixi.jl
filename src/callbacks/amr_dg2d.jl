@@ -131,36 +131,37 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
-  old_u     = wrap_array(old_u_ode, mesh, equations, dg, cache)
+  GC.@preserve old_u_ode begin
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-  # Get new list of leaf cells
-  leaf_cell_ids = leaf_cells(mesh.tree)
+    # Get new list of leaf cells
+    leaf_cell_ids = leaf_cells(mesh.tree)
 
-  # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh,
-                           real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.elements, elements)
-  @assert nelements(dg, cache) == nelements(elements) # TODO: Taal debug
-  @assert nelements(dg, cache) > old_n_elements # TODO: Taal debug
+    # Initialize new elements container
+    elements = init_elements(leaf_cell_ids, mesh,
+                            real(dg), nvariables(equations), polydeg(dg))
+    copy!(cache.elements, elements)
+    @assert nelements(dg, cache) > old_n_elements
 
-  resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
 
-  # Loop over all elements in old container and either copy them or refine them
-  element_id = 1
-  for old_element_id in 1:old_n_elements
-    if needs_refinement[old_element_id]
-      # Refine element and store solution directly in new data structure
-      refine_element!(u, element_id, old_u, old_element_id,
-                      adaptor, equations, dg)
-      element_id += 2^ndims(mesh)
-    else
-      # Copy old element data to new element container
-      @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-      element_id += 1
+    # Loop over all elements in old container and either copy them or refine them
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+      if needs_refinement[old_element_id]
+        # Refine element and store solution directly in new data structure
+        refine_element!(u, element_id, old_u, old_element_id,
+                        adaptor, equations, dg)
+        element_id += 2^ndims(mesh)
+      else
+        # Copy old element data to new element container
+        @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+        element_id += 1
+      end
     end
-  end
-  @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))" # TODO: Taal debug
+    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+  end # GC.@preserve old_u_ode
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
@@ -199,17 +200,18 @@ function refine_element!(u::AbstractArray{<:Any,4}, element_id, old_u, old_eleme
   upper_left_id  = element_id + 2
   upper_right_id = element_id + 3
 
-  # TODO: Taal debug
-  @assert old_element_id >= 1
-  @assert size(old_u, 1) == nvariables(equations)
-  @assert size(old_u, 2) == nnodes(dg)
-  @assert size(old_u, 3) == nnodes(dg)
-  @assert size(old_u, 4) >= old_element_id
-  @assert     element_id >= 1
-  @assert size(    u, 1) == nvariables(equations)
-  @assert size(    u, 2) == nnodes(dg)
-  @assert size(    u, 3) == nnodes(dg)
-  @assert size(    u, 4) >= element_id + 3
+  @boundscheck begin
+    @assert old_element_id >= 1
+    @assert size(old_u, 1) == nvariables(equations)
+    @assert size(old_u, 2) == nnodes(dg)
+    @assert size(old_u, 3) == nnodes(dg)
+    @assert size(old_u, 4) >= old_element_id
+    @assert     element_id >= 1
+    @assert size(    u, 1) == nvariables(equations)
+    @assert size(    u, 2) == nnodes(dg)
+    @assert size(    u, 3) == nnodes(dg)
+    @assert size(    u, 4) >= element_id + 3
+  end
 
   # Interpolate to lower left element
   for j in eachnode(dg), i in eachnode(dg)
@@ -269,49 +271,50 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
-  old_u     = wrap_array(old_u_ode, mesh, equations, dg, cache)
+  GC.@preserve old_u_ode begin
+    old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-  # Get new list of leaf cells
-  leaf_cell_ids = leaf_cells(mesh.tree)
+    # Get new list of leaf cells
+    leaf_cell_ids = leaf_cells(mesh.tree)
 
-  # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh,
-                           real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.elements, elements)
-  @assert nelements(dg, cache) == nelements(elements) # TODO: Taal debug
-  @assert nelements(dg, cache) < old_n_elements # TODO: Taal debug
+    # Initialize new elements container
+    elements = init_elements(leaf_cell_ids, mesh,
+                            real(dg), nvariables(equations), polydeg(dg))
+    copy!(cache.elements, elements)
+    @assert nelements(dg, cache) < old_n_elements
 
-  resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
+    resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+    u = wrap_array(u_ode, mesh, equations, dg, cache)
 
-  # Loop over all elements in old container and either copy them or coarsen them
-  skip = 0
-  element_id = 1
-  for old_element_id in 1:old_n_elements
-    # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
-    if skip > 0
-      skip -= 1
-      continue
+    # Loop over all elements in old container and either copy them or coarsen them
+    skip = 0
+    element_id = 1
+    for old_element_id in 1:old_n_elements
+      # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+      if skip > 0
+        skip -= 1
+        continue
+      end
+
+      if to_be_removed[old_element_id]
+        # If an element is to be removed, sanity check if the following elements
+        # are also marked - otherwise there would be an error in the way the
+        # cells/elements are sorted
+        @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
+
+        # Coarsen elements and store solution directly in new data structure
+        coarsen_elements!(u, element_id, old_u, old_element_id,
+                          adaptor, equations, dg)
+        element_id += 1
+        skip = 2^ndims(mesh) - 1
+      else
+        # Copy old element data to new element container
+        @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+        element_id += 1
+      end
     end
-
-    if to_be_removed[old_element_id]
-      # If an element is to be removed, sanity check if the following elements
-      # are also marked - otherwise there would be an error in the way the
-      # cells/elements are sorted
-      @assert all(to_be_removed[old_element_id:(old_element_id+2^ndims(mesh)-1)]) "bad cell/element order"
-
-      # Coarsen elements and store solution directly in new data structure
-      coarsen_elements!(u, element_id, old_u, old_element_id,
-                        adaptor, equations, dg)
-      element_id += 1
-      skip = 2^ndims(mesh) - 1
-    else
-      # Copy old element data to new element container
-      @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-      element_id += 1
-    end
-  end
-  @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))" # TODO: Taal debug
+    @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+  end # GC.@preserve old_u_ode
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new interfaces container
@@ -350,17 +353,18 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id, old_u, old_ele
   upper_left_id  = old_element_id + 2
   upper_right_id = old_element_id + 3
 
-  # TODO: Taal debug
-  @assert old_element_id >= 1
-  @assert size(old_u, 1) == nvariables(equations)
-  @assert size(old_u, 2) == nnodes(dg)
-  @assert size(old_u, 3) == nnodes(dg)
-  @assert size(old_u, 4) >= old_element_id + 3
-  @assert     element_id >= 1
-  @assert size(    u, 1) == nvariables(equations)
-  @assert size(    u, 2) == nnodes(dg)
-  @assert size(    u, 3) == nnodes(dg)
-  @assert size(    u, 4) >= element_id
+  @boundscheck begin
+    @assert old_element_id >= 1
+    @assert size(old_u, 1) == nvariables(equations)
+    @assert size(old_u, 2) == nnodes(dg)
+    @assert size(old_u, 3) == nnodes(dg)
+    @assert size(old_u, 4) >= old_element_id + 3
+    @assert     element_id >= 1
+    @assert size(    u, 1) == nvariables(equations)
+    @assert size(    u, 2) == nnodes(dg)
+    @assert size(    u, 3) == nnodes(dg)
+    @assert size(    u, 4) >= element_id
+  end
 
   for j in eachnode(dg), i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, j, element_id))

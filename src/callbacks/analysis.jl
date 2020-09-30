@@ -177,108 +177,110 @@ function (analysis_callback::AnalysisCallback)(integrator)
     else
       du_ode = get_du(integrator)
     end
-    du = wrap_array(du_ode, mesh, equations, solver, cache)
+    GC.@preserve du_ode begin
+      du = wrap_array(du_ode, mesh, equations, solver, cache)
 
-    # Calculate and print derived quantities (error norms, entropy etc.)
-    # Variable names required for L2 error, Linf error, and conservation error
-    if any(q in analysis_errors for q in
-          (:l2_error, :linf_error, :conservation_error, :residual))
-      print(" Variable:    ")
-      for v in eachvariable(equations)
-        @printf("   %-14s", varnames_cons(equations)[v])
+      # Calculate and print derived quantities (error norms, entropy etc.)
+      # Variable names required for L2 error, Linf error, and conservation error
+      if any(q in analysis_errors for q in
+            (:l2_error, :linf_error, :conservation_error, :residual))
+        print(" Variable:    ")
+        for v in eachvariable(equations)
+          @printf("   %-14s", varnames_cons(equations)[v])
+        end
+        println()
       end
-      println()
-    end
 
-    # Calculate L2/Linf errors, which are also returned by analyze_solution
-    l2_error, linf_error = calc_error_norms(u, t, analyzer, semi)
-
-    # L2 error
-    if :l2_error in analysis_errors
-      print(" L2 error:    ")
-      for v in eachvariable(equations)
-        @printf("  % 10.8e", l2_error[v])
-        analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error[v])
-      end
-      println()
-    end
-
-    # Linf error
-    if :linf_error in analysis_errors
-      print(" Linf error:  ")
-      for v in eachvariable(equations)
-        @printf("  % 10.8e", linf_error[v])
-        analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error[v])
-      end
-      println()
-    end
-
-    # Conservation errror
-    if :conservation_error in analysis_errors
-      @unpack analysis_callback = analysis_callback
-      state_integrals = integrate(u, semi)
-
-      print(" |∑U - ∑U₀|:  ")
-      for v in eachvariable(equations)
-        err = abs(state_integrals[v] - initial_state_integrals[v])
-        @printf("  % 10.8e", err)
-        analysis_callback.save_analysis && @printf(io, "  % 10.8e", err)
-      end
-      println()
-    end
-
-    # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
-    if :residual in analysis_errors
-      print(" max(|Uₜ|):   ")
-      for v in eachvariable(equations)
-        # Calculate maximum absolute value of Uₜ
-        @views res = maximum(abs, view(du, v, ..))
-        @printf("  % 10.8e", res)
-        analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
-      end
-      println()
-    end
-
-    # L2/L∞ errors of the primitive variables
-    if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
-      l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, semi, t)
-
-      print(" Variable:    ")
-      for v in eachvariable(equations)
-        @printf("   %-14s", varnames_prim(equations)[v])
-      end
-      println()
+      # Calculate L2/Linf errors, which are also returned by analyze_solution
+      l2_error, linf_error = calc_error_norms(u, t, analyzer, semi)
 
       # L2 error
-      if :l2_error_primitive in analysis_errors
-        print(" L2 error prim.: ")
+      if :l2_error in analysis_errors
+        print(" L2 error:    ")
         for v in eachvariable(equations)
-          @printf("%10.8e   ", l2_error_prim[v])
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error_prim[v])
+          @printf("  % 10.8e", l2_error[v])
+          analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error[v])
         end
         println()
       end
 
-      # L∞ error
-      if :linf_error_primitive in analysis_errors
-        print(" Linf error pri.:")
+      # Linf error
+      if :linf_error in analysis_errors
+        print(" Linf error:  ")
         for v in eachvariable(equations)
-          @printf("%10.8e   ", linf_error_prim[v])
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error_prim[v])
+          @printf("  % 10.8e", linf_error[v])
+          analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error[v])
         end
         println()
       end
-    end
+
+      # Conservation errror
+      if :conservation_error in analysis_errors
+        @unpack analysis_callback = analysis_callback
+        state_integrals = integrate(u, semi)
+
+        print(" |∑U - ∑U₀|:  ")
+        for v in eachvariable(equations)
+          err = abs(state_integrals[v] - initial_state_integrals[v])
+          @printf("  % 10.8e", err)
+          analysis_callback.save_analysis && @printf(io, "  % 10.8e", err)
+        end
+        println()
+      end
+
+      # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
+      if :residual in analysis_errors
+        print(" max(|Uₜ|):   ")
+        for v in eachvariable(equations)
+          # Calculate maximum absolute value of Uₜ
+          @views res = maximum(abs, view(du, v, ..))
+          @printf("  % 10.8e", res)
+          analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
+        end
+        println()
+      end
+
+      # L2/L∞ errors of the primitive variables
+      if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
+        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, semi, t)
+
+        print(" Variable:    ")
+        for v in eachvariable(equations)
+          @printf("   %-14s", varnames_prim(equations)[v])
+        end
+        println()
+
+        # L2 error
+        if :l2_error_primitive in analysis_errors
+          print(" L2 error prim.: ")
+          for v in eachvariable(equations)
+            @printf("%10.8e   ", l2_error_prim[v])
+            analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error_prim[v])
+          end
+          println()
+        end
+
+        # L∞ error
+        if :linf_error_primitive in analysis_errors
+          print(" Linf error pri.:")
+          for v in eachvariable(equations)
+            @printf("%10.8e   ", linf_error_prim[v])
+            analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error_prim[v])
+          end
+          println()
+        end
+      end
 
 
-    # additional
-    for quantity in analysis_integrals
-      res = analyze(quantity, du, u, t, semi)
-      @printf(" %-12s:", pretty_form_repl(quantity))
-      @printf("  % 10.8e", res)
-      analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
-      println()
-    end
+      # additional
+      for quantity in analysis_integrals
+        res = analyze(quantity, du, u, t, semi)
+        @printf(" %-12s:", pretty_form_repl(quantity))
+        @printf("  % 10.8e", res)
+        analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
+        println()
+      end
+    end # GC.@preserve du_ode
 
     println("-"^80)
     println()

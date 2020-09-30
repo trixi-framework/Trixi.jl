@@ -56,13 +56,13 @@ amr_indicator = IndicatorThreeLevel(semi, indicator_amr,
                                     base_level=4,
                                     max_level=6, max_threshold=0.1)
 amr_callback = AMRCallback(semi, amr_indicator,
-                           interval=1, # TODO: Taal debug interval=5
+                           interval=5,
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.25) # TODO: Taal debug cfl=1.0
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
-save_solution = SaveSolutionCallback(solution_interval=10, # TODO: Taal debug, 100
+save_solution = SaveSolutionCallback(solution_interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
@@ -75,6 +75,4 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analy
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-# sol = solve(ode, BS3(), #adaptive=false, dt=stepsize_callback(ode), # TODO: Taal debug
-#             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
