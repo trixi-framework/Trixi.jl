@@ -99,14 +99,16 @@ mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
   orientations::Vector{Int}         # [boundaries]
   neighbor_sides::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3} # [orientation, i, elements]
+  n_boundaries_per_direction::SVector{4, Int} # [direction]
 end
 
 function Base.copy!(dst::BoundaryContainer2D, src::BoundaryContainer2D)
-  dst.u                = src.u
-  dst.neighbor_ids     = src.neighbor_ids
-  dst.orientations     = src.orientations
-  dst.neighbor_sides   = src.neighbor_sides
-  dst.node_coordinates = src.node_coordinates
+  dst.u                          = src.u
+  dst.neighbor_ids               = src.neighbor_ids
+  dst.orientations               = src.orientations
+  dst.neighbor_sides             = src.neighbor_sides
+  dst.node_coordinates           = src.node_coordinates
+  dst.n_boundaries_per_direction = src.n_boundaries_per_direction
   return nothing
 end
 
@@ -121,9 +123,11 @@ function BoundaryContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
   orientations = fill(typemin(Int), capacity)
   neighbor_sides = fill(typemin(Int), capacity)
   node_coordinates = fill(nan, 2, n_nodes, capacity)
+  n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
-  boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(u, neighbor_ids, orientations, neighbor_sides,
-                                                   node_coordinates)
+  boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(
+    u, neighbor_ids, orientations, neighbor_sides,
+    node_coordinates, n_boundaries_per_direction)
 
   return boundaries
 end

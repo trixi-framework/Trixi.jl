@@ -399,29 +399,29 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
   Threads.@threads for boundary in eachboundary(dg, cache)
     element = boundaries.neighbor_ids[boundary]
 
-    if orientations[b] == 1
+    if orientations[boundary] == 1
       # boundary in x-direction
-      if neighbor_sides[b] == 1
+      if neighbor_sides[boundary] == 1
         # element in -x direction of boundary
         for l in eachnode(dg), v in eachvariable(equations)
-          boundaries.u[1, v, l, b] = u[v, nnodes(dg), l, element]
+          boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
         end
       else # Element in +x direction of boundary
         for l in eachnode(dg), v in eachvariable(equations)
-          boundaries.u[2, v, l, b] = u[v, 1,          l, element]
+          boundaries.u[2, v, l, boundary] = u[v, 1,          l, element]
         end
       end
-    else # if orientations[b] == 2
+    else # if orientations[boundary] == 2
       # boundary in y-direction
-      if neighbor_sides[b] == 1
+      if neighbor_sides[boundary] == 1
         # element in -y direction of boundary
         for l in eachnode(dg), v in eachvariable(equations)
-          boundaries.u[1, v, l, b] = u[v, l, nnodes(dg), element]
+          boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
         end
       else
         # element in +y direction of boundary
         for l in eachnode(dg), v in eachvariable(equations)
-          boundaries.u[2, v, l, b] = u[v, l, 1,          element]
+          boundaries.u[2, v, l, boundary] = u[v, l, 1,          element]
         end
       end
     end
@@ -430,9 +430,77 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
   return nothing
 end
 
-# TODO: Taal implement
-function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DGSEM)
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, t, boundary_conditions::Nothing, equations, dg::DG)
   @assert isempty(eachboundary(dg, cache))
+end
+
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DG)
+  @unpack surface_flux_values = cache.elements
+  @unpack n_boundaries_per_direction = cache.boundaries
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  for direction in eachindex(firsts)
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions,
+                                     equations, dg, cache,
+                                     direction, firsts[direction], lasts[direction])
+  end
+end
+
+function calc_boundary_flux!(cache, t, boundary_conditions::NTuple{4,Any}, equations, dg::DG) # 4 = 2*ndims
+  @unpack surface_flux_values = cache.elements
+  @unpack n_boundaries_per_direction = cache.boundaries
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
+                                   equations, dg, cache, 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
+                                   equations, dg, cache, 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[3],
+                                   equations, dg, cache, 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[4],
+                                   equations, dg, cache, 4, firsts[4], lasts[4])
+end
+
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
+                                          boundary_condition, equations, dg::DG, cache,
+                                          direction, first_boundary, last_boundary)
+  @unpack surface_flux = dg
+  @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+
+  Threads.@threads for boundary in first_boundary:last_boundary
+    # Get neighboring element
+    neighbor = neighbor_ids[boundary]
+
+    for i in eachnode(dg)
+      # Get boundary flux
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
+      if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+      end
+      x = get_node_coords(node_coordinates, equations, dg, i, boundary)
+      flux = boundary_condition(u_inner, orientations[boundary], direction, x, t, surface_flux,
+                                equations)
+
+      # Copy flux to left and right element storage
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, direction, neighbor] = flux[v]
+      end
+    end
+  end
+
+  return nothing
 end
 
 

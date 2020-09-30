@@ -40,6 +40,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5])
   end
 
+  @testset "parameters_nonperiodic.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_nonperiodic.jl"),
+            l2   = [2.3652137675654753e-6, 2.1386731303685556e-6, 2.138673130413185e-6, 6.009920290578574e-6],
+            linf = [1.4080448659026246e-5, 1.7581818010814487e-5, 1.758181801525538e-5, 5.9568540361709665e-5])
+  end
+
   @testset "parameters_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_ec.jl"),
             l2   = [0.061733846713578594, 0.05020086119442834, 0.05020836856347214, 0.2259064869636338],

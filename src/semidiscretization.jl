@@ -168,8 +168,7 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   # although this doesn't really exist...
   initial_conditions::InitialConditions
 
-  boundary_conditions::BoundaryConditions # TODO: Taal BCs
-
+  boundary_conditions::BoundaryConditions
   source_terms::SourceTerms
   solver::Solver
   cache::Cache

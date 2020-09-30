@@ -595,7 +595,9 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
                                             "expectations $(nboundaries(boundaries))")
   @assert sum(counts_per_direction) == count
 
-  return SVector(counts_per_direction)
+  boundaries.n_boundaries_per_direction = SVector(counts_per_direction)
+
+  return boundaries.n_boundaries_per_direction
 end
 
 
