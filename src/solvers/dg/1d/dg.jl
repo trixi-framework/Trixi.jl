@@ -241,8 +241,8 @@ function count_required_interfaces(mesh::TreeMesh{1}, cell_ids)
         continue
       end
 
-      # Skip if no neighbor exists and current cell is not small
-      if !has_neighbor(mesh.tree, cell_id, direction) && !has_coarse_neighbor(mesh.tree, cell_id, direction)
+      # Skip if no neighbor exists
+      if !has_any_neighbor(mesh.tree, cell_id, direction)
         continue
       end
 
@@ -375,23 +375,23 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{1})
       end
 
       # Skip if no neighbor exists and current cell is not small
-      if !has_neighbor(mesh.tree, cell_id, direction) && !has_coarse_neighbor(mesh.tree, cell_id, direction)
-          continue
+      if !has_any_neighbor(mesh.tree, cell_id, direction)
+        continue
       end
 
       count += 1
 
       if has_neighbor(mesh.tree, cell_id, direction)
         neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
-        if has_children(mesh.tree, neighbor_cell_id)    # Cell has small neighbor
+        if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor
           interfaces.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
         else # Cell has same refinement level neighbor
           interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
         end
       else # Cell is small and has large neighbor
         parent_id = mesh.tree.parent_ids[cell_id]
-        neighbor_id = mesh.tree.neighbor_ids[direction, parent_id]
-        interfaces.neighbor_ids[2, count] = c2e[neighbor_id]
+        neighbor_cell_id = mesh.tree.neighbor_ids[direction, parent_id]
+        interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
       end
 
       interfaces.neighbor_ids[1, count] = element_id
