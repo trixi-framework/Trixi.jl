@@ -1,119 +1,5 @@
 
-# TODO: Taal dimension agnostic
-function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
-                                     equations, dg::DG, cache;
-                                     only_refine=false, only_coarsen=false)
-  @unpack indicator, adaptor = amr_callback
-
-  u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @timeit timer() "indicator" indicator(u, mesh, equations, dg, cache)
-
-  leaf_cell_ids = leaf_cells(mesh.tree)
-  @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
-
-  to_refine  = Int[]
-  to_coarsen = Int[]
-  for element in eachelement(dg, cache)
-    indicator_value = lambda[element]
-    if indicator_value > 0
-      push!(to_refine, leaf_cell_ids[element])
-    elseif indicator_value < 0
-      push!(to_coarsen, leaf_cell_ids[element])
-    end
-  end
-
-
-  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
-    # refine mesh
-    refined_original_cells = @timeit timer() "mesh" refine!(mesh.tree, to_refine)
-
-    # refine solver
-    @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
-    # TODO: Taal implement, passive solvers?
-    # if !isempty(passive_solvers)
-    #   @timeit timer() "passive solvers" for ps in passive_solvers
-    #     refine!(ps, mesh, refined_original_cells)
-    #   end
-    # end
-  else
-    # If there is nothing to refine, create empty array for later use
-    refined_original_cells = Int[]
-  end
-
-
-  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
-    # Since the cells may have been shifted due to refinement, first we need to
-    # translate the old cell ids to the new cell ids
-    if !isempty(to_coarsen)
-      to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
-    end
-
-    # Next, determine the parent cells from which the fine cells are to be
-    # removed, since these are needed for the coarsen! function. However, since
-    # we only want to coarsen if *all* child cells are marked for coarsening,
-    # we count the coarsening indicators for each parent cell and only coarsen
-    # if all children are marked as such (i.e., where the count is 2^ndims). At
-    # the same time, check if a cell is marked for coarsening even though it is
-    # *not* a leaf cell -> this can only happen if it was refined due to 2:1
-    # smoothing during the preceding refinement operation.
-    parents_to_coarsen = zeros(Int, length(mesh.tree))
-    for cell_id in to_coarsen
-      # If cell has no parent, it cannot be coarsened
-      if !has_parent(mesh.tree, cell_id)
-        continue
-      end
-
-      # If cell is not leaf (anymore), it cannot be coarsened
-      if !is_leaf(mesh.tree, cell_id)
-        continue
-      end
-
-      # Increase count for parent cell
-      parent_id = mesh.tree.parent_ids[cell_id]
-      parents_to_coarsen[parent_id] += 1
-    end
-
-    # Extract only those parent cells for which all children should be coarsened
-    to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
-
-    # Finally, coarsen mesh
-    coarsened_original_cells = @timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
-
-    # Convert coarsened parent cell ids to the list of child cell ids that have
-    # been removed, since this is the information that is expected by the solver
-    removed_child_cells = zeros(Int, n_children_per_cell(mesh.tree) * length(coarsened_original_cells))
-    for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
-      for child in 1:n_children_per_cell(mesh.tree)
-        removed_child_cells[n_children_per_cell(mesh.tree) * (index-1) + child] = coarse_cell_id + child
-      end
-    end
-
-    # coarsen solver
-    @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
-    # TODO: Taal implement, passive solvers?
-    # if !isempty(passive_solvers)
-    #   @timeit timer() "passive solvers" for ps in passive_solvers
-    #     coarsen!(ps, mesh, removed_child_cells)
-    #   end
-    # end
-  else
-    # If there is nothing to coarsen, create empty array for later use
-    coarsened_original_cells = Int[]
-  end
-
- # Return true if there were any cells coarsened or refined, otherwise false
- has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
- if has_changed # TODO: Taal decide, where shall we set this?
-  # don't set it to has_changed since there can be changes from earlier calls
-  mesh.unsaved_changes = true
- end
-
- return has_changed
-end
-
-# function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
-
-
+# Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
@@ -131,7 +17,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
-  GC.@preserve old_u_ode begin
+  GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
@@ -271,7 +157,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, 
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_u_ode = copy(u_ode)
-  GC.@preserve old_u_ode begin
+  GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
@@ -401,7 +287,7 @@ function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
   return (; indicator_value)
 end
 
-# TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner?
+# TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner etc.?
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any,4},
@@ -441,105 +327,4 @@ function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any,4},
   end
 
   return indicator_value
-end
-
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-
-  alpha = Vector{real(basis)}()
-
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
-end
-
-
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
-  @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
-  @unpack alpha, indicator_threaded = löhner.cache
-  resize!(alpha, nelements(dg, cache))
-
-  Threads.@threads for element in eachelement(dg, cache)
-    indicator = indicator_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = löhner.variable(u_local, equations)
-    end
-
-    estimate = zero(real(dg))
-    for j in eachnode(dg), i in 2:nnodes(dg)-1
-      # x direction
-      u0 = indicator[i,   j]
-      up = indicator[i+1, j]
-      um = indicator[i-1, j]
-      estimate = max(estimate, löhner(um, u0, up))
-    end
-
-    for j in 2:nnodes(dg)-1, i in eachnode(dg)
-      # y direction
-      u0 = indicator[i, j, ]
-      up = indicator[i, j+1]
-      um = indicator[i, j-1]
-      estimate = max(estimate, löhner(um, u0, up))
-    end
-
-    # use the maximum as DG element indicator
-    alpha[element] = estimate
-  end
-
-  return alpha
-end
-
-# dirty Löhner estimate, direction by direction, assuming constant nodes
-@inline function (löhner::IndicatorLöhner)(um::Real, u0::Real, up::Real)
-  num = abs(up - 2 * u0 + um)
-  den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
-  return num / den
-end
-
-
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorMax}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-
-  alpha = Vector{real(basis)}()
-
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; alpha, indicator_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  cache = create_cache(typ, equations, dg.basis)
-end
-
-
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
-  @unpack alpha, indicator_threaded = indicator_max.cache
-  resize!(alpha, nelements(dg, cache))
-
-  Threads.@threads for element in eachelement(dg, cache)
-    indicator = indicator_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = indicator_max.variable(u_local, equations)
-    end
-
-    alpha[element] = maximum(indicator)
-  end
-
-  return alpha
 end

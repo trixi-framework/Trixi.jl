@@ -1,9 +1,17 @@
 
-# TODO: Taal, implement, save AMR indicator values
-# TODO: Taal, refactor, allow saving arbitrary functions of the conservative variables,
-# make solution_variables a function instead of a Symbol
-# TODO: Taal refactor, interval as part of the struct for printing
+# TODO: Taal refactor, allow saving arbitrary functions of the conservative variables
+# TODO: Taal refactor, make solution_variables a function instead of a Symbol
+"""
+    SaveSolutionCallback(; interval=0,
+                           save_initial_solution=true,
+                           save_final_solution=true,
+                           output_directory="out",
+                           solution_variables=:primitive)
+
+Save the current numerical solution every `interval` time steps.
+"""
 mutable struct SaveSolutionCallback
+  interval::Int
   save_initial_solution::Bool
   save_final_solution::Bool
   output_directory::String
@@ -12,24 +20,24 @@ end
 
 
 function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
-  stepsize_callback = cb.affect!
-  print(io, "SaveSolutionCallback")
+  save_solution_callback = cb.affect!
+  print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval, ")")
 end
 # TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
+# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
 # end
 
 
-function SaveSolutionCallback(; solution_interval=0,
+function SaveSolutionCallback(; interval=0,
                                 save_initial_solution=true,
                                 save_final_solution=true,
                                 output_directory="out",
                                 solution_variables=:primitive)
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
-  condition = (u, t, integrator) -> solution_interval > 0 && ((integrator.iter % solution_interval == 0) || (save_final_solution && t == integrator.sol.prob.tspan[2]))
+  condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) || (save_final_solution && t == integrator.sol.prob.tspan[2]))
 
-  solution_callback = SaveSolutionCallback(save_initial_solution, save_final_solution,
+  solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
 
   DiscreteCallback(condition, solution_callback,

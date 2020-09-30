@@ -128,6 +128,170 @@ function get_element_variables!(element_variables, u, mesh, equations,
 end
 
 
+
+abstract type AbstractBasisSBP{RealT<:Real} end
+
+abstract type AbstractMortar{RealT<:Real} end
+
+abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
+
+
+struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+  basis::Basis
+  mortar::Mortar
+  surface_flux::SurfaceFlux
+  volume_integral::VolumeIntegral
+end
+
+function Base.show(io::IO, dg::DG{RealT}) where {RealT}
+  print(io, "DG{", RealT, "}(")
+  print(io,       dg.basis)
+  print(io, ", ", dg.mortar)
+  print(io, ", ", dg.surface_flux)
+  print(io, ", ", dg.volume_integral)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
+  println(io, "DG{", RealT, "} using")
+  println(io, "- ", dg.basis)
+  println(io, "- ", dg.mortar)
+  println(io, "- ", dg.surface_flux)
+  print(io,   "- ", dg.volume_integral)
+end
+
+@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
+
+# TODO: Taal refactor, use case?
+# Deprecate in favor of nnodes or order_of_accuracy?
+@inline polydeg(dg::DG) = polydeg(dg.basis)
+
+@inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+
+
+function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
+  get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
+end
+
+
+# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg))
+@inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
+@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
+@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
+@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
+@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+
+@inline nnodes(dg::DG)             = nnodes(dg.basis)
+@inline nelements(dg::DG, cache)   = nelements(cache.elements)
+@inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
+@inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
+@inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
+
+
+@inline function get_node_coords(x, equations, solver::DG, indices...)
+  SVector(ntuple(idx -> x[idx, indices...], ndims(equations)))
+end
+
+@inline function get_node_vars(u, equations, solver::DG, indices...)
+  SVector(ntuple(v -> u[v, indices...], nvariables(equations)))
+end
+
+@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
+  u_ll = SVector(ntuple(v -> u[1, v, indices...], nvariables(equations)))
+  u_rr = SVector(ntuple(v -> u[2, v, indices...], nvariables(equations)))
+  return u_ll, u_rr
+end
+
+@inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] = u_node[v]
+  end
+  return nothing
+end
+
+@inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
+  for v in eachvariable(equations)
+    u[v, indices...] += u_node[v]
+  end
+  return nothing
+end
+
+
+function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
+  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
+  # cf. wrap_array
+  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+end
+
+
+
+# Used for analyze_solution
+abstract type SolutionAnalyzer{RealT<:Real} end
+
+abstract type AdaptorAMR{RealT<:Real} end
+
+abstract type AdaptorL2{RealT<:Real} <: AdaptorAMR{RealT} end
+
+SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
+
+AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
+
+
+
+# Include utilities
+include("interpolation.jl")
+include("l2projection.jl")
+include("lobatto_legendre.jl")
+
+const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
+
+function DGSEM(basis::LobattoLegendreBasis,
+               surface_flux=flux_central,
+               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
+  mortar = MortarL2(basis)
+
+  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
+    basis, mortar, surface_flux, volume_integral)
+end
+
+function DGSEM(RealT, polydeg::Integer,
+               surface_flux=flux_central,
+               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+
+  return DGSEM(basis, surface_flux, volume_integral)
+end
+
+DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
+
+
+
+"""
+    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
+
+Given blending factors `alpha` and the solver `dg`, fill
+`element_ids_dg` with the IDs of elements using a pure DG scheme and
+`element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+"""
+function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG, cache)
+  empty!(element_ids_dg)
+  empty!(element_ids_dgfv)
+
+  for element in eachelement(dg, cache)
+    # Clip blending factor for values close to zero (-> pure DG)
+    dg_only = isapprox(alpha[element], 0, atol=1e-12)
+    if dg_only
+      push!(element_ids_dg, element)
+    else
+      push!(element_ids_dgfv, element)
+    end
+  end
+
+  return nothing
+end
+
+
+
 abstract type AbstractIndicator end
 
 function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
@@ -179,6 +343,7 @@ function IndicatorHennemannGassner(semi;
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end
 
+
 function Base.show(io::IO, indicator::IndicatorHennemannGassner)
   print(io, "IndicatorHennemannGassner(")
   print(io, indicator.variable)
@@ -201,135 +366,84 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
 end
 
 
-abstract type AbstractBasisSBP{RealT<:Real} end
 
-abstract type AbstractMortar{RealT<:Real} end
+"""
+    IndicatorLöhner (equivalent to IndicatorLoehner)
 
-struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
-  basis::Basis
-  mortar::Mortar
-  surface_flux::SurfaceFlux
-  volume_integral::VolumeIntegral
+AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
+FLASH code as standard AMR indicator.
+The indicator estimates a weighted second derivative of a specified variable locally.
+- Löhner (1987)
+  "An adaptive finite element scheme for transient problems in CFD"
+  [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
+"""
+struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
+  f_wave::RealT # TODO: Taal, better name and documentation
+  variable::Variable
+  cache::Cache
 end
 
-function Base.show(io::IO, dg::DG{RealT}) where {RealT}
-  print(io, "DG{", RealT, "}(")
-  print(io,       dg.basis)
-  print(io, ", ", dg.mortar)
-  print(io, ", ", dg.surface_flux)
-  print(io, ", ", dg.volume_integral)
-  print(io, ")")
+function IndicatorLöhner(basis, equations; f_wave=0.2, variable=first)
+  cache = create_cache(IndicatorLöhner, equations, basis)
+  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
-  println(io, "DG{", RealT, "} using")
-  println(io, "- ", dg.basis)
-  println(io, "- ", dg.mortar)
-  println(io, "- ", dg.surface_flux)
-  print(io,   "- ", dg.volume_integral)
-end
-
-@inline Base.real(dg::DG{RealT}) where {RealT} = RealT
-
-# TODO: Taal refactor, use case?
-# Deprecate in favor of nnodes or order_of_accuracy?
-@inline polydeg(dg::DG) = polydeg(dg.basis)
-
-@inline ndofs(mesh::TreeMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
-
-
-function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
-  get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral, dg, cache)
+function IndicatorLöhner(semi; f_wave=0.2, variable=first)
+  cache = create_cache(IndicatorLöhner, semi)
+  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
 
+function Base.show(io::IO, indicator::IndicatorLöhner)
+  print(io, "IndicatorLöhner(")
+  print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
+end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
+#   println(io, "IndicatorLöhner with")
+#   println(io, "- indicator: ", indicator.indicator)
+# end
 
-# TODO: Taal refactor, where to put this?
-@inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
-
-# TODO: Taal performance, 1:nnodes(dg) vs. Base.OneTo(nnodes(dg)) vs. SOneTo(nnodes(dg))
-@inline eachnode(dg::DG)             = Base.OneTo(nnodes(dg))
-@inline eachelement(dg::DG, cache)   = Base.OneTo(nelements(dg, cache))
-@inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
-@inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
-@inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
-
-@inline nnodes(dg::DG) = nnodes(dg.basis)
-@inline nelements(dg::DG, cache)   = nelements(cache.elements)
-@inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
-@inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
-@inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
+const IndicatorLoehner = IndicatorLöhner
 
 
-@inline get_node_coords(x, equations, solver::DG, indices...) = SVector(ntuple(idx -> x[idx, indices...], ndims(equations)))
 
-@inline get_node_vars(u, equations, solver::DG, indices...) = SVector(ntuple(v -> u[v, indices...], nvariables(equations)))
-
-@inline function get_surface_node_vars(u, equations, solver::DG, indices...)
-  u_ll = SVector(ntuple(v -> u[1, v, indices...], nvariables(equations)))
-  u_rr = SVector(ntuple(v -> u[2, v, indices...], nvariables(equations)))
-  return u_ll, u_rr
+# TODO: Taal decide, shall we keep this?
+struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
+  variable::Variable
+  cache::Cache
 end
 
-@inline function set_node_vars!(u, u_node, equations, solver::DG, indices...)
-  for v in eachvariable(equations)
-    u[v, indices...] = u_node[v]
-  end
-  return nothing
+function IndicatorMax(basis, equations::AbstractEquations; variable=first)
+  cache = create_cache(IndicatorMax, equations, basis)
+  IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
-@inline function add_to_node_vars!(u, u_node, equations, solver::DG, indices...)
-  for v in eachvariable(equations)
-    u[v, indices...] += u_node[v]
-  end
-  return nothing
+function IndicatorMax(semi; variable=first)
+  cache = create_cache(IndicatorMax, semi)
+  return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 
-function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
-  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-  # cf. wrap_array
-  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+function Base.show(io::IO, indicator::IndicatorMax)
+  print(io, "IndicatorMax(")
+  print(io, "variable=", indicator.variable, ")")
 end
+# TODO: Taal bikeshedding, implement a method with extended information and the signature
+# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
+#   println(io, "IndicatorMax with")
+#   println(io, "- indicator: ", indicator.indicator)
+# end
 
-
-# Include utilities
-include("interpolation.jl")
-include("l2projection.jl")
-include("lobatto_legendre.jl") # TODO: Taal new
-
-const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
-
-function DGSEM(basis::LobattoLegendreBasis,
-               surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
-  mortar = MortarL2(basis)
-
-  return DG{real(basis), typeof(basis), typeof(mortar), typeof(surface_flux), typeof(volume_integral)}(
-    basis, mortar, surface_flux, volume_integral)
-end
-
-function DGSEM(RealT, polydeg::Integer,
-               surface_flux=flux_central,
-               volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
-  basis = LobattoLegendreBasis(RealT, polydeg)
-
-  return DGSEM(basis, surface_flux, volume_integral)
-end
-
-DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
-
-
-SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
-
-AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 
 
 # Include 2D implementation
 include("2d/containers.jl")
 include("2d/dg.jl")
 include("2d/amr.jl")
-include("dg_2d.jl") # TODO: Taal new
+include("dg_2d.jl")
+include("dg_2d_indicators.jl")
 
 # Include 3D implementation
 include("3d/containers.jl")

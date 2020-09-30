@@ -15,6 +15,35 @@ const main_timer = TimerOutput()
 # Always call timer() to hide implementation details
 timer() = main_timer
 
+
+"""
+    PerformanceCounter
+
+A `PerformanceCounter` be used to track the runtime performance of some calls.
+Add a new runtime measurement via `put!(counter, runtime)` and get the averaged
+runtime of all measurements added so far via `take!(counter)`, resetting the
+`counter`.
+"""
+mutable struct PerformanceCounter
+  ncalls_since_readout::Int
+  runtime::Float64
+end
+
+PerformanceCounter() = PerformanceCounter(0, 0.0)
+
+function Base.take!(counter::PerformanceCounter)
+  time_per_call = counter.runtime / counter.ncalls_since_readout
+  counter.ncalls_since_readout = 0
+  counter.runtime = 0.0
+  return time_per_call
+end
+
+function Base.put!(counter::PerformanceCounter, runtime::Real)
+  counter.ncalls_since_readout += 1
+  counter.runtime += runtime
+end
+
+
 # Initialize top-level parameters structure for program-wide parameters
 const parameters = Dict{Symbol,Any}()
 

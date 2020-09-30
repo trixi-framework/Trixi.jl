@@ -1,5 +1,6 @@
 
-# Everything related to a DG semidiscretization on Lobatto-Legendre nodes in 2D
+# everything related to a DG semidiscretization in 2D,
+# currently limited to Lobatto-Legendre nodes
 
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                       boundary_conditions, dg::DG, RealT)
@@ -24,9 +25,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 
   cache = (; elements, interfaces, boundaries, mortars)
 
-  # TODO: Taal refactor
+  # TODO: Taal discuss/refactor
   # For me,
-  # - surface_ids, cell_ids in elements
   # - neighbor_ids, orientations in interfaces
   # - neighbor_ids, orientations, neighbor_sides in boundaries
   # - neighbor_ids, large_sides, orientations in mortars
@@ -92,9 +92,9 @@ end
   #   ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
 
-  # This is fast
-  # OBS! Remember to `GC.@preserve` possible copies of stuff that is only used indirectly
-  #      via `wrap_array` afterwards!
+  # The following version is fast and allows us to `resize!(u_ode, ...)`.
+  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
+  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
   unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
               (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
@@ -111,7 +111,7 @@ function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG,
   end
 end
 
-# TODO: Taal refactor timer, allowing users to pass a custom timer?
+# TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
               mesh::TreeMesh{2}, equations,
@@ -247,123 +247,6 @@ end
 # end
 
 
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
-
-  alpha = Vector{real(basis)}()
-  alpha_tmp = similar(alpha)
-
-  A = Array{real(basis), ndims(equations)}
-  indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-  modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
-end
-
-
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
-  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
-  # TODO: Taal refactor, when to resize! stuff changed possibly by AMR?
-  #       Shall we implement resize!(semi::AbstractSemidiscretization) ?
-  resize!(alpha, nelements(dg, cache))
-  if alpha_smooth
-    resize!(alpha_tmp, nelements(dg, cache))
-  end
-
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
-
-  Threads.@threads for element in eachelement(dg, cache)
-    indicator  = indicator_threaded[Threads.threadid()]
-    modal      = modal_threaded[Threads.threadid()]
-    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-
-    # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, element)
-      indicator[i, j] = indicator_hg.variable(u_local, equations)
-    end
-
-    # Convert to modal representation
-    multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre, indicator, modal_tmp1)
-
-    # Calculate total energies for all modes, without highest, without two highest
-    total_energy = zero(eltype(modal))
-    for j in 1:nnodes(dg), i in 1:nnodes(dg)
-      total_energy += modal[i, j]^2
-    end
-    total_energy_clip1 = zero(eltype(modal))
-    for j in 1:(nnodes(dg)-1), i in 1:(nnodes(dg)-1)
-      total_energy_clip1 += modal[i, j]^2
-    end
-    total_energy_clip2 = zero(eltype(modal))
-    for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
-      total_energy_clip2 += modal[i, j]^2
-    end
-
-    # Calculate energy in lower modes
-    energy = max((total_energy - total_energy_clip1) / total_energy,
-                 (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
-
-    alpha[element] = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
-
-    # Take care of the case close to pure DG
-    if (alpha[element] < alpha_min)
-      alpha[element] = zero(eltype(alpha))
-    end
-
-    # Take care of the case close to pure FV
-    if (alpha[element] > 1 - alpha_min)
-      alpha[element] = one(eltype(alpha))
-    end
-
-    # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha[element])
-  end
-
-  if (alpha_smooth)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_tmp .= alpha
-
-    # Loop over interfaces
-    for interface in eachinterface(dg, cache)
-      # Get neighboring element ids
-      left  = cache.interfaces.neighbor_ids[1, interface]
-      right = cache.interfaces.neighbor_ids[2, interface]
-
-      # Apply smoothing
-      alpha[left]  = max(alpha_tmp[left],  0.5 * alpha_tmp[right], alpha[left])
-      alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left],  alpha[right])
-    end
-
-    # Loop over L2 mortars
-    for mortar in eachmortar(dg, cache)
-      # Get neighboring element ids
-      lower = cache.mortars.neighbor_ids[1, mortar]
-      upper = cache.mortars.neighbor_ids[2, mortar]
-      large = cache.mortars.neighbor_ids[3, mortar]
-
-      # Apply smoothing
-      alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-      alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
-    end
-  end
-
-  return alpha
-end
-
-
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -418,7 +301,8 @@ end
   return nothing
 end
 
-@inline function calcflux_fv!(fstar1, fstar2, u::AbstractArray{<:Any,4}, equations, volume_flux_fv, dg::DGSEM, element)
+@inline function calcflux_fv!(fstar1, fstar2, u::AbstractArray{<:Any,4},
+                              equations, volume_flux_fv, dg::DGSEM, element)
 
   fstar1[:, 1,            :] .= zero(eltype(fstar1))
   fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
@@ -438,31 +322,6 @@ end
     u_rr = get_node_vars(u, equations, dg, i, j,   element)
     flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
     set_node_vars!(fstar2, flux, equations, dg, i, j)
-  end
-
-  return nothing
-end
-
-# TODO: Taal dimension agnostic
-"""
-    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
-
-Given blending factors `alpha` and the solver `dg`, fill
-`element_ids_dg` with the IDs of elements using a pure DG scheme and
-`element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
-"""
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG, cache)
-  empty!(element_ids_dg)
-  empty!(element_ids_dgfv)
-
-  for element in eachelement(dg, cache)
-    # Clip blending factor for values close to zero (-> pure DG)
-    dg_only = isapprox(alpha[element], 0, atol=1e-12)
-    if dg_only
-      push!(element_ids_dg, element)
-    else
-      push!(element_ids_dgfv, element)
-    end
   end
 
   return nothing
@@ -577,7 +436,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DGSEM
 end
 
 
-function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations, mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations,
+                         mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
 
   Threads.@threads for mortar in eachmortar(dg, cache)
 
@@ -688,7 +548,8 @@ end
 #                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
 # end
 
-@inline function calc_fstar!(destination::AbstractArray{<:Any,2}, equations, dg::DGSEM, u_interfaces, mortar, orientation)
+@inline function calc_fstar!(destination::AbstractArray{<:Any,2}, equations, dg::DGSEM,
+                             u_interfaces, mortar, orientation)
   @unpack surface_flux = dg
 
   for i in eachnode(dg)
@@ -703,7 +564,8 @@ end
   return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache,
+@inline function mortar_fluxes_to_elements!(surface_flux_values, equations,
+                                            mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
   large_element = cache.mortars.neighbor_ids[3, mortar]
   upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -753,6 +615,7 @@ end
     @views surface_flux_values[v, :, direction, large_element] .=
       (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
   end
+  # TODO: Taal performance
   # The code above could be replaced by the following code. However, the relative efficiency
   # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
   # Using StaticArrays for both makes the code above faster for common test cases.

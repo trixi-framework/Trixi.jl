@@ -38,10 +38,10 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, analysis_interval=analysis_interval,
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
-save_solution = SaveSolutionCallback(solution_interval=100,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)

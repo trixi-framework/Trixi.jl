@@ -1,5 +1,8 @@
 
-struct LobattoLegendreBasis{RealT<:Real, NNODES, InverseVandermondeLegendre<:AbstractMatrix{RealT}, BoundaryMatrix<:AbstractMatrix{RealT}, DerivativeMatrix<:AbstractMatrix{RealT}} <: AbstractBasisSBP{RealT}
+struct LobattoLegendreBasis{RealT<:Real, NNODES,
+                            InverseVandermondeLegendre<:AbstractMatrix{RealT},
+                            BoundaryMatrix<:AbstractMatrix{RealT},
+                            DerivativeMatrix<:AbstractMatrix{RealT}} <: AbstractBasisSBP{RealT}
   nodes          ::SVector{NNODES, RealT}
   weights        ::SVector{NNODES, RealT}
   inverse_weights::SVector{NNODES, RealT}
@@ -64,7 +67,6 @@ end
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
 
 
-abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
 
 struct LobattoLegendreMortarL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: MortarL2{RealT}
   forward_upper::MortarMatrix
@@ -75,21 +77,20 @@ end
 
 function MortarL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   nnodes_ = nnodes(basis)
-  forward_upper   = calc_forward_upper(nnodes_)
-  forward_lower   = calc_forward_lower(nnodes_)
-  l2reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss))
-  l2reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
+  forward_upper = calc_forward_upper(nnodes_)
+  forward_lower = calc_forward_lower(nnodes_)
+  reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss))
+  reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
 
   # type conversions to make use of StaticArrays etc.
-  forward_upper   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_upper))
-  forward_lower   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_lower))
-  l2reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_upper))
-  l2reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_lower))
+  forward_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_upper))
+  forward_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_lower))
+  reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, reverse_upper))
+  reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, reverse_lower))
 
   LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper)}(
     forward_upper, forward_lower,
-    l2reverse_upper, l2reverse_lower
-  )
+    reverse_upper, reverse_lower)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
@@ -140,8 +141,6 @@ end
 
 
 
-abstract type SolutionAnalyzer{RealT<:Real} end
-
 struct LobattoLegendreAnalyzer{RealT<:Real, NNODES, Vandermonde<:AbstractMatrix{RealT}} <: SolutionAnalyzer{RealT}
   nodes  ::SVector{NNODES, RealT}
   weights::SVector{NNODES, RealT}
@@ -161,8 +160,7 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2
   vandermonde = convert.(RealT, vandermonde)
 
   return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(vandermonde)}(
-    nodes, weights, vandermonde,
-  )
+    nodes, weights, vandermonde)
 end
 
 function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
@@ -177,10 +175,6 @@ end
 @inline polydeg(analyzer::LobattoLegendreAnalyzer) = nnodes(analyzer) - 1
 
 
-
-abstract type AdaptorAMR{RealT<:Real} end
-
-abstract type AdaptorL2{RealT<:Real} end
 
 struct LobattoLegendreAdaptorL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
   forward_upper::MortarMatrix
@@ -204,8 +198,7 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
 
   LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper)}(
     forward_upper, forward_lower,
-    l2reverse_upper, l2reverse_lower
-  )
+    l2reverse_upper, l2reverse_lower)
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreAdaptorL2{RealT}) where {RealT}

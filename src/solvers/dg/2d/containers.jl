@@ -3,7 +3,6 @@
 # TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 # TODO: Taal refactor, mutable struct or resize! for AMR?
-# TODO: Taal refactor, surface_ids does not seem to be used anywhere?
 mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                   # [variables, i, j, elements]
   u_t::Array{RealT, 4}                 # [variables, i, j, elements]
@@ -11,7 +10,6 @@ mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContai
   u_tmp3::Array{RealT, 4}              # [variables, i, j, elements]
   inverse_jacobian::Vector{RealT}      # [elements]
   node_coordinates::Array{RealT, 4}    # [orientation, i, j, elements]
-  surface_ids::Matrix{Int}             # [direction, elements]
   surface_flux_values::Array{RealT, 4} # [variables, i, direction, elements]
   cell_ids::Vector{Int}                # [elements]
 end
@@ -23,7 +21,6 @@ function Base.copy!(dst::ElementContainer2D, src::ElementContainer2D)
   dst.u_tmp3              = src.u_tmp3
   dst.inverse_jacobian    = src.inverse_jacobian
   dst.node_coordinates    = src.node_coordinates
-  dst.surface_ids         = src.surface_ids
   dst.surface_flux_values = src.surface_flux_values
   dst.cell_ids            = src.cell_ids
   return nothing
@@ -43,12 +40,11 @@ function ElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
 
   inverse_jacobian = fill(nan, capacity)
   node_coordinates = fill(nan, 2, n_nodes, n_nodes, capacity)
-  surface_ids = fill(typemin(Int), 2 * 2, capacity)
   surface_flux_values = fill(nan, NVARS, n_nodes, 2 * 2, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer2D{RealT, NVARS, POLYDEG}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
-                                                surface_ids, surface_flux_values, cell_ids)
+                                                       surface_flux_values, cell_ids)
 
   return elements
 end

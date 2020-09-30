@@ -1,4 +1,10 @@
 
+"""
+    StepsizeCallback(; cfl=1.0)
+
+Set the time step size according to a CFL condition with CFL number `cfl`
+if the time integration method isn't adaptive itself.
+"""
 mutable struct StepsizeCallback{RealT}
   cfl_number::RealT
 end
@@ -7,7 +13,7 @@ end
 function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
   stepsize_callback = cb.affect!
   @unpack cfl_number = stepsize_callback
-  print(io, "StepsizeCallback with CFL number ", cfl_number)
+  print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
 end
 # TODO: Taal bikeshedding, implement a method with more information and the signature
 # function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}

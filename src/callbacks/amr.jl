@@ -1,4 +1,13 @@
 
+"""
+    AMRCallback(semi, indicator [,adaptor=AdaptorAMR(semi)];
+                interval=5,
+                adapt_initial_conditions=true,
+                adapt_initial_conditions_only_refine=true)
+
+Performs adaptive mesh refinement (AMR) every `interval` time steps
+for a given semidiscretization `semi` using the chosen `indicator`.
+"""
 struct AMRCallback{Indicator, Adaptor}
   indicator::Indicator
   interval::Int
@@ -74,22 +83,22 @@ end
 
 
 # TODO: Taal remove?
-function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
-  amr_callback = cb.affect!
-  semi = ode.p
+# function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:AMRCallback}
+#   amr_callback = cb.affect!
+#   semi = ode.p
 
-  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
-    # iterate until mesh does not change anymore
-    has_changed = true
-    while has_changed
-      has_changed = amr_callback(ode.u0, semi,
-                                 only_refine=amr_callback.adapt_initial_conditions_only_refine)
-      compute_coefficients!(ode.u0, ode.tspan[1], semi)
-    end
-  end
+#   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
+#     # iterate until mesh does not change anymore
+#     has_changed = true
+#     while has_changed
+#       has_changed = amr_callback(ode.u0, semi,
+#                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
+#       compute_coefficients!(ode.u0, ode.tspan[1], semi)
+#     end
+#   end
 
-  return nothing
-end
+#   return nothing
+# end
 
 
 function (amr_callback::AMRCallback)(integrator; kwargs...)
@@ -100,8 +109,8 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
     has_changed = amr_callback(u_ode, semi; kwargs...)
     if has_changed
       resize!(integrator, length(u_ode))
+      u_modified!(integrator, true)
     end
-    u_modified!(integrator, has_changed)
   end
 
   return has_changed
@@ -113,7 +122,17 @@ end
 end
 
 
-# TODO: Taal document
+"""
+    IndicatorThreeLevel(semi, indicator; base_level=1,
+                                         med_level=base_level, med_threshold=0.0,
+                                         max_level=base_level, max_threshold=1.0)
+
+An AMR indicator based on three levels (in decending order of precedence):
+- set the target level to `max_level` if `indicator > max_threshold`
+- set the target level to `med_level` if `indicator > med_threshold`;
+  if `med_level < 0`, set the target level to the current level
+- set the target level to `base_level` otherwise
+"""
 struct IndicatorThreeLevel{RealT<:Real, Indicator, Cache}
   base_level::Int
   med_level ::Int
@@ -170,75 +189,119 @@ function get_element_variables!(element_variables, indicator::AbstractIndicator,
 end
 
 
-"""
-    IndicatorLöhner (equivalent to IndicatorLoehner)
 
-AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
-FLASH code as standard AMR indicator.
-The indicator estimates a weighted second derivative of a specified variable locally.
-- Löhner (1987)
-  "An adaptive finite element scheme for transient problems in CFD"
-  [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
-"""
-struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  f_wave::RealT # TODO: Taal, better name and documentation
-  variable::Variable
-  cache::Cache
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
+                                     equations, dg::DG, cache;
+                                     only_refine=false, only_coarsen=false)
+  @unpack indicator, adaptor = amr_callback
+
+  u = wrap_array(u_ode, mesh, equations, dg, cache)
+  lambda = @timeit timer() "indicator" indicator(u, mesh, equations, dg, cache)
+
+  leaf_cell_ids = leaf_cells(mesh.tree)
+  @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
+
+  to_refine  = Int[]
+  to_coarsen = Int[]
+  for element in eachelement(dg, cache)
+    indicator_value = lambda[element]
+    if indicator_value > 0
+      push!(to_refine, leaf_cell_ids[element])
+    elseif indicator_value < 0
+      push!(to_coarsen, leaf_cell_ids[element])
+    end
+  end
+
+
+  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
+    # refine mesh
+    refined_original_cells = @timeit timer() "mesh" refine!(mesh.tree, to_refine)
+
+    # refine solver
+    @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    # TODO: Taal implement, passive solvers?
+    # if !isempty(passive_solvers)
+    #   @timeit timer() "passive solvers" for ps in passive_solvers
+    #     refine!(ps, mesh, refined_original_cells)
+    #   end
+    # end
+  else
+    # If there is nothing to refine, create empty array for later use
+    refined_original_cells = Int[]
+  end
+
+
+  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+    # Since the cells may have been shifted due to refinement, first we need to
+    # translate the old cell ids to the new cell ids
+    if !isempty(to_coarsen)
+      to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
+    end
+
+    # Next, determine the parent cells from which the fine cells are to be
+    # removed, since these are needed for the coarsen! function. However, since
+    # we only want to coarsen if *all* child cells are marked for coarsening,
+    # we count the coarsening indicators for each parent cell and only coarsen
+    # if all children are marked as such (i.e., where the count is 2^ndims). At
+    # the same time, check if a cell is marked for coarsening even though it is
+    # *not* a leaf cell -> this can only happen if it was refined due to 2:1
+    # smoothing during the preceding refinement operation.
+    parents_to_coarsen = zeros(Int, length(mesh.tree))
+    for cell_id in to_coarsen
+      # If cell has no parent, it cannot be coarsened
+      if !has_parent(mesh.tree, cell_id)
+        continue
+      end
+
+      # If cell is not leaf (anymore), it cannot be coarsened
+      if !is_leaf(mesh.tree, cell_id)
+        continue
+      end
+
+      # Increase count for parent cell
+      parent_id = mesh.tree.parent_ids[cell_id]
+      parents_to_coarsen[parent_id] += 1
+    end
+
+    # Extract only those parent cells for which all children should be coarsened
+    to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+
+    # Finally, coarsen mesh
+    coarsened_original_cells = @timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
+
+    # Convert coarsened parent cell ids to the list of child cell ids that have
+    # been removed, since this is the information that is expected by the solver
+    removed_child_cells = zeros(Int, n_children_per_cell(mesh.tree) * length(coarsened_original_cells))
+    for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
+      for child in 1:n_children_per_cell(mesh.tree)
+        removed_child_cells[n_children_per_cell(mesh.tree) * (index-1) + child] = coarse_cell_id + child
+      end
+    end
+
+    # coarsen solver
+    @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    # TODO: Taal implement, passive solvers?
+    # if !isempty(passive_solvers)
+    #   @timeit timer() "passive solvers" for ps in passive_solvers
+    #     coarsen!(ps, mesh, removed_child_cells)
+    #   end
+    # end
+  else
+    # If there is nothing to coarsen, create empty array for later use
+    coarsened_original_cells = Int[]
+  end
+
+ # Return true if there were any cells coarsened or refined, otherwise false
+ has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+ if has_changed # TODO: Taal decide, where shall we set this?
+  # don't set it to has_changed since there can be changes from earlier calls
+  mesh.unsaved_changes = true
+ end
+
+ return has_changed
 end
 
-function IndicatorLöhner(basis, equations; f_wave=0.2, variable=first)
-  cache = create_cache(IndicatorLöhner, equations, basis)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
-end
-
-function IndicatorLöhner(semi::AbstractSemidiscretization; f_wave=0.2, variable=first)
-  cache = create_cache(IndicatorLöhner, semi)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorLöhner)
-  print(io, "IndicatorLöhner(")
-  print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
-end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
-#   println(io, "IndicatorLöhner with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
-
-const IndicatorLoehner = IndicatorLöhner
-
-
-# TODO: Taal decide, shall we keep this?
-struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
-  variable::Variable
-  cache::Cache
-end
-
-function IndicatorMax(basis, equations::AbstractEquations; variable=first)
-  cache = create_cache(IndicatorMax, equations, basis)
-  IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
-end
-
-function IndicatorMax(semi; variable=first)
-  cache = create_cache(IndicatorMax, semi)
-  return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
-end
-
-function Base.show(io::IO, indicator::IndicatorMax)
-  print(io, "IndicatorMax(")
-  print(io, "variable=", indicator.variable, ")")
-end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
-#   println(io, "IndicatorMax with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
-
-
-Base.first(u, equations::AbstractEquations) = first(u)
+# function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
 
 
 include("amr_dg2d.jl")

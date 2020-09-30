@@ -8,6 +8,9 @@ abstract type AbstractEquations{NDIMS, NVARS} end
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
+# TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
+@inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
+
 
 # Add method to show some information on system of equations
 function Base.show(io::IO, equation::AbstractEquations)
@@ -90,6 +93,7 @@ end
 
 
 @inline cons2cons(u, equation::AbstractEquations) = u
+@inline Base.first(u, equations::AbstractEquations) = first(u)
 
 
 ####################################################################################################

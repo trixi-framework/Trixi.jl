@@ -1,9 +1,28 @@
 
 # TODO: Taal refactor
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
-# TODO: Taal refactor, interval as part of the struct for printing
+"""
+    AnalysisCallback(semi; interval=0,
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
+
+Analyze a numerical solution every `interval` time steps and print the
+results to the screen. If `save_analysis`, the results are also saved in
+`joinpath(output_directory, analysis_filename)`.
+
+Additional errors can be computed, e.g. by passing `extra_analysis_errors = [:primitive]`.
+
+Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
+solution and integrated over the computational domain.
+See `Trixi.analyze`, `Trixi.pretty_form_repl`, `Trixi.pretty_form_file` for further
+information on how to create custom analysis quantities.
+"""
 mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
   start_time::Float64
+  interval::Int
   save_analysis::Bool
   output_directory::String
   analysis_filename::String
@@ -19,19 +38,19 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
-  @unpack save_analysis, output_directory, analysis_filename, analyzer, analysis_errors, analysis_integrals = analysis_callback
   println(io, "AnalysisCallback with")
-  println(io, "- save_analysis: ", save_analysis)
-  println(io, "- output_directory: ", output_directory)
-  println(io, "- analysis_filename: ", analysis_filename)
-  println(io, "- analyzer: ", analyzer)
-  println(io, "- analysis_errors: ", analysis_errors)
-  print(io,   "- analysis_integrals: ", analysis_integrals)
+  println(io, "- interval: ", analysis_callback.interval)
+  println(io, "- save_analysis: ", analysis_callback.save_analysis)
+  println(io, "- output_directory: ", analysis_callback.output_directory)
+  println(io, "- analysis_filename: ", analysis_callback.analysis_filename)
+  println(io, "- analyzer: ", analysis_callback.analyzer)
+  println(io, "- analysis_errors: ", analysis_callback.analysis_errors)
+  print(io,   "- analysis_integrals: ", analysis_callback.analysis_integrals)
 end
 
 
 function AnalysisCallback(semi::SemidiscretizationHyperbolic;
-                          analysis_interval=0,
+                          interval=0,
                           save_analysis=false,
                           output_directory="out",
                           analysis_filename="analysis.dat",
@@ -41,10 +60,11 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals),
                           kwargs...)
   # when is the callback activated
-  condition = (u, t, integrator) -> analysis_interval > 0 && (integrator.iter % analysis_interval == 0 || t in integrator.sol.prob.tspan)
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 || t in integrator.sol.prob.tspan)
 
   _, equations, solver, _ = mesh_equations_solver_cache(semi)
-  analysis_callback = AnalysisCallback(0.0, save_analysis, output_directory, analysis_filename, SolutionAnalyzer(solver; kwargs...),
+  analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
+                                       SolutionAnalyzer(solver; kwargs...),
                                        analysis_errors, Tuple(analysis_integrals),
                                        SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
 
@@ -143,22 +163,34 @@ function (analysis_callback::AnalysisCallback)(integrator)
             " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     println(" sim. time:      " * @sprintf("%10.8e", t))
 
-    # TODO: Taal refactor, what to do with output and AMR?
     # Level information (only show for AMR)
-    # if parameter("amr_interval", 0)::Int > 0
-    #   levels = Vector{Int}(undef, dg.n_elements)
-    #   for element_id in 1:dg.n_elements
-    #     levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
-    #   end
-    #   min_level = minimum(levels)
-    #   max_level = maximum(levels)
+    uses_amr = false
+    callbacks = integrator.opts.callback
+    if callbacks isa CallbackSet
+      for cb in callbacks.discrete_callbacks
+        if cb.affect! isa AMRCallback
+          uses_amr = true
+          break
+        end
+      end
+    end
+    if uses_amr
+      levels = Vector{Int}(undef, nelements(solver, cache))
+      min_level = typemax(Int)
+      max_level = typemin(Int)
+      for element in eachelement(solver, cache)
+        current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
+        levels[element] = current_level
+        min_level = min(min_level, current_level)
+        max_level = max(max_level, current_level)
+      end
 
-    #   println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
-    #   for level = max_level:-1:min_level+1
-    #     println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
-    #   end
-    #   println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
-    # end
+      println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
+      for level = max_level:-1:min_level+1
+        println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+      end
+      println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+    end
     println()
 
     # Open file for appending and store time step and time information

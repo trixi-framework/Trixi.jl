@@ -42,7 +42,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
     end
   end
 
-  # TODO: Taal decide, shall we also print some information about the ODE problem/algorithm?
+  # TODO: Taal decide, shall we print more information about the ODE problem/algorithm?
+  println(io, "tspan = ", integrator.sol.prob.tspan)
+  println("Time integrator: ", integrator.alg)
 
   reset_timer!(timer())
 

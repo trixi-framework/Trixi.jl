@@ -41,7 +41,10 @@ export globals
 
 
 # TODO: Taal, decide where to define the entry points of our type hierarchy,
-# e.g. AbstractEquations etc.
+# e.g. AbstractEquations, AbstractSemidiscretization etc.
+# Placing them here will allow us to make use of them for dispatch even for
+# other stuff defined very early in our include pipeline, e.g.
+#   IndicatorLöhner(semi::AbstractSemidiscretization)
 
 
 # Include all top-level source files
