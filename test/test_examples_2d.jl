@@ -55,8 +55,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "parameters_blast_wave_shockcapturing_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_blast_wave_shockcapturing_amr.jl"),
-            l2   = [0.6711662708074747, 0.27954874379108824, 0.27954858242154956, 0.7209399244637021],
-            linf = [2.8867933412168636, 1.806408513893379, 1.8063306403855512, 3.0345451449653815],
+            l2   = [0.6778339184192986, 0.28136085729167076, 0.2813607687129121, 0.7202946425475186],
+            linf = [2.8891939545999277, 1.8038083274644838, 1.8036523839220984, 3.0363712085327177],
             tspan = (0.0, 1.0))
   end
 

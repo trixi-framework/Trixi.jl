@@ -54,7 +54,7 @@ indicator_amr = IndicatorHennemannGassner(semi,
                                           variable=density_pressure)
 amr_indicator = IndicatorThreeLevel(semi, indicator_amr,
                                     base_level=4,
-                                    max_level=6, max_threshold=0.1)
+                                    max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_indicator,
                            interval=5,
                            adapt_initial_conditions=true,
