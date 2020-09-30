@@ -66,6 +66,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             tspan = (0.0, 1.0))
   end
 
+  @testset "parameters_ec_mhd.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.jl"),
+            l2   = [0.03628315925311581, 0.04301306535453907, 0.042998910996002976, 0.025746791646914315, 0.1620587870592711, 0.01745580631201365, 0.01745656644392971, 0.02688212902288343, 0.00014263322984147517],
+            linf = [0.23504901239438747, 0.31563591777956146, 0.3094412744514615, 0.21177505529310434, 0.9738775041875032, 0.09120517132559702, 0.0919645047337756, 0.15691668358334432, 0.003551742314601502])
+  end
+
   @testset "jeans_instability.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "jeans_instability.jl"),
             l2   = [21174.220714494546, 978.743334383856, 5.0322938770733495e-6, 52935.53057317166],

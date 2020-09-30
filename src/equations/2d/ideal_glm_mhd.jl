@@ -218,6 +218,39 @@ end
   end
 end
 
+@inline function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+                                                    equations::IdealGlmMhdEquations2D, dg, cache)
+  for j in eachnode(dg), i in eachnode(dg)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+
+    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+
+    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    # x-direction
+    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
+    # y-direction
+    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
+
+    # add both nonconservative terms into the volume
+    for l in eachnode(dg)
+      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, equations, dg, l, j, element)
+      for v in eachvariable(equations)
+        f1[v, l, i, j] += phi_pow[v] * B1 + phi_gal_x[v] * psi
+      end
+      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, element)
+      for v in eachvariable(equations)
+        f2[v, l, i, j] += phi_pow[v] * B2 + phi_gal_y[v] * psi
+      end
+    end
+  end
+
+  return nothing
+end
+
 
 """
     flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
@@ -491,8 +524,8 @@ end
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
-  cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
+  cf_x_direction = calc_fast_wavespeed(u, 1, equation)
+  cf_y_direction = calc_fast_wavespeed(u, 2, equation)
   cf_max = max(cf_x_direction, cf_y_direction)
   equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
 

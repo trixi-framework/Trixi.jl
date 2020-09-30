@@ -89,8 +89,37 @@ function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u
   return dsdu_ut
 end
 
-# TODO: Taal implement
-# function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
-#   mesh::TreeMesh{2}, equations, dg::DG, cache)
-# function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
-#     mesh::TreeMesh{2}, equations, dg::DG, cache)
+
+
+function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
+                 mesh::TreeMesh{2}, equations, dg::DG, cache)
+  integrate(mesh, equations, dg, cache, u, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
+      divb = zero(eltype(u))
+      for k in eachnode(dg)
+        divb += ( derivative_matrix[i, k] * u[6, k, j, element] +
+                  derivative_matrix[j, k] * u[7, i, k, element] )
+      end
+      divb *= cache.elements.inverse_jacobian[element]
+  end
+end
+
+function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
+                 mesh::TreeMesh{2}, equations, dg::DG, cache)
+  @unpack derivative_matrix, weights = dg.basis
+
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = zero(eltype(u))
+  for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      divb = 0.0
+      for k in eachnode(dg)
+        divb += ( derivative_matrix[i, k] * u[6, k, j, element] +
+                  derivative_matrix[j, k] * u[7, i, k, element] )
+      end
+      divb *= cache.elements.inverse_jacobian[element]
+      linf_divb = max(linf_divb, abs(divb))
+    end
+  end
+
+  return linf_divb
+end

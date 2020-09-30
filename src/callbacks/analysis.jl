@@ -370,6 +370,12 @@ pretty_form_file(::typeof(energy_kinetic)) = "e_kinetic"
 pretty_form_repl(::typeof(energy_internal)) = "∑e_internal"
 pretty_form_file(::typeof(energy_internal)) = "e_internal"
 
+pretty_form_repl(::Val{:l2_divb}) = "L2 ∇⋅B"
+pretty_form_file(::Val{:l2_divb}) = "l2_divb"
+
+pretty_form_repl(::Val{:linf_divb}) = "L∞ ∇⋅B"
+pretty_form_file(::Val{:linf_divb}) = "linf_divb"
+
 
 # specialized implementations specific to some solvers
 include("analysis_dg2d.jl")
