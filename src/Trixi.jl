@@ -20,6 +20,7 @@ using Profile: clear_malloc_data
 using Random: seed!
 
 using HDF5: h5open, attrs
+using NLsolve: nlsolve
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack

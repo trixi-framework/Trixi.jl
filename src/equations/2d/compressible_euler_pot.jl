@@ -1,4 +1,3 @@
-using NLsolve
 @doc raw"""
     CompressibleEulerPotEquations2D
 

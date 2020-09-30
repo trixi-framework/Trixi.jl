@@ -1,4 +1,3 @@
-using NLsolve 
 @doc raw"""
     CompressibleEulerMoistEquations2D
 
