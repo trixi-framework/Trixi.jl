@@ -174,53 +174,6 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 
   return nothing
 end
-#=
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
-  c = 2.0
-  A = 0.1
-  G = 1.0 # gravitational constant, must match coupling solver
-  C_grav = -2.0 * G / pi # 2 == 4 / ndims
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    si, co = sincos(pi * (x1 + x2 - t))
-    rhox = A * pi * co
-    rho  = c + A *  si
-
-    ut[1, i, j, element_id] += rhox
-    ut[2, i, j, element_id] += rhox
-    ut[3, i, j, element_id] += rhox
-    ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
-  end
-
-  return nothing
-end
-
-function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
-  c = 2.0
-  A = 0.1
-  G = 1.0
-  C_grav = -2 * G / pi # 2 == 4 / ndims
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    si, co = sincos(pi * (x1 + x2 - t))
-    rhox = A * pi * co
-    rho  = c + A *  si
-
-    ut[1, i, j, element_id] += rhox
-    ut[2, i, j, element_id] += rhox * (1 -     C_grav * rho)
-    ut[3, i, j, element_id] += rhox * (1 -     C_grav * rho)
-    ut[4, i, j, element_id] += rhox * (1 - 3 * C_grav * rho)
-  end
-
-  return nothing
-end
-=#
 
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations1D)
