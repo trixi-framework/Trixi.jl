@@ -45,6 +45,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
             linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232])
   end
+  @testset "parameters_ec.toml with extra_analysis_quantities" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
+            l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
+            linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232]
+            extra_analysis_quantities = ["l2_error_primitve", "linf_error_primitive", "conservation_error",
+                                        "entropy", "energy_total", "energy_kinetic", "energy_internal", "residual"],
+            save_analysis = true
+            )
+  end
   @testset "parameters_ec.toml with flux_shima_etal" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
             l2   = [0.06423364669980625, 0.08503530800170918, 0.2407844935006154],
