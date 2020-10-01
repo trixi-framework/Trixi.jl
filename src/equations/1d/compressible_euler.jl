@@ -141,26 +141,6 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
   return flux
 end
 
-function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equation::CompressibleEulerEquations1D)
-  # velocities are zero, density/pressure are ambient values according to
-  # initial_conditions_sedov_self_gravity
-  rho = 1e-5
-  v1 = 0.0
-  p = 1e-5
-
-  u_boundary = prim2cons(SVector(rho, v1, p), equation)
-
-  # Calculate boundary flux
-  if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
-end
 
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
@@ -238,12 +218,6 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   return nothing
 end
 =#
-# Empty source terms required for coupled Euler-gravity simulations
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
-  # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
-  # TODO: make this cleaner and let each solver have a different source term name
-  return nothing
-end
 
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations1D)
