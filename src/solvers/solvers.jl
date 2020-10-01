@@ -34,7 +34,9 @@ function make_solver(name::String, equations::AbstractEquation, mesh::TreeMesh;
     source_terms_type = parameter("source_terms", "nothing")
     source_terms = eval_if_not_function(source_terms_type)
 
-    if ndims(equations) == 2
+    if ndims(equations) == 1
+      return Dg1D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+    elseif ndims(equations) == 2
       return Dg2D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
     elseif ndims(equations) == 3
       return Dg3D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
