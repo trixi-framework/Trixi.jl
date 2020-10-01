@@ -75,7 +75,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   r = abs(x_norm)
-  # The following code is equivalent to 
+  # The following code is equivalent to
   # phi = atan(0.0, x_norm)
   # cos_phi = cos(phi)
   # in 1D but faster
@@ -95,8 +95,11 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
   r = abs(x_norm)
-  phi = atan(0.0, x_norm)
-  cos_phi = cos(phi)
+  # The following code is equivalent to
+  # phi = atan(0.0, x_norm)
+  # cos_phi = cos(phi)
+  # in 1D but faster
+  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
