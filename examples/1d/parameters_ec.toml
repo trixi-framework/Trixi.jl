@@ -31,7 +31,6 @@ analysis_interval = 1000
 alive_interval = 0
 #volume_integral_type = "shock_capturing"
 volume_integral_type = "split_form"
-# volume_integral_type = "entropy_fix"
 
 
 ####################################################################################################
