@@ -49,7 +49,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec.toml"),
             l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
             linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232],
-            extra_analysis_quantities = ["l2_error_primitve", "linf_error_primitive", "conservation_error",
+            extra_analysis_quantities = ["l2_error_primitive", "linf_error_primitive", "conservation_error",
                                         "entropy", "energy_total", "energy_kinetic", "energy_internal", "residual"],
             save_analysis = true)
   end
@@ -81,6 +81,18 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_blast_wave_shockcapturing.toml"),
             l2   = [1.2500050612446159, 0.06878411345533555, 0.9447942342833009],
             linf = [2.9791692123401017, 0.1683336841958163, 2.665578807135144])
+  end
+  @testset "parameters_sedov_blast_wave_shockcapturing.toml with pressure" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_blast_wave_shockcapturing.toml"),
+            l2   = [1.2974912081242604, 0.07965704393481755, 0.9453618260835944],
+            linf = [3.1823155476320926, 0.21380426507857242, 2.6650734792251995],
+            shock_indicator_variable = "pressure")
+  end
+  @testset "parameters_sedov_blast_wave_shockcapturing.toml with density" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_sedov_blast_wave_shockcapturing.toml"),
+            l2   = [1.2797014548135697, 0.07077838776630381, 0.9457917493772532],
+            linf = [3.117424382044245, 0.17775688760995997, 2.666854886766347],
+            shock_indicator_variable = "density")
   end
   @testset "parameters_weak_blast_wave_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_weak_blast_wave_shockcapturing.toml"),
