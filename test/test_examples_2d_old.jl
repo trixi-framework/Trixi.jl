@@ -1,4 +1,4 @@
-module TestExamples2D
+module TestExamples2D  # TODO: Taal remove
 
 using Test
 using Trixi
