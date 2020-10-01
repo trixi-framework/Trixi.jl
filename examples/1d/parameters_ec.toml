@@ -2,8 +2,6 @@
 # Simulation
 ndims = 1
 equations = "CompressibleEulerEquations"
-# equations = "LinearScalarAdvectionEquation"
-# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
 # initial_conditions = "initial_conditions_convergence_test"
 # initial_conditions = "initial_conditions_isentropic_vortex"
