@@ -4,7 +4,7 @@ language: julia
 
 julia:
   - 1 # latest 1.x.y
-  - nightly
+  # - nightly
 
 os:
   - linux
@@ -47,6 +47,7 @@ codecov: true
 branches:
   only:
     - master
+    - dev
 
 # we could use groups to trigger multiple builds in parallel to speed-up running expensive tests
 # env:
