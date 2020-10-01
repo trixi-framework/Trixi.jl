@@ -72,7 +72,7 @@ end
 function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
+  inicenter = SVector(0.0)
   x_norm = x[1] - inicenter[1]
   r = abs(x_norm)
   # The following code is equivalent to
