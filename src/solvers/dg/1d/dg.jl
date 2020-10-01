@@ -109,18 +109,18 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  if equation isa AbstractHyperbolicDiffusionEquations && globals[:euler_gravity]
-    volume_integral_type = Val(:weak_form)
-  end
+  #if equation isa AbstractHyperbolicDiffusionEquations && globals[:euler_gravity]
+  #  volume_integral_type = Val(:weak_form)
+  #end
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
 
   # Initialize L2 mortar projection operators
-  amr_refine_right   = calc_forward_upper(n_nodes)
+  amr_refine_right  = calc_forward_upper(n_nodes)
   amr_refine_left   = calc_forward_lower(n_nodes)
   amr_coarsen_right = calc_reverse_upper(n_nodes, Val(:gauss))
-  amr_coarsen_left = calc_reverse_lower(n_nodes, Val(:gauss))
+  amr_coarsen_left  = calc_reverse_lower(n_nodes, Val(:gauss))
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
@@ -161,7 +161,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
-  
+
   # maximum and minimum alpha for shock capturing
   shock_alpha_max = parameter("shock_alpha_max", 0.5)
   shock_alpha_min = parameter("shock_alpha_min", 0.001)

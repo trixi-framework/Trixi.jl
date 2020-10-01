@@ -84,11 +84,6 @@ function refine_element!(u, element_id, old_u, old_element_id,
     set_node_vars!(u, acc, dg, i, left_id)
   end
 
-  # Interpolate to left element
-  #multiply_dimensionwise!(
-  #  view(u,     :, :, left_id), refine_left,
-  #    view(old_u, :, :, old_element_id))
-
   # Interpolate to right element
   for i in 1:nnodes(dg)
     acc = zero(get_node_vars(u, dg, i, element_id))
