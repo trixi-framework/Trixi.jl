@@ -92,7 +92,7 @@ end
 function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
+  inicenter = SVector(0.0)
   x_norm = x[1] - inicenter[1]
   r = abs(x_norm)
   # The following code is equivalent to
@@ -111,7 +111,7 @@ end
 
 function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # Set up polar coordinates
-  inicenter = SVector(0.0, 0.0)
+  inicenter = SVector(0.0)
   x_norm = x[1] - inicenter[1]
   r = abs(x_norm)
 
