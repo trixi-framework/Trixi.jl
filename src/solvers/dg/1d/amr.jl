@@ -293,13 +293,3 @@ function calc_amr_indicator(dg::Dg1D, mesh::TreeMesh, time)
 
   return lambda
 end
-
-
-# For periodic domains, distance between two points must take into account
-# periodic extensions of the domain
-function periodic_distance_1d(coordinates, center, domain_length)
-  dx = abs.(coordinates - center)
-  dx_periodic = min.(dx, domain_length .- dx)
-  return abs(dx_periodic)
-  #sqrt(sum(dx_periodic.^2))
-end
