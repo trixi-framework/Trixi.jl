@@ -23,7 +23,7 @@ mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   n_boundaries::Int
   n_boundaries_per_direction::SVector{2, Int}
 
-  n_l2mortars::Int # TODO: Only needed for simulation summary output -> fix me when Taal is alive
+  n_l2mortars::Int # TODO: Taal. Only needed for simulation summary output -> fix me when Taal is alive
 
   boundary_conditions::BoundaryConditions
 
@@ -86,7 +86,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
-  n_l2mortars = -1 # TODO: Only needed for simulation summary output -> fix me when Taal is alive
+  n_l2mortars = -1 # TODO: Taal. Only needed for simulation summary output -> fix me when Taal is alive
 
   # Sanity checks
   if isperiodic(mesh.tree)
@@ -108,10 +108,6 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
                                               valid=["weak_form", "split_form", "shock_capturing"])))
-  # FIXME: This should be removed as soon as it possible to set solver-specific parameters
-  #if equation isa AbstractHyperbolicDiffusionEquations && globals[:euler_gravity]
-  #  volume_integral_type = Val(:weak_form)
-  #end
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
@@ -975,7 +971,7 @@ function rhs!(dg::Dg1D, t_stage)
   @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
-# TODO: implement 2D!!!
+# TODO: implement 1D!!!
 # Apply positivity limiter of Zhang and Shu to nodal values elements.u
 function apply_positivity_preserving_limiter!(dg::Dg1D)
 end
