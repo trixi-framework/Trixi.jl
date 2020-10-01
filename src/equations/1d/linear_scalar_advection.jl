@@ -100,21 +100,6 @@ function boundary_conditions_gauss(u_inner, orientation, direction, x, t, surfac
 end
 
 
-function boundary_conditions_linear_x(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation1D)
-  u_boundary = initial_conditions_linear_x(x, t, equation)
-
-  # Calculate boundary flux
-  if direction == 2  # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
-end
-
 function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::LinearScalarAdvectionEquation1D)

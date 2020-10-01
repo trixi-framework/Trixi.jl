@@ -643,39 +643,6 @@ function calc_entropy_timederivative(dg::Dg1D, t)
 end
 
 
-# Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
-# OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
-#      compute the full 3D divergence from the given data
-function calc_mhd_solenoid_condition(dg::Dg1D, t::Float64)
-  @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
-
-  # Local copy of standard derivative matrix
-  d = polynomial_derivative_matrix(dg.nodes)
-  # Quadrature weights
-  weights = dg.weights
-  # integrate over all elements to get the divergence-free condition errors
-  linf_divb = 0.0
-  l2_divb   = 0.0
-  for element_id in 1:dg.n_elements
-    jacobian_volume = (1.0/dg.elements.inverse_jacobian[element_id])^ndims(dg)
-    #for j in 1:nnodes(dg)
-      for i in 1:nnodes(dg)
-        divb   = 0.0
-        for k in 1:nnodes(dg)
-          divb += d[i,k]*dg.elements.u[6,k,element_id]
-        end
-        divb *= dg.elements.inverse_jacobian[element_id]
-        linf_divb = max(linf_divb,abs(divb))
-        l2_divb += jacobian_volume*weights[i]*divb^2
-      end
-    #end
-  end
-  l2_divb = sqrt(l2_divb/dg.analysis_total_volume)
-
-  return l2_divb, linf_divb
-end
-
-
 
 """
     analyze_solution(dg::Dg1D, mesh::TreeMesh, time, dt, step, runtime_absolute, runtime_relative)
@@ -886,67 +853,6 @@ function analyze_solution(dg::Dg1D, mesh::TreeMesh, time::Real, dt::Real, step::
     println()
   end
 
-  # Magnetic energy
-  if :energy_magnetic in dg.analysis_quantities
-    e_magnetic = integrate(dg, dg.elements.u) do i, element_id, dg, u
-      cons = get_node_vars(u, dg, i, element_id)
-      return energy_magnetic(cons, equations(dg))
-    end
-    print(" ∑e_magnetic: ")
-    @printf("  % 10.8e", e_magnetic)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
-    println()
-  end
-
-  # Potential energy
-  if :energy_potential in dg.analysis_quantities
-    # FIXME: This should be implemented properly for multiple coupled solvers
-    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
-
-    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, element_id, dg, u_euler, u_gravity
-      cons_euler = get_node_vars(u_euler, dg, i, element_id)
-      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, element_id)
-      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
-      return (cons_euler[1] - 1.5e7) * cons_gravity[1]
-    end
-    print(" ∑e_pot:      ")
-    @printf("  % 10.8e", e_potential)
-    dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
-    println()
-  end
-
-  # Solenoidal condition ∇ ⋅ B = 0
-  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
-    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
-  end
-  # L2 norm of ∇ ⋅ B
-  if :l2_divb in dg.analysis_quantities
-    print(" L2 ∇ ⋅B:     ")
-    @printf("  % 10.8e", l2_divb)
-    dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
-    println()
-  end
-  # Linf norm of ∇ ⋅ B
-  if :linf_divb in dg.analysis_quantities
-    print(" Linf ∇ ⋅B:   ")
-    @printf("  % 10.8e", linf_divb)
-    dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
-    println()
-  end
-
-  # Cross helicity
-  if :cross_helicity in dg.analysis_quantities
-    h_c = integrate(dg, dg.elements.u) do i, element_id, dg, u
-      cons = get_node_vars(u, dg, i, element_id)
-      return cross_helicity(cons, equations(dg))
-    end
-    print(" ∑H_c:        ")
-    @printf("  % 10.8e", h_c)
-    dg.save_analysis && @printf(f, "  % 10.8e", h_c)
-    println()
-  end
-
   println("-"^80)
   println()
 
@@ -1022,21 +928,6 @@ function save_analysis_header(filename, quantities, equation::AbstractEquation{1
     if :energy_internal in quantities
       @printf(f, "   %-14s", "e_internal")
     end
-    if :energy_magnetic in quantities
-      @printf(f, "   %-14s", "e_magnetic")
-    end
-    if :energy_potential in quantities
-      @printf(f, "   %-14s", "e_potential")
-    end
-    if :l2_divb in quantities
-      @printf(f, "   %-14s", "l2_divb")
-    end
-    if :linf_divb in quantities
-      @printf(f, "   %-14s", "linf_divb")
-    end
-    if :cross_helicity in quantities
-      @printf(f, "   %-14s", "cross_helicity")
-    end
     println(f)
   end
 end
@@ -1093,29 +984,6 @@ end
 
 # Calculate volume integral and update u_t
 calc_volume_integral!(dg::Dg1D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
-
-
-# Calculate 1D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, u, element_id, dg::Dg1D)
-  @unpack volume_flux_function = dg
-
-  for i in 1:nnodes(dg)
-    # Set diagonal entries (= regular volume fluxes due to consistency)
-    u_node = get_node_vars(u, dg, i, element_id)
-    flux1 = calcflux(u_node, 1, equations(dg))
-    set_node_vars!(f1, flux1, dg, i, i)
-
-    # Flux in x-direction
-    for l in (i+1):nnodes(dg)
-      u_ll = get_node_vars(u, dg, i, element_id)
-      u_rr = get_node_vars(u, dg, l, element_id)
-      flux = volume_flux_function(u_ll, u_rr, 1, equations(dg)) # 1-> x-direction
-      for v in 1:nvariables(dg)
-        f1[v, i, l] = f1[v, l, i] = flux[v]
-      end
-    end
-  end
-end
 
 
 # Calculate volume integral (DGSEM in weak form)
@@ -1303,66 +1171,6 @@ function prolong2boundaries!(dg::Dg1D)
         dg.boundaries.u[2, v, b] = dg.elements.u[v, 1,          element_id]
       end
     end
-  end
-end
-
-
-
-"""
-    calc_fstar!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg1D)
-
-Calculate the surface flux across interface with different states given by
-`u_interfaces_left, u_interfaces_right` on both sides (EC mortar version).
-
-# Arguments
-- `destination::AbstractArray{T,3} where T<:Real`:
-  The array of surface flux values (updated inplace).
-- `u_interfaces_left::AbstractArray{T,3} where T<:Real``
-- `u_interfaces_right::AbstractArray{T,3} where T<:Real``
-- `interface_id::Integer`
-- `orientations::Vector{T} where T<:Integer`
-- `dg::Dg2D`
-"""
-#TODO
-function calc_fstar!(destination, u_interfaces_left, u_interfaces_right, interface_id, orientations, dg::Dg1D)
-  @unpack surface_flux_function = dg
-
-  # Call pointwise two-point numerical flux function
-  # i -> left, j -> right
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    u_ll = get_node_vars(u_interfaces_left,  dg, i, interface_id)
-    u_rr = get_node_vars(u_interfaces_right, dg, j, interface_id)
-    flux = surface_flux_function(u_ll, u_rr, orientations[interface_id], equations(dg))
-
-    # Copy flux back to actual flux array
-    set_node_vars!(destination, flux, dg, i, j)
-  end
-end
-
-"""
-    calc_fstar!(destination, u_interfaces, interface_id, orientations, dg::Dg1D)
-
-Calculate the surface flux across interface with different states given by
-`u_interfaces_left, u_interfaces_right` on both sides (interface version).
-
-# Arguments
-- `destination::AbstractArray{T,2} where T<:Real`:
-  The array of surface flux values (updated inplace).
-- `u_interfaces::AbstractArray{T,4} where T<:Real``
-- `interface_id::Integer`
-- `orientations::Vector{T} where T<:Integer`
-- `dg::Dg2D`
-"""
-function calc_fstar!(destination, u_interfaces, interface_id, orientations, dg::Dg1D)
-  @unpack surface_flux_function = dg
-
-  for i in 1:nnodes(dg)
-    # Call pointwise two-point numerical flux function
-    u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, interface_id)
-    flux = surface_flux_function(u_ll, u_rr, orientations[interface_id], equations(dg))
-
-    # Copy flux to left and right element storage
-    set_node_vars!(destination, flux, dg, i)
   end
 end
 
