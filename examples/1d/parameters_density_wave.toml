@@ -18,7 +18,8 @@ solver = "dg"
 polydeg = 5
 cfl = 0.8
 n_steps_max = 10000
-analysis_interval = 100
+analysis_interval = 2000
+alive_interval=0
 
 
 ####################################################################################################
