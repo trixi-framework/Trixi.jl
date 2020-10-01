@@ -5,7 +5,6 @@ equations = "CompressibleEulerEquations"
 
 initial_conditions = "initial_conditions_convergence_test"
 boundary_conditions = "boundary_conditions_convergence_test"
-# initial_conditions = "initial_conditions_constant"
 surface_flux = "flux_lax_friedrichs"
 source_terms = "source_terms_convergence_test"
 t_start = 0.0
@@ -35,10 +34,6 @@ initial_refinement_level = 4
 # No periodic boundaries: on all boundaries the initial conditions are weakly
 # enforced as a Dirichlet BCs
 periodicity = false
-# Periodic in x-direction, BCs in y-direction
-# periodicity = [true, false]
-# BCs in x-direction, periodic in y-direction
-# periodicity = [false, true]
 # refinement_patches = [
 #   {type = "box", coordinates_min = [0.0], coordinates_max = [1.0]},
 # ]
