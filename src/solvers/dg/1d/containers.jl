@@ -7,7 +7,6 @@ struct ElementContainer1D{NVARS, POLYDEG} <: AbstractContainer
   u_tmp3::Array{Float64, 3}              # [variables, i, elements]
   inverse_jacobian::Vector{Float64}      # [elements]
   node_coordinates::Array{Float64, 3}    # [orientation, i, elements]
-  surface_ids::Matrix{Int}               # [direction, elements]
   surface_flux_values::Array{Float64, 3} # [variables, direction, elements]
   cell_ids::Vector{Int}                  # [elements]
 end
@@ -23,12 +22,11 @@ function ElementContainer1D{NVARS, POLYDEG}(capacity::Integer) where {NVARS, POL
   u_tmp3 = fill(0.0, NVARS, n_nodes, capacity)
   inverse_jacobian = fill(NaN, capacity)
   node_coordinates = fill(NaN, 1, n_nodes, capacity)
-  surface_ids = fill(typemin(Int), 2 * 1, capacity)
   surface_flux_values = fill(NaN, NVARS, 2 * 1, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer1D{NVARS, POLYDEG}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
-                                                surface_ids, surface_flux_values, cell_ids)
+                                                 surface_flux_values, cell_ids)
 
   return elements
 end
