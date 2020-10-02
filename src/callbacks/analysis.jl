@@ -203,12 +203,11 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # the time derivative can be unassigned before the first step is made
     if t == integrator.sol.prob.tspan[1]
-      u_ode  = integrator.u
-      du_ode = similar(u_ode)
-      @notimeit timer() rhs!(du_ode, u_ode, semi, t)
+      du_ode = similar(integrator.u)
     else
       du_ode = get_du(integrator)
     end
+    @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
     GC.@preserve du_ode begin
       du = wrap_array(du_ode, mesh, equations, solver, cache)
 
