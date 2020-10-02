@@ -5,6 +5,10 @@ const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
 const ON_APPVEYOR = lowercase(get(ENV, "APPVEYOR", "false")) == "true"
 
 @time @testset "Trixi.jl tests" begin
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "1D"
+    include("test_examples_1d.jl")
+  end
+
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2D"
     include("test_examples_2d.jl")
     include("test_examples_2d_old.jl")

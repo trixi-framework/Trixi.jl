@@ -22,6 +22,7 @@ are listed in alphabetical order:
 
 * Erik Faulhaber
 * Gregor Gassner
+* Julia Odenthal
 * Hendrik Ranocha
 * Michael Schlottke-Lakemper
 * Andrew Winters

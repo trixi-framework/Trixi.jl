@@ -438,6 +438,11 @@ end
 
 
 
+# Include 1D implementation
+include("1d/containers.jl")
+include("1d/dg.jl")
+include("1d/amr.jl")
+
 # Include 2D implementation
 include("2d/containers.jl")
 include("2d/dg.jl")

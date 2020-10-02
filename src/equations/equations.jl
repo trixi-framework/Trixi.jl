@@ -29,7 +29,9 @@ end
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String, ndims_)
   if name == "LinearScalarAdvectionEquation"
-    if ndims_ == 2
+    if ndims_ == 1
+      return LinearScalarAdvectionEquation1D()
+    elseif ndims_ == 2
       return LinearScalarAdvectionEquation2D()
     elseif ndims_ == 3
       return LinearScalarAdvectionEquation3D()
@@ -37,7 +39,9 @@ function make_equations(name::String, ndims_)
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
   elseif name == "CompressibleEulerEquations"
-    if ndims_ == 2
+    if ndims_ == 1
+      return CompressibleEulerEquations1D()
+    elseif ndims_ == 2
       return CompressibleEulerEquations2D()
     elseif ndims_ == 3
       return CompressibleEulerEquations3D()
@@ -101,11 +105,13 @@ end
 
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("1d/linear_scalar_advection.jl")
 include("2d/linear_scalar_advection.jl")
 include("3d/linear_scalar_advection.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("1d/compressible_euler.jl")
 include("2d/compressible_euler.jl")
 include("3d/compressible_euler.jl")
 

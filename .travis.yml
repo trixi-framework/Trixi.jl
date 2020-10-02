@@ -32,6 +32,7 @@ env:
   global:
     - COVERALLS_PARALLEL=true
   jobs:
+    - TRIXI_TEST=1D
     - TRIXI_TEST=2D
     - TRIXI_TEST=3D
     - TRIXI_TEST=misc

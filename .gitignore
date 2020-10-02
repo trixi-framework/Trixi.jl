@@ -15,3 +15,5 @@ coverage/
 coverage_report/
 **/*.jl.*.cov
 **/.ipynb_checkpoints/
+**/solution_*.txt
+**/restart_*.txt

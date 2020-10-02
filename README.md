@@ -23,7 +23,7 @@ focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
-* Native support for 2D and 3D simulations
+* Native support for 1D, 2D, and 3D simulations
 * High-order accuracy in space in time
 * Nodal discontinuous Galerkin spectral element methods
   * Kinetic energy-preserving and entropy-stable split forms
