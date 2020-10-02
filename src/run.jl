@@ -545,7 +545,10 @@ function compute_linear_structure(parameters_file, source_terms=nothing; verbose
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
-  if solver isa Dg2D
+  if solver isa Dg1D
+    solver = Dg1D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+                  source_terms, mesh, polydeg(solver))
+  elseif solver isa Dg2D
     solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
                   source_terms, mesh, polydeg(solver))
   elseif solver isa Dg3D
