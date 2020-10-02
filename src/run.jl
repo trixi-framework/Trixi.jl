@@ -432,6 +432,12 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     println()
   end
 
+  # Distribute l2_errors from root such that all ranks have correct return value
+  if is_parallel()
+    l2_error   = convert(typeof(l2_error),   MPI.Bcast!(collect(l2_error),   mpi_root(), mpi_comm()))
+    linf_error = convert(typeof(linf_error), MPI.Bcast!(collect(linf_error), mpi_root(), mpi_comm()))
+  end
+
   # Return error norms for EOC calculation
   return l2_error, linf_error, varnames_cons(solver.equations)
 end
