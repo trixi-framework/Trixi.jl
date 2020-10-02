@@ -1,10 +1,10 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
+mutable struct Dg1D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
                   VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
-                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{1, POLYDEG}
+                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{1, POLYDEG, MeshType}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -62,6 +62,8 @@ mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
+  n_elements_global::Int
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -70,7 +72,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh1D, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -155,6 +157,9 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "blast_wave"]))
 
+  # Set global number of elements
+  n_elements_global = n_elements
+
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
 
@@ -186,8 +191,29 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
+  # Convert all performance-critical fields to StaticArrays types
+  nodes           = SVector{POLYDEG+1}(nodes)
+  weights         = SVector{POLYDEG+1}(weights)
+  inverse_weights = SVector{POLYDEG+1}(inverse_weights)
+  lhat = SMatrix{POLYDEG+1,2}(lhat)
+  dhat              = SMatrix{POLYDEG+1,POLYDEG+1}(dhat)
+  dsplit            = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit)
+  dsplit_transposed = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed)
+  amr_refine_right   = SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_right)
+  amr_refine_left    = SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_left)
+  amr_coarsen_right  = SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_right)
+  amr_coarsen_left   = SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_left)
+  analysis_nodes          = SVector{analysis_polydeg+1}(analysis_nodes)
+  analysis_weights        = SVector{analysis_polydeg+1}(analysis_weights)
+  analysis_weights_volume = SVector{analysis_polydeg+1}(analysis_weights_volume)
+
   # Create actual DG solver instance
-  dg = Dg1D(
+  dg = Dg1D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(source_terms), typeof(boundary_conditions),
+            typeof(volume_integral_type), typeof(shock_indicator_variable),
+            typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),
+            typeof(amr_refine_right), typeof(analysis_nodes), typeof(analysis_vandermonde)}(
       equation,
       surface_flux_function, volume_flux_function,
       initial_conditions, source_terms,
@@ -195,18 +221,19 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       interfaces, n_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
       n_l2mortars,
-      Tuple(boundary_conditions),
-      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
-      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
+      boundary_conditions,
+      nodes, weights, inverse_weights,
+      inverse_vandermonde_legendre, lhat,
       volume_integral_type,
-      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_right),   SMatrix{POLYDEG+1,POLYDEG+1}(amr_refine_left),
-      SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_right), SMatrix{POLYDEG+1,POLYDEG+1}(amr_coarsen_left),
-      SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
+      dhat, dsplit, dsplit_transposed,
+      amr_refine_right, amr_refine_left,
+      amr_coarsen_right, amr_coarsen_left,
+      analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
+      n_elements_global,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -236,7 +263,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{1}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh1D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -261,7 +288,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{1}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -290,7 +317,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+function init_elements(cell_ids, mesh::TreeMesh1D, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
   # Initialize container
   n_elements = length(cell_ids)
   elements = ElementContainer1D{NVARS, POLYDEG}(n_elements)
@@ -328,7 +355,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_interfaces(cell_ids, mesh::TreeMesh1D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer1D{NVARS, POLYDEG}(n_interfaces)
@@ -344,7 +371,7 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+function init_boundaries(cell_ids, mesh::TreeMesh1D, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
   boundaries = BoundaryContainer1D{NVARS, POLYDEG}(n_boundaries)
@@ -357,7 +384,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{1})
+function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh1D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -412,7 +439,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{1})
+function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh1D)
   # Reset boundaries count
   count = 0
 
@@ -476,7 +503,7 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{1})
   return SVector(counts_per_direction)
 end
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{1})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh1D)
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
@@ -505,7 +532,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{1})
     end
   end
 
-  return boundary_conditions
+  return Tuple(boundary_conditions)
 end
 
 

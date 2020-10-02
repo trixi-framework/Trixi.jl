@@ -240,7 +240,7 @@ function Dg3D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       l2mortars, n_l2mortars,
       boundary_conditions,
       nodes, weights, inverse_weights,
-      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
+      inverse_vandermonde_legendre, lhat,
       volume_integral_type,
       dhat, dsplit, dsplit_transposed,
       mortar_forward_upper, mortar_forward_lower,
