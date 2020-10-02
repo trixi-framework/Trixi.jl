@@ -1,7 +1,7 @@
 ####################################################################################################
 # Simulation
 ndims = 2
-equations = "CompressibleEulerMoistEquations"
+equations = "CompressibleMoistEnergyEulerEquations"
 #gamma = 1.66667
 # equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
@@ -12,6 +12,7 @@ equations = "CompressibleEulerMoistEquations"
 # initial_conditions = "initial_conditions_constant"
 #initial_conditions = "initial_conditions_weak_blast_wave"
 initial_conditions = "initial_conditions_moist_bubble"
+boundary_conditions = "boundary_conditions_slip_wall"
 source_terms = "source_terms_moist_bubble"
 t_start = 0.0
 t_end   = 1000.0

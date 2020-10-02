@@ -37,15 +37,15 @@ function make_equations(name::String, ndims_)
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
-  elseif name == "CompressibleEulerPotEquations"
+  elseif name == "CompressibleMoistPotTempEulerEquations"
     if ndims_ == 2
-      return CompressibleEulerPotEquations2D()
+      return CompressibleMoistPotTempEulerEquations2D()
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
-  elseif name == "CompressibleEulerMoistEquations"
+  elseif name == "CompressibleMoistEnergyEulerEquations"
     if ndims_ == 2
-      return CompressibleEulerMoistEquations2D()
+      return CompressibleMoistEnergyEulerEquations2D()
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end

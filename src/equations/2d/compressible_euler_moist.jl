@@ -1,10 +1,10 @@
 @doc raw"""
-    CompressibleEulerMoistEquations2D
+    CompressibleMoistEnergyEulerEquations2D
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 
-struct CompressibleEulerMoistEquations2D <: AbstractCompressibleEulerEquations{2, 6}
+struct CompressibleMoistEnergyEulerEquations2D <: AbstractCompressibleEulerEquations{2, 6}
   c_pd::Float64
   c_vd::Float64
   R_d::Float64
@@ -12,7 +12,7 @@ struct CompressibleEulerMoistEquations2D <: AbstractCompressibleEulerEquations{2
   c_vv::Float64
   R_v::Float64
   c_pl::Float64
-  κ::Float64
+  kappa::Float64
   gamma::Float64
   _grav::Float64
   p0::Float64
@@ -23,7 +23,7 @@ struct CompressibleEulerMoistEquations2D <: AbstractCompressibleEulerEquations{2
   Val::Array{Float64,2}
 end
 
-function CompressibleEulerMoistEquations2D()
+function CompressibleMoistEnergyEulerEquations2D()
   c_pd = parameter("c_pd",1004)
   c_vd = parameter("c_vd",717)
   c_pv = parameter("c_pv",1885)
@@ -31,12 +31,11 @@ function CompressibleEulerMoistEquations2D()
   c_pl = parameter("c_pl",4186)
   R_d = parameter("R_d",c_pd-c_vd)
   R_v = parameter("R_v",c_pv-c_vv)
-  κ = parameter("κ",R_d/c_pd)
+  kappa = parameter("kappa",R_d/c_pd)
   gamma = parameter("gamma", c_pd/c_vd)
   _grav = parameter("_grav",9.81)
   p0 = parameter("p0",1.e5)
   L00 = parameter("L00",2.5000e6 + (c_pl - c_pv) * 273.15)
-  println("L00 ",L00)
   cS = parameter("cS",360.e0)
 
   n=1000
@@ -49,29 +48,29 @@ function CompressibleEulerMoistEquations2D()
   function ResMoisture(z, y, yPrime)
 
     p = y[1]
-    ρ = y[2]
+    rho = y[2]
     T = y[3]
     r_t = y[4]
     r_v = y[5]
-    ρ_qv = y[6]
+    rho_qv = y[6]
     θ_e = y[7]
     pPrime = yPrime[1]
     F=zeros(7,1)
 
-    ρ_d = ρ / (1 + r_t)
-    p_d = R_d * ρ_d * T
+    rho_d = rho / (1 + r_t)
+    p_d = R_d * rho_d * T
     T_C = T - 273.15
     p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
     L = L00 - (c_pl - c_pv) * T
-    F[1] = pPrime + _grav * ρ
-    F[2] = p - (R_d * ρ_d + R_v * ρ_qv) * T
+    F[1] = pPrime + _grav * rho
+    F[2] = p - (R_d * rho_d + R_v * rho_qv) * T
     F[3] = θ_e - T * (p_d / p0)^(-R_d/
          (c_pd + c_pl * r_t)) * exp(L * r_v / ((c_pd + c_pl * r_t) * T))
     F[4] = r_t - r_t0
-    F[5] = ρ_qv-ρ_d * r_v
+    F[5] = rho_qv-rho_d * r_v
     F[6] = θ_e - θ_e0
-    a = p_vs / (R_v * T) - ρ_qv
-    b = ρ - ρ_qv - ρ_d
+    a = p_vs / (R_v * T) - rho_qv
+    b = rho - rho_qv - rho_d
     F[7]=a+b-sqrt(a*a+b*b)
     return F
   end
@@ -83,21 +82,21 @@ function CompressibleEulerMoistEquations2D()
 
   y=zeros(7)
   p=1.e5
-  ρ = 1.4
+  rho = 1.4
   r_t = r_t0
   r_v = r_t0
-  ρ_qv = ρ * r_v
+  rho_qv = rho * r_v
   θ_e = θ_e0
   T = θ_e
 
   yPrime = zeros(7)
   y0 = zeros(7)
   y0[1] = p
-  y0[2] = ρ
+  y0[2] = rho
   y0[3] = T
   y0[4] = r_t
   y0[5] = r_v
-  y0[6] = ρ_qv
+  y0[6] = rho_qv
   y0[7] = θ_e
 
 
@@ -107,20 +106,20 @@ function CompressibleEulerMoistEquations2D()
   F = SetImplEuler(z0,Δz,y0)
   res = nlsolve(F,y0)
   p = res.zero[1]
-  ρ = res.zero[2]
+  rho = res.zero[2]
   T = res.zero[3]
   r_t = res.zero[4]
   r_v = res.zero[5]
-  ρ_qv = res.zero[6]
+  rho_qv = res.zero[6]
   θ_e = res.zero[7]
-  ρ_d = ρ / (1 + r_t)
-  ρ_qc = ρ - ρ_d - ρ_qv
-  κ_M=(R_d * ρ_d + R_v * ρ_qv) / (c_pd * ρ_d + c_pv * ρ_qv + c_pl * ρ_qc)
-  ρ_θ = ρ * (p0 / p)^κ_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
-  Val[1,1] = ρ
-  Val[1,2] = ρ_θ
-  Val[1,3] = ρ_qv
-  Val[1,4] = ρ_qc
+  rho_d = rho / (1 + r_t)
+  rho_qc = rho - rho_d - rho_qv
+  kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_qc)
+  rho_θ = rho * (p0 / p)^kappa_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
+  Val[1,1] = rho
+  Val[1,2] = rho_θ
+  Val[1,3] = rho_qv
+  Val[1,4] = rho_qc
   Δz = 10.0
   z[1] = 0
   Val[1,1] = res.zero[2]
@@ -130,28 +129,29 @@ function CompressibleEulerMoistEquations2D()
     res = nlsolve(F,y0)
     z[i+1] = z[i] + Δz
     p = res.zero[1]
-    ρ = res.zero[2]
+    rho = res.zero[2]
     T = res.zero[3]
     r_t = res.zero[4]
     r_v = res.zero[5]
-    ρ_qv = res.zero[6]
+    rho_qv = res.zero[6]
     θ_e = res.zero[7]
-    ρ_d = ρ / (1 + r_t)
-    ρ_qc = ρ - ρ_d - ρ_qv
-    κ_M=(R_d * ρ_d + R_v * ρ_qv) / (c_pd * ρ_d + c_pv * ρ_qv + c_pl * ρ_qc)
-    ρ_θ = ρ * (p0 / p)^κ_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
-    Val[i+1,1] = ρ
-    Val[i+1,2] = ρ_θ
-    Val[i+1,3] = ρ_qv
-    Val[i+1,4] = ρ_qc
+    rho_d = rho / (1 + r_t)
+    rho_qc = rho - rho_d - rho_qv
+    kappa_M=(R_d * rho_d + R_v * rho_qv) / (c_pd * rho_d + c_pv * rho_qv + c_pl * rho_qc)
+    rho_θ = rho * (p0 / p)^kappa_M * T * (1 + (R_v / R_d) *r_v) / (1 + r_t) 
+    Val[i+1,1] = rho
+    Val[i+1,2] = rho_θ
+    Val[i+1,3] = rho_qv
+    Val[i+1,4] = rho_qc
   end
-  CompressibleEulerMoistEquations2D(c_pd,c_vd,R_d,c_pv,c_vv,R_v,c_pl,κ,gamma,_grav,p0,L00,cS,Δz,z,Val)
+  CompressibleMoistEnergyEulerEquations2D(c_pd,c_vd,R_d,c_pv,c_vv,R_v,c_pl,kappa,gamma,_grav,p0,L00,cS,Δz,z,Val)
 end
 
 
-get_name(::CompressibleEulerMoistEquations2D) = "CompressibleEulerPotEquations2D"
-varnames_cons(::CompressibleEulerMoistEquations2D) = @SVector ["ρ", "ρ_v1", "ρ_v2", "ρ_e", "ρ_qv", "ρ_qc"]
-varnames_prim(::CompressibleEulerMoistEquations2D) = @SVector ["ρ", "v1", "v2", "p", "qv", "qc"]
+get_name(::CompressibleMoistEnergyEulerEquations2D) = "CompressibleMoistEnergyEulerEquations2D"
+varnames_cons(::CompressibleMoistEnergyEulerEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e", "rho_qv", "rho_qc"]
+varnames_prim(::CompressibleMoistEnergyEulerEquations2D) = @SVector ["rho", "v1", "v2", "p", "qv", "qc"]
+varnames_pot(::CompressibleMoistEnergyEulerEquations2D) = @SVector ["rho", "v1", "v2", "theta", "qv", "qc"]
 
 """
 Warm bubble test from paper:
@@ -160,7 +160,7 @@ for the elastic equations incorporating second-order Runge–Kutta
 time differencing. Mon. Wea. Rev., 126, 1992–1999.
 """
 
-function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerMoistEquations2D)
+function initial_conditions_warm_bubble(x, t, equation::CompressibleMoistEnergyEulerEquations2D)
 
   xc = 0
   zc = 2000
@@ -176,22 +176,22 @@ function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerMoistEq
   #Perturbed state:
   θ = θ_ref + Δθ # potential temperature
   π_exner = 1 - equation._grav / (equation.c_pd * θ) * x[2] # exner pressure
-  ρ = equation.p0 / (equation.R_d * θ) * (π_exner)^(equation.c_vd / equation.R_d) # density
-  p = equation.p0 * (1-equation.κ * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_pd / equation.R_d)
-  T = p / (equation.R_d * ρ)
+  rho = equation.p0 / (equation.R_d * θ) * (π_exner)^(equation.c_vd / equation.R_d) # density
+  p = equation.p0 * (1-equation.kappa * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_pd / equation.R_d)
+  T = p / (equation.R_d * rho)
 
   v1 = 20
   v2 = 0
-  ρ_v1 = ρ * v1
-  ρ_v2 = ρ * v2
-  ρ_e = ρ * equation.c_vd * T + 1/2 * ρ * (v1^2 + v2^2)  
-  ρ_qv = 0
-  ρ_qc = 0
-  return @SVector [ρ, ρ_v1, ρ_v2, ρ_e, ρ_qv, ρ_qc]
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e = rho * equation.c_vd * T + 1/2 * rho * (v1^2 + v2^2)  
+  rho_qv = 0
+  rho_qc = 0
+  return @SVector [rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc]
 end
 
 
-function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerMoistEquations2D)
+function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleMoistEnergyEulerEquations2D)
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
     x2 = x[2, i, j, element_id]
@@ -210,7 +210,7 @@ Mon. Wea. Rev., 130, 2917–2928,
 https://doi.org/10.1175/1520-0493(2002)130<2917:ABSFMN>2.0.CO;2.
 """
 
-function initial_conditions_moist_bubble(x, t, equation::CompressibleEulerMoistEquations2D)
+function initial_conditions_moist_bubble(x, t, equation::CompressibleMoistEnergyEulerEquations2D)
 
 
   z = x[2] 
@@ -222,34 +222,34 @@ function initial_conditions_moist_bubble(x, t, equation::CompressibleEulerMoistE
     end
   end  
   z_l = equation.z[iz]
-  ρ_l = equation.Val[iz,1] 
-  ρ_θ_l = equation.Val[iz,2]
-  ρ_qv_l = equation.Val[iz,3]
-  ρ_qc_l = equation.Val[iz,4]
+  rho_l = equation.Val[iz,1] 
+  rho_θ_l = equation.Val[iz,2]
+  rho_qv_l = equation.Val[iz,3]
+  rho_qc_l = equation.Val[iz,4]
   z_r = equation.z[iz+1]
-  ρ_r = equation.Val[iz+1,1] 
-  ρ_θ_r = equation.Val[iz+1,2]
-  ρ_qv_r = equation.Val[iz+1,3]
-  ρ_qc_r = equation.Val[iz+1,4]
+  rho_r = equation.Val[iz+1,1] 
+  rho_θ_r = equation.Val[iz+1,2]
+  rho_qv_r = equation.Val[iz+1,3]
+  rho_qc_r = equation.Val[iz+1,4]
 
-  ρ = (ρ_r * (z - z_l) + ρ_l * (z_r - z)) / equation.Δz
-  ρ_θ = ρ * (ρ_θ_r / ρ_r * (z - z_l) + ρ_θ_l / ρ_l * (z_r - z)) / equation.Δz
-  ρ_qv = ρ * (ρ_qv_r / ρ_r * (z - z_l) + ρ_qv_l / ρ_l * (z_r - z)) / equation.Δz
-  ρ_qc = ρ * (ρ_qc_r / ρ_r * (z - z_l) + ρ_qc_l / ρ_l * (z_r - z)) / equation.Δz
+  rho = (rho_r * (z - z_l) + rho_l * (z_r - z)) / equation.Δz
+  rho_θ = rho * (rho_θ_r / rho_r * (z - z_l) + rho_θ_l / rho_l * (z_r - z)) / equation.Δz
+  rho_qv = rho * (rho_qv_r / rho_r * (z - z_l) + rho_qv_l / rho_l * (z_r - z)) / equation.Δz
+  rho_qc = rho * (rho_qc_r / rho_r * (z - z_l) + rho_qc_l / rho_l * (z_r - z)) / equation.Δz
 
-  ρ, ρ_e, ρ_qv, ρ_qc = PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleEulerMoistEquations2D)
+  rho, rho_e, rho_qv, rho_qc = PerturbMoistProfile(x, rho, rho_θ, rho_qv, rho_qc, equation::CompressibleMoistEnergyEulerEquations2D)
 
   v1 = 20
   v2 = 0
-  ρ_v1 = ρ * v1
-  ρ_v2 = ρ * v2
-  ρ_e = ρ_e +1/2 * ρ *(v1^2 + v2^2)
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e = rho_e +1/2 * rho *(v1^2 + v2^2)
 
-  return @SVector [ρ, ρ_v1, ρ_v2, ρ_e, ρ_qv, ρ_qc]
+  return @SVector [rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc]
 end
 
 
-function PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleEulerMoistEquations2D) 
+function PerturbMoistProfile(x, rho, rho_θ, rho_qv, rho_qc, equation::CompressibleMoistEnergyEulerEquations2D) 
 
   xc = 0
   zc = 2000
@@ -257,26 +257,26 @@ function PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleE
   Δθ = 2
 
   r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
-  ρ_d = ρ - ρ_qv - ρ_qc
-  κ_M = (equation.R_d * ρ_d + equation.R_v * ρ_qv) / (equation.c_pd * ρ_d + equation.c_pv * ρ_qv + equation.c_pl * ρ_qc)
-  p_loc = equation.p0 *(equation.R_d * ρ_θ / equation.p0)^(1/(1-κ_M))
-  T_loc = p_loc / (equation.R_d * ρ_d + equation.R_v * ρ_qv)
-  ρ_e = (equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc) * T_loc + equation.L00 * ρ_qv
+  rho_d = rho - rho_qv - rho_qc
+  kappa_M = (equation.R_d * rho_d + equation.R_v * rho_qv) / (equation.c_pd * rho_d + equation.c_pv * rho_qv + equation.c_pl * rho_qc)
+  p_loc = equation.p0 *(equation.R_d * rho_θ / equation.p0)^(1/(1-kappa_M))
+  T_loc = p_loc / (equation.R_d * rho_d + equation.R_v * rho_qv)
+  rho_e = (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) * T_loc + equation.L00 * rho_qv
 
   if r < rc && Δθ > 0 
-    θ_dens = ρ_θ / ρ * (p_loc / equation.p0)^(κ_M - equation.κ)
+    θ_dens = rho_θ / rho * (p_loc / equation.p0)^(kappa_M - equation.kappa)
     θ_dens_new = θ_dens * (1 + Δθ * cospi(0.5*r/rc)^2 / 300)
-    rt =(ρ_qv + ρ_qc) / ρ_d 
-    rv = ρ_qv / ρ_d
+    rt =(rho_qv + rho_qc) / rho_d 
+    rv = rho_qv / rho_d
     θ_loc = θ_dens_new * (1 + rt)/(1 + (equation.R_v / equation.R_d) * rv)
     if rt > 0 
       while true 
-        T_loc = θ_loc * (p_loc / equation.p0)^equation.κ
+        T_loc = θ_loc * (p_loc / equation.p0)^equation.kappa
         T_C = T_loc - 273.15
         # SaturVapor
         pvs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
-        ρ_d_new = (p_loc - pvs) / (equation.R_d * T_loc)
-        rvs = pvs / (equation.R_v * ρ_d_new * T_loc)
+        rho_d_new = (p_loc - pvs) / (equation.R_d * T_loc)
+        rvs = pvs / (equation.R_v * rho_d_new * T_loc)
         θ_new = θ_dens_new * (1 + rt) / (1 + (equation.R_v / equation.R_d) * rvs)
         if abs(θ_new-θ_loc) <= θ_loc * 1.0e-12
           break
@@ -286,84 +286,103 @@ function PerturbMoistProfile(x, ρ, ρ_θ, ρ_qv, ρ_qc, equation::CompressibleE
       end
     else
       rvs = 0
-      T_loc = θ_loc * (p_loc / equation.p0)^equation.κ
-      ρ_d_new = p_loc / (equation.R_d * T_loc)
+      T_loc = θ_loc * (p_loc / equation.p0)^equation.kappa
+      rho_d_new = p_loc / (equation.R_d * T_loc)
       θ_new = θ_dens_new * (1 + rt) / (1 + (equation.R_v / equation.R_d) * rvs)
     end
-    ρ_qv = rvs * ρ_d_new
-    ρ_qc = (rt - rvs) * ρ_d_new
-    ρ = ρ_d_new * (1 + rt)
-    ρ_d = ρ - ρ_qv - ρ_qc
-    κ_M = (equation.R_d * ρ_d + equation.R_v * ρ_qv) / (equation.c_pd * ρ_d + equation.c_pv * ρ_qv + equation.c_pl * ρ_qc)
-    ρ_θ = ρ * θ_dens_new * (p_loc / equation.p0)^(equation.κ - κ_M)
-    ρ_e = (equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc) * T_loc + equation.L00 * ρ_qv
+    rho_qv = rvs * rho_d_new
+    rho_qc = (rt - rvs) * rho_d_new
+    rho = rho_d_new * (1 + rt)
+    rho_d = rho - rho_qv - rho_qc
+    kappa_M = (equation.R_d * rho_d + equation.R_v * rho_qv) / (equation.c_pd * rho_d + equation.c_pv * rho_qv + equation.c_pl * rho_qc)
+    rho_θ = rho * θ_dens_new * (p_loc / equation.p0)^(equation.kappa - kappa_M)
+    rho_e = (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) * T_loc + equation.L00 * rho_qv
 
   end
-  return ρ, ρ_e, ρ_qv, ρ_qc
+  return rho, rho_e, rho_qv, rho_qc
 end
 
  
-function source_terms_moist_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerMoistEquations2D)
+function source_terms_moist_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleMoistEnergyEulerEquations2D)
 
   RelCloud = 1
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
     x2 = x[2, i, j, element_id]
-    ρ = u[1, i, j, element_id]
-    ρ_v1 = u[2, i, j, element_id]
-    ρ_v2 = u[3, i, j, element_id]
-    ρ_e = u[4, i, j, element_id]
-    ρ_qv = u[5, i, j, element_id]
-    ρ_qc = u[6, i, j, element_id]
-    ut[3, i, j, element_id] +=  -equation._grav * ρ
+    rho = u[1, i, j, element_id]
+    rho_v1 = u[2, i, j, element_id]
+    rho_v2 = u[3, i, j, element_id]
+    rho_e = u[4, i, j, element_id]
+    rho_qv = u[5, i, j, element_id]
+    rho_qc = u[6, i, j, element_id]
+    ut[3, i, j, element_id] +=  -equation._grav * rho
     ut[4, i, j, element_id] +=  -equation._grav * u[3, i, j, element_id]
 
-    ρ_d = ρ - ρ_qv - ρ_qc
-    v1 = ρ_v1 / ρ
-    v2 = ρ_v2 / ρ
-    R_m   = equation.R_d * ρ_d + equation.R_v * ρ_qv
-    p = (equation.R_d * ρ_d + equation.R_v * ρ_qv) /
-        (equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc) *
-        (ρ_e - 1/2 * ρ * (v1^2 + v2^2) - equation.L00 * ρ_qv)
+    rho_d = rho - rho_qv - rho_qc
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    R_m   = equation.R_d * rho_d + equation.R_v * rho_qv
+    p = (equation.R_d * rho_d + equation.R_v * rho_qv) /
+        (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) *
+        (rho_e - 1/2 * rho * (v1^2 + v2^2) - equation.L00 * rho_qv)
     T = p / R_m
     T_C = T - 273.15
     p_vs = 611.2 * exp(17.62 * T_C / (243.12 + T_C))
-    a = p_vs / (equation.R_v * T) - ρ_qv
-    b = ρ_qc
-    ρ_q_cond = RelCloud * (a + b - sqrt(a * a + b * b))
+    a = p_vs / (equation.R_v * T) - rho_qv
+    b = rho_qc
+    rho_q_cond = RelCloud * (a + b - sqrt(a * a + b * b))
 
-    ut[5, i, j, element_id] +=  ρ_q_cond
-    ut[6, i, j, element_id] += -ρ_q_cond
+    ut[5, i, j, element_id] +=  rho_q_cond
+    ut[6, i, j, element_id] += -rho_q_cond
   end
   return nothing
 end
 
+function boundary_conditions_slip_wall(u_inner, orientation, direction, x, t,
+                                       surface_flux_function,
+                                       equation::CompressibleMoistEnergyEulerEquations2D)
+  if orientation == 1 # interface in x-direction
+    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4], u_inner[5], u_inner[6])
+  else # interface in y-direction
+    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4], u_inner[5], u_inner[6])
+  end
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equation::CompressibleEulerMoistEquations2D)
-  ρ, ρ_v1, ρ_v2, ρ_e, ρ_qv, ρ_qc  = u
-  v1 = ρ_v1/ρ 
-  v2 = ρ_v2/ρ
-  qv = ρ_qv/ρ
-  qc = ρ_qc/ρ
-  ρ_d = ρ - ρ_qv -  ρ_qc 
-  p = (equation.R_d * ρ_d + equation.R_v * ρ_qv) /
-      (equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc) *
-      (ρ_e - 1/2 * ρ * (v1^2 + v2^2) - equation.L00 * ρ_qv)
+@inline function calcflux(u, orientation, equation::CompressibleMoistEnergyEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc  = u
+  v1 = rho_v1/rho 
+  v2 = rho_v2/rho
+  qv = rho_qv/rho
+  qc = rho_qc/rho
+  rho_d = rho - rho_qv -  rho_qc 
+  p = (equation.R_d * rho_d + equation.R_v * rho_qv) /
+      (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) *
+      (rho_e - 1/2 * rho * (v1^2 + v2^2) - equation.L00 * rho_qv)
 
   if orientation == 1
-    f1 = ρ_v1
-    f2 = ρ_v1 * v1 + p
-    f3 = ρ_v1 * v2
-    f4 = (ρ_e + p) * v1
-    f5 = ρ_v1 * qv
-    f6 = ρ_v1 * qc
+    f1 = rho_v1
+    f2 = rho_v1 * v1 + p
+    f3 = rho_v1 * v2
+    f4 = (rho_e + p) * v1
+    f5 = rho_v1 * qv
+    f6 = rho_v1 * qc
   else
-    f1 = ρ_v2
-    f2 = ρ_v2 * v1
-    f3 = ρ_v2 * v2 + p
-    f4 = (ρ_e + p) * v2
-    f5 = ρ_v2 * qv
-    f6 = ρ_v2 * qc
+    f1 = rho_v2
+    f2 = rho_v2 * v1
+    f3 = rho_v2 * v2 + p
+    f4 = (rho_e + p) * v2
+    f5 = rho_v2 * qv
+    f6 = rho_v2 * qc
   end
   return SVector(f1, f2, f3, f4, f5, f6)
 end
@@ -377,39 +396,39 @@ Mon. Wea. Rev., 141, 2526–2544, https://doi.org/10.1175/MWR-D-12-00129.1.
 
 """
 
-function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerMoistEquations2D)
+function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleMoistEnergyEulerEquations2D)
   # Calculate primitive variables and speed of sound
-  ρ_ll, ρ_v1_ll, ρ_v2_ll, ρ_e_ll, ρ_qv_ll, ρ_qc_ll = u_ll
-  ρ_rr, ρ_v1_rr, ρ_v2_rr, ρ_e_rr, ρ_qv_rr, ρ_qc_rr = u_rr
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll, rho_qv_ll, rho_qc_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr, rho_qv_rr, rho_qc_rr = u_rr
 
-  v1_ll = ρ_v1_ll / ρ_ll
-  v2_ll = ρ_v2_ll / ρ_ll
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  ρ_d_ll = ρ_ll - ρ_qv_ll -  ρ_qc_ll 
-  p_ll = (equation.R_d * ρ_d_ll + equation.R_v * ρ_qv_ll) /
-      (equation.c_vd * ρ_d_ll + equation.c_vv * ρ_qv_ll + equation.c_pl * ρ_qc_ll) *
-      (ρ_e_ll - 1/2 * ρ_ll * v_mag_ll^2 - equation.L00 * ρ_qv_ll)
-  v1_rr = ρ_v1_rr / ρ_rr
-  v2_rr = ρ_v2_rr / ρ_rr
+  rho_d_ll = rho_ll - rho_qv_ll -  rho_qc_ll 
+  p_ll = (equation.R_d * rho_d_ll + equation.R_v * rho_qv_ll) /
+      (equation.c_vd * rho_d_ll + equation.c_vv * rho_qv_ll + equation.c_pl * rho_qc_ll) *
+      (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2 - equation.L00 * rho_qv_ll)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  ρ_d_rr = ρ_rr - ρ_qv_rr -  ρ_qc_rr 
-  p_rr = (equation.R_d * ρ_d_rr + equation.R_v * ρ_qv_rr) /
-      (equation.c_vd * ρ_d_rr + equation.c_vv * ρ_qv_rr + equation.c_pl * ρ_qc_rr) *
-      (ρ_e_rr - 1/2 * ρ_rr * v_mag_rr^2 - equation.L00 * ρ_qv_rr)
+  rho_d_rr = rho_rr - rho_qv_rr -  rho_qc_rr 
+  p_rr = (equation.R_d * rho_d_rr + equation.R_v * rho_qv_rr) /
+      (equation.c_vd * rho_d_rr + equation.c_vv * rho_qv_rr + equation.c_pl * rho_qc_rr) *
+      (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2 - equation.L00 * rho_qv_rr)
 
 
-  ρM = 0.5 * (ρ_ll + ρ_rr)
+  rhoM = 0.5 * (rho_ll + rho_rr)
   if orientation == 1 # x-direction
-    pM = 0.5 * (p_ll + p_rr) - 0.5 * ρM * equation.cS * (v1_rr - v1_ll) 
-    vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * ρM * equation.cS) * (p_rr - p_ll) 
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.cS * (v1_rr - v1_ll) 
+    vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * rhoM * equation.cS) * (p_rr - p_ll) 
     if vM >= 0
       f = (u_ll + p_ll * SVector(0, 0, 0, 1, 0, 0)) * vM + pM * SVector(0, 1, 0, 0, 0, 0)
     else
       f = (u_rr + p_rr * SVector(0, 0, 0, 1, 0, 0)) * vM + pM * SVector(0, 1, 0, 0, 0, 0)
     end  
   else # y-direction
-    pM = 0.5 * (p_ll + p_rr) - 0.5 * ρM * equation.cS * (v2_rr - v2_ll) 
-    vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * ρM * equation.cS) * (p_rr - p_ll) 
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.cS * (v2_rr - v2_ll) 
+    vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.cS) * (p_rr - p_ll) 
     if vM >= 0
       f = (u_ll + p_ll * SVector(0, 0, 0, 1, 0, 0)) * vM + pM * SVector(0, 0, 1, 0, 0, 0)
     else
@@ -422,18 +441,18 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::CompressibleEulerMoistEquations2D, dg)
+                     equation::CompressibleMoistEnergyEulerEquations2D, dg)
   λ_max = 0.0
   for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    ρ, ρ_v1, ρ_v2, ρ_e, ρ_qv, ρ_qc = get_node_vars(u, dg, i, j, element_id)
-    v1 = ρ_v1 / ρ
-    v2 = ρ_v2 / ρ
+    rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc = get_node_vars(u, dg, i, j, element_id)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
     v_mag = sqrt(v1^2 + v2^2)
-    ρ_d = ρ - ρ_qv -  ρ_qc 
-    p = (equation.R_d * ρ_d + equation.R_v * ρ_qv) /
-      (equation.c_vd * ρ_d + equation.c_vv * ρ_qv + equation.c_pl * ρ_qc) *
-      (ρ_e - 1/2 * ρ * (v1^2 + v2^2) - equation.L00 * ρ_qv)
-    c = sqrt(equation.gamma * p / ρ)
+    rho_d = rho - rho_qv -  rho_qc 
+    p = (equation.R_d * rho_d + equation.R_v * rho_qv) /
+      (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) *
+      (rho_e - 1/2 * rho * (v1^2 + v2^2) - equation.L00 * rho_qv)
+    c = sqrt(equation.gamma * p / rho)
     λ_max = max(λ_max, v_mag + c)
   end
 
@@ -444,7 +463,7 @@ end
 
 
 # Convert conservative variables to primitive
-function cons2prim(cons, equation::CompressibleEulerMoistEquations2D)
+function cons2prim(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   prim = similar(cons)
   @. prim[1, :, :, :] = cons[1, :, :, :]
   @. prim[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
@@ -458,76 +477,60 @@ function cons2prim(cons, equation::CompressibleEulerMoistEquations2D)
 end
 
 # Convert conservative variables to potential
-function cons2pot(cons, equation::CompressibleEulerMoistEquations2D)
-  n_nodes = size(cons, 2)
-  n_elements = size(cons, 4)
-  pot = similar(cons)
-  @. pot[1, :, :, :] = cons[1, :, :, :]
-  @. pot[2, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. pot[3, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  ρ_d = zeros(n_nodes,n_nodes,n_elements)
-  κ_M  = zeros(n_nodes,n_nodes,n_elements)
-  p = zeros(n_nodes,n_nodes,n_elements)
-  p_d = zeros(n_nodes,n_nodes,n_elements)
-  T = zeros(n_nodes,n_nodes,n_elements)
-  @. ρ_d = cons[1, :, :, :] - cons[5, :, :, :] - cons[6, :, :, :]
-  @. κ_M=(equation.R_d * ρ_d + equation.R_v * cons[5, :, :, :]) / (equation.c_pd * ρ_d + equation.c_pv * cons[5, :, :, :] + equation.c_pl * cons[6, :, :, :])
-  @. p = (equation.R_d * ρ_d + equation.R_v * cons[5, :, :, :]) /
-      (equation.c_vd * ρ_d + equation.c_vv * cons[5, :, :, :] + equation.c_pl * cons[6, :, :, :]) *
-      (cons[4, :, :, :] - 1/2 * cons[1, :, :, :] * ((cons[2, :, :, :]/cons[1, :, :, :])^2 + (cons[3, :, :, :]/cons[1, :, :, :])^2) - 
-      equation.L00 * cons[5, :, :, :])
-# @. p = (equation.R_d * cons[4, :, :, :] / (equation.p0.^κ_M)).^(1/(1-κ_M)) 
-  @. T = p / (equation.R_d * ρ_d + equation.R_v * cons[5, :, :, :]) 
-  @. p_d = equation.R_d * ρ_d * T 
-  @. pot[4, :, :, :] =    
-  T * (p_d / equation.p0)^(-equation.R_d * ρ_d /
-         (equation.c_pd * ρ_d + equation.c_pl * (cons[5, :, :, :] +cons[6, :, :, :]))) * 
-         exp((equation.L00 - (equation.c_pl - equation.c_pv) * T) * 
-         cons[5, :, :, :] / ((equation.c_pd * ρ_d + equation.c_pl * 
-         (cons[5, :, :, :] +cons[6, :, :, :])) * T)) 
 
+# Convert conservative variables to potential
+function cons2pot(u, equation::CompressibleMoistEnergyEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc = u
 
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  qv = rho_qv / rho
+  qc = rho_qc / rho
 
+  rho_d = rho - rho_qv - rho_qc
+  kappa_M = (equation.R_d * rho_d + equation.R_v * rho_qv) / (equation.c_pd * rho_d + equation.c_pv * rho_qv +
+             equation.c_pl * rho_qc)
+  p = (equation.R_d * rho_d + equation.R_v * rho_qv) /
+      (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) *
+      (rho_e - 1/2 * rho * (v1^2 + v2^2) - equation.L00 * rho_qv)
+  T = p / (equation.R_d * rho_d + equation.R_v * rho_qv)    
+  p_d = equation.R_d * rho_d * T
+  theta_e = T * (p_d / equation.p0)^(-equation.R_d * rho_d /
+         (equation.c_pd * rho_d + equation.c_pl * (rho_qv + rho_qc))) *
+         exp((equation.L00 - (equation.c_pl - equation.c_pv) * T) *
+         rho_qv / ((equation.c_pd * rho_d + equation.c_pl *
+         (rho_qv + rho_qc)) * T))                      
 
-# @. pot[4, :, :, :] = equation.p0 * (((equation.gamma - 1)
-#                        * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * pot[2, :, :, :] +
-#                                                     cons[3, :, :, :] * pot[3, :, :, :]))) 
-#                        / equation.p0 )^(1-equation.κ) / (equation.R_d * cons[1, :, :, :])
-  @. pot[5, :, :, :] = cons[5, :, :, :] / cons[1, :, :, :]
-  @. pot[6, :, :, :] = cons[6, :, :, :] / cons[1, :, :, :]
-  return pot
+  return SVector(rho, v1, v2, theta_e, qv, qc)
 end
 
 # Convert conservative variables to entropy
-function cons2entropy(cons, n_nodes, n_elements, equation::CompressibleEulerMoistEquations2D)
-  entropy = similar(cons)
-  v = zeros(2,n_nodes,n_nodes,n_elements)
-  v_square = zeros(n_nodes,n_nodes,n_elements)
-  p = zeros(n_nodes,n_nodes,n_elements)
-  s = zeros(n_nodes,n_nodes,n_elements)
-  ρ_p = zeros(n_nodes,n_nodes,n_elements)
 
-  @. v[1, :, :, :] = cons[2, :, :, :] / cons[1, :, :, :]
-  @. v[2, :, :, :] = cons[3, :, :, :] / cons[1, :, :, :]
-  @. v_square[ :, :, :] = v[1, :, :, :]*v[1, :, :, :]+v[2, :, :, :]*v[2, :, :, :]
-  @. p[ :, :, :] = ((equation.gamma - 1)
-                         * (cons[4, :, :, :] - 1/2 * (cons[2, :, :, :] * v[1, :, :, :] +
-                            cons[3, :, :, :] * v[2, :, :, :])))
-  @. s[ :, :, :] = log(p[:, :, :]) - equation.gamma*log(cons[1, :, :, :])
-  @. ρ_p[ :, :, :] = cons[1, :, :, :] / p[ :, :, :]
+@inline function cons2entropy(u, equation::CompressibleMoistEnergyEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e, rho_qv, rho_qc = u
 
-  @. entropy[1, :, :, :] = (equation.gamma - s[:,:,:])/(equation.gamma-1) -
-                           0.5*ρ_p[:,:,:]*v_square[:,:,:]
-  @. entropy[2, :, :, :] = ρ_p[:,:,:]*v[1,:,:,:]
-  @. entropy[3, :, :, :] = ρ_p[:,:,:]*v[2,:,:,:]
-  @. entropy[4, :, :, :] = -ρ_p[:,:,:]
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v_square = v1^2 + v2^2
+  rho_d = rho - rho_qv - rho_qc
+  p = (equation.R_d * rho_d + equation.R_v * rho_qv) /
+      (equation.c_vd * rho_d + equation.c_vv * rho_qv + equation.c_pl * rho_qc) *
+      (rho_e - 1/2 * rho * (v1^2 + v2^2) - equation.L00 * rho_qv)
+  s = log(p) - equation.gamma*log(rho)
+  rho_p = rho / p
 
-  return entropy
+  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w2 = rho_p * v1
+  w3 = rho_p * v2
+  w4 = -rho_p
+  w5 = rho_p * rho_qv / rho
+  w6 = rho_p * rho_qc / rho
+
+  return SVector(w1, w2, w3, w4, w5, w6)
 end
 
-
 # Convert primitive to conservative variables
-function prim2cons(prim, equation::CompressibleEulerMoistEquations2D)
+function prim2cons(prim, equation::CompressibleMoistEnergyEulerEquations2D)
   cons = similar(prim)
   cons[1] = prim[1]
   cons[2] = prim[2] * prim[1]
@@ -541,7 +544,7 @@ end
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
 @inline function cons2indicator!(indicator, cons, element_id, n_nodes, indicator_variable,
-                                 equation::CompressibleEulerMoistEquations2D)
+                                 equation::CompressibleMoistEnergyEulerEquations2D)
   for j in 1:n_nodes
     for i in 1:n_nodes
       indicator[1, i, j] = cons2indicator(cons[1, i, j, element_id], cons[2, i, j, element_id],
@@ -553,35 +556,35 @@ end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(ρ, ρ_v1, ρ_v2, ρ_e, ::Val{:density},
-                                equation::CompressibleEulerMoistEquations2D)
-  # Indicator variable is ρ
-  return ρ
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density},
+                                equation::CompressibleMoistEnergyEulerEquations2D)
+  # Indicator variable is rho
+  return rho
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(ρ, ρ_v1, ρ_v2, ρ_e, ::Val{:density_pressure},
-                                equation::CompressibleEulerMoistEquations2D)
-  v1 = ρ_v1/ρ
-  v2 = ρ_v2/ρ
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:density_pressure},
+                                equation::CompressibleMoistEnergyEulerEquations2D)
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
 
   # Calculate pressure
-  p = (equation.gamma - 1) * (ρ_e - 1/2 * ρ * (v1^2 + v2^2))
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 
-  # Indicator variable is ρ * p
-  return ρ * p
+  # Indicator variable is rho * p
+  return rho * p
 end
 
 
 # Convert conservative variables to indicator variable for discontinuities (pointwise version)
-@inline function cons2indicator(ρ, ρ_v1, ρ_v2, ρ_e, ::Val{:pressure},
-                                equation::CompressibleEulerMoistEquations2D)
-  v1 = ρ_v1/ρ
-  v2 = ρ_v2/ρ
+@inline function cons2indicator(rho, rho_v1, rho_v2, rho_e, ::Val{:pressure},
+                                equation::CompressibleMoistEnergyEulerEquations2D)
+  v1 = rho_v1/rho
+  v2 = rho_v2/rho
 
   # Indicator variable is p
-  return (equation.gamma - 1) * (ρ_e - 1/2 * ρ * (v1^2 + v2^2))
+  return (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
 end
 
 
@@ -593,16 +596,16 @@ end
 #   v = (cons[2] / cons[1] , cons[3] / cons[1])
 #   v_square= v[1]*v[1]+v[2]*v[2]
 #   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-#   ρ_p = cons[1] / p
+#   rho_p = cons[1] / p
 #   # thermodynamic entropy
 #   s = log(p) - gamma*log(cons[1])
 #   # mathematical entropy
 #   S = - s*cons[1]/(gamma-1)
 #   # entropy variables
-#   entropy[1] = (gamma - s)/(gamma-1) - 0.5*ρ_p*v_square
-#   entropy[2] = ρ_p*v[1]
-#   entropy[3] = ρ_p*v[2]
-#   entropy[4] = -ρ_p
+#   entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
+#   entropy[2] = rho_p*v[1]
+#   entropy[3] = rho_p*v[2]
+#   entropy[4] = -rho_p
 #   # entropy flux
 #   entropy_flux = S*v[orientation]
 #   return entropy, entropy_flux
@@ -610,7 +613,7 @@ end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equation::CompressibleEulerMoistEquations2D)
+@inline function entropy_thermodynamic(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   # Pressure
   p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
 
@@ -621,19 +624,19 @@ end
 end
 
 # Calculate potential temperature for a conservative state `cons`
-@inline function pottemp_thermodynamic(cons, equation::CompressibleEulerMoistEquations2D)
+@inline function pottemp_thermodynamic(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   # Pressure
   p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
 
   # Potential temperature
-  pot = equation.p0 * (p / equation.p0)^(1 - equation.κ) / (equation.R_d * cons[1])
+  pot = equation.p0 * (p / equation.p0)^(1 - equation.kappa) / (equation.R_d * cons[1])
 
   return pot
 end
 
 
 # Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::CompressibleEulerMoistEquations2D)
+@inline function entropy_math(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   # Mathematical entropy
   S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
 
@@ -642,20 +645,20 @@ end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equation::CompressibleEulerMoistEquations2D) = entropy_math(cons, equation)
+@inline entropy(cons, equation::CompressibleMoistEnergyEulerEquations2D) = entropy_math(cons, equation)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::CompressibleEulerMoistEquations2D) = cons[4]
+@inline energy_total(cons, ::CompressibleMoistEnergyEulerEquations2D) = cons[4]
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::CompressibleEulerMoistEquations2D)
+@inline function energy_kinetic(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   return 0.5 * (cons[2]^2 + cons[3]^2)/cons[1]
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equation::CompressibleEulerMoistEquations2D)
+@inline function energy_internal(cons, equation::CompressibleMoistEnergyEulerEquations2D)
   return energy_total(cons, equation) - energy_kinetic(cons, equation)
 end

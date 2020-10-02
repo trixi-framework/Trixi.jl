@@ -1,0 +1,18 @@
+               _
+   _       _ _(_)_     |  Documentation: https://docs.julialang.org
+  (_)     | (_) (_)    |
+   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 1.5.0 (2020-08-01)
+ _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
+|__/                   |
+
+[?2004h[0K[32m[1mjulia> [0m[0m[7C[7C[0K[0K[32m[1mjulia> [0m[0m[7C[7C[0K[0K[32m[1mjulia> [0m[0m[7C[7C[0K[0K[32m[1mjulia> [0m[0m[7CTrixi.run("examples/2d/parameters_warm_bubble.toml", verbose=true)[73C[0K[32m[1mjulia> [0m[0m[7CTrixi.run("examples/2d/parameters_warm_bubble.toml", verbose=true)[73C[0K[0K[32m[1mjulia> [0m[0m[7C[7C[0K[0K[32m[1mjulia> [0m[0m[7Cusing Trixi[18C[0K[32m[1mjulia> [0m[0m[7Cusing Trixi[18C[0K[0K[32m[1mjulia> [0m[0m[7Cusing Trixi[18C[0K[32m[1mjulia> [0m[0m[7Cusing Trixi[18C
+[?2004l[0mERROR: ArgumentError: Package Trixi not found in current path:
+- Run `import Pkg; Pkg.add("Trixi")` to install the Trixi package.
+
+Stacktrace:
+ [1] require(::Module, ::Symbol) at ./loading.jl:893
+
+[0K[0K[32m[1mjulia> [0m[0m[7C[7C[?2004h[0K[32m[1mjulia> [0m[0m[7C[7C
+[?2004l[0m
