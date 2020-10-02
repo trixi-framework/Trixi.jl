@@ -36,19 +36,6 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy,))
-
-save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=:primitive)
-
-# TODO: Taal, IO
-# restart_interval = 10
-
 amr_indicator = IndicatorThreeLevel(semi, IndicatorMax(semi),
                                     base_level=4,
                                     med_level=5, med_threshold=0.1,
@@ -60,8 +47,20 @@ amr_callback = AMRCallback(semi, amr_indicator,
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
+save_solution = SaveSolutionCallback(interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
+# TODO: Taal, IO
+# restart_interval = 10
+
+analysis_interval = 100
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy,))
+
 # TODO: Taal decide, first AMR or save solution etc.
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, analysis_callback, save_solution, alive_callback);
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback);
 
 
 ###############################################################################

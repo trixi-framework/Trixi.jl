@@ -55,10 +55,11 @@ end
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis{RealT}) where {RealT}
+  print(io, "LobattoLegendreBasis{", RealT, "}(polydeg=", polydeg(basis), ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis{RealT}) where {RealT}
   print(io, "LobattoLegendreBasis{", RealT, "} with polynomials of degree ", polydeg(basis))
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis{RealT}) where {RealT}
 
 @inline Base.real(basis::LobattoLegendreBasis{RealT}) where {RealT} = RealT
 
@@ -94,10 +95,11 @@ function MortarL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
+  print(io, "LobattoLegendreMortarL2{", RealT, "}(polydeg=", polydeg(mortar), ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
   print(io, "LobattoLegendreMortarL2{", RealT, "} with polynomials of degree ", polydeg(mortar))
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
 
 @inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
 
@@ -164,10 +166,11 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2
 end
 
 function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
+  print(io, "LobattoLegendreAnalyzer{", RealT, "}(polydeg=", polydeg(analyzer), ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
   print(io, "LobattoLegendreAnalyzer{", RealT, "} with polynomials of degree ", polydeg(analyzer))
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer{RealT}) where {RealT}
 
 @inline nnodes(analyzer::LobattoLegendreAnalyzer{RealT, NNODES}) where {RealT, NNODES} = NNODES
 @inline eachnode(analyzer::LobattoLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
@@ -201,11 +204,12 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     l2reverse_upper, l2reverse_lower)
 end
 
-function Base.show(io::IO, mortar::LobattoLegendreAdaptorL2{RealT}) where {RealT}
-  print(io, "LobattoLegendreAdaptorL2{", RealT, "} with polynomials of degree ", polydeg(mortar))
+function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT}
+  print(io, "LobattoLegendreAdaptorL2{", RealT, "}(polydeg=", polydeg(adaptor), ")")
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
+function Base.show(io::IO, ::MIME"text/plain", adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT}
+  print(io, "LobattoLegendreAdaptorL2{", RealT, "} with polynomials of degree ", polydeg(adaptor))
+end
 
 @inline Base.real(adaptor::LobattoLegendreAdaptorL2{RealT}) where {RealT} = RealT
 

@@ -99,7 +99,9 @@ function (solution_callback::SaveSolutionCallback)(integrator)
 end
 
 
-@inline function save_solution_file(u_ode::AbstractVector, t, dt, iter, semi::AbstractSemidiscretization, solution_callback, element_variables=Dict{Symbol,Any}())
+@inline function save_solution_file(u_ode::AbstractVector, t, dt, iter,
+                                    semi::AbstractSemidiscretization, solution_callback,
+                                    element_variables=Dict{Symbol,Any}())
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
   save_solution_file(u, t, dt, iter, mesh, equations, solver, cache, solution_callback, element_variables)

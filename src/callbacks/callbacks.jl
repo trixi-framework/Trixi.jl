@@ -16,6 +16,6 @@ end
 include("summary.jl")
 include("amr.jl")
 include("stepsize.jl")
-include("analysis.jl")
 include("save_solution.jl")
+include("analysis.jl")
 include("alive.jl")

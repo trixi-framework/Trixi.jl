@@ -16,8 +16,15 @@ function ParametersEulerGravity(; background_density=0.0,
   ParametersEulerGravity(background_density, gravitational_constant, cfl, n_iterations_max, timestep_gravity)
 end
 
-# TODO: Taal bikeshedding, implement a method with reduced information and the signature
-# function Base.show(io::IO, parameters::ParametersEulerGravity)
+function Base.show(io::IO, parameters::ParametersEulerGravity)
+  print(io, "ParametersEulerGravity(")
+  print(io,   "background_density=", parameters.background_density)
+  print(io, ", gravitational_constant=", parameters.gravitational_constant)
+  print(io, ", cfl=", parameters.cfl)
+  print(io, ", n_iterations_max=", parameters.n_iterations_max)
+  print(io, ", timestep_gravity=", parameters.timestep_gravity)
+  print(io, ")")
+end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
   println(io, "ParametersEulerGravity using")
   println(io, "- background_density:     ", parameters.background_density)
@@ -28,7 +35,6 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
 end
 
 
-# TODO: Taal implement, AMR based on Euler, gravity adapts passively
 """
     SemidiscretizationEulerGravity
 
@@ -96,7 +102,7 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
   print(io, "  "); show(io, mime, semi.semi_euler); println()
   print(io, "  "); show(io, mime, semi.semi_gravity); println()
   print(io, "  "); show(io, mime, semi.parameters); println()
-  print(io,   "- cache with fields:")
+  print(io, "  cache with fields:")
   for key in keys(semi.cache)
     print(io, " ", key)
   end
@@ -109,7 +115,13 @@ end
 
 
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
+  compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
   compute_coefficients(t, semi.semi_euler)
+end
+
+@inline function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)
+  compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
+  compute_coefficients!(u_ode, t, semi.semi_euler)
 end
 
 
@@ -161,6 +173,11 @@ end
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
+  # Can be changed by AMR
+  resize!(cache.du_ode,     length(cache.u_ode))
+  resize!(cache.u_tmp1_ode, length(cache.u_ode))
+  resize!(cache.u_tmp2_ode, length(cache.u_ode))
+
   u_euler    = wrap_array(u_ode,        semi_euler)
   u_gravity  = wrap_array(cache.u_ode,  semi_gravity)
   du_gravity = wrap_array(cache.du_ode, semi_gravity)
@@ -191,7 +208,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
     # check if we reached the maximum number of iterations
     if n_iterations_max > 0 && iter >= n_iterations_max
-      @error "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs, @views du_gravity[1, .., :]) t=t dt=dt
+      @warn "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs, @views du_gravity[1, .., :]) t=t dt=dt
       finalstep = true
     end
 
@@ -262,17 +279,26 @@ end
 
 # TODO: Taal decide, where should specific parts like these be?
 @inline function save_solution_file(u_ode::AbstractVector, t, dt, iter,
-                                    semi::SemidiscretizationEulerGravity, solution_callback)
+                                    semi::SemidiscretizationEulerGravity, solution_callback,
+                                    element_variables=Dict{Symbol,Any}())
 
   u_euler = wrap_array(u_ode, semi.semi_euler)
   filename_euler = save_solution_file(u_euler, t, dt, iter,
                                       mesh_equations_solver_cache(semi.semi_euler)...,
-                                      solution_callback, system="euler")
+                                      solution_callback, element_variables, system="euler")
 
   u_gravity = wrap_array(semi.cache.u_ode, semi.semi_gravity)
   filename_gravity = save_solution_file(u_gravity, t, dt, iter,
                                         mesh_equations_solver_cache(semi.semi_gravity)...,
-                                        solution_callback, system="gravity")
+                                        solution_callback, element_variables, system="gravity")
 
   return filename_euler, filename_gravity
+end
+
+
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationEulerGravity; kwargs...)
+  passive_args = ((semi.cache.u_ode, mesh_equations_solver_cache(semi.semi_gravity)...),)
+  amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)...;
+               kwargs..., passive_args=passive_args)
 end

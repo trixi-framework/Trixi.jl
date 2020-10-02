@@ -53,6 +53,15 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
+stepsize_callback = StepsizeCallback(cfl=1.0)
+
+save_solution = SaveSolutionCallback(interval=10,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
+# TODO: Taal, IO
+# restart_interval = 10
+
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -79,24 +88,12 @@ analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
                                      save_analysis=true,
                                      extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
 
-save_solution = SaveSolutionCallback(interval=10,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=:primitive)
-
-# TODO: Taal, IO
-# restart_interval = 10
-
-stepsize_callback = StepsizeCallback(cfl=1.0)
-
-callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
 
 ###############################################################################
 # run the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
             save_everystep=false, callback=callbacks);
-
+summary_callback() # print the timer summary
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)
-
-nothing

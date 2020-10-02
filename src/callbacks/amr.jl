@@ -192,11 +192,12 @@ end
 
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG, cache;
-                                     only_refine=false, only_coarsen=false)
+                                     only_refine=false, only_coarsen=false,
+                                     passive_args=())
   @unpack indicator, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @timeit timer() "indicator" indicator(u, mesh, equations, dg, cache)
+  lambda = @timeit_debug timer() "indicator" indicator(u, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
   @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
@@ -213,25 +214,22 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   end
 
 
-  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
+  @timeit_debug timer() "refine" if !only_coarsen && !isempty(to_refine)
     # refine mesh
-    refined_original_cells = @timeit timer() "mesh" refine!(mesh.tree, to_refine)
+    refined_original_cells = @timeit_debug timer() "mesh" refine!(mesh.tree, to_refine)
 
     # refine solver
-    @timeit timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
-    # TODO: Taal implement, passive solvers?
-    # if !isempty(passive_solvers)
-    #   @timeit timer() "passive solvers" for ps in passive_solvers
-    #     refine!(ps, mesh, refined_original_cells)
-    #   end
-    # end
+    @timeit_debug timer() "solver" refine!(u_ode, adaptor, mesh, equations, dg, cache, refined_original_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @timeit_debug timer() "passive solver" refine!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, refined_original_cells)
+    end
   else
     # If there is nothing to refine, create empty array for later use
     refined_original_cells = Int[]
   end
 
 
-  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+  @timeit_debug timer() "coarsen" if !only_refine && !isempty(to_coarsen)
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -267,7 +265,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
-    coarsened_original_cells = @timeit timer() "mesh" coarsen!(mesh.tree, to_coarsen)
+    coarsened_original_cells = @timeit_debug timer() "mesh" coarsen!(mesh.tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -279,13 +277,10 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     end
 
     # coarsen solver
-    @timeit timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
-    # TODO: Taal implement, passive solvers?
-    # if !isempty(passive_solvers)
-    #   @timeit timer() "passive solvers" for ps in passive_solvers
-    #     coarsen!(ps, mesh, removed_child_cells)
-    #   end
-    # end
+    @timeit_debug timer() "solver" coarsen!(u_ode, adaptor, mesh, equations, dg, cache, removed_child_cells)
+    for (p_u_ode, p_mesh, p_equations, p_dg, p_cache) in passive_args
+      @timeit_debug timer() "passive solver" coarsen!(p_u_ode, adaptor, p_mesh, p_equations, p_dg, p_cache, removed_child_cells)
+    end
   else
     # If there is nothing to coarsen, create empty array for later use
     coarsened_original_cells = Int[]

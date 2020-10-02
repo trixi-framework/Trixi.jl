@@ -53,11 +53,11 @@ include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
 include("semidiscretization.jl")
-include("semidiscretization_euler_gravity.jl")
 include("io/io.jl")
 include("timedisc/timedisc.jl")
 include("amr/amr.jl")
 include("callbacks/callbacks.jl")
+include("semidiscretization_euler_gravity.jl")
 
 # TODO: Taal remove run
 # Include top-level run method

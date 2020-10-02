@@ -43,21 +43,20 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
-
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-
 # TODO: Taal, restart
 # restart_interval = 100
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, analysis_callback, save_solution, alive_callback)
+analysis_interval = 100
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+
+callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
 
 ###############################################################################
