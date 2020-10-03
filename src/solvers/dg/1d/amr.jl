@@ -1,8 +1,8 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
-                 cells_to_refine::AbstractArray{Int}) where {Eqn, NVARS, POLYDEG}
+function refine!(dg::Dg1D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
+                 cells_to_refine::AbstractArray{Int}) where {Eqn, MeshType, NVARS, POLYDEG}
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -98,8 +98,8 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
-                  child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, NVARS, POLYDEG}
+function coarsen!(dg::Dg1D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
+                  child_cells_to_coarsen::AbstractArray{Int}) where {Eqn, MeshType, NVARS, POLYDEG}
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
