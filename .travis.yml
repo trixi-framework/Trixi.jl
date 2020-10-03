@@ -37,6 +37,7 @@ env:
     - TRIXI_TEST=3D
     - TRIXI_TEST=misc
     - TRIXI_TEST=paper-self-gravitating-gas-dynamics
+    - TRIXI_TEST=parallel_2d
 notifications:
   webhooks: https://coveralls.io/webhook
   email: false
