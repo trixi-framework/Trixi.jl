@@ -29,8 +29,10 @@ const TRIXI_MPI_NPROCS = 3
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "parallel_2d"
+    # Based on `runtests.jl` from `MPI.jl` and `PencilArrays.jl`
+    # Precompilation disabled to prevent race conditions when loading packages
     mpiexec() do cmd
-      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) test_examples_parallel_2d.jl`)
+      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no test_examples_parallel_2d.jl`)
     end
   end
 end
