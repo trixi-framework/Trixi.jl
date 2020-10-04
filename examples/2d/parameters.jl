@@ -41,7 +41,7 @@ stepsize_callback = StepsizeCallback(cfl=1.6)
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=:conservative)
 # TODO: Taal, IO
 # restart_interval = 10
 
