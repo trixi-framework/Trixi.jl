@@ -18,7 +18,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
       @test_nowarn show(t)
       @test Trixi.ndims(t) == 1
-      @test Trixi.ndims(Trixi.SerialTree{1}) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
       @test Trixi.n_children_per_cell(t) == 2
