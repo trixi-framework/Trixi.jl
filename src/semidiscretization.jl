@@ -1,7 +1,4 @@
 
-abstract type AbstractSemidiscretization end
-
-
 """
     ndofs(semi::AbstractSemidiscretization)
 

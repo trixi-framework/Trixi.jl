@@ -16,7 +16,6 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
                                RealT, nvariables(equations), polydeg(dg))
 
-  # TODO: Taal implement BCs
   boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
                                   RealT, nvariables(equations), polydeg(dg))
 
@@ -266,7 +265,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
   end
 end
 
-@inline function split_form_kernel!(du, u, nonconservative_terms::Val{false}, equations,
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    nonconservative_terms::Val{false}, equations,
                                     volume_flux, dg::DGSEM, cache,
                                     element, alpha=true)
   # true * [some floating point value] == [exactly the same floating point value]
@@ -309,7 +309,8 @@ end
   end
 end
 
-@inline function split_form_kernel!(du, u, nonconservative_terms::Val{true}, equations,
+@inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                    nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache,
                                     element, alpha=true)
   @unpack derivative_split_transpose = dg.basis
@@ -339,6 +340,7 @@ end
 end
 
 
+# TODO: Taal dimension agnostic
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)

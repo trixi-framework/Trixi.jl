@@ -24,6 +24,7 @@ using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
+using LinearMaps: LinearMap
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
@@ -40,12 +41,12 @@ const globals = Dict{Symbol, Any}()
 export globals
 
 
-# TODO: Taal, decide where to define the entry points of our type hierarchy,
-# e.g. AbstractEquations, AbstractSemidiscretization etc.
-# Placing them here will allow us to make use of them for dispatch even for
+# Define the entry points of our type hierarchy, e.g.
+#     AbstractEquations, AbstractSemidiscretization etc.
+# Placing them here allows us to make use of them for dispatch even for
 # other stuff defined very early in our include pipeline, e.g.
-#   IndicatorLöhner(semi::AbstractSemidiscretization)
-
+#     IndicatorLöhner(semi::AbstractSemidiscretization)
+include("abstract_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
@@ -59,7 +60,7 @@ include("amr/amr.jl")
 include("callbacks/callbacks.jl")
 include("semidiscretization_euler_gravity.jl")
 
-# TODO: Taal remove run
+# TODO: Taal refactor, get rid of old run methods, rename the file
 # Include top-level run method
 include("run.jl")
 
@@ -100,7 +101,7 @@ export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal
 
-export examples_dir, get_examples, default_example
+export trixi_include, examples_dir, get_examples, default_example
 
 
 end
