@@ -13,13 +13,13 @@ mutable struct Dg1D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer1D{NVARS, POLYDEG}
+  elements::ElementContainer1D{Float64, NVARS, POLYDEG}
   n_elements::Int
 
-  interfaces::InterfaceContainer1D{NVARS, POLYDEG}
+  interfaces::InterfaceContainer1D{Float64, NVARS, POLYDEG}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer1D{NVARS, POLYDEG}
+  boundaries::BoundaryContainer1D{Float64, NVARS, POLYDEG}
   n_boundaries::Int
   n_boundaries_per_direction::SVector{2, Int}
 
@@ -295,9 +295,6 @@ function init_elements(cell_ids, mesh::TreeMesh{1}, RealT, nvars, polydeg)
   n_elements = length(cell_ids)
   elements = ElementContainer1D{RealT, nvars, polydeg}(n_elements)
 
-  # Store cell ids
-  elements.cell_ids .= cell_ids
-
   # Determine node locations
   n_nodes = polydeg + 1
   nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -480,10 +477,11 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{1})
 
   @assert count == nboundaries(boundaries) ("Actual boundaries count ($count) does not match " *
                                             "expectations $(nboundaries(boundaries))")
-
   @assert sum(counts_per_direction) == count
 
-  return SVector(counts_per_direction)
+  boundaries.n_boundaries_per_direction = SVector(counts_per_direction)
+
+  return boundaries.n_boundaries_per_direction
 end
 
 function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{1})

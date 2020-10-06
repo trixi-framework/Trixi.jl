@@ -7,6 +7,7 @@ const ON_APPVEYOR = lowercase(get(ENV, "APPVEYOR", "false")) == "true"
 @time @testset "Trixi.jl tests" begin
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "1D"
     include("test_examples_1d.jl")
+    include("test_examples_1d_old.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2D"

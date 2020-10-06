@@ -209,7 +209,7 @@ function init_simulation()
   polydeg = parameter("polydeg") # FIXME: This is currently the only DG-specific code in here
   n_steps_max = parameter("n_steps_max")
   cfl = parameter("cfl")
-  sources = parameter("sources", "none")
+  source_terms = parameter("source_terms", "none")
   n_leaf_cells = count_leaf_cells(mesh.tree)
   min_level = minimum_level(mesh.tree)
   max_level = maximum_level(mesh.tree)
@@ -225,7 +225,7 @@ function init_simulation()
           | equations:          $(get_name(equations))
           | | #variables:       $(nvariables(equations))
           | | variable names:   $(join(varnames_cons(equations), ", "))
-          | sources:            $sources
+          | source_terms:       $source_terms
           | restart:            $(restart ? "yes" : "no")
           """
   if restart

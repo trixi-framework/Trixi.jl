@@ -54,7 +54,7 @@ function create_cache(mesh::TreeMesh{1}, equations,
   A2dp1_x = Array{real(dg), 2}
   fstar1_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded, fstar2_threaded)
+  return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded)
 end
 
 
