@@ -299,4 +299,49 @@ end
 # function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
 
 
+# TODO: Taal dimension agnostic
+# TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner etc.?
+#       But that would remove the simplest possibility to write that stuff to a file...
+#       We could of course implement some additional logic and workarounds, but is it worth the effort?
+function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any},
+                                          mesh::TreeMesh, equations, dg::DG, cache)
+
+  @unpack indicator_value = indicator.cache
+  resize!(indicator_value, nelements(dg, cache))
+
+  alpha = indicator.indicator(u, equations, dg, cache)
+
+  Threads.@threads for element in eachelement(dg, cache)
+    cell_id = cache.elements.cell_ids[element]
+    current_level = mesh.tree.levels[cell_id]
+
+    # set target level
+    target_level = current_level
+    if alpha[element] > indicator.max_threshold
+      target_level = indicator.max_level
+    elseif alpha[element] > indicator.med_threshold
+      if indicator.med_level > 0
+        target_level = indicator.med_level
+        # otherwise, target_level = current_level
+        # set med_level = -1 to implicitly use med_level = current_level
+      end
+    else
+      target_level = indicator.base_level
+    end
+
+    # compare target level with actual level to set indicator
+    if current_level < target_level
+      indicator_value[element] = 1 # refine!
+    elseif current_level > target_level
+      indicator_value[element] = -1 # coarsen!
+    else
+      indicator_value[element] = 0 # we're good
+    end
+  end
+
+  return indicator_value
+end
+
+
+include("amr_dg1d.jl")
 include("amr_dg2d.jl")

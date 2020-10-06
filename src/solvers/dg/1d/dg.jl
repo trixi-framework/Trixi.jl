@@ -75,15 +75,15 @@ function Dg1D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   n_l2mortars = -1 # TODO: Taal. Only needed for simulation summary output -> fix me when Taal is alive
@@ -288,19 +288,29 @@ end
 
 # Create element container, initialize element data, and return element container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+function init_elements(cell_ids, mesh::TreeMesh{1}, RealT, nvars, polydeg)
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer1D{NVARS, POLYDEG}(n_elements)
+  elements = ElementContainer1D{RealT, nvars, polydeg}(n_elements)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
 
   # Determine node locations
-  n_nodes = POLYDEG + 1
+  n_nodes = polydeg + 1
   nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  init_elements!(elements, cell_ids, mesh, nodes)
+  return elements
+end
+
+function init_elements!(elements, cell_ids, mesh::TreeMesh{1}, nodes)
+  n_nodes = length(nodes)
+
+  # Store cell ids
+  elements.cell_ids .= cell_ids
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:nelements(elements)
@@ -326,12 +336,12 @@ end
 
 # Create interface container, initialize interface data, and return interface container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+function init_interfaces(cell_ids, mesh::TreeMesh{1}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer1D{NVARS, POLYDEG}(n_interfaces)
+  interfaces = InterfaceContainer1D{RealT, nvars, polydeg}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -342,12 +352,12 @@ end
 
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{1}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+function init_boundaries(cell_ids, mesh::TreeMesh{1}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer1D{NVARS, POLYDEG}(n_boundaries)
+  boundaries = BoundaryContainer1D{RealT, nvars, polydeg}(n_boundaries)
 
   # Connect elements with boundaries
   n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)

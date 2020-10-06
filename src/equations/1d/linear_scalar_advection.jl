@@ -8,15 +8,18 @@ The linear scalar advection equation
 ```
 in one space dimension with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation1D <: AbstractLinearScalarAdvectionEquation{1, 1}
-  sources::String
-  advectionvelocity::SVector{1, Float64}
+struct LinearScalarAdvectionEquation1D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{1, 1}
+  advectionvelocity::SVector{1, RealT}
 end
 
+function LinearScalarAdvectionEquation1D(a::Real)
+  LinearScalarAdvectionEquation1D(SVector(a))
+end
+
+# TODO Taal refactor, remove old constructors and replace them with default values
 function LinearScalarAdvectionEquation1D()
-  sources = parameter("sources", "none")
   a = convert(SVector{1,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation1D(sources, a)
+  LinearScalarAdvectionEquation1D(a)
 end
 
 
@@ -138,6 +141,16 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::LinearScalarAdvectionEquation1D, dg)
   λ_max = maximum(abs, equation.advectionvelocity)
   return cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
+end
+
+@inline have_constant_speed(::LinearScalarAdvectionEquation1D) = Val(true)
+
+@inline function max_abs_speeds(u, eq::LinearScalarAdvectionEquation1D)
+  max_abs_speeds(eq)
+end
+
+@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation1D)
+  return abs.(eq.advectionvelocity)
 end
 
 

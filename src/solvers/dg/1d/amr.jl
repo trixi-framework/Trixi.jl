@@ -43,11 +43,11 @@ function refine!(dg::Dg1D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   end
 
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
 

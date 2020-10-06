@@ -4,7 +4,7 @@
 
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
-struct CompressibleEulerEquations2D{RealT} <: AbstractCompressibleEulerEquations{2, 4}
+struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEquations{2, 4}
   gamma::RealT
 end
 
@@ -344,6 +344,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
+
 # Apply boundary conditions
 function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
@@ -383,6 +384,8 @@ function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction,
 end
 
 # Apply source terms
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`
   c = 2
@@ -443,6 +446,15 @@ function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquat
   du2 = tmp5
   du3 = tmp5
   du4 = 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
+
+  # Original terms (without performanc enhancements)
+  # du1 = cos((x1 + x2 - t)*ω)*A*ω
+  # du2 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+  # du3 = (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
+  #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
+  # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
+  #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
   return SVector(du1, du2, du3, du4)
 end

@@ -413,6 +413,14 @@ end
 
 const IndicatorLoehner = IndicatorLöhner
 
+# TODO: Taal dimension agnostic
+# dirty Löhner estimate, direction by direction, assuming constant nodes
+@inline function (löhner::IndicatorLöhner)(um::Real, u0::Real, up::Real)
+  num = abs(up - 2 * u0 + um)
+  den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
+  return num / den
+end
+
 
 
 # TODO: Taal decide, shall we keep this?
@@ -452,6 +460,8 @@ end
 include("1d/containers.jl")
 include("1d/dg.jl")
 include("1d/amr.jl")
+include("dg_1d.jl")
+include("dg_1d_indicators.jl")
 
 # Include 2D implementation
 include("2d/containers.jl")

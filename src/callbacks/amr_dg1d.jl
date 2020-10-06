@@ -1,6 +1,6 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, cells_to_refine)
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1}, equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -60,14 +60,9 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, d
                                   real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.boundaries, boundaries)
 
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
-
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
-    @assert ninterfaces(interfaces) == 2 * nelements(dg, cache) ("For 2D and periodic domains and conforming elements, the number of interfaces must be twice the number of elements")
+  if isperiodic(mesh.tree)
+    @assert ninterfaces(interfaces) == 1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
   end
 
   return nothing
@@ -76,63 +71,30 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u::AbstractArray{<:Any,4}, element_id, old_u, old_element_id,
+function refine_element!(u::AbstractArray{<:Any,3}, element_id, old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
-  lower_left_id  = element_id
-  lower_right_id = element_id + 1
-  upper_left_id  = element_id + 2
-  upper_right_id = element_id + 3
+  left_id  = element_id
+  right_id = element_id + 1
 
-  @boundscheck begin
-    @assert old_element_id >= 1
-    @assert size(old_u, 1) == nvariables(equations)
-    @assert size(old_u, 2) == nnodes(dg)
-    @assert size(old_u, 3) == nnodes(dg)
-    @assert size(old_u, 4) >= old_element_id
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id + 3
+  # Interpolate to left element
+  for i in eachnode(dg)
+    acc = zero(get_node_vars(u, equations, dg, i, element_id))
+    for k in eachnode(dg)
+      acc += get_node_vars(old_u, equations, dg, k, old_element_id) * forward_lower[i, k]
+    end
+    set_node_vars!(u, acc, equations, dg, i, left_id)
   end
 
-  # Interpolate to lower left element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_lower[j, l]
+  # Interpolate to right element
+  for i in eachnode(dg)
+    acc = zero(get_node_vars(u, equations, dg, i, element_id))
+    for k in eachnode(dg)
+      acc += get_node_vars(old_u, equations, dg, k, old_element_id) * forward_upper[i, k]
     end
-    set_node_vars!(u, acc, equations, dg, i, j, lower_left_id)
-  end
-
-  # Interpolate to lower right element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_lower[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, lower_right_id)
-  end
-
-  # Interpolate to upper left element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, upper_left_id)
-  end
-
-  # Interpolate to upper right element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, upper_right_id)
+    set_node_vars!(u, acc, equations, dg, i, right_id)
   end
 
   return nothing
@@ -141,7 +103,7 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -213,14 +175,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, 
                                   real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.boundaries, boundaries)
 
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
-
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
-    @assert ninterfaces(interfaces) == 2 * nelements(dg, cache) ("For 2D and periodic domains and conforming elements, the number of interfaces must be twice the number of elements")
+  if isperiodic(mesh.tree)
+    @assert ninterfaces(interfaces) == 1 * nelements(dg, cache) ("For 1D and periodic domains, the number of interfaces must be the same as the number of elements")
   end
 
   return nothing
@@ -229,59 +186,34 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id, old_u, old_element_id,
+function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id, old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
-  lower_left_id  = old_element_id
-  lower_right_id = old_element_id + 1
-  upper_left_id  = old_element_id + 2
-  upper_right_id = old_element_id + 3
+  left_id  = old_element_id
+  right_id = old_element_id + 1
 
-  @boundscheck begin
-    @assert old_element_id >= 1
-    @assert size(old_u, 1) == nvariables(equations)
-    @assert size(old_u, 2) == nnodes(dg)
-    @assert size(old_u, 3) == nnodes(dg)
-    @assert size(old_u, 4) >= old_element_id + 3
-    @assert     element_id >= 1
-    @assert size(    u, 1) == nvariables(equations)
-    @assert size(    u, 2) == nnodes(dg)
-    @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id
-  end
-
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+  for i in eachnode(dg)
+    acc = zero(get_node_vars(u, equations, dg, i, element_id))
 
     # Project from lower left element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_left_id) * reverse_lower[i, k] * reverse_lower[j, l]
+    for k in eachnode(dg)
+      acc += get_node_vars(old_u, equations, dg, k, left_id) * reverse_lower[i, k]
     end
 
     # Project from lower right element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_right_id) * reverse_upper[i, k] * reverse_lower[j, l]
-    end
-
-    # Project from upper left element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
-    end
-
-    # Project from upper right element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
+    for k in eachnode(dg)
+      acc += get_node_vars(old_u, equations, dg, k, right_id) * reverse_upper[i, k]
     end
 
     # Update value
-    set_node_vars!(u, acc, equations, dg, i, j, element_id)
+    set_node_vars!(u, acc, equations, dg, i, element_id)
   end
 end
 
 
-function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
+function indicator_cache(mesh::TreeMesh{1}, equations, dg::DG, cache)
 
   indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
   return (; indicator_value)
