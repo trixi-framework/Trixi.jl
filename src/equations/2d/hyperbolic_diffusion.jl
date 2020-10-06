@@ -11,9 +11,15 @@ struct HyperbolicDiffusionEquations2D <: AbstractHyperbolicDiffusionEquations{2,
   Lr::Float64
   Tr::Float64
   nu::Float64
-  resid_tol::Float64
+  resid_tol::Float64 # TODO Taal refactor, might be a parameter of a specialized steady-state solver?
 end
 
+function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
+  Tr = Lr^2 / nu
+  HyperbolicDiffusionEquations2D(Lr, Tr, nu, resid_tol)
+end
+
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
 function HyperbolicDiffusionEquations2D()
   # diffusion coefficient
   nu = parameter("nu", 1.0)
@@ -31,6 +37,7 @@ get_name(::HyperbolicDiffusionEquations2D) = "HyperbolicDiffusionEquations2D"
 varnames_cons(::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
 varnames_prim(::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
 default_analysis_quantities(::HyperbolicDiffusionEquations2D) = (:l2_error, :linf_error, :residual)
+default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :linf_error, :residual)
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -220,6 +227,17 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   return nothing
 end
 
+function source_terms_harmonic(u, x, t, equation::HyperbolicDiffusionEquations2D)
+  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  inv_Tr = inv(equation.Tr)
+  phi, q1, q2 = u
+
+  du2 = -inv_Tr * q1
+  du3 = -inv_Tr * q2
+
+  return SVector(0, du2, du3)
+end
+
 # The coupled EOC test does not require additional sources
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
   return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)
@@ -285,6 +303,17 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
+end
+
+@inline have_constant_speed(::HyperbolicDiffusionEquations2D) = Val(true)
+
+@inline function max_abs_speeds(u, eq::HyperbolicDiffusionEquations2D)
+  max_abs_speeds(eq)
+end
+
+@inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
+  λ = sqrt(eq.nu / eq.Tr)
+  return λ, λ
 end
 
 

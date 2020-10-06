@@ -1,5 +1,5 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg1D{Eqn<:AbstractEquation, NVARS, POLYDEG,
+mutable struct Dg1D{Eqn<:AbstractEquations, NVARS, POLYDEG,
                   SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
                   VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
@@ -70,7 +70,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg1D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -872,7 +872,7 @@ system of equations instance is passed in `equation`.
 **Note:** Keep order of analysis quantities in sync with
           [`analyze_solution`](@ref) when adding or changing quantities.
 """
-function save_analysis_header(filename, quantities, equation::AbstractEquation{1})
+function save_analysis_header(filename, quantities, equation::AbstractEquations{1})
   open(filename, "w") do f
     @printf(f, "#%-8s", "timestep")
     @printf(f, "  %-14s", "time")

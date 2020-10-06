@@ -11,10 +11,11 @@ const ON_APPVEYOR = lowercase(get(ENV, "APPVEYOR", "false")) == "true"
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2D"
     include("test_examples_2d.jl")
+    include("test_examples_2d_old.jl")
   end
 
   @time if (TRIXI_TEST == "all" && !ON_APPVEYOR) || TRIXI_TEST == "3D"
-    include("test_examples_3d.jl")
+    include("test_examples_3d_old.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"

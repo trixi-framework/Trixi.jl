@@ -40,6 +40,6 @@ amr_alpha_smooth = true
 ####################################################################################################
 # I/O
 # save_initial_solution = false
-solution_interval = 10
+solution_interval = 100
 solution_variables = "primitive"
 restart_interval = 0

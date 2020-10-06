@@ -139,7 +139,7 @@ function Base.show(io::IO, t::Tree{NDIMS}) where NDIMS
   println(io, "t.dummy = $(t.dummy)")
   println(io, "t.center_level_0 = $(t.center_level_0)")
   println(io, "t.length_level_0 = $(t.length_level_0)")
-  println(io, '*'^20)
+  print(io,   '*'^20)
 end
 
 # Type traits to obtain dimension
@@ -328,8 +328,7 @@ end
 
 
 # Refine all leaf cells with coordinates in a given rectangular box
-function refine_box!(t::Tree{NDIMS}, coordinates_min::AbstractArray{Float64},
-                     coordinates_max::AbstractArray{Float64}) where NDIMS
+function refine_box!(t::Tree{NDIMS}, coordinates_min, coordinates_max) where NDIMS
   for dim in 1:NDIMS
     @assert coordinates_min[dim] < coordinates_max[dim] "Minimum coordinates are not minimum."
   end

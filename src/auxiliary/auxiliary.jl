@@ -2,11 +2,47 @@ include("containers.jl")
 include("math.jl")
 
 
+# Enable debug timings `@timeit_debug timer() "name" stuff...`.
+# This allows us to disable timings completely by executing
+# `TimerOutputs.disable_debug_timings(Trixi)`
+# and to enable them again by executing
+# `TimerOutputs.enable_debug_timings(Trixi)`
+timeit_debug_enabled() = true
+
 # Store main timer for global timing of functions
 const main_timer = TimerOutput()
 
 # Always call timer() to hide implementation details
 timer() = main_timer
+
+
+"""
+    PerformanceCounter
+
+A `PerformanceCounter` be used to track the runtime performance of some calls.
+Add a new runtime measurement via `put!(counter, runtime)` and get the averaged
+runtime of all measurements added so far via `take!(counter)`, resetting the
+`counter`.
+"""
+mutable struct PerformanceCounter
+  ncalls_since_readout::Int
+  runtime::Float64
+end
+
+PerformanceCounter() = PerformanceCounter(0, 0.0)
+
+function Base.take!(counter::PerformanceCounter)
+  time_per_call = counter.runtime / counter.ncalls_since_readout
+  counter.ncalls_since_readout = 0
+  counter.runtime = 0.0
+  return time_per_call
+end
+
+function Base.put!(counter::PerformanceCounter, runtime::Real)
+  counter.ncalls_since_readout += 1
+  counter.runtime += runtime
+end
+
 
 # Initialize top-level parameters structure for program-wide parameters
 const parameters = Dict{Symbol,Any}()
@@ -91,7 +127,7 @@ end
 
 Return the path to an example parameter file that can be used to quickly see Trixi in action.
 """
-default_example() = joinpath(examples_dir(), "2d", "parameters.toml")
+default_example() = joinpath(examples_dir(), "2d", "parameters.toml") # TODO: Taal, use parameters.jl
 
 
 """
@@ -99,12 +135,12 @@ default_example() = joinpath(examples_dir(), "2d", "parameters.toml")
 
 Set parameter with the specified `name` to the specified `value`.
 """
-function setparameter(name::String, value)
+function setparameter(name::String, value) # TODO: Taal remove
   parameters[:default][name] = value
 end
 
 # Return true if parameter exists.
-parameter_exists(name::String) = haskey(parameters[:default], name)
+parameter_exists(name::String) = haskey(parameters[:default], name) # TODO: Taal remove
 
 
 # Print informative message at startup

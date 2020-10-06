@@ -9,14 +9,21 @@ The linear scalar advection equation
 in two space dimensions with constant velocity `a`.
 """
 struct LinearScalarAdvectionEquation2D <: AbstractLinearScalarAdvectionEquation{2, 1}
-  sources::String
   advectionvelocity::SVector{2, Float64}
 end
 
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
+function LinearScalarAdvectionEquation2D(a::NTuple{2,Float64})
+  LinearScalarAdvectionEquation2D(SVector(a))
+end
+
+function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
+  LinearScalarAdvectionEquation2D(SVector(a1, a2))
+end
+
 function LinearScalarAdvectionEquation2D()
-  sources = parameter("sources", "none")
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation2D(sources, a)
+  LinearScalarAdvectionEquation2D(a)
 end
 
 
@@ -169,6 +176,16 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::LinearScalarAdvectionEquation2D, dg)
   λ_max = maximum(abs, equation.advectionvelocity)
   return cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
+end
+
+@inline have_constant_speed(::LinearScalarAdvectionEquation2D) = Val(true)
+
+@inline function max_abs_speeds(u, eq::LinearScalarAdvectionEquation2D)
+  max_abs_speeds(eq)
+end
+
+@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation2D)
+  return eq.advectionvelocity
 end
 
 

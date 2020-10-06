@@ -1,10 +1,10 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
-                  MortarType, VolumeIntegralType, ShockIndicatorVariable,
-                  VectorNnodes, MatrixNnodes, MatrixNnodes2,
-                  InverseVandermondeLegendre, MortarMatrix,
-                  VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
+mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
+                    SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                    MortarType, VolumeIntegralType, ShockIndicatorVariable,
+                    VectorNnodes, MatrixNnodes, MatrixNnodes2,
+                    InverseVandermondeLegendre, MortarMatrix,
+                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -13,20 +13,20 @@ mutable struct Dg2D{Eqn<:AbstractEquation, NVARS, POLYDEG,
   initial_conditions::InitialConditions
   source_terms::SourceTerms
 
-  elements::ElementContainer2D{NVARS, POLYDEG}
+  elements::ElementContainer2D{Float64, NVARS, POLYDEG}
   n_elements::Int
 
-  interfaces::InterfaceContainer2D{NVARS, POLYDEG}
+  interfaces::InterfaceContainer2D{Float64, NVARS, POLYDEG}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer2D{NVARS, POLYDEG}
+  boundaries::BoundaryContainer2D{Float64, NVARS, POLYDEG}
   n_boundaries::Int
   n_boundaries_per_direction::SVector{4, Int}
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer2D{NVARS, POLYDEG}
+  l2mortars::L2MortarContainer2D{Float64, NVARS, POLYDEG}
   n_l2mortars::Int
-  ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
+  ecmortars::EcMortarContainer2D{Float64, NVARS, POLYDEG}
   n_ecmortars::Int
 
   boundary_conditions::BoundaryConditions
@@ -76,25 +76,25 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
   mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
 
@@ -352,19 +352,27 @@ end
 
 # Create element container, initialize element data, and return element container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_elements(cell_ids, mesh::TreeMesh{2}, RealT, nvars, polydeg)
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer2D{NVARS, POLYDEG}(n_elements)
+  elements = ElementContainer2D{RealT, nvars, polydeg}(n_elements)
+
+  # Determine node locations
+  n_nodes = polydeg + 1
+  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  init_elements!(elements, cell_ids, mesh, nodes)
+  return elements
+end
+
+function init_elements!(elements, cell_ids, mesh::TreeMesh{2}, nodes)
+  n_nodes = length(nodes)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
-
-  # Determine node locations
-  n_nodes = POLYDEG + 1
-  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:nelements(elements)
@@ -396,10 +404,11 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_interfaces(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer2D{NVARS, POLYDEG}(n_interfaces)
+  interfaces = InterfaceContainer2D{RealT, NVARS, POLYDEG}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -412,10 +421,11 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{NVARS, POLYDEG}(n_boundaries)
+  boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(n_boundaries)
 
   # Connect elements with boundaries
   n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
@@ -428,7 +438,8 @@ end
 #
 # NVARS: number of variables
 # POLYDEG: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG, mortar_type)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -440,8 +451,8 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG},
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer2D{NVARS, POLYDEG}(n_l2mortars)
-  ecmortars = EcMortarContainer2D{NVARS, POLYDEG}(n_ecmortars)
+  l2mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(n_l2mortars)
+  ecmortars = EcMortarContainer2D{RealT, NVARS, POLYDEG}(n_ecmortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
@@ -453,6 +464,15 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, ::Val{NVARS}, ::Val{POLYDEG},
   end
 
   return l2mortars, ecmortars
+end
+
+function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG, mortar::LobattoLegendreMortarL2)
+  # Initialize containers
+  n_mortars = count_required_mortars(mesh, cell_ids)
+  mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(n_mortars)
+  init_mortar_connectivity!(elements, mortars, mesh)
+
+  return mortars
 end
 
 
@@ -575,7 +595,9 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
                                             "expectations $(nboundaries(boundaries))")
   @assert sum(counts_per_direction) == count
 
-  return SVector(counts_per_direction)
+  boundaries.n_boundaries_per_direction = SVector(counts_per_direction)
+
+  return boundaries.n_boundaries_per_direction
 end
 
 
@@ -1150,7 +1172,7 @@ system of equations instance is passed in `equation`.
 **Note:** Keep order of analysis quantities in sync with
           [`analyze_solution`](@ref) when adding or changing quantities.
 """
-function save_analysis_header(filename, quantities, equation::AbstractEquation{2})
+function save_analysis_header(filename, quantities, equation::AbstractEquations{2})
   open(filename, "w") do f
     @printf(f, "#%-8s", "timestep")
     @printf(f, "  %-14s", "time")
