@@ -321,7 +321,8 @@ struct IndicatorHennemannGassner{RealT<:Real, Variable, Cache} <: AbstractIndica
   cache::Cache
 end
 
-function IndicatorHennemannGassner(equations, basis;
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
@@ -332,7 +333,8 @@ function IndicatorHennemannGassner(equations, basis;
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end
 
-function IndicatorHennemannGassner(semi;
+# this method is used when the indicator is constructed as for AMR
+function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
@@ -384,12 +386,16 @@ struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
   cache::Cache
 end
 
-function IndicatorLöhner(basis, equations; f_wave=0.2, variable=first)
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorLöhner(equations::AbstractEquations, basis;
+                         f_wave=0.2, variable=first)
   cache = create_cache(IndicatorLöhner, equations, basis)
   IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
-function IndicatorLöhner(semi; f_wave=0.2, variable=first)
+# this method is used when the indicator is constructed as for AMR
+function IndicatorLöhner(semi::AbstractSemidiscretization;
+                         f_wave=0.2, variable=first)
   cache = create_cache(IndicatorLöhner, semi)
   IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
@@ -415,12 +421,16 @@ struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   cache::Cache
 end
 
-function IndicatorMax(basis, equations::AbstractEquations; variable=first)
+# this method is used when the indicator is constructed as for shock-capturing volume integrals
+function IndicatorMax(equations::AbstractEquations, basis;
+                      variable=first)
   cache = create_cache(IndicatorMax, equations, basis)
   IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
-function IndicatorMax(semi; variable=first)
+# this method is used when the indicator is constructed as for AMR
+function IndicatorMax(semi::AbstractSemidiscretization;
+                      variable=first)
   cache = create_cache(IndicatorMax, semi)
   return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
