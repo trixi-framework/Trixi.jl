@@ -1,4 +1,51 @@
-using LinearMaps: LinearMap
+
+# Apply the function `f` to `expr` and all sub-expressions recursively.
+walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
+walkexpr(f, x) = f(x)
+
+# Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
+function replace_assignments(expr; kwargs...)
+  walkexpr(expr) do x
+    if x isa Expr
+      for (key,val) in kwargs
+        if x.head === Symbol("=") && x.args[1] === Symbol(key)
+          x.args[2] = :( $val )
+          # dump(x)
+        end
+      end
+    end
+    return x
+  end
+end
+
+# Note: Wa can't call the method below `Trixi.include` since that is created automatically
+# inside `module Trixi` to `include` source files and evaluate them within the global scope
+# of `Trixi`. However, users will want to evaluate in the global scope of `Main` or something
+# similar to manage dependencies on their own.
+"""
+    trixi_include([mod::Module=Main,] parameters_file; kwargs...)
+
+`include` the file `parameters_file` and evaluate its content in the global scope of module `mod`.
+You can override specific assignments in `parameters_file` by supplying keyword arguments.
+It's basic purpose is to make it easier to modify some parameters while running Trixi from the
+REPL. Additionally, this is used in tests to reduce the computational burden for CI while still
+providing examples with sensible default values for users.
+
+# Examples
+
+```jldoctest
+julia> trixi_include(default_example(), tspan=(0.0, 0.1))
+...
+julia> sol.t[end]
+0.1
+```
+"""
+function trixi_include(mod::Module, parameters_file::AbstractString; kwargs...)
+  Base.include(ex -> replace_assignments(ex; kwargs...), mod, parameters_file)
+end
+
+trixi_include(parameters_file::AbstractString; kwargs...) = trixi_include(Main, parameters_file; kwargs...)
+
 
 
 """
