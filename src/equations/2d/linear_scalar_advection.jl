@@ -24,18 +24,27 @@ get_name(::LinearScalarAdvectionEquation2D) = "LinearScalarAdvectionEquation2D"
 varnames_cons(::LinearScalarAdvectionEquation2D) = SVector("scalar")
 varnames_prim(::LinearScalarAdvectionEquation2D) = SVector("scalar")
 
+function x_trans_periodic(x)
+  #Fixed domain_length and center.
+  domain_length = [2,2]
+  center = [0,0]
+  x = (x - center) .% (domain_length)
+  x += ((x .<= -0.5*domain_length) .- (x .>= 0.5*domain_length)) .* (domain_length)
+  return x + center
+end
 
 # Set initial conditions at physical location `x` for time `t`
 function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
 
 function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   c = 1.0
   A = 0.5
@@ -48,7 +57,7 @@ end
 
 function initial_conditions_sin_sin(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
   return @SVector [scalar]
@@ -56,28 +65,28 @@ end
 
 function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   return @SVector [2.0]
 end
 
 function initial_conditions_linear_x_y(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   return @SVector [sum(x_trans)]
 end
 
 function initial_conditions_linear_x(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   return @SVector [x_trans[1]]
 end
 
 function initial_conditions_linear_y(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
 
   return @SVector [x_trans[2]]
 end
