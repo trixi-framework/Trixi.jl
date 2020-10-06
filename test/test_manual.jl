@@ -183,7 +183,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "example parameters" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
-    @test endswith(default_example(), "parameters.toml")
+    @test endswith(default_example(), "parameters.jl")
   end
 
   @testset "DG L2 mortar container debug output" begin
