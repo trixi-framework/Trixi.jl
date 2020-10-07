@@ -156,45 +156,46 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
 end
 
 
-# Calculate 2D twopoint flux (element version)
-@inline function calcflux_twopoint!(f1, u::AbstractArray{<:Any,3}, element,
-                                    volume_flux, equations, dg::DG, cache)
-
-  for i in eachnode(dg)
-    # Set diagonal entries (= regular volume fluxes due to consistency)
-    u_node = get_node_vars(u, equations, dg, i, element)
-    flux1 = calcflux(u_node, 1, equations)
-    set_node_vars!(f1, flux1, equations, dg, i, i)
-
-    # Flux in x-direction
-    for ii in (i+1):nnodes(dg)
-      u_ll = get_node_vars(u, equations, dg, i,  element)
-      u_rr = get_node_vars(u, equations, dg, ii, element)
-      flux = volume_flux(u_ll, u_rr, 1, equations) # 1-> x-direction
-      set_node_vars!(f1, flux, equations, dg, i, ii)
-      set_node_vars!(f1, flux, equations, dg, ii, i)
-    end
-  end
-
-  calcflux_twopoint_nonconservative!(f1, u::AbstractArray{<:Any,3}, element,
-                                     have_nonconservative_terms(equations),
-                                     equations, dg, cache)
-end
-
-function calcflux_twopoint_nonconservative!(f1, u, element,
-                                            nonconservative_terms::Val{false},
-                                            equations, dg::DG, cache)
-  return nothing
-end
-
 # TODO: MHD in 1D
-# function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,3}, element,
-#                                             nonconservative_terms::Val{true},
-#                                             equations, dg::DG, cache)
-#   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
-#   #      For now, just dispatch to an existing function for the IdealMhdEquations
-#   calcflux_twopoint_nonconservative!(f1, f2, u, element, equations, dg, cache)
+# # Calculate 2D twopoint flux (element version)
+# @inline function calcflux_twopoint!(f1, u::AbstractArray{<:Any,3}, element,
+#                                     volume_flux, equations, dg::DG, cache)
+
+#   for i in eachnode(dg)
+#     # Set diagonal entries (= regular volume fluxes due to consistency)
+#     u_node = get_node_vars(u, equations, dg, i, element)
+#     flux1 = calcflux(u_node, 1, equations)
+#     set_node_vars!(f1, flux1, equations, dg, i, i)
+
+#     # Flux in x-direction
+#     for ii in (i+1):nnodes(dg)
+#       u_ll = get_node_vars(u, equations, dg, i,  element)
+#       u_rr = get_node_vars(u, equations, dg, ii, element)
+#       flux = volume_flux(u_ll, u_rr, 1, equations) # 1-> x-direction
+#       set_node_vars!(f1, flux, equations, dg, i, ii)
+#       set_node_vars!(f1, flux, equations, dg, ii, i)
+#     end
+#   end
+
+#   calcflux_twopoint_nonconservative!(f1, u::AbstractArray{<:Any,3}, element,
+#                                      have_nonconservative_terms(equations),
+#                                      equations, dg, cache)
 # end
+
+# function calcflux_twopoint_nonconservative!(f1, u, element,
+#                                             nonconservative_terms::Val{false},
+#                                             equations, dg::DG, cache)
+#   return nothing
+# end
+
+# # TODO: MHD in 1D
+# # function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,3}, element,
+# #                                             nonconservative_terms::Val{true},
+# #                                             equations, dg::DG, cache)
+# #   #TODO: Create a unified interface, e.g. using non-symmetric two-point (extended) volume fluxes
+# #   #      For now, just dispatch to an existing function for the IdealMhdEquations
+# #   calcflux_twopoint_nonconservative!(f1, f2, u, element, equations, dg, cache)
+# # end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
