@@ -5,19 +5,35 @@
 The compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerEquations2D <: AbstractCompressibleEulerEquations{2, 4}
+  c_p::Float64
+  c_v::Float64
+  R_d::Float64
+  kappa::Float64
   gamma::Float64
+  _grav::Float64
+  p0::Float64
+  a::Float64
 end
 
 function CompressibleEulerEquations2D()
-  gamma = parameter("gamma", 1.4)
+  c_p = parameter("c_p",1004)
+  c_v = parameter("c_v",717)
+  R_d = parameter("R_d",c_p-c_v)
+  kappa = parameter("kappa",(c_p-c_v)/c_p)
+  gamma = parameter("gamma", c_p/c_v)
+  _grav = parameter("_grav",9.81)
+  p0 = parameter("p0",1.e5)
+  a = parameter("a",360.e0)
 
-  CompressibleEulerEquations2D(gamma)
+
+  CompressibleEulerEquations2D(c_p,c_v,R_d,kappa,gamma,_grav,p0,a)
 end
 
 
 get_name(::CompressibleEulerEquations2D) = "CompressibleEulerEquations2D"
 varnames_cons(::CompressibleEulerEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
 varnames_prim(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "p"]
+varnames_pot(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "pottemp"]
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -30,6 +46,41 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   p = 1
   rho_e = p/(equation.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
   return @SVector [rho, rho_v1, rho_v2, rho_e]
+end
+
+"""
+Warm bubble test from paper:
+Wicker, L. J., and W. C. Skamarock, 1998: A time-splitting scheme
+for the elastic equations incorporating second-order Runge–Kutta
+time differencing. Mon. Wea. Rev., 126, 1992–1999.
+"""
+
+function initial_conditions_warm_bubble(x, t, equation::CompressibleEulerEquations2D)
+
+  xc = 0
+  zc = 2000
+  r = sqrt((x[1] - xc)^2 + (x[2] - zc)^2)
+  rc = 2000
+  θ_ref = 300
+  Δθ = 0
+
+  if r <= rc
+     Δθ = 2 * cospi(0.5*r/rc)^2
+  end
+
+  #Perturbed state:
+  θ = θ_ref + Δθ # potential temperature
+  π_exner = 1 - equation._grav / (equation.c_p * θ) * x[2] # exner pressure
+  ρ = equation.p0 / (equation.R_d * θ) * (π_exner)^(equation.c_v / equation.R_d) # density
+  p = equation.p0 * (1-equation.kappa * equation._grav * x[2] / (equation.R_d * θ_ref))^(equation.c_p / equation.R_d)
+  T = p / (equation.R_d * ρ)
+
+  v1 = 20
+  v2 = 0
+  ρ_v1 = ρ * v1
+  ρ_v2 = ρ * v2
+  ρ_e = ρ * equation.c_v * T + 1/2 * ρ * (v1^2 + v2^2)  
+  return @SVector [ρ, ρ_v1, ρ_v2, ρ_e]
 end
 
 """
@@ -359,6 +410,25 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
   return flux
 end
 
+function boundary_conditions_slip_wall(u_inner, orientation, direction, x, t,
+                                       surface_flux_function,
+                                       equation::CompressibleEulerEquations2D)
+  if orientation == 1 # interface in x-direction
+    u_boundary = SVector(u_inner[1], -u_inner[2],  u_inner[3], u_inner[4])
+  else # interface in y-direction
+    u_boundary = SVector(u_inner[1],  u_inner[2], -u_inner[3], u_inner[4])
+  end
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::CompressibleEulerEquations2D)
@@ -440,6 +510,16 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
     ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
   end
 
+  return nothing
+end
+
+function source_terms_warm_bubble(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
+  for j in 1:n_nodes, i in 1:n_nodes
+    x1 = x[1, i, j, element_id]
+    x2 = x[2, i, j, element_id]
+    ut[3, i, j, element_id] +=  -equation._grav * u[1, i, j, element_id]
+    ut[4, i, j, element_id] +=  -equation._grav * u[3, i, j, element_id]
+  end
   return nothing
 end
 
@@ -677,6 +757,7 @@ See also Ranocha (2020)
     f2 = f1 * v1_avg + p_avg
     f3 = f1 * v2_avg
     f4 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+    println(" fr 1 ",SVector(f1, f2, f3, f4))
   else
     f1 = rho_mean * v2_avg
     f2 = f1 * v1_avg
@@ -685,6 +766,51 @@ See also Ranocha (2020)
   end
 
   return SVector(f1, f2, f3, f4)
+end
+
+"""
+function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+
+Chen, X., N. Andronova, B. Van Leer, J. E. Penner, J. P. Boyd, C. Jablonowski, and S. Lin, 2013: 
+A Control-Volume Model of the Compressible Euler Equations with a Vertical Lagrangian Coordinate. 
+Mon. Wea. Rev., 141, 2526–2544, https://doi.org/10.1175/MWR-D-12-00129.1.
+
+"""
+
+function flux_lmars(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+
+
+  rhoM = 0.5 * (rho_ll + rho_rr)
+  if orientation == 1 # x-direction
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v1_rr - v1_ll) 
+    vM = 0.5 * (v1_ll + v1_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
+    if vM >= 0
+      f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
+    else
+      f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 1, 0, 0)
+    end  
+  else # y-direction
+    pM = 0.5 * (p_ll + p_rr) - 0.5 * rhoM * equation.a * (v2_rr - v2_ll) 
+    vM = 0.5 * (v2_ll + v2_rr) - 1 / (2 * rhoM * equation.a) * (p_rr - p_ll) 
+    if vM >= 0
+      f = (u_ll + p_ll * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
+    else
+      f = (u_rr + p_rr * SVector(0, 0, 0, 1)) * vM + pM * SVector(0, 0, 1, 0)
+    end  
+  end
+  return f
 end
 
 
@@ -796,6 +922,23 @@ end
 end
 
 
+# Convert conservative variables to potential
+function cons2pot(u, equation::CompressibleEulerEquations2D)
+  rho, rho_v1, rho_v2, rho_e = u
+
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+
+  pot1 = rho
+  pot2 = v1
+  pot3 = v2
+  pot4 = equation.p0 * (((equation.gamma - 1) * (rho_e - 1/2 * (rho_v1 * v1 + rho_v2 * v2)))
+                        / equation.p0)^(1-equation.kappa) / (equation.R_d * rho)
+
+  return SVector(pot1, pot2, pot3, pot4)
+end
+
+
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equation::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
@@ -879,6 +1022,17 @@ end
   s = log(p) - equation.gamma*log(cons[1])
 
   return s
+end
+
+# Calculate potential temperature for a conservative state `cons`
+@inline function pottemp_thermodynamic(cons, equation::CompressibleEulerEquations2D)
+  # Pressure
+  p = (equation.gamma - 1) * (cons[4] - 1/2 * (cons[2]^2 + cons[3]^2) / cons[1])
+
+  # Potential temperature
+  pot = equation.p0 * (p / equation.p0)^(1 - equation.kappa) / (equation.R_d * cons[1])
+
+  return pot
 end
 
 

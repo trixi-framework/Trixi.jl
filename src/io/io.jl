@@ -127,10 +127,18 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
 
     # Convert to primitive variables if requested
     solution_variables = parameter("solution_variables", "primitive",
-                                   valid=["conservative", "primitive"])
+                                   valid=["conservative", "primitive", "pot"])
     if solution_variables == "conservative"
       data = dg.elements.u
       varnames = varnames_cons(equation)
+    elseif solution_variables == "pot"
+      # Reinterpret the solution array as an array of conservative variables,
+      # compute the potential temperature variables via broadcasting, and reinterpret the
+      # result as a plain array of floating point numbers
+      data = Array(reinterpret(eltype(dg.elements.u),
+             cons2pot.(reinterpret(SVector{nvariables(dg),eltype(dg.elements.u)}, dg.elements.u),
+                        Ref(equations(dg)))))
+      varnames = varnames_pot(equation)
     else
       # Reinterpret the solution array as an array of conservative variables,
       # compute the primitive variables via broadcasting, and reinterpret the

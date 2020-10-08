@@ -41,6 +41,19 @@ function make_equations(name::String, ndims_)
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
+  elseif name == "CompressibleMoistPotTempEulerEquations"
+    if ndims_ == 2
+      return CompressibleMoistPotTempEulerEquations2D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
+  elseif name == "CompressibleMoistEnergyEulerEquations"
+    if ndims_ == 2
+      return CompressibleMoistEnergyEulerEquations2D()
+    else
+      error("Unsupported number of spatial dimensions: ", ndims_)
+    end
+  elseif name == "CompressibleEulerMoistEquations"
   elseif name == "IdealGlmMhdEquations"
     if ndims_ == 2
       return IdealGlmMhdEquations2D()
@@ -100,6 +113,8 @@ include("3d/linear_scalar_advection.jl")
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
 include("1d/compressible_euler.jl")
 include("2d/compressible_euler.jl")
+include("2d/compressible_euler_pot.jl")
+include("2d/compressible_euler_moist.jl")
 include("3d/compressible_euler.jl")
 
 # Ideal MHD
