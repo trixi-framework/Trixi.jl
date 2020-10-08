@@ -15,8 +15,8 @@ initial_conditions = initial_conditions_convergence_test
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(4, surface_flux)
 
-coordinates_min = (0,)
-coordinates_max = (2,)
+coordinates_min = 0
+coordinates_max = 2
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
