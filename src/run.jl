@@ -69,7 +69,7 @@ end
 
 
 function init_simulation()
-  # Print starup message
+  # Print startup message
   print_startup_message()
 
   # Get number of dimensions
