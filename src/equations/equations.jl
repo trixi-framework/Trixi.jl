@@ -1,7 +1,4 @@
 
-# Retrieve number of variables from equation type
-@inline nvariables(::Type{AbstractEquations{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
-
 # Retrieve number of variables from equation instance
 @inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
 
