@@ -380,22 +380,22 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
               "               " *
               " PID × #ranks:   " * @sprintf("%10.8e s", runtime_relative * n_mpi_ranks()))
 
-  # Level information (only show for AMR)
-  if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
-    levels = Vector{Int}(undef, dg.n_elements)
-    for element_id in 1:dg.n_elements
-      levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
-    end
-    min_level = minimum(levels)
-    max_level = maximum(levels)
+  # Level information (only show for AMR) #TODO MPI add when AMR is enabled
+  # if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
+  #   levels = Vector{Int}(undef, dg.n_elements)
+  #   for element_id in 1:dg.n_elements
+  #     levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
+  #   end
+  #   min_level = minimum(levels)
+  #   max_level = maximum(levels)
 
-    mpi_println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
-    for level = max_level:-1:min_level+1
-      mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
-    end
-    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
-  end
-  mpi_println()
+  #   mpi_println(" #elements:      " * @sprintf("% 14d", dg.n_elements))
+  #   for level = max_level:-1:min_level+1
+  #     mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(x->x==level, levels)))
+  #   end
+  #   mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(x->x==min_level, levels)))
+  # end
+  # mpi_println()
 
   # Open file for appending and store time step and time information
   if dg.save_analysis && is_mpi_root()
