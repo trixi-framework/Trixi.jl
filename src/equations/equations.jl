@@ -93,8 +93,8 @@ DG method (except floating point errors).
 end
 
 
-@inline cons2cons(u, equation::AbstractEquations) = u
-@inline Base.first(u, equations::AbstractEquations) = first(u)
+@inline cons2cons(u, ::AbstractEquations) = u
+@inline Base.first(u, ::AbstractEquations) = first(u)
 
 
 ####################################################################################################
