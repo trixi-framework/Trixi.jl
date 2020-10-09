@@ -40,6 +40,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
       show(io, MIME"text/plain"(), cb)
       println(io, "\n")
     end
+  else
+    show(io, MIME"text/plain"(), callbacks)
+    println(io, "\n")
   end
 
   # TODO: Taal decide, shall we print more information about the ODE problem/algorithm?
