@@ -10,12 +10,12 @@
 
 
 # Add method to show some information on system of equations
-function Base.show(io::IO, equation::AbstractEquations)
-  print(io, get_name(equation), " with ")
-  if nvariables(equation) == 1
+function Base.show(io::IO, equations::AbstractEquations)
+  print(io, get_name(equations), " with ")
+  if nvariables(equations) == 1
     print(io, "one variable")
   else
-    print(io, nvariables(equation), " variables")
+    print(io, nvariables(equations), " variables")
   end
 end
 
