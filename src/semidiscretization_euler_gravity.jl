@@ -1,4 +1,13 @@
 
+"""
+    ParametersEulerGravity(; background_density=0.0,
+                             gravitational_constant=1.0,
+                             cfl=1.0,
+                             n_iterations_max=10^6,
+                             timestep_gravity=timestep_gravity_erk52_3Sstar!)
+
+Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
+"""
 struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
   background_density    ::RealT # aka rho0
   gravitational_constant::RealT # aka G
@@ -70,6 +79,12 @@ struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
   end
 end
 
+"""
+    SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters)
+
+Construct a semidiscretization of the compressible Euler equations with self-gravity.
+`parameters` should be given as [`ParametersEulerGravity`](@ref).
+"""
 function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters) where
     {Mesh, SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
            SemiGravity<:SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}

@@ -184,6 +184,13 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   end
 end
 
+"""
+    SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
+                                 source_terms=nothing,
+                                 boundary_conditions=nothing)
+
+Construct a semidiscretization of a hyperbolic PDE.
+"""
 function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
                                       source_terms=nothing,
                                       boundary_conditions=nothing, RealT=real(solver))
