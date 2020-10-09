@@ -17,7 +17,7 @@ struct AMRCallback{Indicator, Adaptor}
 end
 
 
-function AMRCallback(semi, indicator, adaptor; interval=5,
+function AMRCallback(semi, indicator, adaptor; interval=0,
                                                adapt_initial_conditions=true,
                                                adapt_initial_conditions_only_refine=true)
   # AMR every `interval` time steps
