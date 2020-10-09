@@ -89,7 +89,7 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     {Mesh, SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
            SemiGravity<:SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
 
-  u_ode = compute_coefficients(0.0, semi_gravity)
+  u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
   du_ode     = similar(u_ode)
   u_tmp1_ode = similar(u_ode)
   u_tmp2_ode = similar(u_ode)
