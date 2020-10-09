@@ -124,6 +124,9 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
 end
 
 
+# The compressible Euler semidiscretization is considered to be the main semidiscretization.
+# The hyperbolic diffusion equations part is only used internally to update the gravitational
+# potential during an rhs! evaluation of the flow solver.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)
   mesh_equations_solver_cache(semi.semi_euler)
 end
