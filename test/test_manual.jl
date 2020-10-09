@@ -46,6 +46,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "TreeMesh" begin
+    @testset "constructors" begin
+      Trixi.TreeMesh{Trixi.SerialTree{1}}(1, 5.0, 2.0) isa Trixi.TreeMesh
+    end
+  end
+
   @testset "interpolation" begin
     @testset "nodes and weights" begin
       @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
