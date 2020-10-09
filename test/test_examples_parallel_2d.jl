@@ -72,6 +72,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
             linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5])
   end
+  @testset "parameters.toml with restart and t_end=2" begin
+    Trixi.run(joinpath(EXAMPLES_DIR, "parameters.toml"))
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters.toml"),
+            l2   = [1.2148032444677485e-5],
+            linf = [6.495644794757283e-5],
+            t_end = 2,
+            restart = true, restart_filename = "out/restart_000040.h5")
+  end
 end
 
 # Clean up afterwards: delete Trixi output directory
