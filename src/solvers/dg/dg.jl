@@ -431,7 +431,6 @@ end
 
 
 
-# TODO: Taal decide, shall we keep this?
 struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
   variable::Variable
   cache::Cache
