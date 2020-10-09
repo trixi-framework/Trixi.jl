@@ -8,12 +8,11 @@ The linear scalar advection equation
 ```
 in two space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation2D <: AbstractLinearScalarAdvectionEquation{2, 1}
-  advectionvelocity::SVector{2, Float64}
+struct LinearScalarAdvectionEquation2D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{2, 1}
+  advectionvelocity::SVector{2, RealT}
 end
 
-# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
-function LinearScalarAdvectionEquation2D(a::NTuple{2,Float64})
+function LinearScalarAdvectionEquation2D(a::NTuple{2,<:Real})
   LinearScalarAdvectionEquation2D(SVector(a))
 end
 
@@ -21,6 +20,7 @@ function LinearScalarAdvectionEquation2D(a1::Real, a2::Real)
   LinearScalarAdvectionEquation2D(SVector(a1, a2))
 end
 
+# TODO Taal refactor, remove old constructors and replace them with default values
 function LinearScalarAdvectionEquation2D()
   a = convert(SVector{2,Float64}, parameter("advectionvelocity"))
   LinearScalarAdvectionEquation2D(a)
@@ -185,7 +185,7 @@ end
 end
 
 @inline function max_abs_speeds(eq::LinearScalarAdvectionEquation2D)
-  return eq.advectionvelocity
+  return abs.(eq.advectionvelocity)
 end
 
 

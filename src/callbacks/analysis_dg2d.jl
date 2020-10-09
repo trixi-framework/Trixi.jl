@@ -1,6 +1,7 @@
 
 function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
-                          mesh::TreeMesh{2}, equations, initial_conditions, dg::DGSEM, cache)
+                          mesh::TreeMesh{2}, equations, initial_conditions,
+                          dg::DGSEM, cache)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
 

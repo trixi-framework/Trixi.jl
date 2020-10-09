@@ -92,6 +92,10 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   return mesh
 end
 
+function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
+  TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
+end
+
 
 function Base.show(io::IO, mesh::TreeMesh{NDIMS}) where {NDIMS}
   print(io, "TreeMesh{", NDIMS, "} with length ", mesh.tree.length)

@@ -109,6 +109,15 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::Abst
   return nothing
 end
 
+# 1D version for scalars
+function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 1},
+                                        matrix::AbstractMatrix,
+                                        data_in ::AbstractArray{<:Any, 1})
+  @tullio threads=false data_out[i] = matrix[i, ii] * data_in[ii]
+
+  return nothing
+end
+
 # 1D version, apply matrixJ to data_inJ
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix1::AbstractMatrix,
                                  data_in1::AbstractArray{<:Any, 2}, matrix2::AbstractMatrix,

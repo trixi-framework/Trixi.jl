@@ -574,12 +574,14 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
 end
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_conditions::Nothing, equations, dg::DG)
+function calc_boundary_flux!(cache, t, boundary_conditions::Nothing,
+                             equations::AbstractEquations{2}, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DG)
+function calc_boundary_flux!(cache, t, boundary_conditions,
+                             equations::AbstractEquations{2}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -595,7 +597,8 @@ function calc_boundary_flux!(cache, t, boundary_conditions, equations, dg::DG)
   end
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NTuple{4,Any}, equations, dg::DG) # 4 = 2*ndims
+function calc_boundary_flux!(cache, t, boundary_conditions::NTuple{4,Any},
+                             equations::AbstractEquations{2}, dg::DG) # 4 = 2*ndims
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 
@@ -930,6 +933,7 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
 end
 
 
+# TODO: Taal dimension agnostic
 # TODO: Taal refactor, make source terms pointwise, possibly using traits to decide if they depend on u, if necessary for performance?
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms::Nothing, equations, dg::DG, cache)
   return nothing

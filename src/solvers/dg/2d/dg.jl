@@ -402,13 +402,13 @@ end
 
 # Create interface container, initialize interface data, and return interface container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
+# nvars: number of variables
+# polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG)
+function init_interfaces(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer2D{RealT, NVARS, POLYDEG}(n_interfaces)
+  interfaces = InterfaceContainer2D{RealT, nvars, polydeg}(n_interfaces)
 
   # Connect elements with interfaces
   init_interface_connectivity!(elements, interfaces, mesh)
@@ -419,13 +419,13 @@ end
 
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
+# nvars: number of variables
+# polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG)
+function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(n_boundaries)
+  boundaries = BoundaryContainer2D{RealT, nvars, polydeg}(n_boundaries)
 
   # Connect elements with boundaries
   n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
@@ -436,10 +436,10 @@ end
 
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
+# nvars: number of variables
+# polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG, mortar_type)
+function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg, mortar_type)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -451,8 +451,8 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYD
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(n_l2mortars)
-  ecmortars = EcMortarContainer2D{RealT, NVARS, POLYDEG}(n_ecmortars)
+  l2mortars = L2MortarContainer2D{RealT, nvars, polydeg}(n_l2mortars)
+  ecmortars = EcMortarContainer2D{RealT, nvars, polydeg}(n_ecmortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
@@ -466,10 +466,10 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYD
   return l2mortars, ecmortars
 end
 
-function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, NVARS, POLYDEG, mortar::LobattoLegendreMortarL2)
+function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
-  mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(n_mortars)
+  mortars = L2MortarContainer2D{RealT, nvars, polydeg}(n_mortars)
   init_mortar_connectivity!(elements, mortars, mesh)
 
   return mortars

@@ -377,4 +377,5 @@ pretty_form_file(::Val{:linf_divb}) = "linf_divb"
 
 
 # specialized implementations specific to some solvers
+include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")

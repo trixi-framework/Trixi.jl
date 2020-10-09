@@ -3,10 +3,11 @@
 
 The compressible Euler equations for an ideal gas in one space dimension.
 """
-struct CompressibleEulerEquations1D <: AbstractCompressibleEulerEquations{1, 3}
-  gamma::Float64
+struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEquations{1, 3}
+  gamma::RealT
 end
 
+# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
 function CompressibleEulerEquations1D()
   gamma = parameter("gamma", 1.4)
 
@@ -131,6 +132,7 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   return prim2cons(SVector(rho, v1, p), equation)
 end
 
+
 # Apply boundary conditions
 function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
@@ -149,6 +151,8 @@ end
 
 
 # Apply source terms
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
   # Same settings as in `initial_conditions`
   c = 2
@@ -176,6 +180,34 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   end
 
   return nothing
+end
+
+@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
+  # Same settings as in `initial_conditions`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equation.gamma
+
+  x1, = x
+
+  si, co = sincos((t - x1)*ω)
+  tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
+
+  du1 = zero(eltype(u))
+  du2 = tmp
+  du3 = tmp
+
+  # Original terms (without performanc enhancements)
+  # du1 = 0
+  # du2 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+  # du3 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+
+  return SVector(du1, du2, du3)
 end
 
 # Calculate 1D flux for a single point
@@ -422,6 +454,15 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
+end
+
+@inline function max_abs_speeds(u, equation::CompressibleEulerEquations1D)
+  rho, rho_v1, rho_e = u
+  v1 = rho_v1 / rho
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
+  c = sqrt(equation.gamma * p / rho)
+
+  return (abs(v1) + c,)
 end
 
 

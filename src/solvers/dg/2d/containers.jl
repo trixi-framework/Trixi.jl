@@ -43,8 +43,9 @@ function ElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   surface_flux_values = fill(nan, NVARS, n_nodes, 2 * 2, capacity)
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer2D{RealT, NVARS, POLYDEG}(u, u_t, u_tmp2, u_tmp3, inverse_jacobian, node_coordinates,
-                                                       surface_flux_values, cell_ids)
+  elements = ElementContainer2D{RealT, NVARS, POLYDEG}(
+    u, u_t, u_tmp2, u_tmp3,
+    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids)
 
   return elements
 end
@@ -80,7 +81,8 @@ function InterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {R
   neighbor_ids = fill(typemin(Int), 2, capacity)
   orientations = fill(typemin(Int), capacity)
 
-  interfaces = InterfaceContainer2D{RealT, NVARS, POLYDEG}(u, neighbor_ids, orientations)
+  interfaces = InterfaceContainer2D{RealT, NVARS, POLYDEG}(
+    u, neighbor_ids, orientations)
 
   return interfaces
 end
@@ -179,7 +181,8 @@ function L2MortarContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
   large_sides  = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  l2mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(u_upper, u_lower, neighbor_ids, large_sides, orientations)
+  l2mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(
+    u_upper, u_lower, neighbor_ids, large_sides, orientations)
 
   return l2mortars
 end
@@ -238,8 +241,8 @@ function EcMortarContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
   large_sides  = fill(typemin(Int), capacity)
   orientations = fill(typemin(Int), capacity)
 
-  ecmortars = EcMortarContainer2D{RealT, NVARS, POLYDEG}(u_upper, u_lower, u_large, neighbor_ids,
-                                                  large_sides, orientations)
+  ecmortars = EcMortarContainer2D{RealT, NVARS, POLYDEG}(
+    u_upper, u_lower, u_large, neighbor_ids, large_sides, orientations)
 
   return ecmortars
 end
