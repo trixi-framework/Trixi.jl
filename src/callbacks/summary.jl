@@ -1,6 +1,6 @@
 
-summary_callback(integrator) = t == false
-summary_callback(u, t, integrator) = u_modified!(integrator, false)
+summary_callback(integrator) = false # when used as condition; never call the summary callback during the simulation
+summary_callback(u, t, integrator) = u_modified!(integrator, false) # the summary callback does nothing when called accidentally
 
 function SummaryCallback()
   DiscreteCallback(summary_callback, summary_callback,
