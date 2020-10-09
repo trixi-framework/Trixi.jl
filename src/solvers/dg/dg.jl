@@ -243,6 +243,14 @@ include("interpolation.jl")
 include("l2projection.jl")
 include("lobatto_legendre.jl")
 
+"""
+    DGSEM([RealT=Float64,] polydeg::Integer,
+          surface_flux=flux_central,
+          volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm())
+
+Create a discontinuous Galerkin spectral element method (DGSEM) using a
+[`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
+"""
 const DGSEM = DG{RealT, Basis, Mortar, SurfaceFlux, VolumeIntegral} where {RealT<:Real, Basis<:LobattoLegendreBasis{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
 
 function DGSEM(basis::LobattoLegendreBasis,
