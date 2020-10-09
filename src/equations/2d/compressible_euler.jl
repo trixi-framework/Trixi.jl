@@ -424,7 +424,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations2D)
+@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`
   c = 2
   A = 0.1
