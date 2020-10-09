@@ -16,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "helper functions" begin
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
-      @test_nowarn show(t)
+      @test isnothing(display(t))
       @test Trixi.ndims(t) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
@@ -43,6 +43,11 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "ParallelTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+    end
+
+    @testset "helper functions" begin
+      t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+      @test isnothing(display(t))
     end
   end
 
