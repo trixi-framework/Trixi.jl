@@ -300,184 +300,24 @@ end
 
 
 
-abstract type AbstractIndicator end
+# indicators used for shock-capturing and AMR
+include("indicators.jl")
+include("indicators_1d.jl")
+include("indicators_2d.jl")
 
-function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
-  create_cache(typ, mesh_equations_solver_cache(semi)...)
-end
-
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingHG)
-  element_variables[:indicator_shock_capturing] = indicator.cache.alpha
-  return nothing
-end
-
-
-
-"""
-    IndicatorHennemannGassner
-
-Indicator used for shock-capturing or AMR used by
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-struct IndicatorHennemannGassner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  alpha_max::RealT
-  alpha_min::RealT
-  alpha_smooth::Bool
-  variable::Variable
-  cache::Cache
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorHennemannGassner(equations::AbstractEquations, basis;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   variable=first)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, equations, basis)
-  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, variable, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
-                                   alpha_smooth=true,
-                                   variable=first)
-  alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, semi)
-  IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
-    alpha_max, alpha_min, alpha_smooth, variable, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorHennemannGassner)
-  print(io, "IndicatorHennemannGassner(")
-  print(io, indicator.variable)
-  print(io, ", alpha_max=", indicator.alpha_max)
-  print(io, ", alpha_min=", indicator.alpha_min)
-  print(io, ", alpha_smooth=", indicator.alpha_smooth)
-  print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
-  println(io, "IndicatorHennemannGassner(")
-  println(io, "- ", indicator.variable)
-  println(io, "- alpha_max:    ", indicator.alpha_max)
-  println(io, "- alpha_min:    ", indicator.alpha_min)
-  println(io, "- alpha_smooth: ", indicator.alpha_smooth)
-  print(io,   "- cache with fields:")
-  for key in keys(indicator.cache)
-    print(io, " ", key)
-  end
-end
-
-
-
-"""
-    IndicatorLöhner (equivalent to IndicatorLoehner)
-
-AMR indicator adapted from a FEM indicator by Löhner (1987), also used in the
-FLASH code as standard AMR indicator.
-The indicator estimates a weighted second derivative of a specified variable locally.
-- Löhner (1987)
-  "An adaptive finite element scheme for transient problems in CFD"
-  [doi: 10.1016/0045-7825(87)90098-3](https://doi.org/10.1016/0045-7825(87)90098-3)
-- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
-"""
-struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  f_wave::RealT # TODO: Taal, better name and documentation
-  variable::Variable
-  cache::Cache
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorLöhner(equations::AbstractEquations, basis;
-                         f_wave=0.2, variable=first)
-  cache = create_cache(IndicatorLöhner, equations, basis)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorLöhner(semi::AbstractSemidiscretization;
-                         f_wave=0.2, variable=first)
-  cache = create_cache(IndicatorLöhner, semi)
-  IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorLöhner)
-  print(io, "IndicatorLöhner(")
-  print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
-end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
-#   println(io, "IndicatorLöhner with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
-
-const IndicatorLoehner = IndicatorLöhner
-
-# TODO: Taal dimension agnostic
-# dirty Löhner estimate, direction by direction, assuming constant nodes
-@inline function (löhner::IndicatorLöhner)(um::Real, u0::Real, up::Real)
-  num = abs(up - 2 * u0 + um)
-  den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
-  return num / den
-end
-
-
-
-struct IndicatorMax{Variable, Cache<:NamedTuple} <: AbstractIndicator
-  variable::Variable
-  cache::Cache
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-function IndicatorMax(equations::AbstractEquations, basis;
-                      variable=first)
-  cache = create_cache(IndicatorMax, equations, basis)
-  IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
-end
-
-# this method is used when the indicator is constructed as for AMR
-function IndicatorMax(semi::AbstractSemidiscretization;
-                      variable=first)
-  cache = create_cache(IndicatorMax, semi)
-  return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
-end
-
-
-function Base.show(io::IO, indicator::IndicatorMax)
-  print(io, "IndicatorMax(")
-  print(io, "variable=", indicator.variable, ")")
-end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
-#   println(io, "IndicatorMax with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
-
-
-
-# Include 1D implementation
+# 1D DG implementation
 include("1d/containers.jl")
 include("1d/dg.jl")
 include("1d/amr.jl")
 include("dg_1d.jl")
-include("dg_1d_indicators.jl")
 
-# Include 2D implementation
+# 2D DG implementation
 include("2d/containers.jl")
 include("2d/dg.jl")
 include("2d/amr.jl")
 include("dg_2d.jl")
-include("dg_2d_indicators.jl")
 
-# Include 3D implementation
+# 3D DG implementation
 include("3d/containers.jl")
 include("3d/dg.jl")
 include("3d/amr.jl")
