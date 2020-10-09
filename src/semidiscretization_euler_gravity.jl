@@ -3,7 +3,7 @@
     ParametersEulerGravity(; background_density=0.0,
                              gravitational_constant=1.0,
                              cfl=1.0,
-                             n_iterations_max=10^6,
+                             n_iterations_max=10^4,
                              timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
 Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
@@ -19,7 +19,7 @@ end
 function ParametersEulerGravity(; background_density=0.0,
                                   gravitational_constant=1.0,
                                   cfl=1.0,
-                                  n_iterations_max=10^6,
+                                  n_iterations_max=10^4,
                                   timestep_gravity=timestep_gravity_erk52_3Sstar!)
   background_density, gravitational_constant, cfl = promote(background_density, gravitational_constant, cfl)
   ParametersEulerGravity(background_density, gravitational_constant, cfl, n_iterations_max, timestep_gravity)
