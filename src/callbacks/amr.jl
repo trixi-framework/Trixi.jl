@@ -190,6 +190,12 @@ end
 
 
 
+# `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
+# passively without querying its indicator, based on the assumption that both solvers use
+# the same mesh. That's a hack and should be improved in the future once we have more examples
+# and a better understandin of such a coupling.
+# `passive_args` is expected to be an iterable of `Tuple`s of the form
+# `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG, cache;
                                      only_refine=false, only_coarsen=false,

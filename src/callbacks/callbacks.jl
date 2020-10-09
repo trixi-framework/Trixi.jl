@@ -11,8 +11,8 @@ get_element_variables!(element_variables, u, mesh, equations, solver, cache, cal
 end
 
 
-# include callback definitions in their preferred order
-# when called after a complete step
+# `include` callback definitions in the order that we currently prefer
+# when combining them into a `CallbackSet` which is called after a complete step
 include("summary.jl")
 include("amr.jl")
 include("stepsize.jl")

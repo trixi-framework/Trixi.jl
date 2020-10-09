@@ -307,10 +307,6 @@ end
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations2D) = Val(true)
 
-@inline function max_abs_speeds(u, eq::HyperbolicDiffusionEquations2D)
-  max_abs_speeds(eq)
-end
-
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
   λ = sqrt(eq.nu / eq.Tr)
   return λ, λ
