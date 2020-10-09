@@ -48,6 +48,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @testset "helper functions" begin
       t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
       @test isnothing(display(t))
+      @test isnothing(Trixi.reset_data_structures!(t))
     end
   end
 
