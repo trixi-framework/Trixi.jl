@@ -14,7 +14,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 @testset "Elixirs" begin
   @testset "Test linear structure (2D)" begin
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters_advection_basic.toml"),
                                           initial_refinement_level=2)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < length(λ) * eps(real(eltype(λ)))
@@ -27,19 +27,19 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
   @testset "Test Jacobian of DG (2D)" begin
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters_advection_basic.toml"),
                                           initial_refinement_level=2)
-    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "2d", "parameters.toml"),
+    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "2d", "parameters_advection_basic.toml"),
                                           initial_refinement_level=2)
     @test isapprox(Matrix(A), J)
 
-    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "2d", "parameters_density_wave.toml"))
+    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "2d", "parameters_euler_density_wave.toml"))
     λ = eigvals(J)
     @test maximum(real, λ) < 0.007
   end
 
   @testset "Test linear structure (3D)" begin
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters_advection_basic.toml"),
                                           polydeg=2, initial_refinement_level=1)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < length(λ) * eps(real(eltype(λ)))
@@ -52,9 +52,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   end
 
   @testset "Test Jacobian of DG (3D)" begin
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters_advection_basic.toml"),
                                           polydeg=2, initial_refinement_level=1)
-    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "3d", "parameters.toml"),
+    J = Trixi.compute_jacobian_dg(joinpath(EXAMPLES_DIR, "3d", "parameters_advection_basic.toml"),
                                           polydeg=2, initial_refinement_level=1)
     @test isapprox(Matrix(A), J)
   end

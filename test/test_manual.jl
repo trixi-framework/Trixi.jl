@@ -183,7 +183,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "example parameters" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
-    @test endswith(default_example(), "parameters.jl")
+    @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
   @testset "DG L2 mortar container debug output" begin

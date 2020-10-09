@@ -61,14 +61,14 @@ used by EOC analysis).
 
 # Examples
 ```julia
-julia> Trixi.run("examples/parameters.toml", verbose=true)
+julia> Trixi.run("examples/parameters_advection_basic.toml", verbose=true)
 [...]
 ```
 
 Without changing the parameters file we can start a simulation with `polydeg = 1` and
 `t_end = 0.5` as follows:
 ```julia
-julia> Trixi.run("examples/parameters.toml", polydeg=1, t_end=0.5)
+julia> Trixi.run("examples/parameters_advection_basic.toml", polydeg=1, t_end=0.5)
 [...]
 ```
 """

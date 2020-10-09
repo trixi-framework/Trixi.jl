@@ -1,6 +1,3 @@
-# TODO: Taal refactor, rename to
-# - euler_blast_wave_shockcapturing.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
@@ -8,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations1D(1.4)
+equations = CompressibleEulerEquations2D(1.4)
 
 initial_conditions = initial_conditions_blast_wave
 
@@ -25,8 +22,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2,)
-coordinates_max = ( 2,)
+coordinates_min = (-2, -2)
+coordinates_max = ( 2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 n_cells_max=10_000)
@@ -43,7 +40,20 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
+indicator_amr = IndicatorHennemannGassner(semi,
+                                          alpha_max=0.5,
+                                          alpha_min=0.001,
+                                          alpha_smooth=true,
+                                          variable=density_pressure)
+amr_indicator = IndicatorThreeLevel(semi, indicator_amr,
+                                    base_level=4,
+                                    max_level =6, max_threshold=0.01)
+amr_callback = AMRCallback(semi, amr_indicator,
+                           interval=5,
+                           adapt_initial_conditions=true,
+                           adapt_initial_conditions_only_refine=true)
+
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -54,7 +64,7 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
 
 ###############################################################################

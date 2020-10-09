@@ -1,24 +1,21 @@
-# TODO: Taal refactor, rename to
-# - mhd_ec.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-equations = IdealGlmMhdEquations2D(1.4)
+equations = CompressibleEulerEquations2D(1.4)
 
-initial_conditions = Trixi.initial_conditions_ec_test
+initial_conditions = initial_conditions_weak_blast_wave
 
-surface_flux = flux_derigs_etal
-volume_flux  = flux_derigs_etal
+surface_flux = flux_chandrashekar
+volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2)
 coordinates_max = ( 2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=5,
                 n_cells_max=10_000)
 
 
@@ -35,10 +32,12 @@ summary_callback = SummaryCallback()
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
+# TODO: Taal, restart
+# restart_interval = 10
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)

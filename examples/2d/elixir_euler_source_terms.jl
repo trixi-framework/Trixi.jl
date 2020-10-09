@@ -1,6 +1,3 @@
-# TODO: Taal refactor, rename to
-# - euler_source_terms.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
