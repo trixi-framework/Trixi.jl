@@ -12,10 +12,6 @@ function save_solution_file(u, time, dt, timestep,
     filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
   end
 
-  # Convert time and time step size to floats
-  time = convert(Float64, time)
-  dt   = convert(Float64, dt)
-
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
@@ -25,8 +21,8 @@ function save_solution_file(u, time, dt, timestep,
     attrs(file)["n_vars"] = nvariables(equations)
     attrs(file)["n_elements"] = nelements(dg, cache)
     attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = time
-    attrs(file)["dt"] = dt
+    attrs(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attrs(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attrs(file)["timestep"] = timestep
 
     # Convert to primitive variables if requested
