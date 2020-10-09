@@ -4,7 +4,7 @@ using MPI: mpiexec
 # run tests on Travis CI in parallel
 const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
 const ON_APPVEYOR = lowercase(get(ENV, "APPVEYOR", "false")) == "true"
-const TRIXI_MPI_NPROCS = 3
+const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "1D"
