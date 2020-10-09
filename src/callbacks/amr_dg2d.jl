@@ -1,6 +1,8 @@
 
+# TODO: Taal, dimension agnostic
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, cells_to_refine)
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+                 equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -76,7 +78,8 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u::AbstractArray{<:Any,4}, element_id, old_u, old_element_id,
+function refine_element!(u::AbstractArray{<:Any,4}, element_id,
+                         old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack forward_upper, forward_lower = adaptor
 
@@ -140,8 +143,10 @@ end
 
 
 
+# TODO: Taal, dimension agnostic
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+                  equations, dg::DGSEM, cache, child_cells_to_coarsen)
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return

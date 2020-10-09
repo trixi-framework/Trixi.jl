@@ -1,6 +1,8 @@
 
+# TODO: Taal, dimension agnostic
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1}, equations, dg::DGSEM, cache, cells_to_refine)
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
+                 equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
     return
@@ -71,13 +73,25 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u::AbstractArray{<:Any,3}, element_id, old_u, old_element_id,
+function refine_element!(u::AbstractArray{<:Any,3}, element_id,
+                         old_u, old_element_id,
                          adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
   left_id  = element_id
   right_id = element_id + 1
+
+  @boundscheck begin
+    @assert old_element_id >= 1
+    @assert size(old_u, 1) == nvariables(equations)
+    @assert size(old_u, 2) == nnodes(dg)
+    @assert size(old_u, 3) >= old_element_id
+    @assert     element_id >= 1
+    @assert size(    u, 1) == nvariables(equations)
+    @assert size(    u, 2) == nnodes(dg)
+    @assert size(    u, 3) >= element_id + 1
+  end
 
   # Interpolate to left element
   for i in eachnode(dg)
@@ -102,8 +116,10 @@ end
 
 
 
+# TODO: Taal, dimension agnostic
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1}, equations, dg::DGSEM, cache, child_cells_to_coarsen)
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
+                  equations, dg::DGSEM, cache, child_cells_to_coarsen)
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
     return
@@ -186,13 +202,25 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id, old_u, old_element_id,
+function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id,
+                           old_u, old_element_id,
                            adaptor::LobattoLegendreAdaptorL2, equations, dg)
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
   left_id  = old_element_id
   right_id = old_element_id + 1
+
+  @boundscheck begin
+    @assert old_element_id >= 1
+    @assert size(old_u, 1) == nvariables(equations)
+    @assert size(old_u, 2) == nnodes(dg)
+    @assert size(old_u, 3) >= old_element_id + 1
+    @assert     element_id >= 1
+    @assert size(    u, 1) == nvariables(equations)
+    @assert size(    u, 2) == nnodes(dg)
+    @assert size(    u, 3) >= element_id
+  end
 
   for i in eachnode(dg)
     acc = zero(get_node_vars(u, equations, dg, i, element_id))
