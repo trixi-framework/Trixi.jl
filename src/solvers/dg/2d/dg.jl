@@ -91,7 +91,7 @@ end
 # Convenience constructor to create DG solver instance
 function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh, POLYDEG) where {NDIMS, NVARS}
   # Get local cells for which an element needs to be created (i.e., all leaf cells)
-  if is_parallel()
+  if mpi_isparallel()
     leaf_cell_ids = local_leaf_cells(mesh.tree)
   else
     leaf_cell_ids = leaf_cells(mesh.tree)
@@ -120,7 +120,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity checks
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && is_serial()
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -215,7 +215,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
   # Set up MPI neighbor connectivity and communication data structures
-  if is_parallel()
+  if mpi_isparallel()
     (mpi_neighbor_ranks,
      mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
     (mpi_send_buffers,
@@ -225,16 +225,16 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
                                                    Val(NDIMS), Val(NVARS), Val(POLYDEG))
 
     # Determine local and total number of elements
-    n_elements_by_rank = Vector{Int}(undef, n_mpi_ranks())
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements
     MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
-    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(n_mpi_ranks() - 1))
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
     n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
     @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
 
     # Determine the global element id of the first element
     first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
-    if is_mpi_root()
+    if mpi_isroot()
       # With Exscan, the result on the first rank is undefined
       first_element_global_id = 1
     else
@@ -378,7 +378,7 @@ function count_required_interfaces(mesh::TreeMesh2D, cell_ids)
       end
 
       # Skip if neighbor is on different rank -> create MPI interface instead
-      if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -584,7 +584,7 @@ function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D)
       end
 
       # Skip if neighbor is on different rank -> create MPI interface instead
-      if is_parallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 

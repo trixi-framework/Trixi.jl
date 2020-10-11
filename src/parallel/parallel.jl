@@ -49,15 +49,15 @@ const MPI_IS_ROOT = Ref(true)
 
 @inline mpi_rank() = MPI_RANK[]
 
-@inline n_mpi_ranks() = MPI_SIZE[]
+@inline mpi_nranks() = MPI_SIZE[]
 
-@inline is_parallel() = MPI_IS_PARALLEL[]
+@inline mpi_isparallel() = MPI_IS_PARALLEL[]
 
-@inline is_serial() = MPI_IS_SERIAL[]
+@inline mpi_isserial() = MPI_IS_SERIAL[]
 
-@inline is_mpi_root() = MPI_IS_ROOT[]
+@inline mpi_isroot() = MPI_IS_ROOT[]
 
 @inline mpi_root() = 0
 
-@inline mpi_println(args...) = is_mpi_root() && println(args...)
-@inline mpi_print(args...) = is_mpi_root() && print(args...)
+@inline mpi_println(args...) = mpi_isroot() && println(args...)
+@inline mpi_print(args...) = mpi_isroot() && print(args...)

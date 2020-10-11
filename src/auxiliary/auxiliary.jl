@@ -19,7 +19,7 @@ function parse_parameters_file(filename, mpi_parallel::Val{false})
   parameters[:default]["parameters_file"] = filename
 end
 function parse_parameters_file(filename, mpi_parallel::Val{true})
-  if is_mpi_root()
+  if mpi_isroot()
     buffer = read(filename)
     MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
     MPI.Bcast!(buffer, mpi_root(), mpi_comm())

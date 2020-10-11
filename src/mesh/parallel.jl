@@ -2,10 +2,10 @@
 function partition!(mesh)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
-  @assert length(leaves) > n_mpi_ranks()
-  n_leaves_per_rank = OffsetArray(fill(div(length(leaves), n_mpi_ranks()), n_mpi_ranks()),
-                                  0:(n_mpi_ranks() - 1))
-  for d in 0:(rem(length(leaves), n_mpi_ranks()) - 1)
+  @assert length(leaves) > mpi_nranks()
+  n_leaves_per_rank = OffsetArray(fill(div(length(leaves), mpi_nranks()), mpi_nranks()),
+                                  0:(mpi_nranks() - 1))
+  for d in 0:(rem(length(leaves), mpi_nranks()) - 1)
     n_leaves_per_rank[d] += 1
   end
   @assert sum(n_leaves_per_rank) == length(leaves)
@@ -51,7 +51,7 @@ function load_mesh(restart_filename, mpi_parallel::Val{true})
   mesh.unsaved_changes = false
 
   # Read mesh file
-  if is_mpi_root()
+  if mpi_isroot()
     h5open(filename, "r") do file
       # Set domain information
       mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
@@ -106,7 +106,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{true})
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 
-  if is_mpi_root()
+  if mpi_isroot()
     # Read mesh filename from restart file
     mesh_file = ""
     h5open(restart_filename, "r") do file

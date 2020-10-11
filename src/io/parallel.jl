@@ -9,7 +9,7 @@ function load_restart_file!(dg::AbstractDg, restart_filename, mpi_parallel::Val{
   element_size = nnodes(dg)^ndims(dg)
   node_counts = convert(Vector{Cint}, collect(dg.n_elements_by_rank)) * Cint(element_size)
 
-  if is_mpi_root()
+  if mpi_isroot()
     # Open file
     h5open(restart_filename, "r") do file
       # Read attributes to perform some sanity checks
@@ -68,10 +68,10 @@ function save_restart_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep,
   varnames = varnames_cons(equations(dg))
 
   # Only write from MPI root (poor man's version of parallel I/O)
-  if is_mpi_root()
+  if mpi_isroot()
     # Create output directory (if it does not exist)
     output_directory = parameter("output_directory", "out")
-    if is_mpi_root()
+    if mpi_isroot()
       mkpath(output_directory)
     end
 
@@ -141,7 +141,7 @@ function save_solution_file(dg::AbstractDg, mesh::TreeMesh, time, dt, timestep, 
   end
 
   # Only write from MPI root (poor man's version of parallel I/O)
-  if is_mpi_root()
+  if mpi_isroot()
     # Create output directory (if it does not exist)
     output_directory = parameter("output_directory", "out")
     mkpath(output_directory)
@@ -208,7 +208,7 @@ end
 function save_mesh_file(mesh::TreeMesh, timestep, mpi_parallel::Val{true})
   # Create output directory (if it does not exist)
   output_directory = parameter("output_directory", "out")
-  is_mpi_root() && mkpath(output_directory)
+  mpi_isroot() && mkpath(output_directory)
 
   # Determine file name based on existence of meaningful time step
   if timestep >= 0
@@ -218,7 +218,7 @@ function save_mesh_file(mesh::TreeMesh, timestep, mpi_parallel::Val{true})
   end
 
   # Since the mesh is replicated on all ranks, only save from MPI root
-  if !is_mpi_root()
+  if !mpi_isroot()
     return filename * ".h5"
   end
 

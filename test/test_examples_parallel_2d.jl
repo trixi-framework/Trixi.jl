@@ -7,7 +7,7 @@ include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
-Trixi.is_mpi_root() && isdir(outdir) && rm(outdir, recursive=true)
+Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
@@ -88,6 +88,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 end
 
 # Clean up afterwards: delete Trixi output directory
-Trixi.is_mpi_root() && @test_nowarn rm(outdir, recursive=true)
+Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive=true)
 
 end #module

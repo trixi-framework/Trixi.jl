@@ -1,5 +1,5 @@
 function init_simulation_euler_gravity()
-  is_parallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
+  mpi_isparallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
 
   # Print startup message
   print_startup_message()
@@ -207,7 +207,7 @@ end
 
 
 function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integration_function)
-  is_parallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
+  mpi_isparallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
 
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,

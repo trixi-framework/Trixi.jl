@@ -72,7 +72,7 @@ function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
       end
 
       # Skip if neighbor is on this rank -> create regular interface instead
-      if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
+      if mpi_isparallel() && is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -128,7 +128,7 @@ function init_mpi_interface_connectivity!(elements, mpi_interfaces, mesh::TreeMe
       end
 
       # Skip if neighbor is on this MPI rank -> create regular interface instead
-      if is_parallel() && is_own_cell(mesh.tree, neighbor_cell_id)
+      if mpi_isparallel() && is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -378,10 +378,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
               " PID:            " * @sprintf("%10.8e s", runtime_relative))
   mpi_println(" sim. time:      " * @sprintf("%10.8e", time) *
               "               " *
-              " PID × #ranks:   " * @sprintf("%10.8e s", runtime_relative * n_mpi_ranks()))
+              " PID × #ranks:   " * @sprintf("%10.8e s", runtime_relative * mpi_nranks()))
 
   # Level information (only show for AMR) #TODO MPI add when AMR is enabled
-  # if parameter("amr_interval", 0)::Int > 0 && is_mpi_root()
+  # if parameter("amr_interval", 0)::Int > 0 && mpi_isroot()
   #   levels = Vector{Int}(undef, dg.n_elements)
   #   for element_id in 1:dg.n_elements
   #     levels[element_id] = mesh.tree.levels[dg.elements.cell_ids[element_id]]
@@ -398,7 +398,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   # mpi_println()
 
   # Open file for appending and store time step and time information
-  if dg.save_analysis && is_mpi_root()
+  if dg.save_analysis && mpi_isroot()
     f = open(dg.analysis_filename, "a")
     @printf(f, "% 9d", step)
     @printf(f, "  %10.8e", time)
@@ -407,7 +407,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
 
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
-  if is_mpi_root()
+  if mpi_isroot()
     if any(q in dg.analysis_quantities for q in
           (:l2_error, :linf_error, :conservation_error, :residual))
       print(" Variable:    ")
@@ -421,7 +421,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   # Calculate L2/Linf errors, which are also returned by analyze_solution
   l2_error, linf_error = calc_error_norms(dg, time, Val(true))
 
-  if is_mpi_root()
+  if mpi_isroot()
     # L2 error
     if :l2_error in dg.analysis_quantities
       print(" L2 error:    ")
@@ -451,13 +451,13 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
     # Store initial state integrals at first invocation
     if isempty(dg.initial_state_integrals)
       dg.initial_state_integrals = zeros(nvariables(equation))
-      if is_mpi_root()
+      if mpi_isroot()
         # Only set on MPI root; all other ranks do not get any value from `integrate`
         dg.initial_state_integrals .= state_integrals
       end
     end
 
-    if is_mpi_root()
+    if mpi_isroot()
       print(" |∑U - ∑U₀|:  ")
       for v in 1:nvariables(equation)
         err = abs(state_integrals[v] - dg.initial_state_integrals[v])
@@ -475,8 +475,8 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
       # Calculate maximum absolute value of Uₜ
       res = maximum(abs, view(dg.elements.u_t, v, :, :, :))
       res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
-      is_mpi_root() && @printf("  % 10.8e", res[])
-      is_mpi_root() && dg.save_analysis && @printf(f, "  % 10.8e", res[])
+      mpi_isroot() && @printf("  % 10.8e", res[])
+      mpi_isroot() && dg.save_analysis && @printf(f, "  % 10.8e", res[])
     end
     mpi_println()
   end
@@ -485,7 +485,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   if :l2_error_primitive in dg.analysis_quantities || :linf_error_primitive in dg.analysis_quantities
     l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time, Val(true))
 
-    if is_mpi_root()
+    if mpi_isroot()
       print(" Variable:    ")
       for v in 1:nvariables(equation)
         @printf("   %-14s", varnames_prim(equation)[v])
@@ -517,7 +517,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
     dsdu_ut = calc_entropy_timederivative(dg, time)
-    if is_mpi_root()
+    if mpi_isroot()
       print(" ∑∂S/∂U ⋅ Uₜ: ")
       @printf("  % 10.8e", dsdu_ut)
       dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
@@ -531,7 +531,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
       cons = get_node_vars(u, dg, i, j, element_id)
       return entropy(cons, equations(dg))
     end
-    if is_mpi_root()
+    if mpi_isroot()
       print(" ∑S:          ")
       @printf("  % 10.8e", s)
       dg.save_analysis && @printf(f, "  % 10.8e", s)
@@ -545,7 +545,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_total(cons, equations(dg))
     end
-    if is_mpi_root()
+    if mpi_isroot()
       print(" ∑e_total:    ")
       @printf("  % 10.8e", e_total)
       dg.save_analysis && @printf(f, "  % 10.8e", e_total)
@@ -559,7 +559,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_kinetic(cons, equations(dg))
     end
-    if is_mpi_root()
+    if mpi_isroot()
       print(" ∑e_kinetic:  ")
       @printf("  % 10.8e", e_kinetic)
       dg.save_analysis && @printf(f, "  % 10.8e", e_kinetic)
@@ -573,7 +573,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
       cons = get_node_vars(u, dg, i, j, element_id)
       return energy_internal(cons, equations(dg))
     end
-    if is_mpi_root()
+    if mpi_isroot()
       print(" ∑e_internal: ")
       @printf("  % 10.8e", e_internal)
       dg.save_analysis && @printf(f, "  % 10.8e", e_internal)
@@ -587,7 +587,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   #     cons = get_node_vars(u, dg, i, j, element_id)
   #     return energy_magnetic(cons, equations(dg))
   #   end
-  #   if is_mpi_root()
+  #   if mpi_isroot()
   #     print(" ∑e_magnetic: ")
   #     @printf("  % 10.8e", e_magnetic)
   #     dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
@@ -607,7 +607,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   #     # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
   #     return (cons_euler[1] - 1.5e7) * cons_gravity[1]
   #   end
-  #   if is_mpi_root()
+  #   if mpi_isroot()
   #     print(" ∑e_pot:      ")
   #     @printf("  % 10.8e", e_potential)
   #     dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
@@ -619,7 +619,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   # if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
   #   l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
   # end
-  # if is_mpi_root()
+  # if mpi_isroot()
   #   # L2 norm of ∇ ⋅ B
   #   if :l2_divb in dg.analysis_quantities
   #     print(" L2 ∇ ⋅B:     ")
@@ -642,7 +642,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   #     cons = get_node_vars(u, dg, i, j, element_id)
   #     return cross_helicity(cons, equations(dg))
   #   end
-  #   if is_mpi_root()
+  #   if mpi_isroot()
   #     print(" ∑H_c:        ")
   #     @printf("  % 10.8e", h_c)
   #     dg.save_analysis && @printf(f, "  % 10.8e", h_c)
@@ -650,7 +650,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   #   end
   # end
 
-  if is_mpi_root()
+  if mpi_isroot()
     println("-"^80)
     println()
 
@@ -708,7 +708,7 @@ function integrate(func, dg::Dg2D, uses_mpi::Val{true}, args...; normalize=true)
   integral = integrate(func, dg, Val(false), args...; normalize=normalize)
   integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
 
-  return is_mpi_root() ? integral[] : integral
+  return mpi_isroot() ? integral[] : integral
 end
 
 

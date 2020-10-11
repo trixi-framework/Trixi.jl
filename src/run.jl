@@ -85,14 +85,14 @@ function init_simulation()
   if restart
     mpi_print("Loading mesh... ")
     @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
-    is_parallel() && MPI.Barrier(mpi_comm())
+    mpi_isparallel() && MPI.Barrier(mpi_comm())
     mpi_println("done")
   else
     mpi_print("Creating mesh... ")
     @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh)
     mesh.unsaved_changes = false
-    is_parallel() && MPI.Barrier(mpi_comm())
+    mpi_isparallel() && MPI.Barrier(mpi_comm())
     mpi_println("done")
   end
 
@@ -100,14 +100,14 @@ function init_simulation()
   mpi_print("Initializing system of equations... ")
   equations_name = parameter("equations")
   equations = make_equations(equations_name, ndims_)
-  is_parallel() && MPI.Barrier(mpi_comm())
+  mpi_isparallel() && MPI.Barrier(mpi_comm())
   mpi_println("done")
 
   # Initialize solver
   mpi_print("Initializing solver... ")
   solver_name = parameter("solver", valid=["dg"])
   solver = make_solver(solver_name, equations, mesh)
-  is_parallel() && MPI.Barrier(mpi_comm())
+  mpi_isparallel() && MPI.Barrier(mpi_comm())
   mpi_println("done")
 
   # Sanity checks
@@ -128,7 +128,7 @@ function init_simulation()
   if restart
     mpi_print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
-    is_parallel() && MPI.Barrier(mpi_comm())
+    mpi_isparallel() && MPI.Barrier(mpi_comm())
     mpi_println("done")
   else
     mpi_print("Applying initial conditions... ")
@@ -136,7 +136,7 @@ function init_simulation()
     time = t_start
     step = 0
     set_initial_conditions!(solver, time)
-    is_parallel() && MPI.Barrier(mpi_comm())
+    mpi_isparallel() && MPI.Barrier(mpi_comm())
     mpi_println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
@@ -205,7 +205,7 @@ function init_simulation()
           | time integration:   $(get_name(time_integration_function))
           | restart interval:   $restart_interval
           | solution interval:  $solution_interval
-          | #MPI ranks:         $(n_mpi_ranks())
+          | #MPI ranks:         $(mpi_nranks())
           | #threads/rank:      $(Threads.nthreads())
           |
           | Solver (local)
@@ -319,7 +319,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     if solver.equations isa AbstractHyperbolicDiffusionEquations
       resid = maximum(abs, view(solver.elements.u_t, 1, .., :))
 
-      if is_parallel()
+      if mpi_isparallel()
         resid = MPI.Allreduce!(Ref(resid), max, mpi_comm())[]
       end
 
@@ -337,9 +337,9 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     # Analyze solution errors
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       # Calculate absolute and relative runtime
-      if is_parallel()
+      if mpi_isparallel()
         total_dofs = MPI.Reduce!(Ref(ndofs(solver)), +, mpi_root(), mpi_comm())
-        total_dofs = is_mpi_root() ? total_dofs[] : -1
+        total_dofs = mpi_isroot() ? total_dofs[] : -1
       else
         total_dofs = ndofs(solver)
       end
@@ -361,7 +361,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
         mpi_println("-"^80)
         mpi_println()
       end
-    elseif alive_interval > 0 && step % alive_interval == 0 && is_mpi_root()
+    elseif alive_interval > 0 && step % alive_interval == 0 && mpi_isroot()
       runtime_absolute = (time_ns() - loop_start_time) / 10^9
       @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
               step, dt, time, runtime_absolute)
@@ -427,13 +427,13 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   end
 
   # Print timer information
-  if is_mpi_root()
+  if mpi_isroot()
     print_timer(timer(), title="Trixi.jl", allocations=true, linechars=:ascii, compact=false)
     println()
   end
 
   # Distribute l2_errors from root such that all ranks have correct return value
-  if is_parallel()
+  if mpi_isparallel()
     l2_error   = convert(typeof(l2_error),   MPI.Bcast!(collect(l2_error),   mpi_root(), mpi_comm()))
     linf_error = convert(typeof(linf_error), MPI.Bcast!(collect(linf_error), mpi_root(), mpi_comm()))
   end
@@ -453,7 +453,7 @@ refinement level will be increased by 1. Parameters can be overriden by specifyi
 additional keyword arguments, which are passed to the respective call to `run`..
 """
 function convtest(parameters_file, iterations; parameters...)
-  if is_mpi_root()
+  if mpi_isroot()
     @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
   end
 
@@ -486,7 +486,7 @@ function convtest(parameters_file, iterations; parameters...)
   eocs = Dict(kind => log.(error[2:end, :] ./ error[1:end-1, :]) ./ log(1 / 2) for (kind, error) in errorsmatrix)
 
 
-  if is_mpi_root()
+  if mpi_isroot()
     for (kind, error) in errorsmatrix
       println(kind)
 

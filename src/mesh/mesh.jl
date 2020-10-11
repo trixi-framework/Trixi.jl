@@ -74,7 +74,7 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  if is_parallel()
+  if mpi_isparallel()
     tree_type = ParallelTree{ndims_}
   else
     tree_type = SerialTree{ndims_}
@@ -90,7 +90,7 @@ function generate_mesh()
 
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])
-    is_parallel() && error("non-uniform meshes not supported in parallel")
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -100,7 +100,7 @@ function generate_mesh()
 
   # Apply coarsening patches
   @timeit timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
-    is_parallel() && error("non-uniform meshes not supported in parallel")
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -109,7 +109,7 @@ function generate_mesh()
   end
 
   # Partition mesh
-  if is_parallel()
+  if mpi_isparallel()
     partition!(mesh)
   end
 
