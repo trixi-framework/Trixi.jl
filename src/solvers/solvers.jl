@@ -57,7 +57,8 @@ the problem encapsulated by `solver` at time `t`, where `func` is called as `fun
 """
 function calc_error_norms end
 
-@inline calc_error_norms(solver::AbstractSolver, t) = calc_error_norms(cons2cons, solver, t)
+@inline calc_error_norms(solver::AbstractSolver, t) = calc_error_norms(solver, t, uses_mpi(solver))
+@inline calc_error_norms(solver::AbstractSolver, t, uses_mpi) = calc_error_norms(cons2cons, solver, t, uses_mpi)
 
 
 ####################################################################################################

@@ -419,7 +419,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
   end
 
   # Calculate L2/Linf errors, which are also returned by analyze_solution
-  l2_error, linf_error = calc_error_norms(dg, time)
+  l2_error, linf_error = calc_error_norms(dg, time, Val(true))
 
   if is_mpi_root()
     # L2 error
@@ -451,7 +451,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
     # Store initial state integrals at first invocation
     if isempty(dg.initial_state_integrals)
       dg.initial_state_integrals = zeros(nvariables(equation))
-      dg.initial_state_integrals .= state_integrals
+      if is_mpi_root()
+        # Only set on MPI root; all other ranks do not get any value from `integrate`
+        dg.initial_state_integrals .= state_integrals
+      end
     end
 
     if is_mpi_root()
@@ -480,7 +483,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
 
   # L2/L∞ errors of the primitive variables
   if :l2_error_primitive in dg.analysis_quantities || :linf_error_primitive in dg.analysis_quantities
-    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time)
+    l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, dg, time, Val(true))
 
     if is_mpi_root()
       print(" Variable:    ")
@@ -699,7 +702,7 @@ end
 # end
 
 
-# OBS! Global results are only calculated on MPI root
+# OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
 function integrate(func, dg::Dg2D, uses_mpi::Val{true}, args...; normalize=true)
   integral = integrate(func, dg, Val(false), args...; normalize=normalize)
   integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())

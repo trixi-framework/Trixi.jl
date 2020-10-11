@@ -852,7 +852,7 @@ state_integrals = integrate(dg.elements.u, dg)
 """
 integrate(func, u, dg::Dg2D; normalize=true) = integrate(func, u, dg, uses_mpi(dg);
                                                          normalize=normalize)
-function integrate(func, u, dg::Dg2D, uses_mpi::Val{false}; normalize=true)
+function integrate(func, u, dg::Dg2D, uses_mpi; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
