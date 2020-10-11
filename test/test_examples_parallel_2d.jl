@@ -36,6 +36,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.0065356386867677085, 0.0006535638688170142, 0.0013071277374487877, 0.0001633909674296774],
             extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"], t_end=0.5)
   end
+  @testset "parameters_vortex.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_vortex.toml"),
+            l2   = [3.6343138447409784e-6, 0.0032111379843728876, 0.0032111482778261658, 0.004545715889714643],
+            linf = [7.901869034399045e-5, 0.030511158864742205, 0.030451936462313256, 0.04361908901631395])
+  end
   # MHD + MPI not yet implemented
   # @testset "parameters_ec_mhd.toml" begin
   #   test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_mhd.toml"),

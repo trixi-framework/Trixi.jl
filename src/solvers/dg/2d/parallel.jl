@@ -578,74 +578,74 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
     end
   end
 
-  # Magnetic energy
-  if :energy_magnetic in dg.analysis_quantities
-    e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
-      return energy_magnetic(cons, equations(dg))
-    end
-    if is_mpi_root()
-      print(" ∑e_magnetic: ")
-      @printf("  % 10.8e", e_magnetic)
-      dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
-      println()
-    end
-  end
+  # Magnetic energy #TODO MPI add when MHD is enabled
+  # if :energy_magnetic in dg.analysis_quantities
+  #   e_magnetic = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+  #     cons = get_node_vars(u, dg, i, j, element_id)
+  #     return energy_magnetic(cons, equations(dg))
+  #   end
+  #   if is_mpi_root()
+  #     print(" ∑e_magnetic: ")
+  #     @printf("  % 10.8e", e_magnetic)
+  #     dg.save_analysis && @printf(f, "  % 10.8e", e_magnetic)
+  #     println()
+  #   end
+  # end
 
-  # Potential energy
-  if :energy_potential in dg.analysis_quantities
-    # FIXME: This should be implemented properly for multiple coupled solvers
-    @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+  # Potential energy #TODO MPI add when Euler-gravity is enabled
+  # if :energy_potential in dg.analysis_quantities
+  #   # FIXME: This should be implemented properly for multiple coupled solvers
+  #   @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
+  #   @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
 
-    e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
-      cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
-      cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
-      # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
-      return (cons_euler[1] - 1.5e7) * cons_gravity[1]
-    end
-    if is_mpi_root()
-      print(" ∑e_pot:      ")
-      @printf("  % 10.8e", e_potential)
-      dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
-      println()
-    end
-  end
+  #   e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
+  #     cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
+  #     cons_gravity = get_node_vars(u_gravity, solver_gravity, i, j, element_id)
+  #     # OBS! subtraction is specific to Jeans instability test where rho_0 = 1.5e7
+  #     return (cons_euler[1] - 1.5e7) * cons_gravity[1]
+  #   end
+  #   if is_mpi_root()
+  #     print(" ∑e_pot:      ")
+  #     @printf("  % 10.8e", e_potential)
+  #     dg.save_analysis && @printf(f, "  % 10.8e", e_potential)
+  #     println()
+  #   end
+  # end
 
-  # Solenoidal condition ∇ ⋅ B = 0
-  if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
-    l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
-  end
-  if is_mpi_root()
-    # L2 norm of ∇ ⋅ B
-    if :l2_divb in dg.analysis_quantities
-      print(" L2 ∇ ⋅B:     ")
-      @printf("  % 10.8e", l2_divb)
-      dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
-      println()
-    end
-    # Linf norm of ∇ ⋅ B
-    if :linf_divb in dg.analysis_quantities
-      print(" Linf ∇ ⋅B:   ")
-      @printf("  % 10.8e", linf_divb)
-      dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
-      println()
-    end
-  end
+  # Solenoidal condition ∇ ⋅ B = 0 #TODO MPI add when MHD is enabled
+  # if :l2_divb in dg.analysis_quantities || :linf_divb in dg.analysis_quantities
+  #   l2_divb, linf_divb = calc_mhd_solenoid_condition(dg, time)
+  # end
+  # if is_mpi_root()
+  #   # L2 norm of ∇ ⋅ B
+  #   if :l2_divb in dg.analysis_quantities
+  #     print(" L2 ∇ ⋅B:     ")
+  #     @printf("  % 10.8e", l2_divb)
+  #     dg.save_analysis && @printf(f, "  % 10.8e", l2_divb)
+  #     println()
+  #   end
+  #   # Linf norm of ∇ ⋅ B
+  #   if :linf_divb in dg.analysis_quantities
+  #     print(" Linf ∇ ⋅B:   ")
+  #     @printf("  % 10.8e", linf_divb)
+  #     dg.save_analysis && @printf(f, "  % 10.8e", linf_divb)
+  #     println()
+  #   end
+  # end
 
-  # Cross helicity
-  if :cross_helicity in dg.analysis_quantities
-    h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
-      cons = get_node_vars(u, dg, i, j, element_id)
-      return cross_helicity(cons, equations(dg))
-    end
-    if is_mpi_root()
-      print(" ∑H_c:        ")
-      @printf("  % 10.8e", h_c)
-      dg.save_analysis && @printf(f, "  % 10.8e", h_c)
-      println()
-    end
-  end
+  # Cross helicity #TODO MPI add when MHD is enabled
+  # if :cross_helicity in dg.analysis_quantities
+  #   h_c = integrate(dg, dg.elements.u) do i, j, element_id, dg, u
+  #     cons = get_node_vars(u, dg, i, j, element_id)
+  #     return cross_helicity(cons, equations(dg))
+  #   end
+  #   if is_mpi_root()
+  #     print(" ∑H_c:        ")
+  #     @printf("  % 10.8e", h_c)
+  #     dg.save_analysis && @printf(f, "  % 10.8e", h_c)
+  #     println()
+  #   end
+  # end
 
   if is_mpi_root()
     println("-"^80)
@@ -681,21 +681,22 @@ function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{true})
 end
 
 
-function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{true})
-  l2_divb, linf_divb = calc_mhd_solenoid_condition(func, dg, t, Val(false))
-
-  # Since the local L2 norm is already normalized and square-rooted, we need to undo this first
-  global_l2_divb = Vector(l2_divb.^2 .* dg.analysis_total_volume)
-  global_linf_divb = Vector(linf_divb)
-  MPI.Reduce!(global_l2_divb, +, mpi_root(), mpi_comm())
-  MPI.Reduce!(global_linf_divb, max, mpi_root(), mpi_comm())
-  l2_divb = convert(typeof(l2_divb), global_l2_divb)
-  linf_divb = convert(typeof(linf_divb), global_linf_divb)
-
-  l2_divb = @. sqrt(l2_divb / dg.analysis_total_volume)
-
-  return l2_divb, linf_divb
-end
+#TODO MPI add when MHD is enabled
+# function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{true})
+#   l2_divb, linf_divb = calc_mhd_solenoid_condition(func, dg, t, Val(false))
+# 
+#   # Since the local L2 norm is already normalized and square-rooted, we need to undo this first
+#   global_l2_divb = Vector(l2_divb.^2 .* dg.analysis_total_volume)
+#   global_linf_divb = Vector(linf_divb)
+#   MPI.Reduce!(global_l2_divb, +, mpi_root(), mpi_comm())
+#   MPI.Reduce!(global_linf_divb, max, mpi_root(), mpi_comm())
+#   l2_divb = convert(typeof(l2_divb), global_l2_divb)
+#   linf_divb = convert(typeof(linf_divb), global_linf_divb)
+# 
+#   l2_divb = @. sqrt(l2_divb / dg.analysis_total_volume)
+# 
+#   return l2_divb, linf_divb
+# end
 
 
 # OBS! Global results are only calculated on MPI root
