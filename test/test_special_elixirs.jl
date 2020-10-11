@@ -12,7 +12,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
-@testset "Elixirs" begin
+@testset "Special elixirs" begin
   @testset "Test linear structure (2D)" begin
     A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters_advection_basic.toml"),
                                           initial_refinement_level=2)
