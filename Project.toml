@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>"]
-version = "0.2.6"
+version = "0.2.7-pre"
 
 [deps]
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
