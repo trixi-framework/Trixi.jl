@@ -47,7 +47,7 @@ julia> using Revise; using Trixi
 ```
 You can run a simulation by executing
 ```julia
-julia> Trixi.run("examples/2d/parameters.toml")
+julia> Trixi.run("examples/2d/parameters_advection_basic.toml")
 ```
 Together, all of these commands can take some time, roughly half a minute on a
 modern workstation. Most of the time is spent on compilation of Julia code etc.

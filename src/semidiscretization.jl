@@ -184,6 +184,13 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   end
 end
 
+"""
+    SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
+                                 source_terms=nothing,
+                                 boundary_conditions=nothing)
+
+Construct a semidiscretization of a hyperbolic PDE.
+"""
 function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
                                       source_terms=nothing,
                                       boundary_conditions=nothing, RealT=real(solver))
@@ -231,47 +238,12 @@ end
 
 @inline nvariables(semi::SemidiscretizationHyperbolic) = nvariables(semi.equations)
 
-@inline nnodes(semi::SemidiscretizationHyperbolic) = nnodes(semi.solver)
-
 @inline Base.real(semi::SemidiscretizationHyperbolic) = real(semi.solver)
 
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolic)
   @unpack mesh, equations, solver, cache = semi
   return mesh, equations, solver, cache
-end
-
-
-@inline function get_node_coords(x, semi::SemidiscretizationHyperbolic, indices...)
-  @unpack equations, solver = semi
-
-  get_node_coords(x, equations, solver, indices...)
-end
-
-@inline function get_node_vars(u, semi::SemidiscretizationHyperbolic, indices...)
-  @unpack equations, solver = semi
-
-  get_node_vars(u, equations, solver, indices...)
-end
-
-@inline function get_surface_node_vars(u, semi::SemidiscretizationHyperbolic, indices...)
-  @unpack equations, solver = semi
-
-  get_surface_node_vars(u, equations, solver, indices...)
-end
-
-@inline function set_node_vars!(u, u_node, semi::SemidiscretizationHyperbolic, indices...)
-  @unpack equations, solver = semi
-
-  set_node_vars!(u, u_node, equations, solver, indices...)
-  return nothing
-end
-
-@inline function add_to_node_vars!(u, u_node, semi::SemidiscretizationHyperbolic, indices...)
-  @unpack equations, solver = semi
-
-  add_to_node_vars!(u, u_node, equations, solver, indices...)
-  return nothing
 end
 
 

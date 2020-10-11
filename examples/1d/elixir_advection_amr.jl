@@ -1,7 +1,3 @@
-# TODO: Taal refactor, rename to
-# - linear_advection_amr.jl
-# - advection_amr.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi

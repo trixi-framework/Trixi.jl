@@ -1,57 +1,41 @@
-# TODO: Taal refactor, rename to
-# - euler_nonperiodic.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+equations = IdealGlmMhdEquations2D(1.4)
 
-equations = CompressibleEulerEquations1D(1.4)
+initial_conditions = Trixi.initial_conditions_ec_test
 
-initial_conditions = initial_conditions_convergence_test
+surface_flux = flux_derigs_etal
+volume_flux  = flux_derigs_etal
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
-source_terms = source_terms_convergence_test
-
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# boundary_conditions = boundary_conditions_convergence_test
-boundary_conditions = ntuple(n->boundary_conditions_convergence_test, 2)
-
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
-
-coordinates_min = (0,)
-coordinates_max = (2,)
+coordinates_min = (-2, -2)
+coordinates_max = ( 2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=10_000,
-                periodicity=false)
+                n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
-                                    source_terms=source_terms,
-                                    boundary_conditions=boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-save_solution = SaveSolutionCallback(interval=100,
+save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, restart
-# restart_interval = 100
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)

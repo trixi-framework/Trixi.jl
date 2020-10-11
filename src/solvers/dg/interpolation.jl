@@ -110,6 +110,8 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 2}, matrix::Abst
 end
 
 # 1D version for scalars
+# Instead of having a leading dimension of size 1 in `data_out, data_in`, this leading dimension
+# of size unity is dropped, resulting in one dimension less than in `multiply_dimensionwise!`.
 function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 1},
                                         matrix::AbstractMatrix,
                                         data_in ::AbstractArray{<:Any, 1})
@@ -142,6 +144,8 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::Abst
 end
 
 # 2D version for scalars
+# Instead of having a leading dimension of size 1 in `data_out, data_in`, this leading dimension
+# of size unity is dropped, resulting in one dimension less than in `multiply_dimensionwise!`.
 function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 2},
                                         matrix::AbstractMatrix,
                                         data_in:: AbstractArray{<:Any, 2},

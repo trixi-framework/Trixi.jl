@@ -21,7 +21,7 @@ const ON_APPVEYOR = lowercase(get(ENV, "APPVEYOR", "false")) == "true"
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"
     include("test_manual.jl")
-    include("test_elixirs.jl")
+    include("test_special_elixirs.jl")
   end
 
   @time if (TRIXI_TEST == "all" && !ON_APPVEYOR) || TRIXI_TEST == "paper-self-gravitating-gas-dynamics"

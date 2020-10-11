@@ -93,7 +93,8 @@ end
 
 
 function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
-                 mesh::TreeMesh{2}, equations, dg::DG, cache)
+                 mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
+                 dg::DG, cache)
   integrate(mesh, equations, dg, cache, u, cache, dg.basis.derivative_matrix) do u, i, j, element, equations, dg, cache, derivative_matrix
       divb = zero(eltype(u))
       for k in eachnode(dg)
@@ -105,7 +106,8 @@ function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,4}, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
-                 mesh::TreeMesh{2}, equations, dg::DG, cache)
+                 mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
+                 dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors

@@ -1,34 +1,42 @@
-# TODO: Taal refactor, rename to
-# - euler_ec.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+
 equations = CompressibleEulerEquations1D(1.4)
 
-initial_conditions = initial_conditions_weak_blast_wave
+initial_conditions = initial_conditions_convergence_test
 
-surface_flux = flux_chandrashekar
-volume_flux  = flux_chandrashekar
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+source_terms = source_terms_convergence_test
 
-coordinates_min = (-2,)
-coordinates_max = ( 2,)
+# you can either use a single function to impose the BCs weakly in all
+# 1*ndims == 2 directions or you can pass a tuple containing BCs for
+# each direction
+# boundary_conditions = boundary_conditions_convergence_test
+boundary_conditions = ntuple(n->boundary_conditions_convergence_test, 2)
+
+surface_flux = flux_lax_friedrichs
+solver = DGSEM(3, surface_flux)
+
+coordinates_min = (0,)
+coordinates_max = (2,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
-                n_cells_max=10_000)
+                initial_refinement_level=4,
+                n_cells_max=10_000,
+                periodicity=false)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
+                                    source_terms=source_terms,
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -39,10 +47,8 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, IO
-# output_format = "hdf5"
 # TODO: Taal, restart
-# restart_interval = 10
+# restart_interval = 100
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)

@@ -153,9 +153,9 @@ seconds, while subsequent runs require less than 50 *milli*seconds.
 To automatically determine the experimental order of convergence (EOC) for a
 given setup, execute
 ```julia
-Trixi.convtest("examples/2d/parameters.toml", 4)
+Trixi.convtest("examples/2d/parameters_advection_basic.toml", 4)
 ```
-This will run a convergence test with the parameters file `examples/2d/parameters.toml`,
+This will run a convergence test with the parameters file `examples/2d/parameters_advection_basic.toml`,
 using four iterations with different initial refinement levels. The initial
 iteration will use the parameters file unchanged, while for each subsequent
 iteration the `initial_refinement_level` parameter is incremented by one.
@@ -187,7 +187,7 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> Trixi.convtest("examples/2d/parameters_source_terms.toml", 3)
+julia> Trixi.convtest("examples/2d/parameters_euler_source_terms.toml", 3)
 ```
 ```
 [...]

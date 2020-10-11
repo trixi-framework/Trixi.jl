@@ -1,32 +1,32 @@
-# TODO: Taal refactor, rename to
-# - linear_advection_mortar.jl
-# - advection_mortar.jl
-# or something similar?
 
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the compressible Euler equations
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
-equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+equations = CompressibleEulerEquations1D(1.4)
 
-initial_conditions = initial_conditions_convergence_test
+initial_conditions = initial_conditions_blast_wave
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+volume_flux  = flux_chandrashekar
+basis = LobattoLegendreBasis(3)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-1, -1)
-coordinates_max = ( 1,  1)
-refinement_patches = (
-  (type="box", coordinates_min=(0.0, -1.0), coordinates_max=(1.0, 1.0)),
-)
+coordinates_min = (-2,)
+coordinates_max = ( 2,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
-                refinement_patches=refinement_patches,
-                n_cells_max=10_000,)
+                initial_refinement_level=6,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
@@ -35,24 +35,21 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 12.5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=2.0)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, restart
-# restart_interval = 10
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy,))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 

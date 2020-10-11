@@ -1,4 +1,13 @@
 
+"""
+    ParametersEulerGravity(; background_density=0.0,
+                             gravitational_constant=1.0,
+                             cfl=1.0,
+                             n_iterations_max=10^4,
+                             timestep_gravity=timestep_gravity_erk52_3Sstar!)
+
+Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
+"""
 struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
   background_density    ::RealT # aka rho0
   gravitational_constant::RealT # aka G
@@ -10,7 +19,7 @@ end
 function ParametersEulerGravity(; background_density=0.0,
                                   gravitational_constant=1.0,
                                   cfl=1.0,
-                                  n_iterations_max=10^6,
+                                  n_iterations_max=10^4,
                                   timestep_gravity=timestep_gravity_erk52_3Sstar!)
   background_density, gravitational_constant, cfl = promote(background_density, gravitational_constant, cfl)
   ParametersEulerGravity(background_density, gravitational_constant, cfl, n_iterations_max, timestep_gravity)
@@ -70,11 +79,17 @@ struct SemidiscretizationEulerGravity{SemiEuler, SemiGravity,
   end
 end
 
+"""
+    SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters)
+
+Construct a semidiscretization of the compressible Euler equations with self-gravity.
+`parameters` should be given as [`ParametersEulerGravity`](@ref).
+"""
 function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::SemiGravity, parameters) where
     {Mesh, SemiEuler<:SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations},
            SemiGravity<:SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
 
-  u_ode = compute_coefficients(0.0, semi_gravity)
+  u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
   du_ode     = similar(u_ode)
   u_tmp1_ode = similar(u_ode)
   u_tmp2_ode = similar(u_ode)
@@ -109,6 +124,9 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
 end
 
 
+# The compressible Euler semidiscretization is considered to be the main semidiscretization.
+# The hyperbolic diffusion equations part is only used internally to update the gravitational
+# potential during an rhs! evaluation of the flow solver.
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationEulerGravity)
   mesh_equations_solver_cache(semi.semi_euler)
 end
