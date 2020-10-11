@@ -667,6 +667,7 @@ end
 
 
 # OBS! Global results are only calculated on MPI root
+@inline calc_error_norms(dg::Dg2D, t, uses_mpi) = calc_error_norms(cons2cons, dg, t, uses_mpi)
 function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{true})
   l2_error, linf_error = calc_error_norms(func, dg, t, Val(false))
 
