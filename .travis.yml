@@ -32,12 +32,12 @@ env:
   global:
     - COVERALLS_PARALLEL=true
   jobs:
-    - TRIXI_TEST=1D
     - TRIXI_TEST=2D
     - TRIXI_TEST=3D
-    - TRIXI_TEST=misc
     - TRIXI_TEST=paper-self-gravitating-gas-dynamics
     - TRIXI_TEST=parallel_2d
+    - TRIXI_TEST=1D
+    - TRIXI_TEST=misc
 notifications:
   webhooks: https://coveralls.io/webhook
   email: false
