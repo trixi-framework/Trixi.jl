@@ -12,11 +12,11 @@ class 2N of Williamson.
 @inline function timestep_2N!(solver, t, dt, a, b, c)
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit timer() "rhs" rhs!(solver, t_stage)
+    @timeit_debug timer() "rhs" rhs!(solver, t_stage)
 
     a_stage    = a[stage]
     b_stage_dt = b[stage] * dt
-    @timeit timer() "Runge-Kutta step" begin
+    @timeit_debug timer() "Runge-Kutta step" begin
       Threads.@threads for i in eachindex(solver.elements.u)
         solver.elements.u_tmp2[i] = solver.elements.u_t[i] - solver.elements.u_tmp2[i] * a_stage
         solver.elements.u[i] += solver.elements.u_tmp2[i] * b_stage_dt
@@ -68,14 +68,14 @@ class 3Sstar of Ketcheson.
   solver.elements.u_tmp3 .= solver.elements.u
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit timer() "rhs" rhs!(solver, t_stage)
+    @timeit_debug timer() "rhs" rhs!(solver, t_stage)
 
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
     gamma2_stage  = gamma2[stage]
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
-    @timeit timer() "Runge-Kutta step" begin
+    @timeit_debug timer() "Runge-Kutta step" begin
       Threads.@threads for i in eachindex(solver.elements.u)
         solver.elements.u_tmp2[i] += delta_stage * solver.elements.u[i]
         solver.elements.u[i]       = (gamma1_stage * solver.elements.u[i] +

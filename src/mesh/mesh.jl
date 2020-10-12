@@ -76,15 +76,15 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   domain_length = maximum(coordinates_max .- coordinates_min)
 
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(n_cells_max, domain_center, domain_length, periodicity)
+  mesh = @timeit_debug timer() "creation" TreeMesh(n_cells_max, domain_center, domain_length, periodicity)
 
   # Create initial refinement
-  @timeit timer() "initial refinement" for _ in 1:initial_refinement_level
+  @timeit_debug timer() "initial refinement" for _ in 1:initial_refinement_level
     refine!(mesh.tree)
   end
 
   # Apply refinement patches
-  @timeit timer() "refinement patches" for patch in refinement_patches
+  @timeit_debug timer() "refinement patches" for patch in refinement_patches
     # TODO: Taal refactor, use multiple dispatch
     if patch.type == "box"
       refine_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
@@ -94,7 +94,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   end
 
   # Apply coarsening patches
-  @timeit timer() "coarsening patches" for patch in coarsening_patches
+  @timeit_debug timer() "coarsening patches" for patch in coarsening_patches
     # TODO: Taal refactor, use multiple dispatch
     if patch.type == "box"
       coarsen_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
@@ -148,17 +148,17 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
+  mesh = @timeit_debug timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
                                              domain_length, periodicity)
 
   # Create initial refinement
   initial_refinement_level = parameter("initial_refinement_level")
-  @timeit timer() "initial refinement" for l = 1:initial_refinement_level
+  @timeit_debug timer() "initial refinement" for l = 1:initial_refinement_level
     refine!(mesh.tree)
   end
 
   # Apply refinement patches
-  @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])
+  @timeit_debug timer() "refinement patches" for patch in parameter("refinement_patches", [])
     if patch["type"] == "box"
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -167,7 +167,7 @@ function generate_mesh()
   end
 
   # Apply coarsening patches
-  @timeit timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
+  @timeit_debug timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
     if patch["type"] == "box"
       coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -189,7 +189,7 @@ function load_mesh(restart_filename)
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max)
+  mesh = @timeit_debug timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename)
