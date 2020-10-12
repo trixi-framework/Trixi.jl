@@ -2,9 +2,11 @@
 # everything related to a DG semidiscretization in 2D,
 # currently limited to Lobatto-Legendre nodes
 
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                       dg::DG, RealT)
-  # Create the basic cache
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -32,6 +34,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 end
 
 
+# The methods below are specialized on the volume integral type
+# and called from the basic `create_cache` method at th top.
 function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
 end
@@ -78,6 +82,8 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 
+# The methods below are specialized on the mortar type
+# and called from the basic `create_cache` method at th top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2)
   # TODO: Taal compare performance of different types
   MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, real(mortar_l2)}
