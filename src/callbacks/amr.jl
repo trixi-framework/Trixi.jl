@@ -17,11 +17,18 @@ struct AMRCallback{Indicator, Adaptor}
 end
 
 
-function AMRCallback(semi, indicator, adaptor; interval=0,
+function AMRCallback(semi, indicator, adaptor; interval=nothing,
                                                adapt_initial_conditions=true,
                                                adapt_initial_conditions_only_refine=true)
   # AMR every `interval` time steps
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0)
+  if !(interval isa Integer && interval >= 0)
+    throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
+  end
+  if interval > 0
+    condition = (u, t, integrator) -> integrator.iter % interval == 0
+  else # disable the AMR callback except possibly for initial refinement during initialization
+    condition = (u, t, integrator) -> false
+  end
 
   amr_callback = AMRCallback{typeof(indicator), typeof(adaptor)}(
                   indicator, interval, adapt_initial_conditions,
