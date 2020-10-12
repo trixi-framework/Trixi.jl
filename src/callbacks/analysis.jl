@@ -17,7 +17,7 @@ Additional errors can be computed, e.g. by passing `extra_analysis_errors = [:pr
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
 solution and integrated over the computational domain.
-See `Trixi.analyze`, `Trixi.pretty_form_repl`, `Trixi.pretty_form_file` for further
+See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
 mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
@@ -123,7 +123,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
       end
 
       for quantity in analysis_integrals
-        @printf(io, "   %-14s", pretty_form_file(quantity))
+        @printf(io, "   %-14s", pretty_form_ascii(quantity))
       end
 
       println(io)
@@ -306,7 +306,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
       # additional
       for quantity in analysis_integrals
         res = analyze(quantity, du, u, t, semi)
-        @printf(" %-12s:", pretty_form_repl(quantity))
+        @printf(" %-12s:", pretty_form_utf(quantity))
         @printf("  % 10.8e", res)
         analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
         println()
@@ -342,7 +342,7 @@ end
 
 # some common analysis_integrals
 # to support another analysis integral, you can overload
-# Trixi.analyze, Trixi.pretty_form_repl, Trixi.pretty_form_file
+# Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 @inline function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
@@ -350,30 +350,30 @@ end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
   integrate(quantity, u, mesh, equations, solver, cache, normalize=true)
 end
-pretty_form_repl(quantity) = get_name(quantity)
-pretty_form_file(quantity) = get_name(quantity)
+pretty_form_utf(quantity) = get_name(quantity)
+pretty_form_ascii(quantity) = get_name(quantity)
 
 
 function entropy_timederivative end
-pretty_form_repl(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
-pretty_form_file(::typeof(entropy_timederivative)) = "dsdu_ut"
+pretty_form_utf(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
+pretty_form_ascii(::typeof(entropy_timederivative)) = "dsdu_ut"
 
-pretty_form_repl(::typeof(entropy)) = "∑S"
+pretty_form_utf(::typeof(entropy)) = "∑S"
 
-pretty_form_repl(::typeof(energy_total)) = "∑e_total"
-pretty_form_file(::typeof(energy_total)) = "e_total"
+pretty_form_utf(::typeof(energy_total)) = "∑e_total"
+pretty_form_ascii(::typeof(energy_total)) = "e_total"
 
-pretty_form_repl(::typeof(energy_kinetic)) = "∑e_kinetic"
-pretty_form_file(::typeof(energy_kinetic)) = "e_kinetic"
+pretty_form_utf(::typeof(energy_kinetic)) = "∑e_kinetic"
+pretty_form_ascii(::typeof(energy_kinetic)) = "e_kinetic"
 
-pretty_form_repl(::typeof(energy_internal)) = "∑e_internal"
-pretty_form_file(::typeof(energy_internal)) = "e_internal"
+pretty_form_utf(::typeof(energy_internal)) = "∑e_internal"
+pretty_form_ascii(::typeof(energy_internal)) = "e_internal"
 
-pretty_form_repl(::Val{:l2_divb}) = "L2 ∇⋅B"
-pretty_form_file(::Val{:l2_divb}) = "l2_divb"
+pretty_form_utf(::Val{:l2_divb}) = "L2 ∇⋅B"
+pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
 
-pretty_form_repl(::Val{:linf_divb}) = "L∞ ∇⋅B"
-pretty_form_file(::Val{:linf_divb}) = "linf_divb"
+pretty_form_utf(::Val{:linf_divb}) = "L∞ ∇⋅B"
+pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 
 
 # specialized implementations specific to some solvers
