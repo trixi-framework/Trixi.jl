@@ -195,7 +195,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solve
                                       source_terms=nothing,
                                       boundary_conditions=nothing, RealT=real(solver))
 
-  cache = create_cache(mesh, equations, boundary_conditions, solver, RealT)
+  cache = create_cache(mesh, equations, solver, RealT)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
@@ -293,7 +293,7 @@ end
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)
-# - create_cache(mesh, equations, boundary_conditions, solver)
+# - create_cache(mesh, equations, solver, RealT)
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, mesh, equations, solver, cache, u; normalize=true)
 # - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)

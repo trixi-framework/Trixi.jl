@@ -3,7 +3,7 @@
 # currently limited to Lobatto-Legendre nodes
 
 function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
-                      boundary_conditions, dg::DG, RealT)
+                      dg::DG, RealT)
   # Create the basic cache
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
