@@ -20,10 +20,12 @@ end
 function AMRCallback(semi, indicator, adaptor; interval=nothing,
                                                adapt_initial_conditions=true,
                                                adapt_initial_conditions_only_refine=true)
-  # AMR every `interval` time steps
+  # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
   end
+
+  # AMR every `interval` time steps
   if interval > 0
     condition = (u, t, integrator) -> integrator.iter % interval == 0
   else # disable the AMR callback except possibly for initial refinement during initialization

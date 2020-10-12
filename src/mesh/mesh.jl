@@ -51,12 +51,20 @@ function TreeMesh(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domai
 end
 
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
-                  n_cells_max=10^6,
+                  n_cells_max=nothing,
                   periodicity=true,
-                  initial_refinement_level=1,
+                  initial_refinement_level=nothing,
                   refinement_patches=(),
                   coarsening_patches=(),
                   ) where {NDIMS}
+  # check arguments
+  if !(n_cells_max isa Integer && n_cells_max > 0)
+    throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
+  end
+  if !(initial_refinement_level isa Integer && initial_refinement_level > 0)
+    throw(ArgumentError("`initial_refinement_level` must be a positive integer (provided `initial_refinement_level = $initial_refinement_level`)"))
+  end
+
   # Domain length is calculated as the maximum length in any axis direction
   domain_center = @. (coordinates_min + coordinates_max) / 2
   domain_length = maximum(coordinates_max .- coordinates_min)
