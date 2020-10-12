@@ -31,7 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-amr_indicator = IndicatorThreeLevel(semi, IndicatorMax(semi),
+amr_indicator = IndicatorThreeLevel(semi, IndicatorMax(semi, variable=first),
                                     base_level=4,
                                     med_level=5, med_threshold=0.1,
                                     max_level=6, max_threshold=0.6)
