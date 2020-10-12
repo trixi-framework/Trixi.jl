@@ -33,12 +33,7 @@ function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                                   variable)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorHennemannGassner, equations, basis)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
@@ -50,12 +45,7 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                                   variable)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
   cache = create_cache(IndicatorHennemannGassner, semi)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
@@ -105,24 +95,14 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorLöhner(equations::AbstractEquations, basis;
-                         f_wave=0.2, variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                         f_wave=0.2, variable)
   cache = create_cache(IndicatorLöhner, equations, basis)
   IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorLöhner(semi::AbstractSemidiscretization;
-                         f_wave=0.2, variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                         f_wave=0.2, variable)
   cache = create_cache(IndicatorLöhner, semi)
   IndicatorLöhner{typeof(f_wave), typeof(variable), typeof(cache)}(f_wave, variable, cache)
 end
@@ -157,24 +137,14 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorMax(equations::AbstractEquations, basis;
-                      variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                      variable)
   cache = create_cache(IndicatorMax, equations, basis)
   IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorMax(semi::AbstractSemidiscretization;
-                      variable=nothing)
-  # check arguments
-  if isnothing(variable)
-    throw(ArgumentError("You must provide the keyword argument `variable`"))
-  end
-
+                      variable)
   cache = create_cache(IndicatorMax, semi)
   return IndicatorMax{typeof(variable), typeof(cache)}(variable, cache)
 end

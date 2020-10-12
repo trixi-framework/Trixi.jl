@@ -35,7 +35,7 @@ end
 
 
 # The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at th top.
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
 end
@@ -83,7 +83,7 @@ end
 
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at th top.
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2)
   # TODO: Taal compare performance of different types
   MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, real(mortar_l2)}

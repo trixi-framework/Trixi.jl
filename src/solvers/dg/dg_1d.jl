@@ -32,7 +32,7 @@ end
 
 
 # The methods below are specialized on the volume integral type
-# and called from the basic `create_cache` method at th top.
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
 end
@@ -63,7 +63,7 @@ end
 
 
 # The methods below are specialized on the mortar type
-# and called from the basic `create_cache` method at th top.
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{1}, equations, mortar_l2::LobattoLegendreMortarL2)
   NamedTuple()
 end
