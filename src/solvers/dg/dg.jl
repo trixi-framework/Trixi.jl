@@ -129,13 +129,12 @@ end
 
 
 
-abstract type AbstractBasisSBP{RealT<:Real} end
+"""
+    DG(basis, basis, surface_flux, volume_integral)
 
-abstract type AbstractMortar{RealT<:Real} end
-
-abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
-
-
+Create a discontinuous Galerkin method.
+If `basis isa LobattoLegendreBasis`, this creates a [`DGSEM`](@ref).
+"""
 struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeIntegral}
   basis::Basis
   mortar::Mortar
@@ -226,12 +225,6 @@ end
 
 
 # Used for analyze_solution
-abstract type SolutionAnalyzer{RealT<:Real} end
-
-abstract type AdaptorAMR{RealT<:Real} end
-
-abstract type AdaptorL2{RealT<:Real} <: AdaptorAMR{RealT} end
-
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
 AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
@@ -241,7 +234,7 @@ AdaptorAMR(mesh, dg::DG) = AdaptorL2(dg.basis)
 # Include utilities
 include("interpolation.jl")
 include("l2projection.jl")
-include("lobatto_legendre.jl")
+include("basis_lobatto_legendre.jl")
 
 """
     DGSEM([RealT=Float64,] polydeg::Integer,

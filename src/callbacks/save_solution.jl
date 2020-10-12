@@ -47,7 +47,6 @@ end
 
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveSolutionCallback}
-  reset_timer!(timer())
   solution_callback = cb.affect!
 
   mkpath(solution_callback.output_directory)

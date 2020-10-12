@@ -37,6 +37,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
+# This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
   # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
   if !integrator.opts.adaptive
@@ -60,6 +61,10 @@ end
 end
 
 
+# Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
+# such as `CarpenterKennedy2N54` require passing `dt=...` in `solve(ode, ...)`. Since we don't have
+# an integrator at this stage but only the ODE, this method will be used there. It's called in
+# many examples in `solve(ode, ..., dt=stepsize_callback(ode), ...)`.
 function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condition, Affect!<:StepsizeCallback}
   stepsize_callback = cb.affect!
   @unpack cfl_number = stepsize_callback

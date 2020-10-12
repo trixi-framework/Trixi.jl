@@ -72,6 +72,11 @@ end
 
 Compute the discrete coefficients of the continuous function `func` at time `t`
 associated with the semidiscretization `semi`.
+For example, the discrete coefficients of `func` for a discontinuous Galerkin
+spectral element method ([`DGSEM`](@ref)) are the values of `func` at the
+Lobatto-Legendre nodes. Similarly, a classical finite difference method will use
+the values of `func` at the nodes of the grid assoociated with the semidiscretization
+`semi`.
 """
 function compute_coefficients(func, t, semi::AbstractSemidiscretization)
   u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
@@ -82,8 +87,7 @@ end
 """
     compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
 
-Compute the discrete coefficients of the continuous function `func` at time `t`
-associated with the semidiscretization `semi` and store them in `u_ode`.
+Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
@@ -195,7 +199,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solve
                                       source_terms=nothing,
                                       boundary_conditions=nothing, RealT=real(solver))
 
-  cache = create_cache(mesh, equations, boundary_conditions, solver, RealT)
+  cache = create_cache(mesh, equations, solver, RealT)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
@@ -293,7 +297,7 @@ end
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)
-# - create_cache(mesh, equations, boundary_conditions, solver)
+# - create_cache(mesh, equations, solver, RealT)
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, mesh, equations, solver, cache, u; normalize=true)
 # - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)

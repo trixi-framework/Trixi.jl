@@ -3,6 +3,12 @@ include("tree.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
+# The mesh is really just about the connectivity, size, and location of the individual
+# tree nodes. Neighbor information between interfaces or the large sides for mortars is
+# something that is solver-specific and that might not be needed by all solvers (or in a
+# different form). Also, these data values can be performance critical, so a mesh would
+# have to store them for all solvers in an efficient way - OTOH, different solvers might
+# use different cells of a shared mesh, so "efficient" is again solver dependent.
 mutable struct TreeMesh{D}
   tree::Tree{D}
   current_filename::String
@@ -51,12 +57,20 @@ function TreeMesh(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domai
 end
 
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
-                  n_cells_max=10^6,
+                  n_cells_max,
                   periodicity=true,
-                  initial_refinement_level=1,
+                  initial_refinement_level,
                   refinement_patches=(),
                   coarsening_patches=(),
                   ) where {NDIMS}
+  # check arguments
+  if !(n_cells_max isa Integer && n_cells_max > 0)
+    throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
+  end
+  if !(initial_refinement_level isa Integer && initial_refinement_level >= 0)
+    throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
+  end
+
   # Domain length is calculated as the maximum length in any axis direction
   domain_center = @. (coordinates_min + coordinates_max) / 2
   domain_length = maximum(coordinates_max .- coordinates_min)

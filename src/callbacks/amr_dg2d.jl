@@ -294,7 +294,8 @@ function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id, old_u, old_ele
 end
 
 
-function indicator_cache(mesh::TreeMesh{2}, equations, dg::DG, cache)
+# this method is called when an `IndicatorThreeLevel` is constructed
+function create_cache(::Type{IndicatorThreeLevel}, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
   indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
   return (; indicator_value)

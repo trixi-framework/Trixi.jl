@@ -17,11 +17,20 @@ struct AMRCallback{Indicator, Adaptor}
 end
 
 
-function AMRCallback(semi, indicator, adaptor; interval=0,
+function AMRCallback(semi, indicator, adaptor; interval=nothing,
                                                adapt_initial_conditions=true,
                                                adapt_initial_conditions_only_refine=true)
+  # check arguments
+  if !(interval isa Integer && interval >= 0)
+    throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
+  end
+
   # AMR every `interval` time steps
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0)
+  if interval > 0
+    condition = (u, t, integrator) -> integrator.iter % interval == 0
+  else # disable the AMR callback except possibly for initial refinement during initialization
+    condition = (u, t, integrator) -> false
+  end
 
   amr_callback = AMRCallback{typeof(indicator), typeof(adaptor)}(
                   indicator, interval, adapt_initial_conditions,
@@ -147,12 +156,12 @@ function IndicatorThreeLevel(semi, indicator; base_level=1,
                                               med_level=base_level, med_threshold=0.0,
                                               max_level=base_level, max_threshold=1.0)
   med_threshold, max_threshold = promote(med_threshold, max_threshold)
-  cache = indicator_cache(semi)
+  cache = create_cache(IndicatorThreeLevel, semi)
   IndicatorThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
     base_level, med_level, max_level, med_threshold, max_threshold, indicator, cache)
 end
 
-indicator_cache(semi) = indicator_cache(mesh_equations_solver_cache(semi)...)
+create_cache(indicator_type::Type{IndicatorThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 
 
 function Base.show(io::IO, indicator::IndicatorThreeLevel)

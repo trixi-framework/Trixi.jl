@@ -2,9 +2,11 @@
 # everything related to a DG semidiscretization in 2D,
 # currently limited to Lobatto-Legendre nodes
 
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
-                      boundary_conditions, dg::DG, RealT)
-  # Create the basic cache
+                      dg::DG, RealT)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -24,14 +26,6 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 
   cache = (; elements, interfaces, boundaries, mortars)
 
-  # TODO: Taal discuss/refactor
-  # For me,
-  # - neighbor_ids, orientations in interfaces
-  # - neighbor_ids, orientations, neighbor_sides in boundaries
-  # - neighbor_ids, large_sides, orientations in mortars
-  # seem to be important information about the mesh.
-  # Shall we store them there?
-
   # Add specialized parts of the cache required to compute the volume integral etc.
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
@@ -40,6 +34,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 end
 
 
+# The methods below are specialized on the volume integral type
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
 end
@@ -86,6 +82,8 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 
+# The methods below are specialized on the mortar type
+# and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2)
   # TODO: Taal compare performance of different types
   MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, real(mortar_l2)}

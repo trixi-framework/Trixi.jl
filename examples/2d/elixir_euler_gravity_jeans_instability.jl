@@ -65,8 +65,8 @@ save_solution = SaveSolutionCallback(interval=10,
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-Trixi.pretty_form_repl(::Val{:energy_potential}) = "∑e_potential"
-Trixi.pretty_form_file(::Val{:energy_potential}) = "e_potential"
+Trixi.pretty_form_utf(::Val{:energy_potential}) = "∑e_potential"
+Trixi.pretty_form_ascii(::Val{:energy_potential}) = "e_potential"
 
 function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::SemidiscretizationEulerGravity)
 
