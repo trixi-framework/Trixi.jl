@@ -68,7 +68,7 @@ end
 
 function initial_conditions_linear_x_y(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x_trans_periodic(x - equation.advectionvelocity * t)
+  x_trans = x - equation.advectionvelocity * t
 
   return @SVector [sum(x_trans)]
 end
