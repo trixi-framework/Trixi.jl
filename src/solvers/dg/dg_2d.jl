@@ -24,14 +24,6 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
 
   cache = (; elements, interfaces, boundaries, mortars)
 
-  # TODO: Taal discuss/refactor
-  # For me,
-  # - neighbor_ids, orientations in interfaces
-  # - neighbor_ids, orientations, neighbor_sides in boundaries
-  # - neighbor_ids, large_sides, orientations in mortars
-  # seem to be important information about the mesh.
-  # Shall we store them there?
-
   # Add specialized parts of the cache required to compute the volume integral etc.
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
