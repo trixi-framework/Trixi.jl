@@ -72,6 +72,11 @@ end
 
 Compute the discrete coefficients of the continuous function `func` at time `t`
 associated with the semidiscretization `semi`.
+For example, the discrete coefficients of `func` for a discontinuous Galerkin
+spectral element method ([`DGSEM`](@ref)) are the values of `func` at the
+Lobatto-Legendre nodes. Similarly, a classical finite difference method will use
+the values of `func` at the nodes of the grid assoociated with the semidiscretization
+`semi`.
 """
 function compute_coefficients(func, t, semi::AbstractSemidiscretization)
   u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
@@ -82,8 +87,7 @@ end
 """
     compute_coefficients!(u_ode, func, t, semi::AbstractSemidiscretization)
 
-Compute the discrete coefficients of the continuous function `func` at time `t`
-associated with the semidiscretization `semi` and store them in `u_ode`.
+Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
