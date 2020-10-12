@@ -211,8 +211,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.01789383976134809, 0.08496187610572214, 0.08909116075943745, 0.08505952838326755, 0.10443373959204932, 0.05387852204182135, 0.08812990990777562, 0.07804874749131957, 8.138512446081734e-5],
             t_end = 0.06)
   end  # too expensive for CI
-  # @testset "parameters_euler_sedov_blast_wave_shockcapturing.toml with n_steps_max = 2" begin
-  #   test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing.toml"),
+  # @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with n_steps_max = 2" begin
+  #   test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
   #           l2   = [0.00015213881280510253, 0.001481110249423103, 0.0014811102494231387, 0.001481110249423187, 0.002940437008367858],
   #           linf = [0.03254534843490764, 0.38932044051654113, 0.38932044051654097, 0.38932044051654097, 1.050399588579145],
   #           n_steps_max = 2)

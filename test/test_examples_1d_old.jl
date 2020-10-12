@@ -77,19 +77,19 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             surface_flux = "flux_hll",
             volume_flux = "flux_hll")
   end
-  @testset "parameters_euler_sedov_blast_wave_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing.toml"),
+  @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2500050612446159, 0.06878411345533555, 0.9447942342833009],
             linf = [2.9791692123401017, 0.1683336841958163, 2.665578807135144])
   end
-  @testset "parameters_euler_sedov_blast_wave_shockcapturing.toml with pressure" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing.toml"),
+  @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with pressure" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2974912081242604, 0.07965704393481755, 0.9453618260835944],
             linf = [3.1823155476320926, 0.21380426507857242, 2.6650734792251995],
             shock_indicator_variable = "pressure")
   end
-  @testset "parameters_euler_sedov_blast_wave_shockcapturing.toml with density" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing.toml"),
+  @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with density" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2797014548135697, 0.07077838776630381, 0.9457917493772532],
             linf = [3.117424382044245, 0.17775688760995997, 2.666854886766347],
             shock_indicator_variable = "density")
