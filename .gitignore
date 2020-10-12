@@ -15,4 +15,3 @@ coverage/
 coverage_report/
 **/*.jl.*.cov
 **/.ipynb_checkpoints/
-test/test_Felipe.jl
