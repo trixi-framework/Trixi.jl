@@ -9,16 +9,15 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various manual (= non-parameter-file-triggered tests)
 @testset "Manual tests" begin
-  @testset "Tree" begin
+  @testset "SerialTree" begin
     @testset "constructors" begin
-      @test_nowarn Trixi.Tree(Val(1), 10, 0.0, 1.0)
+      @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
-      t = Trixi.Tree(Val(1), 10, 0.0, 1.0)
-      @test_nowarn show(t)
+      t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+      @test isnothing(display(t))
       @test Trixi.ndims(t) == 1
-      @test Trixi.ndims(Trixi.Tree{1}) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
       @test Trixi.n_children_per_cell(t) == 2
@@ -27,7 +26,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "refine!/coarsen!" begin
-      t = Trixi.Tree(Val(1), 10, 0.0, 1.0)
+      t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
       @test Trixi.refine!(t) == [1]
       @test Trixi.coarsen!(t) == [1]
       @test Trixi.refine!(t) == [1]
@@ -38,6 +37,24 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.coarsen_box!(t, [-0.5], [0.0]) == [2]
       @test Trixi.coarsen_box!(t, 0.0, 0.5) == [3]
       @test isnothing(Trixi.reset_data_structures!(t))
+    end
+  end
+
+  @testset "ParallelTree" begin
+    @testset "constructors" begin
+      @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+    end
+
+    @testset "helper functions" begin
+      t = Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+      @test isnothing(display(t))
+      @test isnothing(Trixi.reset_data_structures!(t))
+    end
+  end
+
+  @testset "TreeMesh" begin
+    @testset "constructors" begin
+      Trixi.TreeMesh{Trixi.SerialTree{1}}(1, 5.0, 2.0) isa Trixi.TreeMesh
     end
   end
 
@@ -188,9 +205,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{1, 1}(1)
-    @test isnothing(show(c2d))
+    @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{1, 1}(1)
-    @test isnothing(show(c3d))
+    @test isnothing(display(c3d))
   end
 end
 

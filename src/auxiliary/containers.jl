@@ -307,3 +307,15 @@ function clear!(c::AbstractContainer)
 
   return c
 end
+
+
+# Helpful overloads for `raw_copy`
+function raw_copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+  raw_copy!(c, c, first, last, destination)
+end
+function raw_copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+  raw_copy!(target, source, from, from, destination)
+end
+function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
+  raw_copy!(c, c, from, from, destination)
+end

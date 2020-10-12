@@ -40,6 +40,7 @@ makedocs(
         "Home" => "index.md",
         "Development" => "development.md",
         "Visualization" => "visualization.md",
+        "Parallelization" => "parallelization.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
         "Reference" => [
