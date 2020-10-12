@@ -952,31 +952,31 @@ end
 # Calculate time derivative
 function rhs!(dg::Dg1D, t_stage)
   # Reset u_t
-  @timeit_debug timer() "reset ∂u/∂t" dg.elements.u_t .= 0
+  @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(dg)
 
   # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(dg)
+  @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(dg)
+  @timeit timer() "interface flux" calc_interface_flux!(dg)
 
   # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(dg)
+  @timeit timer() "prolong2boundaries" prolong2boundaries!(dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(dg, t_stage)
+  @timeit timer() "boundary flux" calc_boundary_flux!(dg, t_stage)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(dg)
+  @timeit timer() "surface integral" calc_surface_integral!(dg)
 
   # Apply Jacobian from mapping to reference element
-  @timeit_debug timer() "Jacobian" apply_jacobian!(dg)
+  @timeit timer() "Jacobian" apply_jacobian!(dg)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
+  @timeit timer() "source terms" calc_sources!(dg, dg.source_terms, t_stage)
 end
 
 # TODO: implement 1D!!!
@@ -1082,7 +1082,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
   @unpack fstar1_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
-  @timeit_debug timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
+  @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
@@ -1092,12 +1092,12 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Loop over pure DG elements
-  @timeit_debug timer() "pure DG" Threads.@threads for element_id in element_ids_dg
+  @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
     split_form_kernel!(u_t, element_id, thread_cache, dg)
   end
 
   # Loop over blended DG-FV elements
-  @timeit_debug timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
+  @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
     # Calculate DG volume integral contribution
     split_form_kernel!(u_t, element_id, thread_cache, dg, 1 - alpha[element_id])
 

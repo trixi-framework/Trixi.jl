@@ -15,7 +15,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   tree = mesh.tree
 
   # Determine indicator value
-  lambda = @timeit_debug timer() "indicator" calc_amr_indicator(solver, mesh, time)
+  lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
 
   # Get list of current leaf cells
   leaf_cell_ids = leaf_cells(tree)
@@ -31,14 +31,14 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   to_coarsen = leaf_cell_ids[lambda .< indicator_threshold_coarsening]
 
   # Start by refining cells
-  @timeit_debug timer() "refine" if !only_coarsen && !isempty(to_refine)
+  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
     # Refine mesh
-    refined_original_cells = @timeit_debug timer() "mesh" refine!(tree, to_refine)
+    refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
 
     # Refine solver
-    @timeit_debug timer() "solver" refine!(solver, mesh, refined_original_cells)
+    @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
     if !isempty(passive_solvers)
-      @timeit_debug timer() "passive solvers" for ps in passive_solvers
+      @timeit timer() "passive solvers" for ps in passive_solvers
         refine!(ps, mesh, refined_original_cells)
       end
     end
@@ -48,7 +48,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   end
 
   # Then, coarsen cells
-  @timeit_debug timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -84,7 +84,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
     # Finally, coarsen mesh
-    coarsened_original_cells = @timeit_debug timer() "mesh" coarsen!(tree, to_coarsen)
+    coarsened_original_cells = @timeit timer() "mesh" coarsen!(tree, to_coarsen)
 
     # Convert coarsened parent cell ids to the list of child cell ids that have
     # been removed, since this is the information that is expected by the solver
@@ -96,9 +96,9 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     end
 
     # Coarsen solver
-    @timeit_debug timer() "solver" coarsen!(solver, mesh, removed_child_cells)
+    @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
     if !isempty(passive_solvers)
-      @timeit_debug timer() "passive solvers" for ps in passive_solvers
+      @timeit timer() "passive solvers" for ps in passive_solvers
         coarsen!(ps, mesh, removed_child_cells)
       end
     end

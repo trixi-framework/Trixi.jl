@@ -99,7 +99,7 @@ function init_parameters(parameters_file=nothing; verbose=false, refinement_leve
   globals[:verbose] = verbose
 
   # Parse parameters file
-  @timeit_debug timer() "read parameter file" parse_parameters_file(parameters_file)
+  @timeit timer() "read parameter file" parse_parameters_file(parameters_file)
 
   # Override specified parameters
   for (parameter, value) in parameters
@@ -131,11 +131,11 @@ function init_simulation()
   # Initialize mesh
   if restart
     print("Loading mesh... ")
-    @timeit_debug timer() "mesh loading" mesh = load_mesh(restart_filename)
+    @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
     println("done")
   else
     print("Creating mesh... ")
-    @timeit_debug timer() "mesh creation" mesh = generate_mesh()
+    @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
     mesh.unsaved_changes = false
     println("done")
@@ -182,13 +182,13 @@ function init_simulation()
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @timeit_debug timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
           only_refine=adapt_initial_conditions_only_refine)
 
       # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions!(solver, time)
-        @timeit_debug timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
             only_refine=adapt_initial_conditions_only_refine)
       end
 
@@ -329,9 +329,9 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   # Start main loop (loop until final time step is reached)
   finalstep = false
   first_loop_iteration = true
-  @timeit_debug timer() "main loop" while !finalstep
+  @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    @timeit_debug timer() "calculate dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
     if isnan(dt)
@@ -375,7 +375,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
-      l2_error, linf_error = @timeit_debug timer() "analyze solution" analyze_solution(
+      l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
           solver, mesh, time, dt, step, runtime_absolute, runtime_relative)
 
       # Reset time and counters
@@ -398,7 +398,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
-      @timeit_debug timer() "I/O" begin
+      @timeit timer() "I/O" begin
         # Compute current AMR indicator values such that it can be written to
         # the solution file for the current number of elements
         if amr_interval > 0
@@ -421,7 +421,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     if restart_interval > 0 && (
         step % restart_interval == 0 || (finalstep && save_final_restart))
       output_start_time = time_ns()
-      @timeit_debug timer() "I/O" begin
+      @timeit timer() "I/O" begin
         # If mesh has changed, write a new mesh file
         if mesh.unsaved_changes
           mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"), step)
@@ -436,7 +436,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
-      @timeit_debug timer() "AMR" has_changed = adapt!(mesh, solver, time)
+      @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time)
 
       # Store if mesh has changed to write changed mesh file before next restart/solution output
       if has_changed

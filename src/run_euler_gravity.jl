@@ -14,7 +14,7 @@ function init_simulation_euler_gravity()
   # Initialize mesh
   begin
     print("Creating mesh... ")
-    @timeit_debug timer() "mesh creation" mesh = generate_mesh()
+    @timeit timer() "mesh creation" mesh = generate_mesh()
     mesh.current_filename = save_mesh_file(mesh, parameter("output_directory", "out"))
     mesh.unsaved_changes = false
     println("done")
@@ -59,14 +59,14 @@ function init_simulation_euler_gravity()
 
     # If AMR is enabled, adapt mesh and re-apply ICs
     if amr_interval > 0 && adapt_initial_conditions
-      @timeit_debug timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
           only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
 
       # Iterate until mesh does not change anymore
       while has_changed
         set_initial_conditions!(solver, time)
         set_initial_conditions!(solver_gravity, time)
-        @timeit_debug timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
             only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
       end
 
@@ -227,9 +227,9 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
   globals[:gravity_subcycles] = 0
   finalstep = false
   first_loop_iteration = true
-  @timeit_debug timer() "main loop" while !finalstep
+  @timeit timer() "main loop" while !finalstep
     # Calculate time step size
-    @timeit_debug timer() "calculate dt" dt = calc_dt(solver, cfl)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl)
 
     # Abort if time step size is NaN
     if isnan(dt)
@@ -243,7 +243,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     end
 
     # Evolve solution by one time step
-    @timeit_debug timer() "timestep_euler_gravity!" begin
+    @timeit timer() "timestep_euler_gravity!" begin
       timestep_euler_gravity!(solver_euler, solver_gravity, time, dt, time_parameters)
     end
     step += 1
@@ -264,7 +264,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
 
       # Analyze solution
       if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
-        l2_euler, linf_euler = @timeit_debug timer() "analyze solution" analyze_solution(
+        l2_euler, linf_euler = @timeit timer() "analyze solution" analyze_solution(
             solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
         # Pull gravity solver information from file
         timestep_gravity = eval(Symbol(parameter("time_integration_scheme_gravity")))
@@ -273,12 +273,12 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
         G = parameter("G")::Float64
         gravity_parameters = (; timestep_gravity, cfl_gravity, rho0, G)
         update_gravity!(solver_gravity, solver_euler.elements.u, gravity_parameters)
-        l2_hypdiff, linf_hypdiff = @timeit_debug timer() "analyze solution" analyze_solution(
+        l2_hypdiff, linf_hypdiff = @timeit timer() "analyze solution" analyze_solution(
             solver_gravity, mesh, time, dt, step, runtime_absolute, runtime_relative)
         l2_error   = vcat(l2_euler  , l2_hypdiff)
         linf_error = vcat(linf_euler, linf_hypdiff)
       else
-        l2_error, linf_error = @timeit_debug timer() "analyze solution" analyze_solution(
+        l2_error, linf_error = @timeit timer() "analyze solution" analyze_solution(
             solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
       end
 
@@ -302,7 +302,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     if solution_interval > 0 && (
         step % solution_interval == 0 || (finalstep && save_final_solution))
       output_start_time = time_ns()
-      @timeit_debug timer() "I/O" begin
+      @timeit timer() "I/O" begin
         # Compute current AMR indicator values such that it can be written to
         # the solution file for the current number of elements
         if amr_interval > 0
@@ -324,7 +324,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
 
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
-      @timeit_debug timer() "AMR" has_changed = adapt!(mesh, solver, time,
+      @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time,
                                                  passive_solvers=(solver_gravity,))
 
       # Store if mesh has changed to write changed mesh file before next restart/solution output

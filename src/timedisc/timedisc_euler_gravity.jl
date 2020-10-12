@@ -29,14 +29,14 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
   update_gravity_once_per_stage = parameter("update_gravity_once_per_stage", true)::Bool
 
   if !update_gravity_once_per_stage
-    @timeit_debug timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
+    @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
                                                      gravity_parameters)
   end
 
   for stage in eachindex(c)
     # Update gravity in every RK stage
     if update_gravity_once_per_stage
-      @timeit_debug timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
+      @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
                                                        gravity_parameters)
     end
 
@@ -44,7 +44,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
     t_stage = t + dt * c[stage]
 
     # computes compressible Euler w/o any sources
-    @timeit_debug timer() "Euler solver" rhs!(solver_euler, t_stage)
+    @timeit timer() "Euler solver" rhs!(solver_euler, t_stage)
     # add in gravitational source terms from update_gravity! call
     # OBS! u_gravity[2] contains ∂ϕ/∂x and u_gravity[3] contains ∂ϕ/∂y
     u_euler = solver_euler.elements.u
@@ -64,7 +64,7 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
                                         +u_euler[4,:,:,:,:]*u_gravity[4,:,:,:,:])
     end
     # take RK step for compressible Euler
-    @timeit_debug timer() "Runge-Kutta step" begin
+    @timeit timer() "Runge-Kutta step" begin
       @. solver_euler.elements.u_tmp2 = (solver_euler.elements.u_t
                                          - solver_euler.elements.u_tmp2 * a[stage])
       @. solver_euler.elements.u += solver_euler.elements.u_tmp2 * b[stage] * dt
@@ -85,7 +85,7 @@ function update_gravity!(solver, u_euler, gravity_parameters)
   # Iterate gravity solver until convergence or maximum number of iterations are reached
   while !finalstep
     # Calculate time step size
-    @timeit_debug timer() "calculate dt" dt = calc_dt(solver, cfl_gravity)
+    @timeit timer() "calculate dt" dt = calc_dt(solver, cfl_gravity)
 
     # Evolve solution by one pseudo-time step
     timestep_gravity(solver, time, dt, u_euler, gravity_parameters)
@@ -122,14 +122,14 @@ function timestep_gravity_2N!(solver::AbstractSolver, t, dt, u_euler, gravity_pa
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    @timeit_debug timer() "rhs" rhs!(solver, t_stage)
+    @timeit timer() "rhs" rhs!(solver, t_stage)
 
     # put in gravity source term proportional to Euler density
     # OBS! subtract off the background density ρ_0 (spatial mean value)
     @views @. solver.elements.u_t[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
 
     # now take the RK step
-    @timeit_debug timer() "Runge-Kutta step" begin
+    @timeit timer() "Runge-Kutta step" begin
       @. solver.elements.u_tmp2 = solver.elements.u_t - solver.elements.u_tmp2 * a[stage]
       @. solver.elements.u += solver.elements.u_tmp2 * b[stage] * dt
     end
@@ -161,7 +161,7 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
   solver.elements.u_tmp3 .= solver.elements.u
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit_debug timer() "rhs" rhs!(solver, t_stage)
+    @timeit timer() "rhs" rhs!(solver, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
@@ -173,7 +173,7 @@ function timestep_gravity_3Sstar!(solver::AbstractSolver, t, dt, u_euler, gravit
     gamma2_stage  = gamma2[stage]
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
-    @timeit_debug timer() "Runge-Kutta step" begin
+    @timeit timer() "Runge-Kutta step" begin
       Threads.@threads for idx in eachindex(solver.elements.u)
         solver.elements.u_tmp2[idx] += delta_stage * solver.elements.u[idx]
         solver.elements.u[idx]       = (gamma1_stage * solver.elements.u[idx] +
