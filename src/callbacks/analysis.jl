@@ -247,8 +247,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
       # Conservation errror
       if :conservation_error in analysis_errors
-        @unpack analysis_callback = analysis_callback
-        state_integrals = integrate(u, semi)
+        @unpack initial_state_integrals = analysis_callback
+        state_integrals = integrate(integrator.u, semi)
 
         print(" |∑U - ∑U₀|:  ")
         for v in eachvariable(equations)
