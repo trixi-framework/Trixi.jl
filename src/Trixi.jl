@@ -100,7 +100,7 @@ export SummaryCallback, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSol
 export IndicatorThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
 export density, pressure, density_pressure
 
-export entropy, energy_total, energy_kinetic, energy_internal
+export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
 export trixi_include, examples_dir, get_examples, default_example
 
