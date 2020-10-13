@@ -70,6 +70,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
     l2   = [3.6343269600298813e-6, 0.003211138535470753, 0.0032111483996635176, 0.004545716490663252],
     linf = [7.900701569263369e-5, 0.03056161620998943, 0.030502702817406968, 0.04287693324734221])
+end
 
   @testset "elixir_mhd_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
