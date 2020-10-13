@@ -3,7 +3,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible ideal GLM-MHD equations
+
 equations = IdealGlmMhdEquations2D(1.4)
 
 initial_conditions = Trixi.initial_conditions_ec_test

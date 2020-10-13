@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible ideal GLM-MHD equations
 gamma = 5/3
 equations = IdealGlmMhdEquations2D(gamma)
 
