@@ -11,7 +11,7 @@ struct HyperbolicDiffusionEquations2D <: AbstractHyperbolicDiffusionEquations{2,
   Lr::Float64
   Tr::Float64
   nu::Float64
-  resid_tol::Float64 # TODO Taal refactor, might be a parameter of a specialized steady-state solver?
+  resid_tol::Float64 # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
 function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
@@ -38,6 +38,10 @@ varnames_cons(::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
 varnames_prim(::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
 default_analysis_quantities(::HyperbolicDiffusionEquations2D) = (:l2_error, :linf_error, :residual)
 default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :linf_error, :residual)
+
+@inline function residual_steady_state(du, ::HyperbolicDiffusionEquations2D)
+  abs(du[1])
+end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`

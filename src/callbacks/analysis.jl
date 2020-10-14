@@ -60,7 +60,9 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals),
                           kwargs...)
   # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 || t in integrator.sol.prob.tspan)
+  condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
+                                                     t in integrator.sol.prob.tspan ||
+                                                     isempty(integrator.opts.tstops))
 
   _, equations, solver, _ = mesh_equations_solver_cache(semi)
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
@@ -337,6 +339,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol::ODESolution) where {Cond
   @unpack analyzer = analysis_callback
 
   l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi)
+  (; l2=l2_error, linf=linf_error)
 end
 
 
