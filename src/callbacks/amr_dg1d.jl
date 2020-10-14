@@ -27,7 +27,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
 
     # Initialize new elements container
     elements = init_elements(leaf_cell_ids, mesh,
-                            real(dg), nvariables(equations), polydeg(dg))
+                             real(dg), nvariables(equations), polydeg(dg))
     copy!(cache.elements, elements)
     @assert nelements(dg, cache) > old_n_elements
 
@@ -248,7 +248,7 @@ end
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG, cache)
 
-  controller_value = Vector{real(dg)}(undef, nelements(dg, cache))
+  controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 

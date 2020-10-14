@@ -12,17 +12,44 @@ mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContai
   node_coordinates::Array{RealT, 4}    # [orientation, i, j, elements]
   surface_flux_values::Array{RealT, 4} # [variables, i, direction, elements]
   cell_ids::Vector{Int}                # [elements]
+  # internal `resize!`able storage
+  _u::Vector{RealT}
+  _u_t::Vector{RealT}
+  _u_tmp2::Vector{RealT}
+  _u_tmp3::Vector{RealT}
+  _node_coordinates::Vector{RealT}
+  _surface_flux_values::Vector{RealT}
 end
 
-function Base.copy!(dst::ElementContainer2D, src::ElementContainer2D)
-  dst.u                   = src.u
-  dst.u_t                 = src.u_t
-  dst.u_tmp2              = src.u_tmp2
-  dst.u_tmp3              = src.u_tmp3
-  dst.inverse_jacobian    = src.inverse_jacobian
-  dst.node_coordinates    = src.node_coordinates
-  dst.surface_flux_values = src.surface_flux_values
-  dst.cell_ids            = src.cell_ids
+function Base.resize!(elements::ElementContainer2D{RealT, NVARS, POLYDEG}, capacity) where {RealT, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  @unpack _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values,
+          inverse_jacobian, cell_ids = elements
+
+  resize!(_u, NVARS * n_nodes * n_nodes * capacity)
+  elements.u = unsafe_wrap(Array, pointer(_u), (NVARS, n_nodes, n_nodes, capacity))
+
+  resize!(_u_t, NVARS * n_nodes * n_nodes * capacity)
+  elements.u_t = unsafe_wrap(Array, pointer(_u_t), (NVARS, n_nodes, n_nodes, capacity))
+
+  resize!(_u_tmp2, NVARS * n_nodes * n_nodes * capacity)
+  _u_tmp2 .= zero(eltype(_u_tmp2))
+  elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2), (NVARS, n_nodes, n_nodes, capacity))
+
+  resize!(_u_tmp3, NVARS * n_nodes * n_nodes * capacity)
+  _u_tmp3 .= zero(eltype(_u_tmp3))
+  elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3), (NVARS, n_nodes, n_nodes, capacity))
+
+  resize!(inverse_jacobian, capacity)
+
+  resize!(_node_coordinates, 2 * n_nodes * n_nodes * capacity)
+  elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates), (2, n_nodes, n_nodes, capacity))
+
+  resize!(_surface_flux_values, NVARS * n_nodes * 2 * 2 * capacity)
+  elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values), (NVARS, n_nodes, 2 * 2, capacity))
+
+  resize!(cell_ids, capacity)
+
   return nothing
 end
 
@@ -32,27 +59,34 @@ function ElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  u = fill(nan, NVARS, n_nodes, n_nodes, capacity)
-  u_t = fill(nan, NVARS, n_nodes, n_nodes, capacity)
+  _u = fill(nan, NVARS * n_nodes * n_nodes * capacity)
+  u = unsafe_wrap(Array, pointer(_u), (NVARS, n_nodes, n_nodes, capacity))
+  _u_t = fill(nan, NVARS * n_nodes * n_nodes * capacity)
+  u_t = unsafe_wrap(Array, pointer(_u_t), (NVARS, n_nodes, n_nodes, capacity))
   # u_rungakutta is initialized to non-NaN since it is used directly
-  u_tmp2 = fill(zero(RealT), NVARS, n_nodes, n_nodes, capacity)
-  u_tmp3 = fill(zero(RealT), NVARS, n_nodes, n_nodes, capacity)
+  _u_tmp2 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
+  u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2), (NVARS, n_nodes, n_nodes, capacity))
+  _u_tmp3 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
+  u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3), (NVARS, n_nodes, n_nodes, capacity))
 
   inverse_jacobian = fill(nan, capacity)
-  node_coordinates = fill(nan, 2, n_nodes, n_nodes, capacity)
-  surface_flux_values = fill(nan, NVARS, n_nodes, 2 * 2, capacity)
+  _node_coordinates = fill(nan, 2 * n_nodes * n_nodes * capacity)
+  node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates), (2, n_nodes, n_nodes, capacity))
+  _surface_flux_values = fill(nan, NVARS * n_nodes * 2 * 2 * capacity)
+  surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values), (NVARS, n_nodes, 2 * 2, capacity))
   cell_ids = fill(typemin(Int), capacity)
 
   elements = ElementContainer2D{RealT, NVARS, POLYDEG}(
     u, u_t, u_tmp2, u_tmp3,
-    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids)
+    inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
+    _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values)
 
   return elements
 end
 
 
 # Return number of elements
-nelements(elements::ElementContainer2D) = length(elements.cell_ids)
+@inline nelements(elements::ElementContainer2D) = length(elements.cell_ids)
 
 
 # Container data structure (structure-of-arrays style) for DG interfaces
