@@ -68,15 +68,15 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-indicator_amr = IndicatorHennemannGassner(semi,
+amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0,
                                           alpha_smooth=false,
                                           variable=density_pressure)
-amr_indicator = IndicatorThreeLevel(semi, indicator_amr,
-                                    base_level=2,
-                                    max_level =8, max_threshold=0.0003)
-amr_callback = AMRCallback(semi, amr_indicator,
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level=2,
+                                      max_level =8, max_threshold=0.0003)
+amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)

@@ -98,7 +98,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
        AnalysisCallback, SaveSolutionCallback, AliveCallback
 
-export IndicatorThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
+export ControllerThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
 export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal
