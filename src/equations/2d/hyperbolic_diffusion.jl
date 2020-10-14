@@ -222,6 +222,8 @@ end
   return SVector(du1, du2, du3)
 end
 
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
 function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
                                           equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
@@ -237,6 +239,19 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
   end
 
   return nothing
+end
+
+@inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
+  inv_Tr = inv(equations.Tr)
+
+  x1, x2 = x
+  du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+
+  return SVector(du1, du2, du3)
 end
 
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes,

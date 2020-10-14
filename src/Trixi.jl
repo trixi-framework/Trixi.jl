@@ -71,7 +71,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 
-export flux_central, flux_lax_friedrichs, flux_hll,
+export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 # TODO: Taal decide, which initial conditions and source terms will be used/exported

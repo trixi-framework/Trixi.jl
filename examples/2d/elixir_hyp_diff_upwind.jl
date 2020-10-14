@@ -10,8 +10,9 @@ equations = HyperbolicDiffusionEquations2D(resid_tol)
 
 initial_conditions = Trixi.initial_conditions_poisson_periodic
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+surface_flux = flux_upwind
+volume_flux  = flux_central
+solver = DGSEM(4, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -43,8 +44,7 @@ save_solution = SaveSolutionCallback(interval=100,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
