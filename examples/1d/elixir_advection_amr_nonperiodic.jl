@@ -16,8 +16,8 @@ surface_flux = flux_lax_friedrichs
 polydeg = 3
 solver = DGSEM(polydeg, surface_flux)
 
-coordinates_min = ( 0,)
-coordinates_max = ( 5,)
+coordinates_min = (0,)
+coordinates_max = (5,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000,
