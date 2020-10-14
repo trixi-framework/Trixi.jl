@@ -41,7 +41,7 @@ default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :lin
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
@@ -56,7 +56,7 @@ function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusion
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -70,7 +70,7 @@ function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffus
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -85,7 +85,7 @@ function initial_conditions_harmonic_nonperiodic(x, t, equation::HyperbolicDiffu
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_jeans_instability(x, t, equations::HyperbolicDiffusionEquations2D)
   # gravity equation: -Δϕ = -4πGρ
   # Constants taken from the FLASH manual
   # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
@@ -98,7 +98,7 @@ function initial_conditions_jeans_instability(x, t, equation::HyperbolicDiffusio
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
@@ -113,7 +113,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations2D)
+function initial_conditions_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
   phi = 0.0
   q1  = 0.0
@@ -125,7 +125,7 @@ end
 # Apply boundary conditions
 function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
                                                   surface_flux_function,
-                                                  equation::HyperbolicDiffusionEquations2D)
+                                                  equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   C   = 1.0/sinh(pi)
   phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
@@ -135,9 +135,9 @@ function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, directio
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -145,7 +145,7 @@ end
 
 function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction, x, t,
                                                  surface_flux_function,
-                                                 equation::HyperbolicDiffusionEquations2D)
+                                                 equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
   q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
@@ -154,9 +154,9 @@ function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -165,14 +165,14 @@ end
 
 function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
-                                                equation::HyperbolicDiffusionEquations2D)
-  u_boundary = initial_conditions_sedov_self_gravity(x, t, equation)
+                                                equations::HyperbolicDiffusionEquations2D)
+  u_boundary = initial_conditions_sedov_self_gravity(x, t, equations)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -180,11 +180,14 @@ end
 
 
 # Apply source terms
-function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
+function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes,
+                                       equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  inv_Tr = inv(equation.Tr)
-  C = -8.0*equation.nu*pi*pi
+  inv_Tr = inv(equations.Tr)
+  C = -8.0*equations.nu*pi*pi
 
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
@@ -199,10 +202,27 @@ function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
+@inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+  inv_Tr = inv(equations.Tr)
+  C = -8 * equations.nu * pi^2
+
+  x1, x2 = x
+  tmp1 = sinpi(2 * x1)
+  tmp2 = sinpi(2 * x2)
+  du1 = -C*tmp1*tmp2
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+
+  return SVector(du1, du2, du3)
+end
+
+function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
+                                          equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-  inv_Tr = inv(equation.Tr)
+  inv_Tr = inv(equations.Tr)
 
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
@@ -215,9 +235,10 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equa
   return nothing
 end
 
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
+function source_terms_harmonic(ut, u, x, element_id, t, n_nodes,
+                               equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  inv_Tr = inv(equation.Tr)
+  inv_Tr = inv(equations.Tr)
 
   for j in 1:n_nodes, i in 1:n_nodes
     ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
@@ -227,9 +248,9 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   return nothing
 end
 
-function source_terms_harmonic(u, x, t, equation::HyperbolicDiffusionEquations2D)
+@inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  inv_Tr = inv(equation.Tr)
+  inv_Tr = inv(equations.Tr)
   phi, q1, q2 = u
 
   du2 = -inv_Tr * q1
@@ -239,50 +260,51 @@ function source_terms_harmonic(u, x, t, equation::HyperbolicDiffusionEquations2D
 end
 
 # The coupled EOC test does not require additional sources
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations2D)
-  return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation)
+function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes,
+                                                     equations::HyperbolicDiffusionEquations2D)
+  return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equations)
 end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::HyperbolicDiffusionEquations2D)
+@inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
 
   if orientation == 1
-    f1 = -equation.nu*q1
-    f2 = -phi/equation.Tr
+    f1 = -equations.nu*q1
+    f2 = -phi/equations.Tr
     f3 = zero(phi)
   else
-    f1 = -equation.nu*q2
+    f1 = -equations.nu*q2
     f2 = zero(phi)
-    f3 = -phi/equation.Tr
+    f3 = -phi/equations.Tr
   end
 
   return SVector(f1, f2, f3)
 end
 
 
-@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations2D)
+@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
-  λ_max = sqrt(equation.nu / equation.Tr)
+  λ_max = sqrt(equations.nu / equations.Tr)
 
   return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
 end
 
 
-@inline function flux_upwind(u_ll, u_rr, orientation, equation::HyperbolicDiffusionEquations2D)
+@inline function flux_upwind(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
-  λ_max = sqrt(equation.nu/equation.Tr)
+  λ_max = sqrt(equations.nu/equations.Tr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
   if orientation == 1 # x-direction
     f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
@@ -298,8 +320,8 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::HyperbolicDiffusionEquations2D, dg)
-  λ_max = sqrt(equation.nu / equation.Tr)
+                     equations::HyperbolicDiffusionEquations2D, dg)
+  λ_max = sqrt(equations.nu / equations.Tr)
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
@@ -314,26 +336,26 @@ end
 
 
 # Convert conservative variables to primitive
-@inline cons2prim(u, equation::HyperbolicDiffusionEquations2D) = u
+@inline cons2prim(u, equations::HyperbolicDiffusionEquations2D) = u
 
 # Convert conservative variables to entropy found in I Do Like CFD, Too, Vol. 1
-@inline function cons2entropy(u, equation::HyperbolicDiffusionEquations2D)
+@inline function cons2entropy(u, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
   w1 = phi
-  w2 = equation.Lr^2 * q1
-  w3 = equation.Lr^2 * q2
+  w2 = equations.Lr^2 * q1
+  w3 = equations.Lr^2 * q2
 
   return SVector(w1, w2, w3)
 end
 
 
 # Calculate entropy for a conservative state `u` (here: same as total energy)
-@inline entropy(u, equation::HyperbolicDiffusionEquations2D) = energy_total(u, equation)
+@inline entropy(u, equations::HyperbolicDiffusionEquations2D) = energy_total(u, equations)
 
 
 # Calculate total energy for a conservative state `u`
-@inline function energy_total(u, equation::HyperbolicDiffusionEquations2D)
-  # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
+@inline function energy_total(u, equations::HyperbolicDiffusionEquations2D)
+  # energy function as found in equations (2.5.12) in the book "I Do Like CFD, Vol. 1"
   phi, q1, q2 = u
-  return 0.5 * (phi^2 + equation.Lr^2 * (q1^2 + q2^2))
+  return 0.5 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2))
 end
