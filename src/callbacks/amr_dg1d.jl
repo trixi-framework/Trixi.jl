@@ -245,10 +245,10 @@ function coarsen_elements!(u::AbstractArray{<:Any,3}, element_id,
 end
 
 
-# this method is called when an `IndicatorThreeLevel` is constructed
-function create_cache(::Type{IndicatorThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG, cache)
+# this method is called when an `ControllerThreeLevel` is constructed
+function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations, dg::DG, cache)
 
-  indicator_value = Vector{real(dg)}(undef, nelements(dg, cache))
-  return (; indicator_value)
+  controller_value = Vector{real(dg)}(undef, nelements(dg, cache))
+  return (; controller_value)
 end
 

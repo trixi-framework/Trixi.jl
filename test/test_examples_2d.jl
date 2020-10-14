@@ -146,9 +146,9 @@ end
   @test_nowarn println(summary_callback)
   @test_nowarn display(summary_callback)
 
-  @test_nowarn show(amr_indicator); println()
-  @test_nowarn println(amr_indicator)
-  @test_nowarn display(amr_indicator)
+  @test_nowarn show(amr_controller); println()
+  @test_nowarn println(amr_controller)
+  @test_nowarn display(amr_controller)
 
   @test_nowarn show(amr_callback); println()
   @test_nowarn println(amr_callback)
