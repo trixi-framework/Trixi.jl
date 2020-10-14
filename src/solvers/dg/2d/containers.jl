@@ -2,7 +2,6 @@
 # Container data structure (structure-of-arrays style) for DG elements
 # TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-# TODO: Taal refactor, mutable struct or resize! for AMR?
 mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                   # [variables, i, j, elements]
   u_t::Array{RealT, 4}                 # [variables, i, j, elements]
@@ -61,27 +60,32 @@ function ElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   # Initialize fields with defaults
   _u = fill(nan, NVARS * n_nodes * n_nodes * capacity)
   u = unsafe_wrap(Array, pointer(_u), (NVARS, n_nodes, n_nodes, capacity))
+
   _u_t = fill(nan, NVARS * n_nodes * n_nodes * capacity)
   u_t = unsafe_wrap(Array, pointer(_u_t), (NVARS, n_nodes, n_nodes, capacity))
+
   # u_rungakutta is initialized to non-NaN since it is used directly
   _u_tmp2 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
   u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2), (NVARS, n_nodes, n_nodes, capacity))
+
   _u_tmp3 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
   u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3), (NVARS, n_nodes, n_nodes, capacity))
 
   inverse_jacobian = fill(nan, capacity)
+
   _node_coordinates = fill(nan, 2 * n_nodes * n_nodes * capacity)
   node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates), (2, n_nodes, n_nodes, capacity))
+
   _surface_flux_values = fill(nan, NVARS * n_nodes * 2 * 2 * capacity)
   surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values), (NVARS, n_nodes, 2 * 2, capacity))
+
   cell_ids = fill(typemin(Int), capacity)
 
-  elements = ElementContainer2D{RealT, NVARS, POLYDEG}(
+
+  return ElementContainer2D{RealT, NVARS, POLYDEG}(
     u, u_t, u_tmp2, u_tmp3,
     inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
     _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values)
-
-  return elements
 end
 
 
@@ -91,17 +95,27 @@ end
 
 # Container data structure (structure-of-arrays style) for DG interfaces
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-# TODO: Taal refactor, mutable struct or resize! for AMR?
 mutable struct InterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}        # [leftright, variables, i, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
+  # internal `resize!`able storage
+  _u::Vector{RealT}
+  _neighbor_ids::Vector{Int}
 end
 
-function Base.copy!(dst::InterfaceContainer2D, src::InterfaceContainer2D)
-  dst.u            = src.u
-  dst.neighbor_ids = src.neighbor_ids
-  dst.orientations = src.orientations
+function Base.resize!(interfaces::InterfaceContainer2D{RealT, NVARS, POLYDEG}, capacity) where {RealT, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  @unpack _u, _neighbor_ids, orientations = interfaces
+
+  resize!(_u, 2 * NVARS * n_nodes * capacity)
+  interfaces.u = unsafe_wrap(Array, pointer(_u), (2, NVARS, n_nodes, capacity))
+
+  resize!(_neighbor_ids, 2 * capacity)
+  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ), (2, capacity))
+
+  resize!(orientations, capacity)
+
   return nothing
 end
 
@@ -111,19 +125,23 @@ function InterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {R
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  u = fill(nan, 2, NVARS, n_nodes, capacity)
-  neighbor_ids = fill(typemin(Int), 2, capacity)
+  _u = fill(nan, 2 * NVARS * n_nodes * capacity)
+  u = unsafe_wrap(Array, pointer(_u), (2, NVARS, n_nodes, capacity))
+
+  _neighbor_ids = fill(typemin(Int), 2 * capacity)
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ), (2, capacity))
+
   orientations = fill(typemin(Int), capacity)
 
-  interfaces = InterfaceContainer2D{RealT, NVARS, POLYDEG}(
-    u, neighbor_ids, orientations)
 
-  return interfaces
+  return InterfaceContainer2D{RealT, NVARS, POLYDEG}(
+    u, neighbor_ids, orientations,
+    _u, _neighbor_ids)
 end
 
 
 # Return number of interfaces
-ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
+@inline ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG boundaries

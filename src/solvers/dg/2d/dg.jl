@@ -411,7 +411,7 @@ function init_interfaces(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, po
   interfaces = InterfaceContainer2D{RealT, nvars, polydeg}(n_interfaces)
 
   # Connect elements with interfaces
-  init_interface_connectivity!(elements, interfaces, mesh)
+  init_interfaces!(interfaces, elements, mesh)
 
   return interfaces
 end
@@ -477,7 +477,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{2})
+function init_interfaces!(interfaces, elements, mesh::TreeMesh{2})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))

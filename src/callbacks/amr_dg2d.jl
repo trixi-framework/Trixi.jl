@@ -54,17 +54,18 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.interfaces, interfaces)
+  # re-initialize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+  init_interfaces!(interfaces, elements, mesh)
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize boundaries
   boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
                                   real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.boundaries, boundaries)
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new mortar containers
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          real(dg), nvariables(equations), polydeg(dg), dg.mortar)
@@ -211,17 +212,18 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.interfaces, interfaces)
+  # re-initialize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+  init_interfaces!(interfaces, elements, mesh)
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize boundaries
   boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
                                   real(dg), nvariables(equations), polydeg(dg))
   copy!(cache.boundaries, boundaries)
 
+  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
   # Initialize new mortar containers
   mortars = init_mortars(leaf_cell_ids, mesh, elements,
                          real(dg), nvariables(equations), polydeg(dg), dg.mortar)
