@@ -165,25 +165,25 @@ end
 create_cache(indicator_type::Type{ControllerThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 
 
-function Base.show(io::IO, indicator::ControllerThreeLevel)
+function Base.show(io::IO, controller::ControllerThreeLevel)
   print(io, "ControllerThreeLevel(")
-  print(io, indicator.indicator)
-  print(io, ", base_level=", indicator.base_level)
-  print(io, ", med_level=",  indicator.med_level)
-  print(io, ", max_level=",  indicator.max_level)
-  print(io, ", med_threshold=", indicator.med_threshold)
-  print(io, ", max_threshold=", indicator.max_threshold)
+  print(io, controller.indicator)
+  print(io, ", base_level=", controller.base_level)
+  print(io, ", med_level=",  controller.med_level)
+  print(io, ", max_level=",  controller.max_level)
+  print(io, ", med_threshold=", controller.med_threshold)
+  print(io, ", max_threshold=", controller.max_threshold)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::ControllerThreeLevel)
+function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
   println(io, "ControllerThreeLevel with")
-  println(io, "- ", indicator.indicator)
-  println(io, "- base_level: ", indicator.base_level)
-  println(io, "- med_level:  ", indicator.med_level)
-  println(io, "- max_level:  ", indicator.max_level)
-  println(io, "- med_threshold: ", indicator.med_threshold)
-  print(io,   "- max_threshold: ", indicator.max_threshold)
+  println(io, "- ", controller.indicator)
+  println(io, "- base_level: ", controller.base_level)
+  println(io, "- med_level:  ", controller.med_level)
+  println(io, "- max_level:  ", controller.max_level)
+  println(io, "- med_threshold: ", controller.med_threshold)
+  print(io,   "- max_threshold: ", controller.max_threshold)
 end
 
 
