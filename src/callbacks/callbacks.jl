@@ -14,6 +14,7 @@ end
 # `include` callback definitions in the order that we currently prefer
 # when combining them into a `CallbackSet` which is called after a complete step
 include("summary.jl")
+include("steady_state.jl")
 include("amr.jl")
 include("stepsize.jl")
 include("save_solution.jl")

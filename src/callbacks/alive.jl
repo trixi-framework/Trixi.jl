@@ -30,7 +30,7 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   print(io, "AliveCallback(alive_interval=", alive_callback.alive_interval, ")")
 end
 # TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
+# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
 # end
 
 

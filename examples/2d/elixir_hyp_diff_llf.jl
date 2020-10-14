@@ -32,6 +32,8 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
+steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
+
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -46,7 +48,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 # TODO: Taal, steady state callback
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
 
 ###############################################################################

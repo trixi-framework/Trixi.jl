@@ -20,7 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
-using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!
+using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
@@ -95,7 +95,8 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
-export SummaryCallback, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback, AliveCallback
+export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
+       AnalysisCallback, SaveSolutionCallback, AliveCallback
 
 export IndicatorThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
 export density, pressure, density_pressure
