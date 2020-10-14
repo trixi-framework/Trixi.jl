@@ -82,7 +82,7 @@ export initial_conditions_convergence_test,
 
 export source_terms_convergence_test, source_terms_harmonic
 
-export boundary_conditions_convergence_test
+export boundary_conditions_convergence_test, boundary_conditions_gauss
 
 export TreeMesh
 
