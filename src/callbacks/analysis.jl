@@ -74,9 +74,9 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
 end
 
 
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:AnalysisCallback}
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrator) where {Condition, Affect!<:AnalysisCallback}
   semi = integrator.p
-  initial_state_integrals = integrate(u, semi)
+  initial_state_integrals = integrate(u_ode, semi)
   _, equations, _, _ = mesh_equations_solver_cache(semi)
 
   analysis_callback = cb.affect!
