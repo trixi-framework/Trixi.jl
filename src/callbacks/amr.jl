@@ -215,7 +215,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   lambda = @timeit_debug timer() "indicator" indicator(u, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
-  @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
+  @boundscheck begin
+   @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
+  end
 
   to_refine  = Int[]
   to_coarsen = Int[]
