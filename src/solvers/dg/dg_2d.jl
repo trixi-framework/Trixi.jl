@@ -97,7 +97,6 @@ end
 
 
 @inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
-  # TODO: Taal performance, shall we use `@boundscheck` more often?
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end

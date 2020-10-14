@@ -48,12 +48,10 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
         element_id += 1
       end
     end
-    @boundscheck begin
-      # If everything is correct, we should have processed all elements.
-      # Depending on whether the last element processed above had to be refined or not,
-      # the counter `element_id` can have two different values at the end.
-      @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end
+    # If everything is correct, we should have processed all elements.
+    # Depending on whether the last element processed above had to be refined or not,
+    # the counter `element_id` can have two different values at the end.
+    @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
@@ -209,10 +207,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
         element_id += 1
       end
     end
-    @boundscheck begin
-      # If everything is correct, we should have processed all elements.
-      @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end
+    # If everything is correct, we should have processed all elements.
+    @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
   # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
