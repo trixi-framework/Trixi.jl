@@ -8,26 +8,31 @@ using Trixi
 resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
-initial_conditions = Trixi.initial_conditions_poisson_periodic
+initial_conditions = Trixi.initial_conditions_poisson_nonperiodic
+boundary_conditions = (Trixi.boundary_conditions_poisson_nonperiodic,
+                       Trixi.boundary_conditions_poisson_nonperiodic,
+                       nothing, nothing)
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(4, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
-                n_cells_max=30_000)
+                n_cells_max=30_000,
+                periodicity=(false, true))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
-                                    source_terms=Trixi.source_terms_poisson_periodic)
+                                    boundary_conditions=boundary_conditions,
+                                    source_terms=Trixi.source_terms_poisson_nonperiodic)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
@@ -43,8 +48,7 @@ save_solution = SaveSolutionCallback(interval=100,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 

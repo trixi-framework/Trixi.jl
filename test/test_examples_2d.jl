@@ -41,6 +41,24 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0011986956378152724, 0.006423873516111733, 0.006423873516110845])
   end
 
+  @testset "elixir_hyp_diff_harmonic_nonperiodic.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_harmonic_nonperiodic.jl"),
+      l2   = [8.61813235543625e-8, 5.619399844542781e-7, 5.6193998447443e-7],
+      linf = [1.124861862180196e-6, 8.622436471039663e-6, 8.622436470151484e-6])
+  end
+
+  @testset "elixir_hyp_diff_nonperiodic.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
+      l2   = [8.523077653955306e-6, 2.8779323653065056e-5, 5.4549427691297846e-5],
+      linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
+  end
+
+  @testset "elixir_hyp_diff_upwind.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_upwind.jl"),
+      l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
+      linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
+  end
+
 
   @testset "elixir_euler_source_terms.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
