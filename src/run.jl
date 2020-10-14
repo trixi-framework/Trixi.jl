@@ -5,10 +5,11 @@ walkexpr(f, x) = f(x)
 
 # Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
 function replace_assignments(expr; kwargs...)
-  walkexpr(expr) do x
+  # replace explicit and keyword assignemnts
+  expr = walkexpr(expr) do x
     if x isa Expr
       for (key,val) in kwargs
-        if x.head === Symbol("=") && x.args[1] === Symbol(key)
+        if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(key)
           x.args[2] = :( $val )
           # dump(x)
         end
@@ -16,6 +17,8 @@ function replace_assignments(expr; kwargs...)
     end
     return x
   end
+
+  return expr
 end
 
 # Note: Wa can't call the method below `Trixi.include` since that is created automatically
