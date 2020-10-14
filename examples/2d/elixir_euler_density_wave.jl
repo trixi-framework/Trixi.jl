@@ -10,9 +10,7 @@ equations = CompressibleEulerEquations2D(gamma)
 initial_conditions = initial_conditions_density_wave
 
 surface_flux = flux_central
-#volume_flux  = flux_central
 polydeg = 5
-#solver = DGSEM(polydeg, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 solver = DGSEM(polydeg, surface_flux)
 
 coordinates_min = (-1, -1)
