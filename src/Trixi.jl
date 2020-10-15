@@ -20,7 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
-using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!
+using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
@@ -71,7 +71,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 
-export flux_central, flux_lax_friedrichs, flux_hll,
+export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 # TODO: Taal decide, which initial conditions and source terms will be used/exported
@@ -97,9 +97,10 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
-export SummaryCallback, AMRCallback, StepsizeCallback, AnalysisCallback, SaveSolutionCallback, AliveCallback
+export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
+       AnalysisCallback, SaveSolutionCallback, AliveCallback
 
-export IndicatorThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
+export ControllerThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
 export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity

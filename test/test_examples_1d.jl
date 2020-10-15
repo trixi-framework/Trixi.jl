@@ -30,9 +30,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_advection_amr_nonperiodic.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
-    l2   = [4.323675034078241e-6], 
+    l2   = [4.323675034078241e-6],
     linf = [3.239622040579655e-5])
   end
+
 
   @testset "elixir_euler_source_terms.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
@@ -93,9 +94,9 @@ end
   @test_nowarn println(summary_callback)
   @test_nowarn display(summary_callback)
 
-  @test_nowarn show(amr_indicator); println()
-  @test_nowarn println(amr_indicator)
-  @test_nowarn display(amr_indicator)
+  @test_nowarn show(amr_controller); println()
+  @test_nowarn println(amr_controller)
+  @test_nowarn display(amr_controller)
 
   @test_nowarn show(amr_callback); println()
   @test_nowarn println(amr_callback)

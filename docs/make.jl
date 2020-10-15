@@ -38,6 +38,7 @@ makedocs(
     # Explicitly specify documentation structure
     pages = [
         "Home" => "index.md",
+        "Conventions" => "conventions.md",
         "Development" => "development.md",
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",

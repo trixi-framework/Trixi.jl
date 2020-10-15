@@ -34,6 +34,32 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [0.9999802982947753])
   end
 
+
+  @testset "elixir_hyp_diff_llf.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+      l2   = [0.0001568775181745306, 0.001025986772217103, 0.0010259867722170538],
+      linf = [0.0011986956378152724, 0.006423873516111733, 0.006423873516110845])
+  end
+
+  @testset "elixir_hyp_diff_harmonic_nonperiodic.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_harmonic_nonperiodic.jl"),
+      l2   = [8.61813235543625e-8, 5.619399844542781e-7, 5.6193998447443e-7],
+      linf = [1.124861862180196e-6, 8.622436471039663e-6, 8.622436470151484e-6])
+  end
+
+  @testset "elixir_hyp_diff_nonperiodic.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
+      l2   = [8.523077653955306e-6, 2.8779323653065056e-5, 5.4549427691297846e-5],
+      linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
+  end
+
+  @testset "elixir_hyp_diff_upwind.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_upwind.jl"),
+      l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
+      linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
+  end
+
+
   @testset "elixir_euler_source_terms.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
     l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
@@ -79,7 +105,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [2.4847876521233907, 1.2814307117459813, 1.2814769220593392, 6.474196250771773],
     tspan = (0.0, 1.0))
   end
-    
+
   @testset "elixir_euler_vortex.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
     l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
@@ -98,6 +124,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [3.5225667207927636e-5, 1.5349379665866025e-5, 1.4264328575347429e-5, 1.4421439547898651e-5, 7.744170905765735e-6, 1.0187833250130396e-5, 9.861911995590056e-6, 1.6018139446766222e-5, 5.563892853177171e-6],
     tspan = (0.0, 1.0))
   end
+
 
   @testset "elixir_mhd_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
@@ -120,6 +147,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @test_skip test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave_amr.jl"), tspan=(0.0, 1.0e-4))
+
 
   @testset "elixir_euler_gravity_jeans_instability.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gravity_jeans_instability.jl"),
@@ -169,9 +197,9 @@ end
   @test_nowarn println(summary_callback)
   @test_nowarn display(summary_callback)
 
-  @test_nowarn show(amr_indicator); println()
-  @test_nowarn println(amr_indicator)
-  @test_nowarn display(amr_indicator)
+  @test_nowarn show(amr_controller); println()
+  @test_nowarn println(amr_controller)
+  @test_nowarn display(amr_controller)
 
   @test_nowarn show(amr_callback); println()
   @test_nowarn println(amr_callback)

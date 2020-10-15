@@ -1,15 +1,15 @@
 
 """
-    AMRCallback(semi, indicator [,adaptor=AdaptorAMR(semi)];
+    AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
                 interval=5,
                 adapt_initial_conditions=true,
                 adapt_initial_conditions_only_refine=true)
 
 Performs adaptive mesh refinement (AMR) every `interval` time steps
-for a given semidiscretization `semi` using the chosen `indicator`.
+for a given semidiscretization `semi` using the chosen `controller`.
 """
-struct AMRCallback{Indicator, Adaptor}
-  indicator::Indicator
+struct AMRCallback{Controller, Adaptor}
+  controller::Controller
   interval::Int
   adapt_initial_conditions::Bool
   adapt_initial_conditions_only_refine::Bool
@@ -17,9 +17,10 @@ struct AMRCallback{Indicator, Adaptor}
 end
 
 
-function AMRCallback(semi, indicator, adaptor; interval=nothing,
-                                               adapt_initial_conditions=true,
-                                               adapt_initial_conditions_only_refine=true)
+function AMRCallback(semi, controller, adaptor;
+                     interval=nothing,
+                     adapt_initial_conditions=true,
+                     adapt_initial_conditions_only_refine=true)
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -32,8 +33,8 @@ function AMRCallback(semi, indicator, adaptor; interval=nothing,
     condition = (u, t, integrator) -> false
   end
 
-  amr_callback = AMRCallback{typeof(indicator), typeof(adaptor)}(
-                  indicator, interval, adapt_initial_conditions,
+  amr_callback = AMRCallback{typeof(controller), typeof(adaptor)}(
+    controller, interval, adapt_initial_conditions,
                   adapt_initial_conditions_only_refine, adaptor)
 
   DiscreteCallback(condition, amr_callback,
@@ -41,9 +42,9 @@ function AMRCallback(semi, indicator, adaptor; interval=nothing,
                    initialize=initialize!)
 end
 
-function AMRCallback(semi, indicator; kwargs...)
+function AMRCallback(semi, controller; kwargs...)
   adaptor = AdaptorAMR(semi)
-  AMRCallback(semi, indicator, adaptor; kwargs...)
+  AMRCallback(semi, controller, adaptor; kwargs...)
 end
 
 function AdaptorAMR(semi; kwargs...)
@@ -60,7 +61,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
   println(io, "AMRCallback with")
-  println(io, "- indicator: ", amr_callback.indicator)
+  println(io, "- controller: ", amr_callback.controller)
   println(io, "- interval: ", amr_callback.interval)
   println(io, "- adapt_initial_conditions: ", amr_callback.adapt_initial_conditions)
   print(io,   "- adapt_initial_conditions_only_refine: ", amr_callback.adapt_initial_conditions_only_refine)
@@ -68,7 +69,7 @@ end
 
 
 function get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback::AMRCallback)
-  get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback.indicator, amr_callback)
+  get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback.controller, amr_callback)
 end
 
 
@@ -132,17 +133,17 @@ end
 
 
 """
-    IndicatorThreeLevel(semi, indicator; base_level=1,
-                                         med_level=base_level, med_threshold=0.0,
-                                         max_level=base_level, max_threshold=1.0)
+    ControllerThreeLevel(semi, indicator; base_level=1,
+                                          med_level=base_level, med_threshold=0.0,
+                                          max_level=base_level, max_threshold=1.0)
 
-An AMR indicator based on three levels (in decending order of precedence):
+An AMR controller based on three levels (in decending order of precedence):
 - set the target level to `max_level` if `indicator > max_threshold`
 - set the target level to `med_level` if `indicator > med_threshold`;
   if `med_level < 0`, set the target level to the current level
 - set the target level to `base_level` otherwise
 """
-struct IndicatorThreeLevel{RealT<:Real, Indicator, Cache}
+struct ControllerThreeLevel{RealT<:Real, Indicator, Cache}
   base_level::Int
   med_level ::Int
   max_level ::Int
@@ -152,44 +153,44 @@ struct IndicatorThreeLevel{RealT<:Real, Indicator, Cache}
   cache::Cache
 end
 
-function IndicatorThreeLevel(semi, indicator; base_level=1,
-                                              med_level=base_level, med_threshold=0.0,
-                                              max_level=base_level, max_threshold=1.0)
+function ControllerThreeLevel(semi, indicator; base_level=1,
+                                               med_level=base_level, med_threshold=0.0,
+                                               max_level=base_level, max_threshold=1.0)
   med_threshold, max_threshold = promote(med_threshold, max_threshold)
-  cache = create_cache(IndicatorThreeLevel, semi)
-  IndicatorThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
+  cache = create_cache(ControllerThreeLevel, semi)
+  ControllerThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
     base_level, med_level, max_level, med_threshold, max_threshold, indicator, cache)
 end
 
-create_cache(indicator_type::Type{IndicatorThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+create_cache(indicator_type::Type{ControllerThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 
 
-function Base.show(io::IO, indicator::IndicatorThreeLevel)
-  print(io, "IndicatorThreeLevel(")
-  print(io, indicator.indicator)
-  print(io, ", base_level=", indicator.base_level)
-  print(io, ", med_level=",  indicator.med_level)
-  print(io, ", max_level=",  indicator.max_level)
-  print(io, ", med_threshold=", indicator.med_threshold)
-  print(io, ", max_threshold=", indicator.max_threshold)
+function Base.show(io::IO, controller::ControllerThreeLevel)
+  print(io, "ControllerThreeLevel(")
+  print(io, controller.indicator)
+  print(io, ", base_level=", controller.base_level)
+  print(io, ", med_level=",  controller.med_level)
+  print(io, ", max_level=",  controller.max_level)
+  print(io, ", med_threshold=", controller.med_threshold)
+  print(io, ", max_threshold=", controller.max_threshold)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorThreeLevel)
-  println(io, "IndicatorThreeLevel with")
-  println(io, "- ", indicator.indicator)
-  println(io, "- base_level: ", indicator.base_level)
-  println(io, "- med_level:  ", indicator.med_level)
-  println(io, "- max_level:  ", indicator.max_level)
-  println(io, "- med_threshold: ", indicator.med_threshold)
-  print(io,   "- max_threshold: ", indicator.max_threshold)
+function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
+  println(io, "ControllerThreeLevel with")
+  println(io, "- ", controller.indicator)
+  println(io, "- base_level: ", controller.base_level)
+  println(io, "- med_level:  ", controller.med_level)
+  println(io, "- max_level:  ", controller.max_level)
+  println(io, "- med_threshold: ", controller.med_threshold)
+  print(io,   "- max_threshold: ", controller.max_threshold)
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache, indicator::IndicatorThreeLevel, amr_callback::AMRCallback)
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache, controller::ControllerThreeLevel, amr_callback::AMRCallback)
   # call the indicator to get up-to-date values for IO
-  indicator.indicator(u, equations, solver, cache)
-  get_element_variables!(element_variables, indicator.indicator, amr_callback)
+  controller.indicator(u, equations, solver, cache)
+  get_element_variables!(element_variables, controller.indicator, amr_callback)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator, ::AMRCallback)
@@ -209,21 +210,23 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
                                      equations, dg::DG, cache;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
-  @unpack indicator, adaptor = amr_callback
+  @unpack controller, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @timeit_debug timer() "indicator" indicator(u, mesh, equations, dg, cache)
+  lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
-  @assert length(lambda) == length(leaf_cell_ids) ("Indicator (length = $(length(lambda))) and leaf cell (length = $(length(leaf_cell_ids))) arrays have different length")
+  @boundscheck begin
+   @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
+  end
 
   to_refine  = Int[]
   to_coarsen = Int[]
   for element in eachelement(dg, cache)
-    indicator_value = lambda[element]
-    if indicator_value > 0
+    controller_value = lambda[element]
+    if controller_value > 0
       push!(to_refine, leaf_cell_ids[element])
-    elseif indicator_value < 0
+    elseif controller_value < 0
       push!(to_coarsen, leaf_cell_ids[element])
     end
   end
@@ -315,16 +318,16 @@ end
 
 
 # TODO: Taal dimension agnostic
-# TODO: Taal refactor, merge the two loops of IndicatorThreeLevel and IndicatorLöhner etc.?
+# TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
-function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any},
-                                          mesh::TreeMesh, equations, dg::DG, cache)
+function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
+                                           mesh::TreeMesh, equations, dg::DG, cache)
 
-  @unpack indicator_value = indicator.cache
-  resize!(indicator_value, nelements(dg, cache))
+  @unpack controller_value = controller.cache
+  resize!(controller_value, nelements(dg, cache))
 
-  alpha = indicator.indicator(u, equations, dg, cache)
+  alpha = controller.indicator(u, equations, dg, cache)
 
   Threads.@threads for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
@@ -332,29 +335,29 @@ function (indicator::IndicatorThreeLevel)(u::AbstractArray{<:Any},
 
     # set target level
     target_level = current_level
-    if alpha[element] > indicator.max_threshold
-      target_level = indicator.max_level
-    elseif alpha[element] > indicator.med_threshold
-      if indicator.med_level > 0
-        target_level = indicator.med_level
+    if alpha[element] > controller.max_threshold
+      target_level = controller.max_level
+    elseif alpha[element] > controller.med_threshold
+      if controller.med_level > 0
+        target_level = controller.med_level
         # otherwise, target_level = current_level
         # set med_level = -1 to implicitly use med_level = current_level
       end
     else
-      target_level = indicator.base_level
+      target_level = controller.base_level
     end
 
-    # compare target level with actual level to set indicator
+    # compare target level with actual level to set controller
     if current_level < target_level
-      indicator_value[element] = 1 # refine!
+      controller_value[element] = 1 # refine!
     elseif current_level > target_level
-      indicator_value[element] = -1 # coarsen!
+      controller_value[element] = -1 # coarsen!
     else
-      indicator_value[element] = 0 # we're good
+      controller_value[element] = 0 # we're good
     end
   end
 
-  return indicator_value
+  return controller_value
 end
 
 
