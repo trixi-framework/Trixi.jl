@@ -1,11 +1,11 @@
 # https://docs.codecov.io/docs/codecovyml-reference
 
-# We have 4 parallel jobs on Travis CI
+# We have 5 parallel jobs on Travis CI
 codecov:
   notify:
-    after_n_builds: 4
+    after_n_builds: 5
 comment:
-  after_n_builds: 4
+  after_n_builds: 5
 
 coverage:
   range: 70..95
