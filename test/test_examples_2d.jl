@@ -131,6 +131,27 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [5.9005667252809424e-5, 0.0007554116730550398, 0.00081660478740464, 0.002209016304192346])
   end
 
+  @testset "elixir_euler_vortex_mortar_split.jl with flux_central" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
+    l2   = [2.120307461409829e-6, 2.7929229084583212e-5, 3.759342242369501e-5, 8.813646673812448e-5],
+    linf = [5.932045918888296e-5, 0.0007491265403021252, 0.0008165690047987617, 0.002212263804818093],
+    volume_flux = "flux_central")
+  end
+
+  @testset "elixir_euler_vortex_mortar_split.jl with flux_shima_etal" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
+    l2   = [2.120103291509122e-6, 2.805652562691104e-5, 3.759500428816484e-5, 8.841374592860891e-5],
+    linf = [5.934103184424e-5, 0.0007552316820342853, 0.0008152449048961508, 0.002206987374638203],
+    volume_flux = "flux_shima_etal")
+  end
+
+  @testset "elixir_euler_vortex_mortar_split.jl with flux_ranocha" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
+    l2   = [2.1201032806889955e-6, 2.8056528074361895e-5, 3.759500957406334e-5, 8.841379428954133e-5],
+    linf = [5.934027760512439e-5, 0.0007552314317718078, 0.0008152450117491217, 0.0022069976113101575],
+    volume_flux = "flux_ranocha")
+  end
+
   @testset "elixir_euler_vortex_split_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_split_shockcapturing.jl"),
     l2   = [3.80342739421474e-6, 5.561118953968859e-5, 5.564042529709319e-5, 0.0001570628548096201],
