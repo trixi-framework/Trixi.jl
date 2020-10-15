@@ -234,6 +234,7 @@ if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) i
   @testset "Examples (long execution time)" begin
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar.jl"))
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"))
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi.jl"))
   end
 end
 
