@@ -20,32 +20,39 @@ mutable struct ElementContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContai
   _surface_flux_values::Vector{RealT}
 end
 
-function Base.resize!(elements::ElementContainer2D{RealT, NVARS, POLYDEG}, capacity) where {RealT, NVARS, POLYDEG}
+function Base.resize!(elements::ElementContainer2D{RealT, NVARS, POLYDEG},
+                      capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
   @unpack _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values,
           inverse_jacobian, cell_ids = elements
 
   resize!(_u, NVARS * n_nodes * n_nodes * capacity)
-  elements.u = unsafe_wrap(Array, pointer(_u), (NVARS, n_nodes, n_nodes, capacity))
+  elements.u = unsafe_wrap(Array, pointer(_u),
+                           (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(_u_t, NVARS * n_nodes * n_nodes * capacity)
-  elements.u_t = unsafe_wrap(Array, pointer(_u_t), (NVARS, n_nodes, n_nodes, capacity))
+  elements.u_t = unsafe_wrap(Array, pointer(_u_t),
+                             (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(_u_tmp2, NVARS * n_nodes * n_nodes * capacity)
   _u_tmp2 .= zero(eltype(_u_tmp2))
-  elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2), (NVARS, n_nodes, n_nodes, capacity))
+  elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
+                                (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(_u_tmp3, NVARS * n_nodes * n_nodes * capacity)
   _u_tmp3 .= zero(eltype(_u_tmp3))
-  elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3), (NVARS, n_nodes, n_nodes, capacity))
+  elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
+                                (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(inverse_jacobian, capacity)
 
   resize!(_node_coordinates, 2 * n_nodes * n_nodes * capacity)
-  elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates), (2, n_nodes, n_nodes, capacity))
+  elements.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+                                          (2, n_nodes, n_nodes, capacity))
 
   resize!(_surface_flux_values, NVARS * n_nodes * 2 * 2 * capacity)
-  elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values), (NVARS, n_nodes, 2 * 2, capacity))
+  elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+                                             (NVARS, n_nodes, 2 * 2, capacity))
 
   resize!(cell_ids, capacity)
 
@@ -59,25 +66,31 @@ function ElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
 
   # Initialize fields with defaults
   _u = fill(nan, NVARS * n_nodes * n_nodes * capacity)
-  u = unsafe_wrap(Array, pointer(_u), (NVARS, n_nodes, n_nodes, capacity))
+  u = unsafe_wrap(Array, pointer(_u),
+                  (NVARS, n_nodes, n_nodes, capacity))
 
   _u_t = fill(nan, NVARS * n_nodes * n_nodes * capacity)
-  u_t = unsafe_wrap(Array, pointer(_u_t), (NVARS, n_nodes, n_nodes, capacity))
+  u_t = unsafe_wrap(Array, pointer(_u_t),
+                    (NVARS, n_nodes, n_nodes, capacity))
 
   # u_rungakutta is initialized to non-NaN since it is used directly
   _u_tmp2 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
-  u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2), (NVARS, n_nodes, n_nodes, capacity))
+  u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
+                       (NVARS, n_nodes, n_nodes, capacity))
 
   _u_tmp3 = fill(zero(RealT), NVARS * n_nodes * n_nodes * capacity)
-  u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3), (NVARS, n_nodes, n_nodes, capacity))
+  u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
+                       (NVARS, n_nodes, n_nodes, capacity))
 
   inverse_jacobian = fill(nan, capacity)
 
   _node_coordinates = fill(nan, 2 * n_nodes * n_nodes * capacity)
-  node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates), (2, n_nodes, n_nodes, capacity))
+  node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+                                 (2, n_nodes, n_nodes, capacity))
 
   _surface_flux_values = fill(nan, NVARS * n_nodes * 2 * 2 * capacity)
-  surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values), (NVARS, n_nodes, 2 * 2, capacity))
+  surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
+                                    (NVARS, n_nodes, 2 * 2, capacity))
 
   cell_ids = fill(typemin(Int), capacity)
 
@@ -104,15 +117,18 @@ mutable struct InterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractCont
   _neighbor_ids::Vector{Int}
 end
 
-function Base.resize!(interfaces::InterfaceContainer2D{RealT, NVARS, POLYDEG}, capacity) where {RealT, NVARS, POLYDEG}
+function Base.resize!(interfaces::InterfaceContainer2D{RealT, NVARS, POLYDEG},
+                      capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
   @unpack _u, _neighbor_ids, orientations = interfaces
 
   resize!(_u, 2 * NVARS * n_nodes * capacity)
-  interfaces.u = unsafe_wrap(Array, pointer(_u), (2, NVARS, n_nodes, capacity))
+  interfaces.u = unsafe_wrap(Array, pointer(_u),
+                             (2, NVARS, n_nodes, capacity))
 
   resize!(_neighbor_ids, 2 * capacity)
-  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ), (2, capacity))
+  interfaces.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+                                        (2, capacity))
 
   resize!(orientations, capacity)
 
@@ -126,10 +142,12 @@ function InterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {R
 
   # Initialize fields with defaults
   _u = fill(nan, 2 * NVARS * n_nodes * capacity)
-  u = unsafe_wrap(Array, pointer(_u), (2, NVARS, n_nodes, capacity))
+  u = unsafe_wrap(Array, pointer(_u),
+                  (2, NVARS, n_nodes, capacity))
 
   _neighbor_ids = fill(typemin(Int), 2 * capacity)
-  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ), (2, capacity))
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+                             (2, capacity))
 
   orientations = fill(typemin(Int), capacity)
 
@@ -146,7 +164,6 @@ end
 
 # Container data structure (structure-of-arrays style) for DG boundaries
 # TODO: Taal refactor, remove NVARS, POLYDEG?
-# TODO: Taal refactor, mutable struct or resize! for AMR?
 mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
   u::Array{RealT, 4}                # [leftright, variables, i, boundaries]
   neighbor_ids::Vector{Int}         # [boundaries]
@@ -154,15 +171,31 @@ mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
   neighbor_sides::Vector{Int}       # [boundaries]
   node_coordinates::Array{RealT, 3} # [orientation, i, elements]
   n_boundaries_per_direction::SVector{4, Int} # [direction]
+  # internal `resize!`able storage
+  _u::Vector{RealT}
+  _node_coordinates::Vector{RealT}
 end
 
-function Base.copy!(dst::BoundaryContainer2D, src::BoundaryContainer2D)
-  dst.u                          = src.u
-  dst.neighbor_ids               = src.neighbor_ids
-  dst.orientations               = src.orientations
-  dst.neighbor_sides             = src.neighbor_sides
-  dst.node_coordinates           = src.node_coordinates
-  dst.n_boundaries_per_direction = src.n_boundaries_per_direction
+function Base.resize!(boundaries::BoundaryContainer2D{RealT, NVARS, POLYDEG},
+                      capacity) where {RealT, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  @unpack _u, _node_coordinates,
+          neighbor_ids, orientations, neighbor_sides = boundaries
+
+  resize!(_u, 2 * NVARS * n_nodes * capacity)
+  boundaries.u = unsafe_wrap(Array, pointer(_u),
+                             (2, NVARS, n_nodes, capacity))
+
+  resize!(_node_coordinates, 2 * n_nodes * capacity)
+  boundaries.node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates ),
+                                            (2, n_nodes, capacity))
+
+  resize!(neighbor_ids, capacity)
+
+  resize!(orientations, capacity)
+
+  resize!(neighbor_sides, capacity)
+
   return nothing
 end
 
@@ -172,23 +205,33 @@ function BoundaryContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  u = fill(nan, 2, NVARS, n_nodes, capacity)
+  _u = fill(nan, 2 * NVARS * n_nodes * capacity)
+  u = unsafe_wrap(Array, pointer(_u),
+                  (2, NVARS, n_nodes, capacity))
+
   neighbor_ids = fill(typemin(Int), capacity)
+
   orientations = fill(typemin(Int), capacity)
+
   neighbor_sides = fill(typemin(Int), capacity)
-  node_coordinates = fill(nan, 2, n_nodes, capacity)
+
+  _node_coordinates = fill(nan, 2 * n_nodes * capacity)
+  node_coordinates = unsafe_wrap(Array, pointer(_node_coordinates),
+                                 (2, n_nodes, capacity))
+
   n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
   boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(
     u, neighbor_ids, orientations, neighbor_sides,
-    node_coordinates, n_boundaries_per_direction)
+    node_coordinates, n_boundaries_per_direction,
+    _u, _node_coordinates)
 
   return boundaries
 end
 
 
 # Return number of boundaries
-nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
+@inline nboundaries(boundaries::BoundaryContainer2D) = length(boundaries.orientations)
 
 
 # Container data structure (structure-of-arrays style) for DG L2 mortars
@@ -210,14 +253,34 @@ mutable struct L2MortarContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
   # Large sides: left -> 1, right -> 2
   large_sides::Vector{Int}  # [mortars]
   orientations::Vector{Int} # [mortars]
+  # internal `resize!`able storage
+  _u_upper::Vector{RealT}
+  _u_lower::Vector{RealT}
+  _neighbor_ids::Vector{Int}
 end
 
-function Base.copy!(dst::L2MortarContainer2D, src::L2MortarContainer2D)
-  dst.u_upper      = src.u_upper
-  dst.u_lower      = src.u_lower
-  dst.neighbor_ids = src.neighbor_ids
-  dst.large_sides  = src.large_sides
-  dst.orientations = src.orientations
+function Base.resize!(mortars::L2MortarContainer2D{RealT, NVARS, POLYDEG},
+                      capacity) where {RealT, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  @unpack _u_upper, _u_lower, _neighbor_ids,
+          large_sides, orientations = mortars
+
+  resize!(_u_upper, 2 * NVARS * n_nodes * capacity)
+  mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
+                                (2, NVARS, n_nodes, capacity))
+
+  resize!(_u_lower, 2 * NVARS * n_nodes * capacity)
+  mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
+                                (2, NVARS, n_nodes, capacity))
+
+  resize!(_neighbor_ids, 3 * capacity)
+  mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids ),
+                                        (3, capacity))
+
+  resize!(large_sides, capacity)
+
+  resize!(orientations, capacity)
+
   return nothing
 end
 
@@ -227,21 +290,30 @@ function L2MortarContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  u_upper = fill(nan, 2, NVARS, n_nodes, capacity)
-  u_lower = fill(nan, 2, NVARS, n_nodes, capacity)
-  neighbor_ids = fill(typemin(Int), 3, capacity)
+  _u_upper = fill(nan, 2 * NVARS * n_nodes * capacity)
+  u_upper = unsafe_wrap(Array, pointer(_u_upper),
+                        (2, NVARS, n_nodes, capacity))
+
+  _u_lower = fill(nan, 2 * NVARS * n_nodes * capacity)
+  u_lower = unsafe_wrap(Array, pointer(_u_lower),
+                        (2, NVARS, n_nodes, capacity))
+
+  _neighbor_ids = fill(typemin(Int), 3 * capacity)
+  neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                             (3, capacity))
+
   large_sides  = fill(typemin(Int), capacity)
+
   orientations = fill(typemin(Int), capacity)
 
-  l2mortars = L2MortarContainer2D{RealT, NVARS, POLYDEG}(
-    u_upper, u_lower, neighbor_ids, large_sides, orientations)
-
-  return l2mortars
+  return L2MortarContainer2D{RealT, NVARS, POLYDEG}(
+    u_upper, u_lower, neighbor_ids, large_sides, orientations,
+    _u_upper, _u_lower, _neighbor_ids)
 end
 
 
 # Return number of L2 mortars
-nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
+@inline nmortars(l2mortars::L2MortarContainer2D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents

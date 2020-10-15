@@ -428,7 +428,7 @@ function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, po
   boundaries = BoundaryContainer2D{RealT, nvars, polydeg}(n_boundaries)
 
   # Connect elements with boundaries
-  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundaries!(boundaries, elements, mesh)
 
   return boundaries, n_boundaries_per_direction
 end
@@ -470,7 +470,7 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polyd
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   mortars = L2MortarContainer2D{RealT, nvars, polydeg}(n_mortars)
-  init_mortar_connectivity!(elements, mortars, mesh)
+  init_mortars!(mortars, elements, mesh)
 
   return mortars
 end
@@ -527,7 +527,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{2})
+function init_boundaries!(boundaries, elements, mesh::TreeMesh{2})
   # Reset boundaries count
   count = 0
 
@@ -602,7 +602,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
+function init_mortars!(mortars, elements, mesh::TreeMesh{2})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))

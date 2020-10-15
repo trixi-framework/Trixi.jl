@@ -59,17 +59,15 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize boundaries
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.boundaries, boundaries)
+  # re-initialize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+  init_boundaries!(boundaries, elements, mesh)
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
+  # re-initialize mortars container
+  @unpack mortars = cache
+  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+  init_mortars!(mortars, elements, mesh)
 
   # Sanity check
   if isperiodic(mesh.tree) && nmortars(mortars) == 0
@@ -217,17 +215,15 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize boundaries
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.boundaries, boundaries)
+  # re-initialize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+  init_boundaries!(boundaries, elements, mesh)
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
+  # re-initialize mortars container
+  @unpack mortars = cache
+  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+  init_mortars!(mortars, elements, mesh)
 
   # Sanity check
   if isperiodic(mesh.tree) && nmortars(mortars) == 0
