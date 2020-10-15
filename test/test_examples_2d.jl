@@ -107,7 +107,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @testset "elixir_euler_blob_amr.jl" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
     l2   = [0.1965510639362416, 1.163242390169568, 0.09931914245427334, 5.177340859390993],
     linf = [13.182195998869398, 68.81084674337201, 7.379587390703879, 287.25149205509683],
     tspan = (0.0, 0.12))
