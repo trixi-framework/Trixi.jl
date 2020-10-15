@@ -119,6 +119,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [7.903587114788113e-5, 0.030561314311228993, 0.030502600162385596, 0.042876297246817074])
   end
 
+  @testset "elixir_euler_vortex_mortar.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
+    l2   = [2.120307461394424e-6, 2.7929229084570266e-5, 3.759342242369596e-5, 8.813646673773311e-5],
+    linf = [5.9320459189771135e-5, 0.0007491265403041236, 0.0008165690047976515, 0.0022122638048145404])
+  end
+
   @testset "elixir_mhd_alfven_wave.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
     l2   = [0.00011134312019581907, 5.880417517656501e-6, 5.880417517683334e-6, 8.433533326833135e-6, 1.2944026635567339e-6, 1.2259080543012733e-6, 1.2259080543038862e-6, 1.8334999489680995e-6, 8.098795948637635e-7],
