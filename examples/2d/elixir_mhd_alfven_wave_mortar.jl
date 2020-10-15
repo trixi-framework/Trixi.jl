@@ -14,10 +14,10 @@ volume_flux  = flux_derigs_etal
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
-coordinates_max = (1.4142135623730951, 1.4142135623730951)
+coordinates_max = (sqrt(2), sqrt(2))
 refinement_patches = (
-  (type="box", coordinates_min=(0.3535533905932738, 0.3535533905932738),
-               coordinates_max=(1.0606601717798214, 1.0606601717798214)),
+  (type="box", coordinates_min=0.25 .* coordinates_max,
+               coordinates_max=0.75 .* coordinates_max),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
@@ -34,7 +34,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,

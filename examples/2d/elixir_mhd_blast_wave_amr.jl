@@ -12,7 +12,7 @@ using Trixi
 
 equations = IdealGlmMhdEquations2D(1.4)
 
-initial_conditions = initial_conditions_mhd_blast_wave
+initial_conditions = initial_conditions_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
@@ -58,7 +58,7 @@ amr_callback = AMRCallback(semi, amr_indicator,
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

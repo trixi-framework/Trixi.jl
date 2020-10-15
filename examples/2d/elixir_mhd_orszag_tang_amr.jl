@@ -58,7 +58,7 @@ amr_callback = AMRCallback(semi, amr_indicator,
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.25)
+stepsize_callback = StepsizeCallback(cfl=0.25) # can probably be increased when shock-capturing is fixed for MHD
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

@@ -14,7 +14,7 @@ volume_flux  = flux_central
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
-coordinates_max = (1.4142135623730951, 1.4142135623730951)
+coordinates_max = (sqrt(2), sqrt(2))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
@@ -31,7 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,

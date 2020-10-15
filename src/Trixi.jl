@@ -79,7 +79,7 @@ export initial_conditions_convergence_test,
        initial_conditions_gauss,
        initial_conditions_weak_blast_wave, initial_conditions_blast_wave,
        initial_conditions_isentropic_vortex,
-       initial_conditions_mhd_blast_wave, initial_conditions_orszag_tang, initial_conditions_rotor
+       initial_conditions_orszag_tang, initial_conditions_rotor
 
 export source_terms_convergence_test, source_terms_harmonic
 
