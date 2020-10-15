@@ -456,9 +456,9 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polyd
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
-    init_mortar_connectivity!(elements, l2mortars, mesh)
+    init_mortars!(l2mortars, elements, mesh)
   elseif mortar_type === Val(:ec)
-    init_mortar_connectivity!(elements, ecmortars, mesh)
+    init_mortars!(ecmortars, elements, mesh)
   else
     error("unknown mortar type '$(mortar_type)'")
   end
