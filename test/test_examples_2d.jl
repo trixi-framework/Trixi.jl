@@ -40,6 +40,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5])
   end
 
+  @testset "elixir_euler_density_wave.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
+    l2   = [0.0010600778457965205, 0.00010600778457646603, 0.0002120155691588112, 2.6501946142012653e-5],
+    linf = [0.006614198043407127, 0.0006614198043931596, 0.001322839608845383, 0.00016535495117153687],
+    tspan = (0.0, 0.5))
+  end
+
   @testset "elixir_euler_nonperiodic.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
     l2   = [2.3652137675654753e-6, 2.1386731303685556e-6, 2.138673130413185e-6, 6.009920290578574e-6],
@@ -66,6 +73,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
+  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+    l2   = [0.48179128651635356, 0.16552908046011455, 0.16553045844776362, 0.6182628255460497],
+    linf = [2.4847876521233907, 1.2814307117459813, 1.2814769220593392, 6.474196250771773],
+    tspan = (0.0, 1.0))
+  end
+    
   @testset "elixir_euler_vortex.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
     l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
