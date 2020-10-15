@@ -30,7 +30,6 @@ coordinates_max = ( 20,  20)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
-                refinement_patches=refinement_patches,
                 n_cells_max=100_000,)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
@@ -39,7 +38,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 8.0)
+tspan = (0.0, 0.12)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
