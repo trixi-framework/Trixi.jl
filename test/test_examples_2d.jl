@@ -106,6 +106,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
+  @testset "elixir_euler_blob_amr.jl" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
+    l2   = [0.1965510639362416, 1.163242390169568, 0.09931914245427334, 5.177340859390993],
+    linf = [13.182195998869398, 68.81084674337201, 7.379587390703879, 287.25149205509683],
+    tspan = (0.0, 0.12))
+  end
+
   @testset "elixir_euler_vortex.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
     l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
@@ -124,7 +131,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [3.5225667207927636e-5, 1.5349379665866025e-5, 1.4264328575347429e-5, 1.4421439547898651e-5, 7.744170905765735e-6, 1.0187833250130396e-5, 9.861911995590056e-6, 1.6018139446766222e-5, 5.563892853177171e-6],
     tspan = (0.0, 1.0))
   end
-
 
   @testset "elixir_mhd_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
@@ -227,6 +233,7 @@ end
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar.jl"))
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"))
   end
 end
 
