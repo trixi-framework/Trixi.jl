@@ -369,6 +369,12 @@ pretty_form_ascii(::typeof(energy_kinetic)) = "e_kinetic"
 pretty_form_utf(::typeof(energy_internal)) = "∑e_internal"
 pretty_form_ascii(::typeof(energy_internal)) = "e_internal"
 
+pretty_form_utf(::typeof(energy_magnetic)) = "∑e_magnetic"
+pretty_form_ascii(::typeof(energy_magnetic)) = "e_magnetic"
+
+pretty_form_utf(::typeof(cross_helicity)) = "∑v⋅B"
+pretty_form_ascii(::typeof(cross_helicity)) = "v_dot_B"
+
 pretty_form_utf(::Val{:l2_divb}) = "L2 ∇⋅B"
 pretty_form_ascii(::Val{:l2_divb}) = "l2_divb"
 

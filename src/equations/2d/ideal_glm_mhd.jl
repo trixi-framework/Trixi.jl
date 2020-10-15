@@ -105,7 +105,7 @@ function initial_conditions_rotor(x, t, equation::IdealGlmMhdEquations2D)
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_mhd_blast(x, t, equation::IdealGlmMhdEquations2D)
+function initial_conditions_blast_wave(x, t, equation::IdealGlmMhdEquations2D)
   # setup taken from Derigs et al. DMV article (2018)
   # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
   r = sqrt(x[1]^2 + x[2]^2)

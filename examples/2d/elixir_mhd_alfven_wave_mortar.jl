@@ -4,34 +4,37 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
+gamma = 5/3
+equations = IdealGlmMhdEquations2D(gamma)
 
-equations = IdealGlmMhdEquations2D(1.4)
+initial_conditions = initial_conditions_convergence_test
 
-initial_conditions = Trixi.initial_conditions_ec_test
-
-surface_flux = flux_derigs_etal
+surface_flux = flux_hll
 volume_flux  = flux_derigs_etal
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+coordinates_min = (0, 0)
+coordinates_max = (sqrt(2), sqrt(2))
+refinement_patches = (
+  (type="box", coordinates_min=0.25 .* coordinates_max,
+               coordinates_max=0.75 .* coordinates_max),
+)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=10_000)
-
+                refinement_patches=refinement_patches,
+                n_cells_max=10_000,)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
@@ -40,7 +43,11 @@ save_solution = SaveSolutionCallback(interval=10,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
+                                     extra_analysis_integrals=(entropy, energy_total,
+                                                               energy_kinetic, energy_internal,
+                                                               energy_magnetic, cross_helicity))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
