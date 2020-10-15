@@ -99,11 +99,18 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl" begin
+  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with tend = 1.0" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
     l2   = [0.48179128651635356, 0.16552908046011455, 0.16553045844776362, 0.6182628255460497],
     linf = [2.4847876521233907, 1.2814307117459813, 1.2814769220593392, 6.474196250771773],
     tspan = (0.0, 1.0))
+  end
+
+  @testset "elixir_euler_khi_amr.jl with tend = 0.2" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_amr.jl"),
+    l2   = [0.0019807950846609905, 0.0065021864620930184, 0.004760900815654309, 0.004980401571973705],
+    linf = [0.014942842885316221, 0.03973962801181602, 0.016375441605988555, 0.026424504857093467],
+    tspan = (0.0, 0.2))
   end
 
   @testset "elixir_euler_vortex.jl" begin
