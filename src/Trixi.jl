@@ -78,7 +78,7 @@ export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
 export initial_conditions_convergence_test,
        initial_conditions_gauss,
        initial_conditions_weak_blast_wave, initial_conditions_blast_wave,
-       initial_conditions_isentropic_vortex,
+       initial_conditions_isentropic_vortex, initial_conditions_blob,
        initial_conditions_density_wave, initial_conditions_sedov_blast_wave,
        initial_conditions_orszag_tang, initial_conditions_rotor
 

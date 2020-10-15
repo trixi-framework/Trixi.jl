@@ -148,7 +148,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @test_skip test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave_amr.jl"), tspan=(0.0, 1.0e-4))
 
-
   @testset "elixir_euler_gravity_jeans_instability.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gravity_jeans_instability.jl"),
     l2   = [21174.129216837846, 978.8980277332366, 4.723889542064964e-6, 52935.30182880739],
@@ -224,6 +223,12 @@ end
   @test_nowarn println(callbacks)
 end
 
+# Only run extended tests if environment variable is set
+if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
+  @testset "Examples (long execution time)" begin
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "parameters_euler_blob.toml"))
+  end
+end
 
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
