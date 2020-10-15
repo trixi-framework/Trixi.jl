@@ -74,16 +74,16 @@ default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
 """
-    flux_central(u_ll, u_rr, orientation, equation::AbstractEquations)
+    flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
 DG method (except floating point errors).
 """
-@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquations)
+@inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
   # Calculate regular 1D fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)

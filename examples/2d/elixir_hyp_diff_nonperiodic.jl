@@ -9,6 +9,7 @@ resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
 initial_conditions = Trixi.initial_conditions_poisson_nonperiodic
+# 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
 boundary_conditions = (Trixi.boundary_conditions_poisson_nonperiodic,
                        Trixi.boundary_conditions_poisson_nonperiodic,
                        nothing, nothing)

@@ -40,7 +40,7 @@ function AMRCallback(semi, controller, adaptor;
 
   amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
     controller, interval, adapt_initial_conditions,
-                  adapt_initial_conditions_only_refine, adaptor, amr_cache)
+    adapt_initial_conditions_only_refine, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
                    save_positions=(false,false),
