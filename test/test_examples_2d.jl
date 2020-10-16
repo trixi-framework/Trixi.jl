@@ -112,10 +112,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_blob_amr.jl" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
-    l2   = [0.19765006293730675, 1.1693286591859378, 0.10008752028844167, 5.199515466351374],
-    linf = [13.41865229306851, 69.37070079219212, 7.5085490909997015, 289.0291653641642],
+  @testset "elixir_euler_blob_split_shockcapturing_amr.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_split_shockcapturing_amr.jl"),
+    l2   = [0.2079529146644449, 1.2165976525172113, 0.10497525531751525, 5.343396906455776],
+    linf = [14.746412579562035, 73.35401826630807, 7.945659812348401, 299.28120847051116],
     tspan = (0.0, 0.12))
   end
 
@@ -283,8 +283,8 @@ end
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar.jl"))
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"))
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar_split_shockcapturing.jl"))
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_split_shockcapturing_amr.jl"))
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi.jl"))
   end
 end
