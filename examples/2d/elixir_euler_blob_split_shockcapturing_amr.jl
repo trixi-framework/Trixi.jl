@@ -50,13 +50,14 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           variable=pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
-                                      max_level =7, max_threshold=0.01)
+                                      med_level =7, med_threshold=0.003
+                                      max_level =7, max_threshold=0.3)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
                            adapt_initial_conditions=true,
                            adapt_initial_conditions_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.4)
+stepsize_callback = StepsizeCallback(cfl=0.3)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
