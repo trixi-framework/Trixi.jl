@@ -1,4 +1,5 @@
 
+using Random: seed! 
 using OrdinaryDiffEq
 using Trixi
 
@@ -7,6 +8,7 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
+seed!(0)
 initial_conditions = initial_conditions_khi
 
 surface_flux = flux_lax_friedrichs
