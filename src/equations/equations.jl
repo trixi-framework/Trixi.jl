@@ -40,8 +40,6 @@ function make_equations(name::String, ndims_)
   elseif name == "CompressibleEulerMulticomponentEquations"
     if ndims_ == 2
       return CompressibleEulerMulticomponentEquations2D()
-    #elseif ndims_ == 3
-    #  return CompressibleEulerMulticomponentEquations3D()
     else
       error("Unsupported number of spatial dimensions: ", ndims_)
     end
@@ -107,7 +105,6 @@ include("3d/compressible_euler.jl")
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
 include("2d/compressible_euler_multicomponent.jl")
-#include("3d/compressible_euler_multicomponent.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end

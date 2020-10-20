@@ -1,0 +1,39 @@
+####################################################################################################
+# Simulation
+ndims = 2
+equations = "CompressibleEulerMulticomponentEquations"
+initial_conditions = "initial_conditions_weak_blast_wave"
+surface_flux = "flux_lax_friedrichs"
+# volume_flux = "flux_central"
+volume_flux = "flux_chandrashekar"
+t_start = 0.0
+t_end   = 1.0
+
+####################################################################################################
+# Solver
+solver = "dg"
+polydeg = 3
+cfl = 0.5
+n_steps_max = 10000
+analysis_interval = 100
+# volume_integral_type = "shock_capturing"
+volume_integral_type = "split_form"
+
+####################################################################################################
+# Mesh
+n_cells_max = 100000
+coordinates_min = [-2, -2]
+coordinates_max =  [2, 2]
+initial_refinement_level = 5
+# refinement_patches = [
+#   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
+# ]
+
+####################################################################################################
+# I/O
+# save_initial_solution = false
+solution_interval = 10
+solution_variables = "primitive"
+restart_interval = 0
+
+# Plot Command: trixi2vtk(joinpath("out", "solution_000*.h5"), output_directory="out")
