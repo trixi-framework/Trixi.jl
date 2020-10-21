@@ -336,7 +336,7 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
     base_level = 4
     max_level = 6
     # to make the simulation smaller and quicker wall clock time, choose super_max_level = 6
-    super_max_level = 7
+    super_max_level = 6
     blending_factor_threshold0 = 0.3
     blending_factor_threshold1 = 0.003
     blending_factor_threshold2 = 0.0003
