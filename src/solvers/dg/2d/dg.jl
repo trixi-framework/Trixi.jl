@@ -31,6 +31,7 @@ mutable struct Dg2D{Eqn<:AbstractEquation, MeshType, NVARS, POLYDEG,
   n_l2mortars::Int
   ecmortars::EcMortarContainer2D{NVARS, POLYDEG}
   n_ecmortars::Int
+  use_flux_correction::Bool
 
   boundary_conditions::BoundaryConditions
 
@@ -118,6 +119,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
+  use_flux_correction::Bool = parameter("use_flux_correction", false, valid=(true, false))
 
   # Sanity checks
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
@@ -300,6 +302,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
+      use_flux_correction,
       boundary_conditions,
       nodes, weights, inverse_weights,
       inverse_vandermonde_legendre, lhat,
@@ -2087,6 +2090,10 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
 
     mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
                                fstar_upper, fstar_lower)
+
+    if dg.use_flux_correction
+      # fancy stuff!
+    end
   end
 end
 
