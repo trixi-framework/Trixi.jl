@@ -349,7 +349,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   modal_tmp1_threaded = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
-            fstar1_L_threaded, fstar2_L_threaded, fstar1_R_threaded, fstar2_R_threaded,
+            fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded,
             fstar_upper_threaded, fstar_lower_threaded,
             noncons_diamond_upper_threaded, noncons_diamond_lower_threaded,
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
@@ -1588,7 +1588,7 @@ end
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack fstar1_L_threaded, fstar2_L_threaded, fstar1_R_threaded, fstar2_R_threaded = thread_cache
+  @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1647,6 +1647,8 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
   for j in 1:nnodes(dg)
     for i in 2:nnodes(dg)
@@ -1654,11 +1656,14 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
       u_rr = get_node_vars(u, dg, i,   j, element_id)
       flux = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
       set_node_vars!(fstar1_L, flux, dg, i, j)
+      set_node_vars!(fstar1_R, flux, dg, i, j)
     end
   end
 
   fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
   fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
 
   for j in 2:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1666,11 +1671,10 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
       u_rr = get_node_vars(u, dg, i, j,   element_id)
       flux = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
       set_node_vars!(fstar2_L, flux, dg, i, j)
+      set_node_vars!(fstar2_R, flux, dg, i, j)
     end
   end
   
-  fstar1_R = fstar1_L
-  fstar2_R = fstar2_L
 end
 
 """
