@@ -454,7 +454,7 @@ function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
 end
 
 
-# strong form of nonconservative flux on a side, e.g., the Powell term
+# strong form of nonconservative flux on a side, e.g., the Powell term (minus the volume integral contribution)
 #     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
 # OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
 #         so this routine only adds 1/2(phi^L B^R normal)
@@ -491,6 +491,75 @@ function noncons_interface_flux(u_left, u_right, orientation, equation::IdealGlm
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
 
+# strong form of nonconservative flux on a side, e.g., the Powell term
+#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
+# OBS! 1) this is non-unique along an interface! normal direction is super important
+function noncons_interface_flux_whole(u_left, u_right, orientation, equation::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
+  _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
+
+  # extract velocites from the left
+  v1_ll  = rho_v1_ll / rho_ll
+  v2_ll  = rho_v2_ll / rho_ll
+  v3_ll  = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
+  # extract magnetic field variable from the right and set the normal velocity
+  # Note, both depend upon the orientation and need (psi_rr-psi_ll)
+  if orientation == 1 # x-direction
+    v_normal = v1_ll
+    B_normal = B1_rr - B1_ll
+  else # y-direction
+    v_normal = v2_ll
+    B_normal = B2_rr - B2_ll
+  end
+  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
+  noncons2 = 0.5 * B_normal * B1_ll
+  noncons3 = 0.5 * B_normal * B2_ll
+  noncons4 = 0.5 * B_normal * B3_ll
+  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * (psi_rr - psi_ll)
+  noncons6 = 0.5 * B_normal * v1_ll
+  noncons7 = 0.5 * B_normal * v2_ll
+  noncons8 = 0.5 * B_normal * v3_ll
+  noncons9 = 0.5 * v_normal * (psi_rr - psi_ll)
+
+  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
+end
+
+# volume integral contribution to the strong form of nonconservative flux on a side, e.g., the Powell term 
+#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
+# OBS! 1) "weak" formulation of split DG includes the contribution -1/2(phi^L B^L normal)
+#         this routine returns precisely this term
+#         analogously for the Galilean nonconservative term
+#      2) this is non-unique along an interface! normal direction is super important
+function noncons_interface_flux_inner(u_left, orientation, equation::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
+
+  # extract velocites from the left
+  v1_ll  = rho_v1_ll / rho_ll
+  v2_ll  = rho_v2_ll / rho_ll
+  v3_ll  = rho_v3_ll / rho_ll
+  v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
+  # extract magnetic field variable from the right and set the normal velocity
+  # Note, both depend upon the orientation and need psi_ll
+  if orientation == 1 # x-direction
+    v_normal = v1_ll
+    B_normal =-B1_ll
+  else # y-direction
+    v_normal = v2_ll
+    B_normal =-B2_ll
+  end
+  # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
+  noncons2 = 0.5 * B_normal * B1_ll
+  noncons3 = 0.5 * B_normal * B2_ll
+  noncons4 = 0.5 * B_normal * B3_ll
+  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_ll
+  noncons6 = 0.5 * B_normal * v1_ll
+  noncons7 = 0.5 * B_normal * v2_ll
+  noncons8 = 0.5 * B_normal * v3_ll
+  noncons9 = 0.5 * v_normal * psi_ll
+
+  return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
+end
 
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
