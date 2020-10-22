@@ -514,11 +514,11 @@ function noncons_interface_flux_inner(u_left, orientation, equation::IdealGlmMhd
   noncons2 = 0.5 * B_normal * B1_ll
   noncons3 = 0.5 * B_normal * B2_ll
   noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_ll
+  noncons5 = 0.5 * B_normal * v_dot_B_ll - 0.5 * v_normal * psi_ll * psi_ll
   noncons6 = 0.5 * B_normal * v1_ll
   noncons7 = 0.5 * B_normal * v2_ll
   noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_ll
+  noncons9 =-0.5 * v_normal * psi_ll
 
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
