@@ -335,8 +335,10 @@ function create_thread_cache_2d(n_variables, n_nodes)
   # Pre-allocate data structures to speed up computation (thread-safe)
   f1_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   f2_threaded     = A4d[A4d(undef, n_variables, n_nodes, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
-  fstar1_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
-  fstar2_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
+  fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
+  fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
+  fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar_upper_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -347,7 +349,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   modal_tmp1_threaded = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
-            fstar1_threaded, fstar2_threaded,
+            fstar1_L_threaded, fstar2_L_threaded, fstar1_R_threaded, fstar2_R_threaded,
             fstar_upper_threaded, fstar_lower_threaded,
             noncons_diamond_upper_threaded, noncons_diamond_lower_threaded,
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
@@ -1574,10 +1576,19 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
                         dg)
 end
 
+#(1) DG DOF idx:     1     2      3      4     5
+#                    |     |      |      |     |
+#                    0--·--O--·---O---·--O--·--0
+#                    |  |     |       |     |  |
+#(2) FV interf. idx: 1  2     3       4     5  6 (fstar)
+#                   L RL R   L R     L R   L RL R
+#                    └──┴─────┴───────┴─────┴──┘
+#(3) FV subcell idx:  1    2      3      4    5   
+#                    
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
-  @unpack fstar1_threaded, fstar2_threaded = thread_cache
+  @unpack fstar1_L_threaded, fstar2_L_threaded, fstar1_R_threaded, fstar2_R_threaded = thread_cache
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   @timeit timer() "blending factors" calc_blending_factors!(alpha, alpha_tmp, dg.elements.u,
@@ -1600,16 +1611,18 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
 
     # Calculate FV two-point fluxes
-    fstar1 = fstar1_threaded[Threads.threadid()]
-    fstar2 = fstar2_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1, fstar2, dg.elements.u, element_id, dg)
+    fstar1_L = fstar1_L_threaded[Threads.threadid()]
+    fstar2_L = fstar2_L_threaded[Threads.threadid()]
+    fstar1_R = fstar1_R_threaded[Threads.threadid()]
+    fstar2_R = fstar2_R_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, dg.elements.u, element_id, dg, have_nonconservative_terms(dg.equations))
 
     # Calculate FV volume integral contribution
     for j in 1:nnodes(dg), i in 1:nnodes(dg)
       for v in 1:nvariables(dg)
         u_t[v, i, j, element_id] += ( alpha[element_id] *
-                                        (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
-                                        inverse_weights[j]  * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
+                                        (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
+                                        inverse_weights[j]  * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
 
       end
     end
@@ -1618,9 +1631,9 @@ end
 
 
 """
-    calcflux_fv!(fstar1, fstar2, u_leftright, u, element_id, dg::Dg2D)
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D)
 
-Calculate the finite volume fluxes inside the elements.
+Calculate the finite volume fluxes inside the elements (without non-conservative terms).
 
 # Arguments
 - `fstar1::AbstractArray{T} where T<:Real`:
@@ -1629,32 +1642,133 @@ Calculate the finite volume fluxes inside the elements.
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
 """
-@inline function calcflux_fv!(fstar1, fstar2, u, element_id, dg::Dg2D)
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, element_id, dg::Dg2D, nonconservative_terms::Val{false})
   @unpack surface_flux_function = dg
 
-  fstar1[:, 1,            :] .= zero(eltype(fstar1))
-  fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
+  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
 
   for j in 1:nnodes(dg)
     for i in 2:nnodes(dg)
       u_ll = get_node_vars(u, dg, i-1, j, element_id)
       u_rr = get_node_vars(u, dg, i,   j, element_id)
       flux = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
-      set_node_vars!(fstar1, flux, dg, i, j)
+      set_node_vars!(fstar1_L, flux, dg, i, j)
     end
   end
 
-  fstar2[:, :, 1           ] .= zero(eltype(fstar2))
-  fstar2[:, :, nnodes(dg)+1] .= zero(eltype(fstar2))
+  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
 
   for j in 2:nnodes(dg)
     for i in 1:nnodes(dg)
       u_ll = get_node_vars(u, dg, i, j-1, element_id)
       u_rr = get_node_vars(u, dg, i, j,   element_id)
       flux = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
-      set_node_vars!(fstar2, flux, dg, i, j)
+      set_node_vars!(fstar2_L, flux, dg, i, j)
     end
   end
+  
+  fstar1_R = fstar1_L
+  fstar2_R = fstar2_L
+end
+
+"""
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D)
+
+Calculate the finite volume fluxes inside the elements (non-conservative terms are active).
+
+# Arguments
+- `fstar1::AbstractArray{T} where T<:Real`:
+- `fstar2::AbstractArray{T} where T<:Real`
+- `dg::Dg2D`
+- `u::AbstractArray{T} where T<:Real`
+- `element_id::Integer`
+"""
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, element_id, dg::Dg2D, nonconservative_terms::Val{true})
+  @unpack surface_flux_function = dg
+  
+  # Fluxes in x
+  #############
+  
+  # Compute first "flux"
+  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  for j in 1:nnodes(dg)
+    u_rr = get_node_vars(u, dg, 1,   j, element_id)
+    # Compute non-conservative part
+    flux_R = noncons_interface_flux_inner(u_rr, 1, equations(dg))
+    # Copy to array
+    set_node_vars!(fstar1_R, flux_R, dg, 1, j)
+  end
+  
+  # Compute inner fluxes
+  for j in 1:nnodes(dg)
+    for i in 2:nnodes(dg)
+      u_ll = get_node_vars(u, dg, i-1, j, element_id)
+      u_rr = get_node_vars(u, dg, i,   j, element_id)
+      # Compute conservative part
+      flux_L = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
+      flux_R = flux_L
+      # Compute non-conservative part
+      flux_L = flux_L + noncons_interface_flux_whole(u_ll, u_rr, 1, equations(dg))
+      flux_R = flux_R + noncons_interface_flux_whole(u_rr, u_ll, 1, equations(dg))
+      # Copy to array
+      set_node_vars!(fstar1_L, flux_L, dg, i, j)
+      set_node_vars!(fstar1_R, flux_R, dg, i, j)
+    end
+  end
+  
+  # Compute last "flux"
+  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  for j in 1:nnodes(dg)
+    u_ll = get_node_vars(u, dg, nnodes(dg),   j, element_id)
+    # Compute non-conservative part
+    flux_L = noncons_interface_flux_inner(u_ll, 1, equations(dg))
+    # Copy to array
+    set_node_vars!(fstar1_L, flux_L, dg, nnodes(dg)+1, j)
+  end
+  
+  # Fluxes in y
+  #############
+  
+  
+  # Compute first "flux"
+  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  for i in 1:nnodes(dg)
+    u_rr = get_node_vars(u, dg, i,   1, element_id)
+    # Compute non-conservative part
+    flux_R = noncons_interface_flux_inner(u_rr, 2, equations(dg))
+    # Copy to array
+    set_node_vars!(fstar2_R, flux_R, dg, i, 1)
+  end
+  
+  # Compute inner fluxes
+  for j in 2:nnodes(dg)
+    for i in 1:nnodes(dg)
+      u_ll = get_node_vars(u, dg, i, j-1, element_id)
+      u_rr = get_node_vars(u, dg, i, j,   element_id)
+      # Compute conservative part
+      flux_L = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
+      flux_R = flux_L
+      # Compute non-conservative part
+      flux_L = flux_L + noncons_interface_flux_whole(u_ll, u_rr, 2, equations(dg))
+      flux_R = flux_R + noncons_interface_flux_whole(u_rr, u_ll, 2, equations(dg))
+      # Copy to array
+      set_node_vars!(fstar2_L, flux_L, dg, i, j)
+      set_node_vars!(fstar2_R, flux_R, dg, i, j)
+    end
+  end
+  
+  # Compute last "flux"
+  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  for i in 1:nnodes(dg)
+    u_ll = get_node_vars(u, dg, i, nnodes(dg), element_id)
+    # Compute non-conservative part
+    flux_L = noncons_interface_flux_inner(u_ll, 2, equations(dg))
+    # Copy to array
+    set_node_vars!(fstar2_L, flux_L, dg, i, nnodes(dg)+1)
+  end
+  
 end
 
 
