@@ -35,8 +35,7 @@ end
 # Set initial conditions at physical location `x` for time `t`
 function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
