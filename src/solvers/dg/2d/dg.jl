@@ -333,6 +333,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   A3dp1_x = Array{Float64, 3}
   A3dp1_y = Array{Float64, 3}
   MA2d    = MArray{Tuple{n_variables, n_nodes}, Float64}
+  MA3d    = MArray{Tuple{n_variables, n_nodes, n_nodes}, Float64}
   A2d     = Array{Float64, 2}
 
   # Pre-allocate data structures to speed up computation (thread-safe)
@@ -344,6 +345,8 @@ function create_thread_cache_2d(n_variables, n_nodes)
   fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_upper_correction_threaded = [MA3d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_correction_threaded = [MA3d(undef) for _ in 1:Threads.nthreads()]
 
   indicator_threaded  = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
   modal_threaded      = [A3d(undef, 1, n_nodes, n_nodes) for _ in 1:Threads.nthreads()]
@@ -353,6 +356,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
             fstar1_threaded, fstar2_threaded,
             fstar_upper_threaded, fstar_lower_threaded,
             noncons_diamond_upper_threaded, noncons_diamond_lower_threaded,
+            fstar_upper_correction_threaded, fstar_lower_correction_threaded,
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
@@ -2137,6 +2141,7 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
                            nonconservative_terms::Val{false}, mortars, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+  @unpack fstar_upper_correction_threaded, fstar_lower_correction_threaded = cache
 
   Threads.@threads for m in 1:dg.n_l2mortars
     # Choose thread-specific pre-allocated container
@@ -2158,13 +2163,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
 
   # Chan et al. flux correction
   if dg.use_flux_correction
-    # Type alias only for convenience
-    A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
-
-    # Pre-allocate data structures to speed up computation (thread-safe)
-    fstar_upper_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-    fstar_lower_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
-
     # Notation:
     # - u_large[v,j]       = Uⱼᶠ solution values on large face
     # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
