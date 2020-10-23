@@ -322,13 +322,18 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "parameters_mhd_rotor.toml one step" begin
+  @testset "parameters_mhd_rotor.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"),
             l2   = [1.250233504114726, 1.8133727783710225, 1.694634422643853, 0.0, 2.2859596076743776, 0.21436755335451713, 0.23458542229546125, 0.0, 0.002990053039987876],
             linf = [10.462694581350272, 14.089441211113765, 15.639937170309405, 0.0, 16.78033739273374, 1.3096483418725586, 1.4164539592141518, 0.0, 0.08541972820328128],
             t_end = 0.05)
   end
-  @test_skip Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave.toml"), n_steps_max=1)
+  @testset "parameters_mhd_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave.toml"),
+            l2   = [0.17537979197656783, 3.85063790427908, 2.475262063280408, 0.0, 355.77751756307794, 2.35355645151502, 1.3962841115302977, 0.0, 0.02800989397835333],
+            linf = [1.5861429668357858, 44.06819961699249, 12.86121814597942, 0.0, 2240.622032533027, 13.20064555739219, 8.990518759210023, 0.0, 0.5100373526240609],
+            t_end = 0.003)
+  end
 end
 
 
