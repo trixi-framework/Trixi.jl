@@ -838,6 +838,27 @@ end
 end
 
 
+# Convert entropy variables to conservative
+@inline function entropy2cons(u, equation::CompressibleEulerEquations2D)
+  w1, w2, w3, w4 = u
+
+  rho_p = -w4
+
+  v1 = w2 / rho_p
+  v2 = w3 / rho_p
+  v_square = 0.5 * (v1^2 + v2^2)
+
+  s = equation.gamma - ((w1 + rho_p * v_square) * (equation.gamma-1))
+
+  rho    = (exp(-s) / rho_p)^(1/(equation.gamma-1))
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e  = rho / rho_p / (equation.gamma-1) + rho * v_square
+
+  return SVector(rho, rho_v1, rho_v2, rho_e)
+end
+
+
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equation::CompressibleEulerEquations2D)
   rho, v1, v2, p = prim
