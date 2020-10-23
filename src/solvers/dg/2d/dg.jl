@@ -2117,7 +2117,7 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
       large_element_id = dg.l2mortars.neighbor_ids[3, m]
 
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1
+        if dg.l2mortars.orientations[m] == 1 # -> mortar in x-direction
           # L2 mortars in x-direction
           direction = 2
           u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
@@ -2174,7 +2174,51 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
       # - fstar_upper_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *upper* mortar
       # - fstar_lower_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *lower* mortar
 
-      # TODO flux_correction What to do next?
+      # Loop over all variables
+      for v in 1:nvariables(dg)
+        # Loop over all nodes on large face
+        for j in 1:nnodes(dg)
+          # Calculate flux corrections for fⱼ
+          flux_correction = 0.0
+
+          # Inner loop over nodes
+          for p in 1:nnodes(dg)
+            # p-local flux
+            f_p_upper = 0.0
+            f_p_lower = 0.0
+
+            # Extract Eⱼₚ for convenience
+            # TODO Take into account factor of 1/2 or not?
+            E_jp_upper = 1 * dg.ecmortar_reverse_upper[j, p]
+            E_jp_lower = 1 * dg.ecmortar_reverse_lower[j, p]
+
+            # Add "forward" flux
+            f_p_upper += fstar_upper_correction[v, j, p]
+            f_p_lower += fstar_lower_correction[v, j, p]
+
+            # Substract "reverse" flux
+            for r in 1:nnodes(dg)
+              # Extract lᵣ(ηₚ) for convenience
+              lr_etap_upper = E_jp_upper * dg.weights[p] / dg.weights[r]
+              lr_etap_lower = E_jp_lower * dg.weights[p] / dg.weights[r]
+
+              f_p_upper -= lr_etap_upper * fstar_upper_correction[v, p, r] 
+              f_p_lower -= lr_etap_lower * fstar_lower_correction[v, p, r] 
+            end
+
+            # Add to flux correction
+            flux_correction += E_jp_upper * f_p_upper
+            flux_correction += E_jp_lower * f_p_lower
+          end
+
+          # Finally add to surface flux values
+          surface_flux_values[v, j, direction, large_element_id] += flux_correction
+          @show surface_flux_values[v, j, direction, large_element_id]
+          @show flux_correction
+          println()
+        end
+      end
+
       # for v in 1:nvariables(dg)
       #   @views surface_flux_values[v, :, direction, large_element_id] .=
       #     (dg.ecmortar_reverse_upper * fstar_upper[v, :] + dg.ecmortar_reverse_lower * fstar_lower[v, :])
