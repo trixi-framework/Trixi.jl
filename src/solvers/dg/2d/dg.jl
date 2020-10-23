@@ -2165,6 +2165,13 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     fstar_upper_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
     fstar_lower_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
 
+    # Notation:
+    # - u_large[v,j]       = Uⱼᶠ solution values on large face
+    # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
+    # - u_large_lower[v,p] = Uₚᵐ solution values on *lower* mortar
+    # - fstar_upper_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *upper* mortar
+    # - fstar_lower_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *lower* mortar
+
     # Threads.@threads for m in 1:dg.n_l2mortars
     for m in 1:dg.n_l2mortars
       # Choose thread-specific pre-allocated container
@@ -2187,32 +2194,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
         u_large_upper = view(u_upper, 1, :, :, m)
         u_large_lower = view(u_lower, 1, :, :, m)
-
-        # Notation:
-        # - u_large[v,j]       = Uⱼᶠ solution values on large face
-        # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
-        # - u_large_lower[v,p] = Uₚᵐ solution values on *lower* mortar
-
-        # Call pointwise two-point numerical flux function
-        # i -> left, j -> right
-        # UPPER SIDE
-        for j in 1:nnodes(dg), i in 1:nnodes(dg)
-          u_ll = get_node_vars(u_large,        dg, i)
-          u_rr = get_node_vars(u_large_upper,  dg, j)
-          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
-
-          # Copy flux back to actual flux array
-          set_node_vars!(fstar_upper_correction, flux, dg, i, j)
-        end
-        # LOWER SIDE
-        for j in 1:nnodes(dg), i in 1:nnodes(dg)
-          u_ll = get_node_vars(u_large,        dg, i)
-          u_rr = get_node_vars(u_large_lower,  dg, j)
-          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
-
-          # Copy flux back to actual flux array
-          set_node_vars!(fstar_lower_correction, flux, dg, i, j)
-        end
       else # large_sides[m] == 2 -> large element on right side
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
@@ -2225,37 +2206,26 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
         u_large_upper = view(u_upper, 2, :, :, m)
         u_large_lower = view(u_lower, 2, :, :, m)
-
-        # Notation:
-        # - u_large[v,j]       = Uⱼᶠ solution values on large face
-        # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
-        # - u_large_lower[v,p] = Uₚᵐ solution values on *lower* mortar
-
-        # Call pointwise two-point numerical flux function
-        # i -> left, j -> right
-        # UPPER SIDE
-        for j in 1:nnodes(dg), i in 1:nnodes(dg)
-          u_ll = get_node_vars(u_large_upper,  dg, j)
-          u_rr = get_node_vars(u_large,        dg, i)
-          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
-
-          # Copy flux back to actual flux array
-          set_node_vars!(fstar_upper_correction, flux, dg, i, j)
-        end
-        # LOWER SIDE
-        for j in 1:nnodes(dg), i in 1:nnodes(dg)
-          u_ll = get_node_vars(u_large_lower,  dg, j)
-          u_rr = get_node_vars(u_large,        dg, i)
-          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
-
-          # Copy flux back to actual flux array
-          set_node_vars!(fstar_lower_correction, flux, dg, i, j)
-        end
       end
 
-      # Notation:
-      # - fstar_upper_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *upper* mortar
-      # - fstar_lower_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *lower* mortar
+      # Call pointwise two-point numerical flux function
+      # Note: Due to symmetric fluxes, "left" and "right" is meaningless here
+      for j in 1:nnodes(dg), i in 1:nnodes(dg)
+        # Extract state
+        u_ll_large = get_node_vars(u_large,        dg, i)
+        u_rr_upper = get_node_vars(u_large_upper,  dg, j)
+        u_rr_lower = get_node_vars(u_large_lower,  dg, j)
+
+        # Calculate flux
+        flux_upper = dg.surface_flux_function(u_ll_large, u_rr_upper, dg.l2mortars.orientations[m],
+                                              equations(dg))
+        flux_lower = dg.surface_flux_function(u_ll_large, u_rr_lower, dg.l2mortars.orientations[m],
+                                              equations(dg))
+
+        # Copy flux back to actual flux array
+        set_node_vars!(fstar_upper_correction, flux_upper, dg, i, j)
+        set_node_vars!(fstar_lower_correction, flux_lower, dg, i, j)
+      end
 
       # Loop over all variables
       for v in 1:nvariables(dg)
@@ -2271,9 +2241,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
             f_p_lower = 0.0
 
             # Extract Eⱼₚ for convenience
-            # TODO Take into account factor of 1/2 or not?
-            E_jp_upper = 1 * dg.ecmortar_reverse_upper[j, p]
-            E_jp_lower = 1 * dg.ecmortar_reverse_lower[j, p]
+            E_jp_upper = dg.ecmortar_reverse_upper[j, p]
+            E_jp_lower = dg.ecmortar_reverse_lower[j, p]
 
             # Add "forward" flux
             f_p_upper += fstar_upper_correction[v, j, p]
@@ -2299,10 +2268,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
       end
 
-      # for v in 1:nvariables(dg)
-      #   @views surface_flux_values[v, :, direction, large_element_id] .=
-      #     (dg.ecmortar_reverse_upper * fstar_upper[v, :] + dg.ecmortar_reverse_lower * fstar_lower[v, :])
-      # end
     end # Threads.@threads for m in 1:dg.n_l2mortars
   end # if dg.use_flux_correction
 end
