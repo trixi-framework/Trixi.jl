@@ -2088,13 +2088,99 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
     calc_fstar!(fstar_upper, u_upper, m, orientations, dg)
     calc_fstar!(fstar_lower, u_lower, m, orientations, dg)
 
-    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
-                               fstar_upper, fstar_lower)
-
     if dg.use_flux_correction
-      # fancy stuff!
+      mortar_fluxes_to_elements_lgl!(surface_flux_values, dg, mortar_type, m,
+                                     fstar_upper, fstar_lower)
+    else
+      mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, m,
+                                fstar_upper, fstar_lower)
     end
   end
+
+  # Chan et al. flux correction
+  if dg.use_flux_correction
+    # Type alias only for convenience
+    A3d = MArray{Tuple{nvariables(dg), nnodes(dg), nnodes(dg)}, Float64}
+
+    # Pre-allocate data structures to speed up computation (thread-safe)
+    fstar_upper_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+    fstar_lower_correction_threaded = [A3d(undef) for _ in 1:Threads.nthreads()]
+
+    # Threads.@threads for m in 1:dg.n_l2mortars
+    for m in 1:dg.n_l2mortars
+      # Choose thread-specific pre-allocated container
+      fstar_upper = fstar_upper_threaded[Threads.threadid()]
+      fstar_lower = fstar_lower_threaded[Threads.threadid()]
+      fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
+      fstar_lower_correction = fstar_lower_correction_threaded[Threads.threadid()]
+
+      large_element_id = dg.l2mortars.neighbor_ids[3, m]
+
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          direction = 2
+          u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+        else
+          wololo
+          # L2 mortars in y-direction
+          direction = 4
+          u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+        end
+        u_large_upper = view(u_upper, 1, :, :, m)
+        u_large_lower = view(u_lower, 1, :, :, m)
+
+        # Notation:
+        # - u_large[v,j]       = Uⱼᶠ solution values on large face
+        # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
+        # - u_large_lower[v,p] = Uₚᵐ solution values on *lower* mortar
+
+        # Call pointwise two-point numerical flux function
+        # i -> left, j -> right
+        # UPPER SIDE
+        for j in 1:nnodes(dg), i in 1:nnodes(dg)
+          u_ll = get_node_vars(u_large,        dg, i)
+          u_rr = get_node_vars(u_large_upper,  dg, j)
+          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
+
+          # Copy flux back to actual flux array
+          set_node_vars!(fstar_upper_correction, flux, dg, i, j)
+        end
+        # LOWER SIDE
+        for j in 1:nnodes(dg), i in 1:nnodes(dg)
+          u_ll = get_node_vars(u_large,        dg, i)
+          u_rr = get_node_vars(u_large_lower,  dg, j)
+          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
+
+          # Copy flux back to actual flux array
+          set_node_vars!(fstar_lower_correction, flux, dg, i, j)
+        end
+      else # large_sides[m] == 2 -> large element on right side
+        wololo
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          direction = 1
+          u_large = view(dg.elements.u, :, 1, :, large_element_id)
+        else
+          # L2 mortars in y-direction
+          direction = 3
+          u_large = view(dg.elements.u, :, :, 1, large_element_id)
+        end
+        u_large_upper = view(u_upper, 2, :, :, m)
+        u_large_lower = view(u_lower, 2, :, :, m)
+      end
+
+      # Notation:
+      # - fstar_upper_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *upper* mortar
+      # - fstar_lower_correction[v,j,p] = Fᵥ(Uⱼᶠ, Uₚᵐ) for *lower* mortar
+
+      # TODO flux_correction What to do next?
+      # for v in 1:nvariables(dg)
+      #   @views surface_flux_values[v, :, direction, large_element_id] .=
+      #     (dg.ecmortar_reverse_upper * fstar_upper[v, :] + dg.ecmortar_reverse_lower * fstar_lower[v, :])
+      # end
+    end # Threads.@threads for m in 1:dg.n_l2mortars
+  end # if dg.use_flux_correction
 end
 
 function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
@@ -2207,6 +2293,66 @@ using the reverse mortar operators of `dg`.
   for v in 1:nvariables(dg)
     @views surface_flux_values[v, :, direction, large_element_id] .=
       (dg.l2mortar_reverse_upper * fstar_upper[v, :] + dg.l2mortar_reverse_lower * fstar_lower[v, :])
+  end
+  # The code above could be replaced by the following code. However, the relative efficiency
+  # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
+  # Using StaticArrays for both makes the code above faster for common test cases.
+  # multiply_dimensionwise!(
+  #   view(surface_flux_values, :, :, direction, large_element_id), dg.l2mortar_reverse_upper, fstar_upper,
+  #                                                                 dg.l2mortar_reverse_lower, fstar_lower)
+
+  return nothing
+end
+
+@inline function mortar_fluxes_to_elements_lgl!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2}, m,
+                                            fstar_upper, fstar_lower)
+  large_element_id = dg.l2mortars.neighbor_ids[3, m]
+  upper_element_id = dg.l2mortars.neighbor_ids[2, m]
+  lower_element_id = dg.l2mortars.neighbor_ids[1, m]
+
+  # Copy flux small to small
+  if dg.l2mortars.large_sides[m] == 1 # -> small elements on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
+    end
+  else # large_sides[m] == 2 -> small elements on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
+    end
+  end
+  surface_flux_values[:, :, direction, upper_element_id] .= fstar_upper
+  surface_flux_values[:, :, direction, lower_element_id] .= fstar_lower
+
+  # Project small fluxes to large element
+  if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 2
+    else
+      # L2 mortars in y-direction
+      direction = 4
+    end
+  else # large_sides[m] == 2 -> large element on right side
+    if dg.l2mortars.orientations[m] == 1
+      # L2 mortars in x-direction
+      direction = 1
+    else
+      # L2 mortars in y-direction
+      direction = 3
+    end
+  end
+
+  for v in 1:nvariables(dg)
+    @views surface_flux_values[v, :, direction, large_element_id] .=
+      (dg.ecmortar_reverse_upper * fstar_upper[v, :] + dg.ecmortar_reverse_lower * fstar_lower[v, :])
   end
   # The code above could be replaced by the following code. However, the relative efficiency
   # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
