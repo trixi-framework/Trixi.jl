@@ -45,7 +45,7 @@ extra_analysis_quantities = ["conservation_error"]
 n_cells_max = 100000
 coordinates_min = [-2, -2]
 coordinates_max =  [2, 2]
-initial_refinement_level = 5
+initial_refinement_level = 1
 refinement_patches = [
   {type = "box", coordinates_min = [0.0, -2.0], coordinates_max = [2.0, 2.0]},
 ]
