@@ -381,6 +381,28 @@ function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction,
   return flux
 end
 
+function boundary_conditions_weak_blast_wave(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equation::CompressibleEulerEquations2D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_conditions_weak_blast_wave
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = 1.0
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, p), equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`

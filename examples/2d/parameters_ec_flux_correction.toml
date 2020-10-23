@@ -11,6 +11,7 @@ equations = "CompressibleEulerEquations"
 # initial_conditions = "initial_conditions_linear_x"
 # initial_conditions = "initial_conditions_constant"
 initial_conditions = "initial_conditions_weak_blast_wave"
+boundary_conditions = "boundary_conditions_weak_blast_wave"
 #surface_flux = "flux_lax_friedrichs"
 surface_flux = "flux_chandrashekar"
 volume_flux = "flux_chandrashekar"
@@ -36,6 +37,7 @@ analysis_interval = 100
 #volume_integral_type = "shock_capturing"
 volume_integral_type = "split_form"
 # volume_integral_type = "entropy_fix"
+extra_analysis_quantities = ["conservation_error"]
 
 
 ####################################################################################################
@@ -45,8 +47,9 @@ coordinates_min = [-2, -2]
 coordinates_max =  [2, 2]
 initial_refinement_level = 5
 refinement_patches = [
-  {type = "box", coordinates_min = [-1.0, 0.0], coordinates_max = [1.0, 1.0]},
+  {type = "box", coordinates_min = [0.0, -2.0], coordinates_max = [2.0, 2.0]},
 ]
+periodicity = false
 
 
 ####################################################################################################
