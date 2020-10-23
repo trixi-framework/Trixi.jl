@@ -1766,28 +1766,55 @@ function prolong2mortars!(dg::Dg2D, mortar_type::Val{:l2})
       end
     end
 
-    # Interpolate large element face data to small interface locations
-    if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-      leftright = 1
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
-        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
-      else
-        # L2 mortars in y-direction
-        u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
-        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+    if dg.use_flux_correction
+      # Interpolate large element face data to small interface locations
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        leftright = 1
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+          element_solutions_to_mortars_entropy!(dg, mortar_type, leftright, m, u_large)
+        else
+          # L2 mortars in y-direction
+          u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+          element_solutions_to_mortars_entropy!(dg, mortar_type, leftright, m, u_large)
+        end
+      else # large_sides[m] == 2 -> large element on right side
+        leftright = 2
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large = view(dg.elements.u, :, 1, :, large_element_id)
+          element_solutions_to_mortars_entropy!(dg, mortar_type, leftright, m, u_large)
+        else
+          # L2 mortars in y-direction
+          u_large = view(dg.elements.u, :, :, 1, large_element_id)
+          element_solutions_to_mortars_entropy!(dg, mortar_type, leftright, m, u_large)
+        end
       end
-    else # large_sides[m] == 2 -> large element on right side
-      leftright = 2
-      if dg.l2mortars.orientations[m] == 1
-        # L2 mortars in x-direction
-        u_large = view(dg.elements.u, :, 1, :, large_element_id)
-        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
-      else
-        # L2 mortars in y-direction
-        u_large = view(dg.elements.u, :, :, 1, large_element_id)
-        element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+    else
+      # Interpolate large element face data to small interface locations
+      if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
+        leftright = 1
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+          element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+        else
+          # L2 mortars in y-direction
+          u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+          element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+        end
+      else # large_sides[m] == 2 -> large element on right side
+        leftright = 2
+        if dg.l2mortars.orientations[m] == 1
+          # L2 mortars in x-direction
+          u_large = view(dg.elements.u, :, 1, :, large_element_id)
+          element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+        else
+          # L2 mortars in y-direction
+          u_large = view(dg.elements.u, :, :, 1, large_element_id)
+          element_solutions_to_mortars!(dg, mortar_type, leftright, m, u_large)
+        end
       end
     end
   end
@@ -1802,6 +1829,38 @@ using the forward mortar operators of `dg`.
 @inline function element_solutions_to_mortars!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_upper, leftright, :, :, m), dg.mortar_forward_upper, u_large)
   multiply_dimensionwise!(view(dg.l2mortars.u_lower, leftright, :, :, m), dg.mortar_forward_lower, u_large)
+  return nothing
+end
+
+@inline function element_solutions_to_mortars_entropy!(dg::Dg2D, ::Val{:l2}, leftright, m, u_large)
+  # Convert conservative to entropy variables
+  u_large_entropy = similar(u_large)
+  for i in 1:nnodes(dg)
+    u_node_cons = get_node_vars(u_large, dg, i)
+    u_node_entropy = cons2entropy(u_node_cons, equations(dg))
+    set_node_vars!(u_large_entropy, u_node_entropy, dg, i)
+  end
+
+  u_upper = view(dg.l2mortars.u_upper, leftright, :, :, m)
+  u_lower = view(dg.l2mortars.u_lower, leftright, :, :, m)
+
+  # Interpolate big face values to mortars
+  multiply_dimensionwise!(u_upper, dg.mortar_forward_upper, u_large_entropy)
+  multiply_dimensionwise!(u_lower, dg.mortar_forward_lower, u_large_entropy)
+
+  # Convert entropy variables back to conservative
+  for i in 1:nnodes(dg)
+    # Upper mortar
+    u_node_entropy = get_node_vars(u_upper, dg, i)
+    u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+    set_node_vars!(u_upper, u_node_cons, dg, i)
+
+    # Lower mortar
+    u_node_entropy = get_node_vars(u_lower, dg, i)
+    u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+    set_node_vars!(u_lower, u_node_cons, dg, i)
+  end
+
   return nothing
 end
 
@@ -2117,12 +2176,11 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
       large_element_id = dg.l2mortars.neighbor_ids[3, m]
 
       if dg.l2mortars.large_sides[m] == 1 # -> large element on left side
-        if dg.l2mortars.orientations[m] == 1 # -> mortar in x-direction
+        if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
           direction = 2
           u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
         else
-          wololo
           # L2 mortars in y-direction
           direction = 4
           u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
@@ -2156,7 +2214,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
           set_node_vars!(fstar_lower_correction, flux, dg, i, j)
         end
       else # large_sides[m] == 2 -> large element on right side
-        wololo
         if dg.l2mortars.orientations[m] == 1
           # L2 mortars in x-direction
           direction = 1
@@ -2168,6 +2225,32 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         end
         u_large_upper = view(u_upper, 2, :, :, m)
         u_large_lower = view(u_lower, 2, :, :, m)
+
+        # Notation:
+        # - u_large[v,j]       = Uⱼᶠ solution values on large face
+        # - u_large_upper[v,p] = Uₚᵐ solution values on *upper* mortar
+        # - u_large_lower[v,p] = Uₚᵐ solution values on *lower* mortar
+
+        # Call pointwise two-point numerical flux function
+        # i -> left, j -> right
+        # UPPER SIDE
+        for j in 1:nnodes(dg), i in 1:nnodes(dg)
+          u_ll = get_node_vars(u_large_upper,  dg, j)
+          u_rr = get_node_vars(u_large,        dg, i)
+          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
+
+          # Copy flux back to actual flux array
+          set_node_vars!(fstar_upper_correction, flux, dg, i, j)
+        end
+        # LOWER SIDE
+        for j in 1:nnodes(dg), i in 1:nnodes(dg)
+          u_ll = get_node_vars(u_large_lower,  dg, j)
+          u_rr = get_node_vars(u_large,        dg, i)
+          flux = dg.surface_flux_function(u_ll, u_rr, dg.l2mortars.orientations[m], equations(dg))
+
+          # Copy flux back to actual flux array
+          set_node_vars!(fstar_lower_correction, flux, dg, i, j)
+        end
       end
 
       # Notation:
@@ -2199,11 +2282,11 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
             # Substract "reverse" flux
             for r in 1:nnodes(dg)
               # Extract lᵣ(ηₚ) for convenience
-              lr_etap_upper = E_jp_upper * dg.weights[p] / dg.weights[r]
-              lr_etap_lower = E_jp_lower * dg.weights[p] / dg.weights[r]
+              lr_etap_upper = dg.mortar_forward_upper[p, r]
+              lr_etap_lower = dg.mortar_forward_lower[p, r]
 
-              f_p_upper -= lr_etap_upper * fstar_upper_correction[v, p, r] 
-              f_p_lower -= lr_etap_lower * fstar_lower_correction[v, p, r] 
+              f_p_upper -= lr_etap_upper * fstar_upper_correction[v, r, p] 
+              f_p_lower -= lr_etap_lower * fstar_lower_correction[v, r, p] 
             end
 
             # Add to flux correction
@@ -2213,9 +2296,6 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
 
           # Finally add to surface flux values
           surface_flux_values[v, j, direction, large_element_id] += flux_correction
-          @show surface_flux_values[v, j, direction, large_element_id]
-          @show flux_correction
-          println()
         end
       end
 
