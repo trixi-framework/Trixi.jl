@@ -252,6 +252,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
   fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
+  
   fstar_upper_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -1487,16 +1488,25 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
                         dg.thread_cache,
                         dg)
 end
+"""
+    calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
+    
+Compute the volume integral as a blend of the split-form DG operator and a subcell Finite-Volume method.
+The indexing is as follows (N=4 example):
+    
+ (1) DG DOF idx:     1     2      3      4     5
+                     |     |      |      |     |
+                     0--·--O--·---O---·--O--·--0
+                     |  |     |       |     |  |
+ (2) FV interf. idx: 1  2     3       4     5  6   (fstar)
+                    L RL R   L R     L R   L RL R
+                     └──┴─────┴───────┴─────┴──┘
+ (3) FV subcell idx:  1    2      3      4    5   
 
-#(1) DG DOF idx:     1     2      3      4     5
-#                    |     |      |      |     |
-#                    0--·--O--·---O---·--O--·--0
-#                    |  |     |       |     |  |
-#(2) FV interf. idx: 1  2     3       4     5  6 (fstar)
-#                   L RL R   L R     L R   L RL R
-#                    └──┴─────┴───────┴─────┴──┘
-#(3) FV subcell idx:  1    2      3      4    5   
-#                    
+
+OBS! 1) (1) and (3) match for consistency.
+     2) When the equation solved has non-conservative terms, fstar can have different values on the right and on the left of an interface
+"""                  
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
@@ -1534,7 +1544,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
       for v in 1:nvariables(dg)
         u_t[v, i, j, element_id] += ( alpha[element_id] *
                                         (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
-                                        inverse_weights[j]  * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
+                                         inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
 
       end
     end
@@ -1548,8 +1558,10 @@ end
 Calculate the finite volume fluxes inside the elements (without non-conservative terms).
 
 # Arguments
-- `fstar1::AbstractArray{T} where T<:Real`:
-- `fstar2::AbstractArray{T} where T<:Real`
+- `fstar1_L::AbstractArray{T} where T<:Real`:
+- `fstar1_R::AbstractArray{T} where T<:Real`:
+- `fstar2_L::AbstractArray{T} where T<:Real`:
+- `fstar2_R::AbstractArray{T} where T<:Real`:
 - `dg::Dg2D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
@@ -1595,8 +1607,10 @@ end
 Calculate the finite volume fluxes inside the elements (non-conservative terms are active).
 
 # Arguments
-- `fstar1::AbstractArray{T} where T<:Real`:
-- `fstar2::AbstractArray{T} where T<:Real`
+- `fstar1_L::AbstractArray{T} where T<:Real`:
+- `fstar1_R::AbstractArray{T} where T<:Real`:
+- `fstar2_L::AbstractArray{T} where T<:Real`:
+- `fstar2_R::AbstractArray{T} where T<:Real`:
 - `dg::Dg2D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
