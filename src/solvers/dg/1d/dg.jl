@@ -109,7 +109,8 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
-                                              valid=["weak_form", "split_form", "shock_capturing"])))
+                                              valid=["weak_form", "split_form", "shock_capturing",
+                                               "shock_capturing_nn"])))
   dhat = calc_dhat(nodes, weights)
   dsplit = calc_dsplit(nodes, weights)
   dsplit_transposed = transpose(calc_dsplit(nodes, weights))
@@ -180,7 +181,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
   # Initialize element variables such that they are available in the first solution file
-  if volume_integral_type === Val(:shock_capturing)
+  if volume_integral_type === Val(:shock_capturing) || volume_integral_type === Val(:shock_capturing_nn)
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
@@ -1095,6 +1096,35 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg1D)
                         dg)
 end
 
+# Calculate volume integral (DGSEM in split form with shock capturing)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, dg::Dg1D)
+  # (Re-)initialize element variable storage for blending factor
+  if (!haskey(dg.element_variables, :blending_factor) ||
+      length(dg.element_variables[:blending_factor]) != dg.n_elements)
+    dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+  end
+  if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+      length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+    dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+  end
+
+  # Initialize element variable storage for the cache
+  if (!haskey(dg.cache, :element_ids_dg))
+    dg.cache[:element_ids_dg] = Int[]
+    sizehint!(dg.cache[:element_ids_dg], dg.n_elements)
+  end
+  if (!haskey(dg.cache, :element_ids_dgfv))
+    dg.cache[:element_ids_dgfv] = Int[]
+    sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
+  end
+
+  calc_volume_integral!(u_t, Val(:shock_capturing_nn),
+                        dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
+                        dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
+                        dg.thread_cache,
+                        dg)
+end
+
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg1D)
   @unpack dsplit_transposed, inverse_weights = dg
@@ -1134,6 +1164,44 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
   end
 end
 
+function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, alpha, alpha_tmp,
+                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg1D)
+  @unpack dsplit_transposed, inverse_weights = dg
+  @unpack fstar1_threaded = thread_cache
+
+  # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+  @timeit timer() "blending factors" calc_blending_factors_nn!(alpha, alpha_tmp, dg.elements.u,
+    dg.shock_alpha_max,
+    dg.shock_alpha_min,
+    dg.shock_alpha_smooth,
+    dg.shock_indicator_variable, thread_cache, dg)
+
+  # Determine element ids for DG-only and blended DG-FV volume integral
+  pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+
+  # Loop over pure DG elements
+  @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
+    split_form_kernel!(u_t, element_id, thread_cache, dg)
+  end
+
+  # Loop over blended DG-FV elements
+  @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
+    # Calculate DG volume integral contribution
+    split_form_kernel!(u_t, element_id, thread_cache, dg, 1 - alpha[element_id])
+
+    # Calculate FV two-point fluxes
+    fstar1 = fstar1_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1, dg.elements.u, element_id, dg)
+
+    # Calculate FV volume integral contribution
+    for i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        u_t[v, i, element_id] += ( alpha[element_id] * (inverse_weights[i] * (fstar1[v, i+1] - fstar1[v, i]) ) )
+
+      end
+    end
+  end
+end
 
 """
     calcflux_fv!(fstar1, u_leftright, u, element_id, dg::Dg1D)
@@ -1399,6 +1467,78 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
       alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
     end
   end
+end
+
+# α: u = u_DG * (1 - α) + u_FV * α
+# Calculate blending factors used for ann shock capturing
+function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
+  alpha_max, alpha_min, do_smoothing,
+  indicator_variable, thread_cache, dg::Dg1D)
+  # temporary buffers
+  @unpack indicator_threaded, modal_threaded = thread_cache
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+
+  #TODO: boundary
+  Threads.@threads for element_id in 2:(dg.n_elements-1)
+      indicator  = indicator_threaded[Threads.threadid()]
+      #modal      = modal_threaded[Threads.threadid()]
+
+      # Calculate indicator variables at Gauss-Lobatto nodes
+      cons2indicator!(indicator, u, element_id, indicator_variable, dg)
+      avg = mean(indicator)
+      left = indicator[1,1]
+      right = indicator[1,end]
+
+      cons2indicator!(indicator, u, element_id-1, indicator_variable, dg)
+      avg_left = mean(indicator)
+
+      cons2indicator!(indicator, u, element_id+1, indicator_variable, dg)
+      avg_right = mean(indicator)
+    
+      model_input = [avg_left; avg; avg_right; left; right]
+      model_input = model_input ./max(maximum(abs.(model_input)),1)
+      
+      if model(model_input)[1] > 0.5
+        alpha[element_id] = 1
+      else
+        alpha[element_id] = 0
+      end
+
+      #alpha[element_id] = model(model_input)[1]
+      
+      # Take care of the case close to pure DG
+      if (alpha[element_id] < alpha_min)
+        alpha[element_id] = 0.
+      end
+
+      # Take care of the case close to pure FV
+      if (alpha[element_id] > 1-alpha_min)
+        alpha[element_id] = 1.
+      end
+
+      # Clip the maximum amount of FV allowed
+      alpha[element_id] = min(alpha_max, alpha[element_id])
+  end
+  
+  if (do_smoothing)
+    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+    # Copy alpha values such that smoothing is indpedenent of the element access order
+    alpha_pre_smooth .= alpha
+
+    # Loop over interfaces
+    for interface_id in 1:dg.n_interfaces
+      # Get neighboring element ids
+      left  = dg.interfaces.neighbor_ids[1, interface_id]
+      right = dg.interfaces.neighbor_ids[2, interface_id]
+
+      # Apply smoothing
+      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+    end
+  end
+  
 end
 
 # Convert conservative variables to indicator variable for discontinuities (elementwise version)
