@@ -20,6 +20,11 @@ mutable struct ElementContainer1D{RealT<:Real, NVARS, POLYDEG} <: AbstractContai
   _surface_flux_values::Vector{RealT}
 end
 
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
 function Base.resize!(elements::ElementContainer1D{RealT, NVARS, POLYDEG},
                       capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
@@ -116,6 +121,7 @@ mutable struct InterfaceContainer1D{RealT<:Real, NVARS, POLYDEG} <: AbstractCont
   _neighbor_ids::Vector{Int}
 end
 
+# See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer1D{RealT, NVARS, POLYDEG},
                       capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
@@ -174,6 +180,7 @@ mutable struct BoundaryContainer1D{RealT<:Real, NVARS, POLYDEG} <: AbstractConta
   _node_coordinates::Vector{RealT}
 end
 
+# See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer1D{RealT, NVARS, POLYDEG},
                       capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
