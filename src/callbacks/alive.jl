@@ -61,6 +61,7 @@ function (alive_callback::AliveCallback)(integrator)
             iter, dt, t, runtime_absolute)
   end
 
+  # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
   return nothing
 end

@@ -95,6 +95,7 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     save_solution_file(u_ode, t, dt, iter, semi, solution_callback, element_variables)
   end
 
+  # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
   return nothing
 end
