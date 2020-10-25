@@ -30,8 +30,8 @@ end
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
 function IndicatorHennemannGassner(equations::AbstractEquations, basis;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
+                                   alpha_max,
+                                   alpha_min,
                                    alpha_smooth=true,
                                    variable)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
@@ -42,8 +42,8 @@ end
 
 # this method is used when the indicator is constructed as for AMR
 function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
-                                   alpha_max=0.5,
-                                   alpha_min=0.001,
+                                   alpha_max,
+                                   alpha_min,
                                    alpha_smooth=true,
                                    variable)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
