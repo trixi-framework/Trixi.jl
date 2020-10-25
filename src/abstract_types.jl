@@ -18,7 +18,7 @@ abstract type AbstractMortar{RealT<:Real} end
 
 # abstract supertype of mortar methods using L² projection
 # which will be specialized for different SBP bases
-abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
+abstract type AbstractMortarL2{RealT<:Real} <: AbstractMortar{RealT} end
 
 
 # abstract supertype of functionality related to the analysis of

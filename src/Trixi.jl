@@ -92,9 +92,10 @@ export TreeMesh
 export DG,
        DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner
+       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       MortarL2
 
-export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
+export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 
