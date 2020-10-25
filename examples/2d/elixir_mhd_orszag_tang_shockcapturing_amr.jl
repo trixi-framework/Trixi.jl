@@ -12,7 +12,7 @@ using Trixi
 gamma = 5/3
 equations = IdealGlmMhdEquations2D(gamma)
 
-initial_conditions = initial_conditions_orszag_tang
+initial_condition = initial_condition_orszag_tang
 
 surface_flux = flux_hll
 volume_flux  = flux_central
@@ -34,7 +34,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -55,8 +55,8 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=0.25) # can probably be increased when shock-capturing is fixed for MHD
 

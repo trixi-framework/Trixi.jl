@@ -46,28 +46,28 @@ function init_simulation_euler_gravity()
 
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
-  adapt_initial_conditions = parameter("adapt_initial_conditions", true)
-  adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
+  adapt_initial_condition = parameter("adapt_initial_condition", true)
+  adapt_initial_condition_only_refine = parameter("adapt_initial_condition_only_refine", true)
   begin
     print("Applying initial conditions... ")
     t_start = parameter("t_start")
     time = t_start
     step = 0
-    set_initial_conditions!(solver, time)
-    set_initial_conditions!(solver_gravity, time)
+    set_initial_condition!(solver, time)
+    set_initial_condition!(solver_gravity, time)
     println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
-    if amr_interval > 0 && adapt_initial_conditions
+    if amr_interval > 0 && adapt_initial_condition
       @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-          only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
+          only_refine=adapt_initial_condition_only_refine, passive_solvers=(solver_gravity,))
 
       # Iterate until mesh does not change anymore
       while has_changed
-        set_initial_conditions!(solver, time)
-        set_initial_conditions!(solver_gravity, time)
+        set_initial_condition!(solver, time)
+        set_initial_condition!(solver_gravity, time)
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-            only_refine=adapt_initial_conditions_only_refine, passive_solvers=(solver_gravity,))
+            only_refine=adapt_initial_condition_only_refine, passive_solvers=(solver_gravity,))
       end
 
       # Save mesh file
@@ -112,7 +112,7 @@ function init_simulation_euler_gravity()
           | restart:            $(restart ? "yes" : "no")
           """
   begin
-    s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
+    s *= "| initial conditions: $(get_name(solver.initial_condition))\n"
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
@@ -120,7 +120,7 @@ function init_simulation_euler_gravity()
           """
   if amr_interval > 0
     s *= "| | AMR interval:     $amr_interval\n"
-    s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
+    s *= "| | adapt ICs:        $(adapt_initial_condition ? "yes" : "no")\n"
   end
   s *= """| n_steps_max:        $n_steps_max
           | time integration:   $(get_name(time_integration_function))
@@ -181,7 +181,7 @@ function init_simulation_euler_gravity()
   end
   # Print initial solution analysis and initialize solution analysis
   if analysis_interval > 0
-    if get_name(solver.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
+    if get_name(solver.initial_condition) == "initial_condition_eoc_test_coupled_euler_gravity"
       analyze_solution(solver, mesh, time, 0, step, 0, 0, solver_gravity=solver_gravity)
       # comment out for anything other than coupling convergence test
       println()
@@ -263,7 +263,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
                           (n_analysis_timesteps * ndofs(solver)))
 
       # Analyze solution
-      if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
+      if get_name(solver_euler.initial_condition) == "initial_condition_eoc_test_coupled_euler_gravity"
         l2_euler, linf_euler = @timeit timer() "analyze solution" analyze_solution(
             solver, mesh, time, dt, step, runtime_absolute, runtime_relative, solver_gravity=solver_gravity)
         # Pull gravity solver information from file
@@ -348,7 +348,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
 
   # Return error norms for EOC calculation
   println("Number of gravity subcycles: ", globals[:gravity_subcycles])
-  if get_name(solver_euler.initial_conditions) == "initial_conditions_eoc_test_coupled_euler_gravity"
+  if get_name(solver_euler.initial_condition) == "initial_condition_eoc_test_coupled_euler_gravity"
     return l2_error, linf_error, vcat(varnames_cons(solver.equations),
                                       varnames_cons(solver_gravity.equations))
   else

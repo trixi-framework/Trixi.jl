@@ -109,53 +109,53 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.0011482554828446659, 0.00011482554838682677, 5.741277410494742e-6],
             linf = [0.004090978306810378, 0.0004090978313616156, 2.045489169688608e-5])
   end
-  @testset "parameters_euler_density_wave.toml with initial_conditions_density_pulse" begin
+  @testset "parameters_euler_density_wave.toml with initial_condition_density_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_wave.toml"),
             l2   = [0.003724642049410045, 0.0037246420494099837, 0.0018623210247047657],
             linf = [0.018538787219922304, 0.018538787219903874, 0.009269393609915078],
-            initial_conditions = "initial_conditions_density_pulse")
+            initial_condition = "initial_condition_density_pulse")
   end
-  @testset "parameters_euler_density_wave.toml with initial_conditions_constant" begin
+  @testset "parameters_euler_density_wave.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_wave.toml"),
             l2   = [7.058654266604569e-16, 1.9703187362332313e-14, 7.286819681608443e-15],
             linf = [3.774758283725532e-15, 6.733502644351574e-14, 2.4868995751603507e-14],
-            initial_conditions = "initial_conditions_constant")
+            initial_condition = "initial_condition_constant")
   end
 end
 
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "parameters_advection_basic.toml with initial_conditions_sin" begin
+  @testset "parameters_advection_basic.toml with initial_condition_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [9.506162481381351e-5],
             linf = [0.00017492510098227054],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_sin")
+            initial_condition = "initial_condition_sin")
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_constant" begin
+  @testset "parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.120436421866528e-16],
             linf = [1.3322676295501878e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_constant")
+            initial_condition = "initial_condition_constant")
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_linear_x" begin
+  @testset "parameters_advection_basic.toml with initial_condition_linear_x" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [7.602419413667044e-17],
             linf = [2.220446049250313e-16],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_x",
-            boundary_conditions = "boundary_conditions_linear_x",
+            initial_condition = "initial_condition_linear_x",
+            boundary_condition = "boundary_condition_linear_x",
             periodicity=false)
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_convergence_test" begin
+  @testset "parameters_advection_basic.toml with initial_condition_convergence_test" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [2.9989673704826656e-6],
             linf = [5.841215237722963e-6],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_convergence_test",
-            boundary_conditions = "boundary_conditions_convergence_test",
+            initial_condition = "initial_condition_convergence_test",
+            boundary_condition = "boundary_condition_convergence_test",
             periodicity=false)
   end
 end

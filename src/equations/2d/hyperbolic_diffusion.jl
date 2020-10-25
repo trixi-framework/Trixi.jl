@@ -45,7 +45,7 @@ end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
@@ -60,7 +60,7 @@ function initial_conditions_poisson_periodic(x, t, equations::HyperbolicDiffusio
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -74,7 +74,7 @@ function initial_conditions_poisson_nonperiodic(x, t, equations::HyperbolicDiffu
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -89,7 +89,7 @@ function initial_conditions_harmonic_nonperiodic(x, t, equations::HyperbolicDiff
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_jeans_instability(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_jeans_instability(x, t, equations::HyperbolicDiffusionEquations2D)
   # gravity equation: -Δϕ = -4πGρ
   # Constants taken from the FLASH manual
   # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
@@ -102,7 +102,7 @@ function initial_conditions_jeans_instability(x, t, equations::HyperbolicDiffusi
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
@@ -117,7 +117,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equations::Hype
   return @SVector [phi, q1, q2]
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
   phi = 0.0
   q1  = 0.0
@@ -127,7 +127,7 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
                                                   surface_flux_function,
                                                   equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
@@ -147,7 +147,7 @@ function boundary_conditions_harmonic_nonperiodic(u_inner, orientation, directio
   return flux
 end
 
-function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction, x, t,
+function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction, x, t,
                                                  surface_flux_function,
                                                  equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
@@ -167,10 +167,10 @@ function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction
 end
 
 
-function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equations::HyperbolicDiffusionEquations2D)
-  u_boundary = initial_conditions_sedov_self_gravity(x, t, equations)
+  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary

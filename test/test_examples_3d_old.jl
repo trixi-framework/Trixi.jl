@@ -26,24 +26,24 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.001452075263740804],
             t_end = 2, restart = true, restart_filename = "out/restart_000040.h5")
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_sin_periodic" begin
+  @testset "parameters_advection_basic.toml with initial_condition_sin_periodic" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.002727292086517533],
             linf = [0.024833049753677727],
-            initial_conditions=Trixi.initial_conditions_sin_periodic)
+            initial_condition=Trixi.initial_condition_sin_periodic)
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_constant" begin
+  @testset "parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [9.770171014620371e-16],
             linf = [2.4424906541753444e-15],
-            initial_conditions=Trixi.initial_conditions_constant)
+            initial_condition=Trixi.initial_condition_constant)
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_linear_z and periodicity=false" begin
+  @testset "parameters_advection_basic.toml with initial_condition_linear_z and periodicity=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.607840408143593e-16],
             linf = [5.773159728050814e-15],
-            initial_conditions=Trixi.initial_conditions_linear_z,
-            boundary_conditions=Trixi.boundary_conditions_linear_z, periodicity=false)
+            initial_condition=Trixi.initial_condition_linear_z,
+            boundary_condition=Trixi.boundary_condition_linear_z, periodicity=false)
   end
   @testset "parameters_euler_source_terms.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_source_terms.toml"),
@@ -99,11 +99,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
             linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
-  @testset "parameters_euler_ec.toml with initial_conditions=Trixi.initial_conditions_constant" begin
+  @testset "parameters_euler_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [5.717218008425079e-16, 6.088971423170968e-16, 6.23130776282275e-16, 7.29884557381127e-16, 5.167198077601542e-15],
             linf = [3.885780586188048e-15, 4.454769886308441e-15, 3.219646771412954e-15, 4.884981308350689e-15, 4.440892098500626e-14],
-            initial_conditions=Trixi.initial_conditions_constant)
+            initial_condition=Trixi.initial_condition_constant)
   end
   @testset "parameters_euler_ec.toml with flux_chandrashekar" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
@@ -141,19 +141,19 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
             linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
   end
-  @testset "parameters_euler_shockcapturing.toml with initial_conditions_sedov_blast_wave" begin
+  @testset "parameters_euler_shockcapturing.toml with initial_condition_sedov_blast_wave" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.03627060784392582, 0.05178777376859809, 0.05178777376859804, 0.05178777376859802, 0.23043996953698023],
             linf = [0.9307998233177583, 1.4326649193439467, 1.4326649193439467, 1.4326649193439467, 12.80585041235138],
-            initial_conditions=Trixi.initial_conditions_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+            initial_condition=Trixi.initial_condition_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
-  @testset "parameters_euler_shockcapturing.toml with initial_conditions_sedov_self_gravity" begin
+  @testset "parameters_euler_shockcapturing.toml with initial_condition_sedov_self_gravity" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.04846527000320781, 0.051787773760055514, 0.051787773760055486, 0.05178777376005548, 0.23043996953467236],
             linf = [0.9307979866990295, 1.4326649193456429, 1.4326649193456429, 1.4326649193456429, 12.805850412386896],
-            initial_conditions=Trixi.initial_conditions_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+            initial_condition=Trixi.initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
   @testset "parameters_euler_shockcapturing.toml with amr_indicator=`sedov_self_gravity`" begin
     # OBS! This setup does not make much practical sense. It is only added to exercise the
@@ -186,12 +186,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
             linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
   end
-  @testset "parameters_mhd_ec.toml with initial_conditions=Trixi.initial_conditions_constant" begin
+  @testset "parameters_mhd_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_ec.toml"),
             l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
             linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
             atol = 1000*eps(),
-            initial_conditions=Trixi.initial_conditions_constant)
+            initial_condition=Trixi.initial_condition_constant)
   end
   @testset "parameters_mhd_alfven_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave.toml"),

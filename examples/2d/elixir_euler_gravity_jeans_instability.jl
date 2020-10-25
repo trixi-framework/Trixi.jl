@@ -7,8 +7,8 @@ using Trixi
 gamma = 5/3
 equations_euler = CompressibleEulerEquations2D(gamma)
 
-# TODO: Taal, define initial_conditions_jeans_instability here for Euler
-initial_conditions = Trixi.initial_conditions_jeans_instability
+# TODO: Taal, define initial_condition_jeans_instability here for Euler
+initial_condition = Trixi.initial_condition_jeans_instability
 
 polydeg = 3
 solver_euler = DGSEM(polydeg, flux_hll)
@@ -19,7 +19,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
 
-semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditions, solver_euler)
+semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition, solver_euler)
 
 
 ###############################################################################
@@ -27,11 +27,11 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 resid_tol = 1.0e-4
 equations_gravity = HyperbolicDiffusionEquations2D(resid_tol)
 
-# TODO: Taal, define initial_conditions_jeans_instability here for gravity
+# TODO: Taal, define initial_condition_jeans_instability here for gravity
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 
-semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_conditions, solver_gravity,
+semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition, solver_gravity,
                                             source_terms=source_terms_harmonic)
 
 

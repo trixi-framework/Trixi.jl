@@ -35,7 +35,7 @@ default_analysis_errors(::HyperbolicDiffusionEquations3D)     = (:l2_error, :lin
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
-function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusionEquations3D)
+function initial_condition_poisson_periodic(x, t, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # depending on initial constant state, c, for phi this converges to the solution ϕ + c
   if iszero(t)
@@ -52,7 +52,7 @@ function initial_conditions_poisson_periodic(x, t, equation::HyperbolicDiffusion
   return @SVector [phi, q1, q2, q3]
 end
 
-function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations3D)
+function initial_condition_poisson_nonperiodic(x, t, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
@@ -68,7 +68,7 @@ function initial_conditions_poisson_nonperiodic(x, t, equation::HyperbolicDiffus
   return @SVector [phi, q1, q2, q3]
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
@@ -85,7 +85,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Hyper
 end
 
 
-function initial_conditions_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
+function initial_condition_sedov_self_gravity(x, t, equation::HyperbolicDiffusionEquations3D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
 
   phi = 0.0
@@ -97,10 +97,10 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::HyperbolicDiffusionEquations3D)
-  u_boundary = initial_conditions_sedov_self_gravity(x, t, equation)
+  u_boundary = initial_condition_sedov_self_gravity(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -112,7 +112,7 @@ function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction,
   return flux
 end
 
-function boundary_conditions_poisson_nonperiodic(u_inner, orientation, direction, x, t,
+function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction, x, t,
                                                  surface_flux_function,
                                                  equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f

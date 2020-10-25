@@ -4,7 +4,7 @@ ndims = 2
 equations = "IdealGlmMhdEquations"
 gamma = 1.6666666666666667
 
-initial_conditions = "initial_conditions_orszag_tang"
+initial_condition = "initial_condition_orszag_tang"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_central"
 

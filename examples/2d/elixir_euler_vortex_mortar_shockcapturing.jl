@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_conditions = initial_conditions_isentropic_vortex
+initial_condition = initial_condition_isentropic_vortex
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_kennedy_gruber
@@ -33,7 +33,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 refinement_patches=refinement_patches,
                 n_cells_max=10_000,)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

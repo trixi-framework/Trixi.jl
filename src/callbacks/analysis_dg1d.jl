@@ -1,6 +1,6 @@
 
 function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-                          mesh::TreeMesh{1}, equations, initial_conditions,
+                          mesh::TreeMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -25,7 +25,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
     jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
 
     for i in eachnode(analyzer)
-      u_exact = initial_conditions(get_node_coords(x_local, equations, dg, i), t, equations)
+      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i), equations)
       l2_error += diff.^2 * (weights[i] * jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))

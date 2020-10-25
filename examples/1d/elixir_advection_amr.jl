@@ -8,7 +8,7 @@ using Trixi
 advectionvelocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 
-initial_conditions = initial_conditions_gauss
+initial_condition = initial_condition_gauss
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
@@ -20,7 +20,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -37,8 +37,8 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       max_level=6, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 

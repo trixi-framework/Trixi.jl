@@ -129,7 +129,7 @@ end
 
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
               mesh::TreeMesh{2}, equations,
-              initial_conditions, boundary_conditions, source_terms,
+              initial_condition, boundary_condition, source_terms,
               dg::DG, cache)
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
@@ -151,7 +151,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_condition, equations, dg)
 
   # Prolong solution to mortars
   @timeit_debug timer() "prolong2mortars" prolong2mortars!(cache, u, equations, dg.mortar, dg)
@@ -571,13 +571,13 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
 end
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_conditions::Nothing,
+function calc_boundary_flux!(cache, t, boundary_condition::Nothing,
                              equations::AbstractEquations{2}, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_conditions,
+function calc_boundary_flux!(cache, t, boundary_condition,
                              equations::AbstractEquations{2}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
@@ -588,13 +588,13 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
 
   # Calc boundary fluxes in each direction
   for direction in eachindex(firsts)
-    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions,
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
                                      equations, dg, cache,
                                      direction, firsts[direction], lasts[direction])
   end
 end
 
-function calc_boundary_flux!(cache, t, boundary_conditions::NTuple{4,Any},
+function calc_boundary_flux!(cache, t, boundary_condition::NTuple{4,Any},
                              equations::AbstractEquations{2}, dg::DG) # 4 = 2*ndims
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
@@ -604,13 +604,13 @@ function calc_boundary_flux!(cache, t, boundary_conditions::NTuple{4,Any},
   firsts = lasts - n_boundaries_per_direction .+ 1
 
   # Calc boundary fluxes in each direction
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[1],
                                    equations, dg, cache, 1, firsts[1], lasts[1])
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[2],
                                    equations, dg, cache, 2, firsts[2], lasts[2])
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[3],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[3],
                                    equations, dg, cache, 3, firsts[3], lasts[3])
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[4],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[4],
                                    equations, dg, cache, 4, firsts[4], lasts[4])
 end
 

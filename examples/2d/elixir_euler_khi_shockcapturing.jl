@@ -7,7 +7,7 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-initial_conditions = initial_conditions_khi
+initial_condition = initial_condition_khi
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
@@ -28,7 +28,7 @@ coordinates_max = ( 0.5,  0.5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=5,
                 n_cells_max=100_000)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

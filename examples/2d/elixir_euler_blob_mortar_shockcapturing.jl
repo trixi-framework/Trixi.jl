@@ -7,7 +7,7 @@ using Trixi
 gamma = 5/3
 equations = CompressibleEulerEquations2D(gamma)
 
-initial_conditions = initial_conditions_blob
+initial_condition = initial_condition_blob
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
@@ -35,7 +35,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 refinement_patches=refinement_patches,
                 n_cells_max=100_000,)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_conditions = initial_conditions_blast_wave
+initial_condition = initial_condition_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
@@ -29,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

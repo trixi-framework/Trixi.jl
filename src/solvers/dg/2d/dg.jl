@@ -10,7 +10,7 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
 
-  initial_conditions::InitialConditions
+  initial_condition::InitialConditions
   source_terms::SourceTerms
 
   elements::ElementContainer2D{Float64, NVARS, POLYDEG}
@@ -29,7 +29,7 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   ecmortars::EcMortarContainer2D{Float64, NVARS, POLYDEG}
   n_ecmortars::Int
 
-  boundary_conditions::BoundaryConditions
+  boundary_condition::BoundaryConditions
 
   nodes::VectorNnodes
   weights::VectorNnodes
@@ -76,7 +76,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -105,7 +105,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   end
 
   # Initialize boundary conditions
-  boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
+  boundary_condition = init_boundary_condition(n_boundaries_per_direction, mesh)
 
   # Initialize interpolation data structures
   n_nodes = POLYDEG + 1
@@ -209,14 +209,14 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   dg = Dg2D(
       equation,
       surface_flux_function, volume_flux_function,
-      initial_conditions, source_terms,
+      initial_condition, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      Tuple(boundary_conditions),
+      Tuple(boundary_condition),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
@@ -673,21 +673,21 @@ function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{2})
 end
 
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+function init_boundary_condition(n_boundaries_per_direction, mesh::TreeMesh{2})
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
-  bcs = parameter("boundary_conditions", ["nothing", "nothing", "nothing", "nothing"])
+  bcs = parameter("boundary_condition", ["nothing", "nothing", "nothing", "nothing"])
   if bcs isa AbstractArray
-    boundary_conditions = eval_if_not_function.(bcs)
+    boundary_condition = eval_if_not_function.(bcs)
   else
     # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
-    boundary_conditions = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
+    boundary_condition = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
   end
 
   # Sanity check about specifying boundary conditions
   for direction in 1:n_directions(mesh.tree)
-    bc = boundary_conditions[direction]
+    bc = boundary_condition[direction]
     count = n_boundaries_per_direction[direction]
     if direction == 1
       dir = "-x"
@@ -706,7 +706,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
     end
   end
 
-  return boundary_conditions
+  return boundary_condition
 end
 
 
@@ -813,7 +813,7 @@ function calc_error_norms(func, dg::Dg2D, t)
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
-      u_exact = dg.initial_conditions(get_node_coords(x, dg, i, j), t, equation)
+      u_exact = dg.initial_condition(get_node_coords(x, dg, i, j), t, equation)
       diff = func(u_exact, equation) - func(get_node_vars(u, dg, i, j), equation)
       l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))
@@ -1102,7 +1102,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   if :energy_potential in dg.analysis_quantities
     # FIXME: This should be implemented properly for multiple coupled solvers
     @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+    @assert dg.initial_condition == initial_condition_jeans_instability "Only works with Jeans instability setup"
 
     e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
       cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
@@ -1243,14 +1243,14 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions!(dg::Dg2D, time)
+function set_initial_condition!(dg::Dg2D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
   for element_id in 1:dg.n_elements
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
+        dg.elements.u[:, i, j, element_id] .= dg.initial_condition(
             dg.elements.node_coordinates[:, i, j, element_id], time, equation)
       end
     end
@@ -1927,7 +1927,7 @@ end
 calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
 
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
-  @unpack n_boundaries_per_direction, boundary_conditions = dg
+  @unpack n_boundaries_per_direction, boundary_condition = dg
 
   # Calculate indices
   lasts = accumulate(+, n_boundaries_per_direction)
@@ -1935,13 +1935,13 @@ function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
 
   # Calc boundary fluxes in each direction
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_conditions[1], 1, firsts[1], lasts[1])
+                                   boundary_condition[1], 1, firsts[1], lasts[1])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_conditions[2], 2, firsts[2], lasts[2])
+                                   boundary_condition[2], 2, firsts[2], lasts[2])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_conditions[3], 3, firsts[3], lasts[3])
+                                   boundary_condition[3], 3, firsts[3], lasts[3])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_conditions[4], 4, firsts[4], lasts[4])
+                                   boundary_condition[4], 4, firsts[4], lasts[4])
 end
 
 

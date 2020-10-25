@@ -3,7 +3,7 @@
 ndims = 2
 equations = "IdealGlmMhdEquations"
 gamma = 1.4
-initial_conditions = "initial_conditions_blast_wave"
+initial_condition = "initial_condition_blast_wave"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_central"
 
