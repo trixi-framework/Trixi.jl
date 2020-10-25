@@ -10,7 +10,6 @@ equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
 boundary_condition = boundary_condition_gauss
-#boundary_condition = ntuple(n->boundary_condition_gauss, 2)
 
 surface_flux = flux_lax_friedrichs
 polydeg = 3

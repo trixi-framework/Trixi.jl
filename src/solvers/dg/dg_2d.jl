@@ -594,8 +594,8 @@ function calc_boundary_flux!(cache, t, boundary_condition,
   end
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::NTuple{4,Any},
-                             equations::AbstractEquations{2}, dg::DG) # 4 = 2*ndims
+function calc_boundary_flux!(cache, t, boundary_condition::Union{NamedTuple,Tuple},
+                             equations::AbstractEquations{2}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
 

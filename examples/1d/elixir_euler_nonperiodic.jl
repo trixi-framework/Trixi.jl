@@ -15,7 +15,8 @@ source_terms = source_terms_convergence_test
 # 1*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
 # boundary_condition = boundary_condition_convergence_test
-boundary_condition = ntuple(n->boundary_condition_convergence_test, 2)
+boundary_condition = (x_neg=boundary_condition_convergence_test,
+                      x_pos=boundary_condition_convergence_test)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)

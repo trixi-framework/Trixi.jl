@@ -162,7 +162,7 @@ end
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions,
+struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryCondition,
                                     SourceTerms, Solver, Cache} <: AbstractSemidiscretization
 
   mesh::Mesh
@@ -172,17 +172,17 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   # although this doesn't really exist...
   initial_condition::InitialConditions
 
-  boundary_condition::BoundaryConditions
+  boundary_condition::BoundaryCondition
   source_terms::SourceTerms
   solver::Solver
   cache::Cache
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}(
+  function SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryCondition, SourceTerms, Solver, Cache}(
       mesh::Mesh, equations::Equations,
-      initial_condition::InitialConditions, boundary_condition::BoundaryConditions,
+      initial_condition::InitialConditions, boundary_condition::BoundaryCondition,
       source_terms::SourceTerms,
-      solver::Solver, cache::Cache) where {Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
+      solver::Solver, cache::Cache) where {Mesh, Equations, InitialConditions, BoundaryCondition, SourceTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
 
     performance_counter = PerformanceCounter()
@@ -203,10 +203,33 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       boundary_condition=nothing, RealT=real(solver))
 
   cache = create_cache(mesh, equations, solver, RealT)
+  _boundary_condition = digest_boundary_condition(boundary_condition)
 
-  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(boundary_condition), typeof(source_terms), typeof(solver), typeof(cache)}(
-    mesh, equations, initial_condition, boundary_condition, source_terms, solver, cache)
+  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_condition), typeof(source_terms), typeof(solver), typeof(cache)}(
+    mesh, equations, initial_condition, _boundary_condition, source_terms, solver, cache)
 end
+
+
+# allow passing named tuples of BCs constructed in an arbitrary order
+digest_boundary_condition(boundary_condition) = boundary_condition
+
+function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{2,Symbol}}) # 1D
+  @unpack x_neg, x_pos = boundary_condition
+  (; x_neg, x_pos)
+end
+function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{4,Symbol}}) # 2D
+  @unpack x_neg, x_pos, y_neg, y_pos = boundary_condition
+  (; x_neg, x_pos, y_neg, y_pos)
+end
+function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{6,Symbol}}) # 3D
+  @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_condition
+  (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
+end
+
+function digest_boundary_condition(boundary_condition::AbstractArray)
+  throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
 
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)

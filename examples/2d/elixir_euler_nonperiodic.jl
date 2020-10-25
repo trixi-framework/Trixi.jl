@@ -14,7 +14,10 @@ source_terms = source_terms_convergence_test
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
 # boundary_condition = boundary_condition_convergence_test
-boundary_condition = ntuple(n->boundary_condition_convergence_test, 4)
+boundary_condition = (x_neg=boundary_condition_convergence_test,
+                      x_pos=boundary_condition_convergence_test,
+                      y_neg=boundary_condition_convergence_test,
+                      y_pos=boundary_condition_convergence_test,)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
