@@ -11,18 +11,18 @@ end
 
 
 """
-    integrate(func, semi::AbstractSemidiscretization, u_ode::AbstractVector, args...; normalize=true)
+    integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
 
 Call `func(u, i..., element, equations, solver, args...)` for all nodal indices `i..., element`
 and integrate the result using a quadrature associated with the semidiscretization `semi`.
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func, semi::AbstractSemidiscretization, u_ode::AbstractVector, args...; normalize=true)
+function integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
-  integrate(func, mesh, equations, solver, cache, u, args..., normalize=normalize)
+  integrate_via_indices(func, u, mesh, equations, solver, cache, args..., normalize=normalize)
 end
 
 """
@@ -299,8 +299,8 @@ end
 # - real(solver)
 # - create_cache(mesh, equations, solver, RealT)
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
-# - integrate(func, mesh, equations, solver, cache, u; normalize=true)
-# - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)
+# - integrate(func, u, mesh, equations, solver, cache; normalize=true)
+# - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)
 # - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)

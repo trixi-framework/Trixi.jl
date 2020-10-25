@@ -75,7 +75,7 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::Semidiscr
   mesh, equations_euler, dg, cache = Trixi.mesh_equations_solver_cache(semi.semi_euler)
   _, equations_gravity, _, _ = Trixi.mesh_equations_solver_cache(semi.semi_gravity)
 
-  e_potential = Trixi.integrate(mesh, equations_euler, dg, cache, u_euler, equations_gravity, u_gravity) do u, i, j, element, equations_euler, dg, equations_gravity, u_gravity
+  e_potential = Trixi.integrate_via_indices(u_euler, mesh, equations_euler, dg, cache, equations_gravity, u_gravity) do u, i, j, element, equations_euler, dg, equations_gravity, u_gravity
     u_euler_local   = Trixi.get_node_vars(u_euler,   equations_euler,   dg, i, j, element)
     u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
     # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
