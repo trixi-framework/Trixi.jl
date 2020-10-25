@@ -120,10 +120,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @testset "elixir_euler_khi_shockcapturing_amr.jl with tend = 0.2" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-    l2   = [0.0019809356303815313, 0.006538462481807526, 0.004737804472678921, 0.0050181776990539505],
-    linf = [0.016342197215556853, 0.03993613023503173, 0.015293069044755532, 0.024177402362647094],
-    tspan = (0.0, 0.2))
+  if Threads.nthreads() == 1
+    # This example uses random numbers to generate the initial condition.
+    # Hence, we can only check "errors" if everything is made reproducible.
+    # However, that's not enough to ensure reproducibility since the stream
+    # of random numbers is not guaranteed to be the same across different
+    # minor versions of Julia.
+    # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      l2   = [0.0019809356303815313, 0.006538462481807526, 0.004737804472678921, 0.0050181776990539505],
+      linf = [0.016342197215556853, 0.03993613023503173, 0.015293069044755532, 0.024177402362647094],
+      tspan = (0.0, 0.2))
+  else
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      tspan = (0.0, 0.2))
+  end
   end
 
   @testset "elixir_euler_vortex.jl" begin
