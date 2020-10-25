@@ -1,7 +1,7 @@
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
-                interval=5,
+                interval,
                 adapt_initial_conditions=true,
                 adapt_initial_conditions_only_refine=true)
 
@@ -18,7 +18,7 @@ end
 
 
 function AMRCallback(semi, controller, adaptor;
-                     interval=nothing,
+                     interval,
                      adapt_initial_conditions=true,
                      adapt_initial_conditions_only_refine=true)
   # check arguments
