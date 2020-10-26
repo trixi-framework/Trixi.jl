@@ -83,10 +83,10 @@ function generate_mesh()
                                              domain_length, periodicity)
 
   # Create initial refinement
-  initial_refinement_level = parameter("initial_refinement_level")
-  @timeit timer() "initial refinement" for l = 1:initial_refinement_level
-    refine!(mesh.tree)
-  end
+  # initial_refinement_level = parameter("initial_refinement_level")
+  # @timeit timer() "initial refinement" for l = 1:initial_refinement_level
+  #   refine!(mesh.tree)
+  # end
 
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])

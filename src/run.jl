@@ -1,5 +1,5 @@
 using LinearMaps: LinearMap
-
+using P4est
 
 """
     run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
@@ -44,6 +44,7 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
     mesh, solver, time_parameters, time_integration_function = init_simulation()
     run_simulation(mesh, solver, time_parameters, time_integration_function)
   end
+  #TODO: Destroy P4est tree and connectivity
 end
 
 

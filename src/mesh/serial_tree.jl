@@ -19,6 +19,8 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
+using P4est
+include("../amr/p4est/func.jl") 
 mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   parent_ids::Vector{Int}
   child_ids::Matrix{Int}
@@ -34,6 +36,8 @@ mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   center_level_0::SVector{NDIMS, Float64}
   length_level_0::Float64
   periodicity::NTuple{NDIMS, Bool}
+  conn::Ptr{p4est_connectivity_t}
+  forest::Ptr{p4est_t}
 
   function SerialTree{NDIMS}(capacity::Integer) where NDIMS
     # Verify that NDIMS is an integer
@@ -68,7 +72,7 @@ SerialTree(::Val{NDIMS}, args...) where NDIMS = SerialTree{NDIMS}(args...)
 
 # Create and initialize tree
 function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
-                 length::Real, periodicity=true) where NDIMS
+                 length::Real, periodicity=true, conn=C_NULL,forest=C_NULL) where NDIMS
   # Create instance
   t = SerialTree{NDIMS}(capacity)
 
@@ -89,19 +93,65 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   # Set domain information
   t.center_level_0 = center
   t.length_level_0 = length
+  t.conn = P4est.p4est_connectivity_new_periodic()
+  # p4est = ccall((:p4est_new_ext, libp4est),Ptr{p4est_t},
+  #   (Int32,Ptr{Cvoid},Int32, Int32, In1t32, Int32, Ptr{Cvoid},Ptr{Cvoid}),
+  #   mpicomm, conn, 0, 2, 0, sizeof(qinner_data_t),C_NULL, C_NULL)
+  min_level = parameter("initial_refinement_level")::Int
+  uniform = 1
+  t.forest = P4est.p4est_new_ext(0, t.conn,0,min_level,uniform,0, C_NULL, C_NULL)
+  local_num_quads = Int64(t.forest.local_num_quadrants)
+  Connection = zeros(Int32, 11,local_num_quads)
+  QuadInfo = zeros(Int32, 4,local_num_quads)
+  
+  conn_ptr = pointer(Connection)
+  quadinfo_ptr = pointer(QuadInfo)
+# 1 - level
+# 2 - coord x
+# 3 Coord y
+# 4.-5. Nbleft x2 
+# 6.-7. NbRight x2
+# 8.-9. NbDown x2
+# 10.-11. NbLeft x2
+# in P4est
+# 0 - -x
+# 1 - +x
+# 2 - -y
+# 3 - +y
+##
+  P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
+  P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
+  # P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, CvolumeIterate, C_NULL, C_NULL)
 
+  # @show QuadInfo
   # Create root cell
-  t.length += 1
-  t.parent_ids[1] = 0
-  t.child_ids[:, 1] .= 0
-  t.levels[1] = 0
-  t.coordinates[:, 1] .= t.center_level_0
-  t.original_cell_ids[1] = 0
+  t.length += local_num_quads
+  t.parent_ids[1:local_num_quads] .= 0
+  t.child_ids[:, 1:local_num_quads] .= 0
+  t.levels[1:local_num_quads] .= QuadInfo[2,1:local_num_quads]
+  
+  # Get domain boundaries
+  coordinates_min = parameter("coordinates_min")
+  coordinates_max = parameter("coordinates_max")
 
+  # t.coordinates[:, 1] .= t.center_level_0
+  for id = 1:local_num_quads
+    t.coordinates[1, id] = coordinates_min[1] + (coordinates_max[1] - coordinates_min[1]) / 512 *
+        (QuadInfo[3, id] + 512/(2^(QuadInfo[2,id] + 1)))
+    t.coordinates[2, id] = coordinates_min[2] +  (coordinates_max[2] - coordinates_min[2]) / 512 *
+        (QuadInfo[4, id] + 512/(2^(QuadInfo[2,id] + 1)))
+  end
+  t.original_cell_ids[1:local_num_quads] .= QuadInfo[1,1:local_num_quads]
+  for id = 1:local_num_quads
+      t.neighbor_ids[1, id] = Connection[4,id]
+      t.neighbor_ids[2, id] = Connection[6,id]
+      t.neighbor_ids[3, id] = Connection[8,id]
+      t.neighbor_ids[4, id] = Connection[10,id]
+  end
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
     # Also catches case where periodicity = true
-    t.neighbor_ids[:, 1] .= 1
+    # t.neighbor_ids[:, 1] .= 1
     t.periodicity = ntuple(x->true, ndims(t))
   elseif !any(periodicity)
     # Also catches case where periodicity = false
@@ -109,10 +159,11 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
     t.periodicity = ntuple(x->false, ndims(t))
   else
     # Default case if periodicity is an iterable
+
     for dimension in 1:ndims(t)
       if periodicity[dimension]
-        t.neighbor_ids[2 * dimension - 1, 1] = 1
-        t.neighbor_ids[2 * dimension - 0, 1] = 1
+    #     t.neighbor_ids[2 * dimension - 1, 1] = 1
+    #     t.neighbor_ids[2 * dimension - 0, 1] = 1
       else
         t.neighbor_ids[2 * dimension - 1, 1] = 0
         t.neighbor_ids[2 * dimension - 0, 1] = 0
