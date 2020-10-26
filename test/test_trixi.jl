@@ -30,23 +30,23 @@ end
 
 
 """
-    test_trixi_include(parameters_file; l2=nothing, linf=nothing, atol=10*eps(), rtol=0.001, parameters...)
+    test_trixi_include(elixir_file; l2=nothing, linf=nothing, atol=10*eps(), rtol=0.001, parameters...)
 
-Test Trixi by calling `trixi_include(parameters_file; parameters...)`.
+Test Trixi by calling `trixi_include(elixir_file; parameters...)`.
 By default, only the absence of error output is checked.
 If `l2` or `linf` are specified, in addition the resulting L2/Linf errors
 are compared approximately against these reference values, using `atol, rtol`
 as absolute/relative tolerance.
 """
-function test_trixi_include(parameters_file; l2=nothing, linf=nothing,
-                                             atol=200*eps(), rtol=0.001,
-                                             kwargs...)
+function test_trixi_include(elixir_file; l2=nothing, linf=nothing,
+                                         atol=200*eps(), rtol=0.001,
+                                         kwargs...)
 
   println("#"^80)
-  println(parameters_file)
+  println(elixir_file)
 
   # evaluate examples in the scope of the module they're called from
-  @test_nowarn trixi_include(@__MODULE__, parameters_file; kwargs...)
+  @test_nowarn trixi_include(@__MODULE__, elixir_file; kwargs...)
 
   # If present, compare L2 and Linf errors against reference values
   if !isnothing(l2) || !isnothing(linf)
