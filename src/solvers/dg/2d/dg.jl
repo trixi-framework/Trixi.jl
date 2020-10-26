@@ -1657,10 +1657,10 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, element_id, dg::Dg2D, nonconservative_terms::Val{false})
   @unpack surface_flux_function = dg
 
-  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
-  fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
-  fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
-  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
+  @views fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  @views fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  @views fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
+  @views fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
   for j in 1:nnodes(dg)
     for i in 2:nnodes(dg)
@@ -1672,10 +1672,10 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
     end
   end
 
-  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
-  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
-  fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
-  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
+  @views fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  @views fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  @views fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
+  @views fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
 
   for j in 2:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1710,7 +1710,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   #############
   
   # Compute first "flux"
-  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  @views fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   for j in 1:nnodes(dg)
     u_rr = get_node_vars(u, dg, 1,   j, element_id)
     # Compute non-conservative part
@@ -1737,7 +1737,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   end
   
   # Compute last "flux"
-  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  @views fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
   for j in 1:nnodes(dg)
     u_ll = get_node_vars(u, dg, nnodes(dg),   j, element_id)
     # Compute non-conservative part
@@ -1751,7 +1751,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   
   
   # Compute first "flux"
-  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  @views fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
     u_rr = get_node_vars(u, dg, i,   1, element_id)
     # Compute non-conservative part
@@ -1778,7 +1778,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   end
   
   # Compute last "flux"
-  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  @views fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
     u_ll = get_node_vars(u, dg, i, nnodes(dg), element_id)
     # Compute non-conservative part
