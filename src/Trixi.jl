@@ -46,7 +46,7 @@ export globals
 # Placing them here allows us to make use of them for dispatch even for
 # other stuff defined very early in our include pipeline, e.g.
 #     IndicatorLöhner(semi::AbstractSemidiscretization)
-include("abstract_types.jl")
+include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
@@ -83,7 +83,7 @@ export initial_condition_convergence_test,
        initial_condition_density_wave, initial_condition_sedov_blast_wave,
        initial_condition_orszag_tang, initial_condition_rotor
 
-export boundary_condition_convergence_test, boundary_condition_gauss
+export boundary_condition_periodic, boundary_condition_convergence_test, boundary_condition_gauss
 
 export source_terms_convergence_test, source_terms_harmonic
 

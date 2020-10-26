@@ -12,8 +12,8 @@ initial_condition = Trixi.initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
 boundary_condition = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
                       x_pos=Trixi.boundary_condition_poisson_nonperiodic,
-                      y_neg=nothing, # `nothing` means periodic
-                      y_pos=nothing)
+                      y_neg=boundary_condition_periodic,
+                      y_pos=boundary_condition_periodic)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(4, surface_flux)

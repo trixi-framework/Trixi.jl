@@ -194,13 +194,13 @@ end
 """
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
-                                 boundary_condition=nothing)
+                                 boundary_condition=boundary_condition_periodic)
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms=nothing,
-                                      boundary_condition=nothing, RealT=real(solver))
+                                      boundary_condition=boundary_condition_periodic, RealT=real(solver))
 
   cache = create_cache(mesh, equations, solver, RealT)
   _boundary_condition = digest_boundary_condition(boundary_condition)

@@ -36,3 +36,13 @@ abstract type AdaptorL2{RealT<:Real} <: AdaptorAMR{RealT} end
 
 
 # TODO: Taal decide, which abstract types shall be defined here?
+
+
+struct BoundaryConditionPeriodic end
+
+"""
+    boundary_condition_periodic = BoundaryConditionPeriodic()
+
+A singleton struct indicating periodic boundary conditions.
+"""
+const boundary_condition_periodic = BoundaryConditionPeriodic()

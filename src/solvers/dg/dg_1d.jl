@@ -346,7 +346,7 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,3}, equations, dg::DG
 end
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::Nothing,
+function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
                              equations::AbstractEquations{1}, dg::DG)
   @assert isempty(eachboundary(dg, cache))
 end
