@@ -1,6 +1,8 @@
 
 function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
                 constant_speed::Val{false}, equations, dg::DG, cache)
+  # Use `nextfloat` to avoid division by zero if lambda is ~zero (e.g., linear scalar advection with
+  # vanishing velocity)
   max_λ1 = max_λ2 = nextfloat(zero(t))
 
   for element in eachelement(dg, cache)
@@ -19,6 +21,8 @@ end
 
 function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
                 constant_speed::Val{true}, equations, dg::DG, cache)
+  # Use `nextfloat` to avoid division by zero if lambda is ~zero (e.g., linear scalar advection with
+  # vanishing velocity)
   max_λ1 = max_λ2 = nextfloat(zero(t))
 
   for element in eachelement(dg, cache)
