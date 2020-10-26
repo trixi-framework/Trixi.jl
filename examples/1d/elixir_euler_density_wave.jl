@@ -6,7 +6,7 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 equations = CompressibleEulerEquations1D(1.4)
 
-initial_conditions = initial_conditions_density_wave
+initial_condition = initial_condition_density_wave
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(5, surface_flux)
@@ -18,7 +18,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

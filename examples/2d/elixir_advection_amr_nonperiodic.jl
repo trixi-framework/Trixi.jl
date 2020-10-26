@@ -9,7 +9,7 @@ advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-initial_conditions = initial_conditions_gauss
+initial_condition = initial_condition_gauss
 
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
@@ -27,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions)
 
 
@@ -45,8 +45,8 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       max_level=6, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
