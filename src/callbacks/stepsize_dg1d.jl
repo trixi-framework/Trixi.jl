@@ -1,7 +1,7 @@
 
 function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
                 constant_speed::Val{false}, equations, dg::DG, cache)
-  max_λ1 = max_λ2 = nextfloat(zero(t))
+  max_λ1 = nextfloat(zero(t))
 
   for element in eachelement(dg, cache)
     inv_jacobian = cache.elements.inverse_jacobian[element]
