@@ -40,12 +40,10 @@ function Base.resize!(elements::ElementContainer2D{RealT, NVARS, POLYDEG},
                              (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(_u_tmp2, NVARS * n_nodes * n_nodes * capacity)
-  _u_tmp2 .= zero(eltype(_u_tmp2))
   elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
                                 (NVARS, n_nodes, n_nodes, capacity))
 
   resize!(_u_tmp3, NVARS * n_nodes * n_nodes * capacity)
-  _u_tmp3 .= zero(eltype(_u_tmp3))
   elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
                                 (NVARS, n_nodes, n_nodes, capacity))
 
