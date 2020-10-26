@@ -45,7 +45,7 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
     run_simulation(mesh, solver, time_parameters, time_integration_function)
   end
   #TODO: Destroy P4est forest and connectivity
-  p4est_finalize!(mesh)
+  # p4est_finalize!(mesh)
 end
 
 
