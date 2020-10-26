@@ -4,9 +4,9 @@ ndims = 2
 equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
-initial_conditions = "initial_conditions_poisson_nonperiodic"
-boundary_conditions = ["boundary_conditions_poisson_nonperiodic",
-                       "boundary_conditions_poisson_nonperiodic",
+initial_condition = "initial_condition_poisson_nonperiodic"
+boundary_conditions = ["boundary_condition_poisson_nonperiodic",
+                       "boundary_condition_poisson_nonperiodic",
                        "nothing",
                        "nothing"]
 

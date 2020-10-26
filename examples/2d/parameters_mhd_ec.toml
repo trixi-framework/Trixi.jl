@@ -3,7 +3,7 @@
 ndims = 2
 equations = "IdealGlmMhdEquations"
 gamma = 1.4
-initial_conditions = "initial_conditions_ec_test"
+initial_condition = "initial_condition_ec_test"
 surface_flux = "flux_derigs_etal"
 
 volume_flux = "flux_derigs_etal"

@@ -7,7 +7,7 @@ using Trixi
 gamma = 5/3
 equations = IdealGlmMhdEquations2D(gamma)
 
-initial_conditions = initial_conditions_convergence_test
+initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_hll
 volume_flux  = flux_derigs_etal
@@ -24,7 +24,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 refinement_patches=refinement_patches,
                 n_cells_max=10_000,)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

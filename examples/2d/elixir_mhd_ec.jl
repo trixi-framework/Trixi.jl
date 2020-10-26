@@ -7,7 +7,7 @@ using Trixi
 
 equations = IdealGlmMhdEquations2D(1.4)
 
-initial_conditions = Trixi.initial_conditions_ec_test
+initial_condition = Trixi.initial_condition_ec_test
 
 surface_flux = flux_derigs_etal
 volume_flux  = flux_derigs_etal
@@ -20,7 +20,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

@@ -26,14 +26,14 @@ varnames_prim(::LinearScalarAdvectionEquation3D) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))]
 end
 
-function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -46,7 +46,7 @@ function initial_conditions_convergence_test(x, t, equation::LinearScalarAdvecti
   return @SVector [scalar]
 end
 
-function initial_conditions_sin_periodic(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_sin_periodic(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -54,14 +54,14 @@ function initial_conditions_sin_periodic(x, t, equation::LinearScalarAdvectionEq
   return @SVector [scalar]
 end
 
-function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
   return @SVector [2.0]
 end
 
-function initial_conditions_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
+function initial_condition_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -70,10 +70,10 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_linear_z(u_inner, orientation, direction, x, t,
+function boundary_condition_linear_z(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::LinearScalarAdvectionEquation3D)
-  u_boundary = initial_conditions_linear_z(x, t, equation)
+  u_boundary = initial_condition_linear_z(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary

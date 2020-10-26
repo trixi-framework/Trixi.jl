@@ -21,7 +21,7 @@ varnames_prim(::CompressibleEulerEquations3D) = @SVector ["rho", "v1", "v2", "v3
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations3D)
   rho = 1 + exp(-(x[1]^2 + x[2]^2 + x[3]^2))/2
   v1 = 1
   v2 = 1
@@ -34,7 +34,7 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
 end
 
-function initial_conditions_constant(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_constant(x, t, equation::CompressibleEulerEquations3D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -43,7 +43,7 @@ function initial_conditions_constant(x, t, equation::CompressibleEulerEquations3
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
 end
 
-function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations3D)
   c = 2
   A = 0.1
   L = 2
@@ -60,7 +60,7 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
 end
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations3D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up spherical coordinates
   inicenter = (0, 0, 0)
@@ -81,7 +81,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations3D)
   # Calculate radius as distance from origin
   r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
@@ -105,7 +105,7 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations3D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
@@ -124,7 +124,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_sedov_self_gravity(x, t, equation::CompressibleEulerEquations3D)
   # Calculate radius as distance from origin
   r = sqrt(x[1]^2 + x[2]^2 + x[3]^2)
 
@@ -155,7 +155,7 @@ function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_taylor_green_vortex(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_taylor_green_vortex(x, t, equation::CompressibleEulerEquations3D)
   A  = 1.0 # magnitude of speed
   Ms = 0.1 # maximum Mach number
 
@@ -169,7 +169,7 @@ function initial_conditions_taylor_green_vortex(x, t, equation::CompressibleEule
   return prim2cons(SVector(rho, v1, v2, v3, p), equation)
 end
 
-function initial_conditions_blob(x, t, equation::CompressibleEulerEquations3D)
+function initial_condition_blob(x, t, equation::CompressibleEulerEquations3D)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
   # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
   # change discontinuity to tanh
@@ -208,11 +208,11 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::CompressibleEulerEquations3D)
   # velocities are zero, density/pressure are ambient values according to
-  # initial_conditions_sedov_self_gravity
+  # initial_condition_sedov_self_gravity
   rho = 1e-5
   v1 = 0.0
   v2 = 0.0
@@ -234,7 +234,7 @@ end
 
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
@@ -271,7 +271,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 end
 
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
@@ -296,7 +296,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
 end
 
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0

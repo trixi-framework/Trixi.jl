@@ -1,6 +1,6 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg1D{Eqn<:AbstractEquations, NVARS, POLYDEG,
-                  SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                  SurfaceFlux, VolumeFlux, InitialCondition, SourceTerms, BoundaryConditions,
                   VolumeIntegralType, ShockIndicatorVariable,
                   VectorNnodes, MatrixNnodes, MatrixNnodes2,
                   InverseVandermondeLegendre, MortarMatrix,
@@ -10,7 +10,7 @@ mutable struct Dg1D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
 
-  initial_conditions::InitialConditions
+  initial_condition::InitialCondition
   source_terms::SourceTerms
 
   elements::ElementContainer1D{Float64, NVARS, POLYDEG}
@@ -70,7 +70,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg1D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg1D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -190,7 +190,7 @@ function Dg1D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   dg = Dg1D(
       equation,
       surface_flux_function, volume_flux_function,
-      initial_conditions, source_terms,
+      initial_condition, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
@@ -615,7 +615,7 @@ function calc_error_norms(func, dg::Dg1D, t)
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for i in 1:n_nodes_analysis
-      u_exact = dg.initial_conditions(get_node_coords(x, dg, i), t, equation)
+      u_exact = dg.initial_condition(get_node_coords(x, dg, i), t, equation)
       diff = func(u_exact, equation) - func(get_node_vars(u, dg, i), equation)
       l2_error += diff.^2 * (weights[i] *  jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))
@@ -936,13 +936,13 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions!(dg::Dg1D, time)
+function set_initial_condition!(dg::Dg1D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
   for element_id in 1:dg.n_elements
       for i in 1:nnodes(dg)
-        dg.elements.u[:, i, element_id] .= dg.initial_conditions(
+        dg.elements.u[:, i, element_id] .= dg.initial_condition(
             dg.elements.node_coordinates[:, i, element_id], time, equation)
       end
   end

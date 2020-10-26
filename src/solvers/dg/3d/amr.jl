@@ -373,7 +373,7 @@ function calc_amr_indicator(dg::Dg3D, mesh::TreeMesh, time::Float64)
 
     end
   elseif dg.amr_indicator === :density_pulse
-    # Works with initial_conditions_density_pulse for compressible Euler equations
+    # Works with initial_condition_density_pulse for compressible Euler equations
     base_level = 4
     max_level = 6
     threshold_high = 1.3

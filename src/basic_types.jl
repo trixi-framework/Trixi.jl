@@ -18,7 +18,7 @@ abstract type AbstractMortar{RealT<:Real} end
 
 # abstract supertype of mortar methods using L² projection
 # which will be specialized for different SBP bases
-abstract type MortarL2{RealT<:Real} <: AbstractMortar{RealT} end
+abstract type AbstractMortarL2{RealT<:Real} <: AbstractMortar{RealT} end
 
 
 # abstract supertype of functionality related to the analysis of
@@ -36,3 +36,13 @@ abstract type AdaptorL2{RealT<:Real} <: AdaptorAMR{RealT} end
 
 
 # TODO: Taal decide, which abstract types shall be defined here?
+
+
+struct BoundaryConditionPeriodic end
+
+"""
+    boundary_condition_periodic = BoundaryConditionPeriodic()
+
+A singleton struct indicating periodic boundary conditions.
+"""
+const boundary_condition_periodic = BoundaryConditionPeriodic()

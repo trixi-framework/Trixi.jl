@@ -155,7 +155,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::D
       u0 = indicator[i,   j]
       up = indicator[i+1, j]
       um = indicator[i-1, j]
-      estimate = max(estimate, löhner(um, u0, up))
+      estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner))
     end
 
     for j in 2:nnodes(dg)-1, i in eachnode(dg)
@@ -163,7 +163,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::D
       u0 = indicator[i, j, ]
       up = indicator[i, j+1]
       um = indicator[i, j-1]
-      estimate = max(estimate, löhner(um, u0, up))
+      estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner))
     end
 
     # use the maximum as DG element indicator

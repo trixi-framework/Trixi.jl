@@ -1,6 +1,6 @@
 
 function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-                          mesh::TreeMesh{1}, equations, initial_conditions,
+                          mesh::TreeMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -25,7 +25,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
     jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
 
     for i in eachnode(analyzer)
-      u_exact = initial_conditions(get_node_coords(x_local, equations, dg, i), t, equations)
+      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i), equations)
       l2_error += diff.^2 * (weights[i] * jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))
@@ -40,8 +40,9 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
 end
 
 
-function integrate(func, mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
-                   u::AbstractArray{<:Any,3}, args...; normalize=true)
+function integrate_via_indices(func, u::AbstractArray{<:Any,3},
+                               mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
+                               args...; normalize=true)
   @unpack weights = dg.basis
 
   # Initialize integral with zeros of the right shape
@@ -66,23 +67,20 @@ end
 
 function integrate(func, u::AbstractArray{<:Any,3},
                    mesh::TreeMesh{1}, equations, dg::DGSEM, cache; normalize=true)
-  func_wrapped = function(u, i, element, equations, dg)
+  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, element)
     return func(u_local, equations)
   end
-  return integrate(func_wrapped, mesh, equations, dg, cache, u; normalize=normalize)
 end
 
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u, t,
                  mesh::TreeMesh{1}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(mesh, equations, dg, cache, u, du) do u, i, element, equations, dg, du
+  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, element)
     du_node = get_node_vars(du, equations, dg, i, element)
     dot(cons2entropy(u_node, equations), du_node)
   end
-
-  return dsdu_ut
 end
 

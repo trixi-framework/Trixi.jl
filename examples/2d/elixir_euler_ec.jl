@@ -6,7 +6,7 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_conditions = initial_conditions_weak_blast_wave
+initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_chandrashekar
 volume_flux  = flux_chandrashekar
@@ -19,7 +19,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

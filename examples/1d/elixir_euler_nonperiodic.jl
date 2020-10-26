@@ -7,15 +7,16 @@ using Trixi
 
 equations = CompressibleEulerEquations1D(1.4)
 
-initial_conditions = initial_conditions_convergence_test
+initial_condition = initial_condition_convergence_test
 
 source_terms = source_terms_convergence_test
 
 # you can either use a single function to impose the BCs weakly in all
 # 1*ndims == 2 directions or you can pass a tuple containing BCs for
 # each direction
-# boundary_conditions = boundary_conditions_convergence_test
-boundary_conditions = ntuple(n->boundary_conditions_convergence_test, 2)
+# boundary_conditions = boundary_condition_convergence_test
+boundary_conditions = (x_neg=boundary_condition_convergence_test,
+                       x_pos=boundary_condition_convergence_test)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
@@ -28,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms,
                                     boundary_conditions=boundary_conditions)
 

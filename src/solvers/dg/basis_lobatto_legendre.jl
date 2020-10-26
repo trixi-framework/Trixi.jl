@@ -69,7 +69,7 @@ end
 
 
 
-struct LobattoLegendreMortarL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: MortarL2{RealT}
+struct LobattoLegendreMortarL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
   forward_upper::MortarMatrix
   forward_lower::MortarMatrix
   reverse_upper::MortarMatrix
@@ -109,9 +109,9 @@ end
 
 
 # TODO: We can create EC mortars along the lines of the following implementation.
-# abstract type MortarEC{RealT} <: AbstractMortar{RealT} end
+# abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
-# struct LobattoLegendreMortarEC{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}, SurfaceFlux} <: MortarL2{RealT}
+# struct LobattoLegendreMortarEC{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}, SurfaceFlux} <: AbstractMortarEC{RealT}
 #   forward_upper::MortarMatrix
 #   forward_lower::MortarMatrix
 #   reverse_upper::MortarMatrix

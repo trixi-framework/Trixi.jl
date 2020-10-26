@@ -139,7 +139,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3}, equations, dg::D
       u0 = indicator[i, ]
       up = indicator[i+1]
       um = indicator[i-1]
-      estimate = max(estimate, löhner(um, u0, up))
+      estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner_))
     end
 
     # use the maximum as DG element indicator

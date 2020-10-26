@@ -325,6 +325,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     end
   end
 
+  # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
 
   # Return errors for EOC analysis

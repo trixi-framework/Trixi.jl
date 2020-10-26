@@ -11,7 +11,7 @@ using Trixi
 # semidiscretization of the compressible ideal GLM-MHD equations
 equations = IdealGlmMhdEquations2D(1.4)
 
-initial_conditions = initial_conditions_rotor
+initial_condition = initial_condition_rotor
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
@@ -33,7 +33,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -54,8 +54,8 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
 

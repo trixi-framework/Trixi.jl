@@ -132,11 +132,13 @@ end
 end
 
 
+# computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
   compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
   compute_coefficients(t, semi.semi_euler)
 end
 
+# computes the coefficients of the initial condition and stores the Euler part in `u_ode`
 @inline function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)
   compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
   compute_coefficients!(u_ode, t, semi.semi_euler)

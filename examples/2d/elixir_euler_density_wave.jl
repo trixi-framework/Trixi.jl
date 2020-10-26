@@ -7,7 +7,7 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
-initial_conditions = initial_conditions_density_wave
+initial_condition = initial_condition_density_wave
 
 surface_flux = flux_central
 polydeg = 5
@@ -20,7 +20,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=30_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

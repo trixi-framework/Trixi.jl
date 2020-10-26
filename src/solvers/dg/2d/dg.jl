@@ -1,6 +1,6 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
-                    SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                    SurfaceFlux, VolumeFlux, InitialCondition, SourceTerms, BoundaryConditions,
                     MortarType, VolumeIntegralType, ShockIndicatorVariable,
                     VectorNnodes, MatrixNnodes, MatrixNnodes2,
                     InverseVandermondeLegendre, MortarMatrix,
@@ -10,7 +10,7 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
 
-  initial_conditions::InitialConditions
+  initial_condition::InitialCondition
   source_terms::SourceTerms
 
   elements::ElementContainer2D{Float64, NVARS, POLYDEG}
@@ -76,7 +76,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -209,7 +209,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   dg = Dg2D(
       equation,
       surface_flux_function, volume_flux_function,
-      initial_conditions, source_terms,
+      initial_condition, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
@@ -813,7 +813,7 @@ function calc_error_norms(func, dg::Dg2D, t)
     weights = dg.analysis_weights_volume
     jacobian_volume = inv(dg.elements.inverse_jacobian[element_id])^ndims(dg)
     for j in 1:n_nodes_analysis, i in 1:n_nodes_analysis
-      u_exact = dg.initial_conditions(get_node_coords(x, dg, i, j), t, equation)
+      u_exact = dg.initial_condition(get_node_coords(x, dg, i, j), t, equation)
       diff = func(u_exact, equation) - func(get_node_vars(u, dg, i, j), equation)
       l2_error += diff.^2 * (weights[i] * weights[j] * jacobian_volume)
       linf_error = @. max(linf_error, abs(diff))
@@ -1102,7 +1102,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   if :energy_potential in dg.analysis_quantities
     # FIXME: This should be implemented properly for multiple coupled solvers
     @assert !isnothing(solver_gravity) "Only works if gravity solver is supplied"
-    @assert dg.initial_conditions == initial_conditions_jeans_instability "Only works with Jeans instability setup"
+    @assert dg.initial_condition == initial_condition_jeans_instability "Only works with Jeans instability setup"
 
     e_potential = integrate(dg, dg.elements.u, solver_gravity.elements.u) do i, j, element_id, dg, u_euler, u_gravity
       cons_euler = get_node_vars(u_euler, dg, i, j, element_id)
@@ -1243,14 +1243,14 @@ end
 
 
 # Call equation-specific initial conditions functions and apply to all elements
-function set_initial_conditions!(dg::Dg2D, time)
+function set_initial_condition!(dg::Dg2D, time)
   equation = equations(dg)
   # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
   seed!(0)
   for element_id in 1:dg.n_elements
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
-        dg.elements.u[:, i, j, element_id] .= dg.initial_conditions(
+        dg.elements.u[:, i, j, element_id] .= dg.initial_condition(
             dg.elements.node_coordinates[:, i, j, element_id], time, equation)
       end
     end
