@@ -1690,7 +1690,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   end
   
   # Compute last "flux"
-  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
     u_ll = get_node_vars(u, dg, i, nnodes(dg), element_id)
     # Compute non-conservative part

@@ -24,5 +24,6 @@ are listed in alphabetical order:
 * Gregor Gassner
 * Julia Odenthal
 * Hendrik Ranocha
+* Andrés M. Rueda-Ramírez
 * Michael Schlottke-Lakemper
 * Andrew Winters
