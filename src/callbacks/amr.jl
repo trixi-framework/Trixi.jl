@@ -8,12 +8,13 @@
 Performs adaptive mesh refinement (AMR) every `interval` time steps
 for a given semidiscretization `semi` using the chosen `controller`.
 """
-struct AMRCallback{Controller, Adaptor}
+struct AMRCallback{Controller, Adaptor, Cache}
   controller::Controller
   interval::Int
   adapt_initial_condition::Bool
   adapt_initial_condition_only_refine::Bool
   adaptor::Adaptor
+  amr_cache::Cache
 end
 
 
@@ -33,9 +34,13 @@ function AMRCallback(semi, controller, adaptor;
     condition = (u, t, integrator) -> false
   end
 
-  amr_callback = AMRCallback{typeof(controller), typeof(adaptor)}(
+  to_refine  = Int[]
+  to_coarsen = Int[]
+  amr_cache = (; to_refine, to_coarsen)
+
+  amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
     controller, interval, adapt_initial_condition,
-                  adapt_initial_condition_only_refine, adaptor)
+    adapt_initial_condition_only_refine, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
                    save_positions=(false,false),
@@ -220,8 +225,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
    @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
   end
 
-  to_refine  = Int[]
-  to_coarsen = Int[]
+  @unpack to_refine, to_coarsen = amr_callback.amr_cache
+  empty!(to_refine)
+  empty!(to_coarsen)
   for element in eachelement(dg, cache)
     controller_value = lambda[element]
     if controller_value > 0

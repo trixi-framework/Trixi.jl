@@ -341,7 +341,7 @@ function init_interfaces(cell_ids, mesh::TreeMesh{1}, elements, RealT, nvars, po
   interfaces = InterfaceContainer1D{RealT, nvars, polydeg}(n_interfaces)
 
   # Connect elements with interfaces
-  init_interface_connectivity!(elements, interfaces, mesh)
+  init_interfaces!(interfaces, elements, mesh)
 
   return interfaces
 end
@@ -357,14 +357,14 @@ function init_boundaries(cell_ids, mesh::TreeMesh{1}, elements, RealT, nvars, po
   boundaries = BoundaryContainer1D{RealT, nvars, polydeg}(n_boundaries)
 
   # Connect elements with boundaries
-  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundaries!(boundaries, elements, mesh)
 
   return boundaries, n_boundaries_per_direction
 end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{1})
+function init_interfaces!(interfaces, elements, mesh::TreeMesh{1})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -419,7 +419,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{1})
+function init_boundaries!(boundaries, elements, mesh::TreeMesh{1})
   # Reset boundaries count
   count = 0
 
