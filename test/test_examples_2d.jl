@@ -75,6 +75,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.06159341742582756, 0.05012484425381723, 0.05013298724507752, 0.22537740506116724],
             linf = [0.29912627861573327, 0.30886767304359375, 0.3088108573487326, 1.0657556075017878])
   end
+  @testset "parameters_ec_flux_correction.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_ec_flux_correction.toml"),
+            l2   = [0.06091603891765247, 0.04939514512740103, 0.04937656830167874, 0.222690097141523],
+            linf = [0.3435298773595389, 0.37389228299653976, 0.38354829163924453, 1.214407258611755])
+  end
   @testset "parameters_density_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_density_wave.toml"),
             l2   = [0.001060077845747576, 0.00010600778457107525, 0.00021201556914875742, 2.6501946139091318e-5],

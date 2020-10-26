@@ -381,6 +381,28 @@ function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction,
   return flux
 end
 
+function boundary_conditions_weak_blast_wave(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equation::CompressibleEulerEquations2D)
+  # velocities are zero, density/pressure are ambient values according to
+  # initial_conditions_weak_blast_wave
+  rho = 1.0
+  v1 = 0.0
+  v2 = 0.0
+  p = 1.0
+
+  u_boundary = prim2cons(SVector(rho, v1, v2, p), equation)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
 # Apply source terms
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_conditions`
@@ -813,6 +835,27 @@ end
   w4 = -rho_p
 
   return SVector(w1, w2, w3, w4)
+end
+
+
+# Convert entropy variables to conservative
+@inline function entropy2cons(u, equation::CompressibleEulerEquations2D)
+  w1, w2, w3, w4 = u
+
+  rho_p = -w4
+
+  v1 = w2 / rho_p
+  v2 = w3 / rho_p
+  v_square = 0.5 * (v1^2 + v2^2)
+
+  s = equation.gamma - ((w1 + rho_p * v_square) * (equation.gamma-1))
+
+  rho    = (exp(-s) / rho_p)^(1/(equation.gamma-1))
+  rho_v1 = rho * v1
+  rho_v2 = rho * v2
+  rho_e  = rho / rho_p / (equation.gamma-1) + rho * v_square
+
+  return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
 
