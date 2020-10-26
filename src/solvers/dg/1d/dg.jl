@@ -1176,7 +1176,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, alpha, alpha_tmp
     dg.shock_alpha_smooth,
     dg.shock_indicator_variable, thread_cache, dg)
 
-  # Determine element ids for DG-only and blended DG-FV volume integral
+    # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
 
   # Loop over pure DG elements
@@ -1487,15 +1487,15 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
 
       # Calculate indicator variables at Gauss-Lobatto nodes
       cons2indicator!(indicator, u, element_id, indicator_variable, dg)
-      avg = mean(indicator)
+      avg = sum(indicator)/nnodes(dg)
       left = indicator[1,1]
       right = indicator[1,end]
 
       cons2indicator!(indicator, u, element_id-1, indicator_variable, dg)
-      avg_left = mean(indicator)
+      avg_left = sum(indicator)/nnodes(dg)
 
       cons2indicator!(indicator, u, element_id+1, indicator_variable, dg)
-      avg_right = mean(indicator)
+      avg_right = sum(indicator)/nnodes(dg)
     
       model_input = [avg_left; avg; avg_right; left; right]
       model_input = model_input ./max(maximum(abs.(model_input)),1)

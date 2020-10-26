@@ -34,7 +34,6 @@ using Tullio: @tullio
 using LoopVectorization
 
 # ANN
-using Statistics: mean
 using Flux
 using BSON: @load
 Core.eval(Main, :(import NNlib, Flux))  #ToDo 
