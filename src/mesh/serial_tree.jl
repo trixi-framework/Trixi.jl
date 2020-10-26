@@ -89,7 +89,17 @@ SerialTree{1}(cap::Int, center::Real, len::Real, periodicity=true) = SerialTree{
 # Clear tree with deleting data structures, store center and length, and create root cell
 function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, periodicity=true)
   clear!(t)
+#  # Set domain information
+#  t.center_level_0 = center
+#  t.length_level_0 = length
 
+#  # Create root cell
+#  t.length += 1
+#  t.parent_ids[1] = 0
+#  t.child_ids[:, 1] .= 0
+#  t.levels[1] = 0
+#  t.coordinates[:, 1] .= t.center_level_0
+#  t.original_cell_ids[1] = 0
   # Set domain information
   t.center_level_0 = center
   t.length_level_0 = length
@@ -105,7 +115,7 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   QuadInfo = zeros(Int32, 4,local_num_quads)
   
   conn_ptr = pointer(Connection)
-  quadinfo_ptr = pointer(QuadInfo)
+  
 # 1 - level
 # 2 - coord x
 # 3 Coord y
@@ -119,6 +129,13 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
 # 2 - -y
 # 3 - +y
 ##
+  
+# 1. - quadid 1..local_num_quads
+# 2. - quad.level
+# 3. - quad.x
+# 4. - quad.y
+  quadinfo_ptr = pointer(QuadInfo)
+
   P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
   P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
   # P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, CvolumeIterate, C_NULL, C_NULL)
@@ -141,6 +158,8 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
     t.coordinates[2, id] = coordinates_min[2] +  (coordinates_max[2] - coordinates_min[2]) / 512 *
         (QuadInfo[4, id] + 512/(2^(QuadInfo[2,id] + 1)))
   end
+
+  
   t.original_cell_ids[1:local_num_quads] .= QuadInfo[1,1:local_num_quads]
   for id = 1:local_num_quads
       t.neighbor_ids[1, id] = Connection[4,id]
@@ -148,6 +167,7 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
       t.neighbor_ids[3, id] = Connection[8,id]
       t.neighbor_ids[4, id] = Connection[10,id]
   end
+  @show t.neighbor_ids[:, 7]
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
     # Also catches case where periodicity = true
@@ -314,3 +334,4 @@ function reset_data_structures!(t::SerialTree{NDIMS}) where NDIMS
 
   invalidate!(t, 1, capacity(t) + 1)
 end
+

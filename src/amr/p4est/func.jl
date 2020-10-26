@@ -95,3 +95,9 @@ function faceIterate(info::Ptr{P4est.p4est_iter_face_info_t}, user_data_ptr::Ptr
 end
 
 CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
+
+
+function p4est_finalize!(mesh::TreeMesh)
+    P4est.p4est_destroy(mesh.tree.forest)
+    P4est.p4est_connectivity_destroy(mesh.tree.conn)
+  end
