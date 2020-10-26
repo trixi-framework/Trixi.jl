@@ -26,10 +26,10 @@ end
 # of `Trixi`. However, users will want to evaluate in the global scope of `Main` or something
 # similar to manage dependencies on their own.
 """
-    trixi_include([mod::Module=Main,] parameters_file; kwargs...)
+    trixi_include([mod::Module=Main,] elixir_file; kwargs...)
 
-`include` the file `parameters_file` and evaluate its content in the global scope of module `mod`.
-You can override specific assignments in `parameters_file` by supplying keyword arguments.
+`include` the file `elixir_file` and evaluate its content in the global scope of module `mod`.
+You can override specific assignments in `elixir_file` by supplying keyword arguments.
 It's basic purpose is to make it easier to modify some parameters while running Trixi from the
 REPL. Additionally, this is used in tests to reduce the computational burden for CI while still
 providing examples with sensible default values for users.
@@ -43,11 +43,11 @@ julia> sol.t[end]
 0.1
 ```
 """
-function trixi_include(mod::Module, parameters_file::AbstractString; kwargs...)
-  Base.include(ex -> replace_assignments(ex; kwargs...), mod, parameters_file)
+function trixi_include(mod::Module, elixir_file::AbstractString; kwargs...)
+  Base.include(ex -> replace_assignments(ex; kwargs...), mod, elixir_file)
 end
 
-trixi_include(parameters_file::AbstractString; kwargs...) = trixi_include(Main, parameters_file; kwargs...)
+trixi_include(elixir_file::AbstractString; kwargs...) = trixi_include(Main, elixir_file; kwargs...)
 
 
 
