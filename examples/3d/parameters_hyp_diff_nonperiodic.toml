@@ -5,7 +5,7 @@ equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
 initial_condition = "initial_condition_poisson_nonperiodic"
-boundary_condition = ["boundary_condition_poisson_nonperiodic",
+boundary_conditions = ["boundary_condition_poisson_nonperiodic",
                        "boundary_condition_poisson_nonperiodic",
                        "nothing", "nothing", "nothing", "nothing"]
 

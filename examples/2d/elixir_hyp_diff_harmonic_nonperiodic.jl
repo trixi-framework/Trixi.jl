@@ -9,7 +9,7 @@ resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
 initial_condition = Trixi.initial_condition_harmonic_nonperiodic
-boundary_condition = Trixi.boundary_condition_harmonic_nonperiodic
+boundary_conditions = Trixi.boundary_condition_harmonic_nonperiodic
 
 surface_flux = flux_upwind
 solver = DGSEM(4, surface_flux)
@@ -23,7 +23,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_condition=boundary_condition,
+                                    boundary_conditions=boundary_conditions,
                                     source_terms=source_terms_harmonic)
 
 

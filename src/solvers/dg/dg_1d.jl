@@ -102,7 +102,7 @@ end
 
 function rhs!(du::AbstractArray{<:Any,3}, u, t,
               mesh::TreeMesh{1}, equations,
-              initial_condition, boundary_condition, source_terms,
+              initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
@@ -124,7 +124,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
   @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_condition, equations, dg)
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
@@ -369,7 +369,7 @@ function calc_boundary_flux!(cache, t, boundary_condition,
   end
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition::Union{NamedTuple,Tuple},
+function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
                              equations::AbstractEquations{1}, dg::DG)
   @unpack surface_flux_values = cache.elements
   @unpack n_boundaries_per_direction = cache.boundaries
@@ -379,9 +379,9 @@ function calc_boundary_flux!(cache, t, boundary_condition::Union{NamedTuple,Tupl
   firsts = lasts - n_boundaries_per_direction .+ 1
 
   # Calc boundary fluxes in each direction
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[1],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
                                    equations, dg, cache, 1, firsts[1], lasts[1])
-  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition[2],
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
                                    equations, dg, cache, 2, firsts[2], lasts[2])
 end
 

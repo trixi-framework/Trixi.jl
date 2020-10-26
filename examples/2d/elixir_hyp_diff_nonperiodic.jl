@@ -10,10 +10,10 @@ equations = HyperbolicDiffusionEquations2D(resid_tol)
 
 initial_condition = Trixi.initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
-boundary_condition = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
-                      x_pos=Trixi.boundary_condition_poisson_nonperiodic,
-                      y_neg=boundary_condition_periodic,
-                      y_pos=boundary_condition_periodic)
+boundary_conditions = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
+                       x_pos=Trixi.boundary_condition_poisson_nonperiodic,
+                       y_neg=boundary_condition_periodic,
+                       y_pos=boundary_condition_periodic)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(4, surface_flux)
@@ -27,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_condition=boundary_condition,
+                                    boundary_conditions=boundary_conditions,
                                     source_terms=Trixi.source_terms_poisson_nonperiodic)
 
 

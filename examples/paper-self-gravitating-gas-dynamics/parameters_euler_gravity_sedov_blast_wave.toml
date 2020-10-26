@@ -4,7 +4,7 @@ ndims = 2
 equations = "euler_gravity"
 gamma = 1.4
 initial_condition = "initial_condition_sedov_self_gravity"
-boundary_condition = "boundary_condition_sedov_self_gravity"
+boundary_conditions = "boundary_condition_sedov_self_gravity"
 
 surface_flux = "flux_hll"
 volume_flux = "flux_chandrashekar"

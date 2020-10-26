@@ -146,7 +146,7 @@ end
             linf = [2.220446049250313e-16],
             n_steps_max = 1,
             initial_condition = "initial_condition_linear_x",
-            boundary_condition = "boundary_condition_linear_x",
+            boundary_conditions = "boundary_condition_linear_x",
             periodicity=false)
   end
   @testset "parameters_advection_basic.toml with initial_condition_convergence_test" begin
@@ -155,7 +155,7 @@ end
             linf = [5.841215237722963e-6],
             n_steps_max = 1,
             initial_condition = "initial_condition_convergence_test",
-            boundary_condition = "boundary_condition_convergence_test",
+            boundary_conditions = "boundary_condition_convergence_test",
             periodicity=false)
   end
 end

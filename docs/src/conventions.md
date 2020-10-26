@@ -10,6 +10,6 @@ We use the following numbering schemes on Cartesian meshes.
   use the `orientation` in this way.
 - The `direction`s are numbered as
   `1 => -x, 2 => +x, 3 => -y, 4 => +y, 5 => -z, 6 => +z`.
-  For example, the `boundary_condition`s are ordered in this way
+  For example, the `boundary_conditions` are ordered in this way
   when a `Tuple` of boundary conditions per direction is passed
   to the constructor of a `SemidiscretizationHyperbolic`.

@@ -4,7 +4,7 @@ ndims = 3
 equations = "CompressibleEulerEquations"
 
 initial_condition = "initial_condition_sedov_self_gravity"
-boundary_condition = "boundary_condition_sedov_self_gravity"
+boundary_conditions = "boundary_condition_sedov_self_gravity"
 t_start = 0.0
 t_end   = 0.4
 

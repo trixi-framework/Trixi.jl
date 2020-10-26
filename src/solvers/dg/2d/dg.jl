@@ -1,6 +1,6 @@
 # Main DG data structure that contains all relevant data for the DG solver
 mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
-                    SurfaceFlux, VolumeFlux, InitialConditions, SourceTerms, BoundaryConditions,
+                    SurfaceFlux, VolumeFlux, InitialCondition, SourceTerms, BoundaryConditions,
                     MortarType, VolumeIntegralType, ShockIndicatorVariable,
                     VectorNnodes, MatrixNnodes, MatrixNnodes2,
                     InverseVandermondeLegendre, MortarMatrix,
@@ -10,7 +10,7 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   surface_flux_function::SurfaceFlux
   volume_flux_function::VolumeFlux
 
-  initial_condition::InitialConditions
+  initial_condition::InitialCondition
   source_terms::SourceTerms
 
   elements::ElementContainer2D{Float64, NVARS, POLYDEG}
@@ -29,7 +29,7 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   ecmortars::EcMortarContainer2D{Float64, NVARS, POLYDEG}
   n_ecmortars::Int
 
-  boundary_condition::BoundaryConditions
+  boundary_conditions::BoundaryConditions
 
   nodes::VectorNnodes
   weights::VectorNnodes
@@ -105,7 +105,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   end
 
   # Initialize boundary conditions
-  boundary_condition = init_boundary_condition(n_boundaries_per_direction, mesh)
+  boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
 
   # Initialize interpolation data structures
   n_nodes = POLYDEG + 1
@@ -216,7 +216,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      Tuple(boundary_condition),
+      Tuple(boundary_conditions),
       SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
       inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
       volume_integral_type,
@@ -673,21 +673,21 @@ function init_mortars!(mortars, elements, mesh::TreeMesh{2})
 end
 
 
-function init_boundary_condition(n_boundaries_per_direction, mesh::TreeMesh{2})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
-  bcs = parameter("boundary_condition", ["nothing", "nothing", "nothing", "nothing"])
+  bcs = parameter("boundary_conditions", ["nothing", "nothing", "nothing", "nothing"])
   if bcs isa AbstractArray
-    boundary_condition = eval_if_not_function.(bcs)
+    boundary_conditions = eval_if_not_function.(bcs)
   else
     # This adds support for using a scalar boundary condition (like 'periodicity = "false"')
-    boundary_condition = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
+    boundary_conditions = eval_if_not_function.([bcs for _ in 1:n_directions(mesh.tree)])
   end
 
   # Sanity check about specifying boundary conditions
   for direction in 1:n_directions(mesh.tree)
-    bc = boundary_condition[direction]
+    bc = boundary_conditions[direction]
     count = n_boundaries_per_direction[direction]
     if direction == 1
       dir = "-x"
@@ -706,7 +706,7 @@ function init_boundary_condition(n_boundaries_per_direction, mesh::TreeMesh{2})
     end
   end
 
-  return boundary_condition
+  return boundary_conditions
 end
 
 
@@ -1927,7 +1927,7 @@ end
 calc_boundary_flux!(dg::Dg2D, time) = calc_boundary_flux!(dg.elements.surface_flux_values, dg, time)
 
 function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
-  @unpack n_boundaries_per_direction, boundary_condition = dg
+  @unpack n_boundaries_per_direction, boundary_conditions = dg
 
   # Calculate indices
   lasts = accumulate(+, n_boundaries_per_direction)
@@ -1935,13 +1935,13 @@ function calc_boundary_flux!(surface_flux_values, dg::Dg2D, time)
 
   # Calc boundary fluxes in each direction
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_condition[1], 1, firsts[1], lasts[1])
+                                   boundary_conditions[1], 1, firsts[1], lasts[1])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_condition[2], 2, firsts[2], lasts[2])
+                                   boundary_conditions[2], 2, firsts[2], lasts[2])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_condition[3], 3, firsts[3], lasts[3])
+                                   boundary_conditions[3], 3, firsts[3], lasts[3])
   calc_boundary_flux_by_direction!(surface_flux_values, dg, time,
-                                   boundary_condition[4], 4, firsts[4], lasts[4])
+                                   boundary_conditions[4], 4, firsts[4], lasts[4])
 end
 
 

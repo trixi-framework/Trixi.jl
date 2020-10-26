@@ -250,7 +250,7 @@ end
             linf = [6.8833827526759706e-15],
             n_steps_max = 1,
             initial_condition = "initial_condition_linear_x_y",
-            boundary_condition = "boundary_condition_linear_x_y",
+            boundary_conditions = "boundary_condition_linear_x_y",
             periodicity=false)
   end
   @testset "parameters_advection_basic.toml with initial_condition_linear_x" begin
@@ -259,7 +259,7 @@ end
             linf = [1.5543122344752192e-15],
             n_steps_max = 1,
             initial_condition = "initial_condition_linear_x",
-            boundary_condition = "boundary_condition_linear_x",
+            boundary_conditions = "boundary_condition_linear_x",
             periodicity=false)
   end
   @testset "parameters_advection_basic.toml with initial_condition_linear_y" begin
@@ -268,7 +268,7 @@ end
             linf = [3.552713678800501e-15],
             n_steps_max = 1,
             initial_condition = "initial_condition_linear_y",
-            boundary_condition = "boundary_condition_linear_y",
+            boundary_conditions = "boundary_condition_linear_y",
             periodicity=false)
   end
   # Compressible Euler

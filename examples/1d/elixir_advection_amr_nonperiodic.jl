@@ -9,7 +9,7 @@ advectionvelocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
-boundary_condition = boundary_condition_gauss
+boundary_conditions = boundary_condition_gauss
 
 surface_flux = flux_lax_friedrichs
 polydeg = 3
@@ -26,7 +26,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition,
                                     solver,
-                                    boundary_condition=boundary_condition)
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
