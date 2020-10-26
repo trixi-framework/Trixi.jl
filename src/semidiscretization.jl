@@ -213,15 +213,15 @@ end
 # allow passing named tuples of BCs constructed in an arbitrary order
 digest_boundary_condition(boundary_condition) = boundary_condition
 
-function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{2,Symbol}}) # 1D
+function digest_boundary_condition(boundary_condition::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
   @unpack x_neg, x_pos = boundary_condition
   (; x_neg, x_pos)
 end
-function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{4,Symbol}}) # 2D
+function digest_boundary_condition(boundary_condition::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
   @unpack x_neg, x_pos, y_neg, y_pos = boundary_condition
   (; x_neg, x_pos, y_neg, y_pos)
 end
-function digest_boundary_condition(boundary_condition::NamedTuple{<:NTuple{6,Symbol}}) # 3D
+function digest_boundary_condition(boundary_condition::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
   @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_condition
   (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
 end
