@@ -839,8 +839,8 @@ end
 
 
 # Convert entropy variables to conservative
-@inline function entropy2cons(u, equation::CompressibleEulerEquations2D)
-  w1, w2, w3, w4 = u
+@inline function entropy2cons(w, equation::CompressibleEulerEquations2D)
+  w1, w2, w3, w4 = w
 
   rho_p = -w4
 
