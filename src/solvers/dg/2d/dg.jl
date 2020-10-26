@@ -1714,7 +1714,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   for j in 1:nnodes(dg)
     u_rr = get_node_vars(u, dg, 1,   j, element_id)
     # Compute non-conservative part
-    flux_R = noncons_interface_flux_inner(u_rr, 1, equations(dg))
+    flux_R = noncons_interface_flux(u_rr, u_rr, 1, 3, equations(dg))
     # Copy to array
     set_node_vars!(fstar1_R, flux_R, dg, 1, j)
   end
@@ -1728,8 +1728,8 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
       flux_L = surface_flux_function(u_ll, u_rr, 1, equations(dg)) # orientation 1: x direction
       flux_R = flux_L
       # Compute non-conservative part
-      flux_L = flux_L + noncons_interface_flux_whole(u_ll, u_rr, 1, equations(dg))
-      flux_R = flux_R + noncons_interface_flux_whole(u_rr, u_ll, 1, equations(dg))
+      flux_L = flux_L + noncons_interface_flux(u_ll, u_rr, 1, 2, equations(dg))
+      flux_R = flux_R + noncons_interface_flux(u_rr, u_ll, 1, 2, equations(dg))
       # Copy to array
       set_node_vars!(fstar1_L, flux_L, dg, i, j)
       set_node_vars!(fstar1_R, flux_R, dg, i, j)
@@ -1741,7 +1741,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   for j in 1:nnodes(dg)
     u_ll = get_node_vars(u, dg, nnodes(dg),   j, element_id)
     # Compute non-conservative part
-    flux_L = noncons_interface_flux_inner(u_ll, 1, equations(dg))
+    flux_L = noncons_interface_flux(u_ll, u_ll, 1, 3, equations(dg))
     # Copy to array
     set_node_vars!(fstar1_L, flux_L, dg, nnodes(dg)+1, j)
   end
@@ -1755,7 +1755,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   for i in 1:nnodes(dg)
     u_rr = get_node_vars(u, dg, i,   1, element_id)
     # Compute non-conservative part
-    flux_R = noncons_interface_flux_inner(u_rr, 2, equations(dg))
+    flux_R = noncons_interface_flux(u_rr, u_rr, 2, 3, equations(dg))
     # Copy to array
     set_node_vars!(fstar2_R, flux_R, dg, i, 1)
   end
@@ -1769,8 +1769,8 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
       flux_L = surface_flux_function(u_ll, u_rr, 2, equations(dg)) # orientation 2: y direction
       flux_R = flux_L
       # Compute non-conservative part
-      flux_L = flux_L + noncons_interface_flux_whole(u_ll, u_rr, 2, equations(dg))
-      flux_R = flux_R + noncons_interface_flux_whole(u_rr, u_ll, 2, equations(dg))
+      flux_L = flux_L + noncons_interface_flux(u_ll, u_rr, 2, 2, equations(dg))
+      flux_R = flux_R + noncons_interface_flux(u_rr, u_ll, 2, 2, equations(dg))
       # Copy to array
       set_node_vars!(fstar2_L, flux_L, dg, i, j)
       set_node_vars!(fstar2_R, flux_R, dg, i, j)
@@ -1782,7 +1782,7 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   for i in 1:nnodes(dg)
     u_ll = get_node_vars(u, dg, i, nnodes(dg), element_id)
     # Compute non-conservative part
-    flux_L = noncons_interface_flux_inner(u_ll, 2, equations(dg))
+    flux_L = noncons_interface_flux(u_ll, u_ll, 2, 3, equations(dg))
     # Copy to array
     set_node_vars!(fstar2_L, flux_L, dg, i, nnodes(dg)+1)
   end
@@ -2112,8 +2112,8 @@ function calc_interface_flux!(surface_flux_values, neighbor_ids,
     for i in 1:nnodes(dg)
       # Call pointwise nonconservative term
       u_ll, u_rr = get_surface_node_vars(u_interfaces, dg, i, s)
-      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[s], equations(dg))
-      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[s], equations(dg))
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[s], 1, equations(dg))
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[s], 1, equations(dg))
       # Save to primary and secondary temporay storage
       set_node_vars!(noncons_diamond_primary,   noncons_primary,   dg, i)
       set_node_vars!(noncons_diamond_secondary, noncons_secondary, dg, i)
@@ -2250,8 +2250,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientations[m], equations(dg))
-        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientations[m], equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientations[m], 1, equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientations[m], 1, equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
@@ -2262,8 +2262,8 @@ function calc_mortar_flux!(surface_flux_values, dg::Dg2D, mortar_type::Val{:l2},
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, dg, i, m)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, dg, i, m)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientations[m], equations(dg))
-        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientations[m], equations(dg))
+        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientations[m], 1, equations(dg))
+        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientations[m], 1, equations(dg))
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, dg, i)
