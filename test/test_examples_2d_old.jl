@@ -181,8 +181,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.027437774935491266, 0.02344577999610231, 0.016129408502293267, 0.018237901415986357],
             t_end = 0.2)
   end
-  @testset "parameters_euler_blob_amr.toml with t_end=0.12" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_amr.toml"),
+  @testset "parameters_euler_blob_split_shockcapturing_amr.toml with t_end=0.12" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_split_shockcapturing_amr.toml"),
             l2   = [0.20167272820008805, 1.1836133229138053, 0.10165112533393011, 5.237361125542303],
             linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
             t_end = 0.12)
@@ -230,75 +230,75 @@ end
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "parameters_advection_basic.toml with initial_conditions_sin_sin" begin
+  @testset "parameters_advection_basic.toml with initial_condition_sin_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.0001424424804667062],
             linf = [0.0007260692243250544],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_sin_sin")
+            initial_condition = "initial_condition_sin_sin")
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_constant" begin
+  @testset "parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.120436421866528e-16],
             linf = [1.3322676295501878e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_constant")
+            initial_condition = "initial_condition_constant")
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_linear_x_y" begin
+  @testset "parameters_advection_basic.toml with initial_condition_linear_x_y" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [2.559042358408011e-16],
             linf = [6.8833827526759706e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_x_y",
-            boundary_conditions = "boundary_conditions_linear_x_y",
+            initial_condition = "initial_condition_linear_x_y",
+            boundary_conditions = "boundary_condition_linear_x_y",
             periodicity=false)
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_linear_x" begin
+  @testset "parameters_advection_basic.toml with initial_condition_linear_x" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [1.5901063275642836e-16],
             linf = [1.5543122344752192e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_x",
-            boundary_conditions = "boundary_conditions_linear_x",
+            initial_condition = "initial_condition_linear_x",
+            boundary_conditions = "boundary_condition_linear_x",
             periodicity=false)
   end
-  @testset "parameters_advection_basic.toml with initial_conditions_linear_y" begin
+  @testset "parameters_advection_basic.toml with initial_condition_linear_y" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [1.597250146891042e-16],
             linf = [3.552713678800501e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_linear_y",
-            boundary_conditions = "boundary_conditions_linear_y",
+            initial_condition = "initial_condition_linear_y",
+            boundary_conditions = "boundary_condition_linear_y",
             periodicity=false)
   end
   # Compressible Euler
-  @testset "parameters_euler_vortex.toml one step with initial_conditions_density_pulse" begin
+  @testset "parameters_euler_vortex.toml one step with initial_condition_density_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.003201074851451383, 0.0032010748514513724, 0.0032010748514513716, 0.0032010748514513794],
             linf = [0.043716393835876444, 0.043716393835876444, 0.043716393835876, 0.04371639383587578],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_density_pulse")
+            initial_condition = "initial_condition_density_pulse")
   end
-  @testset "parameters_euler_vortex.toml one step with initial_conditions_pressure_pulse" begin
+  @testset "parameters_euler_vortex.toml one step with initial_condition_pressure_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.00018950189533270512, 0.0020542290689775757, 0.002054229068977579, 0.01013381064979542],
             linf = [0.004763284475434837, 0.028439617580275578, 0.028439617580275467, 0.13640572175447918],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_pressure_pulse")
+            initial_condition = "initial_condition_pressure_pulse")
   end
-  @testset "parameters_euler_vortex.toml one step with initial_conditions_density_pressure_pulse" begin
+  @testset "parameters_euler_vortex.toml one step with initial_condition_density_pressure_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.0031880440066425803, 0.0050397619349217574, 0.005039761934921767, 0.014340770024960708],
             linf = [0.04279723800834989, 0.06783565847184869, 0.06783565847184914, 0.19291274039254347],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_density_pressure_pulse")
+            initial_condition = "initial_condition_density_pressure_pulse")
   end
-  @testset "parameters_euler_vortex.toml one step with initial_conditions_constant" begin
+  @testset "parameters_euler_vortex.toml one step with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [2.359732835648237e-16, 1.088770274131804e-16, 1.1814939065033234e-16, 1.980283448445849e-15],
             linf = [4.440892098500626e-16, 2.914335439641036e-16, 4.718447854656915e-16, 3.552713678800501e-15],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_constant")
+            initial_condition = "initial_condition_constant")
   end
   @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
@@ -306,21 +306,21 @@ end
             linf = [0.15341072072011042, 0.763322686048535, 0.7633226860485351, 5.184635785270958],
             n_steps_max = 1)
   end
-  @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_conditions_medium_sedov_blast_wave" begin
+  @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [0.0029095199084281176, 0.012491250999308508, 0.012491250999308522, 0.11126623649275227],
             linf = [0.15334906997459008, 0.7629367729245761, 0.7629367729245761, 5.18264418672338],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_medium_sedov_blast_wave")
+            initial_condition = "initial_condition_medium_sedov_blast_wave")
   end
 
   # GLM-MHD
-  @testset "parameters_mhd_alfven_wave.toml one step with initial_conditions_constant" begin
+  @testset "parameters_mhd_alfven_wave.toml one step with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave.toml"),
             l2   = [1.9377318494777845e-16, 2.0108417179968547e-16, 4.706803550379074e-16, 9.849916218369067e-17, 9.578096259273606e-15, 4.995499731290712e-16, 2.72017579525395e-16, 9.963303137205655e-17, 1.7656549191657418e-16],
             linf = [4.440892098500626e-16, 7.494005416219807e-16, 1.7763568394002505e-15, 2.220446049250313e-16, 2.1316282072803006e-14, 1.3322676295501878e-15, 8.881784197001252e-16, 2.220446049250313e-16, 7.414582366945819e-16],
             n_steps_max = 1,
-            initial_conditions = "initial_conditions_constant")
+            initial_condition = "initial_condition_constant")
   end
   @testset "parameters_mhd_rotor.toml one step" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"),
@@ -335,8 +335,8 @@ end
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_amr.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_mortar_split_shockcapturing.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_split_shockcapturing_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"))

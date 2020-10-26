@@ -1,23 +1,24 @@
 
-using Random: seed! 
 using OrdinaryDiffEq
 using Trixi
 
-###############################################################################
-# semidiscretization of the compressible Euler equations
-gamma = 1.4
-equations = CompressibleEulerEquations2D(gamma)
+##
+# OBS! This crashes due to an issue with the combination of shockcapturing + non-conservative terms
+#      It can be run if "have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)" is set
+#      to false in the ideal_glm_mhd.jl
 
-seed!(0)
-initial_conditions = initial_conditions_khi
+###############################################################################
+# semidiscretization of the compressible ideal GLM-MHD equations
+equations = IdealGlmMhdEquations2D(1.4)
+
+initial_condition = initial_condition_rotor
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
-polydeg = 3
-basis = LobattoLegendreBasis(polydeg)
+volume_flux  = flux_central
+basis = LobattoLegendreBasis(4)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.002,
-                                         alpha_min=0.0001,
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
                                          alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
@@ -25,38 +26,38 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-0.5, -0.5)
-coordinates_max = ( 0.5,  0.5)
+coordinates_min = (0, 0)
+coordinates_max = (1, 1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
-                n_cells_max=100_000)
+                initial_refinement_level=4,
+                n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 0.15)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=1.0,
-                                          alpha_min=0.0001,
+                                          alpha_max=0.5,
+                                          alpha_min=0.001,
                                           alpha_smooth=true,
-                                          variable=density)
+                                          variable=density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4, med_threshold=0.0003,
-                                      max_level =6, max_threshold=0.003)
+                                      base_level=4,
+                                      max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=1,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.4)
+stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

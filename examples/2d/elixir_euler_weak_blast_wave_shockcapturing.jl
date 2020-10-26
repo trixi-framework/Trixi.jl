@@ -2,20 +2,16 @@
 using OrdinaryDiffEq
 using Trixi
 
-##
-# OBS! This crashes due to an issue with the combination of shockcapturing + non-conservative terms
-#      It can be run if "have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)" is set
-#      to false in the ideal_glm_mhd.jl
-
 ###############################################################################
-# semidiscretization of the compressible ideal GLM-MHD equations
-equations = IdealGlmMhdEquations2D(1.4)
+# semidiscretization of the compressible Euler equations
 
-initial_conditions = initial_conditions_rotor
+equations = CompressibleEulerEquations2D(1.4)
+
+initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_central
-basis = LobattoLegendreBasis(4)
+volume_flux  = flux_kennedy_gruber
+basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
@@ -26,38 +22,25 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_min = (-2, -2)
+coordinates_max = ( 2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=5,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.15)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=0.5,
-                                          alpha_min=0.001,
-                                          alpha_smooth=true,
-                                          variable=density_pressure)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      max_level =6, max_threshold=0.01)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
-
-stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -68,7 +51,7 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
 
 
 ###############################################################################

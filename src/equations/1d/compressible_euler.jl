@@ -21,7 +21,7 @@ varnames_prim(::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
   rho = 1 + exp(-(x[1]^2 ))/2
   v1 = 1
   rho_v1 = rho * v1
@@ -31,14 +31,14 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
 end
 
 """
-    initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
 
 test case for stability of EC fluxes from paper: https://arxiv.org/pdf/2007.09026.pdf
 domain [-1, 1]
 mesh = 4x4, polydeg = 5
 """
 
-function initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
   v1 = 0.1
   rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
   rho_v1 = rho * v1
@@ -47,14 +47,14 @@ function initial_conditions_density_wave(x, t, equation::CompressibleEulerEquati
   return @SVector [rho, rho_v1, rho_e]
 end
 
-function initial_conditions_constant(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_constant(x, t, equation::CompressibleEulerEquations1D)
   rho = 1.0
   rho_v1 = 0.1
   rho_e = 10.0
   return @SVector [rho, rho_v1, rho_e]
 end
 
-function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations1D)
   c = 2
   A = 0.1
   L = 2
@@ -70,7 +70,7 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
 end
 
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = SVector(0.0)
@@ -90,7 +90,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   return prim2cons(SVector(rho, v1, p), equation)
 end
 
-function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = SVector(0.0)
@@ -110,7 +110,7 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   return prim2cons(SVector(rho, v1, p), equation)
 end
 
-function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
   # Set up polar coordinates
   inicenter = SVector(0.0)
   x_norm = x[1] - inicenter[1]
@@ -134,10 +134,10 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::CompressibleEulerEquations1D)
-  u_boundary = initial_conditions_convergence_test(x, t, equation)
+  u_boundary = initial_condition_convergence_test(x, t, equation)
 
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -154,7 +154,7 @@ end
 # TODO: Taal remove methods with the signature below?
 #       Or keep them as an option for possiby increased performance?
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
@@ -183,7 +183,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 end
 
 @inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2

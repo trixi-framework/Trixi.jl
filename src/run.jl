@@ -169,8 +169,8 @@ function init_simulation()
 
   # Initialize solution
   amr_interval = parameter("amr_interval", 0)
-  adapt_initial_conditions = parameter("adapt_initial_conditions", true)
-  adapt_initial_conditions_only_refine = parameter("adapt_initial_conditions_only_refine", true)
+  adapt_initial_condition = parameter("adapt_initial_condition", true)
+  adapt_initial_condition_only_refine = parameter("adapt_initial_condition_only_refine", true)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -180,19 +180,19 @@ function init_simulation()
     t_start = parameter("t_start")
     time = t_start
     step = 0
-    set_initial_conditions!(solver, time)
+    set_initial_condition!(solver, time)
     println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
-    if amr_interval > 0 && adapt_initial_conditions
+    if amr_interval > 0 && adapt_initial_condition
       @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-          only_refine=adapt_initial_conditions_only_refine)
+          only_refine=adapt_initial_condition_only_refine)
 
       # Iterate until mesh does not change anymore
       while has_changed
-        set_initial_conditions!(solver, time)
+        set_initial_condition!(solver, time)
         @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-            only_refine=adapt_initial_conditions_only_refine)
+            only_refine=adapt_initial_condition_only_refine)
       end
 
       # Save mesh file
@@ -235,7 +235,7 @@ function init_simulation()
     s *= "| | restart timestep: $step\n"
     s *= "| | restart time:     $time\n"
   else
-    s *= "| initial conditions: $(get_name(solver.initial_conditions))\n"
+    s *= "| initial conditions: $(get_name(solver.initial_condition))\n"
     s *= "| t_start:            $t_start\n"
   end
   s *= """| t_end:              $t_end
@@ -243,7 +243,7 @@ function init_simulation()
           """
   if amr_interval > 0
     s *= "| | AMR interval:     $amr_interval\n"
-    s *= "| | adapt ICs:        $(adapt_initial_conditions ? "yes" : "no")\n"
+    s *= "| | adapt ICs:        $(adapt_initial_condition ? "yes" : "no")\n"
   end
   s *= """| n_steps_max:        $n_steps_max
           | time integration:   $(get_name(time_integration_function))
@@ -570,13 +570,13 @@ function compute_linear_structure(parameters_file, source_terms=nothing; verbose
 
   # set the source terms to zero to extract the linear operator
   if solver isa Dg1D
-    solver = Dg1D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+    solver = Dg1D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_condition,
                   source_terms, mesh, polydeg(solver))
   elseif solver isa Dg2D
-    solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+    solver = Dg2D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_condition,
                   source_terms, mesh, polydeg(solver))
   elseif solver isa Dg3D
-    solver = Dg3D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_conditions,
+    solver = Dg3D(solver.equations, solver.surface_flux_function, solver.volume_flux_function, solver.initial_condition,
                   source_terms, mesh, polydeg(solver))
   else
     error("not implemented")

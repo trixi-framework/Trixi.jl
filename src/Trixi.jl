@@ -46,7 +46,7 @@ export globals
 # Placing them here allows us to make use of them for dispatch even for
 # other stuff defined very early in our include pipeline, e.g.
 #     IndicatorLöhner(semi::AbstractSemidiscretization)
-include("abstract_types.jl")
+include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
@@ -75,26 +75,27 @@ export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 # TODO: Taal decide, which initial conditions and source terms will be used/exported
-export initial_conditions_convergence_test,
-       initial_conditions_gauss,
-       initial_conditions_weak_blast_wave, initial_conditions_blast_wave,
-       initial_conditions_khi,
-       initial_conditions_isentropic_vortex,
-       initial_conditions_density_wave, initial_conditions_sedov_blast_wave,
-       initial_conditions_orszag_tang, initial_conditions_rotor
+export initial_condition_convergence_test,
+       initial_condition_gauss,
+       initial_condition_weak_blast_wave, initial_condition_blast_wave,
+       initial_condition_khi,
+       initial_condition_isentropic_vortex, initial_condition_blob,
+       initial_condition_density_wave, initial_condition_sedov_blast_wave,
+       initial_condition_orszag_tang, initial_condition_rotor
+
+export boundary_condition_periodic, boundary_condition_convergence_test, boundary_condition_gauss
 
 export source_terms_convergence_test, source_terms_harmonic
-
-export boundary_conditions_convergence_test, boundary_conditions_gauss
 
 export TreeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
-       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner
+       VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
+       MortarL2
 
-export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients
+export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity, timestep_gravity_erk52_3Sstar!
 

@@ -8,11 +8,12 @@ using Trixi
 resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
-initial_conditions = Trixi.initial_conditions_poisson_nonperiodic
+initial_condition = Trixi.initial_condition_poisson_nonperiodic
 # 1 => -x, 2 => +x, 3 => -y, 4 => +y as usual for orientations
-boundary_conditions = (Trixi.boundary_conditions_poisson_nonperiodic,
-                       Trixi.boundary_conditions_poisson_nonperiodic,
-                       nothing, nothing)
+boundary_conditions = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
+                       x_pos=Trixi.boundary_condition_poisson_nonperiodic,
+                       y_neg=boundary_condition_periodic,
+                       y_pos=boundary_condition_periodic)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(4, surface_flux)
@@ -25,7 +26,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=(false, true))
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions=boundary_conditions,
                                     source_terms=Trixi.source_terms_poisson_nonperiodic)
 

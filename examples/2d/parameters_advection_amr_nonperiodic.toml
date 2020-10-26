@@ -5,11 +5,11 @@ ndims = 2
 equations = "LinearScalarAdvectionEquation"
 advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 
-# initial_conditions = "initial_conditions_convergence_test"
-# initial_conditions = "initial_conditions_constant"
-# initial_conditions = "initial_conditions_linear_x_y"
-initial_conditions = "initial_conditions_gauss"
-boundary_conditions = "boundary_conditions_gauss"
+# initial_condition = "initial_condition_convergence_test"
+# initial_condition = "initial_condition_constant"
+# initial_condition = "initial_condition_linear_x_y"
+initial_condition = "initial_condition_gauss"
+boundary_conditions = "boundary_condition_gauss"
 amr_indicator = "gauss"
 # surface_flux = "flux_lax_friedrichs"
 # source_terms =

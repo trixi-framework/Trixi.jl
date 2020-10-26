@@ -28,18 +28,18 @@ function make_solver(name::String, equations::AbstractEquations, mesh::TreeMesh;
       volume_flux_function = eval_if_not_function(volume_flux_type)
     end
 
-    initial_conditions_type = parameter("initial_conditions")
-    initial_conditions = eval_if_not_function(initial_conditions_type)
+    initial_condition_type = parameter("initial_condition")
+    initial_condition = eval_if_not_function(initial_condition_type)
 
     source_terms_type = parameter("source_terms", "nothing")
     source_terms = eval_if_not_function(source_terms_type)
 
     if ndims(equations) == 1
-      return Dg1D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+      return Dg1D(equations, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh, parameter("polydeg"))
     elseif ndims(equations) == 2
-      return Dg2D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+      return Dg2D(equations, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh, parameter("polydeg"))
     elseif ndims(equations) == 3
-      return Dg3D(equations, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh, parameter("polydeg"))
+      return Dg3D(equations, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh, parameter("polydeg"))
     else
       error("Unsupported number of spatial dimensions: ", ndims(equations))
     end

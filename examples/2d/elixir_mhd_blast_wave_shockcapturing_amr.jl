@@ -9,12 +9,12 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
-gamma = 5/3
-equations = IdealGlmMhdEquations2D(gamma)
 
-initial_conditions = initial_conditions_orszag_tang
+equations = IdealGlmMhdEquations2D(1.4)
 
-surface_flux = flux_hll
+initial_condition = initial_condition_blast_wave
+
+surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -27,20 +27,20 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_min = (-0.5, -0.5)
+coordinates_max = ( 0.5,  0.5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.01)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -55,10 +55,10 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.25) # can probably be increased when shock-capturing is fixed for MHD
+stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

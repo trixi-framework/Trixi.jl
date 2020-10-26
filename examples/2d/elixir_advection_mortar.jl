@@ -9,7 +9,7 @@ advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-initial_conditions = initial_conditions_convergence_test
+initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
@@ -25,7 +25,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000,)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

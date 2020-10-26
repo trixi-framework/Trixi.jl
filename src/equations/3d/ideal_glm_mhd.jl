@@ -25,7 +25,7 @@ default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative,
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations3D)
+function initial_condition_constant(x, t, equation::IdealGlmMhdEquations3D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -38,7 +38,7 @@ function initial_conditions_constant(x, t, equation::IdealGlmMhdEquations3D)
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
 
-function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquations3D)
+function initial_condition_convergence_test(x, t, equation::IdealGlmMhdEquations3D)
   # Alfvén wave in three space dimensions
   # Altmann thesis http://dx.doi.org/10.18419/opus-3895
   # domain must be set to [-1, 1]^3, γ = 5/3
@@ -66,7 +66,7 @@ function initial_conditions_convergence_test(x, t, equation::IdealGlmMhdEquation
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
 end
 
-function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations3D)
+function initial_condition_ec_test(x, t, equation::IdealGlmMhdEquations3D)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
@@ -88,7 +88,7 @@ function initial_conditions_ec_test(x, t, equation::IdealGlmMhdEquations3D)
   return prim2cons(SVector(rho, v1, v2, v3, p, 1.0, 1.0, 1.0, 0.0), equation)
 end
 
-function initial_conditions_orszag_tang(x, t, equation::IdealGlmMhdEquations3D)
+function initial_condition_orszag_tang(x, t, equation::IdealGlmMhdEquations3D)
   # setup taken from Table 4 of Bohm et al. JCP article (2018) DOI: 10.1016/j.jcp.2018.06.027
   # domain must be [0, 1]^3 , γ = 5/3
   rho = 25.0 / (36.0 * pi)

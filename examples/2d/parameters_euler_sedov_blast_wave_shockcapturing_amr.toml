@@ -3,7 +3,7 @@
 ndims = 2
 equations = "CompressibleEulerEquations"
 
-initial_conditions = "initial_conditions_sedov_blast_wave"
+initial_condition = "initial_condition_sedov_blast_wave"
 surface_flux = "flux_lax_friedrichs"
 volume_flux = "flux_chandrashekar"
 t_start = 0.0

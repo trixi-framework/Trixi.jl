@@ -1,26 +1,27 @@
 
 """
     AMRCallback(semi, controller [,adaptor=AdaptorAMR(semi)];
-                interval=5,
-                adapt_initial_conditions=true,
-                adapt_initial_conditions_only_refine=true)
+                interval,
+                adapt_initial_condition=true,
+                adapt_initial_condition_only_refine=true)
 
 Performs adaptive mesh refinement (AMR) every `interval` time steps
 for a given semidiscretization `semi` using the chosen `controller`.
 """
-struct AMRCallback{Controller, Adaptor}
+struct AMRCallback{Controller, Adaptor, Cache}
   controller::Controller
   interval::Int
-  adapt_initial_conditions::Bool
-  adapt_initial_conditions_only_refine::Bool
+  adapt_initial_condition::Bool
+  adapt_initial_condition_only_refine::Bool
   adaptor::Adaptor
+  amr_cache::Cache
 end
 
 
 function AMRCallback(semi, controller, adaptor;
-                     interval=nothing,
-                     adapt_initial_conditions=true,
-                     adapt_initial_conditions_only_refine=true)
+                     interval,
+                     adapt_initial_condition=true,
+                     adapt_initial_condition_only_refine=true)
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -33,9 +34,13 @@ function AMRCallback(semi, controller, adaptor;
     condition = (u, t, integrator) -> false
   end
 
-  amr_callback = AMRCallback{typeof(controller), typeof(adaptor)}(
-    controller, interval, adapt_initial_conditions,
-                  adapt_initial_conditions_only_refine, adaptor)
+  to_refine  = Int[]
+  to_coarsen = Int[]
+  amr_cache = (; to_refine, to_coarsen)
+
+  amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
+    controller, interval, adapt_initial_condition,
+    adapt_initial_condition_only_refine, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
                    save_positions=(false,false),
@@ -63,8 +68,8 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   println(io, "AMRCallback with")
   println(io, "- controller: ", amr_callback.controller)
   println(io, "- interval: ", amr_callback.interval)
-  println(io, "- adapt_initial_conditions: ", amr_callback.adapt_initial_conditions)
-  print(io,   "- adapt_initial_conditions_only_refine: ", amr_callback.adapt_initial_conditions_only_refine)
+  println(io, "- adapt_initial_condition: ", amr_callback.adapt_initial_condition)
+  print(io,   "- adapt_initial_condition_only_refine: ", amr_callback.adapt_initial_condition_only_refine)
 end
 
 
@@ -77,12 +82,12 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   amr_callback = cb.affect!
   semi = integrator.p
 
-  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
+  @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
     has_changed = true
     while has_changed
       has_changed = amr_callback(integrator,
-                                 only_refine=amr_callback.adapt_initial_conditions_only_refine)
+                                 only_refine=amr_callback.adapt_initial_condition_only_refine)
       compute_coefficients!(integrator.u, t, semi)
       u_modified!(integrator, true)
     end
@@ -97,12 +102,12 @@ end
 #   amr_callback = cb.affect!
 #   semi = ode.p
 
-#   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_conditions
+#   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
 #     # iterate until mesh does not change anymore
 #     has_changed = true
 #     while has_changed
 #       has_changed = amr_callback(ode.u0, semi,
-#                                  only_refine=amr_callback.adapt_initial_conditions_only_refine)
+#                                  only_refine=amr_callback.adapt_initial_condition_only_refine)
 #       compute_coefficients!(ode.u0, ode.tspan[1], semi)
 #     end
 #   end
@@ -220,8 +225,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
    @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
   end
 
-  to_refine  = Int[]
-  to_coarsen = Int[]
+  @unpack to_refine, to_coarsen = amr_callback.amr_cache
+  empty!(to_refine)
+  empty!(to_coarsen)
   for element in eachelement(dg, cache)
     controller_value = lambda[element]
     if controller_value > 0

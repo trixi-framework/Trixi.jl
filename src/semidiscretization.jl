@@ -11,18 +11,18 @@ end
 
 
 """
-    integrate(func, semi::AbstractSemidiscretization, u_ode::AbstractVector, args...; normalize=true)
+    integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
 
 Call `func(u, i..., element, equations, solver, args...)` for all nodal indices `i..., element`
 and integrate the result using a quadrature associated with the semidiscretization `semi`.
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func, semi::AbstractSemidiscretization, u_ode::AbstractVector, args...; normalize=true)
+function integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
-  integrate(func, mesh, equations, solver, cache, u, args..., normalize=normalize)
+  integrate_via_indices(func, u, mesh, equations, solver, cache, args..., normalize=normalize)
 end
 
 """
@@ -77,6 +77,9 @@ spectral element method ([`DGSEM`](@ref)) are the values of `func` at the
 Lobatto-Legendre nodes. Similarly, a classical finite difference method will use
 the values of `func` at the nodes of the grid assoociated with the semidiscretization
 `semi`.
+
+For semidiscretizations `semi` associated with an initial condition, `func` can be omitted
+to use the given initial condition at time `t`.
 """
 function compute_coefficients(func, t, semi::AbstractSemidiscretization)
   u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
@@ -159,7 +162,7 @@ end
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions,
+struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions,
                                     SourceTerms, Solver, Cache} <: AbstractSemidiscretization
 
   mesh::Mesh
@@ -167,7 +170,7 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
 
   # This guy is a bit messy since we abuse it as some kind of "exact solution"
   # although this doesn't really exist...
-  initial_conditions::InitialConditions
+  initial_condition::InitialCondition
 
   boundary_conditions::BoundaryConditions
   source_terms::SourceTerms
@@ -175,42 +178,65 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, Boundary
   cache::Cache
   performance_counter::PerformanceCounter
 
-  function SemidiscretizationHyperbolic{Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}(
+  function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}(
       mesh::Mesh, equations::Equations,
-      initial_conditions::InitialConditions, boundary_conditions::BoundaryConditions,
+      initial_condition::InitialCondition, boundary_conditions::BoundaryConditions,
       source_terms::SourceTerms,
-      solver::Solver, cache::Cache) where {Mesh, Equations, InitialConditions, BoundaryConditions, SourceTerms, Solver, Cache}
+      solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
 
     performance_counter = PerformanceCounter()
 
-    new(mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache, performance_counter)
+    new(mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, performance_counter)
   end
 end
 
 """
-    SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
+    SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms=nothing,
-                                 boundary_conditions=nothing)
+                                 boundary_conditions=boundary_condition_periodic)
 
 Construct a semidiscretization of a hyperbolic PDE.
 """
-function SemidiscretizationHyperbolic(mesh, equations, initial_conditions, solver;
+function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms=nothing,
-                                      boundary_conditions=nothing, RealT=real(solver))
+                                      boundary_conditions=boundary_condition_periodic, RealT=real(solver))
 
   cache = create_cache(mesh, equations, solver, RealT)
+  _boundary_conditions = digest_boundary_conditions(boundary_conditions)
 
-  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_conditions), typeof(boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
-    mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
+    mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
 end
+
+
+# allow passing named tuples of BCs constructed in an arbitrary order
+digest_boundary_conditions(boundary_conditions) = boundary_conditions
+
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{2,Any}} # 1D
+  @unpack x_neg, x_pos = boundary_conditions
+  (; x_neg, x_pos)
+end
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{4,Any}} # 2D
+  @unpack x_neg, x_pos, y_neg, y_pos = boundary_conditions
+  (; x_neg, x_pos, y_neg, y_pos)
+end
+function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys,ValueTypes}) where {Keys, ValueTypes<:NTuple{6,Any}} # 3D
+  @unpack x_neg, x_pos, y_neg, y_pos, z_neg, z_pos = boundary_conditions
+  (; x_neg, x_pos, y_neg, y_pos, z_neg, z_pos)
+end
+
+function digest_boundary_conditions(boundary_conditions::AbstractArray)
+  throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
+end
+
 
 
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
   print(io, "SemidiscretizationHyperbolic(")
   print(io,       semi.mesh)
   print(io, ", ", semi.equations)
-  print(io, ", ", semi.initial_conditions)
+  print(io, ", ", semi.initial_condition)
   print(io, ", ", semi.boundary_conditions)
   print(io, ", ", semi.source_terms)
   print(io, ", ", semi.solver)
@@ -226,7 +252,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
   println(io, "SemidiscretizationHyperbolic using")
   println(io, "- ", semi.mesh)
   println(io, "- ", semi.equations)
-  println(io, "- ", semi.initial_conditions)
+  println(io, "- ", semi.initial_condition)
   println(io, "- ", semi.boundary_conditions)
   println(io, "- ", semi.source_terms)
   println(io, "- ", semi.solver)
@@ -252,38 +278,38 @@ end
 
 
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolic)
-  @unpack mesh, equations, initial_conditions, solver, cache = semi
+  @unpack mesh, equations, initial_condition, solver, cache = semi
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache)
 end
 
 function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationHyperbolic)
-  @unpack mesh, equations, initial_conditions, solver, cache = semi
+  @unpack mesh, equations, initial_condition, solver, cache = semi
 
-  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
+  calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache)
 end
 
 
 function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
-  compute_coefficients(semi.initial_conditions, t, semi)
+  compute_coefficients(semi.initial_condition, t, semi)
 end
 
 function compute_coefficients!(u_ode::AbstractVector, t, semi::SemidiscretizationHyperbolic)
-  compute_coefficients!(u_ode, semi.initial_conditions, t, semi)
+  compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
 
 # TODO: Taal better name
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
-  @unpack mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache = semi
+  @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 
   u  = wrap_array(u_ode,  mesh, equations, solver, cache)
   du = wrap_array(du_ode, mesh, equations, solver, cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+  @timeit_debug timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
@@ -299,10 +325,10 @@ end
 # - real(solver)
 # - create_cache(mesh, equations, solver, RealT)
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
-# - integrate(func, mesh, equations, solver, cache, u; normalize=true)
-# - integrate(func, u, mesh, equations, solver, cache, args...; normalize=true)
-# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_conditions, solver, cache)
+# - integrate(func, u, mesh, equations, solver, cache; normalize=true)
+# - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)
+# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
-# - rhs!(du, u, t, mesh, equations, initial_conditions, boundary_conditions, source_terms, solver, cache)
+# - rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
 #

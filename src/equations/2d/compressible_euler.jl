@@ -22,7 +22,7 @@ varnames_prim(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "p"
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -34,13 +34,13 @@ function initial_conditions_density_pulse(x, t, equation::CompressibleEulerEquat
 end
 
 """
-    initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations2D)
+    initial_condition_density_wave(x, t, equation::CompressibleEulerEquations2D)
 
 test case for stability of EC fluxes from paper: https://arxiv.org/pdf/2007.09026.pdf
 domain [-1, 1]^2
 mesh = 4x4, polydeg = 5
 """
-function initial_conditions_density_wave(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_density_wave(x, t, equation::CompressibleEulerEquations2D)
   v1 = 0.1
   v2 = 0.2
   rho = 1 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
@@ -51,7 +51,7 @@ function initial_conditions_density_wave(x, t, equation::CompressibleEulerEquati
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1
   v1 = 1
   v2 = 1
@@ -62,7 +62,7 @@ function initial_conditions_pressure_pulse(x, t, equation::CompressibleEulerEqua
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_density_pressure_pulse(x, t, equation::CompressibleEulerEquations2D)
   rho = 1 + exp(-(x[1]^2 + x[2]^2))/2
   v1 = 1
   v2 = 1
@@ -73,7 +73,7 @@ function initial_conditions_density_pressure_pulse(x, t, equation::CompressibleE
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_constant(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_constant(x, t, equation::CompressibleEulerEquations2D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -81,7 +81,7 @@ function initial_conditions_constant(x, t, equation::CompressibleEulerEquations2
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations2D)
   c = 2
   A = 0.1
   L = 2
@@ -97,7 +97,7 @@ function initial_conditions_convergence_test(x, t, equation::CompressibleEulerEq
   return @SVector [rho, rho_v1, rho_v2, rho_e]
 end
 
-function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_isentropic_vortex(x, t, equation::CompressibleEulerEquations2D)
   # needs appropriate mesh size, e.g. [-10,-10]x[10,10]
   # make sure that the inicenter does not exit the domain, e.g. T=10.0
   # initial center of the vortex
@@ -128,7 +128,7 @@ function initial_conditions_isentropic_vortex(x, t, equation::CompressibleEulerE
   return prim2cons(prim, equation)
 end
 
-function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
@@ -147,7 +147,7 @@ function initial_conditions_weak_blast_wave(x, t, equation::CompressibleEulerEqu
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
@@ -166,7 +166,7 @@ function initial_conditions_blast_wave(x, t, equation::CompressibleEulerEquation
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
@@ -190,7 +190,7 @@ function initial_conditions_sedov_blast_wave(x, t, equation::CompressibleEulerEq
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_medium_sedov_blast_wave(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
   x_norm = x[1] - inicenter[1]
@@ -214,7 +214,7 @@ function initial_conditions_medium_sedov_blast_wave(x, t, equation::Compressible
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_khi(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_khi(x, t, equation::CompressibleEulerEquations2D)
   # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
   # change discontinuity to tanh
   # typical resolution 128^2, 256^2
@@ -235,7 +235,7 @@ function initial_conditions_khi(x, t, equation::CompressibleEulerEquations2D)
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_blob(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_blob(x, t, equation::CompressibleEulerEquations2D)
   # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
   # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
   # change discontinuity to tanh
@@ -270,7 +270,7 @@ function initial_conditions_blob(x, t, equation::CompressibleEulerEquations2D)
   return prim2cons(SVector(dens, velx, vely0, p0), equation)
 end
 
-function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_jeans_instability(x, t, equation::CompressibleEulerEquations2D)
   # Jeans gravitational instability test case
   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
   # OBS! this uses cgs (centimeter, gram, second) units
@@ -296,7 +296,7 @@ function initial_conditions_jeans_instability(x, t, equation::CompressibleEulerE
   return prim2cons(SVector(dens, velx, vely, pres), equation)
 end
 
-function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_eoc_test_coupled_euler_gravity(x, t, equation::CompressibleEulerEquations2D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
   if equation.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
@@ -314,7 +314,7 @@ function initial_conditions_eoc_test_coupled_euler_gravity(x, t, equation::Compr
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
-function initial_conditions_sedov_self_gravity(x, t, equation::CompressibleEulerEquations2D)
+function initial_condition_sedov_self_gravity(x, t, equation::CompressibleEulerEquations2D)
   # Set up polar coordinates
   r = sqrt(x[1]^2 + x[2]^2)
 
@@ -346,10 +346,10 @@ end
 
 
 # Apply boundary conditions
-function boundary_conditions_convergence_test(u_inner, orientation, direction, x, t,
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::CompressibleEulerEquations2D)
-  u_boundary = initial_conditions_convergence_test(x, t, equation)
+  u_boundary = initial_condition_convergence_test(x, t, equation)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -361,11 +361,11 @@ function boundary_conditions_convergence_test(u_inner, orientation, direction, x
   return flux
 end
 
-function boundary_conditions_sedov_self_gravity(u_inner, orientation, direction, x, t,
+function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equation::CompressibleEulerEquations2D)
   # velocities are zero, density/pressure are ambient values according to
-  # initial_conditions_sedov_self_gravity
+  # initial_condition_sedov_self_gravity
   rho = 1e-5
   v1 = 0.0
   v2 = 0.0
@@ -387,7 +387,7 @@ end
 # TODO: Taal remove methods with the signature below?
 #       Or keep them as an option for possiby increased performance?
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
@@ -425,7 +425,7 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
 end
 
 @inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions`
+  # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
@@ -460,7 +460,7 @@ end
 end
 
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0 # gravitational constant, must match coupling solver
@@ -483,7 +483,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
 end
 
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
-  # Same settings as in `initial_conditions_eoc_test_coupled_euler_gravity`
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
   A = 0.1
   G = 1.0

@@ -3,7 +3,7 @@
 ndims = 3
 equations = "CompressibleEulerEquations"
 gamma = 1.66667
-initial_conditions = "initial_conditions_blob"
+initial_condition = "initial_condition_blob"
 t_start = 0.0
 t_end   = 2.5
 #restart = true
@@ -38,7 +38,7 @@ initial_refinement_level = 2
 adapt_initial_condition = false
 amr_indicator = "blob"
 amr_interval = 3
-amr_alpha_max = 1.0 
+amr_alpha_max = 1.0
 amr_alpha_min = 0.0001
 
 ####################################################################################################

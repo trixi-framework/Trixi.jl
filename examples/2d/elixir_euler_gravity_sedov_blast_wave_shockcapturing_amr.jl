@@ -8,8 +8,8 @@ gamma = 1.4
 equations_euler = CompressibleEulerEquations2D(gamma)
 
 # TODO: Taal, define initial/boundary conditions here for Euler?
-initial_conditions  = Trixi.initial_conditions_sedov_self_gravity
-boundary_conditions = Trixi.boundary_conditions_sedov_self_gravity
+initial_condition = Trixi.initial_condition_sedov_self_gravity
+boundary_conditions = Trixi.boundary_condition_sedov_self_gravity
 
 surface_flux = flux_hll
 volume_flux  = flux_chandrashekar
@@ -32,7 +32,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=100_000,
                 periodicity=false)
 
-semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditions, solver_euler,
+semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition, solver_euler,
                                           boundary_conditions=boundary_conditions)
 
 
@@ -45,7 +45,7 @@ equations_gravity = HyperbolicDiffusionEquations2D(resid_tol)
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 
-semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_conditions, solver_gravity,
+semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition, solver_gravity,
                                             boundary_conditions=boundary_conditions,
                                             source_terms=source_terms_harmonic)
 
@@ -78,8 +78,8 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       max_level =8, max_threshold=0.0003)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
-                           adapt_initial_conditions=true,
-                           adapt_initial_conditions_only_refine=true)
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 

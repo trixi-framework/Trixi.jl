@@ -4,8 +4,8 @@ ndims = 2
 equations = "HyperbolicDiffusionEquations"
 nu = 1.0
 
-initial_conditions = "initial_conditions_harmonic_nonperiodic"
-boundary_conditions = "boundary_conditions_harmonic_nonperiodic"
+initial_condition = "initial_condition_harmonic_nonperiodic"
+boundary_conditions = "boundary_condition_harmonic_nonperiodic"
 
 surface_flux = "flux_upwind"
 source_terms = "source_terms_harmonic"

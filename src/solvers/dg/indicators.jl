@@ -120,9 +120,8 @@ end
 
 const IndicatorLoehner = IndicatorLöhner
 
-# TODO: Taal dimension agnostic
 # dirty Löhner estimate, direction by direction, assuming constant nodes
-@inline function (löhner::IndicatorLöhner)(um::Real, u0::Real, up::Real)
+@inline function local_löhner_estimate(um::Real, u0::Real, up::Real, löhner::IndicatorLöhner)
   num = abs(up - 2 * u0 + um)
   den = abs(up - u0) + abs(u0-um) + löhner.f_wave * (abs(up) + 2 * abs(u0) + abs(um))
   return num / den
