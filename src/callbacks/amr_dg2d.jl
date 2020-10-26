@@ -25,10 +25,10 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     # Get new list of leaf cells
     leaf_cell_ids = leaf_cells(mesh.tree)
 
-    # Initialize new elements container
-    elements = init_elements(leaf_cell_ids, mesh,
-                            real(dg), nvariables(equations), polydeg(dg))
-    copy!(cache.elements, elements)
+    # re-initialize elements container
+    @unpack elements = cache
+    resize!(elements, length(leaf_cell_ids))
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
     @assert nelements(dg, cache) > old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -54,21 +54,20 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     @assert element_id == nelements(dg, cache) + 1 || element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.interfaces, interfaces)
+  # re-initialize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+  init_interfaces!(interfaces, elements, mesh)
 
-  # Initialize boundaries
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.boundaries, boundaries)
+  # re-initialize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+  init_boundaries!(boundaries, elements, mesh)
 
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
+  # re-initialize mortars container
+  @unpack mortars = cache
+  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+  init_mortars!(mortars, elements, mesh)
 
   # Sanity check
   if isperiodic(mesh.tree) && nmortars(mortars) == 0
@@ -171,10 +170,10 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     # Get new list of leaf cells
     leaf_cell_ids = leaf_cells(mesh.tree)
 
-    # Initialize new elements container
-    elements = init_elements(leaf_cell_ids, mesh,
-                            real(dg), nvariables(equations), polydeg(dg))
-    copy!(cache.elements, elements)
+    # re-initialize elements container
+    @unpack elements = cache
+    resize!(elements, length(leaf_cell_ids))
+    init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
     @assert nelements(dg, cache) < old_n_elements
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
@@ -211,21 +210,20 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     @assert element_id == nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
   end # GC.@preserve old_u_ode
 
-  # TODO: Taal performance, allow initializing the stuff in place, making use of resize!
-  # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.interfaces, interfaces)
+  # re-initialize interfaces container
+  @unpack interfaces = cache
+  resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+  init_interfaces!(interfaces, elements, mesh)
 
-  # Initialize boundaries
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  real(dg), nvariables(equations), polydeg(dg))
-  copy!(cache.boundaries, boundaries)
+  # re-initialize boundaries container
+  @unpack boundaries = cache
+  resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+  init_boundaries!(boundaries, elements, mesh)
 
-  # Initialize new mortar containers
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         real(dg), nvariables(equations), polydeg(dg), dg.mortar)
-  copy!(cache.mortars, mortars)
+  # re-initialize mortars container
+  @unpack mortars = cache
+  resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+  init_mortars!(mortars, elements, mesh)
 
   # Sanity check
   if isperiodic(mesh.tree) && nmortars(mortars) == 0
@@ -293,7 +291,7 @@ end
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{2}, equations, dg::DG, cache)
 
-  controller_value = Vector{real(dg)}(undef, nelements(dg, cache))
+  controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)
 end
 
