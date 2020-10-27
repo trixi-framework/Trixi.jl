@@ -137,7 +137,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
-  analysis_polydeg = 2 * (n_nodes) - 1
+  analysis_polydeg = 2 * POLYDEG
   analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(analysis_polydeg + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
