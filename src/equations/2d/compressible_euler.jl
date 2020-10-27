@@ -812,8 +812,7 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
     rho, rho_v1, rho_v2, rho_e = get_node_vars(u, dg, i, j, element_id)
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    v_mag = sqrt(v1^2 + v2^2)
-    p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
+    p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
     c = sqrt(equation.gamma * p / rho)
     λ_max1 = max(λ_max1, abs(v1) + c)
     λ_max2 = max(λ_max2, abs(v2) + c)
