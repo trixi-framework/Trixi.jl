@@ -30,8 +30,8 @@ installation and postprocessing procedures. Its features include:
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
-  * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
-  * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
+  * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
+  * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
 * Square/cubic domains with periodic and weakly-enforced boundary conditions
 * Multiple governing equations:

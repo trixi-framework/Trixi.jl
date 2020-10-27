@@ -39,6 +39,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Conventions" => "conventions.md",
+        "Time integration" => "time_integration.md",
         "Development" => "development.md",
         "Visualization" => "visualization.md",
         "Style guide" => "styleguide.md",
