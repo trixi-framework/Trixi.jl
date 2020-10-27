@@ -806,7 +806,8 @@ end
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::CompressibleEulerEquations2D, dg)
-  λ_max = 0.0
+  λ_max1 = 0.0
+  λ_max2 = 0.0
   for j in 1:nnodes(dg), i in 1:nnodes(dg)
     rho, rho_v1, rho_v2, rho_e = get_node_vars(u, dg, i, j, element_id)
     v1 = rho_v1 / rho
@@ -814,10 +815,11 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
     v_mag = sqrt(v1^2 + v2^2)
     p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
     c = sqrt(equation.gamma * p / rho)
-    λ_max = max(λ_max, v_mag + c)
+    λ_max1 = max(λ_max1, abs(v1) + c)
+    λ_max2 = max(λ_max2, abs(v2) + c)
   end
 
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * (λ_max1 + λ_max2))
 
   return dt
 end
