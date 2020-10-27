@@ -2292,14 +2292,17 @@ end
 
 # Calculate stable time step size
 function calc_dt(dg::Dg2D, cfl)
-  min_dt = Inf
+  max_λ1 = max_λ2 = nextfloat(0.0)
+
   for element_id in 1:dg.n_elements
-    dt = calc_max_dt(dg.elements.u, element_id,
-                     dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
-    min_dt = min(min_dt, dt)
+    λ1, λ2 = calc_max_speeds(dg.elements.u, element_id,
+                             equations(dg), dg)
+    inv_jacobian = dg.elements.inverse_jacobian[element_id]
+    max_λ1 = max(max_λ1, inv_jacobian * λ1)
+    max_λ2 = max(max_λ2, inv_jacobian * λ2)
   end
 
-  return min_dt
+  return cfl * 2 / (nnodes(dg) * (max_λ1 + max_λ2))
 end
 
 # Calculate blending factors used for shock capturing, or amr control
