@@ -467,7 +467,7 @@ OBS! 1) The non-conservative interface flux depends on the discretization. Follo
              - 1/2(phi^L B^L)
      2) this is non-unique along an interface! normal direction is super important
 """
-function noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
+@inline function noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
 
