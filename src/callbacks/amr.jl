@@ -27,9 +27,9 @@ function AMRCallback(semi, controller, adaptor;
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
   end
 
-  # AMR every `interval` time steps
+  # AMR every `interval` time steps, but not after the final step
   if interval > 0
-    condition = (u, t, integrator) -> integrator.iter % interval == 0
+    condition = (u, t, integrator) -> integrator.iter % interval == 0 && t < integrator.sol.prob.tspan[2]
   else # disable the AMR callback except possibly for initial refinement during initialization
     condition = (u, t, integrator) -> false
   end
