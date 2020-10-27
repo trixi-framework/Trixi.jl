@@ -2,7 +2,7 @@
 # Simulation
 ndims = 2
 equations = "CompressibleEulerEquations"
-gamma = 1.66667
+gamma = 1.666666666666667
 # equations = "LinearScalarAdvectionEquation"
 # advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
 # initial_condition = "initial_condition_convergence_test"
@@ -22,7 +22,7 @@ t_end   = 16.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.5
+cfl = 0.7
 n_steps_max = 10000
 analysis_interval = 100
 shock_indicator_variable = "pressure"

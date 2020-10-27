@@ -29,6 +29,7 @@ coordinates_min = (-32, -32)
 coordinates_max = ( 32,  32)
 refinement_patches = (
   (type="box", coordinates_min=(-40, -5), coordinates_max=(40, 5)),
+  (type="box", coordinates_min=(-40, -5), coordinates_max=(40, 5)),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
