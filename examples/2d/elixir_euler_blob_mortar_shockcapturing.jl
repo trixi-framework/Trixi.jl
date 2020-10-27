@@ -14,7 +14,7 @@ volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.5,
+                                         alpha_max=0.05,
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
                                          variable=pressure)
