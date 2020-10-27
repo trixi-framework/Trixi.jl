@@ -500,8 +500,8 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
     for i in eachnode(dg)
       # Call pointwise nonconservative term
       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[interface], equations)
-      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[interface], equations)
+      noncons_primary   = noncons_interface_flux(u_ll, u_rr, orientations[interface], :weak, equations)
+      noncons_secondary = noncons_interface_flux(u_rr, u_ll, orientations[interface], :weak, equations)
       # Save to primary and secondary temporay storage
       set_node_vars!(noncons_diamond_primary,   noncons_primary,   equations, dg, i)
       set_node_vars!(noncons_diamond_secondary, noncons_secondary, equations, dg, i)
@@ -783,8 +783,8 @@ function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{true}
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, equations, dg, i, mortar)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg, i, mortar)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientation, equations)
-        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientation, equations)
+        noncons_upper = noncons_interface_flux(u_upper_ll, u_upper_rr, orientation, :weak, equations)
+        noncons_lower = noncons_interface_flux(u_lower_ll, u_lower_rr, orientation, :weak, equations)
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, equations, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, equations, dg, i)
@@ -795,8 +795,8 @@ function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{true}
         u_upper_ll, u_upper_rr = get_surface_node_vars(u_upper, equations, dg, i, mortar)
         u_lower_ll, u_lower_rr = get_surface_node_vars(u_lower, equations, dg, i, mortar)
         # Call pointwise nonconservative term
-        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientation, equations)
-        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientation, equations)
+        noncons_upper = noncons_interface_flux(u_upper_rr, u_upper_ll, orientation, :weak, equations)
+        noncons_lower = noncons_interface_flux(u_lower_rr, u_lower_ll, orientation, :weak, equations)
         # Save to primary and secondary temporay storage
         set_node_vars!(noncons_diamond_upper, noncons_upper, equations, dg, i)
         set_node_vars!(noncons_diamond_lower, noncons_lower, equations, dg, i)
