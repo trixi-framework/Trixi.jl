@@ -19,7 +19,7 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
-using P4est
+
 include("../amr/p4est/func.jl") 
 mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   parent_ids::Vector{Int}
@@ -135,8 +135,12 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
 # 3. - quad.x
 # 4. - quad.y
   quadinfo_ptr = pointer(QuadInfo)
-
+  # @show volumeIterate
+  CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+  # @show CvolumeIterate
   P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
+  CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
+
   P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
   # P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, CvolumeIterate, C_NULL, C_NULL)
 
@@ -335,3 +339,7 @@ function reset_data_structures!(t::SerialTree{NDIMS}) where NDIMS
   invalidate!(t, 1, capacity(t) + 1)
 end
 
+function p4est_finalize!(tree::SerialTree)
+    P4est.p4est_destroy(tree.forest)
+    P4est.p4est_connectivity_destroy(tree.conn)
+end

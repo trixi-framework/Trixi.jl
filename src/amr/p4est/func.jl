@@ -1,44 +1,31 @@
-# using CBinding
-
-
+using P4est
 
 function volumeIterate(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{Cvoid})
-    # info = unsafe_wrap(p4est_iter_volume_info_t, info_ptr)
-    # @show info.quadid
-    # quad = unsafe_wrap(p4est_quadrant_t, info.quad)
-    # @show quad.level
-    # println("11") 
-    p4est = info.p4est
-    local_num_quads = Int64(p4est.local_num_quadrants)
-    quadinfo = unsafe_wrap(Array, Ptr{Int32}(user_data), (4,local_num_quads); own = false)
-    quadid = info.quadid
-    quad = info.quad
-    quadinfo[1, quadid + 1] = quadid + 1
-    quadinfo[2, quadid + 1] = quad.level
-    quadinfo[3, quadid + 1] = trunc(Int, 1024 * quad.x / 2147483647) 
-    quadinfo[4, quadid + 1] = trunc(Int, 1024 * quad.y / 2147483647) 
-    return nothing
-end
+           p4est = info.p4est
+        local_num_quads = Int64(p4est.local_num_quadrants)
+        quadinfo = unsafe_wrap(Array, Ptr{Int32}(user_data), (4,local_num_quads); own = false)
+        quadid = info.quadid
+        quad = info.quad
+        quadinfo[1, quadid + 1] = quadid + 1
+        quadinfo[2, quadid + 1] = quad.level
+        quadinfo[3, quadid + 1] = trunc(Int, 1024 * quad.x / 2147483647) 
+        quadinfo[4, quadid + 1] = trunc(Int, 1024 * quad.y / 2147483647) 
+        return nothing
+ end
 
-CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
 
 function faceIterate(info::Ptr{P4est.p4est_iter_face_info_t}, user_data_ptr::Ptr{Cvoid})
-      # info = unsafe_wrap(P4est.p4est_iter_face_info_t, info_ptr)
+ 
       p4est = info.p4est
-      # @show p4est
-      # @show info_ptr.sides.elem_size
-      # info = unsafe_wrap(P4est.p4est_iter_face_info_t, info_ptr)
-      # p4est = unsafe_wrap(P4est.p4est_t, info.p4est)
+
       local_num_quads = Int64(p4est.local_num_quadrants)
-      # # unsafe_wrap(Array, pointer::Ptr{T}, dims; own = false)
-      # # @show local_num_quads
+  
       Conn = unsafe_wrap(Array, Ptr{Int32}(user_data_ptr), (11,local_num_quads); own = false)
       
   
       sides = [unsafe_wrap(P4est.p4est_iter_face_side_t, info.sides.array),
           unsafe_wrap(P4est.p4est_iter_face_side_t, info.sides.array + info.sides.elem_size)]
-      # @show sides[1].is.full.quad
-      # return
+    
       if (sides[1].is_hanging == 0 && sides[2].is_hanging == 0)
   
           quads = [sides[1].is.full.quad, sides[2].is.full.quad]
@@ -94,10 +81,3 @@ function faceIterate(info::Ptr{P4est.p4est_iter_face_info_t}, user_data_ptr::Ptr
       return nothing
 end
 
-CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
-
-
-# function p4est_finalize!(mesh::TreeMesh)
-#     P4est.p4est_destroy(mesh.tree.forest)
-#     P4est.p4est_connectivity_destroy(mesh.tree.conn)
-#   end

@@ -30,10 +30,10 @@ analysis_interval = 100
 
 ####################################################################################################
 # Mesh
-n_cells_max = 100
+n_cells_max = 100000
 coordinates_min = [-5, -5]
 coordinates_max = [ 5,  5]
-initial_refinement_level = 2
+initial_refinement_level = 5
 amr_interval = 0
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
