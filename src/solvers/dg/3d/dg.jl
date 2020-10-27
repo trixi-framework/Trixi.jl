@@ -13,18 +13,18 @@ mutable struct Dg3D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   initial_condition::InitialCondition
   source_terms::SourceTerms
 
-  elements::ElementContainer3D{NVARS, POLYDEG}
+  elements::ElementContainer3D{Float64, NVARS, POLYDEG}
   n_elements::Int
 
-  interfaces::InterfaceContainer3D{NVARS, POLYDEG}
+  interfaces::InterfaceContainer3D{Float64, NVARS, POLYDEG}
   n_interfaces::Int
 
-  boundaries::BoundaryContainer3D{NVARS, POLYDEG}
+  boundaries::BoundaryContainer3D{Float64, NVARS, POLYDEG}
   n_boundaries::Int
   n_boundaries_per_direction::SVector{6, Int}
 
   mortar_type::MortarType
-  l2mortars::L2MortarContainer3D{NVARS, POLYDEG}
+  l2mortars::L2MortarContainer3D{Float64, NVARS, POLYDEG}
   n_l2mortars::Int
 
   boundary_conditions::BoundaryConditions
@@ -80,20 +80,20 @@ function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
   n_elements = nelements(elements)
 
   # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize mortar containers
   mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=("l2",))))
-  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG, mortar_type)
   n_l2mortars = nmortars(l2mortars)
 
   # Sanity checks
@@ -359,19 +359,27 @@ end
 
 # Create element container, initialize element data, and return element container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_elements(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_elements(cell_ids, mesh::TreeMesh{3}, RealT, nvars, polydeg)
   # Initialize container
   n_elements = length(cell_ids)
-  elements = ElementContainer3D{NVARS, POLYDEG}(n_elements)
+  elements = ElementContainer3D{RealT, nvars, polydeg}(n_elements)
+
+  # Determine node locations
+  n_nodes = polydeg + 1
+  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+
+  init_elements!(elements, cell_ids, mesh, nodes)
+  return elements
+end
+
+function init_elements!(elements, cell_ids, mesh::TreeMesh{3}, nodes)
+  n_nodes = length(nodes)
 
   # Store cell ids
   elements.cell_ids .= cell_ids
-
-  # Determine node locations
-  n_nodes = POLYDEG + 1
-  nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
 
   # Calculate inverse Jacobian and node coordinates
   for element_id in 1:nelements(elements)
@@ -401,15 +409,16 @@ end
 
 # Create interface container, initialize interface data, and return interface container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_interfaces(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_interfaces(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
-  interfaces = InterfaceContainer3D{NVARS, POLYDEG}(n_interfaces)
+  interfaces = InterfaceContainer3D{RealT, nvars, polydeg}(n_interfaces)
 
   # Connect elements with interfaces
-  init_interface_connectivity!(elements, interfaces, mesh)
+  init_interfaces!(interfaces, elements, mesh)
 
   return interfaces
 end
@@ -417,15 +426,16 @@ end
 
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_boundaries(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_boundaries(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
-  boundaries = BoundaryContainer3D{NVARS, POLYDEG}(n_boundaries)
+  boundaries = BoundaryContainer3D{RealT, nvars, polydeg}(n_boundaries)
 
   # Connect elements with boundaries
-  n_boundaries_per_direction = init_boundary_connectivity!(elements, boundaries, mesh)
+  n_boundaries_per_direction = init_boundaries!(boundaries, elements, mesh)
 
   return boundaries, n_boundaries_per_direction
 end
@@ -433,9 +443,10 @@ end
 
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
-# NVARS: number of variables
-# POLYDEG: polynomial degree
-function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type) where {NVARS, POLYDEG}
+# nvars: number of variables
+# polydeg: polynomial degree
+# TODO: Taal refactor, we should pass the basis as argument, not polydeg
+function init_mortars(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg, mortar_type)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -443,11 +454,11 @@ function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG},
   else
     error("unknown mortar type '$(mortar_type)'")
   end
-  l2mortars = L2MortarContainer3D{NVARS, POLYDEG}(n_l2mortars)
+  l2mortars = L2MortarContainer3D{RealT, nvars, polydeg}(n_l2mortars)
 
   # Connect elements with interfaces and l2mortars
   if mortar_type === Val(:l2)
-    init_mortar_connectivity!(elements, l2mortars, mesh)
+    init_mortars!(l2mortars, elements, mesh)
   else
     error("unknown mortar type '$(mortar_type)'")
   end
@@ -455,9 +466,18 @@ function init_mortars(cell_ids, mesh::TreeMesh{3}, ::Val{NVARS}, ::Val{POLYDEG},
   return l2mortars
 end
 
+function init_mortars(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
+  # Initialize containers
+  n_mortars = count_required_mortars(mesh, cell_ids)
+  mortars = L2MortarContainer3D{RealT, nvars, polydeg}(n_mortars)
+  init_mortars!(mortars, elements, mesh)
+
+  return mortars
+end
+
 
 # Initialize connectivity between elements and interfaces
-function init_interface_connectivity!(elements, interfaces, mesh::TreeMesh{3})
+function init_interfaces!(interfaces, elements, mesh::TreeMesh{3})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -513,7 +533,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
+function init_boundaries!(boundaries, elements, mesh::TreeMesh{3})
   # Reset boundaries count
   count = 0
 
@@ -587,12 +607,14 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh{3})
                                             "expectations $(nboundaries(boundaries))")
   @assert sum(counts_per_direction) == count
 
+  boundaries.n_boundaries_per_direction = SVector(counts_per_direction)
+
   return SVector(counts_per_direction)
 end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh{3})
+function init_mortars!(mortars, elements, mesh::TreeMesh{3})
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))

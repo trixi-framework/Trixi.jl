@@ -6,17 +6,24 @@ The linear scalar advection equation
 ```math
 \partial_t u + a_1 \partial_1 u + a_2 \partial_2 u + a_3 \partial_3 u = 0
 ```
-in two space dimensions with constant velocity `a`.
+in three space dimensions with constant velocity `a`.
 """
-struct LinearScalarAdvectionEquation3D <: AbstractLinearScalarAdvectionEquation{3, 1}
-  sources::String
-  advectionvelocity::SVector{3, Float64}
+struct LinearScalarAdvectionEquation3D{RealT<:Real} <: AbstractLinearScalarAdvectionEquation{3, 1}
+  advectionvelocity::SVector{3, RealT}
 end
 
+function LinearScalarAdvectionEquation3D(a::NTuple{3,<:Real})
+  LinearScalarAdvectionEquation3D(SVector(a))
+end
+
+function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
+  LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
+end
+
+# TODO Taal refactor, remove old constructors and replace them with default values
 function LinearScalarAdvectionEquation3D()
-  sources = parameter("sources", "none")
   a = convert(SVector{3,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation3D(sources, a)
+  LinearScalarAdvectionEquation3D(a)
 end
 
 
@@ -108,6 +115,12 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::LinearScalarAdvectionEquation3D, dg)
   λ_max = maximum(abs, equation.advectionvelocity)
   return cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
+end
+
+@inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
+
+@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation3D)
+  return abs.(eq.advectionvelocity)
 end
 
 

@@ -13,7 +13,7 @@ struct LobattoLegendreBasis{RealT<:Real, NNODES,
   derivative_matrix         ::DerivativeMatrix # dsplit
   derivative_split          ::DerivativeMatrix # dsplit
   derivative_split_transpose::DerivativeMatrix # dsplit_transposed
-  derivative_neg_adjoint    ::DerivativeMatrix # dhat, neg. adjoint wrt the SBP dot product
+  derivative_dhat           ::DerivativeMatrix # dhat, neg. adjoint wrt the SBP dot product
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer)
@@ -30,7 +30,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_matrix          = polynomial_derivative_matrix(nodes)
   derivative_split           = calc_dsplit(nodes, weights)
   derivative_split_transpose = Matrix(derivative_split')
-  derivative_neg_adjoint     = calc_dhat(nodes, weights)
+  derivative_dhat            = calc_dhat(nodes, weights)
 
   # type conversions to make use of StaticArrays etc.
   nodes           = SVector{nnodes_}(convert.(RealT, nodes))
@@ -43,12 +43,12 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_matrix          = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_matrix))
   derivative_split           = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split))
   derivative_split_transpose = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split_transpose))
-  derivative_neg_adjoint     = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_neg_adjoint))
+  derivative_dhat            = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_dhat))
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
     inverse_vandermonde_legendre, boundary_interpolation,
-    derivative_matrix, derivative_split, derivative_split_transpose, derivative_neg_adjoint
+    derivative_matrix, derivative_split, derivative_split_transpose, derivative_dhat
   )
 end
 
