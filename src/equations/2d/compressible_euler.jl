@@ -804,9 +804,10 @@ end
 
 
 # Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_speeds(u, element_id,
-                         equations::CompressibleEulerEquations2D, dg)
-  max_λ1 = max_λ2 = 0.0
+function calc_max_dt(u, element_id, invjacobian, cfl,
+                     equations::CompressibleEulerEquations2D, dg)
+  max_λ1 = 0.0
+  max_λ2 = 0.0
 
   for j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
@@ -815,7 +816,7 @@ function calc_max_speeds(u, element_id,
     max_λ2 = max(max_λ2, λ2)
   end
 
- return max_λ1, max_λ2
+  return cfl * 2 / (nnodes(dg) * invjacobian * (max_λ1 + max_λ2))
 end
 
 @inline function max_abs_speeds(u, equation::CompressibleEulerEquations2D)

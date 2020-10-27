@@ -131,6 +131,8 @@ end
   mesh_equations_solver_cache(semi.semi_euler)
 end
 
+@inline Base.real(semi::SemidiscretizationEulerGravity) = real(semi.semi_euler)
+
 
 # computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
