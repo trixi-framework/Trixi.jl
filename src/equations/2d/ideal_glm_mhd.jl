@@ -459,12 +459,12 @@ end
 Strong form of nonconservative flux on a side (Powell and GLM terms)
      phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
 OBS! 1) The non-conservative interface flux depends on the discretization. Following "modes" are available:
-        * 1: 'weak' formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
-             so this mode only adds 1/2(phi^L B^R normal)
-             ... analogously for the Galilean nonconservative term
-        * 2: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
-        * 3: This mode adds the split-form DG volume integral contribution: This is equivalent to (2)-(1)
-             - 1/2(phi^L B^L)
+        * :weak: 'weak' formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
+                so this mode only adds 1/2(phi^L B^R normal)
+                ... analogously for the Galilean nonconservative term
+        * :whole: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
+        * :inner: This mode adds the split-form DG volume integral contribution: This is equivalent to (2)-(1)
+                - 1/2(phi^L B^L)
      2) this is non-unique along an interface! normal direction is super important
 """
 @inline function noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
@@ -478,7 +478,7 @@ OBS! 1) The non-conservative interface flux depends on the discretization. Follo
   v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
   # extract magnetic field variable from the right and set the normal velocity
   # Note, both depend upon the orientation and need psi_rr
-  if mode==1
+  if mode==:weak
     if orientation == 1 # x-direction
       v_normal = v1_ll
       B_normal = B1_rr
@@ -487,7 +487,7 @@ OBS! 1) The non-conservative interface flux depends on the discretization. Follo
       B_normal = B2_rr
     end
     psi_norm = psi_rr
-  elseif mode==2
+  elseif mode==:whole
     if orientation == 1 # x-direction
       v_normal = v1_ll
       B_normal = B1_rr - B1_ll
@@ -496,7 +496,7 @@ OBS! 1) The non-conservative interface flux depends on the discretization. Follo
       B_normal = B2_rr - B2_ll
     end
     psi_norm = psi_rr - psi_ll
-  else #mode==3
+  else #mode==:inner
     if orientation == 1 # x-direction
       v_normal = v1_ll
       B_normal =-B1_ll
