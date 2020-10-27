@@ -1387,7 +1387,12 @@ end
   calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
 end
 
-
+"""
+    calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
+    calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
+    
+Compute the volume integral with the flux differencing
+"""
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
@@ -1489,23 +1494,28 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
                         dg)
 end
 """
+    calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
     calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
     
 Compute the volume integral as a blend of the split-form DG operator and a subcell Finite-Volume method.
-The indexing is as follows (N=4 example):
-    
- (1) DG DOF idx:     1     2      3      4     5
+```math
+J u̇ = α F^{DG} + (1 - α) F^{FV},
+```
+where α is a blending coefficient computed from a shock indicator.
+The FV subcells have following indexing (N=4 example):
+```
+ (1) DG DOF idx:     1     2      3      4     5   (F^{DG})
                      |     |      |      |     |
                      0--·--O--·---O---·--O--·--0
                      |  |     |       |     |  |
  (2) FV interf. idx: 1  2     3       4     5  6   (fstar)
                     L RL R   L R     L R   L RL R
                      └──┴─────┴───────┴─────┴──┘
- (3) FV subcell idx:  1    2      3      4    5   
-
-
-OBS! 1) (1) and (3) match for consistency.
-     2) When the equation solved has non-conservative terms, fstar can have different values on the right and on the left of an interface
+ (3) FV subcell idx:  1    2      3      4    5    (F^{FV})
+```
+!!! notes
+    * (1) and (3) match for consistency.
+    * When the equation solved has non-conservative terms, fstar can have different values on the right and on the left of an interface
 """                  
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)

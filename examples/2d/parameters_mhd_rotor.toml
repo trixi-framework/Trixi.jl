@@ -5,7 +5,7 @@ equations = "IdealGlmMhdEquations"
 gamma = 1.4
 initial_condition = "initial_condition_rotor"
 surface_flux = "flux_lax_friedrichs"
-volume_flux = "flux_central"
+volume_flux = "flux_derigs_etal"
 
 amr_indicator = "blast_wave" # for now just for testing
 
