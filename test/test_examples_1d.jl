@@ -25,7 +25,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @testset "elixir_advection_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
     l2   = [0.3540209654959832],
-    linf = [0.9999905446337742])
+    linf = [0.9999905446337769])
   end
 
   @testset "elixir_advection_amr_nonperiodic.jl" begin
