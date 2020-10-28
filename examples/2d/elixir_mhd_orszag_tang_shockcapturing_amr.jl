@@ -14,7 +14,7 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_orszag_tang
 
-surface_flux = flux_hll
+surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -58,7 +58,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.25) # can probably be increased when shock-capturing is fixed for MHD
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
