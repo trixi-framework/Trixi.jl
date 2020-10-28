@@ -187,15 +187,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
             t_end = 0.12)
   end
-  @testset "parameters_mhd_orszag_tang.toml with t_end=0.09" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"),
+  @testset "parameters_mhd_orszag_tang_shockcapturing_amr.toml with t_end=0.09" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang_shockcapturing_amr.toml"),
             l2   = [0.2167754423280243, 0.26359006944514035, 0.31414664596581104, 0.0, 0.5121313736058165, 0.22945862419190388, 0.34334574741333446, 0.0, 0.006113771244085815],
             linf = [1.2713060246638115, 0.6733000091062668, 0.8764507997673942, 0.0, 2.819437219022322, 0.6756993525030384, 0.9970376054894377, 0.0, 0.05310784504107611],
             t_end = 0.09)
   end
   # second orszag-tang test added to exercise all components of flux_hll for GLM-MHD
-  @testset "parameters_mhd_orszag_tang.toml with t_end=0.06" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"),
+  @testset "parameters_mhd_orszag_tang_shockcapturing_amr.toml with t_end=0.06" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang_shockcapturing_amr.toml"),
             l2   = [0.10797201158738569, 0.20183923675400306, 0.22965987220003012, 0.0, 0.2993862890890887, 0.156865945562645, 0.24280278839125313, 0.0, 0.0034424029849492947],
             linf = [0.5605977377102305, 0.509274304343078, 0.6612312950402195, 0.0, 0.9814914518422291, 0.39977774699748586, 0.6748004026413148, 0.0, 0.06802505466018915],
             t_end = 0.06, surface_flux = "flux_hll")
@@ -341,7 +341,7 @@ if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) i
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave_shockcapturing_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang_shockcapturing_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"))
   end
 end
