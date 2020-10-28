@@ -770,30 +770,30 @@ function prolong2mortars!(cache, u::AbstractArray{<:Any,5}, equations,
         # L2 mortars in x-direction
         for k in eachnode(dg), j in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[2, v, j, k, m]  = u[v, 1, j, k, upper_left_element]
-            cache.mortars.u_upper_right[2, v, j, k, m] = u[v, 1, j, k, upper_right_element]
-            cache.mortars.u_lower_left[2, v, j, k, m]  = u[v, 1, j, k, lower_left_element]
-            cache.mortars.u_lower_right[2, v, j, k, m] = u[v, 1, j, k, lower_right_element]
+            cache.mortars.u_upper_left[2, v, j, k, mortar]  = u[v, 1, j, k, upper_left_element]
+            cache.mortars.u_upper_right[2, v, j, k, mortar] = u[v, 1, j, k, upper_right_element]
+            cache.mortars.u_lower_left[2, v, j, k, mortar]  = u[v, 1, j, k, lower_left_element]
+            cache.mortars.u_lower_right[2, v, j, k, mortar] = u[v, 1, j, k, lower_right_element]
           end
         end
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         for k in eachnode(dg), i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[2, v, i, k, m]  = u[v, i, 1, k, upper_left_element]
-            cache.mortars.u_upper_right[2, v, i, k, m] = u[v, i, 1, k, upper_right_element]
-            cache.mortars.u_lower_left[2, v, i, k, m]  = u[v, i, 1, k, lower_left_element]
-            cache.mortars.u_lower_right[2, v, i, k, m] = u[v, i, 1, k, lower_right_element]
+            cache.mortars.u_upper_left[2, v, i, k, mortar]  = u[v, i, 1, k, upper_left_element]
+            cache.mortars.u_upper_right[2, v, i, k, mortar] = u[v, i, 1, k, upper_right_element]
+            cache.mortars.u_lower_left[2, v, i, k, mortar]  = u[v, i, 1, k, lower_left_element]
+            cache.mortars.u_lower_right[2, v, i, k, mortar] = u[v, i, 1, k, lower_right_element]
           end
         end
       else # orientations[mortar] == 3
         # L2 mortars in z-direction
         for j in eachnode(dg), i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[2, v, i, j, m]  = u[v, i, j, 1, upper_left_element]
-            cache.mortars.u_upper_right[2, v, i, j, m] = u[v, i, j, 1, upper_right_element]
-            cache.mortars.u_lower_left[2, v, i, j, m]  = u[v, i, j, 1, lower_left_element]
-            cache.mortars.u_lower_right[2, v, i, j, m] = u[v, i, j, 1, lower_right_element]
+            cache.mortars.u_upper_left[2, v, i, j, mortar]  = u[v, i, j, 1, upper_left_element]
+            cache.mortars.u_upper_right[2, v, i, j, mortar] = u[v, i, j, 1, upper_right_element]
+            cache.mortars.u_lower_left[2, v, i, j, mortar]  = u[v, i, j, 1, lower_left_element]
+            cache.mortars.u_lower_right[2, v, i, j, mortar] = u[v, i, j, 1, lower_right_element]
           end
         end
       end
@@ -802,30 +802,30 @@ function prolong2mortars!(cache, u::AbstractArray{<:Any,5}, equations,
         # L2 mortars in x-direction
         for k in eachnode(dg), j in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[1, v, j, k, m]  = u[v, nnodes(dg), j, k, upper_left_element]
-            cache.mortars.u_upper_right[1, v, j, k, m] = u[v, nnodes(dg), j, k, upper_right_element]
-            cache.mortars.u_lower_left[1, v, j, k, m]  = u[v, nnodes(dg), j, k, lower_left_element]
-            cache.mortars.u_lower_right[1, v, j, k, m] = u[v, nnodes(dg), j, k, lower_right_element]
+            cache.mortars.u_upper_left[1, v, j, k, mortar]  = u[v, nnodes(dg), j, k, upper_left_element]
+            cache.mortars.u_upper_right[1, v, j, k, mortar] = u[v, nnodes(dg), j, k, upper_right_element]
+            cache.mortars.u_lower_left[1, v, j, k, mortar]  = u[v, nnodes(dg), j, k, lower_left_element]
+            cache.mortars.u_lower_right[1, v, j, k, mortar] = u[v, nnodes(dg), j, k, lower_right_element]
           end
         end
       elseif cache.mortars.orientations[mortar] == 2
         # L2 mortars in y-direction
         for k in eachnode(dg), i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[1, v, i, k, m]  = u[v, i, nnodes(dg), k, upper_left_element]
-            cache.mortars.u_upper_right[1, v, i, k, m] = u[v, i, nnodes(dg), k, upper_right_element]
-            cache.mortars.u_lower_left[1, v, i, k, m]  = u[v, i, nnodes(dg), k, lower_left_element]
-            cache.mortars.u_lower_right[1, v, i, k, m] = u[v, i, nnodes(dg), k, lower_right_element]
+            cache.mortars.u_upper_left[1, v, i, k, mortar]  = u[v, i, nnodes(dg), k, upper_left_element]
+            cache.mortars.u_upper_right[1, v, i, k, mortar] = u[v, i, nnodes(dg), k, upper_right_element]
+            cache.mortars.u_lower_left[1, v, i, k, mortar]  = u[v, i, nnodes(dg), k, lower_left_element]
+            cache.mortars.u_lower_right[1, v, i, k, mortar] = u[v, i, nnodes(dg), k, lower_right_element]
           end
         end
       else # if cache.mortars.orientations[mortar] == 3
         # L2 mortars in z-direction
         for j in eachnode(dg), i in eachnode(dg)
           for v in eachvariable(equations)
-            cache.mortars.u_upper_left[1, v, i, j, m]  = u[v, i, j, nnodes(dg), upper_left_element]
-            cache.mortars.u_upper_right[1, v, i, j, m] = u[v, i, j, nnodes(dg), upper_right_element]
-            cache.mortars.u_lower_left[1, v, i, j, m]  = u[v, i, j, nnodes(dg), lower_left_element]
-            cache.mortars.u_lower_right[1, v, i, j, m] = u[v, i, j, nnodes(dg), lower_right_element]
+            cache.mortars.u_upper_left[1, v, i, j, mortar]  = u[v, i, j, nnodes(dg), upper_left_element]
+            cache.mortars.u_upper_right[1, v, i, j, mortar] = u[v, i, j, nnodes(dg), upper_right_element]
+            cache.mortars.u_lower_left[1, v, i, j, mortar]  = u[v, i, j, nnodes(dg), lower_left_element]
+            cache.mortars.u_lower_right[1, v, i, j, mortar] = u[v, i, j, nnodes(dg), lower_right_element]
           end
         end
       end
@@ -897,10 +897,10 @@ function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,5},
 
     # Calculate fluxes
     orientation = orientations[mortar]
-    calc_fstar!(fstar_upper_left,  u_upper_left,  mortar, orientations, dg)
-    calc_fstar!(fstar_upper_right, u_upper_right, mortar, orientations, dg)
-    calc_fstar!(fstar_lower_left,  u_lower_left,  mortar, orientations, dg)
-    calc_fstar!(fstar_lower_right, u_lower_right, mortar, orientations, dg)
+    calc_fstar!(fstar_upper_left,  equations, dg, u_upper_left,  mortar, orientation)
+    calc_fstar!(fstar_upper_right, equations, dg, u_upper_right, mortar, orientation)
+    calc_fstar!(fstar_lower_left,  equations, dg, u_lower_left,  mortar, orientation)
+    calc_fstar!(fstar_lower_right, equations, dg, u_lower_right, mortar, orientation)
 
     mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
@@ -1102,16 +1102,16 @@ end
 
   multiply_dimensionwise!(
     view(surface_flux_values, :, :, :, direction, large_element),
-    dg.l2mortar_reverse_lower, dg.l2mortar_reverse_upper, fstar_upper_left, fstar_tmp1)
+    mortar_l2.reverse_lower, mortar_l2.reverse_upper, fstar_upper_left, fstar_tmp1)
   add_multiply_dimensionwise!(
     view(surface_flux_values, :, :, :, direction, large_element),
-    dg.l2mortar_reverse_upper, dg.l2mortar_reverse_upper, fstar_upper_right, fstar_tmp1)
+    mortar_l2.reverse_upper, mortar_l2.reverse_upper, fstar_upper_right, fstar_tmp1)
   add_multiply_dimensionwise!(
     view(surface_flux_values, :, :, :, direction, large_element),
-    dg.l2mortar_reverse_lower, dg.l2mortar_reverse_lower, fstar_lower_left, fstar_tmp1)
+    mortar_l2.reverse_lower, mortar_l2.reverse_lower, fstar_lower_left, fstar_tmp1)
   add_multiply_dimensionwise!(
     view(surface_flux_values, :, :, :, direction, large_element),
-    dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, fstar_lower_right, fstar_tmp1)
+    mortar_l2.reverse_upper, mortar_l2.reverse_lower, fstar_lower_right, fstar_tmp1)
 
   return nothing
 end

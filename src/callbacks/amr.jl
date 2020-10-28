@@ -369,3 +369,4 @@ end
 
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
+include("amr_dg3d.jl")

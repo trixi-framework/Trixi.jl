@@ -299,6 +299,7 @@ end
 include("indicators.jl")
 include("indicators_1d.jl")
 include("indicators_2d.jl")
+include("indicators_3d.jl")
 
 # 1D DG implementation
 include("1d/containers.jl")

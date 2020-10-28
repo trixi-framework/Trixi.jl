@@ -208,6 +208,26 @@ function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4}, matrix::Abst
   return nothing
 end
 
+# 3D version for scalars
+# Instead of having a leading dimension of size 1 in `data_out, data_in`, this leading dimension
+# of size unity is dropped, resulting in one dimension less than in `multiply_dimensionwise!`.
+function multiply_scalar_dimensionwise!(data_out::AbstractArray{<:Any, 3}, matrix::AbstractMatrix,
+                                        data_in:: AbstractArray{<:Any, 3},
+                                        tmp1=zeros(eltype(data_out), size(matrix, 1), size(matrix, 2), size(matrix, 2)),
+                                        tmp2=zeros(eltype(data_out), size(matrix, 1), size(matrix, 1), size(matrix, 2)))
+
+  # Interpolate in x-direction
+  @tullio threads=false tmp1[i, j, k]     = matrix[i, ii] * data_in[ii, j, k]
+
+  # Interpolate in y-direction
+  @tullio threads=false tmp2[i, j, k]     = matrix[j, jj] * tmp1[i, jj, k]
+
+  # Interpolate in z-direction
+  @tullio threads=false data_out[i, j, k] = matrix[k, kk] * tmp2[i, j, kk]
+
+  return nothing
+end
+
 # 3D version, apply matrixJ to dimension J of data_in
 function multiply_dimensionwise!(data_out::AbstractArray{<:Any, 4},
                                  matrix1::AbstractMatrix, matrix2::AbstractMatrix, matrix3::AbstractMatrix,
