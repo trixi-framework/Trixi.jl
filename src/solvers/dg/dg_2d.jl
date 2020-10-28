@@ -406,12 +406,12 @@ end
 Calculate the finite volume fluxes inside the elements (without non-conservative terms).
 
 # Arguments
-- `fstar1_L::AbstractArray{T} where T<:Real`:
-- `fstar1_R::AbstractArray{T} where T<:Real`:
-- `fstar2_L::AbstractArray{T} where T<:Real`:
-- `fstar2_R::AbstractArray{T} where T<:Real`:
-- `u_leftright::AbstractArray{T} where T<:Real`
-- `nonconservative_terms::Logical`
+- `fstar1_L::AbstractArray{<:Real, 3}`:
+- `fstar1_R::AbstractArray{<:Real, 3}`:
+- `fstar2_L::AbstractArray{<:Real, 3}`:
+- `fstar2_R::AbstractArray{<:Real, 3}`:
+- `u_leftright::AbstractArray{<:Real, 4}`
+- `nonconservative_terms::Bool`
 - `equations`
 - `volume_flux_fv`
 - `dg::DGSEM`
