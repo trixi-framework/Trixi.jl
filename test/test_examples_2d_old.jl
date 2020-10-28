@@ -145,8 +145,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [5.934036929955422e-5, 0.0007547536380712039, 0.000816277844819191, 0.0022070017103743567],
             volume_flux = "flux_ranocha")
   end
-  @testset "parameters_euler_vortex_mortar_split_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split_shockcapturing.toml"),
+  @testset "parameters_euler_vortex_mortar_shockcapturing.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_shockcapturing.toml"),
             l2   = [2.1205855860697905e-6, 2.805356649496243e-5, 3.7617723084029226e-5, 8.841527980901164e-5],
             linf = [5.9005286894620035e-5, 0.0007547295163081724, 0.0008176139355887679, 0.0022089993378280326])
   end
