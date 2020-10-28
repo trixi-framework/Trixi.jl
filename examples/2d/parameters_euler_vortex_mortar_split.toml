@@ -24,7 +24,7 @@ t_end   = 1.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.8
+cfl = 1.4
 n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "split_form"
