@@ -14,7 +14,7 @@ equations = IdealGlmMhdEquations2D(1.4)
 initial_condition = initial_condition_rotor
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_central
+volume_flux  = flux_derigs_etal
 basis = LobattoLegendreBasis(4)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
@@ -39,7 +39,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.15)
+tspan = (0.0, 0.05)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -57,7 +57,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
+stepsize_callback = StepsizeCallback(cfl=0.95)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
