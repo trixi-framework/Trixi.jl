@@ -24,7 +24,7 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   leaf_cell_ids = leaf_cells(tree)
 
   # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or refine them
@@ -45,15 +45,15 @@ function refine!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   end
 
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
 
   # Sanity check
@@ -153,7 +153,7 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   leaf_cell_ids = leaf_cells(mesh.tree)
 
   # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
   n_elements = nelements(elements)
 
   # Loop over all elements in old container and either copy them or coarsen them
@@ -187,15 +187,15 @@ function coarsen!(dg::Dg3D{Eqn, NVARS, POLYDEG}, mesh::TreeMesh,
   end
 
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
 
   # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type)
+  l2mortars = init_mortars(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG, dg.mortar_type)
   n_l2mortars = nmortars(l2mortars)
 
   # Sanity check
