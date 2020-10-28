@@ -453,14 +453,25 @@ function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations2D)
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
+"""
+    noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
 
-# strong form of nonconservative flux on a side, e.g., the Powell term
-#     phi^L 1/2 (B^L+B^R) normal - phi^L B^L normal = phi^L 1/2 (B^R-B^L) normal
-# OBS! 1) "weak" formulation of split DG already includes the contribution -1/2(phi^L B^L normal)
-#         so this routine only adds 1/2(phi^L B^R normal)
-#         analogously for the Galilean nonconservative term
-#      2) this is non-unique along an interface! normal direction is super important
-function noncons_interface_flux(u_left, u_right, orientation, equation::IdealGlmMhdEquations2D)
+Strong form of non-conservative flux on a surface (Powell and GLM terms)
+```math
+phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
+```
+!!! note
+    The non-conservative interface flux depends on the discretization. Following "modes" are available:
+    * `:weak`: 'weak' formulation of split DG already includes the contribution
+      ``-1/2 (phi^L B^L_{normal})`` so this mode only adds ``1/2 (phi^L B^R_{normal})``,
+      analogously for the Galilean nonconservative term
+    * `:whole`: This mode adds the whole non-conservative term: phi^L 1/2 (B^R-B^L)
+    * `:inner`: This mode adds the split-form DG volume integral contribution: This is equivalent to
+      ``(2)-(1) - 1/2 (phi^L B^L)``
+!!! warning
+    This is non-unique along an interface! The normal direction is super important.
+"""
+@inline function noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, _, psi_rr = u_right
 
@@ -471,26 +482,47 @@ function noncons_interface_flux(u_left, u_right, orientation, equation::IdealGlm
   v_dot_B_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
   # extract magnetic field variable from the right and set the normal velocity
   # Note, both depend upon the orientation and need psi_rr
-  if orientation == 1 # x-direction
-    v_normal = v1_ll
-    B_normal = B1_rr
-  else # y-direction
-    v_normal = v2_ll
-    B_normal = B2_rr
+  if mode==:weak
+    if orientation == 1 # x-direction
+      v_normal = v1_ll
+      B_normal = B1_rr
+    else # y-direction
+      v_normal = v2_ll
+      B_normal = B2_rr
+    end
+    psi_norm = psi_rr
+  elseif mode==:whole
+    if orientation == 1 # x-direction
+      v_normal = v1_ll
+      B_normal = B1_rr - B1_ll
+    else # y-direction
+      v_normal = v2_ll
+      B_normal = B2_rr - B2_ll
+    end
+    psi_norm = psi_rr - psi_ll
+  else #mode==:inner
+    if orientation == 1 # x-direction
+      v_normal = v1_ll
+      B_normal =-B1_ll
+    else # y-direction
+      v_normal = v2_ll
+      B_normal =-B2_ll
+    end
+    psi_norm =-psi_ll
   end
+
   # compute the nonconservative flux: Powell (with B_normal) and Galilean (with v_normal)
   noncons2 = 0.5 * B_normal * B1_ll
   noncons3 = 0.5 * B_normal * B2_ll
   noncons4 = 0.5 * B_normal * B3_ll
-  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_rr
+  noncons5 = 0.5 * B_normal * v_dot_B_ll + 0.5 * v_normal * psi_ll * psi_norm
   noncons6 = 0.5 * B_normal * v1_ll
   noncons7 = 0.5 * B_normal * v2_ll
   noncons8 = 0.5 * B_normal * v3_ll
-  noncons9 = 0.5 * v_normal * psi_rr
+  noncons9 = 0.5 * v_normal * psi_norm
 
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
-
 
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
