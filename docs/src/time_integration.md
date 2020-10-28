@@ -15,8 +15,9 @@ Interesting classes of time integration schemes are
   and error-based time step control. In general, you often should not need to worry about this if you
   use Trixi.
 
-Some common options for `solve` are the following. Further documentation can be found
-in the [SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
+Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+are the following. Further documentation can be found in the
+[SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
 - If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
   a time step as `dt=...`. If you use a `CFLCallback`, the value passed as `dt=...`
   is irrelevant since it will be overwritten by the `CFLCallback`.
