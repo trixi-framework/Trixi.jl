@@ -252,7 +252,7 @@ function create_thread_cache_2d(n_variables, n_nodes)
   fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, n_variables, n_nodes+1, n_nodes) for _ in 1:Threads.nthreads()]
   fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
   fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, n_variables, n_nodes, n_nodes+1) for _ in 1:Threads.nthreads()]
-  
+
   fstar_upper_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded           = [MA2d(undef) for _ in 1:Threads.nthreads()]
   noncons_diamond_upper_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
@@ -1390,7 +1390,7 @@ end
 """
     calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
     calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
-    
+
 Compute the volume integral with the flux differencing
 """
 function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
@@ -1496,7 +1496,7 @@ end
 """
     calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
     calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp, element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
-    
+
 Compute the volume integral as a blend of the split-form DG operator and a subcell Finite-Volume method.
 ```math
 J u̇ = α F^{DG} + (1 - α) F^{FV},
@@ -1516,7 +1516,7 @@ The FV subcells have following indexing (N=4 example):
 !!! notes
     * (1) and (3) match for consistency.
     * When the equation solved has non-conservative terms, fstar can have different values on the right and on the left of an interface
-"""                  
+"""
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
                                element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
@@ -1563,7 +1563,8 @@ end
 
 
 """
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D)
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D,
+                 nonconservative_terms::Val{false})
 
 Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 
@@ -1575,6 +1576,7 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
 - `dg::Dg2D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
+- `nonconservative_terms::Bool`
 """
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, element_id, dg::Dg2D, nonconservative_terms::Val{false})
   @unpack surface_flux_function = dg
@@ -1608,11 +1610,12 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
       set_node_vars!(fstar2_R, flux, dg, i, j)
     end
   end
-  
+
 end
 
 """
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D)
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D,
+                 nonconservative_terms::Val{true})
 
 Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
 
@@ -1624,13 +1627,14 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
 - `dg::Dg2D`
 - `u::AbstractArray{T} where T<:Real`
 - `element_id::Integer`
+- `nonconservative_terms::Bool`
 """
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, element_id, dg::Dg2D, nonconservative_terms::Val{true})
   @unpack surface_flux_function = dg
-  
+
   # Fluxes in x
   #############
-  
+
   # Compute first "flux"
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   for j in 1:nnodes(dg)
@@ -1640,7 +1644,7 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
     # Copy to array
     set_node_vars!(fstar1_R, flux_R, dg, 1, j)
   end
-  
+
   # Compute inner fluxes
   for j in 1:nnodes(dg)
     for i in 2:nnodes(dg)
@@ -1657,7 +1661,7 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
       set_node_vars!(fstar1_R, flux_R, dg, i, j)
     end
   end
-  
+
   # Compute last "flux"
   fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
   for j in 1:nnodes(dg)
@@ -1667,10 +1671,10 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
     # Copy to array
     set_node_vars!(fstar1_L, flux_L, dg, nnodes(dg)+1, j)
   end
-  
+
   # Fluxes in y
   #############
-  
+
   # Compute first "flux"
   fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
@@ -1680,7 +1684,7 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
     # Copy to array
     set_node_vars!(fstar2_R, flux_R, dg, i, 1)
   end
-  
+
   # Compute inner fluxes
   for j in 2:nnodes(dg)
     for i in 1:nnodes(dg)
@@ -1697,7 +1701,7 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
       set_node_vars!(fstar2_R, flux_R, dg, i, j)
     end
   end
-  
+
   # Compute last "flux"
   fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
@@ -1707,7 +1711,7 @@ Calculate the finite volume fluxes inside the elements (**with non-conservative 
     # Copy to array
     set_node_vars!(fstar2_L, flux_L, dg, i, nnodes(dg)+1)
   end
-  
+
 end
 
 
