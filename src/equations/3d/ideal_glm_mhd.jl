@@ -4,11 +4,16 @@
 
 The ideal compressible GLM-MHD equations in three space dimensions.
 """
-mutable struct IdealGlmMhdEquations3D <: AbstractIdealGlmMhdEquations{3, 9}
-  gamma::Float64
-  c_h::Float64 # GLM cleaning speed
+mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquations{3, 9}
+  gamma::RealT
+  c_h::RealT # GLM cleaning speed
 end
 
+function IdealGlmMhdEquations3D(gamma)
+  IdealGlmMhdEquations3D(gamma, zero(gamma))
+end
+
+# TODO Taal refactor, remove old constructors and replace them with default values
 function IdealGlmMhdEquations3D()
   gamma = parameter("gamma", 1.4)
   c_h = 0.0   # GLM cleaning wave speed
@@ -188,6 +193,46 @@ end
       end
     end
   end
+end
+
+@inline function calcflux_twopoint_nonconservative!(f1, f2, f3,
+                                                    u::AbstractArray{<:Any,5}, element,
+                                                    equations::IdealGlmMhdEquations3D, dg, cache)
+  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, k, element)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+
+    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
+
+    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    # x-direction
+    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
+    # y-direction
+    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
+    # z-direction
+    phi_gal_z = 0.5 * SVector(0, 0, 0, 0, v3*psi, 0, 0, 0, v3)
+
+    # add both nonconservative terms into the volume
+    for l in eachnode(dg)
+      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, equations, dg, l, j, k, element)
+      for v in eachvariable(equations)
+        f1[v, l, i, j, k] += phi_pow[v] * B1 + phi_gal_x[v] * psi
+      end
+      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, equations, dg, i, l, k, element)
+      for v in eachvariable(equations)
+        f2[v, l, i, j, k] += phi_pow[v] * B2 + phi_gal_y[v] * psi
+      end
+      _, _, _, _, _, _, _, B3, psi = get_node_vars(u, equations, dg, i, j, l, element)
+      for v in eachvariable(equations)
+        f3[v, l, i, j, k] += phi_pow[v] * B3 + phi_gal_z[v] * psi
+      end
+    end
+  end
+
+  return nothing
 end
 
 
@@ -482,6 +527,20 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
+end
+
+@inline function max_abs_speeds(u, equation::IdealGlmMhdEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, _ = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  cf_x_direction = calc_fast_wavespeed(u, 1, equation)
+  cf_y_direction = calc_fast_wavespeed(u, 2, equation)
+  cf_z_direction = calc_fast_wavespeed(u, 3, equation)
+  cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
+  equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
+
+  return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
 end
 
 

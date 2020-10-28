@@ -565,9 +565,9 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
                               nonconservative_terms::Val{true}, equations,
                               dg::DG, cache)
   @unpack u, neighbor_ids, orientations = cache.interfaces
-  fstar_threaded                     = cache.fstar_upper_threaded
-  noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_threaded
-  noncons_diamond_secondary_threaded = cache.noncons_diamond_lower_threaded
+  fstar_threaded                     = cache.fstar_upper_left_threaded
+  noncons_diamond_primary_threaded   = cache.noncons_diamond_upper_left_threaded
+  noncons_diamond_secondary_threaded = cache.noncons_diamond_upper_right_threaded
 
   Threads.@threads for interface in eachinterface(dg, cache)
     # Choose thread-specific pre-allocated container

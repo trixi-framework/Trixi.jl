@@ -8,7 +8,7 @@ struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEqu
   gamma::RealT
 end
 
-# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
+# TODO Taal refactor, remove old constructors and replace them with default values
 function CompressibleEulerEquations2D()
   gamma::Float64 = parameter("gamma", 1.4)
 

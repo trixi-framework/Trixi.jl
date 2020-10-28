@@ -95,7 +95,7 @@ end
 
 
 function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,5}, u, t,
-                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations2D,
+                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
                  dg::DG, cache)
   integrate_via_indices(u, mesh, equations, dg, cache, cache, dg.basis.derivative_matrix) do u, i, j, k, element, equations, dg, cache, derivative_matrix
     divb = zero(eltype(u))
@@ -110,14 +110,14 @@ function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,5}, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,5}, u, t,
-                 mesh::TreeMesh{2}, equations::IdealGlmMhdEquations2D,
+                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
                  dg::DG, cache)
   @unpack derivative_matrix, weights = dg.basis
 
   # integrate over all elements to get the divergence-free condition errors
   linf_divb = zero(eltype(u))
   for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       divb = zero(eltype(u))
       for l in eachnode(dg)
         divb += ( derivative_matrix[i, l] * u[6, l, j, k, element] +
