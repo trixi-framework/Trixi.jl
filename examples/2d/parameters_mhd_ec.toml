@@ -20,7 +20,7 @@ t_end   = 0.4
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.5
+cfl = 1.0
 n_steps_max = 10000
 analysis_interval = 100
 
