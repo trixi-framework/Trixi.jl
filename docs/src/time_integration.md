@@ -14,3 +14,14 @@ Interesting classes of time integration schemes are
   of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
   and error-based time step control. In general, you often should not need to worry about this if you
   use Trixi.
+
+Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+are the following. Further documentation can be found in the
+[SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
+- If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
+  a time step as `dt=...`. If you use a `StepsizeCallback`, the value passed as `dt=...`
+  is irrelevant since it will be overwritten by the `StepsizeCallback`.
+- You should usually set `save_everystep=false`. Otherwise, OrdinaryDiffEq.jl will
+  (try to) save the numerical solution after every time step in RAM (until you run
+  out of memory or start to swap).
+- You can set the maximal number of time steps via `maxiters=...`.
