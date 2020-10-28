@@ -7,13 +7,19 @@ A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD
 The book is freely available at http://www.cfdbooks.com/ and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
-struct HyperbolicDiffusionEquations3D <: AbstractHyperbolicDiffusionEquations{3, 4}
-  Lr::Float64
-  Tr::Float64
-  nu::Float64
-  resid_tol::Float64
+struct HyperbolicDiffusionEquations3D{RealT<:Real} <: AbstractHyperbolicDiffusionEquations{3, 4}
+  Lr::RealT
+  Tr::RealT
+  nu::RealT
+  resid_tol::RealT # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
+function HyperbolicDiffusionEquations3D(resid_tol; nu=1.0, Lr=inv(2pi))
+  Tr = Lr^2 / nu
+  HyperbolicDiffusionEquations3D(promote(Lr, Tr, nu, resid_tol)...)
+end
+
+# TODO Taal refactor, remove old constructors and replace them with default values
 function HyperbolicDiffusionEquations3D()
   # diffusion coefficient
   nu = parameter("nu", 1.0)
@@ -32,6 +38,10 @@ varnames_cons(::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "
 varnames_prim(::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
 default_analysis_quantities(::HyperbolicDiffusionEquations3D) = (:l2_error, :linf_error, :residual)
 default_analysis_errors(::HyperbolicDiffusionEquations3D)     = (:l2_error, :linf_error, :residual)
+
+@inline function residual_steady_state(du, ::HyperbolicDiffusionEquations3D)
+  abs(du[1])
+end
 
 
 # Set initial conditions at physical location `x` for pseudo-time `t`
@@ -134,6 +144,8 @@ end
 
 
 # Apply source terms
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy)*sin(2πz) and f = -12νπ^2 sin(2πx)*sin(2πy)*sin(2πz)
@@ -154,6 +166,24 @@ function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equatio
   end
 
   return nothing
+end
+
+@inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+  inv_Tr = inv(equations.Tr)
+  C = -12 * equations.nu * pi^2
+
+  x1, x2, x3 = x
+  tmp1 = sinpi(2 * x1)
+  tmp2 = sinpi(2 * x2)
+  tmp3 = sinpi(2 * x3)
+  du1 = -C*tmp1*tmp2*tmp3
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+  du4 = -inv_Tr * u[4]
+
+  return SVector(du1, du2, du3, du4)
 end
 
 function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
@@ -265,6 +295,13 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
+end
+
+@inline have_constant_speed(::HyperbolicDiffusionEquations3D) = Val(true)
+
+@inline function max_abs_speeds(eq::HyperbolicDiffusionEquations3D)
+  λ = sqrt(eq.nu / eq.Tr)
+  return λ, λ, λ
 end
 
 
