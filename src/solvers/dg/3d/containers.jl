@@ -112,7 +112,7 @@ nelements(elements::ElementContainer3D) = length(elements.cell_ids)
 # Container data structure (structure-of-arrays style) for DG interfaces
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 mutable struct InterfaceContainer3D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
-  u::Array{Real, 5}         # [leftright, variables, i, j, interfaces]
+  u::Array{RealT, 5}        # [leftright, variables, i, j, interfaces]
   neighbor_ids::Matrix{Int} # [leftright, interfaces]
   orientations::Vector{Int} # [interfaces]
   # internal `resize!`able storage
