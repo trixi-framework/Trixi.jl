@@ -109,5 +109,7 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, 
 
 export trixi_include, examples_dir, get_examples, default_example
 
+export jacobian_fd
+
 
 end

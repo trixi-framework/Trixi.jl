@@ -1,3 +1,5 @@
+
+# TODO: Taal remove
 function init_simulation_euler_gravity()
   # Print starup message
   print_startup_message()
@@ -204,6 +206,7 @@ function init_simulation_euler_gravity()
 end
 
 
+# TODO: Taal remove
 function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integration_function)
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,

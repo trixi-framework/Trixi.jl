@@ -98,6 +98,55 @@ function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSem
 end
 
 
+"""
+    jacobian_fd(semi::AbstractSemidiscretization;
+                t0=zero(real(semi)),
+                u0_ode=compute_coefficients(t0, semi))
+
+Uses the right-hand side operator of the semidiscretization `semi`
+and simple second order finite difference to compute the Jacobian `J`
+of the operator.
+The linearization state is `u0_ode` at time `t0`.
+"""
+function jacobian_fd(semi::AbstractSemidiscretization;
+                     t0=zero(real(semi)),
+                     u0_ode=compute_coefficients(t0, semi))
+  # copy the initial state since it will be modified in the following
+  u_ode = copy(u0_ode)
+  du0_ode = similar(u_ode)
+  dup_ode = similar(u_ode)
+  dum_ode = similar(u_ode)
+
+  # compute residual of linearization state
+  rhs!(du0_ode, u_ode, semi, t0)
+
+  # initialize Jacobian matrix
+  J = zeros(eltype(u_ode), length(u_ode), length(u_ode))
+
+  # use second order finite difference to estimate Jacobian matrix
+  for idx in eachindex(u0_ode)
+    # determine size of fluctuation
+    epsilon = sqrt(eps(u0_ode[idx]))
+
+    # plus fluctuation
+    u_ode[idx] = u0_ode[idx] + epsilon
+    rhs!(dup_ode, u_ode, semi, t0)
+
+    # minus fluctuation
+    u_ode[idx] = u0_ode[idx] - epsilon
+    rhs!(dum_ode, u_ode, semi, t0)
+
+    # restore linearisation state
+    u_ode[idx] = u0_ode[idx]
+
+    # central second order finite difference
+    @. J[:, idx] = (dup_ode - dum_ode) / (2 * epsilon)
+  end
+
+  return J
+end
+
+
 # Sometimes, it can be useful to save some (scalar) variables associated with each element,
 # e.g. AMR indicators or shock indicators. Since these usually have to be re-computed
 # directly before IO and do not necessarily need to be stored in memory before,
