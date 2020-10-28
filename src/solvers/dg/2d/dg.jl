@@ -1671,7 +1671,6 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
   # Fluxes in y
   #############
   
-  
   # Compute first "flux"
   fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
   for i in 1:nnodes(dg)
