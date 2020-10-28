@@ -187,7 +187,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
             t_end = 0.12)
   end
-  @testset "parameters_mhd_orszag_tang.toml with t_end=0.09" begin
+  @testset "parameters_mhd_orszag_tang.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"),
             l2   = [0.21662313415818582, 0.2635698604231871, 0.31395699611730377, 0.0, 0.5122276249069517, 0.22914894367706035, 0.34302293430536107, 0.0, 0.0031837261356598232],
             linf = [1.2455340346415893, 0.6656259804847943, 0.8530619473770993, 0.0, 2.762224683447692, 0.6641473992806939, 0.9631804383659317, 0.0, 0.04504842687596635],
