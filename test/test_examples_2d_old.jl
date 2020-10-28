@@ -322,8 +322,8 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "parameters_mhd_rotor.toml one step" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"),
+  @testset "parameters_mhd_rotor_shockcapturing_amr.toml one step" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor_shockcapturing_amr.toml"),
             l2   = [0.019195558428459367, 0.0444345270981607, 0.04329215391420532, 0.0, 0.07639332626939939, 0.0044777850800556485, 0.007266820549785791, 0.0, 0.0008422441423441393],
             linf = [0.5171127312547106, 1.9513340343194656, 1.9404704272260034, 0.0, 2.993145341292035, 0.14424331829406456, 0.20606277176198587, 0.0, 0.06685635962044646],
             n_steps_max = 1)
@@ -341,8 +341,7 @@ if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) i
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave_shockcapturing_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang_shockcapturing_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor_shockcapturing_amr.toml"))
   end
 end
 
