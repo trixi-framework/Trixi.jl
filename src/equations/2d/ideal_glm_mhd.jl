@@ -501,7 +501,7 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
                      equations::IdealGlmMhdEquations2D, dg)
   max_λ1 = 0.0
   max_λ2 = 0.0
-  for j in nnodes(dg), i in 1:nnodes(dg)
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
     λ1, λ2 = max_abs_speeds(u_node, equations)
     max_λ1 = max(max_λ1, λ1)
