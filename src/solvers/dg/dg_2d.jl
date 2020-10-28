@@ -383,8 +383,8 @@ end
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
   fstar2_R = fstar2_R_threaded[Threads.threadid()]
-  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, equations, volume_flux_fv, dg, element,
-               nonconservative_terms)
+  calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
+               nonconservative_terms, equations, volume_flux_fv, dg, element)
 
   # Calculate FV volume integral contribution
   for j in eachnode(dg), i in eachnode(dg)
@@ -400,8 +400,8 @@ end
 
 
 """
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, element_id, dg::DGSEM,
-                 nonconservative_terms::Val{false})
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+                 nonconservative_terms::Val{false}, equations, volume_flux_fv, dg, element_id)
 
 Calculate the finite volume fluxes inside the elements (without non-conservative terms).
 
@@ -411,13 +411,15 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
 - `fstar2_L::AbstractArray{T} where T<:Real`:
 - `fstar2_R::AbstractArray{T} where T<:Real`:
 - `u_leftright::AbstractArray{T} where T<:Real`
-- `element_id::Integer`
-- `dg::DGSEM`
 - `nonconservative_terms::Logical`
+- `equations`
+- `volume_flux_fv`
+- `dg::DGSEM`
+- `element_id::Integer`
 """
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              equations, volume_flux_fv, dg::DGSEM, element,
-                              nonconservative_terms::Val{false})
+                              nonconservative_terms::Val{false}, equations, volume_flux_fv,
+                              dg::DGSEM, element)
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
@@ -449,8 +451,8 @@ Calculate the finite volume fluxes inside the elements (without non-conservative
 end
 
 """
-    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, element_id, dg::DGSEM,
-                 nonconservative_terms::Val{true})
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+                 nonconservative_terms::Val{true}, equations, volume_flux_fv, dg, element_id)
 
 Calculate the finite volume fluxes inside the elements (non-conservative terms are active).
 
@@ -460,13 +462,15 @@ Calculate the finite volume fluxes inside the elements (non-conservative terms a
 - `fstar2_L::AbstractArray{T} where T<:Real`:
 - `fstar2_R::AbstractArray{T} where T<:Real`:
 - `u_leftright::AbstractArray{T} where T<:Real`
-- `element_id::Integer`
-- `dg::DGSEM`
 - `nonconservative_terms::Logical`
+- `equations`
+- `volume_flux_fv`
+- `dg::DGSEM`
+- `element_id::Integer`
 """
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
-                              equations, volume_flux_fv, dg::DGSEM, element,
-                              nonconservative_terms::Val{true})
+                              nonconservative_terms::Val{true}, equations, volume_flux_fv,
+                              dg::DGSEM, element)
   # Fluxes in x
   #############
 
