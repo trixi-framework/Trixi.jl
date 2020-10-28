@@ -20,7 +20,7 @@ t_end   = 20.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.6
+cfl = 1.4
 n_steps_max = 10000
 analysis_interval = 100
 extra_analysis_quantities = ["conservation_error", "entropy", "energy_total", "energy_kinetic",
