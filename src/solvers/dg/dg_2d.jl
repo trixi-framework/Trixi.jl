@@ -75,15 +75,13 @@ function create_cache(mesh::TreeMesh{2}, equations,
 
   A3dp1_x = Array{real(dg), 3}
   A3dp1_y = Array{real(dg), 3}
-  # fstar1_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
-  # fstar2_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
   fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
   fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
   fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
-  return (; cache..., element_ids_dg, element_ids_dgfv, #fstar1_threaded, fstar2_threaded)
+  return (; cache..., element_ids_dg, element_ids_dgfv,
           fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
 end
 
@@ -377,15 +375,10 @@ end
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4}, nonconservative_terms,
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
-#  @unpack fstar1_threaded, fstar2_threaded = cache
   @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache
   @unpack inverse_weights = dg.basis
 
   # Calculate FV two-point fluxes
-  # fstar1 = fstar1_threaded[Threads.threadid()]
-  # fstar2 = fstar2_threaded[Threads.threadid()]
-  # calcflux_fv!(fstar1, fstar2, u, equations, volume_flux_fv, dg, element)
-
   fstar1_L = fstar1_L_threaded[Threads.threadid()]
   fstar2_L = fstar2_L_threaded[Threads.threadid()]
   fstar1_R = fstar1_R_threaded[Threads.threadid()]
@@ -399,39 +392,12 @@ end
       du[v, i, j, element] += ( alpha *
                                 (inverse_weights[i] * (fstar1_L[v, i+1, j] - fstar1_R[v, i, j]) +
                                  inverse_weights[j] * (fstar2_L[v, i, j+1] - fstar2_R[v, i, j])) )
-                                # (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
-                                #  inverse_weights[j] * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
     end
   end
 
   return nothing
 end
 
-# @inline function calcflux_fv!(fstar1, fstar2, u::AbstractArray{<:Any,4},
-#                               equations, volume_flux_fv, dg::DGSEM, element)
-#
-#   fstar1[:, 1,            :] .= zero(eltype(fstar1))
-#   fstar1[:, nnodes(dg)+1, :] .= zero(eltype(fstar1))
-#
-#   for j in eachnode(dg), i in 2:nnodes(dg)
-#     u_ll = get_node_vars(u, equations, dg, i-1, j, element)
-#     u_rr = get_node_vars(u, equations, dg, i,   j, element)
-#     flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
-#     set_node_vars!(fstar1, flux, equations, dg, i, j)
-#   end
-#
-#   fstar2[:, :, 1           ] .= zero(eltype(fstar2))
-#   fstar2[:, :, nnodes(dg)+1] .= zero(eltype(fstar2))
-#
-#   for j in 2:nnodes(dg), i in eachnode(dg)
-#     u_ll = get_node_vars(u, equations, dg, i, j-1, element)
-#     u_rr = get_node_vars(u, equations, dg, i, j,   element)
-#     flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
-#     set_node_vars!(fstar2, flux, equations, dg, i, j)
-#   end
-#
-#   return nothing
-# end
 
 """
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, element_id, dg::DGSEM,
