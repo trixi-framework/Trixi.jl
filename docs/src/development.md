@@ -224,13 +224,12 @@ https://github.com/trixi-framework/Trixi.jl/pull/256.
    ```
    Run the `@benchmark ...` commands multiple times to see whether there are any significant fluctuations.
 
-Follow these steps for both commits you want to compare. The relevant benchmark results I'm mostly looking at
-are the median and mean values of the runtime and the memory/allocs estimate. On my system, the differences
-of the runtimes are of the order of the fluctuations I get when running the benchmarks multiple times. Since
+Follow these steps for both commits you want to compare. The relevant benchmark results you should typically be looking at
+are the median and mean values of the runtime and the memory/allocs estimate. In this example, the differences
+of the runtimes are of the order of the fluctuations one gets when running the benchmarks multiple times. Since
 the memory/allocs are (roughly) the same, there doesn't seem to be a significant performance regression here.
 
-You can also make it more detailed by benchmarking only the calculation of the volume terms but I think that's
-not necessary here.
+You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
 
 
 
