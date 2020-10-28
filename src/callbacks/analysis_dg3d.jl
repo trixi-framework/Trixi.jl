@@ -105,7 +105,8 @@ function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,5}, u, t,
                 derivative_matrix[k, l] * u[7, i, j, l, element] )
     end
     divb *= cache.elements.inverse_jacobian[element]
-  end
+    divb^2
+  end |> sqrt
 end
 
 function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,5}, u, t,
