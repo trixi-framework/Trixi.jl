@@ -497,24 +497,18 @@ end
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
 function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::IdealGlmMhdEquations2D, dg)
-  λ_max = 0.0
-  equation.c_h = 0.0
+                     equations::IdealGlmMhdEquations2D, dg)
+  max_λ1 = 0.0
+  max_λ2 = 0.0
+  equations.c_h = 0.0
   for j in nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
-    rho, rho_v1, rho_v2, rho_v3, _ = u_node
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-    v_mag = sqrt(v1^2 + v2^2 + v3^2)
-    cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
-    cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
-    cf_max = max(cf_x_direction, cf_y_direction)
-    equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
-    λ_max = max(λ_max, v_mag + cf_max)
+    λ1, λ2 = max_abs_speeds(u_node, equations)
+    max_λ1 = max(max_λ1, λ1)
+    max_λ2 = max(max_λ2, λ2)
   end
 
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
+  dt = cfl * 2 / (nnodes(dg) * invjacobian * (max_λ1 + max_λ2))
 
   return dt
 end
