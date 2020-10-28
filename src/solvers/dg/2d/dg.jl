@@ -1565,7 +1565,7 @@ end
 """
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright, u, element_id, dg::Dg2D)
 
-Calculate the finite volume fluxes inside the elements (without non-conservative terms).
+Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 
 # Arguments
 - `fstar1_L::AbstractArray{T} where T<:Real`:
