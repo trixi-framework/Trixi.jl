@@ -1,5 +1,4 @@
 
-# TODO: Taal, dimension agnostic
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                  equations, dg::DGSEM, cache, cells_to_refine)
@@ -118,7 +117,6 @@ end
 
 
 
-# TODO: Taal, dimension agnostic
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                   equations, dg::DGSEM, cache, child_cells_to_coarsen)

@@ -160,7 +160,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,4}, equations, dg::D
 
     for j in 2:nnodes(dg)-1, i in eachnode(dg)
       # y direction
-      u0 = indicator[i, j, ]
+      u0 = indicator[i, j  ]
       up = indicator[i, j+1]
       um = indicator[i, j-1]
       estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner))

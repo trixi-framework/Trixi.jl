@@ -226,12 +226,10 @@ function BoundaryContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Re
 
   n_boundaries_per_direction = SVector(0, 0, 0, 0)
 
-  boundaries = BoundaryContainer2D{RealT, NVARS, POLYDEG}(
+  return BoundaryContainer2D{RealT, NVARS, POLYDEG}(
     u, neighbor_ids, orientations, neighbor_sides,
     node_coordinates, n_boundaries_per_direction,
     _u, _node_coordinates)
-
-  return boundaries
 end
 
 

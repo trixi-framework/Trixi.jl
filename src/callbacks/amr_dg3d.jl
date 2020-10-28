@@ -1,6 +1,6 @@
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                  equations, dg::DGSEM, cache, cells_to_refine)
   # Return early if there is nothing to do
   if isempty(cells_to_refine)
@@ -34,12 +34,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or refine them
+    u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
+    u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
     element_id = 1
     for old_element_id in 1:old_n_elements
       if needs_refinement[old_element_id]
         # Refine element and store solution directly in new data structure
         refine_element!(u, element_id, old_u, old_element_id,
-                        adaptor, equations, dg)
+                        adaptor, equations, dg, u_tmp1, u_tmp2)
         element_id += 2^ndims(mesh)
       else
         # Copy old element data to new element container
@@ -79,65 +81,76 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
-function refine_element!(u::AbstractArray{<:Any,4}, element_id,
+function refine_element!(u::AbstractArray{<:Any,5}, element_id,
                          old_u, old_element_id,
-                         adaptor::LobattoLegendreAdaptorL2, equations, dg)
+                         adaptor::LobattoLegendreAdaptorL2, equations, dg,
+                         u_tmp1, u_tmp2)
   @unpack forward_upper, forward_lower = adaptor
 
   # Store new element ids
-  lower_left_id  = element_id
-  lower_right_id = element_id + 1
-  upper_left_id  = element_id + 2
-  upper_right_id = element_id + 3
+  bottom_lower_left_id  = element_id
+  bottom_lower_right_id = element_id + 1
+  bottom_upper_left_id  = element_id + 2
+  bottom_upper_right_id = element_id + 3
+  top_lower_left_id     = element_id + 4
+  top_lower_right_id    = element_id + 5
+  top_upper_left_id     = element_id + 6
+  top_upper_right_id    = element_id + 7
 
   @boundscheck begin
     @assert old_element_id >= 1
     @assert size(old_u, 1) == nvariables(equations)
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) == nnodes(dg)
-    @assert size(old_u, 4) >= old_element_id
+    @assert size(old_u, 4) == nnodes(dg)
+    @assert size(old_u, 5) >= old_element_id
     @assert     element_id >= 1
     @assert size(    u, 1) == nvariables(equations)
     @assert size(    u, 2) == nnodes(dg)
     @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id + 3
+    @assert size(    u, 4) == nnodes(dg)
+    @assert size(    u, 5) >= element_id + 7
   end
 
-  # Interpolate to lower left element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_lower[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, lower_left_id)
-  end
+  # Interpolate to bottom lower left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_lower_left_id), forward_lower, forward_lower, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
-  # Interpolate to lower right element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_lower[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, lower_right_id)
-  end
+  # Interpolate to bottom lower right element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_lower_right_id), forward_upper, forward_lower, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
-  # Interpolate to upper left element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_lower[i, k] * forward_upper[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, upper_left_id)
-  end
+  # Interpolate to bottom upper left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_upper_left_id), forward_lower, forward_upper, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
-  # Interpolate to upper right element
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, old_element_id) * forward_upper[i, k] * forward_upper[j, l]
-    end
-    set_node_vars!(u, acc, equations, dg, i, j, upper_right_id)
-  end
+  # Interpolate to bottom upper right element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, bottom_upper_right_id), forward_upper, forward_upper, forward_lower,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+
+  # Interpolate to top lower left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_lower_left_id), forward_lower, forward_lower, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+
+  # Interpolate to top lower right element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_lower_right_id), forward_upper, forward_lower, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+
+  # Interpolate to top upper left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_upper_left_id), forward_lower, forward_upper, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
+
+  # Interpolate to top upper right element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, top_upper_right_id), forward_upper, forward_upper, forward_upper,
+    view(old_u, :, :, :, :, old_element_id), u_tmp1, u_tmp2)
 
   return nothing
 end
@@ -145,7 +158,7 @@ end
 
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
-function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                   equations, dg::DGSEM, cache, child_cells_to_coarsen)
   # Return early if there is nothing to do
   if isempty(child_cells_to_coarsen)
@@ -178,6 +191,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     u = wrap_array(u_ode, mesh, equations, dg, cache)
 
     # Loop over all elements in old container and either copy them or coarsen them
+    u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
+    u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
     skip = 0
     element_id = 1
     for old_element_id in 1:old_n_elements
@@ -195,7 +210,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
 
         # Coarsen elements and store solution directly in new data structure
         coarsen_elements!(u, element_id, old_u, old_element_id,
-                          adaptor, equations, dg)
+                          adaptor, equations, dg, u_tmp1, u_tmp2)
         element_id += 1
         skip = 2^ndims(mesh) - 1
       else
@@ -234,61 +249,83 @@ end
 
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
-function coarsen_elements!(u::AbstractArray{<:Any,4}, element_id,
+function coarsen_elements!(u::AbstractArray{<:Any,5}, element_id,
                            old_u, old_element_id,
-                           adaptor::LobattoLegendreAdaptorL2, equations, dg)
+                           adaptor::LobattoLegendreAdaptorL2, equations, dg,
+                           u_tmp1, u_tmp2)
   @unpack reverse_upper, reverse_lower = adaptor
 
   # Store old element ids
-  lower_left_id  = old_element_id
-  lower_right_id = old_element_id + 1
-  upper_left_id  = old_element_id + 2
-  upper_right_id = old_element_id + 3
+  bottom_lower_left_id  = old_element_id
+  bottom_lower_right_id = old_element_id + 1
+  bottom_upper_left_id  = old_element_id + 2
+  bottom_upper_right_id = old_element_id + 3
+  top_lower_left_id     = old_element_id + 4
+  top_lower_right_id    = old_element_id + 5
+  top_upper_left_id     = old_element_id + 6
+  top_upper_right_id    = old_element_id + 7
 
   @boundscheck begin
     @assert old_element_id >= 1
     @assert size(old_u, 1) == nvariables(equations)
     @assert size(old_u, 2) == nnodes(dg)
     @assert size(old_u, 3) == nnodes(dg)
-    @assert size(old_u, 4) >= old_element_id + 3
+    @assert size(old_u, 4) == nnodes(dg)
+    @assert size(old_u, 5) >= old_element_id + 7
     @assert     element_id >= 1
     @assert size(    u, 1) == nvariables(equations)
     @assert size(    u, 2) == nnodes(dg)
     @assert size(    u, 3) == nnodes(dg)
-    @assert size(    u, 4) >= element_id
+    @assert size(    u, 4) == nnodes(dg)
+    @assert size(    u, 5) >= element_id
   end
 
-  for j in eachnode(dg), i in eachnode(dg)
-    acc = zero(get_node_vars(u, equations, dg, i, j, element_id))
+  # Project from bottom lower left element
+  multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_lower,
+    view(old_u, :, :, :, :, bottom_lower_left_id), u_tmp1, u_tmp2)
 
-    # Project from lower left element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_left_id) * reverse_lower[i, k] * reverse_lower[j, l]
-    end
+  # Project from bottom lower right element_variables
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_lower,
+    view(old_u, :, :, :, :, bottom_lower_right_id), u_tmp1, u_tmp2)
 
-    # Project from lower right element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, lower_right_id) * reverse_upper[i, k] * reverse_lower[j, l]
-    end
+  # Project from bottom upper left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_lower,
+    view(old_u, :, :, :, :, bottom_upper_left_id), u_tmp1, u_tmp2)
 
-    # Project from upper left element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_left_id) * reverse_lower[i, k] * reverse_upper[j, l]
-    end
+  # Project from bottom upper right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_lower,
+    view(old_u, :, :, :, :, bottom_upper_right_id), u_tmp1, u_tmp2)
 
-    # Project from upper right element
-    for l in eachnode(dg), k in eachnode(dg)
-      acc += get_node_vars(old_u, equations, dg, k, l, upper_right_id) * reverse_upper[i, k] * reverse_upper[j, l]
-    end
+  # Project from top lower left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_lower, reverse_upper,
+    view(old_u, :, :, :, :, top_lower_left_id), u_tmp1, u_tmp2)
 
-    # Update value
-    set_node_vars!(u, acc, equations, dg, i, j, element_id)
-  end
+  # Project from top lower right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_lower, reverse_upper,
+    view(old_u, :, :, :, :, top_lower_right_id), u_tmp1, u_tmp2)
+
+  # Project from top upper left element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_lower, reverse_upper, reverse_upper,
+    view(old_u, :, :, :, :, top_upper_left_id), u_tmp1, u_tmp2)
+
+  # Project from top upper right element
+  add_multiply_dimensionwise!(
+    view(u,     :, :, :, :, element_id), reverse_upper, reverse_upper, reverse_upper,
+    view(old_u, :, :, :, :, top_upper_right_id), u_tmp1, u_tmp2)
+
+  return nothing
 end
 
 
 # this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{2}, equations, dg::DG, cache)
+function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{3}, equations, dg::DG, cache)
 
   controller_value = Vector{Int}(undef, nelements(dg, cache))
   return (; controller_value)

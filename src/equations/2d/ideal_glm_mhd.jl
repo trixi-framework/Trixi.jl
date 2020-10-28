@@ -4,16 +4,16 @@
 
 The ideal compressible GLM-MHD equations in two space dimensions.
 """
-mutable struct IdealGlmMhdEquations2D <: AbstractIdealGlmMhdEquations{2, 9}
-  gamma::Float64
-  c_h::Float64 # GLM cleaning speed
+mutable struct IdealGlmMhdEquations2D{RealT<:Real} <: AbstractIdealGlmMhdEquations{2, 9}
+  gamma::RealT
+  c_h::RealT # GLM cleaning speed
 end
 
 function IdealGlmMhdEquations2D(gamma)
   IdealGlmMhdEquations2D(gamma, zero(gamma))
 end
 
-# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
+# TODO Taal refactor, remove old constructors and replace them with default values
 function IdealGlmMhdEquations2D()
   gamma::Float64 = parameter("gamma", 1.4)
   c_h = zero(gamma)
@@ -218,7 +218,8 @@ end
   end
 end
 
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+@inline function calcflux_twopoint_nonconservative!(f1, f2,
+                                                    u::AbstractArray{<:Any,4}, element,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
   for j in eachnode(dg), i in eachnode(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, equations, dg, i, j, element)

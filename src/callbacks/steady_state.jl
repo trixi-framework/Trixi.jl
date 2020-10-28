@@ -52,3 +52,4 @@ end
 
 
 include("steady_state_dg2d.jl")
+include("steady_state_dg3d.jl")

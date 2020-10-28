@@ -112,7 +112,7 @@ function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,4}, u, t,
   linf_divb = zero(eltype(u))
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      divb = 0.0
+      divb = zero(eltype(u))
       for k in eachnode(dg)
         divb += ( derivative_matrix[i, k] * u[6, k, j, element] +
                   derivative_matrix[j, k] * u[7, i, k, element] )

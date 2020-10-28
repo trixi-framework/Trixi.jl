@@ -4,10 +4,11 @@
 
 The compressible Euler equations for an ideal gas in three space dimensions.
 """
-struct CompressibleEulerEquations3D <: AbstractCompressibleEulerEquations{3, 5}
-  gamma::Float64
+struct CompressibleEulerEquations3D{RealT<:Real} <: AbstractCompressibleEulerEquations{3, 5}
+  gamma::RealT
 end
 
+# TODO Taal refactor, remove old constructors and replace them with default values
 function CompressibleEulerEquations3D()
   gamma = parameter("gamma", 1.4)
 
@@ -233,6 +234,8 @@ end
 
 
 # Apply source terms
+# TODO: Taal remove methods with the signature below?
+#       Or keep them as an option for possiby increased performance?
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_condition`
   c = 2
@@ -268,6 +271,38 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   end
 
   return nothing
+end
+
+@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations3D)
+  # Same settings as in `initial_condition`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equation.gamma
+
+  x1, x2, x3 = x
+  si, co = sincos(((x1 + x2 + x3) - t) * ω)
+  tmp1 = si * A
+  tmp2 = co * A * ω
+  tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
+
+  du1 = 2 * tmp2
+  du2 = tmp3
+  du3 = tmp3
+  du4 = tmp3
+  du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
+
+  # Original terms (without performanc enhancements)
+  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
+  # du2 = tmp2
+  # du3 = tmp2
+  # du4 = tmp2
+  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+
+  return SVector(du1, du2, du3, du4, du5)
 end
 
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
@@ -827,6 +862,17 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
+end
+
+@inline function max_abs_speeds(u, equation::CompressibleEulerEquations3D)
+  rho, rho_v1, rho_v2, rho_v3, rho_e = u
+  v1 = rho_v1 / rho
+  v2 = rho_v2 / rho
+  v3 = rho_v3 / rho
+  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2 + v3^2))
+  c = sqrt(equation.gamma * p / rho)
+
+  return abs(v1) + c, abs(v2) + c, abs(v3) + c
 end
 
 

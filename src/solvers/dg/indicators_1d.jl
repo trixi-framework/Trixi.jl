@@ -136,7 +136,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3}, equations, dg::D
     estimate = zero(real(dg))
     for i in 2:nnodes(dg)-1
       # x direction
-      u0 = indicator[i, ]
+      u0 = indicator[i  ]
       up = indicator[i+1]
       um = indicator[i-1]
       estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner_))

@@ -7,11 +7,11 @@ A description of this system can be found in Sec. 2.5 of the book "I Do Like CFD
 The book is freely available at http://www.cfdbooks.com/ and further analysis can be found in
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
-struct HyperbolicDiffusionEquations2D <: AbstractHyperbolicDiffusionEquations{2, 3}
-  Lr::Float64
-  Tr::Float64
-  nu::Float64
-  resid_tol::Float64 # TODO Taal refactor, make this a parameter of a specialized steady-state solver
+struct HyperbolicDiffusionEquations2D{RealT<:Real} <: AbstractHyperbolicDiffusionEquations{2, 3}
+  Lr::RealT
+  Tr::RealT
+  nu::RealT
+  resid_tol::RealT # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
 function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
@@ -19,7 +19,7 @@ function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
   HyperbolicDiffusionEquations2D(Lr, Tr, nu, resid_tol)
 end
 
-# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
+# TODO Taal refactor, remove old constructors and replace them with default values
 function HyperbolicDiffusionEquations2D()
   # diffusion coefficient
   nu = parameter("nu", 1.0)

@@ -143,7 +143,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack derivative_neg_adjoint = dg.basis
+  @unpack derivative_dhat = dg.basis
 
   Threads.@threads for element in eachelement(dg, cache)
     for i in eachnode(dg)
@@ -151,7 +151,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
 
       flux1 = calcflux(u_node, 1, equations)
       for ii in eachnode(dg)
-        integral_contribution = derivative_neg_adjoint[ii, i] * flux1
+        integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
       end
     end

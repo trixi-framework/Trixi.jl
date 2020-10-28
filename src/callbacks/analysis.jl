@@ -389,3 +389,4 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_dg3d.jl")

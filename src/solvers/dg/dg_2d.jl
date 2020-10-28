@@ -182,7 +182,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack derivative_neg_adjoint = dg.basis
+  @unpack derivative_dhat = dg.basis
 
   Threads.@threads for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
@@ -190,13 +190,13 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 
       flux1 = calcflux(u_node, 1, equations)
       for ii in eachnode(dg)
-        integral_contribution = derivative_neg_adjoint[ii, i] * flux1
+        integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
       flux2 = calcflux(u_node, 2, equations)
       for jj in eachnode(dg)
-        integral_contribution = derivative_neg_adjoint[jj, j] * flux2
+        integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
       end
     end
@@ -237,12 +237,12 @@ end
     end
   end
 
-  calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
+  calcflux_twopoint_nonconservative!(f1, f2, u, element,
                                      have_nonconservative_terms(equations),
                                      equations, dg, cache)
 end
 
-function calcflux_twopoint_nonconservative!(f1, f2, u, element,
+function calcflux_twopoint_nonconservative!(f1, f2, u::AbstractArray{<:Any,4}, element,
                                             nonconservative_terms::Val{false},
                                             equations, dg::DG, cache)
   return nothing
@@ -779,7 +779,7 @@ end
 
 
 function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations,
-                         mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
+                          mortar_l2::LobattoLegendreMortarL2, dg::DGSEM)
 
   Threads.@threads for mortar in eachmortar(dg, cache)
 
@@ -863,7 +863,8 @@ end
 end
 
 
-function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{false}, equations,
+function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                           nonconservative_terms::Val{false}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded = cache
@@ -885,7 +886,8 @@ function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{false
   return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values, nonconservative_terms::Val{true}, equations,
+function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                           nonconservative_terms::Val{true}, equations,
                            mortar_l2::LobattoLegendreMortarL2, dg::DG, cache)
   @unpack neighbor_ids, u_lower, u_upper, orientations, large_sides = cache.mortars
   @unpack fstar_upper_threaded, fstar_lower_threaded,
@@ -959,7 +961,7 @@ end
   return nothing
 end
 
-@inline function mortar_fluxes_to_elements!(surface_flux_values, equations,
+@inline function mortar_fluxes_to_elements!(surface_flux_values::AbstractArray{<:Any,4}, equations,
                                             mortar_l2::LobattoLegendreMortarL2, dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
   large_element = cache.mortars.neighbor_ids[3, mortar]
