@@ -14,7 +14,7 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 initial_condition = initial_condition_orszag_tang
 
-surface_flux = flux_hll
+surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
@@ -48,13 +48,13 @@ summary_callback = SummaryCallback()
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=0.5,
                                           alpha_min=0.001,
-                                          alpha_smooth=true,
+                                          alpha_smooth=false,
                                           variable=density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
                                       max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5,
+                           interval=6,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
