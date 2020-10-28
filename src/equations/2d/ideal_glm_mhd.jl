@@ -456,7 +456,7 @@ end
 """
     noncons_interface_flux(u_left, u_right, orientation, mode, equation::IdealGlmMhdEquations2D)
 
-Strong form of nonconservative flux on a side (Powell and GLM terms)
+Strong form of non-conservative flux on a surface (Powell and GLM terms)
 ```math
 phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{normal}
 ```
