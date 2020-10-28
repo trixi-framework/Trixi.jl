@@ -52,13 +52,13 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           variable=density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
-                                      max_level =6, max_threshold=0.01)
+                                      max_level =7, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.5) # can probably be increased when shock-capturing is fixed for MHD
+stepsize_callback = StepsizeCallback(cfl=1.0) # can probably be increased when shock-capturing is fixed for MHD
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
