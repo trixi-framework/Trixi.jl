@@ -1542,7 +1542,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
     # Calculate DG volume integral contribution
     split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
 
-    # Calculate FV two-point fluxes
+    # Calculate FV two-point fluxes. `L` and `R` are used to also handle non-conservative fluxes such as for the ideal GLM-MHD equations
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar2_L = fstar2_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
