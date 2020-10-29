@@ -533,7 +533,7 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
                      equation::IdealGlmMhdEquations2D, dg)
   λ_max = 0.0
   equation.c_h = 0.0
-  for j in nnodes(dg), i in 1:nnodes(dg)
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
     rho, rho_v1, rho_v2, rho_v3, _ = u_node
     v1 = rho_v1 / rho
