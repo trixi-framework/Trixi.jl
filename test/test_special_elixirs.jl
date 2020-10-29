@@ -13,6 +13,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
 @testset "Special elixirs" begin
+  @testset "Convergence test" begin
+    mean_values = convergence_test(joinpath(EXAMPLES_DIR, "2d", "elixir_advection_basic.jl"), 3)
+    @test isapprox(mean_values[:L2], [4.0], rtol=0.01)
+  end
+
+
   @testset "Test linear structure (2D)" begin
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_basic.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=2)
