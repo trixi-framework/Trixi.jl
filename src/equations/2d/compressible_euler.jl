@@ -226,12 +226,17 @@ function initial_condition_khi(x, t, equation::CompressibleEulerEquations2D)
   slope = 50 # used for tanh instead of discontinuous initial condition
   # pressure equilibrium
   p     = 2.5
-  #  y velocity v2 is only white noise
-  v2  = 0.01*(rand(Float64,1)[1]-0.5)
   # density
   rho = dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-  #  x velocity is also augmented with noise
-  v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  if iszero(t) # initial condition
+    #  y velocity v2 is only white noise
+    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+    #  x velocity is also augmented with noise
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+  else # background values to compute reference values for CI
+    v2 = 0.0
+    v1 = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+  end
   return prim2cons(SVector(rho, v1, v2, p), equation)
 end
 
