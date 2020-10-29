@@ -62,6 +62,8 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan)
+  RealT = real(semi)
+  tspan = (convert(RealT, first(tspan)), convert(RealT, last(tspan)))
   u0_ode = compute_coefficients(first(tspan), semi)
   return ODEProblem(rhs!, u0_ode, tspan, semi)
 end
