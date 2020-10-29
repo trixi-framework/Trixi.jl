@@ -149,7 +149,7 @@ struct LobattoLegendreAnalyzer{RealT<:Real, NNODES, Vandermonde<:AbstractMatrix{
   vandermonde::Vandermonde
 end
 
-function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2*polydeg(basis)) where {RealT}
+function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2*polydeg(basis)+1) where {RealT}
   nnodes_ = analysis_polydeg + 1
   nodes, weights = gauss_lobatto_nodes_weights(nnodes_)
 
