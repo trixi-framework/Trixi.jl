@@ -51,6 +51,7 @@ trixi_include(parameters_file::AbstractString; kwargs...) = trixi_include(Main, 
 
 
 
+# TODO: Taal remove
 """
     run(parameters_file; verbose=false, refinement_level_increment=0, parameters...)
 
@@ -97,6 +98,7 @@ function run(parameters_file; verbose=false, refinement_level_increment=0, param
 end
 
 
+# TODO: Taal remove
 function init_parameters(parameters_file=nothing; verbose=false, refinement_level_increment=0, parameters...)
   # Set global verbosity
   globals[:verbose] = verbose
@@ -118,6 +120,7 @@ function init_parameters(parameters_file=nothing; verbose=false, refinement_leve
 end
 
 
+# TODO: Taal remove
 function init_simulation()
   # Print starup message
   print_startup_message()
@@ -313,6 +316,7 @@ function init_simulation()
 end
 
 
+# TODO: Taal remove
 function run_simulation(mesh, solver, time_parameters, time_integration_function)
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,
@@ -465,6 +469,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 end
 
 
+# TODO: Taal migrate
 """
     convtest(parameters_file, iterations; parameters...)
 
@@ -548,6 +553,7 @@ function convtest(parameters_file, iterations; parameters...)
 end
 
 
+# TODO: Taal migrate?
 """
     compute_linear_structure(parameters_file, source_terms=nothing; verbose=false, parameters...)
 
