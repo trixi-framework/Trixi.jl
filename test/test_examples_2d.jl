@@ -114,9 +114,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_euler_blob_shockcapturing_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
-    l2   = [0.2079529146644449, 1.2165976525172113, 0.10497525531751525, 5.343396906455776],
-    linf = [14.746412579562035, 73.35401826630807, 7.945659812348401, 299.28120847051116],
-    tspan = (0.0, 0.12))
+      l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
+      linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],
+      tspan = (0.0, 0.12))
   end
 
   @testset "elixir_euler_khi_shockcapturing.jl" begin

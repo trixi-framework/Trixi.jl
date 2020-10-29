@@ -422,9 +422,9 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
       actual_level = mesh.tree.levels[cell_id]
       target_level = actual_level
       # adapt for the amr indicator
-      if alpha[element_id] >= blending_factor_threshold0
+      if alpha[element_id] > blending_factor_threshold0
         target_level = super_max_level
-      elseif alpha[element_id] >= blending_factor_threshold1
+      elseif alpha[element_id] > blending_factor_threshold1
         target_level = max_level
       elseif alpha[element_id] <= blending_factor_threshold2
         target_level = base_level
