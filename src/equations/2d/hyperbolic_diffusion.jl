@@ -350,7 +350,9 @@ end
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
   λ = sqrt(eq.nu / eq.Tr)
-  return λ, λ
+  # FIXME Taal restore after Taam sync
+  # return λ, λ
+  return λ, 0.0
 end
 
 
