@@ -46,12 +46,13 @@ summary_callback = SummaryCallback()
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0001,
-                                          alpha_smooth=true,
-                                          variable=pressure)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      med_level =7, med_threshold=0.003,
-                                      max_level =7, max_threshold=0.3)
+                                          alpha_smooth=false,
+                                          variable=density)
+amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
+                                              base_level=4,
+                                              med_level =0, med_threshold=0.0003, # med_level = current level
+                                              max_level =7, max_threshold=0.003,
+                                              max_threshold_secondary=indicator_sc.alpha_max)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
                            adapt_initial_condition=true,

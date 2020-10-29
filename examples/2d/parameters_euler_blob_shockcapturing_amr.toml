@@ -2,15 +2,7 @@
 # Simulation
 ndims = 2
 equations = "CompressibleEulerEquations"
-gamma = 1.66667
-# equations = "LinearScalarAdvectionEquation"
-# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
-# initial_condition = "initial_condition_convergence_test"
-# initial_condition = "initial_condition_isentropic_vortex"
-# initial_condition = "initial_condition_linear_x_y"
-# initial_condition = "initial_condition_linear_x"
-# initial_condition = "initial_condition_constant"
-#initial_condition = "initial_condition_weak_blast_wave"
+gamma = 1.6666666666666667
 initial_condition = "initial_condition_blob"
 # source_terms =
 t_start = 0.0
@@ -22,24 +14,15 @@ t_end   = 8.0
 # Solver
 solver = "dg"
 polydeg = 4
-cfl = 0.2
+cfl = 0.3
 n_steps_max = 15000
 analysis_interval = 100
 shock_indicator_variable = "pressure"
 shock_alpha_max = 0.4
 shock_alpha_min = 0.0001
 volume_integral_type = "shock_capturing"
-#volume_integral_type = "new_trick"
-#volume_integral_type = "split_form"
-#volume_integral_type = "weak_form"
-#volume_integral_type = "entropy_fix"
-#volume_integral_type = "entropy_fix2"
 surface_flux = "flux_lax_friedrichs"
-#surface_flux = "flux_chandrashekar"
-#surface_flux = "flux_shima_etal"
-#volume_flux = "flux_shima_etal"
 volume_flux = "flux_chandrashekar"
-# volume_flux = "flux_central"
 
 ####################################################################################################
 # Mesh
