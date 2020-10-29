@@ -829,7 +829,9 @@ end
   p = (equation.gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
   c = sqrt(equation.gamma * p / rho)
 
-  return abs(v1) + c, abs(v2) + c
+  # FIXME Taal restore after Taam sync
+  # return abs(v1) + c, abs(v2) + c
+  return (sqrt(v1^2 + v2^2) + c), 0.0
 end
 
 
