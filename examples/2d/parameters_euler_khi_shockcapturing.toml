@@ -21,7 +21,7 @@ t_end   = 5.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.7
+cfl = 1.4
 n_steps_max = 10000
 analysis_interval = 100
 shock_alpha_max = 0.002
