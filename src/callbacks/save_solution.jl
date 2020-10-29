@@ -85,10 +85,10 @@ function (solution_callback::SaveSolutionCallback)(integrator)
     callbacks = integrator.opts.callback
     if callbacks isa CallbackSet
       for cb in callbacks.continuous_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb)
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
       end
       for cb in callbacks.discrete_callbacks
-        get_element_variables!(element_variables, u_ode, semi, cb)
+        get_element_variables!(element_variables, u_ode, semi, cb; t=integrator.t, iter=integrator.iter)
       end
     end
 

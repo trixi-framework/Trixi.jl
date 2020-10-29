@@ -73,8 +73,10 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback::AMRCallback)
-  get_element_variables!(element_variables, u, mesh, equations, solver, cache, amr_callback.controller, amr_callback)
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                amr_callback::AMRCallback; kwargs...)
+  get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                         amr_callback.controller, amr_callback; kwargs...)
 end
 
 
@@ -121,7 +123,8 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
   semi = integrator.p
 
   @timeit_debug timer() "AMR" begin
-    has_changed = amr_callback(u_ode, semi; kwargs...)
+    has_changed = amr_callback(u_ode, semi,
+                               integrator.t, integrator.iter; kwargs...)
     if has_changed
       resize!(integrator, length(u_ode))
       u_modified!(integrator, true)
@@ -132,8 +135,11 @@ function (amr_callback::AMRCallback)(integrator; kwargs...)
 end
 
 
-@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector, semi::SemidiscretizationHyperbolic; kwargs...)
-  amr_callback(u_ode, mesh_equations_solver_cache(semi)...; kwargs...)
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationHyperbolic,
+                                             t, iter;
+                                             kwargs...)
+  amr_callback(u_ode, mesh_equations_solver_cache(semi)..., t, iter; kwargs...)
 end
 
 
@@ -192,9 +198,11 @@ function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache, controller::ControllerThreeLevel, amr_callback::AMRCallback)
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                controller::ControllerThreeLevel, amr_callback::AMRCallback;
+                                kwargs...)
   # call the indicator to get up-to-date values for IO
-  controller.indicator(u, equations, solver, cache)
+  controller.indicator(u, equations, solver, cache; kwargs...)
   get_element_variables!(element_variables, controller.indicator, amr_callback)
 end
 
@@ -212,13 +220,15 @@ end
 # `passive_args` is expected to be an iterable of `Tuple`s of the form
 # `(p_u_ode, p_mesh, p_equations, p_dg, p_cache)`.
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
-                                     equations, dg::DG, cache;
+                                     equations, dg::DG, cache,
+                                     t, iter;
                                      only_refine=false, only_coarsen=false,
                                      passive_args=())
   @unpack controller, adaptor = amr_callback
 
   u = wrap_array(u_ode, mesh, equations, dg, cache)
-  lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache)
+  lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache,
+                                                        t=t, iter=iter)
 
   leaf_cell_ids = leaf_cells(mesh.tree)
   @boundscheck begin
@@ -328,12 +338,13 @@ end
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                           mesh::TreeMesh, equations, dg::DG, cache)
+                                            mesh::TreeMesh, equations, dg::DG, cache;
+                                            kwargs...)
 
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
-  alpha = controller.indicator(u, equations, dg, cache)
+  alpha = controller.indicator(u, equations, dg, cache; kwargs...)
 
   Threads.@threads for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]

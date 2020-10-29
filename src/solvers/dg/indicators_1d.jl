@@ -18,7 +18,9 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::Abs
 end
 
 
-function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3}, equations, dg::DGSEM, cache)
+function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
+                                                   equations, dg::DGSEM, cache;
+                                                   kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
@@ -119,7 +121,9 @@ function create_cache(typ::Type{IndicatorLöhner}, mesh, equations::AbstractEqua
 end
 
 
-function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3}, equations, dg::DGSEM, cache)
+function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
+                                   equations, dg::DGSEM, cache;
+                                   kwargs...)
   @assert nnodes(dg) >= 3 "IndicatorLöhner only works for nnodes >= 3 (polydeg > 1)"
   @unpack alpha, indicator_threaded = löhner.cache
   resize!(alpha, nelements(dg, cache))
@@ -168,7 +172,9 @@ function create_cache(typ::Type{IndicatorMax}, mesh, equations::AbstractEquation
 end
 
 
-function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3}, equations, dg::DGSEM, cache)
+function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
+                                       equations, dg::DGSEM, cache;
+                                       kwargs...)
   @unpack alpha, indicator_threaded = indicator_max.cache
   resize!(alpha, nelements(dg, cache))
 
