@@ -39,9 +39,9 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density=1.5e7, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
-                                    cfl=2.4,
+                                    cfl=1.6,
                                     n_iterations_max=1000,
-                                    timestep_gravity=timestep_gravity_erk52_3Sstar!)
+                                    timestep_gravity=timestep_gravity_carpenter_kennedy_erk54_2N!)
 
 semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 
@@ -60,7 +60,7 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 # TODO: Taal, IO
-# restart_interval = 10
+# restart_interval = 100
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
