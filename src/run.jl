@@ -553,7 +553,6 @@ function convtest(parameters_file, iterations; parameters...)
 end
 
 
-# TODO: Taal migrate?
 """
     compute_linear_structure(parameters_file, source_terms=nothing; verbose=false, parameters...)
 
