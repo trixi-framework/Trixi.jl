@@ -355,7 +355,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     return l2_error, linf_error, vcat(varnames_cons(solver.equations),
                                       varnames_cons(solver_gravity.equations))
   else
-    return l2_error, linf_error, varnames_cons(solver.equations)
+    return (; l2=l2_error, linf=linf_error, varnames=varnames_cons(solver.equations))
   end
 end
 
