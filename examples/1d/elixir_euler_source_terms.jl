@@ -31,7 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

@@ -16,48 +16,48 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Run basic tests
 @testset "Examples 1D" begin
-  @testset "taal-check-me elixir_advection_basic.jl" begin
+  @testset "taal-confirmed elixir_advection_basic.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [6.0388296447998465e-6],
-      linf = [3.217887726258972e-5])
+      l2   = [5.581321238071356e-6],
+      linf = [3.270561745361e-5])
   end
 
-  @testset "taal-check-me elixir_advection_amr.jl" begin
+  @testset "taal-confirmed elixir_advection_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-    l2   = [0.3540209654959832],
-    linf = [0.9999905446337742])
+      l2   = [0.3540209654959832],
+      linf = [0.9999905446337742])
   end
 
-  @testset "taal-check-me elixir_advection_amr_nonperiodic.jl" begin
+  @testset "taal-confirmed elixir_advection_amr_nonperiodic.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
-    l2   = [4.323675034078241e-6],
-    linf = [3.239622040579655e-5])
+      l2   = [4.323673749626657e-6],
+      linf = [3.239622040581043e-5])
   end
 
 
-  @testset "taal-check-me elixir_euler_source_terms.jl" begin
+  @testset "taal-confirmed elixir_euler_source_terms.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-    l2   = [2.3017487546631118e-8, 1.9137514928527178e-8, 7.732828544277078e-8],
-    linf = [1.6282751857943367e-7, 1.426988238684146e-7, 5.298297782729833e-7])
+      l2   = [2.243591980786875e-8, 1.8007794300157155e-8, 7.701353735993148e-8],
+      linf = [1.6169171668245497e-7, 1.4838378192827406e-7, 5.407841152660353e-7])
   end
 
-  @testset "taal-check-me elixir_euler_nonperiodic.jl" begin
+  @testset "taal-confirmed elixir_euler_nonperiodic.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
-    l2   = [3.80950031272884e-6, 1.671745083458876e-6, 7.730956863549413e-6],
-    linf = [1.2966215741316844e-5, 9.2635164730126e-6, 3.090770562241829e-5])
+      l2   = [3.8103398423084437e-6, 1.6765350427819571e-6, 7.733123446821975e-6],
+      linf = [1.2975101617795914e-5, 9.274867029507305e-6, 3.093686036947929e-5])
   end
 
-  @testset "taal-check-me elixir_euler_ec.jl" begin
+  @testset "taal-confirmed elixir_euler_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-    l2   = [0.1188410508446165, 0.15463666913848456, 0.4444355816866067],
-    linf = [0.23934128951004474, 0.27246473813214184, 0.8697154266487717])
+      l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
+      linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232])
   end
 
-  @testset "taal-check-me elixir_euler_blast_wave_shockcapturing.jl" begin
+  @testset "taal-confirmed elixir_euler_blast_wave_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing.jl"),
-      l2   = [0.21218593029900773, 0.2769530413665288, 0.5518482111667276],
-      linf = [1.505221631144809, 1.4864840122024228, 2.0501644413816162],
-      tspan = (0.0, 0.13))
+      l2   = [0.21530530948120738, 0.2805965425286348, 0.5591770920395336],
+      linf = [1.508388610723991, 1.5622010377944118, 2.035149673163788],
+      maxiters=30)
   end
 end
 
