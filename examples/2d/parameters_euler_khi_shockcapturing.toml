@@ -21,7 +21,7 @@ t_end   = 5.0
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.7
+cfl = 1.4
 n_steps_max = 10000
 analysis_interval = 100
 shock_alpha_max = 0.002
@@ -48,12 +48,6 @@ initial_refinement_level = 5
 # refinement_patches = [
 #   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
 # ]
-####################################################################################################
-# AMR
-amr_indicator = "khi"
-amr_interval = 1
-amr_alpha_max = 1.0 #0.0031
-amr_alpha_min = 0.0001
 
 ####################################################################################################
 # I/O

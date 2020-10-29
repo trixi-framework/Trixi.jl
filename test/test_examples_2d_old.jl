@@ -175,16 +175,22 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
             linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
-  @testset "parameters_euler_khi_amr.toml with t_end=0.2" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"),
+  @testset "parameters_euler_khi_shockcapturing.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing.toml"),
+            l2   = [0.0020460050625351277, 0.0028624298590723372, 0.001971035381754319, 0.004814883331768111],
+            linf = [0.02437585564403255, 0.018033033465721604, 0.00993916546672498, 0.02097263472404709],
+            t_end = 0.2)
+  end
+  @testset "parameters_euler_khi_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing_amr.toml"),
             l2   = [0.0016901662212296502, 0.005064145650514081, 0.004794017657493158, 0.0039877996168673525],
             linf = [0.027437774935491266, 0.02344577999610231, 0.016129408502293267, 0.018237901415986357],
             t_end = 0.2)
   end
-  @testset "parameters_euler_blob_split_shockcapturing_amr.toml with t_end=0.12" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_split_shockcapturing_amr.toml"),
-            l2   = [0.20167272820008805, 1.1836133229138053, 0.10165112533393011, 5.237361125542303],
-            linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
+  @testset "parameters_euler_blob_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
+            l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
+            linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],
             t_end = 0.12)
   end
   @testset "parameters_mhd_orszag_tang_shockcapturing_amr.toml with t_end=0.09" begin
@@ -217,8 +223,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @test_nowarn Trixi.convtest(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"), 3)
   @testset "parameters_euler_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
-            l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
-            linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
+            l2   = [0.677942303998742, 0.2814895891803175, 0.28148956453746193, 0.7216004707929102],
+            linf = [2.8903767693905342, 1.8018637904659396, 1.801813163681165, 3.052175526995035],)
   end
   @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
@@ -336,12 +342,13 @@ end
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_mortar_shockcapturing.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave_shockcapturing_amr.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor_shockcapturing_amr.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"))
   end
 end
 
