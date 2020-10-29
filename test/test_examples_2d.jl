@@ -100,8 +100,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_euler_blast_wave_shockcapturing_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing_amr.jl"),
-      l2   = [0.6779856619001925, 0.2814963219016726, 0.2814961545188141, 0.7227078877591626],
-      linf = [2.8903767693905342, 1.8018637904659396, 1.801813163681165, 3.0522925471933595],
+      l2   = [0.677942303998742, 0.2814895891803175, 0.28148956453746193, 0.7216004707929102],
+      linf = [2.8903767693905342, 1.8018637904659396, 1.801813163681165, 3.052175526995035],
       tspan = (0.0, 1.0))
   end
 
@@ -304,7 +304,6 @@ end
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar_shockcapturing.jl"))
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"))
     @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"))
   end
 end

@@ -217,8 +217,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   @test_nowarn Trixi.convtest(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"), 3)
   @testset "parameters_euler_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
-            l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
-            linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
+            l2   = [0.677942303998742, 0.2814895891803175, 0.28148956453746193, 0.7216004707929102],
+            linf = [2.8903767693905342, 1.8018637904659396, 1.801813163681165, 3.052175526995035],)
   end
   @testset "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
