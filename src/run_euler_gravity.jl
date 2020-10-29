@@ -240,7 +240,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     end
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
-    if time + dt > t_end
+    if time + dt > t_end || isapprox(time + dt, t_end)
       dt = t_end - time
       finalstep = true
     end

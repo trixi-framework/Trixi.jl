@@ -346,7 +346,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
-    if time + dt > t_end
+    if time + dt > t_end || isapprox(time + dt, t_end)
       dt = t_end - time
       finalstep = true
     end
