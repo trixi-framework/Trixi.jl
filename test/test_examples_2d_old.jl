@@ -44,7 +44,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.012549162970726613],
             time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk32_3Sstar!")
   end
-  @testset "taal-check-me parameters_mhd_alfven_wave.toml" begin
+  @testset "taal-confirmed parameters_mhd_alfven_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave.toml"),
             l2   = [0.00011134513490658689, 5.880188909157728e-6, 5.880188909159547e-6, 8.432880997656317e-6, 1.2942387343501909e-6, 1.2238820298971968e-6, 1.2238820298896402e-6, 1.830621754702352e-6, 8.071881352562945e-7],
             linf = [0.00025632790161078667, 1.6379021163651086e-5, 1.637902116437273e-5, 2.58759953227633e-5, 5.327732286231068e-6, 8.118520269495555e-6, 8.118520269606577e-6, 1.2107354757678879e-5, 4.165806320060789e-6])
@@ -81,7 +81,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.0065356386867677085, 0.0006535638688170142, 0.0013071277374487877, 0.0001633909674296774],
             extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"], t_end=0.5)
   end
-  @testset "taal-check-me parameters_mhd_ec.toml" begin
+  @testset "taal-confirmed parameters_mhd_ec.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_ec.toml"),
             l2   = [0.03607862694368351, 0.04281395008247395, 0.04280207686965749, 0.025746770192645763, 0.1611518499414067, 0.017455917249117023, 0.017456981264942977, 0.02688321120361229, 0.00015024027267648003],
             linf = [0.23502083666166018, 0.3156846367743936, 0.31227895161037256, 0.2118146956106238, 0.9743049414302711, 0.09050624115026618, 0.09131633488909774, 0.15693063355520998, 0.0038394720095667593])
@@ -111,7 +111,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.022356422238096973],
             linf = [0.5043638249003257])
   end
-  @testset "taal-check-me parameters_mhd_alfven_wave_mortar.toml" begin
+  @testset "taal-confirmed parameters_mhd_alfven_wave_mortar.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave_mortar.toml"),
             l2   = [4.608223422391918e-6, 1.6891556053250136e-6, 1.6202140809698534e-6, 1.6994400213969954e-6, 1.4856807283318347e-6, 1.387768347373047e-6, 1.3411738859512443e-6, 1.7155298750074954e-6, 9.799762075600064e-7],
             linf = [3.52219535260101e-5, 1.534468550207224e-5, 1.426263439847919e-5, 1.4421456102198249e-5, 7.743399239257265e-6, 1.019242699840106e-5, 9.862935257842764e-6, 1.6018118328936515e-5, 5.563695788849475e-6],
