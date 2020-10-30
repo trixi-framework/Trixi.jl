@@ -98,10 +98,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
 
-  @testset "taal-check-me elixir_euler_blast_wave_shockcapturing_amr.jl" begin
+  @testset "taal-confirmed elixir_euler_blast_wave_shockcapturing_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing_amr.jl"),
-    l2   = [0.6778339184192986, 0.28136085729167076, 0.2813607687129121, 0.7202946425475186],
-    linf = [2.8891939545999277, 1.8038083274644838, 1.8036523839220984, 3.0363712085327177],
+    l2   = [0.6776486969229696, 0.2813026529898539, 0.2813025645101231, 0.7174702524881597],
+    linf = [2.8939055423031546, 1.7997630098946877, 1.7997118659969253, 3.0341223482585686],
     tspan = (0.0, 1.0))
   end
 
