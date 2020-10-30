@@ -64,7 +64,9 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################

@@ -113,7 +113,10 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
                                      extra_analysis_integrals=(entropy, energy_total,
                                                                energy_kinetic, energy_internal))
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+# TODO: Taal decide, first AMR or save solution etc.
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################
