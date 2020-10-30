@@ -320,9 +320,11 @@ function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache, controller::ControllerThreeLevel, amr_callback::AMRCallback)
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                controller::ControllerThreeLevel, amr_callback::AMRCallback;
+                                kwargs...)
   # call the indicator to get up-to-date values for IO
-  controller.indicator(u, equations, solver, cache)
+  controller.indicator(u, equations, solver, cache; kwargs...)
   get_element_variables!(element_variables, controller.indicator, amr_callback)
 end
 
@@ -336,7 +338,8 @@ end
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                            mesh::TreeMesh, equations, dg::DG, cache)
+                                            mesh::TreeMesh, equations, dg::DG, cache;
+                                            kwargs...)
 
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
@@ -443,20 +446,23 @@ function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevelC
 end
 
 
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache, controller::ControllerThreeLevelCombined, amr_callback::AMRCallback)
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                controller::ControllerThreeLevelCombined, amr_callback::AMRCallback;
+                                kwargs...)
   # call the indicator to get up-to-date values for IO
-  controller.indicator_primary(u, equations, solver, cache)
+  controller.indicator_primary(u, equations, solver, cache; kwargs...)
   get_element_variables!(element_variables, controller.indicator_primary, amr_callback)
 end
 
 
 function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
-                                                    mesh::TreeMesh, equations, dg::DG, cache)
+                                                    mesh::TreeMesh, equations, dg::DG, cache;
+                                                    kwargs...)
 
   @unpack controller_value = controller.cache
   resize!(controller_value, nelements(dg, cache))
 
-  alpha = controller.indicator_primary(u, equations, dg, cache)
+  alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
   Threads.@threads for element in eachelement(dg, cache)
