@@ -177,20 +177,20 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_euler_khi_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing.toml"),
-            l2   = [0.0020460050625351277, 0.0028624298590723372, 0.001971035381754319, 0.004814883331768111],
-            linf = [0.02437585564403255, 0.018033033465721604, 0.00993916546672498, 0.02097263472404709],
+            l2   = [0.0020466154637164818, 0.0028625763438979495, 0.0019711461834225666, 0.004817029337018744],
+            linf = [0.024299256322983798, 0.016200117151326077, 0.00986919774968863, 0.020600003949211576],
             t_end = 0.2)
   end
-  @testset "parameters_euler_khi_amr.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"),
-            l2   = [0.0016901662212296502, 0.005064145650514081, 0.004794017657493158, 0.0039877996168673525],
-            linf = [0.027437774935491266, 0.02344577999610231, 0.016129408502293267, 0.018237901415986357],
+  @testset "parameters_euler_khi_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing_amr.toml"),
+            l2   = [0.0016901662212294992, 0.002288851927745578, 0.0013358949630807315, 0.0033568391465231668],
+            linf = [0.027437774935493042, 0.016891735404652816, 0.007312081458140164, 0.01590533115997861],
             t_end = 0.2)
   end
   @testset "parameters_euler_blob_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
-            l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
-            linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],
+            l2   = [0.20079146298714926, 1.178526565356443, 0.1011961418887176, 5.2218453410238554],
+            linf = [14.056399346555613, 70.84481014603705, 7.154598484845931, 296.78986167690556],
             t_end = 0.12)
   end
   @testset "parameters_mhd_orszag_tang.toml" begin
@@ -346,8 +346,7 @@ end
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_mortar_shockcapturing.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_mortar.toml"))
     @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
   end
 end
