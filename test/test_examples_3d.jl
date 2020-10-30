@@ -29,12 +29,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "taal-check-me elixir_hyp_diff_llf.jl" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
-      l2   = [0.0015303316090388799, 0.011314177033289297, 0.011314177033289444, 0.011314177033289696],
-      linf = [0.02263459034012283, 0.10139777904690916, 0.10139777904690916, 0.10139777904690828],
-      initial_refinement_level=2)
-  end
+  # @testset "taal-check-me elixir_hyp_diff_llf.jl" begin
+  #   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+  #     l2   = [0.0015303316090388799, 0.011314177033289297, 0.011314177033289444, 0.011314177033289696],
+  #     linf = [0.02263459034012283, 0.10139777904690916, 0.10139777904690916, 0.10139777904690828],
+  #     initial_refinement_level=2)
+  # end
 
 
   @testset "taal-confirmed elixir_euler_source_terms.jl" begin
