@@ -540,7 +540,9 @@ end
   cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
   equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
 
-  return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
+  # FIXME Taal restore after Taam sync
+  # return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
+  return (sqrt(v1^2 + v2^2 + v3^2) + cf_max), 0.0, 0.0
 end
 
 
