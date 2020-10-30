@@ -14,7 +14,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Run basic tests
 @testset "Examples 3D" begin
-  @testset "taal-check-me parameters_advection_basic.toml" begin
+  @testset "taal-confirmed parameters_advection_basic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.00015975754755823664],
             linf = [0.001503873297666436])
@@ -45,7 +45,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             initial_condition=Trixi.initial_condition_linear_z,
             boundary_conditions=Trixi.boundary_condition_linear_z, periodicity=false)
   end
-  @testset "taal-check-me parameters_euler_source_terms.toml" begin
+  @testset "taal-confirmed parameters_euler_source_terms.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_source_terms.toml"),
             l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
             linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
@@ -77,7 +77,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.0019011097431965655, 0.0018289464087588392, 0.0018289464087585998, 0.0018289464087588862, 0.003354766311541738],
             linf = [0.011918594206950184, 0.011808582644224241, 0.011808582644249999, 0.011808582644239785, 0.02464803617735356])
   end
-  @testset "taal-check-me parameters_advection_amr.toml" begin
+  @testset "taal-confirmed parameters_advection_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_amr.toml"),
             l2   = [9.773858425669403e-6],
             linf = [0.0005853874124926092])
@@ -181,7 +181,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
             linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
   end
-  @testset "taal-check-me parameters_mhd_ec.toml" begin
+  @testset "taal-confirmed parameters_mhd_ec.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_ec.toml"),
             l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
             linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])

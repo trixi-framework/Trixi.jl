@@ -16,16 +16,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Run basic tests
 @testset "Examples 3D" begin
-  @testset "taal-check-me elixir_advection_basic.jl" begin
+  @testset "taal-confirmed elixir_advection_basic.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [0.00015975754755823664],
       linf = [0.001503873297666436])
   end
 
-  @testset "taal-check-me elixir_advection_amr.jl" begin
+  @testset "taal-confirmed elixir_advection_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-            l2   = [9.773858425669403e-6],
-            linf = [0.0005853874124926092])
+      l2   = [9.773858425669403e-6],
+      linf = [0.0005853874124926092])
   end
 
 
@@ -37,17 +37,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "taal-check-me elixir_euler_source_terms.jl" begin
+  @testset "taal-confirmed elixir_euler_source_terms.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
       linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
   end
 
 
-  @testset "taal-check-me elixir_mhd_ec.jl" begin
+  @testset "taal-confirmed elixir_mhd_ec.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
-      l2   = [0.017285648572570363, 0.01777055834391421, 0.01777055834391415, 0.017772303802227787, 0.07402246754850351, 0.010363311581708652, 0.010363311581708655, 0.010365244788128367, 0.00020795117986261875],
-      linf = [0.26483877701302616, 0.3347840483592971, 0.3347840483592973, 0.3698107272043008, 1.2339463134928033, 0.09858876654056647, 0.09858876654056714, 0.10426402075606456, 0.008001763586594345])
+      l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
+      linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
   end
 end
 
