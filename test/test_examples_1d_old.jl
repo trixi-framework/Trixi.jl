@@ -24,7 +24,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.3540209654959832],
             linf = [0.9999905446337742])
   end
-  @testset "taal-confirmed parameters_advection_amr_nonperiodic.toml" begin
+  @testset "taal-check-me parameters_advection_amr_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_amr_nonperiodic.toml"),
             l2   = [4.323673749626657e-6],
             linf = [3.239622040581043e-5])
