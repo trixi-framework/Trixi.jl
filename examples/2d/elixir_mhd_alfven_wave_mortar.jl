@@ -51,7 +51,9 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
                                                                energy_kinetic, energy_internal,
                                                                energy_magnetic, cross_helicity))
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback,
+                        save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################

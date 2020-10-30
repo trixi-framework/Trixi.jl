@@ -34,6 +34,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.999980298294775])
   end
 
+  @testset "elixir_advection_restart.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      l2   = [1.2148032444677485e-5],
+      linf = [6.495644794757283e-5])
+  end
+
 
   @testset "taal-check-me elixir_hyp_diff_llf.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
@@ -127,27 +133,45 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "taal-check-me elixir_euler_blob_shockcapturing_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
-    l2   = [0.2079529146644449, 1.2165976525172113, 0.10497525531751525, 5.343396906455776],
-    linf = [14.746412579562035, 73.35401826630807, 7.945659812348401, 299.28120847051116],
-    tspan = (0.0, 0.12))
+      l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
+      linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],
+      tspan = (0.0, 0.12))
   end
-  
-  @testset "taal-check-me elixir_euler_khi_shockcapturing_amr.jl with tend = 0.2" begin
-  if Threads.nthreads() == 1
-    # This example uses random numbers to generate the initial condition.
-    # Hence, we can only check "errors" if everything is made reproducible.
-    # However, that's not enough to ensure reproducibility since the stream
-    # of random numbers is not guaranteed to be the same across different
-    # minor versions of Julia.
-    # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-      l2   = [0.0019809356303815313, 0.006538462481807526, 0.004737804472678921, 0.0050181776990539505],
-      linf = [0.016342197215556853, 0.03993613023503173, 0.015293069044755532, 0.024177402362647094],
-      tspan = (0.0, 0.2))
-  else
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-      tspan = (0.0, 0.2))
+
+  @testset "taal-check-me elixir_euler_khi_shockcapturing.jl" begin
+    if Threads.nthreads() == 1
+      # This example uses random numbers to generate the initial condition.
+      # Hence, we can only check "errors" if everything is made reproducible.
+      # However, that's not enough to ensure reproducibility since the stream
+      # of random numbers is not guaranteed to be the same across different
+      # minor versions of Julia.
+      # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
+      test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+        l2   = [0.0020460050625351277, 0.0028624298590723372, 0.001971035381754319, 0.004814883331768111],
+        linf = [0.02437585564403255, 0.018033033465721604, 0.00993916546672498, 0.02097263472404709],
+        tspan = (0.0, 0.2))
+    else
+      test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+        tspan = (0.0, 0.2))
+    end
   end
+
+  @testset "taal-check-me elixir_euler_khi_shockcapturing_amr.jl" begin
+    if Threads.nthreads() == 1
+      # This example uses random numbers to generate the initial condition.
+      # Hence, we can only check "errors" if everything is made reproducible.
+      # However, that's not enough to ensure reproducibility since the stream
+      # of random numbers is not guaranteed to be the same across different
+      # minor versions of Julia.
+      # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
+      test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+        l2   = [0.001617236176233394, 0.0023394729603446697, 0.001296199247911843, 0.0033150160736185323],
+        linf = [0.019002843896656074, 0.017242107049387223, 0.008179888370650977, 0.016885672229959958],
+        tspan = (0.0, 0.2))
+    else
+      test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+        tspan = (0.0, 0.2))
+    end
   end
   
   @testset "taal-check-me elixir_euler_vortex.jl" begin
@@ -332,9 +356,7 @@ end
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar_shockcapturing.jl"))
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"))
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"))
+    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_mortar.jl"))
   end
 end
 

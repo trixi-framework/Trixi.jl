@@ -20,7 +20,7 @@ using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
 
-using DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
+import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
@@ -101,9 +101,12 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
-       AnalysisCallback, SaveSolutionCallback, AliveCallback
+       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback
 
-export ControllerThreeLevel, IndicatorLöhner, IndicatorLoehner, IndicatorMax
+export load_mesh, load_time
+
+export ControllerThreeLevel, ControllerThreeLevelCombined,
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity

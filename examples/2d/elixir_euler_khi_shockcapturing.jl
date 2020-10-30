@@ -1,4 +1,5 @@
 
+using Random: seed!
 using OrdinaryDiffEq
 using Trixi
 
@@ -7,6 +8,7 @@ using Trixi
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
 
+seed!(0)
 initial_condition = initial_condition_khi
 
 surface_flux = flux_lax_friedrichs
@@ -49,7 +51,9 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback,
+                        save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################

@@ -143,75 +143,6 @@ end
 end
 
 
-"""
-    ControllerThreeLevel(semi, indicator; base_level=1,
-                                          med_level=base_level, med_threshold=0.0,
-                                          max_level=base_level, max_threshold=1.0)
-
-An AMR controller based on three levels (in decending order of precedence):
-- set the target level to `max_level` if `indicator > max_threshold`
-- set the target level to `med_level` if `indicator > med_threshold`;
-  if `med_level < 0`, set the target level to the current level
-- set the target level to `base_level` otherwise
-"""
-struct ControllerThreeLevel{RealT<:Real, Indicator, Cache}
-  base_level::Int
-  med_level ::Int
-  max_level ::Int
-  med_threshold::RealT
-  max_threshold::RealT
-  indicator::Indicator
-  cache::Cache
-end
-
-function ControllerThreeLevel(semi, indicator; base_level=1,
-                                               med_level=base_level, med_threshold=0.0,
-                                               max_level=base_level, max_threshold=1.0)
-  med_threshold, max_threshold = promote(med_threshold, max_threshold)
-  cache = create_cache(ControllerThreeLevel, semi)
-  ControllerThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
-    base_level, med_level, max_level, med_threshold, max_threshold, indicator, cache)
-end
-
-create_cache(indicator_type::Type{ControllerThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
-
-
-function Base.show(io::IO, controller::ControllerThreeLevel)
-  print(io, "ControllerThreeLevel(")
-  print(io, controller.indicator)
-  print(io, ", base_level=", controller.base_level)
-  print(io, ", med_level=",  controller.med_level)
-  print(io, ", max_level=",  controller.max_level)
-  print(io, ", med_threshold=", controller.med_threshold)
-  print(io, ", max_threshold=", controller.max_threshold)
-  print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
-  println(io, "ControllerThreeLevel with")
-  println(io, "- ", controller.indicator)
-  println(io, "- base_level: ", controller.base_level)
-  println(io, "- med_level:  ", controller.med_level)
-  println(io, "- max_level:  ", controller.max_level)
-  println(io, "- med_threshold: ", controller.med_threshold)
-  print(io,   "- max_threshold: ", controller.max_threshold)
-end
-
-
-function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
-                                controller::ControllerThreeLevel, amr_callback::AMRCallback;
-                                kwargs...)
-  # call the indicator to get up-to-date values for IO
-  controller.indicator(u, equations, solver, cache; kwargs...)
-  get_element_variables!(element_variables, controller.indicator, amr_callback)
-end
-
-function get_element_variables!(element_variables, indicator::AbstractIndicator, ::AMRCallback)
-  element_variables[:indicator_amr] = indicator.cache.alpha
-  return nothing
-end
-
-
 
 # `passive_args` is currently used for Euler with self-gravity to adapt the gravity solver
 # passively without querying its indicator, based on the assumption that both solvers use
@@ -333,7 +264,76 @@ end
 # function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
 
 
-# TODO: Taal dimension agnostic
+
+"""
+    ControllerThreeLevel(semi, indicator; base_level=1,
+                                          med_level=base_level, med_threshold=0.0,
+                                          max_level=base_level, max_threshold=1.0)
+
+An AMR controller based on three levels (in decending order of precedence):
+- set the target level to `max_level` if `indicator > max_threshold`
+- set the target level to `med_level` if `indicator > med_threshold`;
+  if `med_level < 0`, set the target level to the current level
+- set the target level to `base_level` otherwise
+"""
+struct ControllerThreeLevel{RealT<:Real, Indicator, Cache}
+  base_level::Int
+  med_level ::Int
+  max_level ::Int
+  med_threshold::RealT
+  max_threshold::RealT
+  indicator::Indicator
+  cache::Cache
+end
+
+function ControllerThreeLevel(semi, indicator; base_level=1,
+                                               med_level=base_level, med_threshold=0.0,
+                                               max_level=base_level, max_threshold=1.0)
+  med_threshold, max_threshold = promote(med_threshold, max_threshold)
+  cache = create_cache(ControllerThreeLevel, semi)
+  ControllerThreeLevel{typeof(max_threshold), typeof(indicator), typeof(cache)}(
+    base_level, med_level, max_level, med_threshold, max_threshold, indicator, cache)
+end
+
+create_cache(indicator_type::Type{ControllerThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+
+
+function Base.show(io::IO, controller::ControllerThreeLevel)
+  print(io, "ControllerThreeLevel(")
+  print(io, controller.indicator)
+  print(io, ", base_level=", controller.base_level)
+  print(io, ", med_level=",  controller.med_level)
+  print(io, ", max_level=",  controller.max_level)
+  print(io, ", med_threshold=", controller.med_threshold)
+  print(io, ", max_threshold=", controller.max_threshold)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
+  println(io, "ControllerThreeLevel with")
+  println(io, "- ", controller.indicator)
+  println(io, "- base_level: ", controller.base_level)
+  println(io, "- med_level:  ", controller.med_level)
+  println(io, "- max_level:  ", controller.max_level)
+  println(io, "- med_threshold: ", controller.med_threshold)
+  print(io,   "- max_threshold: ", controller.max_threshold)
+end
+
+
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                controller::ControllerThreeLevel, amr_callback::AMRCallback;
+                                kwargs...)
+  # call the indicator to get up-to-date values for IO
+  controller.indicator(u, equations, solver, cache; kwargs...)
+  get_element_variables!(element_variables, controller.indicator, amr_callback)
+end
+
+function get_element_variables!(element_variables, indicator::AbstractIndicator, ::AMRCallback)
+  element_variables[:indicator_amr] = indicator.cache.alpha
+  return nothing
+end
+
+
 # TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
@@ -362,6 +362,129 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
       end
     else
       target_level = controller.base_level
+    end
+
+    # compare target level with actual level to set controller
+    if current_level < target_level
+      controller_value[element] = 1 # refine!
+    elseif current_level > target_level
+      controller_value[element] = -1 # coarsen!
+    else
+      controller_value[element] = 0 # we're good
+    end
+  end
+
+  return controller_value
+end
+
+
+
+"""
+    ControllerThreeLevelCombined(semi, indicator_primary, indicator_secondary;
+                                 base_level=1,
+                                 med_level=base_level, med_threshold=0.0,
+                                 max_level=base_level, max_threshold=1.0,
+                                 max_threshold_secondary=1.0)
+
+An AMR controller based on three levels (in decending order of precedence):
+- set the target level to `max_level` if `indicator_primary > max_threshold`
+- set the target level to `med_level` if `indicator_primary > med_threshold`;
+  if `med_level < 0`, set the target level to the current level
+- set the target level to `base_level` otherwise
+If `indicator_secondary >= max_threshold_secondary`,
+set the target level to `max_level`.
+"""
+struct ControllerThreeLevelCombined{RealT<:Real, IndicatorPrimary, IndicatorSecondary, Cache}
+  base_level::Int
+  med_level ::Int
+  max_level ::Int
+  med_threshold::RealT
+  max_threshold::RealT
+  max_threshold_secondary::RealT
+  indicator_primary::IndicatorPrimary
+  indicator_secondary::IndicatorSecondary
+  cache::Cache
+end
+
+function ControllerThreeLevelCombined(semi, indicator_primary, indicator_secondary;
+                                      base_level=1,
+                                      med_level=base_level, med_threshold=0.0,
+                                      max_level=base_level, max_threshold=1.0,
+                                      max_threshold_secondary=1.0)
+  med_threshold, max_threshold, max_threshold_secondary = promote(med_threshold, max_threshold, max_threshold_secondary)
+  cache = create_cache(ControllerThreeLevelCombined, semi)
+  ControllerThreeLevelCombined{typeof(max_threshold), typeof(indicator_primary), typeof(indicator_secondary), typeof(cache)}(
+    base_level, med_level, max_level, med_threshold, max_threshold,
+    max_threshold_secondary, indicator_primary, indicator_secondary, cache)
+end
+
+create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
+
+
+function Base.show(io::IO, controller::ControllerThreeLevelCombined)
+  print(io, "ControllerThreeLevelCombined(")
+  print(io, controller.indicator_primary)
+  print(io, ", ", controller.indicator_secondary)
+  print(io, ", base_level=", controller.base_level)
+  print(io, ", med_level=",  controller.med_level)
+  print(io, ", max_level=",  controller.max_level)
+  print(io, ", med_threshold=", controller.med_threshold)
+  print(io, ", max_threshold_secondary=", controller.max_threshold_secondary)
+  print(io, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevelCombined)
+  println(io, "ControllerThreeLevelCombined with")
+  println(io, "- ", controller.indicator_primary)
+  println(io, "- ", controller.indicator_secondary)
+  println(io, "- base_level: ", controller.base_level)
+  println(io, "- med_level:  ", controller.med_level)
+  println(io, "- max_level:  ", controller.max_level)
+  println(io, "- med_threshold: ", controller.med_threshold)
+  println(io, "- max_threshold: ", controller.max_threshold)
+  print(io,   "- max_threshold_secondary: ", controller.max_threshold_secondary)
+end
+
+
+function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
+                                controller::ControllerThreeLevelCombined, amr_callback::AMRCallback;
+                                kwargs...)
+  # call the indicator to get up-to-date values for IO
+  controller.indicator_primary(u, equations, solver, cache; kwargs...)
+  get_element_variables!(element_variables, controller.indicator_primary, amr_callback)
+end
+
+
+function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
+                                                    mesh::TreeMesh, equations, dg::DG, cache;
+                                                    kwargs...)
+
+  @unpack controller_value = controller.cache
+  resize!(controller_value, nelements(dg, cache))
+
+  alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
+  alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
+
+  Threads.@threads for element in eachelement(dg, cache)
+    cell_id = cache.elements.cell_ids[element]
+    current_level = mesh.tree.levels[cell_id]
+
+    # set target level
+    target_level = current_level
+    if alpha[element] > controller.max_threshold
+      target_level = controller.max_level
+    elseif alpha[element] > controller.med_threshold
+      if controller.med_level > 0
+        target_level = controller.med_level
+        # otherwise, target_level = current_level
+        # set med_level = -1 to implicitly use med_level = current_level
+      end
+    else
+      target_level = controller.base_level
+    end
+
+    if alpha_secondary[element] >= controller.max_threshold_secondary
+      target_level = controller.max_level
     end
 
     # compare target level with actual level to set controller

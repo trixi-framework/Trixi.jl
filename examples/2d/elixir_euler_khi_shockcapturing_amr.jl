@@ -46,11 +46,12 @@ summary_callback = SummaryCallback()
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0001,
-                                          alpha_smooth=true,
+                                          alpha_smooth=false,
                                           variable=density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4, med_threshold=0.0003,
-                                      max_level =6, max_threshold=0.003)
+                                      base_level=4,
+                                      med_level=0, med_threshold=0.0003, # med_level = current level
+                                      max_level=6, max_threshold=0.003)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
                            adapt_initial_condition=true,
@@ -67,7 +68,9 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################

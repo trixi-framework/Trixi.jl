@@ -175,16 +175,22 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
             linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
-  @testset "taal-check-me parameters_euler_khi_amr.toml with t_end=0.2" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_amr.toml"),
-            l2   = [0.0016901662212296502, 0.005064145650514081, 0.004794017657493158, 0.0039877996168673525],
-            linf = [0.027437774935491266, 0.02344577999610231, 0.016129408502293267, 0.018237901415986357],
+  @testset "taal-check-me parameters_euler_khi_shockcapturing.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing.toml"),
+            l2   = [0.0020466154637164818, 0.0028625763438979495, 0.0019711461834225666, 0.004817029337018744],
+            linf = [0.024299256322983798, 0.016200117151326077, 0.00986919774968863, 0.020600003949211576],
             t_end = 0.2)
   end
-  @testset "taal-check-me parameters_euler_blob_split_shockcapturing_amr.toml with t_end=0.12" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_split_shockcapturing_amr.toml"),
-            l2   = [0.20167272820008805, 1.1836133229138053, 0.10165112533393011, 5.237361125542303],
-            linf = [14.085801194734044, 71.07468448364403, 7.366158173410174, 297.2413787328775],
+  @testset "taal-check-me parameters_euler_khi_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing_amr.toml"),
+            l2   = [0.0016901662212294992, 0.002288851927745578, 0.0013358949630807315, 0.0033568391465231668],
+            linf = [0.027437774935493042, 0.016891735404652816, 0.007312081458140164, 0.01590533115997861],
+            t_end = 0.2)
+  end
+  @testset "taal-check-me parameters_euler_blob_shockcapturing_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
+            l2   = [0.20079146298714926, 1.178526565356443, 0.1011961418887176, 5.2218453410238554],
+            linf = [14.056399346555613, 70.84481014603705, 7.154598484845931, 296.78986167690556],
             t_end = 0.12)
   end
   @testset "taal-check-me parameters_mhd_orszag_tang.toml" begin
@@ -340,14 +346,8 @@ end
 # Only run extended tests if environment variable is set
 if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
   @testset "Examples (long execution time)" begin
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_euler_blob_mortar_split_shockcapturing.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_euler_blob_split_shockcapturing_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_euler_khi.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_euler_ec_mortar.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_euler_khi_amr.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_mhd_blast_wave.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_mhd_orszag_tang.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "taal-check-me parameters_mhd_rotor.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_mortar.toml"))
+    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
   end
 end
 

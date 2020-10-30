@@ -137,7 +137,7 @@ function init_simulation()
   # Initialize mesh
   if restart
     print("Loading mesh... ")
-    @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
+    @timeit timer() "mesh loading" mesh = load_mesh_old(restart_filename)
     println("done")
   else
     print("Creating mesh... ")

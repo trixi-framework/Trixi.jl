@@ -22,7 +22,7 @@ mutable struct TreeMesh{D}
     m = new()
     m.tree = Tree{D}(n_cells_max)
     m.current_filename = ""
-    m.unsaved_changes = false
+    m.unsaved_changes = true
 
     return m
   end
@@ -39,7 +39,7 @@ mutable struct TreeMesh{D}
     m = new()
     m.tree = Tree{D}(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
-    m.unsaved_changes = false
+    m.unsaved_changes = true
 
     return m
   end
@@ -181,7 +181,7 @@ end
 # TODO: Taal implement, loading meshes etc.
 
 # Load existing mesh from file
-function load_mesh(restart_filename)
+function load_mesh_old(restart_filename)
   # Get number of spatial dimensions
   ndims_ = parameter("ndims")
 
