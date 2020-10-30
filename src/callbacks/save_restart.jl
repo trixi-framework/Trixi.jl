@@ -85,8 +85,38 @@ end
 end
 
 
-# TODO: Taal refactor, move save_mesh_file?
-# function save_mesh_file(mesh::TreeMesh, output_directory, timestep=-1) in io/io.jl
+"""
+    load_mesh!(mesh::TreeMesh, restart_file::AbstractString)
+
+Modify the `mesh` according to the `restart_file`.
+"""
+function load_mesh!(mesh::TreeMesh, restart_file::AbstractString)
+  # Determine mesh filename
+  filename = get_restart_mesh_filename(restart_file)
+  mesh.current_filename = filename
+  mesh.unsaved_changes = false
+
+  # Open mesh file
+  h5open(filename, "r") do file
+    # Set domain information
+    mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
+    mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
+    mesh.tree.periodicity    = Tuple(read(attrs(file)["periodicity"]))
+
+    # Set length
+    n_cells = read(attrs(file)["n_cells"])
+    resize!(mesh.tree, n_cells)
+
+    # Read in data
+    mesh.tree.parent_ids[1:n_cells] = read(file["parent_ids"])
+    mesh.tree.child_ids[:, 1:n_cells] = read(file["child_ids"])
+    mesh.tree.neighbor_ids[:, 1:n_cells] = read(file["neighbor_ids"])
+    mesh.tree.levels[1:n_cells] = read(file["levels"])
+    mesh.tree.coordinates[:, 1:n_cells] = read(file["coordinates"])
+  end
+
+  return mesh
+end
 
 
 """
