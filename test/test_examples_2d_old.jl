@@ -215,15 +215,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             restart = true, restart_filename = "out/restart_000040.h5")
   end
   @test_nowarn Trixi.convtest(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"), 3)
-  @testset "taal-check-me parameters_euler_blast_wave_shockcapturing_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
             l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
             linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
-            l2   = [0.48181540798407435, 0.16553711811584917, 0.16553711811592348, 0.6436020727868234],
-            linf = [2.4861229629790813, 1.2873838211418498, 1.2873838211478545, 6.473895863328632])
+            l2   = [0.4820048896322639, 0.16556563003698888, 0.16556563003698901, 0.643610807739157],
+            linf = [2.485752556439829, 1.2870638985941658, 1.2870638985941667, 6.474544663221404])
   end
 end
 
@@ -300,16 +300,16 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step" begin
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
-            l2   = [0.002911075352335366, 0.01249799423742342, 0.01249799423742343, 0.11130739933709777],
-            linf = [0.15341072072011042, 0.763322686048535, 0.7633226860485351, 5.184635785270958],
+            l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
+            linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
             n_steps_max = 1)
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
-            l2   = [0.0029095199084281176, 0.012491250999308508, 0.012491250999308522, 0.11126623649275227],
-            linf = [0.15334906997459008, 0.7629367729245761, 0.7629367729245761, 5.18264418672338],
+            l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
+            linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
             n_steps_max = 1,
             initial_condition = "initial_condition_medium_sedov_blast_wave")
   end

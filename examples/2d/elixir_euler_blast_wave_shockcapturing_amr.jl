@@ -53,7 +53,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-# cfl=1.0 is stable for "correct" time step computation but set to 0.5 here for reproducibility of Taam
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
