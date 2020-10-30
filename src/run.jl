@@ -21,6 +21,8 @@ function replace_assignments(expr; kwargs...)
   return expr
 end
 
+# find a (keyword or common) assignment to `destination` in `expr`
+# and return the assigned value
 function find_assignment(expr, destination)
   # declare result to be able to assign to it in the closure
   local result
@@ -70,19 +72,19 @@ trixi_include(elixir::AbstractString; kwargs...) = trixi_include(Main, elixir; k
 
 
 """
-    convergence_test(elixir::AbstractString, iterations; kwargs...)
+    convergence_test([mod::Module=Main,] elixir::AbstractString, iterations; kwargs...)
 
-Run multiple Trixi simulations with the parameters given in `elixir` and compute
+Run `iterations` Trixi simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
-The number of runs is specified by `iterations`; in each run the initial
-refinement level will be increased by 1. Parameters can be overriden by specifying them as
-additional keyword arguments, which are passed to the respective call to `trixi_include`.
+In each iteration, the `initial_refinement_level` will be increased by 1.
+Additional keyword arguments `kwargs...` and the optional module `mod` are passed directly
+to [`trixi_include`](@ref).
 """
-function convergence_test(elixir::AbstractString, iterations; kwargs...)
+function convergence_test(mod::Module, elixir::AbstractString, iterations; kwargs...)
   @assert(iterations > 1, "Number of iterations must be bigger than 1 for a convergence analysis")
 
   # Types of errors to be calcuated
-  errors = Dict(:L2 => Float64[], :Linf => Float64[])
+  errors = Dict(:l2 => Float64[], :linf => Float64[])
 
   # get the initial_refinement_level from the elixir
   code = read(elixir, String)
@@ -92,19 +94,19 @@ function convergence_test(elixir::AbstractString, iterations; kwargs...)
   # run simulations and extract errors
   for iter in 1:iterations
     println("Running convtest iteration ", iter, "/", iterations)
-    trixi_include(elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
-    l2_error, linf_error = Main.analysis_callback(Main.sol)
+    trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+    l2_error, linf_error = mod.analysis_callback(mod.sol)
 
     # collect errors as one vector to reshape later
-    append!(errors[:L2],   l2_error)
-    append!(errors[:Linf], linf_error)
+    append!(errors[:l2],   l2_error)
+    append!(errors[:linf], linf_error)
 
     println("\n\n")
     println("#"^80)
   end
 
   # number of variables
-  variablenames = varnames_cons(Main.equations)
+  variablenames = varnames_cons(mod.equations)
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration
@@ -163,6 +165,8 @@ function convergence_test(elixir::AbstractString, iterations; kwargs...)
 
   return eoc_mean_values
 end
+
+convergence_test(elixir::AbstractString, iterations; kwargs...) = convergence_test(Main, elixir::AbstractString, iterations; kwargs...)
 
 
 
