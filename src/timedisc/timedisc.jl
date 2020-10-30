@@ -1,4 +1,8 @@
 
+# The following structures and methods provide a minimal implementation of
+# the low-storage explicit Runge-Kutta method of
+# Carpenter, Kennedy (1994) Fourth order 2N storage RK schemes, Solution 3
+# using the same interface as OrdinaryDiffEq.jl.
 struct SimpleAlgorithm2N45
   a::SVector{5, Float64}
   b::SVector{5, Float64}
@@ -17,44 +21,77 @@ struct SimpleAlgorithm2N45
   end
 end
 
-mutable struct SimpleIntegrator2N{RealT<:Real, uType, ODE, Alg, Callbacks}
+mutable struct SimpleIntegrator2NOpts{Callback}
+  callback::Callback
+  adaptive::Bool
+  dtmax::Float64
+  tstops::Vector{Float64}
+end
+
+function SimpleIntegrator2NOpts(callback, tspan; kwargs...)
+  SimpleIntegrator2NOpts{typeof(callback)}(
+    callback, false, Inf, [last(tspan)])
+end
+
+mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator2NOpts}
   u::uType
   du::uType
   u_tmp::uType
   t::RealT
   dt::RealT
+  dtcache::RealT
   iter::Int
-  prob::ODE
+  p::Params
+  sol::Sol
   alg::Alg
-  callbacks::Callbacks
+  opts::SimpleIntegrator2NOpts
+  finalstep::Bool
 end
 
 function solve(ode::ODEProblem, alg::SimpleAlgorithm2N45;
                dt, callback=nothing, kwargs...)
-  u = copy(ode.u0)
+  u = similar(ode.u0)
   du = similar(u)
   u_tmp = similar(u)
   t = first(ode.tspan)
   iter = 0
-  integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, iter, ode, alg, callback)
+  integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
+                  (prob=ode,), alg,
+                  SimpleIntegrator2NOpts(callback, ode.tspan; kwargs...), false)
   init!(integrator)
   solve!(integrator)
 end
 
 function init!(integrator::SimpleIntegrator2N)
-  # TODO: Taal time integration
+  @unpack prob = integrator.sol
+  integrator.t = first(prob.tspan)
+  integrator.u .= prob.u0
+  integrator.iter = 0
+  integrator.finalstep = false
+
+  callbacks = integrator.opts.callback
+  if callbacks isa CallbackSet
+    for cb in callbacks.continuous_callbacks
+      error("unsupported")
+    end
+    for cb in callbacks.discrete_callbacks
+      cb.initialize(cb, integrator.u, integrator.t, integrator)
+    end
+  elseif !isnothing(callbacks)
+    error("unsupported")
+  end
 
   return nothing
 end
 
 function solve!(integrator::SimpleIntegrator2N)
-  @unpack prob, alg = integrator
+  @unpack prob = integrator.sol
+  @unpack alg = integrator
   t_end = last(prob.tspan)
+  callbacks = integrator.opts.callback
 
-  integrator.t = first(prob.tspan)
-  integrator.iter = 0
-  finalstep = false
-  @timeit_debug timer() "main loop" while !finalstep
+  integrator.finalstep = false
+  @timeit_debug timer() "main loop" while !integrator.finalstep
     if isnan(integrator.dt)
       error("time step size `dt` is NaN")
     end
@@ -62,7 +99,7 @@ function solve!(integrator::SimpleIntegrator2N)
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
     if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
       integrator.dt = t_end - integrator.t
-      finalstep = true
+      terminate!(integrator)
     end
 
     # one time step
@@ -84,11 +121,30 @@ function solve!(integrator::SimpleIntegrator2N)
     integrator.t += integrator.dt
 
     # handle callbacks
-    # TODO: Taal time integration
+    if callbacks isa CallbackSet
+      for cb in callbacks.discrete_callbacks
+        if cb.condition(integrator.u, integrator.t, integrator)
+          cb.affect!(integrator)
+        end
+      end
+    end
   end
 
-  return (t=integrator.prob.tspan,
-          u=(copy(integrator.prob.u0), copy(integrator.u)))
+  return (t=prob.tspan,
+          u=(copy(prob.u0), copy(integrator.u)))
+end
+
+get_du(integrator::SimpleIntegrator2N) = integrator.du
+
+u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
+
+function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
+  integrator.dt = dt
+end
+
+function terminate!(integrator::SimpleIntegrator2N)
+  integrator.finalstep = true
+  empty!(integrator.opts.tstops)
 end
 
 
