@@ -58,6 +58,7 @@ include("io/io.jl")
 include("timedisc/timedisc.jl")
 include("amr/amr.jl")
 include("callbacks/callbacks.jl")
+include("limiters/limiters.jl")
 include("semidiscretization_euler_gravity.jl")
 
 # TODO: Taal refactor, get rid of old run methods, rename the file
@@ -71,7 +72,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 
-export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
+export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 # TODO: Taal decide, which initial conditions and source terms will be used/exported
@@ -110,6 +111,8 @@ export ControllerThreeLevel, ControllerThreeLevelCombined,
 export density, pressure, density_pressure
 
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
+
+export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example
 
