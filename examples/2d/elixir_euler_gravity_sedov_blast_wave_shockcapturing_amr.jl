@@ -87,8 +87,9 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, IO
-# restart_interval = 100
+
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -97,7 +98,10 @@ analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
                                      save_analysis=true,
                                      extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal))
 
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback)
+# TODO: Taal decide, first AMR or save solution etc.
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_restart, save_solution,
+                        analysis_callback, alive_callback)
 
 
 ###############################################################################

@@ -23,15 +23,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @testset "elixir_advection_mortar.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
-    l2   = [0.022356422238096973],
-    linf = [0.5043638249003257])
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
+      l2   = [0.022356422238096973],
+      linf = [0.5043638249003257])
   end
 
   @testset "elixir_advection_amr.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-    l2   = [0.12533080510721473],
-    linf = [0.9999802982947753])
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
+      l2   = [0.12533080510721473],
+      linf = [0.9999802982947753])
+  end
+
+  @testset "elixir_advection_restart.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      l2   = [1.2148032444677485e-5],
+      linf = [6.495644794757283e-5])
   end
 
 
@@ -146,8 +152,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-        l2   = [0.0019809356303815313, 0.006538462481807526, 0.004737804472678921, 0.0050181776990539505],
-        linf = [0.016342197215556853, 0.03993613023503173, 0.015293069044755532, 0.024177402362647094],
+        l2   = [0.001617236176233394, 0.0023394729603446697, 0.001296199247911843, 0.0033150160736185323],
+        linf = [0.019002843896656074, 0.017242107049387223, 0.008179888370650977, 0.016885672229959958],
         tspan = (0.0, 0.2))
     else
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
