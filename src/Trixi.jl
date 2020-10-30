@@ -101,7 +101,9 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
-       AnalysisCallback, SaveSolutionCallback, AliveCallback
+       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback
+
+export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax

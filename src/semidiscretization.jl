@@ -68,6 +68,19 @@ end
 
 
 """
+    semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
+
+Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The initial condition etc. is taken from the `restart_file`.
+"""
+function semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString)
+  u0_ode = load_restart_file(semi, restart_file)
+  return ODEProblem(rhs!, u0_ode, tspan, semi)
+end
+
+
+"""
     compute_coefficients(func, t, semi::AbstractSemidiscretization)
 
 Compute the discrete coefficients of the continuous function `func` at time `t`
