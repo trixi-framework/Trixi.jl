@@ -30,6 +30,8 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
