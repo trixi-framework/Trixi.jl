@@ -334,7 +334,7 @@ end
 
 
 # used for error checks and EOC analysis
-function (cb::DiscreteCallback{Condition,Affect!})(sol::ODESolution) where {Condition, Affect!<:AnalysisCallback}
+function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = sol.prob.p
   @unpack analyzer = analysis_callback
