@@ -21,67 +21,63 @@ struct SimpleAlgorithm2N45
   end
 end
 
-mutable struct SimpleIntegrator2NOpts{Callback}
-  callback::Callback
-  adaptive::Bool
-  dtmax::Float64
-  tstops::Vector{Float64}
+# This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
+mutable struct SimpleIntegrator2NOptions{Callback}
+  callback::Callback # callbacks; used in Trixi
+  adaptive::Bool # whether the algorithm is adaptive; ignored
+  dtmax::Float64 # ignored
+  tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegrator2NOpts(callback, tspan; kwargs...)
-  SimpleIntegrator2NOpts{typeof(callback)}(
+function SimpleIntegrator2NOptions(callback, tspan; kwargs...)
+  SimpleIntegrator2NOptions{typeof(callback)}(
     callback, false, Inf, [last(tspan)])
 end
 
-mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator2NOpts}
-  u::uType
+# This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
+# This implements the interface components described at
+# https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
+# which are used in Trixi.
+mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator2NOptions}
+  u::uType #
   du::uType
   u_tmp::uType
   t::RealT
-  dt::RealT
-  dtcache::RealT
-  iter::Int
-  p::Params
-  sol::Sol
+  dt::RealT # current time step
+  dtcache::RealT # ignored
+  iter::Int # current number of time step (iteration)
+  p::Params # will be the semidiscretization from Trixi
+  sol::Sol # faked
   alg::Alg
-  opts::SimpleIntegrator2NOpts
-  finalstep::Bool
+  opts::SimpleIntegrator2NOptions
+  finalstep::Bool # added for convenience
 end
 
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(ode::ODEProblem, alg::SimpleAlgorithm2N45;
                dt, callback=nothing, kwargs...)
-  u = similar(ode.u0)
+  u = copy(ode.u0)
   du = similar(u)
   u_tmp = similar(u)
   t = first(ode.tspan)
   iter = 0
   integrator = SimpleIntegrator2N(u, du, u_tmp, t, dt, zero(dt), iter, ode.p,
                   (prob=ode,), alg,
-                  SimpleIntegrator2NOpts(callback, ode.tspan; kwargs...), false)
-  init!(integrator)
-  solve!(integrator)
-end
+                  SimpleIntegrator2NOptions(callback, ode.tspan; kwargs...), false)
 
-function init!(integrator::SimpleIntegrator2N)
-  @unpack prob = integrator.sol
-  integrator.t = first(prob.tspan)
-  integrator.u .= prob.u0
-  integrator.iter = 0
-  integrator.finalstep = false
-
-  callbacks = integrator.opts.callback
-  if callbacks isa CallbackSet
-    for cb in callbacks.continuous_callbacks
+  # initialize callbacks
+  if callback isa CallbackSet
+    for cb in callback.continuous_callbacks
       error("unsupported")
     end
-    for cb in callbacks.discrete_callbacks
+    for cb in callback.discrete_callbacks
       cb.initialize(cb, integrator.u, integrator.t, integrator)
     end
-  elseif !isnothing(callbacks)
+  elseif !isnothing(callback)
     error("unsupported")
   end
 
-  return nothing
+  solve!(integrator)
 end
 
 function solve!(integrator::SimpleIntegrator2N)
@@ -131,20 +127,32 @@ function solve!(integrator::SimpleIntegrator2N)
   end
 
   return (t=prob.tspan,
-          u=(copy(prob.u0), copy(integrator.u)))
+          u=(copy(prob.u0), copy(integrator.u)),
+          prob=integrator.sol.prob)
 end
 
+# get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegrator2N) = integrator.du
 
+# some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator2N, ::Bool) = false
 
+# used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
   integrator.dt = dt
 end
 
+# stop the time integration
 function terminate!(integrator::SimpleIntegrator2N)
   integrator.finalstep = true
   empty!(integrator.opts.tstops)
+end
+
+# used for AMR
+function Base.resize!(integrator::SimpleIntegrator2N, new_size)
+  resize!(integrator.u, new_size)
+  resize!(integrator.du, new_size)
+  resize!(integrator.u_tmp, new_size)
 end
 
 
