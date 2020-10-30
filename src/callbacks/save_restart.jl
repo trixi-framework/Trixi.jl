@@ -105,12 +105,11 @@ end
 function load_mesh!(mesh, restart_file::AbstractString)
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_file)
+  mesh.current_filename = filename
+  mesh.unsaved_changes = false
 
   # Open mesh file
   h5open(filename, "r") do file
-    mesh.current_filename = filename
-    mesh.unsaved_changes = false
-
     # Set domain information
     mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
     mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
