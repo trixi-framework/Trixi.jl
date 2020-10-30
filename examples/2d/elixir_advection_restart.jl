@@ -15,8 +15,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic.jl"))
 # appropriate setups in the elixir loading a restart file
 
 restart_filename = joinpath("out", "restart_000040.h5")
-mesh = TreeMesh{2}(30_000) # n_cells_max
-load_mesh!(mesh, restart_filename)
+mesh = load_mesh(restart_filename, n_cells_max=30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

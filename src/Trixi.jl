@@ -103,7 +103,7 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
        SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback
 
-export load_mesh!, load_time
+export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax

@@ -48,8 +48,10 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
   @timeit_debug timer() "I/O" begin
-    mesh.current_filename = save_mesh_file(mesh, restart_callback.output_directory)
-    mesh.unsaved_changes = false
+    if mesh.unsaved_changes
+      mesh.current_filename = save_mesh_file(mesh, restart_callback.output_directory)
+      mesh.unsaved_changes = false
+    end
   end
 
   return nothing
@@ -86,18 +88,29 @@ end
 
 
 """
-    load_mesh!(mesh::TreeMesh, restart_file::AbstractString)
+    load_mesh(restart_file::AbstractString; n_cells_max)
 
-Modify the `mesh` according to the `restart_file`.
+Load the mesh from the `restart_file`.
 """
-function load_mesh!(mesh::TreeMesh, restart_file::AbstractString)
+function load_mesh(restart_file::AbstractString; n_cells_max)
+  ndims_ = h5open(restart_file, "r") do file
+    read(attrs(file)["ndims"])
+  end
+
+  # Note: In the future, we should also read the mesh type
+  mesh = TreeMesh{ndims_}(n_cells_max)
+  load_mesh!(mesh, restart_file)
+end
+
+function load_mesh!(mesh, restart_file::AbstractString)
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_file)
-  mesh.current_filename = filename
-  mesh.unsaved_changes = false
 
   # Open mesh file
   h5open(filename, "r") do file
+    mesh.current_filename = filename
+    mesh.unsaved_changes = false
+
     # Set domain information
     mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
     mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
