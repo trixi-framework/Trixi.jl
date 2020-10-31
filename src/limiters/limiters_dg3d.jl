@@ -25,7 +25,7 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any,5},
     u_mean = u_mean / 2^ndims(mesh)
 
     # We compute the value directly with the mean values, as we assume that
-    # Jensen's inequality holds (e.g. pressure for compressible Euler equations)
+    # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
     value_mean = variable(u_mean, equations)
     theta = (value_mean - threshold) / (value_mean - value_min)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

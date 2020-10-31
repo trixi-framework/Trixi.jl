@@ -23,8 +23,8 @@ end
 function (limiter!::PositivityPreservingLimiterZhangShu)(
     u_ode::AbstractVector, f, semi::AbstractSemidiscretization, t)
   u = wrap_array(u_ode, semi)
-  limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables,
-                     mesh_equations_solver_cache(semi)...)
+  @timeit_debug timer() "positivity-preserving limiter" limiter_zhang_shu!(
+    u, limiter!.thresholds, limiter!.variables, mesh_equations_solver_cache(semi)...)
 end
 
 
@@ -39,6 +39,7 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any},
 
   limiter_zhang_shu!(u, threshold, variable, mesh, equations, solver, cache)
   limiter_zhang_shu!(u, remaining_thresholds, remaining_variables, mesh, equations, solver, cache)
+  return nothing
 end
 
 # terminate the type-stable iteration over tuples

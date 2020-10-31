@@ -19,13 +19,13 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any,3},
     u_mean = zero(get_node_vars(u, equations, dg, 1, element))
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
-      u_mean += u_node * weights[i] * weights[j] * weights[k]
+      u_mean += u_node * weights[i]
     end
     # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
     u_mean = u_mean / 2^ndims(mesh)
 
     # We compute the value directly with the mean values, as we assume that
-    # Jensen's inequality holds (e.g. pressure for compressible Euler equations)
+    # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
     value_mean = variable(u_mean, equations)
     theta = (value_mean - threshold) / (value_mean - value_min)
     for i in eachnode(dg)

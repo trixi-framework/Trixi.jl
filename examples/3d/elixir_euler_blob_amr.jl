@@ -20,6 +20,7 @@ refinement_patches = (
   (type="box", coordinates_min=(-20, -10, -10), coordinates_max=(-10, 10, 10)),
   (type="box", coordinates_min=(-20,  -5,  -5), coordinates_max=(-10,  5,  5)),
   (type="box", coordinates_min=(-17,  -2,  -2), coordinates_max=(-13,  2,  2)),
+  (type="box", coordinates_min=(-17,  -2,  -2), coordinates_max=(-13,  2,  2)),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
@@ -48,7 +49,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=false,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=1.7)
 
 save_solution = SaveSolutionCallback(interval=200,
                                      save_initial_solution=true,

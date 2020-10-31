@@ -43,6 +43,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
   end
 
+  @testset "elixir_euler_blob_amr.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
+      l2   = [0.04867856452253151, 0.2640486962336911, 0.0354927658652858, 0.03549276586528571, 1.0777274757408568],
+      linf = [9.558543313792217, 49.4518309553356, 10.319859082570309, 10.319859082570487, 195.1066220797401],
+      tspan = (0.0, 0.2))
+  end
+
 
   @testset "elixir_mhd_ec.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
