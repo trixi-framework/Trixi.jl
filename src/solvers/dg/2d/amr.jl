@@ -263,7 +263,7 @@ end
 function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
   lambda = zeros(dg.n_elements)
 
-  if dg.amr_indicator === :gauss
+  if dg.amr_indicator === :gauss_alternative
     base_level = 4
     max_level = 6
     threshold_high = 0.6
@@ -292,6 +292,25 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
         lambda[element_id] = 0.0
       end
     end
+  elseif dg.amr_indicator === :gauss
+      center = SVector(0,0)
+
+      # Iterate over all elements
+      for element_id in 1:dg.n_elements
+        target_distance = 5
+        cell_id = dg.elements.cell_ids[element_id]
+        cell_coordinates = mesh.tree.coordinates[cell_id]
+        cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
+
+        if cell_distance < target_distance - 1
+          lambda[element_id] = 1.0
+        elseif cell_distance > target_distance + 1
+          lambda[element_id] = -1.0
+        else
+          lambda[element_id] = 0.0
+        end
+      end
+
   elseif dg.amr_indicator === :isentropic_vortex
     base_level = 3
     max_level = 5
