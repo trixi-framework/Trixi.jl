@@ -263,7 +263,7 @@ end
 function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
   lambda = zeros(dg.n_elements)
 
-  if dg.amr_indicator === :gauss_alternative
+  if dg.amr_indicator === :gauss
     base_level = 4
     max_level = 6
     threshold_high = 0.6
@@ -292,12 +292,14 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
         lambda[element_id] = 0.0
       end
     end
-  elseif dg.amr_indicator === :gauss
-      center = SVector(0,0)
+  elseif dg.amr_indicator === :gauss_solution_independent
+      #Calculate the theoretical location of the center.
+      advectionvelocity = SVector(1,1)
+      center = time .* advectionvelocity
 
       # Iterate over all elements
       for element_id in 1:dg.n_elements
-        target_distance = 5
+        target_distance = 3
         cell_id = dg.elements.cell_ids[element_id]
         cell_coordinates = mesh.tree.coordinates[cell_id]
         cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
