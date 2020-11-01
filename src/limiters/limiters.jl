@@ -28,7 +28,14 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(
 end
 
 
-# iterate over tuples in a type-stable way
+# Iterate over tuples in a type-stable way using "lispy tuple programming",
+# similar to https://stackoverflow.com/a/55849398:
+# Iterating over tuples of different functions isn't type-stable in general
+# but accessing the first element of a tuple is type-stable. Hence, it's good
+# to process one element at a time and replace iteration by recursion here.
+# Note that you shouldn't use this with too many elements per tuple since the
+# compile times can increase otherwise - but a handful of elements per tuple
+# is definitely fine.
 function limiter_zhang_shu!(u::AbstractArray{<:Any},
                             thresholds::NTuple{N,<:Real}, variables::NTuple{N,Any},
                             mesh, equations, solver, cache) where {N}
@@ -49,4 +56,7 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any},
   nothing
 end
 
+
+include("limiters_dg1d.jl")
+include("limiters_dg2d.jl")
 include("limiters_dg3d.jl")
