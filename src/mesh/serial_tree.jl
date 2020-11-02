@@ -109,13 +109,13 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   #   mpicomm, conn, 0, 2, 0, sizeof(qinner_data_t),C_NULL, C_NULL)
   min_level = parameter("initial_refinement_level")::Int
   uniform = 1
-  t.forest = P4est.p4est_new_ext(0, t.conn,0,min_level,uniform,0, C_NULL, C_NULL)
+  t.forest = P4est.p4est_new_ext(0, t.conn,0,min_level,uniform,sizeof(quad_inner_data_t), C_NULL, C_NULL)
+  @show sizeof(quad_inner_data_t)
   local_num_quads = Int64(t.forest.local_num_quadrants)
   Connection = zeros(Int32, 11,local_num_quads)
   QuadInfo = zeros(Int32, 4,local_num_quads)
   
   conn_ptr = pointer(Connection)
-  
 # 1 - level
 # 2 - coord x
 # 3 Coord y
@@ -129,23 +129,21 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
 # 2 - -y
 # 3 - +y
 ##
-  
+quadinfo_ptr = pointer(QuadInfo)
 # 1. - quadid 1..local_num_quads
 # 2. - quad.level
 # 3. - quad.x
 # 4. - quad.y
-  quadinfo_ptr = pointer(QuadInfo)
-  # @show volumeIterate
+
+
   CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
-  # @show CvolumeIterate
+
   P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
   CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
 
   P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
-  # P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, CvolumeIterate, C_NULL, C_NULL)
 
-  # @show QuadInfo
-  # Create root cell
+  # Create root cells
   t.length += local_num_quads
   t.parent_ids[1:local_num_quads] .= 0
   t.child_ids[:, 1:local_num_quads] .= 0
@@ -189,8 +187,8 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
     #     t.neighbor_ids[2 * dimension - 1, 1] = 1
     #     t.neighbor_ids[2 * dimension - 0, 1] = 1
       else
-        t.neighbor_ids[2 * dimension - 1, 1] = 0
-        t.neighbor_ids[2 * dimension - 0, 1] = 0
+        t.neighbor_ids[2 * dimension - 1, 1] = 0 # TODO: Must be corrected for non-periodic!!!
+        t.neighbor_ids[2 * dimension - 0, 1] = 0 #
       end
     end
 

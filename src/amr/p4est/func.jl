@@ -1,7 +1,16 @@
 using P4est
+using CBinding
+
+@cstruct quad_inner_data_t {
+    id::Int64;
+    oldids::Int64[4];
+    # oldid2::Int64;
+    # oldid3::Int64;
+    # oldid4::Int64;
+}
 
 function volumeIterate(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{Cvoid})
-           p4est = info.p4est
+        p4est = info.p4est
         local_num_quads = Int64(p4est.local_num_quadrants)
         quadinfo = unsafe_wrap(Array, Ptr{Int32}(user_data), (4,local_num_quads); own = false)
         quadid = info.quadid
@@ -81,3 +90,95 @@ function faceIterate(info::Ptr{P4est.p4est_iter_face_info_t}, user_data_ptr::Ptr
       return nothing
 end
 
+function setOldIdtoZero(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{Cvoid})
+ p4est = info.p4est
+ quad = info.quad
+ quadid = info.quadid
+#  @show quad.p.user_data
+#  dataptr = Ptr{quad_inner_data_t}(quad.p.user_data)
+ dataptr = unsafe_wrap(quad_inner_data_t, quad.p.user_data)
+ dataptr.id = quadid + 1
+ dataptr.oldids = zeros(4) #2 * Ndims
+
+ return nothing
+end
+
+
+# static int
+# refine_fn(p4est_t *p4est, p4est_topidx_t which_tree,
+#           p4est_quadrant_t *q) {
+#     int *ToRefine = (int *) p4est->user_pointer;
+
+#     p4est_inner_data_t *dataquad = (p4est_inner_data_t *) q->p.user_data;
+#    
+#     if ((ToRefine[dataquad->ElementID - 1] > 0 && ToRefine[dataquad->ElementID - 1] > q->level)
+#         || (-ToRefine[dataquad->ElementID - 1] - 1 > q->level)) {
+#         // printf("REFINE!!!!!!!!!!!!!!! \n");
+#         return 1;
+#     } else {
+#         return 0;
+#     }
+# }
+
+function refine_function(p4est::Ptr{P4est.p4est_t},
+                        which_tree::P4est.p4est_topidx_t,
+                        q::Ptr{P4est.p4est_quadrant_t})
+    user_data_ptr = p4est.user_pointer
+    # local_num_quads = Int64(p4est.local_num_quadrants)
+    # quadinfo = unsafe_wrap(Array, Ptr{Int32}(user_data), (4,local_num_quads); own = false)
+    dataptr = unsafe_wrap(quad_inner_data_t, q.p.user_data)
+    
+    to_refine = unsafe_wrap(Array, Ptr{Int32}(user_data_ptr), (dataptr.id); own = false)
+    elem_id = dataptr.id
+    # @show dataptr.id, to_refine[dataptr.id]
+    if (to_refine[elem_id] > 0) #  && to_refine[elem_id] > q.level
+        @show 1, "REFINE"
+        return Cint(0) #TODO: REMOVE
+        return Cint(1)
+    else
+        return Cint(0)
+    end
+end
+
+function coarse_function(p4est::Ptr{P4est.p4est_t},
+                        which_tree::P4est.p4est_topidx_t,
+                        children_array_ptr::Ptr{Ptr{P4est.p4est_quadrant_t}})
+
+    user_data_ptr = p4est.user_pointer
+    children = unsafe_wrap(Array, Ptr{Ptr{P4est.p4est_quadrant_t}}(children_array_ptr), 4; own = false)
+    # @show children[1].x
+    # @show children[2].y
+    # @show children[3].y
+    # @show children[4].x
+    # elem_id = 0   #children[1].quadid
+    Coarse4 = 0; 
+    
+    for i = 1:4 #2*NDIMS
+        data = unsafe_wrap(quad_inner_data_t, children[i].p.user_data)
+ 
+        @show data.id
+        if (data.oldids[1] < 0 || data.id == 0)
+            @show "Not TO Coarse"
+            return Cint(0)# This Element was refined and we don't need to check it.
+        end
+        to_coarse = unsafe_wrap(Array, Ptr{Int32}(user_data_ptr), (data.id); own = false)
+        if (to_coarse[data.id] < 0)
+        #    if (children[i].level > (- to_corase[data.id] - 1)) 
+                # The level compared with -1*to_coarse[] - 1
+                Coarse4 += 1
+        #    else
+        #        @show "Not TO Coarse"
+        #        return Cint(0)
+        #    end
+        end
+    end
+    if (Coarse4 == 4) 
+        @show "TO Coarse"
+        return Cint(0)  #TODO: return Cint(1)
+    else
+        @show " 1 Not TO Coarse"
+        return Cint(0)
+    end
+end
+
+#TODO: replace_quads

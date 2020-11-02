@@ -33,8 +33,8 @@ analysis_interval = 100
 n_cells_max = 100000
 coordinates_min = [-5, -5]
 coordinates_max = [ 5,  5]
-initial_refinement_level = 5
-amr_interval = 0
+initial_refinement_level = 2
+amr_interval = 10
 # refinement_patches = [
 #   {type = "box", coordinates_min = [-0.5, -0.5], coordinates_max = [0.5, 0.5]},
 #   {type = "box", coordinates_min = [-0.1, -0.1], coordinates_max = [0.1, 0.1]},
