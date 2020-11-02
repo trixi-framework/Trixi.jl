@@ -193,14 +193,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [14.056399346555613, 70.84481014603705, 7.154598484845931, 296.78986167690556],
             t_end = 0.12)
   end
-  @testset "taal-check-me differences-to-master-sc? parameters_mhd_orszag_tang.toml" begin
+  @testset "taal-confirmed parameters_mhd_orszag_tang.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"),
             l2   = [0.21662313415818582, 0.2635698604231871, 0.31395699611730377, 0.0, 0.5122276249069517, 0.22914894367706035, 0.34302293430536107, 0.0, 0.0031837261356598232],
             linf = [1.2455340346415893, 0.6656259804847943, 0.8530619473770993, 0.0, 2.762224683447692, 0.6641473992806939, 0.9631804383659317, 0.0, 0.04504842687596635],
             t_end = 0.09)
   end
   # second orszag-tang test added to exercise all components of flux_hll for GLM-MHD
-  @testset "taal-check-me differences-to-master-sc? parameters_mhd_orszag_tang.toml with flux_hll" begin
+  @testset "taal-confirmed parameters_mhd_orszag_tang.toml with flux_hll" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_orszag_tang.toml"),
             l2   = [0.10797773670821377, 0.20183575429259998, 0.2297276946458608, 0.0, 0.29942847198143785, 0.1567941428185007, 0.24283635408491952, 0.0, 0.0032487131364797796],
             linf = [0.5598159626426933, 0.5095082640545004, 0.655948904969917, 0.0, 0.9809725319955653, 0.39916604098537073, 0.6748429903024491, 0.0, 0.07124312329480051],
@@ -328,7 +328,7 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-check-me differences-to-master-sc? parameters_mhd_rotor.toml" begin
+  @testset "taal-check-me parameters_mhd_rotor.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"),
             l2   = [1.251062755110083, 1.8146501210703296, 1.6947702119211985, 0.0, 2.286126233832582, 0.2142656906510094, 0.23453619782492716, 0.0, 0.003028222728287231],
             linf = [10.472575582440642, 14.089807317509075, 15.561008992418031, 0.0, 16.731740428408308, 1.3219222046920664, 1.4167075971532137, 0.0, 0.08046487935486654],
