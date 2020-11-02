@@ -30,8 +30,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "taal-confirmed elixir_advection_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-      l2   = [0.12533080510721514],
-      linf = [0.999980298294775])
+      l2   = [0.010844189678803203],
+      linf = [0.0491178481591637])
   end
 
   @testset "taal-check-me elixir_advection_restart.jl" begin
