@@ -11,17 +11,16 @@ initial_condition = Trixi.initial_condition_density_pulse
 
 surface_flux = flux_ranocha
 volume_flux = flux_ranocha
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2, -2)
 coordinates_max = (2, 2, 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
-                n_cells_max=10_000)
+                n_cells_max=100_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################

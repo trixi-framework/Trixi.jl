@@ -3,18 +3,28 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible euler equations
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = Trixi.initial_condition_weak_blast_wave
 
 surface_flux = flux_ranocha
-volume_flux  = flux_ranocha
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_ranocha
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                         volume_flux_dg=volume_flux,
+                                         volume_flux_fv=surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2, -2, -2)
-coordinates_max = ( 2,  2,  2)
+coordinates_max = (2, 2, 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=100_000)
@@ -26,7 +36,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -39,7 +49,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=:primitive)
 
 save_restart = SaveRestartCallback(interval=10,
-                                     save_final_restart=true)
+                                   save_final_restart=true)
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
