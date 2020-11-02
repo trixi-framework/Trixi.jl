@@ -389,8 +389,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 # Apply source terms
-# TODO: Taal remove methods with the signature below?
-#       Or keep them as an option for possiby increased performance?
+# TODO: Taal remove methods with the signature below
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition`
   c = 2

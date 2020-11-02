@@ -25,17 +25,17 @@ Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_hyp_diff
 ## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity
 **polydeg = 3**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_euler_gravity_eoc_test.toml", 4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eulergravity_eoc_test.toml", 4)
 ```
 
 **polydeg = 4**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_euler_gravity_eoc_test.toml", 4, polydeg=4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eulergravity_eoc_test.toml", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 5, EOC tests coupled Euler-gravity (update gravity once per step)
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_euler_gravity_eoc_test.toml", 4,
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_eulergravity_eoc_test.toml", 4,
                update_gravity_once_per_stage=false)
 ```
 

@@ -3,51 +3,54 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the hyperbolic diffusion equations
+# semidiscretization of the compressible Euler equations
 
-resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
-equations = HyperbolicDiffusionEquations3D(resid_tol)
+equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_poisson_periodic
+initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
 coordinates_min = (0, 0, 0)
-coordinates_max = (1, 1, 1)
+coordinates_max = (2, 2, 2)
+refinement_patches = (
+  (type="box", coordinates_min=(0.5, 0.5, 0.5), coordinates_max=(1.5, 1.5, 1.5)),
+)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=30_000)
+                initial_refinement_level=2,
+                refinement_patches=refinement_patches,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=Trixi.source_terms_poisson_periodic)
+                                    source_terms=source_terms_convergence_test)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
-ode = semidiscretize(semi, tspan);
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
-
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-analysis_interval = 200
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
 
-callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callback,
-                        save_solution,
+analysis_interval = 100
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+
+callbacks = CallbackSet(summary_callback, stepsize_callback,
+                        save_restart, save_solution,
                         analysis_callback, alive_callback)
 
 

@@ -5,36 +5,44 @@ using Trixi
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
 
-resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
+resid_tol = 1.0e-5 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations3D(resid_tol)
 
-initial_condition = Trixi.initial_condition_poisson_periodic
+initial_condition = Trixi.initial_condition_poisson_nonperiodic
+boundary_conditions = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
+                       x_pos=Trixi.boundary_condition_poisson_nonperiodic,
+                       y_neg=boundary_condition_periodic,
+                       y_pos=boundary_condition_periodic,
+                       z_neg=boundary_condition_periodic,
+                       z_pos=boundary_condition_periodic)
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(4, surface_flux)
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (1, 1, 1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=30_000)
+                initial_refinement_level=2,
+                n_cells_max=30_000,
+                periodicity=(false, true, true))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=Trixi.source_terms_poisson_periodic)
+                                    source_terms=Trixi.source_terms_poisson_nonperiodic,
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
 steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

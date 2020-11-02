@@ -1161,7 +1161,6 @@ end
 
 
 # TODO: Taal dimension agnostic
-# TODO: Taal refactor, make source terms pointwise, possibly using traits to decide if they depend on u, if necessary for performance?
 function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms::Nothing, equations, dg::DG, cache)
   return nothing
 end
