@@ -2,14 +2,24 @@
 # Simulation
 ndims = 2
 equations = "CompressibleEulerMulticomponentEquations"
+# equations = "LinearScalarAdvectionEquation"
+# advectionvelocity = [1.0, 1.0] # Need only for linarscalaradvection
+
+#initial_conditions = "initial_conditions_constant"
 initial_conditions = "initial_conditions_weak_blast_wave"
 #surface_flux = "flux_lax_friedrichs"
 surface_flux = "flux_chandrashekar_stable_fix"
-
-#volume_flux = "flux_central"
 volume_flux = "flux_chandrashekar"
+#surface_flux = "flux_shima_etal"
+#volume_flux = "flux_shima_etal"
+# volume_flux = "flux_central"
+# source_terms =
 t_start = 0.0
-t_end   = 1.0
+t_end   = 0.2
+
+# restart = true
+# restart_filename = "out/restart_000100.h5"
+
 
 ####################################################################################################
 # Solver
@@ -18,8 +28,10 @@ polydeg = 3
 cfl = 0.5
 n_steps_max = 10000
 analysis_interval = 100
-# volume_integral_type = "shock_capturing"
+#volume_integral_type = "shock_capturing"
 volume_integral_type = "split_form"
+# volume_integral_type = "entropy_fix"
+
 
 ####################################################################################################
 # Mesh
@@ -31,11 +43,11 @@ initial_refinement_level = 5
 #   {type = "box", coordinates_min = [0.0, -10.0], coordinates_max = [10.0, 10.0]},
 # ]
 
+
 ####################################################################################################
 # I/O
 # save_initial_solution = false
-solution_interval = 10
+solution_interval = 100
 solution_variables = "primitive"
-restart_interval = 0
-
-# Plot Command: trixi2vtk(joinpath("out", "solution_000*.h5"), output_directory="out")
+restart_interval = 10
+output_format = "hdf5"
