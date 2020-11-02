@@ -509,6 +509,7 @@ function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation:
   return nothing
 end
 
+# TODO: Taal remove the method below
 # Empty source terms required for coupled Euler-gravity simulations
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations2D)
   # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
