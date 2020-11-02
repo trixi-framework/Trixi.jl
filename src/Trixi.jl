@@ -116,7 +116,7 @@ export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example
 
-export jacobian_fd
+export convergence_test, jacobian_fd, linear_structure
 
 
 end
