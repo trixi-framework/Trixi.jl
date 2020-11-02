@@ -20,33 +20,12 @@ varnames_cons(::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_
 varnames_prim(::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
 
 
-# Set initial conditions at physical location `x` for time `t`
-function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
-  rho = 1 + exp(-(x[1]^2 ))/2
-  v1 = 1
-  rho_v1 = rho * v1
-  p = 1
-  rho_e = p/(equation.gamma - 1) + 1/2 * rho * v1^2
-  return @SVector [rho, rho_v1, rho_e]
-end
-
+# TODO: Taal IC needs test
 """
-    initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_constant(x, t, equation::CompressibleEulerEquations1D)
 
-test case for stability of EC fluxes from paper: https://arxiv.org/pdf/2007.09026.pdf
-domain [-1, 1]
-mesh = 4x4, polydeg = 5
+A constant initial condition to test free-stream preservation.
 """
-
-function initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
-  v1 = 0.1
-  rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
-  rho_v1 = rho * v1
-  p = 20
-  rho_e = p / (equation.gamma - 1) + 1/2 * rho * v1^2
-  return @SVector [rho, rho_v1, rho_e]
-end
-
 function initial_condition_constant(x, t, equation::CompressibleEulerEquations1D)
   rho = 1.0
   rho_v1 = 0.1
@@ -54,6 +33,14 @@ function initial_condition_constant(x, t, equation::CompressibleEulerEquations1D
   return @SVector [rho, rho_v1, rho_e]
 end
 
+
+"""
+    initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations1D)
+
+A smooth initial condition used for convergence tests in combination with
+[`source_terms_convergence_test`](@ref)
+(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+"""
 function initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations1D)
   c = 2
   A = 0.1
@@ -69,88 +56,41 @@ function initial_condition_convergence_test(x, t, equation::CompressibleEulerEqu
   return @SVector [rho, rho_v1, rho_e]
 end
 
+"""
+    source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
 
-function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
-  # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-  # Set up polar coordinates
-  inicenter = SVector(0.0)
-  x_norm = x[1] - inicenter[1]
-  r = abs(x_norm)
-  # The following code is equivalent to
-  # phi = atan(0.0, x_norm)
-  # cos_phi = cos(phi)
-  # in 1D but faster
-  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref)
+(and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
+"""
+@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
+  # Same settings as in `initial_condition`
+  c = 2
+  A = 0.1
+  L = 2
+  f = 1/L
+  ω = 2 * pi * f
+  γ = equation.gamma
 
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  p   = r > 0.5 ? 1.0 : 1.245
+  x1, = x
 
-  return prim2cons(SVector(rho, v1, p), equation)
+  si, co = sincos((t - x1)*ω)
+  tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
+
+  du1 = zero(eltype(u))
+  du2 = tmp
+  du3 = tmp
+
+  # Original terms (without performanc enhancements)
+  # du1 = 0
+  # du2 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+  # du3 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
+  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
+
+  return SVector(du1, du2, du3)
 end
 
-function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
-  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-  # Set up polar coordinates
-  inicenter = SVector(0.0)
-  x_norm = x[1] - inicenter[1]
-  r = abs(x_norm)
-  # The following code is equivalent to
-  # phi = atan(0.0, x_norm)
-  # cos_phi = cos(phi)
-  # in 1D but faster
-  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
-
-  # Calculate primitive variables
-  rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  p   = r > 0.5 ? 1.0E-3 : 1.245
-
-  return prim2cons(SVector(rho, v1, p), equation)
-end
-
-function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
-  # Set up polar coordinates
-  inicenter = SVector(0.0)
-  x_norm = x[1] - inicenter[1]
-  r = abs(x_norm)
-
-  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
-  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-  # r0 = 0.5 # = more reasonable setup
-  E = 1.0
-  p0_inner = 6 * (equation.gamma - 1) * E / (3 * pi * r0)
-  p0_outer = 1.0e-5 # = true Sedov setup
-  # p0_outer = 1.0e-3 # = more reasonable setup
-
-  # Calculate primitive variables
-  rho = 1.0
-  v1  = 0.0
-  p   = r > r0 ? p0_outer : p0_inner
-
-  return prim2cons(SVector(rho, v1, p), equation)
-end
-
-
-# Apply boundary conditions
-function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::CompressibleEulerEquations1D)
-  u_boundary = initial_condition_convergence_test(x, t, equation)
-
-  # Calculate boundary flux
-  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
-
-  return flux
-end
-
-
-# Apply source terms
 # TODO: Taal remove methods with the signature below
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
   # Same settings as in `initial_condition`
@@ -181,33 +121,158 @@ function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equatio
   return nothing
 end
 
-@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
-  # Same settings as in `initial_condition`
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  γ = equation.gamma
+"""
+    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equation::CompressibleEulerEquations1D)
 
-  x1, = x
+Boundary conditions used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
+"""
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equation::CompressibleEulerEquations1D)
+  u_boundary = initial_condition_convergence_test(x, t, equation)
 
-  si, co = sincos((t - x1)*ω)
-  tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
+  # Calculate boundary flux
+  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
 
-  du1 = zero(eltype(u))
-  du2 = tmp
-  du3 = tmp
-
-  # Original terms (without performanc enhancements)
-  # du1 = 0
-  # du2 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-  # du3 = (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-  #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-
-  return SVector(du1, du2, du3)
+  return flux
 end
+
+
+# TODO: Taal IC unused?
+"""
+    initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
+
+A Gaussian pulse in the density with constant velocity and pressure; reduces the
+compressible Euler equations to the linear advection equation.
+"""
+function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
+  rho = 1 + exp(-(x[1]^2 ))/2
+  v1 = 1
+  rho_v1 = rho * v1
+  p = 1
+  rho_e = p/(equation.gamma - 1) + 1/2 * rho * v1^2
+  return @SVector [rho, rho_v1, rho_e]
+end
+
+
+"""
+    initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
+
+A sine wave in the density with constant velocity and pressure; reduces the
+compressible Euler equations to the linear advection equation.
+This setup is the test case for stability of EC fluxes from paper
+- Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
+  Stability issues of entropy-stable and/or split-form high-order schemes
+  [arXiv: 2007.09026](https://arxiv.org/abs/2007.09026)
+with the following parameters
+- domain [-1, 1]
+- mesh = 4x4
+- polydeg = 5
+"""
+function initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
+  v1 = 0.1
+  rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
+  rho_v1 = rho * v1
+  p = 20
+  rho_e = p / (equation.gamma - 1) + 1/2 * rho * v1^2
+  return @SVector [rho, rho_v1, rho_e]
+end
+
+
+"""
+    initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+
+A weak blast wave taken from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+  # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
+  # Set up polar coordinates
+  inicenter = SVector(0.0)
+  x_norm = x[1] - inicenter[1]
+  r = abs(x_norm)
+  # The following code is equivalent to
+  # phi = atan(0.0, x_norm)
+  # cos_phi = cos(phi)
+  # in 1D but faster
+  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  p   = r > 0.5 ? 1.0 : 1.245
+
+  return prim2cons(SVector(rho, v1, p), equation)
+end
+
+
+"""
+    initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+
+A medium blast wave taken from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+  # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+  # Set up polar coordinates
+  inicenter = SVector(0.0)
+  x_norm = x[1] - inicenter[1]
+  r = abs(x_norm)
+  # The following code is equivalent to
+  # phi = atan(0.0, x_norm)
+  # cos_phi = cos(phi)
+  # in 1D but faster
+  cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
+
+  # Calculate primitive variables
+  rho = r > 0.5 ? 1.0 : 1.1691
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  p   = r > 0.5 ? 1.0E-3 : 1.245
+
+  return prim2cons(SVector(rho, v1, p), equation)
+end
+
+
+"""
+    initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+
+The Sedov blast wave setup based on Flash
+- http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+"""
+function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+  # Set up polar coordinates
+  inicenter = SVector(0.0)
+  x_norm = x[1] - inicenter[1]
+  r = abs(x_norm)
+
+  # Setup based on http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  # r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 6 * (equation.gamma - 1) * E / (3 * pi * r0)
+  p0_outer = 1.0e-5 # = true Sedov setup
+  # p0_outer = 1.0e-3 # = more reasonable setup
+
+  # Calculate primitive variables
+  rho = 1.0
+  v1  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
+
+  return prim2cons(SVector(rho, v1, p), equation)
+end
+
+
 
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equation::CompressibleEulerEquations1D)
@@ -226,12 +291,13 @@ end
     function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
-Kuya, Totani and Kawai (2018)
+- Kuya, Totani and Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
   [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
+
 The modification is in the energy flux to guarantee pressure equilibrium and was developed by
-Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
+- Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """

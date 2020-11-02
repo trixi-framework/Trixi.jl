@@ -75,7 +75,7 @@ export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 # TODO: Taal decide, which initial conditions and source terms will be used/exported
-export initial_condition_convergence_test,
+export initial_condition_constant, initial_condition_convergence_test,
        initial_condition_gauss,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_khi,
