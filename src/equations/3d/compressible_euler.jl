@@ -338,8 +338,10 @@ end
   C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
 
   x1, x2, x3 = x
-  rhox = A * pi * cospi(x1 + x2 + x3 - t)
-  rho  = c + A * sinpi(x1 + x2 + x3 - t)
+  # TODO: sincospi
+  si, co = sincos(pi * (x1 + x2 + x3 - t))
+  rhox = A * pi * co
+  rho  = c + A * si
 
   # In "2 * rhox", the "2" is "number of spatial dimensions minus one"
   du1 = 2 * rhox
