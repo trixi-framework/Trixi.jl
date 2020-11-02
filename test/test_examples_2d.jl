@@ -43,8 +43,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "taal-check-me elixir_hyp_diff_llf.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
-      l2   = [0.0001568775181745306, 0.001025986772217103, 0.0010259867722170538],
-      linf = [0.0011986956378152724, 0.006423873516111733, 0.006423873516110845])
+      l2   = [0.00015687751816056159, 0.001025986772217084, 0.0010259867722169909],
+      linf = [0.0011986956416591976, 0.006423873516411049, 0.006423873516411049])
   end
 
   @testset "taal-confirmed elixir_hyp_diff_harmonic_nonperiodic.jl" begin
