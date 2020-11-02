@@ -91,10 +91,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [8.618132353932638e-8, 5.619399844708813e-7, 5.619399845476024e-7],
             linf = [1.124861862326869e-6, 8.622436471483752e-6, 8.622436469707395e-6])
   end
-  @testset "taal-check-me parameters_hyp_diff_llf.toml" begin
+  @testset "taal-confirmed parameters_hyp_diff_llf.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
-            l2   = [0.00015687751088073104, 0.0010259867353397119, 0.0010259867353398994],
-            linf = [0.001198695640053704, 0.006423873515701395, 0.006423873515686296])
+            l2   = [0.0001568775108748819, 0.0010259867353406083, 0.0010259867353406382],
+            linf = [0.0011986956416590866, 0.006423873516411938, 0.006423873516411938])
   end
   @testset "taal-confirmed parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),

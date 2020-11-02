@@ -34,7 +34,7 @@ summary_callback = SummaryCallback()
 
 steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
-stepsize_callback = StepsizeCallback(cfl=2.4)
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
