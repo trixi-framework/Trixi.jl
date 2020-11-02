@@ -77,22 +77,22 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "parameters_euler_gravity_jeans_instability.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_gravity_jeans_instability.toml"),
-            l2   = [10734.053145619571, 13357.12732342943, 1.689152281530251e-6, 26835.125221793754],
-            linf = [15194.889945842326, 18881.97158566768, 8.787452968447721e-6, 37974.480818059295],
+            l2   = [10734.053145404043, 13357.12732236844, 1.7837692768650575e-6, 26835.12522125218],
+            linf = [15194.889944849536, 18881.971585248222, 8.201044698652684e-6, 37974.48081559688],
             t_end=0.1)
   end
 
   @testset "parameters_euler_gravity_jeans_instability.toml with update_gravity_once_per_stage=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_gravity_jeans_instability.toml"),
-            l2   = [10723.612237729343, 13336.21827245215, 2.602694645664843e-6, 26809.022944817934],
-            linf = [15180.113784657791, 18852.413654859887, 9.130954929048019e-6, 37937.54015407339],
+            l2   = [10723.612236928993, 13336.218272054195, 1.9668755665996365e-6, 26809.0229428131],
+            linf = [15180.113783512264, 18852.413655795124, 8.569420630932309e-6, 37937.54015120864],
             t_end=0.1, update_gravity_once_per_stage=false)
   end
 
   @testset "parameters_euler_gravity_jeans_instability.toml with RK3S*" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_gravity_jeans_instability.toml"),
-            l2   = [10734.450531008228, 13358.15805096243, 2.0427912643500984e-6, 26836.118685698464],
-            linf = [15195.451979616657, 18883.428240704106, 1.0980410384074066e-5, 37975.88591177389],
+            l2   = [10734.45053135681, 13358.158052105966, 2.77477865977926e-6, 26836.118686572947],
+            linf = [15195.451977761462, 18883.428246416606, 1.2227873818940334e-5, 37975.88590713963],
             t_end=0.1, time_integration_scheme_gravity="timestep_gravity_erk52_3Sstar!",
             cfl_gravity=1.2)
   end

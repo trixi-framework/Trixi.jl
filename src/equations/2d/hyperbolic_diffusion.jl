@@ -8,15 +8,15 @@ The book is freely available at http://www.cfdbooks.com/ and further analysis ca
 the paper by Nishikawa [DOI: 10.1016/j.jcp.2007.07.029](https://doi.org/10.1016/j.jcp.2007.07.029)
 """
 struct HyperbolicDiffusionEquations2D{RealT<:Real} <: AbstractHyperbolicDiffusionEquations{2, 3}
-  Lr::RealT
-  Tr::RealT
-  nu::RealT
+  Lr::RealT     # reference length scale
+  inv_Tr::RealT # inverse of the reference time scale
+  nu::RealT     # diffusion constant
   resid_tol::RealT # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
 function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
   Tr = Lr^2 / nu
-  HyperbolicDiffusionEquations2D(Lr, Tr, nu, resid_tol)
+  HyperbolicDiffusionEquations2D(Lr, inv(Tr), nu, resid_tol)
 end
 
 # TODO Taal refactor, remove old constructors and replace them with default values
@@ -29,7 +29,7 @@ function HyperbolicDiffusionEquations2D()
   Tr = Lr*Lr/nu
   # stopping tolerance for the pseudotime "steady-state"
   resid_tol = parameter("resid_tol", 1e-12)
-  HyperbolicDiffusionEquations2D(Lr, Tr, nu, resid_tol)
+  HyperbolicDiffusionEquations2D(Lr, inv(Tr), nu, resid_tol)
 end
 
 
@@ -189,7 +189,7 @@ function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes,
                                        equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
   C = -8.0*equations.nu*pi*pi
 
   for j in 1:n_nodes, i in 1:n_nodes
@@ -208,7 +208,7 @@ end
 @inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
   C = -8 * equations.nu * pi^2
 
   x1, x2 = x
@@ -226,7 +226,7 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
                                           equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
 
   for j in 1:n_nodes, i in 1:n_nodes
     x1 = x[1, i, j, element_id]
@@ -242,7 +242,7 @@ end
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
 
   x1, x2 = x
   du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
@@ -255,7 +255,7 @@ end
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes,
                                equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
 
   for j in 1:n_nodes, i in 1:n_nodes
     ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
@@ -267,7 +267,7 @@ end
 
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  inv_Tr = inv(equations.Tr)
+  @unpack inv_Tr = equations
   phi, q1, q2 = u
 
   du2 = -inv_Tr * q1
@@ -286,15 +286,16 @@ end
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
+  @unpack inv_Tr = equations
 
   if orientation == 1
     f1 = -equations.nu*q1
-    f2 = -phi/equations.Tr
+    f2 = -phi * inv_Tr
     f3 = zero(phi)
   else
     f1 = -equations.nu*q2
     f2 = zero(phi)
-    f3 = -phi/equations.Tr
+    f3 = -phi * inv_Tr
   end
 
   return SVector(f1, f2, f3)
@@ -306,7 +307,7 @@ end
   f_ll = calcflux(u_ll, orientation, equations)
   f_rr = calcflux(u_rr, orientation, equations)
 
-  λ_max = sqrt(equations.nu / equations.Tr)
+  λ_max = sqrt(equations.nu * equations.inv_Tr)
 
   return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
 end
@@ -321,7 +322,7 @@ end
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
-  λ_max = sqrt(equations.nu/equations.Tr)
+  λ_max = sqrt(equations.nu * equations.inv_Tr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
   if orientation == 1 # x-direction
     f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (p_rr - p_ll)
@@ -338,7 +339,7 @@ end
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equations::HyperbolicDiffusionEquations2D, dg)
-  λ_max = sqrt(equations.nu / equations.Tr)
+  λ_max = sqrt(equations.nu * equations.inv_Tr)
   dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
 
   return dt
@@ -347,7 +348,7 @@ end
 @inline have_constant_speed(::HyperbolicDiffusionEquations2D) = Val(true)
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations2D)
-  λ = sqrt(eq.nu / eq.Tr)
+  λ = sqrt(eq.nu * eq.inv_Tr)
   return λ, λ
 end
 
