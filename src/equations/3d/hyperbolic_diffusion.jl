@@ -144,8 +144,7 @@ end
 
 
 # Apply source terms
-# TODO: Taal remove methods with the signature below?
-#       Or keep them as an option for possiby increased performance?
+# TODO: Taal remove methods with the signature below
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: phi = sin(2πx)*sin(2πy)*sin(2πz) and f = -12νπ^2 sin(2πx)*sin(2πy)*sin(2πz)
@@ -186,6 +185,7 @@ end
   return SVector(du1, du2, du3, du4)
 end
 
+# TODO: Taal remove methods with the signature below
 function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # elliptic equation: -νΔϕ = f
   # analytical solution: ϕ = 2 cos(πx)sin(2πy)sin(2πz) + 2 and f = 18 π^2 cos(πx)sin(2πy)sin(2πz)
@@ -204,6 +204,21 @@ function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes, equa
   return nothing
 end
 
+@inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: ϕ = 2 cos(πx)sin(2πy)sin(2πz) + 2 and f = 18 π^2 cos(πx)sin(2πy)sin(2πz)
+  inv_Tr = inv(equations.Tr)
+
+  x1, x2, x3 = x
+  du1 = 18 * pi^2 * cospi(x1) * sinpi(2 * x2) * sinpi(2 * x3)
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+  du4 = -inv_Tr * u[4]
+
+  return SVector(du1, du2, du3, du4)
+end
+
+# TODO: Taal remove methods with the signature below
 function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::HyperbolicDiffusionEquations3D)
   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
   inv_Tr = inv(equation.Tr)
@@ -215,6 +230,18 @@ function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equation::Hyper
   end
 
   return nothing
+end
+
+@inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations3D)
+  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
+  inv_Tr = inv(equations.Tr)
+
+  du1 = zero(u[1])
+  du2 = -inv_Tr * u[2]
+  du3 = -inv_Tr * u[3]
+  du4 = -inv_Tr * u[4]
+
+  return SVector(du1, du2, du3, du4)
 end
 
 # The coupled EOC test does not require additional sources

@@ -184,8 +184,7 @@ end
 
 
 # Apply source terms
-# TODO: Taal remove methods with the signature below?
-#       Or keep them as an option for possiby increased performance?
+# TODO: Taal remove methods with the signature below
 function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes,
                                        equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
@@ -222,8 +221,7 @@ end
   return SVector(du1, du2, du3)
 end
 
-# TODO: Taal remove methods with the signature below?
-#       Or keep them as an option for possiby increased performance?
+# TODO: Taal remove methods with the signature below
 function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
                                           equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
