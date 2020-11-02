@@ -164,7 +164,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.3769085161148348, 0.380358363190641, 0.3803583631906434, 0.380366775575835, 1.3162027903728162],
             n_steps_max=10, amr_interval=1, amr_indicator="sedov_self_gravity", max_refinement_level=4)
   end
-  @testset "taal-check-me parameters_hyp_diff_llf.toml with initial_refinement_level=2" begin
+  @testset "taal-confirmed parameters_hyp_diff_llf.toml with initial_refinement_level=2" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
             l2   = [0.0015303292770225546, 0.011314166522881952, 0.011314166522881981, 0.011314166522881947],
             linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
