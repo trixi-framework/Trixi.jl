@@ -265,6 +265,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @testset "taal-check-me elixir_mhd_rotor_shockcapturing_amr.jl" begin
+  # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_shockcapturing_amr.jl"),
     l2   = [1.2635449181120562, 1.8356372101225815, 1.7037178920138905, 0.0, 2.3126474248436755, 0.21626214510814928, 0.23683073618598693, 0.0, 0.002132844459180628],
     linf = [10.353812749882609, 14.287005221052532, 15.749922601372482, 0.0, 17.089103075830185, 1.342006287193983, 1.4341241435029897, 0.0, 0.053488038358224646],
@@ -272,6 +273,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
   @testset "taal-check-me elixir_mhd_blast_wave_shockcapturing_amr.jl" begin
+  # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave_shockcapturing_amr.jl"),
     l2   = [0.2101138028554417, 4.4379574949560014, 2.6239651859752238, 0.0, 359.15092246795564, 2.458555512327778, 1.4961525378625697, 0.0, 0.01346996306689436],
     linf = [2.4484577379812915, 63.229017006957584, 15.321798382742966, 0.0, 2257.8231751993367, 13.692356305778407, 10.026947993726841, 0.0, 0.2839557716528234],

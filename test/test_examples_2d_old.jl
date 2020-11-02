@@ -336,6 +336,7 @@ end
             t_end = 0.05)
   end
   @testset "taal-check-me parameters_mhd_blast_wave.toml" begin
+    # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave.toml"),
             l2   = [0.17537979197656783, 3.85063790427908, 2.475262063280408, 0.0, 355.77751756307794, 2.35355645151502, 1.3962841115302977, 0.0, 0.02800989397835333],
             linf = [1.5861429668357858, 44.06819961699249, 12.86121814597942, 0.0, 2240.622032533027, 13.20064555739219, 8.990518759210023, 0.0, 0.5100373526240609],
