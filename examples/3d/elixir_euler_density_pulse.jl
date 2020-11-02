@@ -3,24 +3,25 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible euler equations
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_weak_blast_wave
+initial_condition = Trixi.initial_condition_density_pulse
 
 surface_flux = flux_ranocha
-volume_flux  = flux_ranocha
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_ranocha
+solver = DGSEM(3, surface_flux)
 
 coordinates_min = (-2, -2, -2)
-coordinates_max = ( 2,  2,  2)
+coordinates_max = (2, 2, 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_convergence_test)
 
 
 ###############################################################################
@@ -39,7 +40,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=:primitive)
 
 save_restart = SaveRestartCallback(interval=10,
-                                     save_final_restart=true)
+                                   save_final_restart=true)
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
