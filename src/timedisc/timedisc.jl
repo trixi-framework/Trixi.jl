@@ -156,6 +156,166 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
 end
 
 
+struct HypDiffN3Erk3Sstar25
+  gamma1::SVector{5, Float64}
+  gamma2::SVector{5, Float64}
+  gamma3::SVector{5, Float64}
+  beta::SVector{5, Float64}
+  delta::SVector{5, Float64}
+  c::SVector{5, Float64}
+
+  function HypDiffN3Erk3Sstar25()
+    gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
+    gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
+    gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03]
+    beta   = @SVector [4.5158640252832094E-01, 7.5974836561844006E-01, 3.7561630338850771E-01, 2.9356700007428856E-02, 2.5205285143494666E-01]
+    delta  = @SVector [1.0000000000000000E+00, 1.3011720142005145E-01, 2.6579275844515687E-01, 9.9687218193685878E-01, 0.0000000000000000E+00]
+    c      = @SVector [0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00, 1.4280257701954349E+00, 7.1581334196229851E-01]
+
+    new(gamma1, gamma2, gamma3, beta, delta, c)
+  end
+end
+
+mutable struct SimpleIntegrator3SstarOptions{Callback}
+  callback::Callback # callbacks; used in Trixi
+  adaptive::Bool # whether the algorithm is adaptive; ignored
+  dtmax::Float64 # ignored
+  tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+end
+
+function SimpleIntegrator3SstarOptions(callback, tspan; kwargs...)
+  SimpleIntegrator3SstarOptions{typeof(callback)}(
+    callback, false, Inf, [last(tspan)])
+end
+
+mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator3SstarOptions}
+  u::uType #
+  du::uType
+  u_tmp1::uType
+  u_tmp2::uType
+  t::RealT
+  dt::RealT # current time step
+  dtcache::RealT # ignored
+  iter::Int # current number of time step (iteration)
+  p::Params # will be the semidiscretization from Trixi
+  sol::Sol # faked
+  alg::Alg
+  opts::SimpleIntegrator3SstarOptions
+  finalstep::Bool # added for convenience
+end
+
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::HypDiffN3Erk3Sstar25;
+               dt, callback=nothing, kwargs...)
+  u = copy(ode.u0)
+  du = similar(u)
+  u_tmp1 = similar(u)
+  u_tmp2 = similar(u)
+  t = first(ode.tspan)
+  iter = 0
+  integrator = SimpleIntegrator3Sstar(u, du, u_tmp1, u_tmp2, t, dt, zero(dt), iter, ode.p,
+                  (prob=ode,), alg,
+                  SimpleIntegrator3SstarOptions(callback, ode.tspan; kwargs...), false)
+
+  # initialize callbacks
+  if callback isa CallbackSet
+    for cb in callback.continuous_callbacks
+      error("unsupported")
+    end
+    for cb in callback.discrete_callbacks
+      cb.initialize(cb, integrator.u, integrator.t, integrator)
+    end
+  elseif !isnothing(callback)
+    error("unsupported")
+  end
+
+  solve!(integrator)
+end
+
+function solve!(integrator::SimpleIntegrator3Sstar)
+  @unpack prob = integrator.sol
+  @unpack alg = integrator
+  t_end = last(prob.tspan)
+  callbacks = integrator.opts.callback
+
+  integrator.finalstep = false
+  @timeit_debug timer() "main loop" while !integrator.finalstep
+    if isnan(integrator.dt)
+      error("time step size `dt` is NaN")
+    end
+
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end || isapprox(integrator.t + integrator.dt, t_end)
+      integrator.dt = t_end - integrator.t
+      terminate!(integrator)
+    end
+
+    # one time step
+    integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
+    integrator.u_tmp2 .= integrator.u
+    for stage in eachindex(alg.c)
+      t_stage = integrator.t + integrator.dt * alg.c[stage]
+      prob.f(integrator.du, integrator.u, prob.p, t_stage)
+
+      delta_stage   = alg.delta[stage]
+      gamma1_stage  = alg.gamma1[stage]
+      gamma2_stage  = alg.gamma2[stage]
+      gamma3_stage  = alg.gamma3[stage]
+      beta_stage_dt = alg.beta[stage] * integrator.dt
+      @timeit_debug timer() "Runge-Kutta step" begin
+        Threads.@threads for i in eachindex(integrator.u)
+          integrator.u_tmp1[i] += delta_stage * integrator.u[i]
+          integrator.u[i]       = (gamma1_stage * integrator.u[i] +
+                                   gamma2_stage * integrator.u_tmp1[i] +
+                                   gamma3_stage * integrator.u_tmp2[i] +
+                                   beta_stage_dt * integrator.du[i])
+        end
+      end
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    # handle callbacks
+    if callbacks isa CallbackSet
+      for cb in callbacks.discrete_callbacks
+        if cb.condition(integrator.u, integrator.t, integrator)
+          cb.affect!(integrator)
+        end
+      end
+    end
+  end
+
+  return (t=prob.tspan,
+          u=(copy(prob.u0), copy(integrator.u)),
+          prob=integrator.sol.prob)
+end
+
+# get a cache where the RHS can be stored
+get_du(integrator::SimpleIntegrator3Sstar) = integrator.du
+
+# some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
+u_modified!(integrator::SimpleIntegrator3Sstar, ::Bool) = false
+
+# used by adaptive timestepping algorithms in DiffEq
+function set_proposed_dt!(integrator::SimpleIntegrator3Sstar, dt)
+  integrator.dt = dt
+end
+
+# stop the time integration
+function terminate!(integrator::SimpleIntegrator3Sstar)
+  integrator.finalstep = true
+  empty!(integrator.opts.tstops)
+end
+
+# used for AMR
+function Base.resize!(integrator::SimpleIntegrator3Sstar, new_size)
+  resize!(integrator.u, new_size)
+  resize!(integrator.du, new_size)
+  resize!(integrator.u_tmp1, new_size)
+  resize!(integrator.u_tmp2, new_size)
+end
+
+
 # TODO: Taal, the code below can probably be removed completely
 
 # Integrate solution by repeatedly calling the rhs! method on the solver solution.
