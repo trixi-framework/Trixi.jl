@@ -55,6 +55,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.011918626829790169, 0.011808582902362641, 0.01180858290237552, 0.011808582902357312, 0.024648094686513744])
   end
 
+  @testset "elixir_euler_taylor_green_vortex.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
+    l2   = [0.0015040212437368603, 0.2789329218326114, 0.27893292183261237, 0.2124964098560632, 0.32470622624447526],
+    linf = [0.012164089985932103, 1.4346175439010938, 1.4346175439009117, 1.242662948547226, 2.6937193352995052])
+  end
+
   @testset "elixir_euler_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
     l2   = [0.01948803219944478, 0.013572377993230113, 0.013572377993230083, 0.013559504611364608, 0.07065364959065795],
