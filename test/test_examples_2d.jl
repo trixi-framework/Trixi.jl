@@ -268,8 +268,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_euler_gravity_jeans_instability.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gravity_jeans_instability.jl"),
-    l2   = [10733.633835334986, 13356.780418347276, 1.6387671498796526e-6, 26834.07694603585],
-    linf = [15194.296497141942, 18881.481420845837, 8.91191153038996e-6, 37972.99718572572],
+    l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
+    linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
     tspan = (0.0, 0.1))
   end
 
