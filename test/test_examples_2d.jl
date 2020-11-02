@@ -34,7 +34,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.999980298294775])
   end
 
-  @testset "elixir_advection_restart.jl" begin
+  @testset "taal-check-me elixir_advection_restart.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [1.2148032444677485e-5],
       linf = [6.495644794757283e-5])
