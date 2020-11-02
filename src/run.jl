@@ -299,6 +299,10 @@ function init_simulation()
     println("done")
   else
     print("Applying initial conditions... ")
+
+    # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+    seed!(0)
+
     t_start = parameter("t_start")
     time = t_start
     step = 0

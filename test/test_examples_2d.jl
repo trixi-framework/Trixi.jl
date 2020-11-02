@@ -156,7 +156,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     end
   end
 
-  @testset "taal-check-me elixir_euler_khi_shockcapturing_amr.jl" begin
+  @testset "taal-confirmed elixir_euler_khi_shockcapturing_amr.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -165,8 +165,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-        l2   = [0.001617236176233394, 0.0023394729603446697, 0.001296199247911843, 0.0033150160736185323],
-        linf = [0.019002843896656074, 0.017242107049387223, 0.008179888370650977, 0.016885672229959958],
+        l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
+        linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
         tspan = (0.0, 0.2))
     else
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
