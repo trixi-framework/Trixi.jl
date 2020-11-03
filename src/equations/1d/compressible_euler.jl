@@ -22,11 +22,11 @@ varnames_prim(::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
 
 # TODO: Taal IC needs test
 """
-    initial_condition_constant(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_constant(x, t, equations::CompressibleEulerEquations1D)
 
 A constant initial condition to test free-stream preservation.
 """
-function initial_condition_constant(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_constant(x, t, equations::CompressibleEulerEquations1D)
   rho = 1.0
   rho_v1 = 0.1
   rho_e = 10.0
@@ -35,13 +35,13 @@ end
 
 
 """
-    initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations1D)
 
 A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
 """
-function initial_condition_convergence_test(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_convergence_test(x, t, equations::CompressibleEulerEquations1D)
   c = 2
   A = 0.1
   L = 2
@@ -57,20 +57,20 @@ function initial_condition_convergence_test(x, t, equation::CompressibleEulerEqu
 end
 
 """
-    source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
+    source_terms_convergence_test(u, x, t, equations::CompressibleEulerEquations1D)
 
 Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
 """
-@inline function source_terms_convergence_test(u, x, t, equation::CompressibleEulerEquations1D)
+@inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerEquations1D)
   # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
   f = 1/L
   ω = 2 * pi * f
-  γ = equation.gamma
+  γ = equations.gamma
 
   x1, = x
 
@@ -92,14 +92,14 @@ Source terms used for convergence tests in combination with
 end
 
 # TODO: Taal remove methods with the signature below
-function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations1D)
+function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations1D)
   # Same settings as in `initial_condition`
   c = 2
   A = 0.1
   L = 2
   f = 1/L
   ω = 2 * pi * f
-  γ = equation.gamma
+  γ = equations.gamma
 
   for i in 1:n_nodes
     x1 = x[1, i, element_id]
@@ -124,21 +124,21 @@ end
 """
     boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
                                         surface_flux_function,
-                                        equation::CompressibleEulerEquations1D)
+                                        equations::CompressibleEulerEquations1D)
 
 Boundary conditions used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
 """
 function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
                                              surface_flux_function,
-                                             equation::CompressibleEulerEquations1D)
-  u_boundary = initial_condition_convergence_test(x, t, equation)
+                                             equations::CompressibleEulerEquations1D)
+  u_boundary = initial_condition_convergence_test(x, t, equations)
 
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -147,26 +147,26 @@ end
 
 # TODO: Taal IC unused?
 """
-    initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
 
 A Gaussian pulse in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equation.
+compressible Euler equations to the linear advection equations.
 """
-function initial_condition_density_pulse(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
   rho = 1 + exp(-(x[1]^2 ))/2
   v1 = 1
   rho_v1 = rho * v1
   p = 1
-  rho_e = p/(equation.gamma - 1) + 1/2 * rho * v1^2
+  rho_e = p/(equations.gamma - 1) + 1/2 * rho * v1^2
   return @SVector [rho, rho_v1, rho_e]
 end
 
 
 """
-    initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_density_wave(x, t, equations::CompressibleEulerEquations1D)
 
 A sine wave in the density with constant velocity and pressure; reduces the
-compressible Euler equations to the linear advection equation.
+compressible Euler equations to the linear advection equations.
 This setup is the test case for stability of EC fluxes from paper
 - Gregor J. Gassner, Magnus Svärd, Florian J. Hindenlang (2020)
   Stability issues of entropy-stable and/or split-form high-order schemes
@@ -176,25 +176,25 @@ with the following parameters
 - mesh = 4x4
 - polydeg = 5
 """
-function initial_condition_density_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_density_wave(x, t, equations::CompressibleEulerEquations1D)
   v1 = 0.1
   rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
   rho_v1 = rho * v1
   p = 20
-  rho_e = p / (equation.gamma - 1) + 1/2 * rho * v1^2
+  rho_e = p / (equations.gamma - 1) + 1/2 * rho * v1^2
   return @SVector [rho, rho_v1, rho_e]
 end
 
 
 """
-    initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
 A weak blast wave taken from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerEquations1D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Set up polar coordinates
   inicenter = SVector(0.0)
@@ -211,19 +211,19 @@ function initial_condition_weak_blast_wave(x, t, equation::CompressibleEulerEqua
   v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   p   = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(SVector(rho, v1, p), equation)
+  return prim2cons(SVector(rho, v1, p), equations)
 end
 
 
 """
-    initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
 A medium blast wave taken from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = SVector(0.0)
@@ -240,17 +240,17 @@ function initial_condition_blast_wave(x, t, equation::CompressibleEulerEquations
   v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   p   = r > 0.5 ? 1.0E-3 : 1.245
 
-  return prim2cons(SVector(rho, v1, p), equation)
+  return prim2cons(SVector(rho, v1, p), equations)
 end
 
 
 """
-    initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+    initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
 
 The Sedov blast wave setup based on Flash
 - http://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel/node184.html#SECTION010114000000000000000
 """
-function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEquations1D)
+function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
   # Set up polar coordinates
   inicenter = SVector(0.0)
   x_norm = x[1] - inicenter[1]
@@ -260,7 +260,7 @@ function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEqu
   r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
   # r0 = 0.5 # = more reasonable setup
   E = 1.0
-  p0_inner = 6 * (equation.gamma - 1) * E / (3 * pi * r0)
+  p0_inner = 6 * (equations.gamma - 1) * E / (3 * pi * r0)
   p0_outer = 1.0e-5 # = true Sedov setup
   # p0_outer = 1.0e-3 # = more reasonable setup
 
@@ -269,16 +269,16 @@ function initial_condition_sedov_blast_wave(x, t, equation::CompressibleEulerEqu
   v1  = 0.0
   p   = r > r0 ? p0_outer : p0_inner
 
-  return prim2cons(SVector(rho, v1, p), equation)
+  return prim2cons(SVector(rho, v1, p), equations)
 end
 
 
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equation::CompressibleEulerEquations1D)
+@inline function calcflux(u, orientation, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1/rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_v1
   f2 = rho_v1 * v1 + p
@@ -288,7 +288,7 @@ end
 
 
 """
-    function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+    function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
 - Kuya, Totani and Kawai (2018)
@@ -301,15 +301,15 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """
-@inline function flux_shima_etal(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+@inline function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
   v1_rr = rho_v1_rr / rho_rr
-  p_ll  = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2))
-  p_rr  = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2))
+  p_ll  = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2))
+  p_rr  = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2))
 
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
@@ -322,21 +322,21 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   pv1_avg = 1/2 * (p_ll*v1_rr + p_rr*v1_ll)
   f1 = rho_avg * v1_avg
   f2 = rho_avg * v1_avg * v1_avg + p_avg
-  f3 = p_avg*v1_avg/(equation.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
+  f3 = p_avg*v1_avg/(equations.gamma-1) + rho_avg*v1_avg*kin_avg + pv1_avg
 
   return SVector(f1, f2, f3)
 end
 
 
 """
-    flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+    flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
 Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
 [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
-@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
@@ -347,8 +347,8 @@ Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
   # Average each factor of products in flux
   rho_avg = 1/2 * (rho_ll + rho_rr)
   v1_avg = 1/2 * (v1_ll + v1_rr)
-  p_avg = 1/2 * ((equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2)) +
-                 (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2)))
+  p_avg = 1/2 * ((equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2)) +
+                 (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2)))
   e_avg = 1/2 * (rho_e_ll/rho_ll + rho_e_rr/rho_rr)
 
   # Ignore orientation since it is always "1" in 1D
@@ -361,22 +361,22 @@ end
 
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 Entropy conserving two-point flux by Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
 [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll/rho_ll
   v1_rr = rho_v1_rr/rho_rr
-  p_ll =  (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2))
-  p_rr =  (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2))
+  p_ll =  (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2))
+  p_rr =  (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2))
   beta_ll = 0.5*rho_ll/p_ll
   beta_rr = 0.5*rho_rr/p_rr
   specific_kin_ll = 0.5*(v1_ll^2)
@@ -395,14 +395,14 @@ Entropy conserving two-point flux by Chandrashekar (2013)
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean * v1_avg
   f2 = f1 * v1_avg + p_mean
-  f3 = f1 * 0.5*(1/(equation.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg
+  f3 = f1 * 0.5*(1/(equations.gamma-1)/beta_mean - velocity_square_avg)+f2*v1_avg
 
   return SVector(f1, f2, f3)
 end
 
 
 """
-    flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations2D)
+    flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
@@ -413,15 +413,15 @@ See also Ranocha (2020)
   the Euler Equations Using Summation-by-Parts Operators
 [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
-@inline function flux_ranocha(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+@inline function flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
   v1_rr = rho_v1_rr / rho_rr
-  p_ll =  (equation.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2))
-  p_rr =  (equation.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 ))
+  p_ll =  (equations.gamma - 1) * (rho_e_ll - 0.5 * rho_ll * (v1_ll^2))
+  p_rr =  (equations.gamma - 1) * (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 ))
 
   # Compute the necessary mean values
   rho_mean   = ln_mean(rho_ll, rho_rr)
@@ -434,29 +434,29 @@ See also Ranocha (2020)
   # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean * v1_avg
   f2 = f1 * v1_avg + p_avg
-  f3 = f1 * ( velocity_square_avg + 1 / ((equation.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
+  f3 = f1 * ( velocity_square_avg + 1 / ((equations.gamma-1) * rho_p_mean) ) + 0.5 * (p_ll*v1_rr + p_rr*v1_ll)
 
   return SVector(f1, f2, f3)
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
   v_mag_ll = abs(v1_ll)
-  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  c_ll = sqrt(equation.gamma * p_ll / rho_ll)
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
   v1_rr = rho_v1_rr / rho_rr
   v_mag_rr = abs(v1_rr)
-  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
-  c_rr = sqrt(equation.gamma * p_rr / rho_rr)
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -467,23 +467,23 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::CompressibleEule
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equation::CompressibleEulerEquations1D)
+function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
   v1_ll = rho_v1_ll / rho_ll
-  p_ll = (equation.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)
 
   v1_rr = rho_v1_rr / rho_rr
-  p_rr = (equation.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v1_rr^2)
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v1_rr^2)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
-  Ssl = v1_ll - sqrt(equation.gamma * p_ll / rho_ll)
-  Ssr = v1_rr + sqrt(equation.gamma * p_rr / rho_rr)
+  Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+  Ssr = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
   if Ssl >= 0.0 && Ssr > 0.0
     f1 = f_ll[1]
@@ -505,14 +505,14 @@ end
 
 # Determine maximum stable time step based on polynomial degree and CFL number
 function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::CompressibleEulerEquations1D, dg)
+                     equations::CompressibleEulerEquations1D, dg)
   λ_max = 0.0
   for i in 1:nnodes(dg)
     rho, rho_v1, rho_e = get_node_vars(u, dg, i, element_id)
     v1 = rho_v1 / rho
     v_mag = abs(v1)
-    p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
-    c = sqrt(equation.gamma * p / rho)
+    p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
+    c = sqrt(equations.gamma * p / rho)
     λ_max = max(λ_max, v_mag + c)
   end
 
@@ -521,38 +521,38 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return dt
 end
 
-@inline function max_abs_speeds(u, equation::CompressibleEulerEquations1D)
+@inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1 / rho
-  p = (equation.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
-  c = sqrt(equation.gamma * p / rho)
+  p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
+  c = sqrt(equations.gamma * p / rho)
 
   return (abs(v1) + c,)
 end
 
 
 # Convert conservative variables to primitive
-@inline function cons2prim(u, equation::CompressibleEulerEquations1D)
+@inline function cons2prim(u, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
 
   v1 = rho_v1 / rho
-  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * (v1^2))
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho * (v1^2))
 
   return SVector(rho, v1, p)
 end
 
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, equation::CompressibleEulerEquations1D)
+@inline function cons2entropy(u, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
 
   v1 = rho_v1 / rho
   v_square = v1^2
-  p = (equation.gamma - 1) * (rho_e - 0.5 * rho * v_square)
-  s = log(p) - equation.gamma*log(rho)
+  p = (equations.gamma - 1) * (rho_e - 0.5 * rho * v_square)
+  s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) / (equations.gamma-1) - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = -rho_p
 
@@ -561,56 +561,56 @@ end
 
 
 # Convert primitive to conservative variables
-@inline function prim2cons(prim, equation::CompressibleEulerEquations1D)
+@inline function prim2cons(prim, equations::CompressibleEulerEquations1D)
   rho, v1, p = prim
   rho_v1 = rho * v1
-  rho_e  = p/(equation.gamma-1) + 0.5 * (rho_v1 * v1)
+  rho_e  = p/(equations.gamma-1) + 0.5 * (rho_v1 * v1)
   return SVector(rho, rho_v1, rho_e)
 end
 
 
-@inline function density(u, equation::CompressibleEulerEquations1D)
+@inline function density(u, equations::CompressibleEulerEquations1D)
  rho = u[1]
  return rho
 end
 
-@inline function pressure(u, equation::CompressibleEulerEquations1D)
+@inline function pressure(u, equations::CompressibleEulerEquations1D)
  rho, rho_v1, rho_e = u
- p = (equation.gamma - 1) * (rho_e - 0.5 * (rho_v1^2) / rho)
+ p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2) / rho)
  return p
 end
 
 
-@inline function density_pressure(u, equation::CompressibleEulerEquations1D)
+@inline function density_pressure(u, equations::CompressibleEulerEquations1D)
  rho, rho_v1, rho_e = u
- rho_times_p = (equation.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2))
+ rho_times_p = (equations.gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2))
  return rho_times_p
 end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equation::CompressibleEulerEquations1D)
+@inline function entropy_thermodynamic(cons, equations::CompressibleEulerEquations1D)
   # Pressure
-  p = (equation.gamma - 1) * (cons[3] - 1/2 * (cons[2]^2) / cons[1])
+  p = (equations.gamma - 1) * (cons[3] - 1/2 * (cons[2]^2) / cons[1])
 
   # Thermodynamic entropy
-  s = log(p) - equation.gamma*log(cons[1])
+  s = log(p) - equations.gamma*log(cons[1])
 
   return s
 end
 
 
 # Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::CompressibleEulerEquations1D)
+@inline function entropy_math(cons, equations::CompressibleEulerEquations1D)
   # Mathematical entropy
-  S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+  S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
 
   return S
 end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equation::CompressibleEulerEquations1D) = entropy_math(cons, equation)
+@inline entropy(cons, equations::CompressibleEulerEquations1D) = entropy_math(cons, equations)
 
 
 # Calculate total energy for a conservative state `cons`
@@ -618,12 +618,12 @@ end
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::CompressibleEulerEquations1D)
+@inline function energy_kinetic(cons, equations::CompressibleEulerEquations1D)
   return 0.5 * (cons[2]^2)/cons[1]
 end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equation::CompressibleEulerEquations1D)
-  return energy_total(cons, equation) - energy_kinetic(cons, equation)
+@inline function energy_internal(cons, equations::CompressibleEulerEquations1D)
+  return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
