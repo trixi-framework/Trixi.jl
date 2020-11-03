@@ -49,8 +49,22 @@ const parameters = Dict{Symbol,Any}()
 
 
 # Parse parameters file into global dict
-function parse_parameters_file(filename)
+parse_parameters_file(filename) = parse_parameters_file(filename, mpi_parallel())
+function parse_parameters_file(filename, mpi_parallel::Val{false})
   parameters[:default] = parsefile(filename)
+  parameters[:default]["parameters_file"] = filename
+end
+function parse_parameters_file(filename, mpi_parallel::Val{true})
+  if mpi_isroot()
+    buffer = read(filename)
+    MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
+    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+  else
+    count = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())
+    buffer = Vector{UInt8}(undef, count[])
+    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
+  end
+  parameters[:default] = parse(String(buffer))
   parameters[:default]["parameters_file"] = filename
 end
 
@@ -154,7 +168,7 @@ function print_startup_message()
        ██║   ██║  ██║██║██╔╝ ██╗██║
        ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
     """
-  println(s)
+  mpi_println(s)
 end
 
 
