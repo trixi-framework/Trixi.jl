@@ -293,16 +293,15 @@ function init_simulation()
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_condition = parameter("adapt_initial_condition", true)
   adapt_initial_condition_only_refine = parameter("adapt_initial_condition_only_refine", true)
+
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   if restart
     print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
     println("done")
   else
     print("Applying initial conditions... ")
-
-    # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
-    seed!(0)
-
     t_start = parameter("t_start")
     time = t_start
     step = 0

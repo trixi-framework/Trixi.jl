@@ -175,13 +175,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
             linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
-  @testset "taal-confirmed differences-to-master-accepted parameters_euler_khi_shockcapturing.toml" begin
+  @testset "taal-confirmed parameters_euler_khi_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing.toml"),
             l2   = [0.002046615463716511, 0.002862576343897973, 0.001971146183422579, 0.004817029337018751],
             linf = [0.024299256322982465, 0.01620011715132652, 0.009869197749689947, 0.02060000394920891],
             t_end = 0.2)
   end
-  @testset "taal-confirmed differences-to-master-accepted parameters_euler_khi_shockcapturing_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_khi_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing_amr.toml"),
             l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
             linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
