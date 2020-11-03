@@ -7,7 +7,7 @@ using Trixi
 # initial conditions etc. directly inside the elixir, e.g. using the code below
 # (which is commented out).
 # For example, running
-# trixi_include("examples/2d/elixir_euler_gravity_jeans_instability.jl")
+# trixi_include("examples/2d/elixir_eulergravity_jeans_instability.jl")
 # from the REPL works fine with that setting.
 # However, we're running CI with automated tests of Trixi. In that case,
 # we get annoying world age issues. Hence, we keep initial_condition_jeans_instability
@@ -91,7 +91,9 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density=1.5e7, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
-                                    cfl=1.6,
+                                    # FIXME Taal restore after Taam sync
+                                    # cfl=1.6,
+                                    cfl=0.8,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_carpenter_kennedy_erk54_2N!)
 
@@ -105,7 +107,9 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
@@ -148,7 +152,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)
