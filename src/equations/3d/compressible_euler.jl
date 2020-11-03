@@ -234,8 +234,7 @@ end
 
 
 # Apply source terms
-# TODO: Taal remove methods with the signature below?
-#       Or keep them as an option for possiby increased performance?
+# TODO: Taal remove methods with the signature below
 function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_condition`
   c = 2
@@ -294,7 +293,7 @@ end
   du4 = tmp3
   du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
 
-  # Original terms (without performanc enhancements)
+  # Original terms (without performance enhancements)
   # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
   # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
   # du2 = tmp2
@@ -305,6 +304,7 @@ end
   return SVector(du1, du2, du3, du4, du5)
 end
 
+# TODO: Taal remove methods with the signature below
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
@@ -328,6 +328,29 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   end
 
   return nothing
+end
+
+@inline function source_terms_eoc_test_coupled_euler_gravity(u, x, t, equation::CompressibleEulerEquations3D)
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0 # gravitational constant, must match coupling solver
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
+
+  x1, x2, x3 = x
+  # TODO: sincospi
+  si, co = sincos(pi * (x1 + x2 + x3 - t))
+  rhox = A * pi * co
+  rho  = c + A * si
+
+  # In "2 * rhox", the "2" is "number of spatial dimensions minus one"
+  du1 = 2 * rhox
+  du2 = 2 * rhox
+  du3 = 2 * rhox
+  du4 = 2 * rhox
+  du5 = 2 * rhox * (3/2 - C_grav*rho) # "3" in "3/2" is the number of spatial dimensions
+
+  return SVector(du1, du2, du3, du4, du5)
 end
 
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equation::CompressibleEulerEquations3D)
