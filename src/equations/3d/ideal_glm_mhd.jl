@@ -30,7 +30,13 @@ default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative,
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_condition_constant(x, t, equation::IdealGlmMhdEquations3D)
+# TODO: Taal IC needs test
+"""
+initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
+
+A constant initial condition to test free-stream preservation.
+"""
+function initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
   rho = 1.0
   rho_v1 = 0.1
   rho_v2 = -0.2
@@ -43,7 +49,13 @@ function initial_condition_constant(x, t, equation::IdealGlmMhdEquations3D)
   return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi]
 end
 
-function initial_condition_convergence_test(x, t, equation::IdealGlmMhdEquations3D)
+
+"""
+    initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations3D)
+
+An Alfvén wave as smooth initial condition used for convergence tests.
+"""
+function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations3D)
   # Alfvén wave in three space dimensions
   # Altmann thesis http://dx.doi.org/10.18419/opus-3895
   # domain must be set to [-1, 1]^3, γ = 5/3
@@ -68,10 +80,19 @@ function initial_condition_convergence_test(x, t, equation::IdealGlmMhdEquations
   B3  =    -rho*v3*sqr
   psi = 0
 
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
-function initial_condition_ec_test(x, t, equation::IdealGlmMhdEquations3D)
+
+"""
+    initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
+
+A weak blast wave adapted from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations3D)
   # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   # Same discontinuity in the velocities but with magnetic fields
   # Set up polar coordinates
@@ -90,10 +111,19 @@ function initial_condition_ec_test(x, t, equation::IdealGlmMhdEquations3D)
   v3  = r > 0.5 ? 0.0 : 0.1882 * cos(theta)
   p   = r > 0.5 ? 1.0 : 1.245
 
-  return prim2cons(SVector(rho, v1, v2, v3, p, 1.0, 1.0, 1.0, 0.0), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p, 1.0, 1.0, 1.0, 0.0), equations)
 end
 
-function initial_condition_orszag_tang(x, t, equation::IdealGlmMhdEquations3D)
+
+"""
+    initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
+
+The classical Orszag-Tang vortex test case. Here, the setup is taken from
+- Dominik Derigs, Gregor J. Gassner, Stefanie Walch & Andrew R. Winters (2018)
+  Entropy Stable Finite Volume Approximations for Ideal Magnetohydrodynamics
+  [doi: 10.1365/s13291-018-0178-9](https://doi.org/10.1365/s13291-018-0178-9)
+"""
+function initial_condition_orszag_tang(x, t, equations::IdealGlmMhdEquations3D)
   # setup taken from Table 4 of Bohm et al. JCP article (2018) DOI: 10.1016/j.jcp.2018.06.027
   # domain must be [0, 1]^3 , γ = 5/3
   rho = 25.0 / (36.0 * pi)
@@ -105,52 +135,52 @@ function initial_condition_orszag_tang(x, t, equation::IdealGlmMhdEquations3D)
   B2 =  sin(4.0*pi*x[1]) / (4.0*pi)
   B3 =  sin(4.0*pi*x[2]) / (4.0*pi)
   psi = 0.0
-  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equation)
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::IdealGlmMhdEquations3D)
+# function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations3D)
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::IdealGlmMhdEquations3D)
+@inline function calcflux(u, orientation, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  p = (equation.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
+  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (rho_e + p + mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B1
-    f6 = equation.c_h*psi
+    f5 = (rho_e + p + mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
-    f9 = equation.c_h*B1
+    f9 = equations.c_h*B1
   elseif orientation == 2
     f1 = rho_v2
     f2 = rho_v2*v1 - B2*B1
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (rho_e + p + mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B2
+    f5 = (rho_e + p + mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
-    f7 = equation.c_h*psi
+    f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
-    f9 = equation.c_h*B2
+    f9 = equations.c_h*B2
   else
     f1 = rho_v3
     f2 = rho_v3*v1 - B3*B1
     f3 = rho_v3*v2 - B3*B2
     f4 = rho_v3*v3 + p + mag_en - B3^2
-    f5 = (rho_e + p + mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equation.c_h*psi*B3
+    f5 = (rho_e + p + mag_en)*v3 - B3*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B3
     f6 = v3*B1 - v1*B3
     f7 = v3*B2 - v2*B3
-    f8 = equation.c_h*psi
-    f9 = equation.c_h*B3
+    f8 = equations.c_h*psi
+    f9 = equations.c_h*B3
   end
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
@@ -159,7 +189,7 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id, equation::IdealGlmMhdEquations3D, dg)
+@inline function calcflux_twopoint_nonconservative!(f1, f2, f3, u, element_id, equations::IdealGlmMhdEquations3D, dg)
   for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, k, element_id)
     v1 = rho_v1 / rho
@@ -237,14 +267,14 @@ end
 
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
+    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
 
 Entropy conserving two-point flux by Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
 [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
-function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
+function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -259,8 +289,8 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquation
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
-  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
   beta_ll = 0.5*rho_ll/p_ll
   beta_rr = 0.5*rho_rr/p_rr
   # for convenience store v⋅B
@@ -290,31 +320,31 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquation
     f2 = f1*v1_avg + p_mean + 0.5*mag_norm_avg - B1_avg*B1_avg
     f3 = f1*v2_avg - B1_avg*B2_avg
     f4 = f1*v3_avg - B1_avg*B3_avg
-    f6 = equation.c_h*psi_avg
+    f6 = equations.c_h*psi_avg
     f7 = v1_avg*B2_avg - v2_avg*B1_avg
     f8 = v1_avg*B3_avg - v3_avg*B1_avg
-    f9 = equation.c_h*B1_avg
+    f9 = equations.c_h*B1_avg
     # total energy flux is complicated and involves the previous eight components
     psi_B1_avg = 0.5*(B1_ll*psi_ll + B1_rr*psi_rr)
     v1_mag_avg = 0.5*(v1_ll*mag_norm_ll + v1_rr*mag_norm_rr)
-    f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
+    f5 = (f1*0.5*(1/(equations.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
           f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v1_mag_avg +
-          B1_avg*vel_dot_mag_avg - equation.c_h*psi_B1_avg)
+          B1_avg*vel_dot_mag_avg - equations.c_h*psi_B1_avg)
   elseif orientation == 2
     f1 = rho_mean*v2_avg
     f2 = f1*v1_avg - B2_avg*B1_avg
     f3 = f1*v2_avg + p_mean + 0.5*mag_norm_avg - B2_avg*B2_avg
     f4 = f1*v3_avg - B2_avg*B3_avg
     f6 = v2_avg*B1_avg - v1_avg*B2_avg
-    f7 = equation.c_h*psi_avg
+    f7 = equations.c_h*psi_avg
     f8 = v2_avg*B3_avg - v3_avg*B2_avg
-    f9 = equation.c_h*B2_avg
+    f9 = equations.c_h*B2_avg
     # total energy flux is complicated and involves the previous eight components
     psi_B2_avg = 0.5*(B2_ll*psi_ll + B2_rr*psi_rr)
     v2_mag_avg = 0.5*(v2_ll*mag_norm_ll + v2_rr*mag_norm_rr)
-    f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
+    f5 = (f1*0.5*(1/(equations.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
           f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v2_mag_avg +
-          B2_avg*vel_dot_mag_avg - equation.c_h*psi_B2_avg)
+          B2_avg*vel_dot_mag_avg - equations.c_h*psi_B2_avg)
   else
     f1 = rho_mean*v3_avg
     f2 = f1*v1_avg - B3_avg*B1_avg
@@ -322,21 +352,21 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equation::IdealGlmMhdEquation
     f4 = f1*v3_avg + p_mean + 0.5*mag_norm_avg - B3_avg*B3_avg
     f6 = v3_avg*B1_avg - v1_avg*B3_avg
     f7 = v3_avg*B2_avg - v2_avg*B3_avg
-    f8 = equation.c_h*psi_avg
-    f9 = equation.c_h*B3_avg
+    f8 = equations.c_h*psi_avg
+    f9 = equations.c_h*B3_avg
     # total energy flux is complicated and involves the previous eight components
     psi_B3_avg = 0.5*(B3_ll*psi_ll + B3_rr*psi_rr)
     v3_mag_avg = 0.5*(v3_ll*mag_norm_ll + v3_rr*mag_norm_rr)
-    f5 = (f1*0.5*(1/(equation.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
+    f5 = (f1*0.5*(1/(equations.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
           f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v3_mag_avg +
-          B3_avg*vel_dot_mag_avg - equation.c_h*psi_B3_avg)
+          B3_avg*vel_dot_mag_avg - equations.c_h*psi_B3_avg)
   end
 
   return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -346,17 +376,17 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::IdealGlmMhdEquat
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  cf_ll = calc_fast_wavespeed(u_ll, orientation, equation)
+  cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
   # right
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v3_rr = rho_v3_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
-  cf_rr = calc_fast_wavespeed(u_rr, orientation, equation)
+  cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -374,13 +404,13 @@ end
 
 
 """
-    flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
+    flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
 
 HLL flux for ideal GLM-MHD equations like that by Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
 [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
-function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
+function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -390,36 +420,36 @@ function flux_hll(u_ll, u_rr, orientation, equation::IdealGlmMhdEquations3D)
   v3_ll = rho_v3_ll/rho_ll
   vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
 
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
   v3_rr = rho_v3_rr/rho_rr
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   if orientation == 1 # x-direction
-    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equation)
-    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equation)
-    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equation)
+    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
     Ssl = min(v1_ll - c_f_ll, vel_roe - c_f_roe)
     Ssr = max(v1_rr + c_f_rr, vel_roe + c_f_roe)
   elseif orientation == 2 # y-direction
-    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equation)
-    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equation)
-    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equation)
+    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
     Ssl = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
     Ssr = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
   else # z-direction
-    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equation)
-    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equation)
-    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equation)
+    c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+    vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
     Ssl = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
     Ssr = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
   end
@@ -466,7 +496,7 @@ end
 #         so this routine only adds 1/2(phi^L B^R nvec)
 #         analogously for the Galilean nonconservative term
 #      2) this is non-unique along an interface! normal direction is super important
-function noncons_interface_flux(u_left, u_right, orientation, equation::IdealGlmMhdEquations3D)
+function noncons_interface_flux(u_left, u_right, orientation, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _, B1_ll, B2_ll, B3_ll, psi_ll = u_left
   _, _, _, _, _, B1_rr, B2_rr, B3_rr, psi_rr = u_right
 
@@ -506,9 +536,9 @@ end
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
 #    over all elements in dg.jl)
 function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::IdealGlmMhdEquations3D, dg)
+                     equations::IdealGlmMhdEquations3D, dg)
   λ_max = 0.0
-  equation.c_h = 0.0
+  equations.c_h = 0.0
   for k in 1:nnodes(dg), j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, k, element_id)
     rho, rho_v1, rho_v2, rho_v3, _ = u_node
@@ -516,11 +546,11 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
-    cf_x_direction = calc_fast_wavespeed(u_node, 1, equation)
-    cf_y_direction = calc_fast_wavespeed(u_node, 2, equation)
-    cf_z_direction = calc_fast_wavespeed(u_node, 3, equation)
+    cf_x_direction = calc_fast_wavespeed(u_node, 1, equations)
+    cf_y_direction = calc_fast_wavespeed(u_node, 2, equations)
+    cf_z_direction = calc_fast_wavespeed(u_node, 3, equations)
     cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
-    equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
+    equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
     λ_max = max(λ_max, v_mag + cf_max)
   end
 
@@ -529,46 +559,46 @@ function calc_max_dt(u, element_id, invjacobian, cfl,
   return dt
 end
 
-@inline function max_abs_speeds(u, equation::IdealGlmMhdEquations3D)
+@inline function max_abs_speeds(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, _ = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  cf_x_direction = calc_fast_wavespeed(u, 1, equation)
-  cf_y_direction = calc_fast_wavespeed(u, 2, equation)
-  cf_z_direction = calc_fast_wavespeed(u, 3, equation)
+  cf_x_direction = calc_fast_wavespeed(u, 1, equations)
+  cf_y_direction = calc_fast_wavespeed(u, 2, equations)
+  cf_z_direction = calc_fast_wavespeed(u, 3, equations)
   cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
-  equation.c_h = max(equation.c_h, cf_max) # GLM cleaning speed = c_f
+  equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
 end
 
 
 # Convert conservative variables to primitive
-function cons2prim(u, equation::IdealGlmMhdEquations3D)
+function cons2prim(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
 
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
-  p = (equation.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
 
   return SVector(rho, v1, v2, v3, p, B1, B2, B3, psi)
 end
 
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, equation::IdealGlmMhdEquations3D)
+@inline function cons2entropy(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1 / rho
   v2 = rho_v2 / rho
   v3 = rho_v3 / rho
   v_square = v1^2 + v2^2 + v3^2
-  p = (equation.gamma - 1) * (rho_e - 0.5*rho*v_square - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
-  s = log(p) - equation.gamma*log(rho)
+  p = (equations.gamma - 1) * (rho_e - 0.5*rho*v_square - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  s = log(p) - equations.gamma*log(rho)
   rho_p = rho / p
 
-  w1 = (equation.gamma - s) / (equation.gamma-1) - 0.5 * rho_p * v_square
+  w1 = (equations.gamma - s) / (equations.gamma-1) - 0.5 * rho_p * v_square
   w2 = rho_p * v1
   w3 = rho_p * v2
   w4 = rho_p * v3
@@ -583,50 +613,50 @@ end
 
 
 # Convert primitive to conservative variables
-@inline function prim2cons(prim, equation::IdealGlmMhdEquations3D)
+@inline function prim2cons(prim, equations::IdealGlmMhdEquations3D)
   rho, v1, v2, v3, p, B1, B2, B3, psi = prim
 
   rho_v1 = rho * v1
   rho_v2 = rho * v2
   rho_v3 = rho * v3
-  rho_e = p/(equation.gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
-                                 0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
+  rho_e = p/(equations.gamma-1) + 0.5 * (rho_v1*v1 + rho_v2*v2 + rho_v3*v3) +
+                                  0.5 * (B1^2 + B2^2 + B3^2) + 0.5 * psi^2
 
   return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 end
 
 
-@inline function density(u, equation::IdealGlmMhdEquations3D)
+@inline function density(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   return rho
 end
 
-@inline function pressure(u, equation::IdealGlmMhdEquations3D)
+@inline function pressure(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  p = (equation.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-                                  - 0.5 * (B1^2 + B2^2 + B3^2)
-                                  - 0.5 * psi^2)
+  p = (equations.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+                                   - 0.5 * (B1^2 + B2^2 + B3^2)
+                                   - 0.5 * psi^2)
   return p
 end
 
-@inline function density_pressure(u, equation::IdealGlmMhdEquations3D)
+@inline function density_pressure(u, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
-  p = (equation.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-                                  - 0.5 * (B1^2 + B2^2 + B3^2)
-                                  - 0.5 * psi^2)
+  p = (equations.gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+                                   - 0.5 * (B1^2 + B2^2 + B3^2)
+                                   - 0.5 * psi^2)
   return rho * p
 end
 
 
 # Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-@inline function calc_fast_wavespeed(cons, direction, equation::IdealGlmMhdEquations3D)
+@inline function calc_fast_wavespeed(cons, direction, equations::IdealGlmMhdEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = cons
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
   v_mag = sqrt(v1^2 + v2^2 + v3^2)
-  p = (equation.gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
-  a_square = equation.gamma * p / rho
+  p = (equations.gamma - 1)*(rho_e - 0.5*rho*v_mag^2 - 0.5*(B1^2 + B2^2 + B3^2) - 0.5*psi^2)
+  a_square = equations.gamma * p / rho
   b1 = B1/sqrt(rho)
   b2 = B2/sqrt(rho)
   b3 = B3/sqrt(rho)
@@ -643,7 +673,7 @@ end
 
 
 """
-    calc_fast_wavespeed_roe(u_ll, u_rr, direction, equation::IdealGlmMhdEquations3D)
+    calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations3D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages
 as given by Cargo and Gallice (1997)
@@ -651,7 +681,7 @@ as given by Cargo and Gallice (1997)
   of Roe Matrices for Systems of Conservation Laws
 [DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
 """
-@inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equation::IdealGlmMhdEquations3D)
+@inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -661,14 +691,14 @@ as given by Cargo and Gallice (1997)
   v3_ll = rho_v3_ll/rho_ll
   vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
-  p_ll = (equation.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
+  p_ll = (equations.gamma - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
 
   v1_rr = rho_v1_rr/rho_rr
   v2_rr = rho_v2_rr/rho_rr
   v3_rr = rho_v3_rr/rho_rr
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  p_rr = (equation.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
+  p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
   # compute total pressure which is thermal + magnetic pressures
   p_total_ll = p_ll + 0.5*mag_norm_ll
@@ -697,8 +727,8 @@ as given by Cargo and Gallice (1997)
   X = 0.5 * ( (B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2 ) * inv_sqrt_rho_add^2
   # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
   b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
-  a_square_roe = ((2.0 - equation.gamma) * X +
-                 (equation.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
+  a_square_roe = ((2.0 - equations.gamma) * X +
+                 (equations.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
                                           b_square_roe)) # acoustic speed
   # finally compute the average wave speed and set the output velocity (depends on orientation)
   if direction == 1 # x-direction
@@ -723,29 +753,29 @@ end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equation::IdealGlmMhdEquations3D)
+@inline function entropy_thermodynamic(cons, equations::IdealGlmMhdEquations3D)
   # Pressure
-  p = (equation.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
-                                      - 1/2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
-                                      - 1/2 * cons[9]^2)
+  p = (equations.gamma - 1) * (cons[5] - 1/2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+                                       - 1/2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+                                       - 1/2 * cons[9]^2)
 
   # Thermodynamic entropy
-  s = log(p) - equation.gamma*log(cons[1])
+  s = log(p) - equations.gamma*log(cons[1])
 
   return s
 end
 
 
 # Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equation::IdealGlmMhdEquations3D)
-  S = -entropy_thermodynamic(cons, equation) * cons[1] / (equation.gamma - 1)
+@inline function entropy_math(cons, equations::IdealGlmMhdEquations3D)
+  S = -entropy_thermodynamic(cons, equations) * cons[1] / (equations.gamma - 1)
 
   return S
 end
 
 
 # Default entropy is the mathematical entropy
-@inline entropy(cons, equation::IdealGlmMhdEquations3D) = entropy_math(cons, equation)
+@inline entropy(cons, equations::IdealGlmMhdEquations3D) = entropy_math(cons, equations)
 
 
 # Calculate total energy for a conservative state `cons`
@@ -753,7 +783,7 @@ end
 
 
 # Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equation::IdealGlmMhdEquations3D)
+@inline function energy_kinetic(cons, equations::IdealGlmMhdEquations3D)
   return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2)/cons[1]
 end
 
@@ -766,10 +796,10 @@ end
 
 
 # Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equation::IdealGlmMhdEquations3D)
-  return (energy_total(cons, equation)
-          - energy_kinetic(cons, equation)
-          - energy_magnetic(cons, equation)
+@inline function energy_internal(cons, equations::IdealGlmMhdEquations3D)
+  return (energy_total(cons, equations)
+          - energy_kinetic(cons, equations)
+          - energy_magnetic(cons, equations)
           - cons[9]^2 / 2)
 end
 
