@@ -7,9 +7,8 @@ using Trixi
 gamma = 1.4
 equations_euler = CompressibleEulerEquations2D(gamma)
 
-# TODO: Taal, define initial/boundary conditions here for Euler?
-initial_condition = Trixi.initial_condition_sedov_self_gravity
-boundary_conditions = Trixi.boundary_condition_sedov_self_gravity
+initial_condition = initial_condition_sedov_self_gravity
+boundary_conditions = boundary_condition_sedov_self_gravity
 
 surface_flux = flux_hll
 volume_flux  = flux_chandrashekar

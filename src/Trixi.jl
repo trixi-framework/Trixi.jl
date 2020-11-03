@@ -74,18 +74,26 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
 export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
-# TODO: Taal decide, which initial conditions and source terms will be used/exported
-export initial_condition_constant, initial_condition_convergence_test,
+export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_weak_blast_wave, initial_condition_blast_wave,
+       initial_condition_density_wave,
+       initial_condition_isentropic_vortex,
        initial_condition_khi,
-       initial_condition_isentropic_vortex, initial_condition_blob,
-       initial_condition_density_wave, initial_condition_sedov_blast_wave,
-       initial_condition_orszag_tang, initial_condition_rotor
+       initial_condition_weak_blast_wave, initial_condition_blast_wave,
+       initial_condition_sedov_blast_wave,
+       initial_condition_blob,
+       initial_condition_orszag_tang,
+       initial_condition_rotor
 
-export boundary_condition_periodic, boundary_condition_convergence_test, boundary_condition_gauss
+export boundary_condition_periodic,
+       boundary_condition_gauss
 
-export source_terms_convergence_test, source_terms_harmonic
+export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
+export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
+export initial_condition_poisson_periodic, source_terms_poisson_periodic
+export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
+export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
+export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity
 
 export TreeMesh
 
@@ -94,6 +102,9 @@ export DG,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        MortarL2
+
+export nelements, nnodes, nvariables,
+       eachelement, eachnode, eachvariable
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
