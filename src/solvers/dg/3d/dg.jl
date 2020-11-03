@@ -77,7 +77,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg3D(equation::AbstractEquation{3, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh3D, POLYDEG) where {NVARS}
+function Dg3D(equation::AbstractEquations{3, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh3D, POLYDEG) where {NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 

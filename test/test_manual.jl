@@ -54,7 +54,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "TreeMesh" begin
     @testset "constructors" begin
-      Trixi.TreeMesh{Trixi.SerialTree{1}}(1, 5.0, 2.0) isa Trixi.TreeMesh
+      @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
     end
   end
 
