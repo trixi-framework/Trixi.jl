@@ -33,13 +33,25 @@ varnames_prim(::LinearScalarAdvectionEquation2D) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
+# TODO: Taal IC needs test
+"""
+    initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A constant initial condition to test free-stream preservation.
+"""
+function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+  return @SVector [2.0]
 end
 
+
+"""
+    initial_condition_convergence_test(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A smooth initial condition used for convergence tests.
+"""
 function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
@@ -53,46 +65,31 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   return @SVector [scalar]
 end
 
-function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation2D)
+
+"""
+    initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A Gaussien pulse used together with
+[`boundary_condition_gauss`](@ref).
+"""
+function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2])
-  return @SVector [scalar]
+  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
 
-function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+"""
+    boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                             surface_flux_function,
+                             equation::LinearScalarAdvectionEquation2D)
 
-  return @SVector [2.0]
-end
-
-function initial_condition_linear_x_y(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [sum(x_trans)]
-end
-
-function initial_condition_linear_x(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [x_trans[1]]
-end
-
-function initial_condition_linear_y(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
-  return @SVector [x_trans[2]]
-end
-
-
-# Apply boundary conditions
-function boundary_condition_gauss(u_inner, orientation, direction, x, t, surface_flux_function,
-                                   equation::LinearScalarAdvectionEquation2D)
+Boundary conditions for
+[`initial_condition_gauss`](@ref).
+"""
+function boundary_condition_gauss(u_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equation::LinearScalarAdvectionEquation2D)
   u_boundary = initial_condition_gauss(x, t, equation)
 
   # Calculate boundary flux
@@ -106,9 +103,44 @@ function boundary_condition_gauss(u_inner, orientation, direction, x, t, surface
 end
 
 
+"""
+    initial_condition_sin_sin(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A sine wave in the conserved variable.
+"""
+function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2])
+  return @SVector [scalar]
+end
+
+
+"""
+    initial_condition_linear_x_y(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A linear function of `x[1] + x[2]` used together with
+[`boundary_condition_linear_x_y`](@ref).
+"""
+function initial_condition_linear_x_y(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [sum(x_trans)]
+end
+
+"""
+    boundary_condition_linear_x_y(u_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equation::LinearScalarAdvectionEquation2D)
+
+Boundary conditions for
+[`initial_condition_linear_x_y`](@ref).
+"""
 function boundary_condition_linear_x_y(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation2D)
+                                       surface_flux_function,
+                                       equation::LinearScalarAdvectionEquation2D)
   u_boundary = initial_condition_linear_x_y(x, t, equation)
 
   # Calculate boundary flux
@@ -122,9 +154,30 @@ function boundary_condition_linear_x_y(u_inner, orientation, direction, x, t,
 end
 
 
+"""
+    initial_condition_linear_x(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A linear function of `x[1]` used together with
+[`boundary_condition_linear_x`](@ref).
+"""
+function initial_condition_linear_x(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [x_trans[1]]
+end
+
+"""
+    boundary_condition_linear_x(u_inner, orientation, direction, x, t,
+                                surface_flux_function,
+                                equation::LinearScalarAdvectionEquation2D)
+
+Boundary conditions for
+[`initial_condition_linear_x`](@ref).
+"""
 function boundary_condition_linear_x(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation2D)
+                                     surface_flux_function,
+                                     equation::LinearScalarAdvectionEquation2D)
   u_boundary = initial_condition_linear_x(x, t, equation)
 
   # Calculate boundary flux
@@ -138,9 +191,30 @@ function boundary_condition_linear_x(u_inner, orientation, direction, x, t,
 end
 
 
+"""
+    initial_condition_linear_y(x, t, equations::LinearScalarAdvectionEquation2D)
+
+A linear function of `x[1]` used together with
+[`boundary_condition_linear_y`](@ref).
+"""
+function initial_condition_linear_y(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [x_trans[2]]
+end
+
+"""
+    boundary_condition_linear_y(u_inner, orientation, direction, x, t,
+                                surface_flux_function,
+                                equation::LinearScalarAdvectionEquation2D)
+
+Boundary conditions for
+[`initial_condition_linear_y`](@ref).
+"""
 function boundary_condition_linear_y(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation2D)
+                                     surface_flux_function,
+                                     equation::LinearScalarAdvectionEquation2D)
   u_boundary = initial_condition_linear_y(x, t, equation)
 
   # Calculate boundary flux
@@ -155,7 +229,7 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation2D)
+# function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation2D)
 
 
 # Calculate 1D flux in for a single point

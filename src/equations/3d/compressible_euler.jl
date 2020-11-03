@@ -440,6 +440,19 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
   return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
 
+"""
+    boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                          surface_flux_function,
+                                          equations::CompressibleEulerEquations2D)
+
+Adaptation of the Sedov blast wave with self-gravity taken from
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2016)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+based on
+- http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
+Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
+"""
 function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equations::CompressibleEulerEquations3D)
