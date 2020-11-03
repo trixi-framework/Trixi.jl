@@ -97,8 +97,8 @@ function load_mesh(restart_file::AbstractString; n_cells_max)
     read(attrs(file)["ndims"])
   end
 
-  # Note: In the future, we should also read the mesh type
-  mesh = TreeMesh{ndims_}(n_cells_max)
+  # TODO: MPI, we should also read the mesh type
+  mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
   load_mesh!(mesh, restart_file)
 end
 

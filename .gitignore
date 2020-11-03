@@ -10,6 +10,7 @@
 **/Manifest.toml
 out*/
 docs/build
+docs/src/authors.md
 public/
 coverage/
 coverage_report/
