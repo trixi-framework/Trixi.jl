@@ -15,10 +15,19 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   tree = mesh.tree
 
   # Determine indicator value
-  lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
+  lambda_local = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
+
+  if mpi_isparallel()
+    # Collect lambda for all elements
+    lambda = MPI.Allgatherv(lambda_local, convert(Vector{Cint}, parent(solver.n_elements_by_rank)), mpi_comm())
+  else
+    # Use different variable name for type stability in the parallel case
+    lambda = lambda_local
+  end
 
   # Get list of current leaf cells
-  leaf_cell_ids = leaf_cells(tree)
+  leaf_cell_ids = leaf_cells(mesh.tree)
+
   @assert length(lambda) == length(leaf_cell_ids) ("Indicator and leaf cell arrays have " *
                                                    "different length")
 

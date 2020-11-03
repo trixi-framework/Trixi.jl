@@ -11,9 +11,10 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg.elements))
   tree = mesh.tree
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_refine = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
-                                          cells_to_refine)
+
+  # Find all indices of elements whose cell ids are in cells_to_refine
+  elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, dg.elements.cell_ids)
+
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -21,7 +22,11 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   old_u = dg.elements.u
 
   # Get new list of leaf cells
-  leaf_cell_ids = leaf_cells(tree)
+  if mpi_isparallel()
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+  else
+    leaf_cell_ids = leaf_cells(mesh.tree)
+  end
 
   # Initialize new elements container
   elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
@@ -56,9 +61,55 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity check
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Set up MPI neighbor connectivity and communication data structures
+  if mpi_isparallel()
+    # Initialize MPI interface container
+    mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+    n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
+    
+    (mpi_neighbor_ranks,
+     mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+    (mpi_send_buffers,
+     mpi_recv_buffers,
+     mpi_send_requests,
+     mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                   Val(ndims(dg)), Val(NVARS), Val(POLYDEG))
+
+    # Determine local and total number of elements
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+    n_elements_by_rank[mpi_rank() + 1] = n_elements
+    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
+    n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
+    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
+
+    # Determine the global element id of the first element
+    first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
+    if mpi_isroot()
+      # With Exscan, the result on the first rank is undefined
+      first_element_global_id = 1
+    else
+      # On all other ranks we need to add one, since Julia has one-based indices
+      first_element_global_id += 1
+    end
+
+    dg.mpi_interfaces = mpi_interfaces
+    dg.n_mpi_interfaces = n_mpi_interfaces
+
+    dg.mpi_neighbor_ranks = mpi_neighbor_ranks
+    dg.mpi_neighbor_interfaces = mpi_neighbor_interfaces
+    dg.mpi_send_buffers = mpi_send_buffers
+    dg.mpi_recv_buffers = mpi_recv_buffers
+    dg.mpi_send_requests = mpi_send_requests
+    dg.mpi_recv_requests = mpi_recv_requests
+    dg.n_elements_by_rank = n_elements_by_rank
+    dg.n_elements_global = n_elements_global
+    dg.first_element_global_id = first_element_global_id
   end
 
   # Update DG instance with new data
