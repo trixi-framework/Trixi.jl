@@ -138,7 +138,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan = (0.0, 0.12))
   end
 
-  @testset "taal-check-me elixir_euler_khi_shockcapturing.jl" begin
+  @testset "taal-confirmed elixir_euler_khi_shockcapturing.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -147,8 +147,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
-        l2   = [0.0020460050625351277, 0.0028624298590723372, 0.001971035381754319, 0.004814883331768111],
-        linf = [0.02437585564403255, 0.018033033465721604, 0.00993916546672498, 0.02097263472404709],
+        l2   = [0.002046615463716511, 0.002862576343897973, 0.001971146183422579, 0.004817029337018751],
+        linf = [0.024299256322982465, 0.01620011715132652, 0.009869197749689947, 0.02060000394920891],
         tspan = (0.0, 0.2))
     else
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
@@ -156,7 +156,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     end
   end
 
-  @testset "taal-check-me elixir_euler_khi_shockcapturing_amr.jl" begin
+  @testset "taal-confirmed elixir_euler_khi_shockcapturing_amr.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -165,66 +165,66 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
-        l2   = [0.001617236176233394, 0.0023394729603446697, 0.001296199247911843, 0.0033150160736185323],
-        linf = [0.019002843896656074, 0.017242107049387223, 0.008179888370650977, 0.016885672229959958],
+        l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
+        linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
         tspan = (0.0, 0.2))
     else
       test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
         tspan = (0.0, 0.2))
     end
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
     l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
     linf = [7.903587114788113e-5, 0.030561314311228993, 0.030502600162385596, 0.042876297246817074])
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
     l2   = [2.120307461394424e-6, 2.7929229084570266e-5, 3.759342242369596e-5, 8.813646673773311e-5],
     linf = [5.9320459189771135e-5, 0.0007491265403041236, 0.0008165690047976515, 0.0022122638048145404])
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar_split.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
     l2   = [2.1203693476896995e-6, 2.8053512416422296e-5, 3.76179445622429e-5, 8.840787521479401e-5],
     linf = [5.9005667252809424e-5, 0.0007554116730550398, 0.00081660478740464, 0.002209016304192346])
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_central" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
     l2   = [2.120307461409829e-6, 2.7929229084583212e-5, 3.759342242369501e-5, 8.813646673812448e-5],
     linf = [5.932045918888296e-5, 0.0007491265403021252, 0.0008165690047987617, 0.002212263804818093],
     volume_flux = flux_central)
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_shima_etal" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
     l2   = [2.120103291509122e-6, 2.805652562691104e-5, 3.759500428816484e-5, 8.841374592860891e-5],
     linf = [5.934103184424e-5, 0.0007552316820342853, 0.0008152449048961508, 0.002206987374638203],
     volume_flux = flux_shima_etal)
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_ranocha" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
     l2   = [2.1201032806889955e-6, 2.8056528074361895e-5, 3.759500957406334e-5, 8.841379428954133e-5],
     linf = [5.934027760512439e-5, 0.0007552314317718078, 0.0008152450117491217, 0.0022069976113101575],
     volume_flux = flux_ranocha)
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
     l2   = [3.80342739421474e-6, 5.561118953968859e-5, 5.564042529709319e-5, 0.0001570628548096201],
     linf = [8.491382365727329e-5, 0.0009602965158113097, 0.0009669978616948516, 0.0030750353269972663])
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_mortar_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_shockcapturing.jl"),
     l2   = [2.1203693476896995e-6, 2.8053512416422296e-5, 3.76179445622429e-5, 8.840787521479401e-5],
     linf = [5.9005667252809424e-5, 0.0007554116730550398, 0.00081660478740464, 0.002209016304192346])
   end
-  
+
   @testset "taal-check-me elixir_euler_vortex_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
     l2   = [2.077084130934081e-6, 0.0032815991956917493, 0.0032807020145523757, 0.004646298951577697],

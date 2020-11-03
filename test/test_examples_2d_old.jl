@@ -175,16 +175,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
             linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
-  @testset "taal-check-me parameters_euler_khi_shockcapturing.toml" begin
+  @testset "taal-confirmed parameters_euler_khi_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing.toml"),
-            l2   = [0.0020466154637164818, 0.0028625763438979495, 0.0019711461834225666, 0.004817029337018744],
-            linf = [0.024299256322983798, 0.016200117151326077, 0.00986919774968863, 0.020600003949211576],
+            l2   = [0.002046615463716511, 0.002862576343897973, 0.001971146183422579, 0.004817029337018751],
+            linf = [0.024299256322982465, 0.01620011715132652, 0.009869197749689947, 0.02060000394920891],
             t_end = 0.2)
   end
-  @testset "taal-check-me differences-to-master parameters_euler_khi_shockcapturing_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_khi_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_khi_shockcapturing_amr.toml"),
-            l2   = [0.0016901662212294992, 0.002288851927745578, 0.0013358949630807315, 0.0033568391465231668],
-            linf = [0.027437774935493042, 0.016891735404652816, 0.007312081458140164, 0.01590533115997861],
+            l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
+            linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
             t_end = 0.2)
   end
   @testset "taal-check-me differences-to-master parameters_euler_blob_shockcapturing_amr.toml" begin

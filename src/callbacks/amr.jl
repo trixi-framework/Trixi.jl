@@ -86,12 +86,13 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
-    has_changed = true
+    has_changed = amr_callback(integrator,
+                               only_refine=amr_callback.adapt_initial_condition_only_refine)
     while has_changed
-      has_changed = amr_callback(integrator,
-                                 only_refine=amr_callback.adapt_initial_condition_only_refine)
       compute_coefficients!(integrator.u, t, semi)
       u_modified!(integrator, true)
+      has_changed = amr_callback(integrator,
+                                 only_refine=amr_callback.adapt_initial_condition_only_refine)
     end
   end
 
