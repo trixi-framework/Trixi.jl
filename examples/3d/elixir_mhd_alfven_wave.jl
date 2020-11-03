@@ -5,9 +5,9 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdEquations3D(1.6666666666666667)
+equations = IdealGlmMhdEquations3D(5/3)
 
-initial_condition = Trixi.initial_condition_convergence_test
+initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_derigs_etal
@@ -31,6 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+# FIXME Taal restore after Taam sync to something better
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=10,

@@ -3,11 +3,11 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible euler equations
+# semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_weak_blast_wave
+initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_ranocha
 volume_flux  = flux_ranocha
@@ -31,6 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+# FIXME Taal restore after Taam sync to something better
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -38,7 +39,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-save_restart = SaveRestartCallback(interval=10,
+save_restart = SaveRestartCallback(interval=100,
                                      save_final_restart=true)
 
 analysis_interval = 100

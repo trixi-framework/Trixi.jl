@@ -13,8 +13,8 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-3.141592653589793, -3.141592653589793, -3.141592653589793)
-coordinates_max = (3.141592653589793, 3.141592653589793, 3.141592653589793)
+coordinates_min = (-pi, -pi, -pi)
+coordinates_max = ( pi,  pi,  pi)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=100_000)
@@ -31,6 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+# FIXME Taal restore after Taam sync to something better
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -38,7 +39,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-save_restart = SaveRestartCallback(interval=10,
+save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
 analysis_interval = 100

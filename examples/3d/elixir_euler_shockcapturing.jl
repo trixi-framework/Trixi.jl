@@ -7,9 +7,10 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_weak_blast_wave
+initial_condition = initial_condition_weak_blast_wave
 
-surface_flux = flux_ranocha
+surface_flux = flux_ranocha # OBS! Using a non-dissipative flux is only sensible to test EC,
+                            # but not for real shock simulations
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -19,12 +20,12 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                         volume_flux_dg=volume_flux,
-                                         volume_flux_fv=surface_flux)
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2, -2, -2)
-coordinates_max = (2, 2, 2)
+coordinates_max = ( 2,  2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
                 n_cells_max=100_000)
@@ -36,11 +37,12 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+# FIXME Taal restore after Taam sync to something better
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -48,7 +50,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-save_restart = SaveRestartCallback(interval=10,
+save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
 analysis_interval = 100
