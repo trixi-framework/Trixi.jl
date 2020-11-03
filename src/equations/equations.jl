@@ -23,8 +23,9 @@ end
 """
     calcflux(u, orientation, equations)
 
-Calculate the flux in space direction `orientation` associated to the
-`equations` given the conservative variables `u`.
+Given the conservative variables `u`, calculate the (physical) flux in spatial
+direction `orientation` for the coressponding set of governing `equations`
+`orientation` is `1`, `2`, and `3` for the x-, y, and z-directions, respectively.
 """
 calcflux(u, orientation, equations)
 
