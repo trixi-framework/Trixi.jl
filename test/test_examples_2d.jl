@@ -131,7 +131,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
   end
 
-  @testset "taal-check-me elixir_euler_blob_shockcapturing_amr.jl" begin
+  @testset "taal-check-me cfl-magic elixir_euler_blob_shockcapturing_amr.jl" begin
+  # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
       l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
       linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],

@@ -187,7 +187,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
             t_end = 0.2)
   end
-  @testset "taal-check-me differences-to-master parameters_euler_blob_shockcapturing_amr.toml" begin
+  @testset "taal-check-me cfl-magic parameters_euler_blob_shockcapturing_amr.toml" begin
+  # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
             l2   = [0.20079146298714926, 1.178526565356443, 0.1011961418887176, 5.2218453410238554],
             linf = [14.056399346555613, 70.84481014603705, 7.154598484845931, 296.78986167690556],
