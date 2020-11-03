@@ -34,7 +34,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0491178481591637])
   end
 
-  @testset "taal-check-me elixir_advection_restart.jl" begin
+  @testset "taal-confirmed elixir_advection_restart.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
       l2   = [1.2148032444677485e-5],
       linf = [6.495644794757283e-5])
@@ -174,61 +174,61 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     end
   end
 
-  @testset "taal-check-me elixir_euler_vortex.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
-    l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
-    linf = [7.903587114788113e-5, 0.030561314311228993, 0.030502600162385596, 0.042876297246817074])
+    l2   = [3.6343138447409784e-6, 0.0032111379843728876, 0.0032111482778261658, 0.004545715889714643],
+    linf = [7.901869034399045e-5, 0.030511158864742205, 0.030451936462313256, 0.04361908901631395])
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar.jl"),
-    l2   = [2.120307461394424e-6, 2.7929229084570266e-5, 3.759342242369596e-5, 8.813646673773311e-5],
-    linf = [5.9320459189771135e-5, 0.0007491265403041236, 0.0008165690047976515, 0.0022122638048145404])
+    l2   = [2.1202421511973067e-6, 2.7929028341308907e-5, 3.7593065314592924e-5, 8.813423453465327e-5],
+    linf = [5.93205509794581e-5, 0.0007486675478352023, 0.0008175405566226424, 0.002212267888996422])
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar_split.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar_split.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-    l2   = [2.1203693476896995e-6, 2.8053512416422296e-5, 3.76179445622429e-5, 8.840787521479401e-5],
-    linf = [5.9005667252809424e-5, 0.0007554116730550398, 0.00081660478740464, 0.002209016304192346])
+    l2   = [2.1203040671963692e-6, 2.8053312800289536e-5, 3.761758762899687e-5, 8.840565162128428e-5],
+    linf = [5.900575985384737e-5, 0.0007547236106317801, 0.000817616344069072, 0.0022090204216524967])
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_central" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar_split.jl with flux_central" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-    l2   = [2.120307461409829e-6, 2.7929229084583212e-5, 3.759342242369501e-5, 8.813646673812448e-5],
-    linf = [5.932045918888296e-5, 0.0007491265403021252, 0.0008165690047987617, 0.002212263804818093],
+    l2   = [2.1202421512026147e-6, 2.7929028341288412e-5, 3.759306531457842e-5, 8.813423453452753e-5],
+    linf = [5.932055097812583e-5, 0.0007486675478027838, 0.0008175405566221983, 0.0022122678889928693],
     volume_flux = flux_central)
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_shima_etal" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar_split.jl with flux_shima_etal" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-    l2   = [2.120103291509122e-6, 2.805652562691104e-5, 3.759500428816484e-5, 8.841374592860891e-5],
-    linf = [5.934103184424e-5, 0.0007552316820342853, 0.0008152449048961508, 0.002206987374638203],
+    l2   = [2.1200379425410095e-6, 2.805632600815787e-5, 3.759464715100376e-5, 8.84115216688531e-5],
+    linf = [5.934112354222254e-5, 0.00075475390405777, 0.0008162778009123128, 0.002206991473730824],
     volume_flux = flux_shima_etal)
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar_split.jl with flux_ranocha" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar_split.jl with flux_ranocha" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_split.jl"),
-    l2   = [2.1201032806889955e-6, 2.8056528074361895e-5, 3.759500957406334e-5, 8.841379428954133e-5],
-    linf = [5.934027760512439e-5, 0.0007552314317718078, 0.0008152450117491217, 0.0022069976113101575],
+    l2   = [2.120037931908414e-6, 2.805632845562748e-5, 3.759465243706522e-5, 8.841157002762106e-5],
+    linf = [5.934036929955422e-5, 0.0007547536380712039, 0.000816277844819191, 0.0022070017103743567],
     volume_flux = flux_ranocha)
   end
 
-  @testset "taal-check-me elixir_euler_vortex_shockcapturing.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
-    l2   = [3.80342739421474e-6, 5.561118953968859e-5, 5.564042529709319e-5, 0.0001570628548096201],
-    linf = [8.491382365727329e-5, 0.0009602965158113097, 0.0009669978616948516, 0.0030750353269972663])
+    l2   = [3.8034711509468997e-6, 5.561030973129845e-5, 5.563956603258559e-5, 0.00015706441614772137],
+    linf = [8.493408680687597e-5, 0.0009610606296146518, 0.0009684675522437791, 0.003075812221315033])
   end
 
-  @testset "taal-check-me elixir_euler_vortex_mortar_shockcapturing.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex_mortar_shockcapturing.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_shockcapturing.jl"),
-    l2   = [2.1203693476896995e-6, 2.8053512416422296e-5, 3.76179445622429e-5, 8.840787521479401e-5],
-    linf = [5.9005667252809424e-5, 0.0007554116730550398, 0.00081660478740464, 0.002209016304192346])
+    l2   = [2.1205855860697905e-6, 2.805356649496243e-5, 3.7617723084029226e-5, 8.841527980901164e-5],
+    linf = [5.9005286894620035e-5, 0.0007547295163081724, 0.0008176139355887679, 0.0022089993378280326])
   end
 
-  @testset "taal-check-me elixir_euler_vortex_amr.jl" begin
+  @testset "taal-confirmed elixir_euler_vortex_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
-    l2   = [2.077084130934081e-6, 0.0032815991956917493, 0.0032807020145523757, 0.004646298951577697],
-    linf = [4.435791998502747e-5, 0.03176757178286449, 0.031797053799604846, 0.045615287239808566])
+    l2   = [2.0750351586876505e-6, 0.003281637561081054, 0.0032807189382436106, 0.0046470466205649425],
+    linf = [4.625172721961501e-5, 0.0318570623352572, 0.031910329823320094, 0.04575283708569344])
   end
 
   @testset "taal-confirmed elixir_mhd_alfven_wave.jl" begin

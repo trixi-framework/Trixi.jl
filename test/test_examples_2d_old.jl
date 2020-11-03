@@ -59,7 +59,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.008016815805080098],
             linf = [0.04229543866599861])
   end
-  @testset "taal-check-me parameters_euler_vortex_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_amr.toml"),
             l2   = [2.0750351586876505e-6, 0.003281637561081054, 0.0032807189382436106, 0.0046470466205649425],
             linf = [4.625172721961501e-5, 0.0318570623352572, 0.031910329823320094, 0.04575283708569344])
@@ -117,35 +117,35 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [3.52219535260101e-5, 1.534468550207224e-5, 1.426263439847919e-5, 1.4421456102198249e-5, 7.743399239257265e-6, 1.019242699840106e-5, 9.862935257842764e-6, 1.6018118328936515e-5, 5.563695788849475e-6],
             t_end=1.0)
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar.toml"),
             l2   = [2.1202421511973067e-6, 2.7929028341308907e-5, 3.7593065314592924e-5, 8.813423453465327e-5],
             linf = [5.93205509794581e-5, 0.0007486675478352023, 0.0008175405566226424, 0.002212267888996422])
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar_split.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar_split.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split.toml"),
             l2   = [2.1203040671963692e-6, 2.8053312800289536e-5, 3.761758762899687e-5, 8.840565162128428e-5],
             linf = [5.900575985384737e-5, 0.0007547236106317801, 0.000817616344069072, 0.0022090204216524967])
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar_split.toml with flux_central" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar_split.toml with flux_central" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split.toml"),
             l2   = [2.1202421512026147e-6, 2.7929028341288412e-5, 3.759306531457842e-5, 8.813423453452753e-5],
             linf = [5.932055097812583e-5, 0.0007486675478027838, 0.0008175405566221983, 0.0022122678889928693],
             volume_flux = "flux_central")
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar_split.toml with flux_shima_etal" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar_split.toml with flux_shima_etal" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split.toml"),
             l2   = [2.1200379425410095e-6, 2.805632600815787e-5, 3.759464715100376e-5, 8.84115216688531e-5],
             linf = [5.934112354222254e-5, 0.00075475390405777, 0.0008162778009123128, 0.002206991473730824],
             volume_flux = "flux_shima_etal")
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar_split.toml with flux_ranocha" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar_split.toml with flux_ranocha" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split.toml"),
             l2   = [2.120037931908414e-6, 2.805632845562748e-5, 3.759465243706522e-5, 8.841157002762106e-5],
             linf = [5.934036929955422e-5, 0.0007547536380712039, 0.000816277844819191, 0.0022070017103743567],
             volume_flux = "flux_ranocha")
   end
-  @testset "taal-check-me parameters_euler_vortex_mortar_split_shockcapturing.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex_mortar_split_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_mortar_split_shockcapturing.toml"),
             l2   = [2.1205855860697905e-6, 2.805356649496243e-5, 3.7617723084029226e-5, 8.841527980901164e-5],
             linf = [5.9005286894620035e-5, 0.0007547295163081724, 0.0008176139355887679, 0.0022089993378280326])
@@ -160,12 +160,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
             linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5])
   end
-  @testset "taal-check-me parameters_euler_vortex.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [3.6343138447409784e-6, 0.0032111379843728876, 0.0032111482778261658, 0.004545715889714643],
             linf = [7.901869034399045e-5, 0.030511158864742205, 0.030451936462313256, 0.04361908901631395])
   end
-  @testset "taal-check-me parameters_euler_vortex_split_shockcapturing.toml" begin
+  @testset "taal-confirmed parameters_euler_vortex_split_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex_split_shockcapturing.toml"),
             l2   = [3.8034711509468997e-6, 5.561030973129845e-5, 5.563956603258559e-5, 0.00015706441614772137],
             linf = [8.493408680687597e-5, 0.0009610606296146518, 0.0009684675522437791, 0.003075812221315033])
@@ -212,7 +212,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.3118606868100966, 0.34614370128998007, 0.3460122144359348, 1.1085840270633454],
             volume_integral_type = "shock_capturing")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with restart and t_end=2" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with restart and t_end=2" begin
     Trixi.run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"))
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [1.2148032444677485e-5],
