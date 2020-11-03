@@ -1,7 +1,9 @@
 
 # TODO: Taal remove
 function init_simulation_euler_gravity()
-  # Print starup message
+  mpi_isparallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
+
+  # Print startup message
   print_startup_message()
 
   # Get number of dimensions
@@ -208,6 +210,8 @@ end
 
 # TODO: Taal remove
 function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integration_function)
+  mpi_isparallel() && error("coupled simulations are not yet tested for parallel runs") # TODO parallel
+
   @unpack time, step, t_end, cfl, n_steps_max,
           save_final_solution, save_final_restart,
           analysis_interval, alive_interval,
@@ -240,7 +244,7 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
     end
 
     # If the next iteration would push the simulation beyond the end time, set dt accordingly
-    if time + dt > t_end
+    if time + dt > t_end || isapprox(time + dt, t_end)
       dt = t_end - time
       finalstep = true
     end

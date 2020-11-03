@@ -31,11 +31,18 @@ get_name(::LinearScalarAdvectionEquation2D) = "LinearScalarAdvectionEquation2D"
 varnames_cons(::LinearScalarAdvectionEquation2D) = SVector("scalar")
 varnames_prim(::LinearScalarAdvectionEquation2D) = SVector("scalar")
 
+# Calculates translated coordinates `x` for a periodic domain
+function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(0, 0))
+  x_normalized = x .- center
+  x_shifted = x_normalized .% domain_length
+  x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
+  return center + x_shifted + x_offset
+end
 
 # Set initial conditions at physical location `x` for time `t`
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
 
   return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
 end
@@ -61,10 +68,7 @@ function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation
   return @SVector [scalar]
 end
 
-function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
-
+function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation2D)
   return @SVector [2.0]
 end
 

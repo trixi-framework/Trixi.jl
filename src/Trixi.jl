@@ -15,7 +15,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 using LinearAlgebra: dot
-using Pkg.TOML: parsefile
+using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed!
@@ -25,6 +25,8 @@ using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
 using LinearMaps: LinearMap
+import MPI
+using OffsetArrays: OffsetArray, OffsetVector
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
@@ -50,6 +52,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+include("parallel/parallel.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
@@ -114,6 +117,11 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, 
 export trixi_include, examples_dir, get_examples, default_example
 
 export convergence_test, jacobian_fd, linear_structure
+
+
+function __init__()
+  init_mpi()
+end
 
 
 end

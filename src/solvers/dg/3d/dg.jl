@@ -1,10 +1,10 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg3D{Eqn<:AbstractEquations, NVARS, POLYDEG,
+mutable struct Dg3D{Eqn<:AbstractEquations, MeshType, NVARS, POLYDEG,
                     SurfaceFlux, VolumeFlux, InitialCondition, SourceTerms, BoundaryConditions,
                     MortarType, VolumeIntegralType, ShockIndicatorVariable,
                     VectorNnodes, MatrixNnodes, MatrixNnodes2,
                     InverseVandermondeLegendre, MortarMatrix,
-                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG}
+                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{3, POLYDEG, MeshType}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -66,6 +66,8 @@ mutable struct Dg3D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   positivity_preserving_limiter_apply::Bool
   positivity_preserving_limiter_threshold::Float64
 
+  n_elements_global::Int
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -75,7 +77,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
+function Dg3D(equation::AbstractEquation{3, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh3D, POLYDEG) where {NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -133,8 +135,8 @@ function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
 
   # Initialize data structures for error analysis (by default, we use twice the
   # number of analysis nodes as the normal solution)
-  NAna = 2 * (n_nodes) - 1
-  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(NAna + 1)
+  analysis_polydeg = 2 * (n_nodes) - 1
+  analysis_nodes, analysis_weights = gauss_lobatto_nodes_weights(analysis_polydeg + 1)
   analysis_weights_volume = analysis_weights
   analysis_vandermonde = polynomial_interpolation_matrix(nodes, analysis_nodes)
   analysis_total_volume = mesh.tree.length_level_0^ndims(mesh)
@@ -167,6 +169,9 @@ function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
                                    valid=["n/a", "gauss", "blob",  "density_pulse", "sedov_self_gravity"]))
+
+  # Set global number of elements
+  n_elements_global = n_elements
 
   # Initialize storage for element variables
   element_variables = Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}()
@@ -202,8 +207,29 @@ function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
+  # Convert all performance-critical fields to StaticArrays types
+  nodes           = SVector{POLYDEG+1}(nodes)
+  weights         = SVector{POLYDEG+1}(weights)
+  inverse_weights = SVector{POLYDEG+1}(inverse_weights)
+  lhat = SMatrix{POLYDEG+1,2}(lhat)
+  dhat              = SMatrix{POLYDEG+1,POLYDEG+1}(dhat)
+  dsplit            = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit)
+  dsplit_transposed = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed)
+  mortar_forward_upper   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper)
+  mortar_forward_lower   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower)
+  l2mortar_reverse_upper = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper)
+  l2mortar_reverse_lower = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower)
+  analysis_nodes          = SVector{analysis_polydeg+1}(analysis_nodes)
+  analysis_weights        = SVector{analysis_polydeg+1}(analysis_weights)
+  analysis_weights_volume = SVector{analysis_polydeg+1}(analysis_weights_volume)
+
   # Create actual DG solver instance
-  dg = Dg3D(
+  dg = Dg3D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(source_terms), typeof(boundary_conditions),
+            typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
+            typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),
+            typeof(mortar_forward_upper), typeof(analysis_nodes), typeof(analysis_vandermonde)}(
       equation,
       surface_flux_function, volume_flux_function,
       initial_condition, source_terms,
@@ -212,19 +238,20 @@ function Dg3D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
       boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
-      Tuple(boundary_conditions),
-      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
-      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
+      boundary_conditions,
+      nodes, weights, inverse_weights,
+      inverse_vandermonde_legendre, lhat,
       volume_integral_type,
-      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper), SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
-      SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
-      SVector{NAna+1}(analysis_nodes), SVector{NAna+1}(analysis_weights), SVector{NAna+1}(analysis_weights_volume),
+      dhat, dsplit, dsplit_transposed,
+      mortar_forward_upper, mortar_forward_lower,
+      l2mortar_reverse_upper, l2mortar_reverse_lower,
+      analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
       positivity_preserving_limiter_apply, positivity_preserving_limiter_threshold,
+      n_elements_global,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -275,7 +302,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{3}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -306,7 +333,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{3}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -332,7 +359,7 @@ end
 
 
 # Count the number of mortars that need to be created
-function count_required_mortars(mesh::TreeMesh{3}, cell_ids)
+function count_required_mortars(mesh::TreeMesh3D, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -362,7 +389,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_elements(cell_ids, mesh::TreeMesh{3}, RealT, nvars, polydeg)
+function init_elements(cell_ids, mesh::TreeMesh3D, RealT, nvars, polydeg)
   # Initialize container
   n_elements = length(cell_ids)
   elements = ElementContainer3D{RealT, nvars, polydeg}(n_elements)
@@ -375,7 +402,7 @@ function init_elements(cell_ids, mesh::TreeMesh{3}, RealT, nvars, polydeg)
   return elements
 end
 
-function init_elements!(elements, cell_ids, mesh::TreeMesh{3}, nodes)
+function init_elements!(elements, cell_ids, mesh::TreeMesh3D, nodes)
   n_nodes = length(nodes)
 
   # Store cell ids
@@ -412,7 +439,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_interfaces(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg)
+function init_interfaces(cell_ids, mesh::TreeMesh3D, elements, RealT, nvars, polydeg)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer3D{RealT, nvars, polydeg}(n_interfaces)
@@ -429,7 +456,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_boundaries(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg)
+function init_boundaries(cell_ids, mesh::TreeMesh3D, elements, RealT, nvars, polydeg)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
   boundaries = BoundaryContainer3D{RealT, nvars, polydeg}(n_boundaries)
@@ -446,7 +473,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_mortars(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg, mortar_type)
+function init_mortars(cell_ids, mesh::TreeMesh3D, elements, RealT, nvars, polydeg, mortar_type)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -466,7 +493,7 @@ function init_mortars(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polyd
   return l2mortars
 end
 
-function init_mortars(cell_ids, mesh::TreeMesh{3}, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
+function init_mortars(cell_ids, mesh::TreeMesh3D, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   mortars = L2MortarContainer3D{RealT, nvars, polydeg}(n_mortars)
@@ -477,7 +504,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interfaces!(interfaces, elements, mesh::TreeMesh{3})
+function init_interfaces!(interfaces, elements, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -533,7 +560,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh{3})
+function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
   # Reset boundaries count
   count = 0
 
@@ -614,7 +641,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortars!(mortars, elements, mesh::TreeMesh{3})
+function init_mortars!(mortars, elements, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -727,7 +754,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh{3})
 end
 
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{3})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh3D)
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
@@ -765,7 +792,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{3})
     end
   end
 
-  return boundary_conditions
+  return Tuple(boundary_conditions)
 end
 
 

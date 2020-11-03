@@ -1,10 +1,10 @@
 # Main DG data structure that contains all relevant data for the DG solver
-mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
+mutable struct Dg2D{Eqn<:AbstractEquations, MeshType, NVARS, POLYDEG,
                     SurfaceFlux, VolumeFlux, InitialCondition, SourceTerms, BoundaryConditions,
                     MortarType, VolumeIntegralType, ShockIndicatorVariable,
                     VectorNnodes, MatrixNnodes, MatrixNnodes2,
                     InverseVandermondeLegendre, MortarMatrix,
-                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG}
+                    VectorAnalysisNnodes, AnalysisVandermonde} <: AbstractDg{2, POLYDEG, MeshType}
   equations::Eqn
 
   surface_flux_function::SurfaceFlux
@@ -18,6 +18,9 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
 
   interfaces::InterfaceContainer2D{Float64, NVARS, POLYDEG}
   n_interfaces::Int
+
+  mpi_interfaces::MPIInterfaceContainer2D{Float64, NVARS, POLYDEG}
+  n_mpi_interfaces::Int
 
   boundaries::BoundaryContainer2D{Float64, NVARS, POLYDEG}
   n_boundaries::Int
@@ -67,6 +70,16 @@ mutable struct Dg2D{Eqn<:AbstractEquations, NVARS, POLYDEG,
   amr_alpha_min::Float64
   amr_alpha_smooth::Bool
 
+  mpi_neighbor_ranks::Vector{Int}
+  mpi_neighbor_interfaces::Vector{Vector{Int}}
+  mpi_send_buffers::Vector{Vector{Float64}}
+  mpi_recv_buffers::Vector{Vector{Float64}}
+  mpi_send_requests::Vector{MPI.Request}
+  mpi_recv_requests::Vector{MPI.Request}
+  n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
+  n_elements_global::Int
+  first_element_global_id::Int
+
   element_variables::Dict{Symbol, Union{Vector{Float64}, Vector{Int}}}
   cache::Dict{Symbol, Any}
   thread_cache::Any # to make fully-typed output more readable
@@ -76,9 +89,13 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh{NDIMS}, POLYDEG) where {NDIMS, NVARS}
-  # Get cells for which an element needs to be created (i.e., all leaf cells)
-  leaf_cell_ids = leaf_cells(mesh.tree)
+function Dg2D(equation::AbstractEquations{2, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh2D, POLYDEG) where {NVARS}
+  # Get local cells for which an element needs to be created (i.e., all leaf cells)
+  if mpi_isparallel()
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+  else
+    leaf_cell_ids = leaf_cells(mesh.tree)
+  end
 
   # Initialize element container
   elements = init_elements(leaf_cell_ids, mesh, Float64, NVARS, POLYDEG)
@@ -87,6 +104,10 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   # Initialize interface container
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
   n_interfaces = ninterfaces(interfaces)
+
+  # Initialize MPI interface container
+  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
+  n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
 
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, elements, Float64, NVARS, POLYDEG)
@@ -99,7 +120,7 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   n_ecmortars = nmortars(ecmortars)
 
   # Sanity checks
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
   end
@@ -193,6 +214,45 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
+  # Set up MPI neighbor connectivity and communication data structures
+  if mpi_isparallel()
+    (mpi_neighbor_ranks,
+     mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+    (mpi_send_buffers,
+     mpi_recv_buffers,
+     mpi_send_requests,
+     mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                   Val(NDIMS), Val(NVARS), Val(POLYDEG))
+
+    # Determine local and total number of elements
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+    n_elements_by_rank[mpi_rank() + 1] = n_elements
+    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
+    n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
+    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
+
+    # Determine the global element id of the first element
+    first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
+    if mpi_isroot()
+      # With Exscan, the result on the first rank is undefined
+      first_element_global_id = 1
+    else
+      # On all other ranks we need to add one, since Julia has one-based indices
+      first_element_global_id += 1
+    end
+  else
+    mpi_neighbor_ranks = Int[]
+    mpi_neighbor_interfaces = Vector{Int}[]
+    mpi_send_buffers = Vector{Float64}[]
+    mpi_recv_buffers = Vector{Float64}[]
+    mpi_send_requests = MPI.Request[]
+    mpi_recv_requests = MPI.Request[]
+    n_elements_by_rank = OffsetArray([n_elements], 0:0)
+    n_elements_global = n_elements
+    first_element_global_id = 1
+  end
+
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
@@ -205,30 +265,57 @@ function Dg2D(equation::AbstractEquations{NDIMS, NVARS}, surface_flux_function, 
   # Store initial state integrals for conservation error calculation
   initial_state_integrals = Vector{Float64}()
 
+  # Convert all performance-critical fields to StaticArrays types
+  nodes           = SVector{POLYDEG+1}(nodes)
+  weights         = SVector{POLYDEG+1}(weights)
+  inverse_weights = SVector{POLYDEG+1}(inverse_weights)
+  lhat = SMatrix{POLYDEG+1,2}(lhat)
+  dhat              = SMatrix{POLYDEG+1,POLYDEG+1}(dhat)
+  dsplit            = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit)
+  dsplit_transposed = SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed)
+  mortar_forward_upper   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper)
+  mortar_forward_lower   = SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower)
+  l2mortar_reverse_upper = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper)
+  l2mortar_reverse_lower = SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower)
+  ecmortar_reverse_upper = SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper)
+  ecmortar_reverse_lower = SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower)
+  analysis_nodes          = SVector{analysis_polydeg+1}(analysis_nodes)
+  analysis_weights        = SVector{analysis_polydeg+1}(analysis_weights)
+  analysis_weights_volume = SVector{analysis_polydeg+1}(analysis_weights_volume)
+
   # Create actual DG solver instance
-  dg = Dg2D(
+  dg = Dg2D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(source_terms), typeof(boundary_conditions),
+            typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
+            typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),
+            typeof(mortar_forward_upper), typeof(analysis_nodes), typeof(analysis_vandermonde)}(
       equation,
       surface_flux_function, volume_flux_function,
       initial_condition, source_terms,
       elements, n_elements,
       interfaces, n_interfaces,
+      mpi_interfaces, n_mpi_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction,
       mortar_type,
       l2mortars, n_l2mortars,
       ecmortars, n_ecmortars,
-      Tuple(boundary_conditions),
-      SVector{POLYDEG+1}(nodes), SVector{POLYDEG+1}(weights), SVector{POLYDEG+1}(inverse_weights),
-      inverse_vandermonde_legendre, SMatrix{POLYDEG+1,2}(lhat),
+      boundary_conditions,
+      nodes, weights, inverse_weights,
+      inverse_vandermonde_legendre, lhat,
       volume_integral_type,
-      SMatrix{POLYDEG+1,POLYDEG+1}(dhat), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit), SMatrix{POLYDEG+1,POLYDEG+1}(dsplit_transposed),
-      SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_upper),   SMatrix{POLYDEG+1,POLYDEG+1}(mortar_forward_lower),
-      SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(l2mortar_reverse_lower),
-      SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_upper), SMatrix{POLYDEG+1,POLYDEG+1}(ecmortar_reverse_lower),
-      SVector{analysis_polydeg+1}(analysis_nodes), SVector{analysis_polydeg+1}(analysis_weights), SVector{analysis_polydeg+1}(analysis_weights_volume),
+      dhat, dsplit, dsplit_transposed,
+      mortar_forward_upper, mortar_forward_lower,
+      l2mortar_reverse_upper, l2mortar_reverse_lower,
+      ecmortar_reverse_upper, ecmortar_reverse_lower,
+      analysis_nodes, analysis_weights, analysis_weights_volume,
       analysis_vandermonde, analysis_total_volume,
       analysis_quantities, save_analysis, analysis_filename,
       shock_indicator_variable, shock_alpha_max, shock_alpha_min, shock_alpha_smooth,
       amr_indicator, amr_alpha_max, amr_alpha_min, amr_alpha_smooth,
+      mpi_neighbor_ranks, mpi_neighbor_interfaces,
+      mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests,
+      n_elements_by_rank, n_elements_global, first_element_global_id,
       element_variables, cache, thread_cache,
       initial_state_integrals)
 
@@ -271,7 +358,7 @@ end
 
 
 # Count the number of interfaces that need to be created
-function count_required_interfaces(mesh::TreeMesh{2}, cell_ids)
+function count_required_interfaces(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -288,8 +375,13 @@ function count_required_interfaces(mesh::TreeMesh{2}, cell_ids)
       end
 
       # Skip if neighbor has children
-      neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
-      if has_children(mesh.tree, neighbor_id)
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is on different rank -> create MPI interface instead
+      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
         continue
       end
 
@@ -302,7 +394,7 @@ end
 
 
 # Count the number of boundaries that need to be created
-function count_required_boundaries(mesh::TreeMesh{2}, cell_ids)
+function count_required_boundaries(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells
@@ -328,7 +420,7 @@ end
 
 
 # Count the number of mortars that need to be created
-function count_required_mortars(mesh::TreeMesh{2}, cell_ids)
+function count_required_mortars(mesh::TreeMesh2D, cell_ids)
   count = 0
 
   # Iterate over all cells and count mortars from perspective of coarse cells
@@ -358,7 +450,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_elements(cell_ids, mesh::TreeMesh{2}, RealT, nvars, polydeg)
+function init_elements(cell_ids, mesh::TreeMesh2D, RealT, nvars, polydeg)
   # Initialize container
   n_elements = length(cell_ids)
   elements = ElementContainer2D{RealT, nvars, polydeg}(n_elements)
@@ -371,7 +463,7 @@ function init_elements(cell_ids, mesh::TreeMesh{2}, RealT, nvars, polydeg)
   return elements
 end
 
-function init_elements!(elements, cell_ids, mesh::TreeMesh{2}, nodes)
+function init_elements!(elements, cell_ids, mesh::TreeMesh2D, nodes)
   n_nodes = length(nodes)
 
   # Store cell ids
@@ -408,7 +500,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_interfaces(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg)
+function init_interfaces(cell_ids, mesh::TreeMesh2D, elements, RealT, nvars, polydeg)
   # Initialize container
   n_interfaces = count_required_interfaces(mesh, cell_ids)
   interfaces = InterfaceContainer2D{RealT, nvars, polydeg}(n_interfaces)
@@ -425,7 +517,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_boundaries(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg)
+function init_boundaries(cell_ids, mesh::TreeMesh2D, elements, RealT, nvars, polydeg)
   # Initialize container
   n_boundaries = count_required_boundaries(mesh, cell_ids)
   boundaries = BoundaryContainer2D{RealT, nvars, polydeg}(n_boundaries)
@@ -442,7 +534,7 @@ end
 # nvars: number of variables
 # polydeg: polynomial degree
 # TODO: Taal refactor, we should pass the basis as argument, not polydeg
-function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg, mortar_type)
+function init_mortars(cell_ids, mesh::TreeMesh2D, elements, RealT, nvars, polydeg, mortar_type)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   if mortar_type === Val(:l2)
@@ -469,7 +561,7 @@ function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polyd
   return l2mortars, ecmortars
 end
 
-function init_mortars(cell_ids, mesh::TreeMesh{2}, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
+function init_mortars(cell_ids, mesh::TreeMesh2D, elements, RealT, nvars, polydeg, mortar::LobattoLegendreMortarL2)
   # Initialize containers
   n_mortars = count_required_mortars(mesh, cell_ids)
   mortars = L2MortarContainer2D{RealT, nvars, polydeg}(n_mortars)
@@ -480,7 +572,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interfaces!(interfaces, elements, mesh::TreeMesh{2})
+function init_interfaces!(interfaces, elements, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -514,6 +606,11 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh{2})
         continue
       end
 
+      # Skip if neighbor is on different rank -> create MPI interface instead
+      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
       # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
       interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
@@ -530,7 +627,7 @@ end
 
 
 # Initialize connectivity between elements and boundaries
-function init_boundaries!(boundaries, elements, mesh::TreeMesh{2})
+function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
   # Reset boundaries count
   count = 0
 
@@ -605,7 +702,7 @@ end
 
 
 # Initialize connectivity between elements and mortars
-function init_mortars!(mortars, elements, mesh::TreeMesh{2})
+function init_mortars!(mortars, elements, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -676,7 +773,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh{2})
 end
 
 
-function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
+function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh2D)
   # "eval is evil"
   # This is a temporary hack until we have switched to a library based approach
   # with pure Julia code instead of parameter files.
@@ -709,7 +806,7 @@ function init_boundary_conditions(n_boundaries_per_direction, mesh::TreeMesh{2})
     end
   end
 
-  return boundary_conditions
+  return Tuple(boundary_conditions)
 end
 
 
@@ -735,7 +832,9 @@ dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg,
 end
 ```
 """
-function integrate(func, dg::Dg2D, args...; normalize=true)
+integrate(func, dg::Dg2D, args...; normalize=true) = integrate(func, dg, uses_mpi(dg), args...;
+                                                               normalize=normalize)
+function integrate(func, dg::Dg2D, uses_mpi::Val{false}, args...; normalize=true)
   # Initialize integral with zeros of the right shape
   integral = zero(func(1, 1, 1, dg, args...))
 
@@ -776,18 +875,21 @@ Calculate the integral over all conservative variables:
 state_integrals = integrate(dg.elements.u, dg)
 ```
 """
-function integrate(func, u, dg::Dg2D; normalize=true)
+integrate(func, u, dg::Dg2D; normalize=true) = integrate(func, u, dg, uses_mpi(dg);
+                                                         normalize=normalize)
+function integrate(func, u, dg::Dg2D, uses_mpi; normalize=true)
   func_wrapped = function(i, j, element_id, dg, u)
     u_local = get_node_vars(u, dg, i, j, element_id)
     return func(u_local)
   end
-  return integrate(func_wrapped, dg, u; normalize=normalize)
+  return integrate(func_wrapped, dg, uses_mpi, u; normalize=normalize)
 end
 integrate(u, dg::Dg2D; normalize=true) = integrate(identity, u, dg; normalize=normalize)
 
 
 # Calculate L2/Linf error norms based on "exact solution"
-function calc_error_norms(func, dg::Dg2D, t)
+calc_error_norms(func, dg::Dg2D, t) = calc_error_norms(func, dg, t, uses_mpi(dg))
+function calc_error_norms(func, dg::Dg2D, t, uses_mpi::Val{false})
   # Gather necessary information
   equation = equations(dg)
   n_nodes_analysis = size(dg.analysis_vandermonde, 1)
@@ -831,12 +933,13 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg2D, t)
+calc_entropy_timederivative(dg::Dg2D, t) = calc_entropy_timederivative(dg, t, uses_mpi(dg))
+function calc_entropy_timederivative(dg::Dg2D, t, uses_mpi)
   # Compute ut = rhs(u) with current solution u
   @notimeit timer() rhs!(dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
+  dsdu_ut = integrate(dg, uses_mpi, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
     u_node   = get_node_vars(u,   dg, i, j, element_id)
     u_t_node = get_node_vars(u_t, dg, i, j, element_id)
     dot(cons2entropy(u_node, equations(dg)), u_t_node)
@@ -849,7 +952,8 @@ end
 # Calculate L2/Linf norms of a solenoidal condition ∇ ⋅ B = 0
 # OBS! This works only when the problem setup is designed such that ∂B₁/∂x + ∂B₂/∂y = 0. Cannot
 #      compute the full 3D divergence from the given data
-function calc_mhd_solenoid_condition(dg::Dg2D, t::Float64)
+calc_mhd_solenoid_condition(dg::Dg2D, t) = calc_mhd_solenoid_condition(dg, t, mpi_parallel())
+function calc_mhd_solenoid_condition(dg::Dg2D, t, mpi_parallel::Val{false})
   @assert equations(dg) isa IdealGlmMhdEquations2D "Only relevant for MHD"
 
   # Local copy of standard derivative matrix
@@ -893,8 +997,13 @@ performance index is specified in `runtime_relative`.
 **Note:** Keep order of analysis quantities in sync with
           [`save_analysis_header`](@ref) when adding or changing quantities.
 """
-function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::Integer,
-                          runtime_absolute::Real, runtime_relative::Real; solver_gravity=nothing)
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step,
+                          runtime_absolute, runtime_relative; solver_gravity=nothing)
+  analyze_solution(dg, mesh, time, dt, step, runtime_absolute, runtime_relative, uses_mpi(dg),
+                   solver_gravity=solver_gravity)
+end
+function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_absolute,
+                          runtime_relative, uses_mpi::Val{false}; solver_gravity=nothing)
   equation = equations(dg)
 
   # General information
@@ -938,7 +1047,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
   # Calculate and print derived quantities (error norms, entropy etc.)
   # Variable names required for L2 error, Linf error, and conservation error
   if any(q in dg.analysis_quantities for q in
-         (:l2_error, :linf_error, :conservation_error, :residual))
+        (:l2_error, :linf_error, :conservation_error, :residual))
     print(" Variable:    ")
     for v in 1:nvariables(equation)
       @printf("   %-14s", varnames_cons(equation)[v])
@@ -1034,10 +1143,10 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
-    duds_ut = calc_entropy_timederivative(dg, time)
+    dsdu_ut = calc_entropy_timederivative(dg, time)
     print(" ∑∂S/∂U ⋅ Uₜ: ")
-    @printf("  % 10.8e", duds_ut)
-    dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
+    @printf("  % 10.8e", dsdu_ut)
+    dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
     println()
   end
 
@@ -1262,7 +1371,9 @@ end
 
 
 # Calculate time derivative
-function rhs!(dg::Dg2D, t_stage)
+@inline rhs!(dg::Dg2D, t_stage) = rhs!(dg, t_stage, uses_mpi(dg))
+
+function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{false})
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
@@ -2436,7 +2547,8 @@ end
 
 
 # Calculate stable time step size
-function calc_dt(dg::Dg2D, cfl)
+@inline calc_dt(dg, cfl) = calc_dt(dg, cfl, uses_mpi(dg))
+function calc_dt(dg::Dg2D, cfl, uses_mpi::Val{false})
   min_dt = Inf
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id,
@@ -2451,6 +2563,12 @@ end
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
                                 indicator_variable, thread_cache, dg::Dg2D)
+  calc_blending_factors!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing,
+                         indicator_variable, thread_cache, dg, uses_mpi(dg))
+end
+function calc_blending_factors!(alpha, alpha_pre_smooth, u,
+                                alpha_max, alpha_min, do_smoothing,
+                                indicator_variable, thread_cache, dg::Dg2D, uses_mpi::Val{false})
   # temporary buffers
   @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
   # magic parameters
@@ -2503,48 +2621,54 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
   end
 
   if (do_smoothing)
-    # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
-    # Copy alpha values such that smoothing is indpedenent of the element access order
-    alpha_pre_smooth .= alpha
+    smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi)
+  end
+end
 
-    # Loop over interfaces
-    for interface_id in 1:dg.n_interfaces
-      # Get neighboring element ids
-      left  = dg.interfaces.neighbor_ids[1, interface_id]
-      right = dg.interfaces.neighbor_ids[2, interface_id]
 
-      # Apply smoothing
-      alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
-      alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
-    end
+smooth_alpha!(alpha, alpha_pre_smooth, dg::Dg2D) = smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi(dg))
+function smooth_alpha!(alpha, alpha_pre_smooth, dg::Dg2D, uses_mpi::Val{false})
+  # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
+  # Copy alpha values such that smoothing is indpedenent of the element access order
+  alpha_pre_smooth .= alpha
 
-    # Loop over L2 mortars
-    for l2mortar_id in 1:dg.n_l2mortars
-      # Get neighboring element ids
-      lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-      upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-      large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
+  # Loop over interfaces
+  for interface_id in 1:dg.n_interfaces
+    # Get neighboring element ids
+    left  = dg.interfaces.neighbor_ids[1, interface_id]
+    right = dg.interfaces.neighbor_ids[2, interface_id]
 
-      # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-    end
+    # Apply smoothing
+    alpha[left]  = max(alpha_pre_smooth[left],  0.5 * alpha_pre_smooth[right], alpha[left])
+    alpha[right] = max(alpha_pre_smooth[right], 0.5 * alpha_pre_smooth[left],  alpha[right])
+  end
 
-    # Loop over EC mortars
-    for ecmortar_id in 1:dg.n_ecmortars
-      # Get neighboring element ids
-      lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
-      upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
-      large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+  # Loop over L2 mortars
+  for l2mortar_id in 1:dg.n_l2mortars
+    # Get neighboring element ids
+    lower = dg.l2mortars.neighbor_ids[1, l2mortar_id]
+    upper = dg.l2mortars.neighbor_ids[2, l2mortar_id]
+    large = dg.l2mortars.neighbor_ids[3, l2mortar_id]
 
-      # Apply smoothing
-      alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
-      alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
-    end
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
+  end
+
+  # Loop over EC mortars
+  for ecmortar_id in 1:dg.n_ecmortars
+    # Get neighboring element ids
+    lower = dg.ecmortars.neighbor_ids[1, ecmortar_id]
+    upper = dg.ecmortars.neighbor_ids[2, ecmortar_id]
+    large = dg.ecmortars.neighbor_ids[3, ecmortar_id]
+
+    # Apply smoothing
+    alpha[lower] = max(alpha_pre_smooth[lower], 0.5 * alpha_pre_smooth[large], alpha[lower])
+    alpha[upper] = max(alpha_pre_smooth[upper], 0.5 * alpha_pre_smooth[large], alpha[upper])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower], alpha[large])
+    alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper], alpha[large])
   end
 end
 
