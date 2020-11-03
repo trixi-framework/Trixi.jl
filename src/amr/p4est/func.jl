@@ -99,7 +99,7 @@ function setOldIdtoZero(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::P
  dataptr = unsafe_wrap(quad_inner_data_t, quad.p.user_data)
  dataptr.id = quadid + 1
  dataptr.oldids = zeros(4) #2 * Ndims
-
+ dataptr.oldids[1] =  dataptr.id
  return nothing
 end
 
@@ -133,7 +133,7 @@ function refine_function(p4est::Ptr{P4est.p4est_t},
     # @show dataptr.id, to_refine[dataptr.id]
     if (to_refine[elem_id] > 0) #  && to_refine[elem_id] > q.level
         @show 1, "REFINE"
-        return Cint(0) #TODO: REMOVE
+        # return Cint(0) #TODO: REMOVE
         return Cint(1)
     else
         return Cint(0)
@@ -182,3 +182,104 @@ function coarse_function(p4est::Ptr{P4est.p4est_t},
 end
 
 #TODO: replace_quads
+
+# const jstep3_replace_quads=cfunction(step3_replace_quads, Void,
+#                                     (Ptr{p4est.p8est_t},
+#                                     p4est.p4est_topidx_t,
+#                                     Int32,
+#                                     Ptr{Ptr{p4est.p8est_quadrant_t}},
+#                                     Int32,
+#                                     Ptr{Ptr{p4est.p8est_quadrant_t}}
+#                                     )) #It WorkS!!!
+
+
+function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
+        which_tree::P4est.p4est_topidx_t, #p4est_topidx_t which_tree,
+        num_outgoing::Int32, #int num_outgoing,
+        outgoing_array_ptr::Ptr{Ptr{P4est.p4est_quadrant_t}}, #p4est_quadrant_t * outgoing[],
+        num_incoming::Int32,#int num_incoming
+        incoming_array_ptr::Ptr{Ptr{P4est.p4est_quadrant_t}}#p4est_quadrant_t * incoming[]
+        )
+        @show num_outgoing
+        @show num_incoming
+
+        incoming = unsafe_wrap(Array, Ptr{Ptr{P4est.p4est_quadrant_t}}(incoming_array_ptr), num_incoming; own = false)
+        outgoing = unsafe_wrap(Array, Ptr{Ptr{P4est.p4est_quadrant_t}}(outgoing_array_ptr), num_outgoing; own = false)
+        if (num_outgoing > 1) # * Coarsening
+            @assert num_incoming == 1
+            parentquaddata = unsafe_wrap(quad_inner_data_t, incoming[1].p.user_data)
+            for i = 1:4
+                childquaddata = unsafe_wrap(quad_inner_data_t, outgoing[i].p.user_data);
+                parentquaddata.oldids[i] = childquaddata[i].id
+            end
+            # for (i = 0; i < P8EST_CHILDREN; i++) {
+            #     childquaddata = (p4est_inner_data_t *) outgoing[i]->p.user_data;
+              
+            #     parentquaddata->OldElementID[i] = childquaddata->OldElementID[0];
+    
+            # }
+        # * 
+
+        else # * NOTE: Refine
+            @assert num_outgoing == 1
+            @assert num_incoming > 1
+            parentquaddata = unsafe_wrap(quad_inner_data_t, outgoing[1].p.user_data)
+            
+            if (parentquaddata.oldids[2] > 0)
+                # * This quad was Coarsed but Refined again by balance 2:1
+                for i = 1:4
+                    childquaddata = unsafe_wrap(quad_inner_data_t, incoming[i].p.user_data);
+                    childquaddata.oldids[1] = parentquaddata.oldids[i]
+                    for j = 2:4
+                        childquaddata.oldids[j] = 0
+                    end
+                end
+                
+                #     for (i = 0; i < P8EST_CHILDREN; i++) {
+            #         childquaddata = (p4est_inner_data_t *) incoming[i]->p.user_data;
+            #         childquaddata->OldElementID[0] = parentquaddata->OldElementID[i];
+            
+            #         int i1;
+            #         for (i1 = 1; i1 < P8EST_CHILDREN; i1++) {
+                #             childquaddata->OldElementID[i1] = 0;
+                #         }
+                # }
+            else
+                for i = 1:4
+                    childquaddata = unsafe_wrap(quad_inner_data_t, incoming[i].p.user_data);
+                    childquaddata.oldids[1] = - parentquaddata.oldids[1]
+                    for j = 2:4
+                        childquaddata.oldids[j] = 0
+                    end
+                    childquaddata.id = 0
+            # } else {
+            #     for (i = 0; i < P8EST_CHILDREN; i++) {
+            #         childquaddata = (p4est_inner_data_t *) incoming[i]->p.user_data;
+            #         childquaddata->OldElementID[0] = -parentquaddata->OldElementID[0];
+            #         int j;
+            #         for (j = 1; j < P8EST_CHILDREN; j++) {
+            #             childquaddata->OldElementID[j] = 0;
+            #         }
+            #         childquaddata->ElementID = 0;
+            #     }
+            # }
+
+                end
+            end
+        end
+        return nothing
+end #function
+
+function GetChanges(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{Cvoid})
+    p4est = info.p4est
+    local_num_quads = Int64(p4est.local_num_quadrants)
+    quad = info.quad
+    quadid = info.quadid + 1
+    dataptr = unsafe_wrap(quad_inner_data_t, quad.p.user_data)
+    # dataptr.id = quadid + 1
+    Changes = unsafe_wrap(Array, Ptr{Int64}(user_data), (4,local_num_quads); own = false)
+    for i = 1:4
+        Changes[i, quadid] = dataptr.oldids[i]
+    end
+    return nothing
+end

@@ -39,50 +39,51 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   end
   to_refine_to_coarse_ptr = pointer(to_refine_to_coarse)
 
-  #   # 0. Set inner old quad data to Zero
+  # *  # 0. Set inner old quad data to Zero
   p4est = mesh.tree.forest
   CvolumeIterate = @cfunction(setOldIdtoZero, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
   P4est.p4est_iterate( p4est,  C_NULL, C_NULL, CvolumeIterate, C_NULL, C_NULL)
   
   recursive = 0
   allowed_level = P4est.P4EST_QMAXLEVEL
-  #   # 1. Call p4est with coarse and refine 
+  #  * # 1. Call p4est with coarse and refine 
   p4est.user_pointer = pointer(to_refine_to_coarse)
   refine_fn = @cfunction(refine_function, Cint, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
                         Ptr{P4est.p4est_quadrant_t}))
-  replace_quads_fn = C_NULL
+  replace_quads_fn = @cfunction(replace_quads, Cvoid, 
+                                (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
+                                Cint, 
+                                Ptr{Ptr{P4est.p4est_quadrant_t}} ,
+                                Cint, 
+                                Ptr{Ptr{P4est.p4est_quadrant_t}}))
+
+  @show replace_quads_fn
   P4est.p4est_refine_ext(p4est, recursive, allowed_level,
                         refine_fn, C_NULL,
                         replace_quads_fn)
+
   coarse_fn = @cfunction(coarse_function, Int32, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t, Ptr{Ptr{P4est.p4est_quadrant_t}}))
   Callbackorphans = 0
-  # p4est_coarsen_ext(p4est, recursive, Callbackorphans,
-  # coarse_fn, NULL, replace_quads);
 
   P4est.p4est_coarsen_ext(p4est, recursive, Callbackorphans,
                           coarse_fn, C_NULL, replace_quads_fn);
+  P4est.p4est_balance_ext(p4est, P4est.P4EST_CONNECT_FACE, C_NULL, replace_quads_fn)
+  
+  p4est.user_pointer = C_NULL
   @show coarse_fn
-  @assert 1 == 0
+
 # 
-# // #endif //  NON_OPTIMIZED
-#     int recursive = 0;
-#     int Callbackorphans = 0;
-#     int allowed_level = P4EST_QMAXLEVEL;
-#     p4est_refine_ext(p4est, recursive, allowed_level,
-#                      refine_fn, NULL,
-#                      replace_quads);
 
-#     p4est_coarsen_ext(p4est, recursive, Callbackorphans,
-#                       coarse_fn, NULL, replace_quads);
-#     p4est_balance_ext(p4est, P4EST_CONNECT_FACE, NULL,
-#                       replace_quads);
-#     p4est->user_pointer = NULL;
 
-#     return;//    return GetData(p4est);
-# }
-
-  # 2. Need array Changes
-  # 3. Rebuld mesh structure
+  # TODO 2. Need array Changes
+  getchanges_fn = @cfunction(GetChanges, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+  local_num_quads = Int64(p4est.local_num_quadrants)
+  ChangesInfo = zeros(Int64, 4,local_num_quads)
+  CahngesInfo_ptr = pointer(ChangesInfo)
+  P4est.p4est_iterate(p4est,  C_NULL, CahngesInfo_ptr, getchanges_fn, C_NULL, C_NULL)
+  @show ChangesInfo[:,:]
+  @assert 1 == 0
+  # TODO  3. Rebuld mesh structure
   # 4. 
 #### 
   # Determine list of cells to refine or coarsen
