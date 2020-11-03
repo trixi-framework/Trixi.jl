@@ -225,7 +225,7 @@ function Dg3D(equation::AbstractEquations{3, NVARS}, surface_flux_function, volu
 
   # Create actual DG solver instance
   dg = Dg3D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
-            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_condition),
             typeof(source_terms), typeof(boundary_conditions),
             typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
             typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),

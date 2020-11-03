@@ -72,7 +72,7 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg1D(equation::AbstractEquations{1, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh1D, POLYDEG) where {NVARS}
+function Dg1D(equation::AbstractEquations{1, NVARS}, surface_flux_function, volume_flux_function, initial_condition, source_terms, mesh::TreeMesh1D, POLYDEG) where {NVARS}
   # Get cells for which an element needs to be created (i.e., all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
@@ -209,7 +209,7 @@ function Dg1D(equation::AbstractEquations{1, NVARS}, surface_flux_function, volu
 
   # Create actual DG solver instance
   dg = Dg1D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
-            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_condition),
             typeof(source_terms), typeof(boundary_conditions),
             typeof(volume_integral_type), typeof(shock_indicator_variable),
             typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),

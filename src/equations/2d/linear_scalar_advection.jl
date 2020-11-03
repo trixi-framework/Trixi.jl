@@ -68,7 +68,7 @@ function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation
   return @SVector [scalar]
 end
 
-function initial_conditions_constant(x, t, equation::LinearScalarAdvectionEquation2D)
+function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation2D)
   return @SVector [2.0]
 end
 

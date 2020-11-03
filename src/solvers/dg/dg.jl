@@ -19,8 +19,8 @@ abstract type AbstractDg{NDIMS, POLYDEG, MeshType} <: AbstractSolver{NDIMS} end
 # Return number of degrees of freedom
 @inline ndofs(dg::AbstractDg) = dg.n_elements * nnodes(dg)^ndims(dg)
 
-@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{ParallelTree{NDIMS}}}) where {NDIMS, POLYDEG}= Val(true)
-@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{SerialTree{NDIMS}}}) where {NDIMS, POLYDEG} = Val(false)
+@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{NDIMS, ParallelTree{NDIMS}}}) where {NDIMS, POLYDEG}= Val(true)
+@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{NDIMS, SerialTree{NDIMS}}}) where {NDIMS, POLYDEG} = Val(false)
 
 """
     get_node_coords(x, dg::AbstractDg, indices...)

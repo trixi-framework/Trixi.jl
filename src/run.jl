@@ -256,7 +256,7 @@ function init_simulation()
   # Initialize mesh
   if restart
     mpi_print("Loading mesh... ")
-    @timeit timer() "mesh loading" mesh = load_mesh(restart_filename)
+    @timeit timer() "mesh loading" mesh = load_mesh_old(restart_filename)
     mpi_isparallel() && MPI.Barrier(mpi_comm())
     mpi_println("done")
   else

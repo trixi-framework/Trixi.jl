@@ -222,7 +222,7 @@ function Dg2D(equation::AbstractEquations{2, NVARS}, surface_flux_function, volu
      mpi_recv_buffers,
      mpi_send_requests,
      mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                   Val(NDIMS), Val(NVARS), Val(POLYDEG))
+                                                   Val(ndims(mesh)), Val(NVARS), Val(POLYDEG))
 
     # Determine local and total number of elements
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
@@ -285,7 +285,7 @@ function Dg2D(equation::AbstractEquations{2, NVARS}, surface_flux_function, volu
 
   # Create actual DG solver instance
   dg = Dg2D{typeof(equation), typeof(mesh), NVARS, POLYDEG,
-            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_conditions),
+            typeof(surface_flux_function), typeof(volume_flux_function), typeof(initial_condition),
             typeof(source_terms), typeof(boundary_conditions),
             typeof(mortar_type), typeof(volume_integral_type), typeof(shock_indicator_variable),
             typeof(nodes), typeof(dhat), typeof(lhat), typeof(inverse_vandermonde_legendre),

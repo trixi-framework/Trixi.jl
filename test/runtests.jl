@@ -42,7 +42,7 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
     # Based on `runtests.jl` from `MPI.jl` and `PencilArrays.jl`
     # Precompilation disabled to prevent race conditions when loading packages
     mpiexec() do cmd
-      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no test_examples_parallel_2d.jl`)
+      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no --threads=1 --check-bounds=yes test_examples_parallel_2d.jl`)
     end
   end
 end

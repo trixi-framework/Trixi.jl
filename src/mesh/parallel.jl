@@ -35,7 +35,7 @@ function partition!(mesh)
 end
 
 
-function load_mesh(restart_filename, mpi_parallel::Val{true})
+function load_mesh_old(restart_filename, mpi_parallel::Val{true})
   # Get number of spatial dimensions
   ndims_ = parameter("ndims")
 
