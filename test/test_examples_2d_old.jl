@@ -328,14 +328,14 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-check-me parameters_mhd_rotor.toml" begin
+  @testset "taal-check-me cfl-magic parameters_mhd_rotor.toml" begin
     # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_rotor.toml"),
             l2   = [1.251062755110083, 1.8146501210703296, 1.6947702119211985, 0.0, 2.286126233832582, 0.2142656906510094, 0.23453619782492716, 0.0, 0.003028222728287231],
             linf = [10.472575582440642, 14.089807317509075, 15.561008992418031, 0.0, 16.731740428408308, 1.3219222046920664, 1.4167075971532137, 0.0, 0.08046487935486654],
             t_end = 0.05)
   end
-  @testset "taal-check-me parameters_mhd_blast_wave.toml" begin
+  @testset "taal-check-me cfl-magic parameters_mhd_blast_wave.toml" begin
     # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_blast_wave.toml"),
             l2   = [0.17537979197656783, 3.85063790427908, 2.475262063280408, 0.0, 355.77751756307794, 2.35355645151502, 1.3962841115302977, 0.0, 0.02800989397835333],
