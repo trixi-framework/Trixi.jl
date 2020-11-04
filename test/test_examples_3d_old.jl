@@ -72,7 +72,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.0018461483161353273],
             linf = [0.017728496545256434])
   end
-  @testset "taal-check-me parameters_euler_mortar.toml" begin
+  @testset "taal-confirmed parameters_euler_mortar.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_mortar.toml"),
             l2   = [0.0019011097431965655, 0.0018289464087588392, 0.0018289464087585998, 0.0018289464087588862, 0.003354766311541738],
             linf = [0.011918594206950184, 0.011808582644224241, 0.011808582644249999, 0.011808582644239785, 0.02464803617735356])
@@ -176,7 +176,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
             initial_refinement_level=2, surface_flux=Trixi.flux_upwind)
   end
-  @testset "taal-check-me parameters_hyp_diff_nonperiodic.toml" begin
+  @testset "taal-confirmed parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),
             l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
             linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
