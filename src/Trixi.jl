@@ -83,7 +83,7 @@ export initial_condition_constant,
        initial_condition_isentropic_vortex,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
-       initial_condition_sedov_blast_wave,
+       initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor
