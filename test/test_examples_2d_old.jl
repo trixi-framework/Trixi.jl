@@ -207,7 +207,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.5598159626426933, 0.5095082640545004, 0.655948904969917, 0.0, 0.9809725319955653, 0.39916604098537073, 0.6748429903024491, 0.0, 0.07124312329480051],
             t_end = 0.06, surface_flux = "flux_hll")
   end
-  @testset "taal-check-me parameters_euler_ec_mortar.toml with shock_capturing" begin
+  @testset "taal-confirmed parameters_euler_ec_mortar.toml with shock_capturing" begin
+    # TODO Taal, remove: This won't fix since we do not port the old-style EC mortars to Taal
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"),
             l2   = [0.04816136246215661, 0.03713041026830962, 0.03713130328181323, 0.1777051166244772],
             linf = [0.3118606868100966, 0.34614370128998007, 0.3460122144359348, 1.1085840270633454],
