@@ -45,7 +45,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
             linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232])
   end
-  @testset "taal-check-me parameters_euler_ec.toml with extra_analysis_quantities" begin
+  @testset "taal-confirmed parameters_euler_ec.toml with extra_analysis_quantities" begin
+    # TODO: Taal, remove if not required for coverage (currently not ported)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [0.11948926375393912, 0.15554606230413676, 0.4466895989733186],
             linf = [0.2956500342985863, 0.28341906267346123, 1.0655211913235232],
@@ -53,7 +54,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
                                         "entropy", "energy_total", "energy_kinetic", "energy_internal", "residual"],
             save_analysis = true)
   end
-  @testset "taal-check-me parameters_euler_ec.toml with flux_shima_etal" begin
+  @testset "taal-confirmed parameters_euler_ec.toml with flux_shima_etal" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [0.06423364669980625, 0.08503530800170918, 0.2407844935006154],
             linf = [0.3212150514022287, 0.3070502221852398, 1.1446658347785068],
@@ -61,7 +62,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             surface_flux = "flux_shima_etal",
             volume_flux = "flux_shima_etal")
   end
-  @testset "taal-check-me parameters_euler_ec.toml with flux_ranocha" begin
+  @testset "taal-confirmed parameters_euler_ec.toml with flux_ranocha" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [0.06424564531300972, 0.08500942143178748, 0.2407606831620822],
             linf = [0.3215742010701772, 0.30592054370082256, 1.1453122141121064],
@@ -69,7 +70,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             surface_flux = "flux_ranocha",
             volume_flux = "flux_ranocha")
   end
-  @testset "taal-check-me parameters_euler_ec.toml with flux_hll" begin
+  @testset "taal-confirmed parameters_euler_ec.toml with flux_hll" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [0.0575654253650954, 0.0748264642646861, 0.21532027367350406],
             linf = [0.17289848639699257, 0.22023865765090028, 0.6349097763679086],
@@ -104,18 +105,18 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [2.243591980786875e-8, 1.8007794300157155e-8, 7.701353735993148e-8],
             linf = [1.6169171668245497e-7, 1.4838378192827406e-7, 5.407841152660353e-7])
   end
-  @testset "taal-check-me parameters_euler_density_wave.toml" begin
+  @testset "taal-confirmed parameters_euler_density_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_wave.toml"),
             l2   = [0.0011482554828446659, 0.00011482554838682677, 5.741277410494742e-6],
             linf = [0.004090978306810378, 0.0004090978313616156, 2.045489169688608e-5])
   end
-  @testset "taal-check-me parameters_euler_density_wave.toml with initial_condition_density_pulse" begin
+  @testset "taal-confirmed parameters_euler_density_wave.toml with initial_condition_density_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_wave.toml"),
             l2   = [0.003724642049410045, 0.0037246420494099837, 0.0018623210247047657],
             linf = [0.018538787219922304, 0.018538787219903874, 0.009269393609915078],
             initial_condition = "initial_condition_density_pulse")
   end
-  @testset "taal-check-me parameters_euler_density_wave.toml with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_euler_density_wave.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_wave.toml"),
             l2   = [7.058654266604569e-16, 1.9703187362332313e-14, 7.286819681608443e-15],
             linf = [3.774758283725532e-15, 6.733502644351574e-14, 2.4868995751603507e-14],
