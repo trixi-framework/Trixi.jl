@@ -78,7 +78,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             surface_flux = "flux_hll",
             volume_flux = "flux_hll")
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2500050612446159, 0.06878411345533555, 0.9447942342833009],
             linf = [2.9791692123401017, 0.1683336841958163, 2.665578807135144])

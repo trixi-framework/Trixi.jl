@@ -81,6 +81,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       surface_flux = flux_shima_etal,
       volume_flux = flux_shima_etal)
   end
+
   @testset "taal-confirmed elixir_euler_ec.jl with flux_ranocha" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.06424564531300972, 0.08500942143178748, 0.2407606831620822],
@@ -89,6 +90,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       surface_flux = flux_ranocha,
       volume_flux = flux_ranocha)
   end
+
   @testset "taal-confirmed elixir_euler_ec.jl with flux_hll" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.0575654253650954, 0.0748264642646861, 0.21532027367350406],
@@ -96,6 +98,30 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       maxiters=10,
       surface_flux = flux_hll,
       volume_flux = flux_hll)
+  end
+
+  @testset "taal-confirmed elixir_euler_sedov_blast_wave_shockcapturing_amr.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+      l2   = [1.2500050612446159, 0.06878411345533555, 0.9447942342833009],
+      linf = [2.9791692123401017, 0.1683336841958163, 2.665578807135144])
+  end
+
+  @testset "taal-check-me cfl-magic elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with pressure" begin
+    # Michael says: Results match only with CFL = 0.3 (ref values not yet updated)
+    # Note: this test currently passes due to our tolerances being too large
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+      l2   = [1.2974912081242604, 0.07965704393481755, 0.9453618260835944],
+      linf = [3.1823155476320926, 0.21380426507857242, 2.6650734792251995],
+      shock_indicator_variable = pressure)
+  end
+
+  @testset "taal-check-me cfl-magic elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with density" begin
+    # Michael says: Results match only with CFL = 0.3 (ref values not yet updated)
+    # Note: this test currently passes due to our tolerances being too large
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+      l2   = [1.2797014548135697, 0.07077838776630381, 0.9457917493772532],
+      linf = [3.117424382044245, 0.17775688760995997, 2.666854886766347],
+      shock_indicator_variable = density)
   end
 
   @testset "taal-confirmed elixir_euler_blast_wave_shockcapturing.jl" begin
