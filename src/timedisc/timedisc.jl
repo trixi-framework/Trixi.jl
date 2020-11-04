@@ -38,9 +38,9 @@ end
 Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
 """
 struct CarpenterKennedy2N34 <: SimpleAlgorithm2N
-  a::SVector{5, Float64}
-  b::SVector{5, Float64}
-  c::SVector{5, Float64}
+  a::SVector{4, Float64}
+  b::SVector{4, Float64}
+  c::SVector{4, Float64}
 
   function CarpenterKennedy2N34()
     a = @SVector [0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297]
@@ -226,12 +226,12 @@ Parsani, Ketcheson, Deconinck (2013)
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar49 <: SimpleAlgorithm3Sstar
-  gamma1::SVector{5, Float64}
-  gamma2::SVector{5, Float64}
-  gamma3::SVector{5, Float64}
-  beta::SVector{5, Float64}
-  delta::SVector{5, Float64}
-  c::SVector{5, Float64}
+  gamma1::SVector{9, Float64}
+  gamma2::SVector{9, Float64}
+  gamma3::SVector{9, Float64}
+  beta::SVector{9, Float64}
+  delta::SVector{9, Float64}
+  c::SVector{9, Float64}
 
   function ParsaniKetchesonDeconinck3Sstar49()
     gamma1 = @SVector [0.0000000000000000E+00, -4.6556413837561301E+00, -7.7202649689034453E-01, -4.0244202720632174E+00, -2.1296873883702272E-02, -2.4350219407769953E+00, 1.9856336960249132E-02, -2.8107894116913812E-01, 1.6894354373677900E-01]
@@ -254,12 +254,12 @@ Parsani, Ketcheson, Deconinck (2013)
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar23 <: SimpleAlgorithm3Sstar
-  gamma1::SVector{5, Float64}
-  gamma2::SVector{5, Float64}
-  gamma3::SVector{5, Float64}
-  beta::SVector{5, Float64}
-  delta::SVector{5, Float64}
-  c::SVector{5, Float64}
+  gamma1::SVector{3, Float64}
+  gamma2::SVector{3, Float64}
+  gamma3::SVector{3, Float64}
+  beta::SVector{3, Float64}
+  delta::SVector{3, Float64}
+  c::SVector{3, Float64}
 
   function ParsaniKetchesonDeconinck3Sstar23()
     gamma1 = @SVector [0.0000000000000000E+00, -1.2664395576322218E-01, 1.1426980685848858E+00]

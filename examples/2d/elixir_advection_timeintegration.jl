@@ -55,7 +55,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 # run the simulation
 
 # sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-sol = Trixi.solve(ode, Trixi.CarpenterKennedy2N45(),
+ode_algorithm = Trixi.CarpenterKennedy2N45()
+sol = Trixi.solve(ode, ode_algorithm,
                   dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

@@ -19,26 +19,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [9.144681765639205e-6],
             linf = [6.437440532547356e-5])
   end
-  @testset "taal-check-me parameters_advection_basic.toml with polydeg=1" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with polydeg=1" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.05264106093598111],
             linf = [0.08754218386076518],
             polydeg=1)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with carpenter_kennedy_erk43" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with carpenter_kennedy_erk43" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [8.908962577028364e-6],
             linf = [6.969419032576418e-5],
             time_integration_scheme = "timestep_carpenter_kennedy_erk43_2N!",
             cfl = 0.5)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk94" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk94" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [7.932405161658336e-6],
             linf = [6.509399993848142e-5],
             time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk94_3Sstar!")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk32" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk32" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.00440542760645958],
             linf = [0.012549162970726613],
