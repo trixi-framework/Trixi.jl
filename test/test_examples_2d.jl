@@ -29,26 +29,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       polydeg=1)
   end
 
-  @testset "taal-confirmed elixir_advection_basic.jl with carpenter_kennedy_erk43" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [8.908962577028364e-6],
       linf = [6.969419032576418e-5],
-      time_integration_scheme = "timestep_carpenter_kennedy_erk43_2N!",
+      ode_algorithm=Trixi.CarpenterKennedy2N34(),
       cfl = 0.5)
   end
 
-  @testset "taal-confirmed elixir_advection_basic.jl with parsani_ketcheson_deconinck_erk94" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [7.932405161658336e-6],
       linf = [6.509399993848142e-5],
-      time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk94_3Sstar!")
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar49())
   end
 
-  @testset "taal-confirmed elixir_advection_basic.jl with parsani_ketcheson_deconinck_erk32" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [0.00440542760645958],
       linf = [0.012549162970726613],
-      time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk32_3Sstar!")
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar23())
   end
 
   @testset "taal-confirmed elixir_advection_timeintegration.jl" begin
