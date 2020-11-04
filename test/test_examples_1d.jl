@@ -156,6 +156,7 @@ end
       initial_condition = initial_condition_constant)
   end
   @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_x" begin
+    # TODO Taal: create separate `*_linear_x.jl` elixir to keep `basic` simple
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [7.602419413667044e-17],
       linf = [2.220446049250313e-16],
