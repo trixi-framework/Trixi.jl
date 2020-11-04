@@ -36,7 +36,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       initial_refinement_level=2)
   end
 
-  @testset "elixir_hyp_diff_nonperiodic.jl" begin
+  @testset "taal-check-me elixir_hyp_diff_nonperiodic.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
       l2   = [0.00022868340901898148, 0.0007974312252173769, 0.0015035143230655171, 0.0015035143230655694],
       linf = [0.0016405261410663563, 0.0029871222930526976, 0.009410031618266146, 0.009410031618266146])
@@ -49,7 +49,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
   end
 
-  @testset "elixir_euler_mortar.jl" begin
+  @testset "taal-check-me elixir_euler_mortar.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar.jl"),
       l2   = [0.0019011097544691046, 0.0018289464161846331, 0.0018289464161847266, 0.0018289464161847851, 0.0033547668596639966],
       linf = [0.011918626829790169, 0.011808582902362641, 0.01180858290237552, 0.011808582902357312, 0.024648094686513744])
