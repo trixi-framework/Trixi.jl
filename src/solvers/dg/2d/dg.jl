@@ -222,7 +222,7 @@ function Dg2D(equation::AbstractEquations{2, NVARS}, surface_flux_function, volu
      mpi_recv_buffers,
      mpi_send_requests,
      mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                   Val(ndims(mesh)), Val(NVARS), Val(POLYDEG))
+                                                   ndims(mesh), NVARS, n_nodes)
 
     # Determine local and total number of elements
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())

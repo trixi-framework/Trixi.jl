@@ -155,7 +155,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     println()
     println("-"^80)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    println(" Simulation running '", get_name(equations), "' with POLYDEG = ", polydeg(solver))
+    println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
     println("-"^80)
     println(" #timesteps:     " * @sprintf("% 14d", iter) *
             "               " *

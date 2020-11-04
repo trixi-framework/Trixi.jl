@@ -1,2 +1,312 @@
-# TODO: Taal MPI
+
+# everything related to a DG semidiscretization in 2D using MPI,
+# currently limited to Lobatto-Legendre nodes
+
+
+# TODO: MPI dimension agnostic
+mutable struct MPICache
+  mpi_neighbor_ranks::Vector{Int}
+  mpi_neighbor_interfaces::Vector{Vector{Int}}
+  mpi_send_buffers::Vector{Vector{Float64}}
+  mpi_recv_buffers::Vector{Vector{Float64}}
+  mpi_send_requests::Vector{MPI.Request}
+  mpi_recv_requests::Vector{MPI.Request}
+  n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
+  n_elements_global::Int
+  first_element_global_id::Int
+end
+
+
+# TODO: MPI dimension agnostic
+function start_mpi_receive!(mpi_cache::MPICache)
+
+  for (index, d) in enumerate(dg.mpi_neighbor_ranks)
+    mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(
+      mpi_cache.mpi_recv_buffers[index], d, d, mpi_comm())
+  end
+
+  return nothing
+end
+
+
+# TODO: MPI dimension agnostic
+function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
+  data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
+
+  for d in eachindex(mpi_cache.mpi_neighbor_ranks)
+    send_buffer = mpi_cache.mpi_send_buffers[d]
+
+    for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])
+      first = (index - 1) * data_size + 1
+      last =  (index - 1) * data_size + data_size
+
+      if mpi_cache.mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+        @views send_buffer[first:last] .= vec(cache.mpi_interfaces.u[2, :, :, interface])
+      else # local element in negative direction
+        @views send_buffer[first:last] .= vec(cache.mpi_interfaces.u[1, :, :, interface])
+      end
+    end
+  end
+
+  # Start sending
+  for (index, d) in enumerate(mpi_cache.mpi_neighbor_ranks)
+    mpi_cache.mpi_send_requests[index] = MPI.Isend(
+      mpi_cache.mpi_send_buffers[index], d, mpi_rank(), mpi_comm())
+  end
+
+  return nothing
+end
+
+
+# TODO: MPI dimension agnostic
+function finish_mpi_send!(mpi_cache::MPICache)
+  MPI.Waitall!(mpi_cache.mpi_send_requests)
+end
+
+
+# TODO: MPI dimension agnostic
+function finish_mpi_receive!(mpi_cache::MPICache, mesh, equations, dg, cache)
+  data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
+
+  # Start receiving and unpack received data until all communication is finished
+  d, _ = MPI.Waitany!(mpi_cache.mpi_recv_requests)
+  while d != 0
+    recv_buffer = mpi_cache.mpi_recv_buffers[d]
+
+    for (index, interface) in enumerate(dg.mpi_neighbor_interfaces[d])
+      first = (index - 1) * data_size + 1
+      last =  (index - 1) * data_size + data_size
+
+      if mpi_cache.mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+        @views vec(cache.mpi_interfaces.u[1, :, :, interface]) .= recv_buffer[first:last]
+      else # local element in negative direction
+        @views vec(cache.mpi_interfaces.u[2, :, :, interface]) .= recv_buffer[first:last]
+      end
+    end
+
+    d, _ = MPI.Waitany!(dg.mpi_recv_requests)
+  end
+
+  return nothing
+end
+
+
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2},
+                      dg::DG, RealT)
+  # Get cells for which an element needs to be created (i.e. all leaf cells)
+  leaf_cell_ids = leaf_cells(mesh.tree)
+
+  # TODO: Taal refactor, we should pass the basis as argument,
+  # not polydeg, to all of the following initialization methods
+  elements = init_elements(leaf_cell_ids, mesh,
+                           RealT, nvariables(equations), polydeg(dg))
+
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
+                               RealT, nvariables(equations), polydeg(dg))
+
+  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements,
+                                       RealT, nvariables(equations), polydeg(dg))
+
+  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
+                                  RealT, nvariables(equations), polydeg(dg))
+
+  mortars = init_mortars(leaf_cell_ids, mesh, elements,
+                         RealT, nvariables(equations), polydeg(dg), dg.mortar)
+
+  # MPI setup
+  mpi_neighbor_ranks, mpi_neighbor_interfaces =
+    init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+
+  mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
+    init_mpi_data_structures(mpi_neighbor_interfaces,
+                             ndims(mesh), nvariables(equations), nnodes(dg))
+
+  # Determine local and total number of elements
+  n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+  n_elements_by_rank[mpi_rank() + 1] = nelements(elements)
+  MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+  n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
+  n_elements_global = MPI.Allreduce(nelements(elements), +, mpi_comm())
+  @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
+
+  # Determine the global element id of the first element
+  first_element_global_id = MPI.Exscan(nelements(elements), +, mpi_comm())
+  if mpi_isroot()
+    # With Exscan, the result on the first rank is undefined
+    first_element_global_id = 1
+  else
+    # On all other ranks we need to add one, since Julia has one-based indices
+    first_element_global_id += 1
+  end
+  mpi_cache = MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                       mpi_send_buffers, mpi_recv_buffers,
+                       mpi_send_requests, mpi_recv_requests,
+                       n_elements_by_rank, n_elements_global,
+                       first_element_global_id)
+
+  cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_cache)
+
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+
+  return cache
+end
+
+
+function rhs!(du::AbstractArray{<:Any,4}, u, t,
+              mesh::ParallelTreeMesh{2}, equations,
+              initial_condition, boundary_conditions, source_terms,
+              dg::DG, cache)
+  # Start to receive MPI data
+  @timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
+
+  # Prolong solution to MPI interfaces
+  @timeit timer() "prolong2mpiinterfaces" prolong2mpiinterfaces!(
+    cache, u, equations, dg)
+
+  # Start to send MPI data
+  @timeit timer() "start MPI send" start_mpi_send!(
+    cache.mpi_cache, mesh, equations, dg, cache)
+
+  # Reset du
+  @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
+
+  # Calculate volume integral
+  @timeit_debug timer() "volume integral" calc_volume_integral!(
+    du, u, have_nonconservative_terms(equations), equations,
+    dg.volume_integral, dg, cache)
+
+  # Prolong solution to interfaces
+  # TODO: Taal decide order of arguments, consistent vs. modified cache first?
+  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(
+    cache, u, equations, dg)
+
+  # Calculate interface fluxes
+  @timeit_debug timer() "interface flux" calc_interface_flux!(
+    cache.elements.surface_flux_values,
+    have_nonconservative_terms(equations), equations,
+    dg, cache)
+
+  # Prolong solution to boundaries
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(
+    cache, u, equations, dg)
+
+  # Calculate boundary fluxes
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(
+    cache, t, boundary_conditions, equations, dg)
+
+  # Prolong solution to mortars
+  @timeit_debug timer() "prolong2mortars" prolong2mortars!(
+    cache, u, equations, dg.mortar, dg)
+
+  # Calculate mortar fluxes
+  @timeit_debug timer() "mortar flux" calc_mortar_flux!(
+    cache.elements.surface_flux_values,
+    have_nonconservative_terms(equations), equations,
+    dg.mortar, dg, cache)
+
+  # Finish to receive MPI data
+  @timeit timer() "finish MPI receive" finish_mpi_receive!(
+    cache.mpi_cache, mesh, equations, dg, cache)
+
+  # Calculate MPI interface fluxes
+  @timeit timer() "MPI interface flux" calc_mpi_interface_flux!(dg) # TODO: MPI
+
+  # Calculate surface integrals
+  @timeit_debug timer() "surface integral" calc_surface_integral!(
+    du, equations, dg, cache)
+
+  # Apply Jacobian from mapping to reference element
+  @timeit_debug timer() "Jacobian" apply_jacobian!(
+    du, equations, dg, cache)
+
+  # Calculate source terms
+  @timeit_debug timer() "source terms" calc_sources!(
+    du, u, t, source_terms, equations, dg, cache)
+
+  # Finish to send MPI data
+  @timeit timer() "finish MPI send" finish_mpi_send!(cache.mpi_cache)
+
+  return nothing
+end
+
+
+function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
+                                equations, dg::DG)
+  @unpack elements, mpi_interfaces = cache
+
+  Threads.@threads for interface in eachmpiinterface(dg, cache)
+    local_element = mpi_interfaces.local_element_ids[interface]
+
+    if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
+      if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+        for j in eachnode(dg), v in eachvariable(equations)
+          mpi_interfaces.u[2, v, j, interface] = elements.u[v,          1, j, local_element]
+        end
+      else # local element in negative direction
+        for j in eachnode(dg), v in eachvariable(equations)
+          mpi_interfaces.u[1, v, j, interface] = elements.u[v, nnodes(dg), j, local_element]
+        end
+      end
+    else # interface in y-direction
+      if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
+        for i in eachnode(dg), v in eachvariable(equations)
+          mpi_interfaces.u[2, v, i, interface] = elements.u[v, i,          1, local_element]
+        end
+      else # local element in negative direction
+        for i in eachnode(dg), v in eachvariable(equations)
+          mpi_interfaces.u[1, v, i, interface] = elements.u[v, i, nnodes(dg), local_element]
+        end
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function calc_mpi_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                                  nonconservative_terms::Val{false}, equations,
+                                  dg::DG, cache)
+  @unpack surface_flux_function = dg
+  @unpack u, local_element_ids, orientations, remote_sides = dg.mpi_interfaces
+
+  Threads.@threads for interface in eachmpiinterface(dg, cache)
+    # Get local neighboring element
+    element = local_element_ids[interface]
+
+    # Determine interface direction with respect to element:
+    if orientations[interface] == 1 # interface in x-direction
+      if remote_sides[interface] == 1 # local element in positive direction
+        direction = 1
+      else # local element in negative direction
+        direction = 2
+      end
+    else # interface in y-direction
+      if remote_sides[interface] == 1 # local element in positive direction
+        direction = 3
+      else # local element in negative direction
+        direction = 4
+      end
+    end
+
+    for i in eachnode(dg)
+      # Call pointwise Riemann solver
+      u_ll, u_rr = get_surface_node_vars(u, dg, i, interface)
+      flux = surface_flux_function(u_ll, u_rr, orientations[interface], equations)
+
+      # Copy flux to local element storage
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, direction, element] = flux[v]
+      end
+    end
+  end
+
+  return nothing
+end
 

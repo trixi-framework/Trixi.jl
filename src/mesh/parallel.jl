@@ -1,5 +1,5 @@
 # Partition mesh using a static domain decomposition algorithm based on leaf cell count alone
-function partition!(mesh)
+function partition!(mesh::ParallelTreeMesh)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
   @assert length(leaves) > mpi_nranks()

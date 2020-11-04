@@ -553,7 +553,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,5},
       flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
       # Copy flux to left and right element storage
-      for v in 1:nvariables(equations)
+      for v in eachvariable(equations)
         surface_flux_values[v, i, j, left_direction,  left_id]  = flux[v]
         surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
       end
