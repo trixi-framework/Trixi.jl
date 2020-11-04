@@ -146,7 +146,7 @@ end
       l2   = [9.506162481381351e-5],
       linf = [0.00017492510098227054],
       maxiters = 1,
-      initial_condition = initial_condition_sin)
+      initial_condition = Trixi.initial_condition_sin)
   end
   @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_constant" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
@@ -160,8 +160,8 @@ end
       l2   = [7.602419413667044e-17],
       linf = [2.220446049250313e-16],
       maxiters = 1,
-      initial_condition = initial_condition_linear_x,
-      boundary_conditions = boundary_condition_linear_x,
+      initial_condition = Trixi.initial_condition_linear_x,
+      boundary_conditions = Trixi.boundary_condition_linear_x,
       periodicity=false)
   end
   @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_convergence_test" begin
