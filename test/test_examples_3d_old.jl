@@ -94,7 +94,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [9.773023537783775, 48.58018285242446, 9.56936427666669, 9.56936427666669, 170.97251488955624],
             t_end=0.2)
   end
-  @testset "taal-check-me parameters_euler_ec.toml" begin
+  @testset "taal-confirmed parameters_euler_ec.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec.toml"),
             l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
             linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
@@ -123,20 +123,20 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.43472962954165273, 0.2824065323711477, 0.2824065323711474, 0.28409419760015847, 1.4995295774522692],
             surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
   end
-  @testset "taal-check-me parameters_euler_density_pulse.toml with source_terms_harmonic" begin
+  @testset "taal-confirmed parameters_euler_density_pulse.toml with source_terms_harmonic" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_density_pulse.toml"),
             l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
             linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
             source_terms=Trixi.source_terms_harmonic,
             extra_analysis_quantities=["l2_error_primitive", "linf_error_primitive"])
   end
-  @testset "taal-check-me parameters_euler_taylor_green_vortex.toml" begin
+  @testset "taal-confirmed parameters_euler_taylor_green_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_taylor_green_vortex.toml"),
             l2   = [0.0003494971047256544, 0.03133386380969968, 0.031333863809699644, 0.04378595081016185, 0.015796569210801217],
             linf = [0.0013934701399120897, 0.07284947983025436, 0.07284947983025408, 0.12803234075782724, 0.07624639122292365],
             t_end = 0.5)
   end
-  @testset "taal-check-me parameters_euler_shockcapturing.toml" begin
+  @testset "taal-confirmed parameters_euler_shockcapturing.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
             linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
@@ -193,7 +193,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             atol = 1000*eps(),
             initial_condition=Trixi.initial_condition_constant)
   end
-  @testset "taal-check-me parameters_mhd_alfven_wave.toml" begin
+  @testset "taal-confirmed parameters_mhd_alfven_wave.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave.toml"),
             l2   = [0.0038729054515012624, 0.00903693761037057, 0.0041729297273898815, 0.01160504558506348, 0.006241548790045999, 0.009227641613254402, 0.0034580608435846143, 0.011684993365513006, 0.0022068452165023645],
             linf = [0.012628629484152443, 0.03265276295369954, 0.012907838374176334, 0.044746702024108326, 0.02796611265824822, 0.03453054781110626, 0.010261557301859958, 0.044762592434299864, 0.010012319622784436])
