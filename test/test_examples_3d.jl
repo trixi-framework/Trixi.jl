@@ -69,16 +69,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
   end
 
-  @testset "elixir_euler_density_pulse.jl" begin
+  @testset "taal-confirmed elixir_euler_density_pulse.jl with source_terms_harmonic" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_pulse.jl"),
       l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
       linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
+      source_terms=Trixi.source_terms_harmonic)
   end
 
   @testset "taal-confirmed elixir_euler_ec.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [0.025101741317688664, 0.01655620530022176, 0.016556205300221737, 0.016549388264402515, 0.09075092792976944],
-      linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647]
+      linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
 
   @testset "taal-confirmed elixir_mhd_alfven_wave.jl" begin
