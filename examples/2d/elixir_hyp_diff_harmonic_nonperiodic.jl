@@ -8,8 +8,8 @@ using Trixi
 resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
-initial_condition = Trixi.initial_condition_harmonic_nonperiodic
-boundary_conditions = Trixi.boundary_condition_harmonic_nonperiodic
+initial_condition = initial_condition_harmonic_nonperiodic
+boundary_conditions = boundary_condition_harmonic_nonperiodic
 
 surface_flux = flux_upwind
 solver = DGSEM(4, surface_flux)

@@ -33,13 +33,25 @@ varnames_prim(::LinearScalarAdvectionEquation3D) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
+# TODO: Taal IC needs test
+"""
+    initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation1D)
+
+A constant initial condition to test free-stream preservation.
+"""
+function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))]
+  return @SVector [2.0]
 end
 
+
+"""
+    initial_condition_convergence_test(x, t, equations::LinearScalarAdvectionEquation1D)
+
+A smooth initial condition used for convergence tests.
+"""
 function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
@@ -53,7 +65,26 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   return @SVector [scalar]
 end
 
-function initial_condition_sin_periodic(x, t, equation::LinearScalarAdvectionEquation3D)
+
+"""
+    initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation1D)
+
+A Gaussien pulse.
+"""
+function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x - equation.advectionvelocity * t
+
+  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))]
+end
+
+
+"""
+    initial_condition_sin(x, t, equations::LinearScalarAdvectionEquation1D)
+
+A sine wave in the conserved variable.
+"""
+function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
@@ -61,13 +92,13 @@ function initial_condition_sin_periodic(x, t, equation::LinearScalarAdvectionEqu
   return @SVector [scalar]
 end
 
-function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [2.0]
-end
+"""
+    initial_condition_linear_z(x, t, equations::LinearScalarAdvectionEquation1D)
 
+A linear function of `x[3]` used together with
+[`boundary_condition_linear_z`](@ref).
+"""
 function initial_condition_linear_z(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
@@ -75,11 +106,17 @@ function initial_condition_linear_z(x, t, equation::LinearScalarAdvectionEquatio
   return @SVector [x_trans[3]]
 end
 
+"""
+    boundary_condition_linear_z(u_inner, orientation, direction, x, t,
+                                surface_flux_function,
+                                equation::LinearScalarAdvectionEquation1D)
 
-# Apply boundary conditions
+Boundary conditions for
+[`boundary_condition_linear_z`](@ref).
+"""
 function boundary_condition_linear_z(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equation::LinearScalarAdvectionEquation3D)
+                                     surface_flux_function,
+                                     equation::LinearScalarAdvectionEquation3D)
   u_boundary = initial_condition_linear_z(x, t, equation)
 
   # Calculate boundary flux
@@ -94,7 +131,7 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(ut, u, x, element_id, t, n_nodes, equation::LinearScalarAdvectionEquation3D)
+# function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
 
 # Calculate 1D flux in for a single point

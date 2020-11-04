@@ -8,7 +8,7 @@ using Trixi
 resid_tol = 5.0e-12 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations2D(resid_tol)
 
-initial_condition = Trixi.initial_condition_poisson_periodic
+initial_condition = initial_condition_poisson_periodic
 
 surface_flux = flux_upwind
 volume_flux  = flux_central
@@ -22,7 +22,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=Trixi.source_terms_poisson_periodic)
+                                    source_terms=source_terms_poisson_periodic)
 
 
 ###############################################################################

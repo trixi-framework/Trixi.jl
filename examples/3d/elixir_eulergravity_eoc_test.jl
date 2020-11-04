@@ -7,7 +7,7 @@ using Trixi
 gamma = 2.0
 equations_euler = CompressibleEulerEquations3D(gamma)
 
-initial_condition = Trixi.initial_condition_eoc_test_coupled_euler_gravity
+initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
 polydeg = 3
 solver_euler = DGSEM(polydeg, flux_hll)
@@ -19,7 +19,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max=10_000)
 
 semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_condition, solver_euler,
-                                          source_terms=Trixi.source_terms_eoc_test_coupled_euler_gravity)
+                                          source_terms=source_terms_eoc_test_coupled_euler_gravity)
 
 
 ###############################################################################

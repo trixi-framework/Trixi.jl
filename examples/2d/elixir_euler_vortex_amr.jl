@@ -15,7 +15,7 @@ function IndicatorVortex(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   A = Array{real(basis), 2}
-  indicator_threaded = [A(undef, Trixi.nnodes(basis), Trixi.nnodes(basis))
+  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
                         for _ in 1:Threads.nthreads()]
   cache = (; semi.mesh, alpha, indicator_threaded)
 
@@ -28,7 +28,7 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4},
   mesh = indicator_vortex.cache.mesh
   alpha = indicator_vortex.cache.alpha
   indicator_threaded = indicator_vortex.cache.indicator_threaded
-  resize!(alpha, Trixi.nelements(dg, cache))
+  resize!(alpha, nelements(dg, cache))
 
 
   # get analytical vortex center (based on assumption that center=[0.0,0.0]
@@ -40,7 +40,7 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4},
     center = (t-domain_length, t-domain_length)
   end
 
-  Threads.@threads for element in Trixi.eachelement(dg, cache)
+  Threads.@threads for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     coordinates = (mesh.tree.coordinates[1, cell_id], mesh.tree.coordinates[2, cell_id])
     # use the negative radius as indicator since the AMR controller increases

@@ -15,7 +15,7 @@ module Trixi
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 using LinearAlgebra: dot
-using Pkg.TOML: parsefile
+using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data
 using Random: seed! # TODO: Taal, can be removed
@@ -25,6 +25,8 @@ using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attrs
 using LinearMaps: LinearMap
+import MPI
+using OffsetArrays: OffsetArray, OffsetVector
 using StaticArrays: @MVector, @SVector, MVector, MMatrix, MArray, SVector, SMatrix, SArray
 using TimerOutputs: @notimeit, @timeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
@@ -50,6 +52,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
+include("parallel/parallel.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/solvers.jl")
@@ -74,18 +77,26 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
 export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
-# TODO: Taal decide, which initial conditions and source terms will be used/exported
-export initial_condition_convergence_test,
+export initial_condition_constant,
        initial_condition_gauss,
+       initial_condition_density_wave,
+       initial_condition_isentropic_vortex,
+       initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
-       initial_condition_khi, initial_condition_medium_sedov_blast_wave,
-       initial_condition_isentropic_vortex, initial_condition_blob,
-       initial_condition_density_wave, initial_condition_sedov_blast_wave,
-       initial_condition_orszag_tang, initial_condition_rotor
+       initial_condition_sedov_blast_wave,
+       initial_condition_blob,
+       initial_condition_orszag_tang,
+       initial_condition_rotor
 
-export boundary_condition_periodic, boundary_condition_convergence_test, boundary_condition_gauss
+export boundary_condition_periodic,
+       boundary_condition_gauss
 
-export source_terms_convergence_test, source_terms_harmonic
+export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
+export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
+export initial_condition_poisson_periodic, source_terms_poisson_periodic
+export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
+export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
+export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity
 
 export TreeMesh
 
@@ -94,6 +105,9 @@ export DG,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        MortarL2
+
+export nelements, nnodes, nvariables,
+       eachelement, eachnode, eachvariable
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 
@@ -114,6 +128,11 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, 
 export trixi_include, examples_dir, get_examples, default_example
 
 export convergence_test, jacobian_fd, linear_structure
+
+
+function __init__()
+  init_mpi()
+end
 
 
 end

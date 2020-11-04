@@ -1,5 +1,7 @@
-
-include("tree.jl")
+include("abstract_tree.jl")
+include("serial_tree.jl")
+include("parallel_tree.jl")
+include("parallel.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
@@ -9,20 +11,21 @@ include("tree.jl")
 # different form). Also, these data values can be performance critical, so a mesh would
 # have to store them for all solvers in an efficient way - OTOH, different solvers might
 # use different cells of a shared mesh, so "efficient" is again solver dependent.
-mutable struct TreeMesh{D}
-  tree::Tree{D}
+mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}}
+  tree::TreeType
   current_filename::String
   unsaved_changes::Bool
+  first_cell_by_rank::OffsetVector{Int, Vector{Int}}
+  n_cells_by_rank::OffsetVector{Int, Vector{Int}}
 
-  function TreeMesh{D}(n_cells_max::Integer) where D
-    # Verify that D is an integer
-    @assert D isa Integer
-
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
     # Create mesh
     m = new()
-    m.tree = Tree{D}(n_cells_max)
+    m.tree = TreeType(n_cells_max)
     m.current_filename = ""
     m.unsaved_changes = true
+    m.first_cell_by_rank = OffsetVector(Int[], 0)
+    m.n_cells_by_rank = OffsetVector(Int[], 0)
 
     return m
   end
@@ -30,32 +33,40 @@ mutable struct TreeMesh{D}
   # TODO: Taal refactor, order of important arguments, use of n_cells_max?
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
   # TODO: Taal refactor, use NTuple instead of domain_center::AbstractArray{Float64}
-  function TreeMesh{D}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
-                       domain_length, periodicity=true) where D
-    # Verify that D is an integer
-    @assert D isa Integer
+  function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::AbstractArray{Float64},
+                                     domain_length, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
+    @assert NDIMS isa Integer && NDIMS > 0
 
     # Create mesh
     m = new()
-    m.tree = Tree{D}(n_cells_max, domain_center, domain_length, periodicity)
+    m.tree = TreeType(n_cells_max, domain_center, domain_length, periodicity)
     m.current_filename = ""
     m.unsaved_changes = true
+    m.first_cell_by_rank = OffsetVector(Int[], 0)
+    m.n_cells_by_rank = OffsetVector(Int[], 0)
 
     return m
   end
 end
 
-# Constructor for passing the dimension as an argument
-TreeMesh(::Val{D}, args...) where D = TreeMesh{D}(args...)
+const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
+const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
+const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
+
+# Constructor for passing the dimension and mesh type as an argument
+TreeMesh(::Type{TreeType}, args...) where {NDIMS, TreeType<:AbstractTree{NDIMS}} = TreeMesh{NDIMS, TreeType}(args...)
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-TreeMesh{1}(n::Int, center::Real, len::Real, periodicity=true) = TreeMesh{1}(n, [convert(Float64, center)], len, periodicity)
+function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where {TreeType<:AbstractTree{1}}
+  return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
+end
 
 function TreeMesh(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  TreeMesh{NDIMS}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
+  TreeMesh{NDIMS, SerialTree{NDIMS}}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
 end
 
+# TODO: MPI, create similar nice interface for a parallel tree/mesh
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
                   n_cells_max,
                   periodicity=true,
@@ -148,7 +159,12 @@ function generate_mesh()
   periodicity = parameter("periodicity", true)
 
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max, domain_center,
+  if mpi_isparallel()
+    tree_type = ParallelTree{ndims_}
+  else
+    tree_type = SerialTree{ndims_}
+  end
+  mesh = @timeit timer() "creation" TreeMesh(tree_type, n_cells_max, domain_center,
                                              domain_length, periodicity)
 
   # Create initial refinement
@@ -159,6 +175,7 @@ function generate_mesh()
 
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in parameter("refinement_patches", [])
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -168,6 +185,7 @@ function generate_mesh()
 
   # Apply coarsening patches
   @timeit timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     if patch["type"] == "box"
       coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
     else
@@ -175,13 +193,19 @@ function generate_mesh()
     end
   end
 
+  # Partition mesh
+  if mpi_isparallel()
+    partition!(mesh)
+  end
+
   return mesh
 end
 
-# TODO: Taal implement, loading meshes etc.
-
+# TODO: Taal remove the function below
 # Load existing mesh from file
-function load_mesh_old(restart_filename)
+load_mesh_old(restart_filename) = load_mesh_old(restart_filename, mpi_parallel())
+
+function load_mesh_old(restart_filename, mpi_parallel::Val{false})
   # Get number of spatial dimensions
   ndims_ = parameter("ndims")
 
@@ -189,10 +213,10 @@ function load_mesh_old(restart_filename)
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(Val{ndims_}(), n_cells_max)
+  mesh = @timeit timer() "creation" TreeMesh(SerialTree{ndims_}, n_cells_max)
 
   # Determine mesh filename
-  filename = get_restart_mesh_filename(restart_filename)
+  filename = get_restart_mesh_filename(restart_filename, Val(false))
   mesh.current_filename = filename
   mesh.unsaved_changes = false
 
@@ -220,7 +244,9 @@ end
 
 
 # Obtain the mesh filename from a restart file
-function get_restart_mesh_filename(restart_filename)
+get_restart_mesh_filename(restart_filename) = get_restart_mesh_filename(restart_filename, mpi_parallel())
+
+function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
   # Get directory name
   dirname, _ = splitdir(restart_filename)
 

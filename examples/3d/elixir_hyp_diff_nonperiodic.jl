@@ -8,9 +8,9 @@ using Trixi
 resid_tol = 1.0e-5 # TODO: Taal, move this parameter to the callback
 equations = HyperbolicDiffusionEquations3D(resid_tol)
 
-initial_condition = Trixi.initial_condition_poisson_nonperiodic
-boundary_conditions = (x_neg=Trixi.boundary_condition_poisson_nonperiodic,
-                       x_pos=Trixi.boundary_condition_poisson_nonperiodic,
+initial_condition = initial_condition_poisson_nonperiodic
+boundary_conditions = (x_neg=boundary_condition_poisson_nonperiodic,
+                       x_pos=boundary_condition_poisson_nonperiodic,
                        y_neg=boundary_condition_periodic,
                        y_pos=boundary_condition_periodic,
                        z_neg=boundary_condition_periodic,
@@ -28,7 +28,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=Trixi.source_terms_poisson_nonperiodic,
+                                    source_terms=source_terms_poisson_nonperiodic,
                                     boundary_conditions=boundary_conditions)
 
 
