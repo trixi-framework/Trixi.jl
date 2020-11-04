@@ -83,13 +83,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [1.2500050612446159, 0.06878411345533555, 0.9447942342833009],
             linf = [2.9791692123401017, 0.1683336841958163, 2.665578807135144])
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with pressure" begin
+  @testset "taal-check-me cfl-magic parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with pressure" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2974912081242604, 0.07965704393481755, 0.9453618260835944],
             linf = [3.1823155476320926, 0.21380426507857242, 2.6650734792251995],
             shock_indicator_variable = "pressure")
   end
-  @testset "taal-check-me parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with density" begin
+  @testset "taal-check-me cfl-magic parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with density" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
             l2   = [1.2797014548135697, 0.07077838776630381, 0.9457917493772532],
             linf = [3.117424382044245, 0.17775688760995997, 2.666854886766347],
@@ -127,21 +127,21 @@ end
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_sin" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [9.506162481381351e-5],
             linf = [0.00017492510098227054],
             n_steps_max = 1,
             initial_condition = "initial_condition_sin")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.120436421866528e-16],
             linf = [1.3322676295501878e-15],
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_x" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_x" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [7.602419413667044e-17],
             linf = [2.220446049250313e-16],
@@ -150,7 +150,7 @@ end
             boundary_conditions = "boundary_condition_linear_x",
             periodicity=false)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_convergence_test" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_convergence_test" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [2.9989673704826656e-6],
             linf = [5.841215237722963e-6],

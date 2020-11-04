@@ -138,6 +138,43 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 end
 
+# Coverage test for all initial conditions
+@testset "Tests for initial conditions" begin
+  # Linear scalar advection
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_sin" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [9.506162481381351e-5],
+      linf = [0.00017492510098227054],
+      maxiters = 1,
+      initial_condition = initial_condition_sin)
+  end
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_constant" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [6.120436421866528e-16],
+      linf = [1.3322676295501878e-15],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
+  end
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_x" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [7.602419413667044e-17],
+      linf = [2.220446049250313e-16],
+      maxiters = 1,
+      initial_condition = initial_condition_linear_x,
+      boundary_conditions = boundary_condition_linear_x,
+      periodicity=false)
+  end
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_convergence_test" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [2.9989673704826656e-6],
+      linf = [5.841215237722963e-6],
+      maxiters = 1,
+      initial_condition = initial_condition_convergence_test,
+      boundary_conditions = boundary_condition_convergence_test,
+      periodicity=false)
+  end
+end
+
 
 @testset "Displaying components 1D" begin
   @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))
