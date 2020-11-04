@@ -7,10 +7,6 @@ on:
       - dev
   pull_request:
 
-# coveralls with merging of multiple builds, cf. https://docs.coveralls.io/parallel-build-webhook
-env:
-  COVERALLS_PARALLEL: true
-
 jobs:
   test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
@@ -66,6 +62,19 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-      - uses: julia-actions/julia-uploadcoveralls@v1
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+      - uses: coverallsapp/github-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-${{ matrix.version }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.trixi_test }}
+          parallel: true
+          path-to-lcov: ./lcov.info
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
