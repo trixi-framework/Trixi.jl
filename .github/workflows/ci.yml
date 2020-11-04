@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+
+# coveralls with merging of multiple builds, cf. https://docs.coveralls.io/parallel-build-webhook
+env:
+  COVERALLS_PARALLEL: true
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.trixi_test }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.5'
+          # - 'nightly'
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        arch:
+          - x64
+        trixi_test:
+          - 2D
+          - 3D
+          - paper-self-gravitating-gas-dynamics
+          - parallel_2d
+          - 1D
+          - misc
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
+        with:
+          file: ./lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: julia-actions/julia-uploadcoveralls@v1
+        env:
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
