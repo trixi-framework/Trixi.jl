@@ -161,7 +161,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                         t=t, iter=iter)
 
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  leaf_cell_ids = local_leaf_cells(mesh.tree)
   @boundscheck begin
    @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
   end

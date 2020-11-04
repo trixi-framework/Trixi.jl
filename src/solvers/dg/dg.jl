@@ -189,7 +189,7 @@ end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
 @inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
-@inline nmpiinterfaces(dg::DG, cache) = ninterfaces(cache.mpi_interfaces)
+@inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 
 
 @inline function get_node_coords(x, equations, solver::DG, indices...)

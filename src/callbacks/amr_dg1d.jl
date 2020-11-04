@@ -22,7 +22,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
-    leaf_cell_ids = leaf_cells(mesh.tree)
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
 
     # re-initialize elements container
     @unpack elements = cache
@@ -139,7 +139,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     # Get new list of leaf cells
-    leaf_cell_ids = leaf_cells(mesh.tree)
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
 
     # re-initialize elements container
     @unpack elements = cache

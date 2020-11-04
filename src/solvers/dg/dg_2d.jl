@@ -8,7 +8,7 @@
 function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
                       dg::DG, RealT)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  leaf_cell_ids = local_leaf_cells(mesh.tree)
 
   # TODO: Taal refactor, we should pass the basis as argument,
   # not polydeg, to all of the following initialization methods

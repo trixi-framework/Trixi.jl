@@ -69,13 +69,13 @@ within the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
+julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
 julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")' # Install postprocessing tools
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
 flag set to your local Trixi clone, e.g.,
 ```bash
-julia --project=.
+julia --project=@.
 ```
 Further details can be found in the [documentation](#documentation).
 

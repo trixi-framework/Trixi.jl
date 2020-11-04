@@ -31,3 +31,34 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
   return 2 / (nnodes(dg) * (max_λ1 + max_λ2))
 end
 
+
+function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+                constant_speed::Val{false}, equations, dg::DG, cache)
+  # call the method accepting a general `mesh::TreeMesh{2}`
+  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
+  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
+  #       Then, this specific array type should also work well with DiffEq etc.
+  dt = invoke(max_dt,
+    Tuple{typeof(u), typeof(t), TreeMesh{2},
+          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+    u, t, mesh, constant_speed, equations, dg, cache)
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+
+  return dt
+end
+
+
+function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+                constant_speed::Val{true}, equations, dg::DG, cache)
+  # call the method accepting a general `mesh::TreeMesh{2}`
+  # TODO: MPI, we should improve this; maybe we should dispatch on `u`
+  #       and create some MPI array type, overloading broadcasting and mapreduce etc.
+  #       Then, this specific array type should also work well with DiffEq etc.
+  dt = invoke(max_dt,
+    Tuple{typeof(u), typeof(t), TreeMesh{2},
+          typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
+    u, t, mesh, constant_speed, equations, dg, cache)
+  dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+
+  return dt
+end
