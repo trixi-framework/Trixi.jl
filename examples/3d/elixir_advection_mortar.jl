@@ -3,25 +3,29 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the linear advection equation
 
-equations = CompressibleEulerEquations3D(1.4)
+advectionvelocity = (0.2, -0.7, 0.3)
+equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-volume_integral = VolumeIntegralWeakForm()
-solver = DGSEM(3, surface_flux, volume_integral)
+solver = DGSEM(3, surface_flux)
 
-coordinates_min = (0, 0, 0)
-coordinates_max = (2, 2, 2)
+coordinates_min = (-1, -1, -1)
+coordinates_max = ( 1,  1,  1)
+refinement_patches = (
+  (type="box", coordinates_min=(0.0, -1.0, -1.0), coordinates_max=(1.0, 1.0, 1.0)),
+  (type="box", coordinates_min=(0.0, -0.5, -0.5), coordinates_max=(0.5, 0.5, 0.5)),
+)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
-                n_cells_max=10_000)
+                refinement_patches=refinement_patches,
+                n_cells_max=10_000,)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -33,8 +37,8 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # FIXME Taal restore after Taam sync
-# stepsize_callback = StepsizeCallback(cfl=1.0)
-stepsize_callback = StepsizeCallback(cfl=0.3)
+# stepsize_callback = StepsizeCallback(cfl=2.0)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -46,7 +50,8 @@ save_restart = SaveRestartCallback(interval=100,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy,))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_restart, save_solution,

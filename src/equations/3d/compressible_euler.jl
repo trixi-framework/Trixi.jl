@@ -345,6 +345,41 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4, du5)
 end
 
+"""
+    source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations3D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
+
+**Note:** This method is to be used for testing pure Euler simulations with analytic self-gravity.
+          If you intend to do coupled Euler-gravity simulations, you need to use
+          [`source_terms_eoc_test_coupled_euler_gravity`](@ref) instead.
+"""
+function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations3D)
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0
+  C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions
+
+  x1, x2, x3 = x
+  # TODO: sincospi
+  si, co = sincos(pi * (x1 + x2 + x3 - t))
+  rhox = A * pi * co
+  rho  = c + A *  si
+
+  du1 = rhox *  2
+  du2 = rhox * (2 -     C_grav * rho)
+  du3 = rhox * (2 -     C_grav * rho)
+  du4 = rhox * (2 -     C_grav * rho)
+  du5 = rhox * (3 - 5 * C_grav * rho)
+
+  return SVector(du1, du2, du3, du4, du5)
+end
+
 # TODO: Taal remove methods with the signature below
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations3D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
@@ -371,7 +406,7 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
-# TODO: Taal, port to Taal, add docstring, and remove method with the signature below
+# TODO: Taal remove method with the signature below
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations3D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
