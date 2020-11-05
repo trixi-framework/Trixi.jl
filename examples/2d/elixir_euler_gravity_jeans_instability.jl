@@ -2,13 +2,67 @@
 using OrdinaryDiffEq
 using Trixi
 
+
+# If you're developing an elixir for Trixi for some project, you can define
+# initial conditions etc. directly inside the elixir, e.g. using the code below
+# (which is commented out).
+# For example, running
+# trixi_include("examples/2d/elixir_euler_gravity_jeans_instability.jl")
+# from the REPL works fine with that setting.
+# However, we're running CI with automated tests of Trixi. In that case,
+# we get annoying world age issues. Hence, we keep initial_condition_jeans_instability
+# in Trixi/src for now.
+#
+# function initial_condition_jeans_instability(x, t,
+#                                             equations::CompressibleEulerEquations2D)
+#   # Jeans gravitational instability test case
+#   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
+#   # OBS! this uses cgs (centimeter, gram, second) units
+#   # periodic boundaries
+#   # domain size [0,L]^2 depends on the wave number chosen for the perturbation
+#   # OBS! Be very careful here L must be chosen such that problem is periodic
+#   # typical final time is T = 5
+#   # gamma = 5/3
+#   dens0  = 1.5e7 # g/cm^3
+#   pres0  = 1.5e7 # dyn/cm^2
+#   delta0 = 1e-3
+#   # set wave vector values for pertubation (units 1/cm)
+#   # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+#   kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
+#   ky = 0.0   # 2π/λ_y, λ_y = 1e10
+#   k_dot_x = kx*x[1] + ky*x[2]
+#   # perturb density and pressure away from reference states ρ_0 and p_0
+#   dens = dens0*(1.0 + delta0*cos(k_dot_x))                 # g/cm^3
+#   pres = pres0*(1.0 + equations.gamma*delta0*cos(k_dot_x)) # dyn/cm^2
+#   # flow starts as stationary
+#   velx = 0.0 # cm/s
+#   vely = 0.0 # cm/s
+#   return Trixi.prim2cons((dens, velx, vely, pres), equations)
+# end
+
+# function initial_condition_jeans_instability(x, t,
+#                                              equations::HyperbolicDiffusionEquations2D)
+#   # gravity equation: -Δϕ = -4πGρ
+#   # Constants taken from the FLASH manual
+#   # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
+#   rho0   = 1.5e7
+#   delta0 = 1e-3
+
+#   phi = rho0*delta0 # constant background pertubation magnitude
+#   q1  = 0.0
+#   q2  = 0.0
+#   return (phi, q1, q2)
+# end
+#
+# initial_condition = initial_condition_jeans_instability
+
+initial_condition = Trixi.initial_condition_jeans_instability
+
+
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 gamma = 5/3
 equations_euler = CompressibleEulerEquations2D(gamma)
-
-# TODO: Taal, define initial_condition_jeans_instability here for Euler
-initial_condition = Trixi.initial_condition_jeans_instability
 
 polydeg = 3
 solver_euler = DGSEM(polydeg, flux_hll)
@@ -26,8 +80,6 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 resid_tol = 1.0e-4
 equations_gravity = HyperbolicDiffusionEquations2D(resid_tol)
-
-# TODO: Taal, define initial_condition_jeans_instability here for gravity
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 

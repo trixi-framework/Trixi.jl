@@ -26,11 +26,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.001452075263740804],
             t_end = 2, restart = true, restart_filename = "out/restart_000040.h5")
   end
-  @testset "parameters_advection_basic.toml with initial_condition_sin_periodic" begin
+  @testset "parameters_advection_basic.toml with initial_condition_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.002727292086517533],
             linf = [0.024833049753677727],
-            initial_condition=Trixi.initial_condition_sin_periodic)
+            initial_condition=Trixi.initial_condition_sin)
   end
   @testset "parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),

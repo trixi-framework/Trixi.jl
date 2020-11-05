@@ -7,7 +7,7 @@ using Trixi
 
 equations = IdealGlmMhdEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_ec_test
+initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_derigs_etal
 volume_flux  = flux_derigs_etal

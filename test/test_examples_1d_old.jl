@@ -26,7 +26,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_advection_amr_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_amr_nonperiodic.toml"),
-            l2   = [4.323673749626657e-6],
+            l2   = [4.317984162166343e-6],
             linf = [3.239622040581043e-5])
   end
   @testset "parameters_euler_nonperiodic.toml" begin

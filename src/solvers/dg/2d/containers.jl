@@ -166,6 +166,62 @@ end
 @inline ninterfaces(interfaces::InterfaceContainer2D) = length(interfaces.orientations)
 
 
+# Container data structure (structure-of-arrays style) for DG MPI interfaces
+mutable struct MPIInterfaceContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
+  u::Array{RealT, 4}             # [leftright, variables, i, interfaces]
+  local_element_ids::Vector{Int} # [interfaces]
+  orientations::Vector{Int}      # [interfaces]
+  remote_sides::Vector{Int}      # [interfaces]
+  # internal `resize!`able storage
+  _u::Vector{RealT}
+end
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D{RealT, NVARS, POLYDEG},
+                      capacity) where {RealT, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  @unpack _u, local_element_ids, orientations, remote_sides = mpi_interfaces
+
+  resize!(_u, 2 * NVARS * n_nodes * capacity)
+  mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
+                                 (2, NVARS, n_nodes, capacity))
+
+  resize!(local_element_ids, capacity)
+
+  resize!(orientations, capacity)
+
+  resize!(remote_sides, capacity)
+
+  return nothing
+end
+
+
+function MPIInterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Integer) where {RealT<:Real, NVARS, POLYDEG}
+  n_nodes = POLYDEG + 1
+  nan = convert(RealT, NaN)
+
+  # Initialize fields with defaults
+  _u = fill(nan, 2 * NVARS * n_nodes * capacity)
+  u = unsafe_wrap(Array, pointer(_u),
+                  (2, NVARS, n_nodes, capacity))
+
+  local_element_ids = fill(typemin(Int), capacity)
+
+  orientations = fill(typemin(Int), capacity)
+
+  remote_sides = fill(typemin(Int), capacity)
+
+  return MPIInterfaceContainer2D{RealT, NVARS, POLYDEG}(
+    u, local_element_ids, orientations, remote_sides,
+    _u)
+end
+
+
+# TODO: Taal, rename to ninterfaces?
+# Return number of interfaces
+nmpiinterfaces(mpi_interfaces::MPIInterfaceContainer2D) = length(mpi_interfaces.orientations)
+
+
 # Container data structure (structure-of-arrays style) for DG boundaries
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 mutable struct BoundaryContainer2D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer

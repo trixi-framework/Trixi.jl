@@ -1,6 +1,6 @@
 # Abstract supertype for DG-type solvers
 # `POLYDEG` corresponds to `N` in the school of Kopriva
-abstract type AbstractDg{NDIMS, POLYDEG} <: AbstractSolver{NDIMS} end
+abstract type AbstractDg{NDIMS, POLYDEG, MeshType} <: AbstractSolver{NDIMS} end
 
 @inline Base.ndims(dg::AbstractDg) = ndims(equations(dg))
 
@@ -18,6 +18,9 @@ abstract type AbstractDg{NDIMS, POLYDEG} <: AbstractSolver{NDIMS} end
 
 # Return number of degrees of freedom
 @inline ndofs(dg::AbstractDg) = dg.n_elements * nnodes(dg)^ndims(dg)
+
+@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{NDIMS, ParallelTree{NDIMS}}}) where {NDIMS, POLYDEG}= Val(true)
+@inline uses_mpi(::AbstractDg{NDIMS, POLYDEG, TreeMesh{NDIMS, SerialTree{NDIMS}}}) where {NDIMS, POLYDEG} = Val(false)
 
 """
     get_node_coords(x, dg::AbstractDg, indices...)
@@ -311,7 +314,9 @@ include("dg_1d.jl")
 include("2d/containers.jl")
 include("2d/dg.jl")
 include("2d/amr.jl")
+include("2d/parallel.jl")
 include("dg_2d.jl")
+include("dg_2d_parallel.jl")
 
 # 3D DG implementation
 include("3d/containers.jl")

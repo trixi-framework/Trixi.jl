@@ -20,6 +20,17 @@ end
 @inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
 
 
+"""
+    calcflux(u, orientation, equations)
+
+Given the conservative variables `u`, calculate the (physical) flux in spatial
+direction `orientation` for the coressponding set of governing `equations`
+`orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
+"""
+calcflux(u, orientation, equations)
+
+
+# TODO: Taal remove method below
 # Create an instance of a system of equation type based on a given name
 function make_equations(name::String, ndims_)
   if name == "LinearScalarAdvectionEquation"

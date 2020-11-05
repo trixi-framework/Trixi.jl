@@ -6,6 +6,11 @@ using Trixi2Img
 # Get Trixi root directory
 trixi_root_dir = dirname(@__DIR__)
 
+# Copy list of authors to not need to synchronize it manually
+authors_text = read(joinpath(trixi_root_dir, "AUTHORS.md"), String)
+authors_text = replace(authors_text, "in the [LICENSE.md](LICENSE.md) file" => "under [License](@ref)")
+write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
+
 # Install dependencies and import modules...
 # ...Trixi
 Pkg.activate(trixi_root_dir)
@@ -42,6 +47,7 @@ makedocs(
         "Time integration" => "time_integration.md",
         "Development" => "development.md",
         "Visualization" => "visualization.md",
+        "Parallelization" => "parallelization.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
         "Reference" => [
