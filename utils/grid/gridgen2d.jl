@@ -1,4 +1,5 @@
 #!/usr/bin/env julia
+# TODO: Taal, remove this file?
 
 include("../src/mesh/trees.jl")
 
