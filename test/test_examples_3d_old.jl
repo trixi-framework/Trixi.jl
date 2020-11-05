@@ -19,26 +19,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.00015975754755823664],
             linf = [0.001503873297666436])
   end
-  @testset "taal-check-me parameters_advection_basic.toml with restart and t_end=2" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with restart and t_end=2" begin
     Trixi.run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"))
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.00017800012466353434],
             linf = [0.001452075263740804],
             t_end = 2, restart = true, restart_filename = "out/restart_000040.h5")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_sin" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.002727292086517533],
             linf = [0.024833049753677727],
             initial_condition=Trixi.initial_condition_sin)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [9.770171014620371e-16],
             linf = [2.4424906541753444e-15],
             initial_condition=Trixi.initial_condition_constant)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_z and periodicity=false" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_z and periodicity=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.607840408143593e-16],
             linf = [5.773159728050814e-15],

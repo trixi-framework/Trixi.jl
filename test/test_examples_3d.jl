@@ -22,6 +22,35 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.001503873297666436])
   end
 
+  @testset "taal-confirmed elixir_advection_restart.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+      l2   = [0.00017800012466353434],
+      linf = [0.001452075263740804])
+  end
+
+  # TODO Taal: create separate elixirs for ICs/BCs etc. to keep `basic` simple
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_sin" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [0.002727292086517533],
+      linf = [0.024833049753677727],
+      initial_condition=Trixi.initial_condition_sin)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_constant" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [9.770171014620371e-16],
+      linf = [2.4424906541753444e-15],
+      initial_condition=Trixi.initial_condition_constant)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_z and periodicity=false" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [6.607840408143593e-16],
+      linf = [5.773159728050814e-15],
+      initial_condition=Trixi.initial_condition_linear_z,
+      boundary_conditions=Trixi.boundary_condition_linear_z, periodicity=false)
+  end
+
   @testset "taal-confirmed elixir_advection_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       l2   = [9.773858425669403e-6],
