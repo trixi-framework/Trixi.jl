@@ -4,6 +4,7 @@
 
 
 # TODO: MPI dimension agnostic
+# TODO: MPI, adapt to different real types?
 mutable struct MPICache
   mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}
@@ -175,41 +176,34 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
-  @info "reset ∂u/∂t" any(isnan, du)
 
   # Calculate volume integral
   @timeit_debug timer() "volume integral" calc_volume_integral!(
     du, u, have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
-  @info "volume integral" any(isnan, du)
 
   # Prolong solution to interfaces
   # TODO: Taal decide order of arguments, consistent vs. modified cache first?
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, equations, dg)
-  @info "prolong2interfaces" any(isnan, du)
 
   # Calculate interface fluxes
   @timeit_debug timer() "interface flux" calc_interface_flux!(
     cache.elements.surface_flux_values,
     have_nonconservative_terms(equations), equations,
     dg, cache)
-  @info "interface flux" any(isnan, du) any(isnan, cache.elements.surface_flux_values)
 
   # Prolong solution to boundaries
   @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(
     cache, u, equations, dg)
-  @info "prolong2boundaries" any(isnan, du)
 
   # Calculate boundary fluxes
   @timeit_debug timer() "boundary flux" calc_boundary_flux!(
     cache, t, boundary_conditions, equations, dg)
-  @info "boundary flux" any(isnan, du)
 
   # Prolong solution to mortars
   @timeit_debug timer() "prolong2mortars" prolong2mortars!(
     cache, u, equations, dg.mortar, dg)
-  @info "prolong2mortars" any(isnan, du)
 
   # Calculate mortar fluxes
   @timeit_debug timer() "mortar flux" calc_mortar_flux!(
@@ -231,17 +225,14 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(
     du, equations, dg, cache)
-  @info "surface integral" any(isnan, du)
 
   # Apply Jacobian from mapping to reference element
   @timeit_debug timer() "Jacobian" apply_jacobian!(
     du, equations, dg, cache)
-  @info "Jacobian" any(isnan, du)
 
   # Calculate source terms
   @timeit_debug timer() "source terms" calc_sources!(
     du, u, t, source_terms, equations, dg, cache)
-  @info "source terms" any(isnan, du)
 
   # Finish to send MPI data
   @timeit_debug timer() "finish MPI send" finish_mpi_send!(cache.mpi_cache)
@@ -252,7 +243,7 @@ end
 
 function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
                                 equations, dg::DG)
-  @unpack elements, mpi_interfaces = cache
+  @unpack mpi_interfaces = cache
 
   Threads.@threads for interface in eachmpiinterface(dg, cache)
     local_element = mpi_interfaces.local_element_ids[interface]
@@ -260,21 +251,21 @@ function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
     if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
       if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
         for j in eachnode(dg), v in eachvariable(equations)
-          mpi_interfaces.u[2, v, j, interface] = elements.u[v,          1, j, local_element]
+          mpi_interfaces.u[2, v, j, interface] = u[v,          1, j, local_element]
         end
       else # local element in negative direction
         for j in eachnode(dg), v in eachvariable(equations)
-          mpi_interfaces.u[1, v, j, interface] = elements.u[v, nnodes(dg), j, local_element]
+          mpi_interfaces.u[1, v, j, interface] = u[v, nnodes(dg), j, local_element]
         end
       end
     else # interface in y-direction
       if mpi_interfaces.remote_sides[interface] == 1 # local element in positive direction
         for i in eachnode(dg), v in eachvariable(equations)
-          mpi_interfaces.u[2, v, i, interface] = elements.u[v, i,          1, local_element]
+          mpi_interfaces.u[2, v, i, interface] = u[v, i,          1, local_element]
         end
       else # local element in negative direction
         for i in eachnode(dg), v in eachvariable(equations)
-          mpi_interfaces.u[1, v, i, interface] = elements.u[v, i, nnodes(dg), local_element]
+          mpi_interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), local_element]
         end
       end
     end
