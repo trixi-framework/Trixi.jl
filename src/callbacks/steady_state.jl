@@ -40,7 +40,12 @@ function (steady_state_callback::SteadyStateCallback)(u_ode::AbstractVector, t, 
   u  = wrap_array(u_ode, semi)
   du = wrap_array(get_du(integrator), semi)
   terminate = steady_state_callback(du, u, semi)
-  if terminate
+  if mpi_isparallel()
+    # MPI.jl doesn't seem to have MPI_C_BOOL
+    terminate_integer = Int(terminate)
+    terminate = !iszero(MPI.Allreduce!(Ref(terminate_integer), +, mpi_comm())[])
+  end
+  if terminate && mpi_isroot()
     @info "  Steady state tolerance reached" steady_state_callback t
   end
   return terminate

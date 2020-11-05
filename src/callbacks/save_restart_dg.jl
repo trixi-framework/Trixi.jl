@@ -152,7 +152,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
       u[v, .., :] = MPI.Scatterv(eltype(u)[], node_counts, mpi_root(), mpi_comm())
     end
 
-    return filename
+    return u_ode
   end
 
   # read only on MPI root
