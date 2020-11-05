@@ -4,7 +4,7 @@ abstract type SimpleAlgorithm2N end
 
 
 """
-    CarpenterKennedy2N45()
+    CarpenterKennedy2N54()
 
 The following structures and methods provide a minimal implementation of
 the low-storage explicit Runge-Kutta method of
@@ -13,12 +13,12 @@ the low-storage explicit Runge-Kutta method of
 
 using the same interface as OrdinaryDiffEq.jl.
 """
-struct CarpenterKennedy2N45 <: SimpleAlgorithm2N
+struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
   a::SVector{5, Float64}
   b::SVector{5, Float64}
   c::SVector{5, Float64}
 
-  function CarpenterKennedy2N45()
+  function CarpenterKennedy2N54()
     a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
     b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
@@ -33,16 +33,16 @@ end
 
 
 """
-      CarpenterKennedy2N34()
+      CarpenterKennedy2N43()
 
 Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
 """
-struct CarpenterKennedy2N34 <: SimpleAlgorithm2N
+struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
   a::SVector{4, Float64}
   b::SVector{4, Float64}
   c::SVector{4, Float64}
 
-  function CarpenterKennedy2N34()
+  function CarpenterKennedy2N43()
     a = @SVector [0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297]
     b = @SVector [8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383]
     c = @SVector [0, 8 / 141, 86 / 125, 1]
@@ -192,12 +192,12 @@ abstract type SimpleAlgorithm3Sstar end
 
 
 """
-    HypDiffN3Erk3Sstar25()
+    HypDiffN3Erk3Sstar52()
 
 Five stage, second-order acurate explicit Runge-Kutta scheme with stability region optimized for
 the hyperbolic diffusion equation with LLF flux and polynomials of degree polydeg=3.
 """
-struct HypDiffN3Erk3Sstar25 <: SimpleAlgorithm3Sstar
+struct HypDiffN3Erk3Sstar52 <: SimpleAlgorithm3Sstar
   gamma1::SVector{5, Float64}
   gamma2::SVector{5, Float64}
   gamma3::SVector{5, Float64}
@@ -205,7 +205,7 @@ struct HypDiffN3Erk3Sstar25 <: SimpleAlgorithm3Sstar
   delta::SVector{5, Float64}
   c::SVector{5, Float64}
 
-  function HypDiffN3Erk3Sstar25()
+  function HypDiffN3Erk3Sstar52()
     gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
     gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
     gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03]
@@ -219,13 +219,13 @@ end
 
 
 """
-    ParsaniKetchesonDeconinck3Sstar49()
+    ParsaniKetchesonDeconinck3Sstar94()
 
 Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
-struct ParsaniKetchesonDeconinck3Sstar49 <: SimpleAlgorithm3Sstar
+struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
   gamma1::SVector{9, Float64}
   gamma2::SVector{9, Float64}
   gamma3::SVector{9, Float64}
@@ -233,7 +233,7 @@ struct ParsaniKetchesonDeconinck3Sstar49 <: SimpleAlgorithm3Sstar
   delta::SVector{9, Float64}
   c::SVector{9, Float64}
 
-  function ParsaniKetchesonDeconinck3Sstar49()
+  function ParsaniKetchesonDeconinck3Sstar94()
     gamma1 = @SVector [0.0000000000000000E+00, -4.6556413837561301E+00, -7.7202649689034453E-01, -4.0244202720632174E+00, -2.1296873883702272E-02, -2.4350219407769953E+00, 1.9856336960249132E-02, -2.8107894116913812E-01, 1.6894354373677900E-01]
     gamma2 = @SVector [1.0000000000000000E+00, 2.4992627683300688E+00, 5.8668202764174726E-01, 1.2051419816240785E+00, 3.4747937498564541E-01, 1.3213458736302766E+00, 3.1196363453264964E-01, 4.3514189245414447E-01, 2.3596980658341213E-01]
     gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 7.6209857891449362E-01, -1.9811817832965520E-01, -6.2289587091629484E-01, -3.7522475499063573E-01, -3.3554373281046146E-01, -4.5609629702116454E-02]
@@ -247,13 +247,13 @@ end
 
 
 """
-    ParsaniKetchesonDeconinck3Sstar23()
+    ParsaniKetchesonDeconinck3Sstar32()
 
 Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
 [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
-struct ParsaniKetchesonDeconinck3Sstar23 <: SimpleAlgorithm3Sstar
+struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
   gamma1::SVector{3, Float64}
   gamma2::SVector{3, Float64}
   gamma3::SVector{3, Float64}
@@ -261,7 +261,7 @@ struct ParsaniKetchesonDeconinck3Sstar23 <: SimpleAlgorithm3Sstar
   delta::SVector{3, Float64}
   c::SVector{3, Float64}
 
-  function ParsaniKetchesonDeconinck3Sstar23()
+  function ParsaniKetchesonDeconinck3Sstar32()
     gamma1 = @SVector [0.0000000000000000E+00, -1.2664395576322218E-01, 1.1426980685848858E+00]
     gamma2 = @SVector [1.0000000000000000E+00, 6.5427782599406470E-01, -8.2869287683723744E-02]
     gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00]

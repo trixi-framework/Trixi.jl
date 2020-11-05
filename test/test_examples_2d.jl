@@ -33,7 +33,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [8.908962577028364e-6],
       linf = [6.969419032576418e-5],
-      ode_algorithm=Trixi.CarpenterKennedy2N34(),
+      ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 0.5)
   end
 
@@ -41,14 +41,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [7.932405161658336e-6],
       linf = [6.509399993848142e-5],
-      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar49())
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar94())
   end
 
   @testset "taal-confirmed elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [0.00440542760645958],
       linf = [0.012549162970726613],
-      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar23())
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32())
   end
 
   @testset "taal-confirmed elixir_advection_timeintegration.jl" begin
