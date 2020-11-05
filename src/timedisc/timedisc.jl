@@ -26,12 +26,13 @@ mutable struct SimpleIntegrator2NOptions{Callback}
   callback::Callback # callbacks; used in Trixi
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
+  maxiters::Int # maximal numer of time steps
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegrator2NOptions(callback, tspan; kwargs...)
+function SimpleIntegrator2NOptions(callback, tspan; maxiters=typemax(Int), kwargs...)
   SimpleIntegrator2NOptions{typeof(callback)}(
-    callback, false, Inf, [last(tspan)])
+    callback, false, Inf, maxiters, [last(tspan)])
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
@@ -180,12 +181,13 @@ mutable struct SimpleIntegrator3SstarOptions{Callback}
   callback::Callback # callbacks; used in Trixi
   adaptive::Bool # whether the algorithm is adaptive; ignored
   dtmax::Float64 # ignored
+  maxiters::Int # maximal numer of time steps
   tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function SimpleIntegrator3SstarOptions(callback, tspan; kwargs...)
+function SimpleIntegrator3SstarOptions(callback, tspan; maxiters=typemax(Int), kwargs...)
   SimpleIntegrator3SstarOptions{typeof(callback)}(
-    callback, false, Inf, [last(tspan)])
+    callback, false, Inf, maxiters, [last(tspan)])
 end
 
 mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, SimpleIntegrator3SstarOptions}

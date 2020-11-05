@@ -48,9 +48,7 @@ end
 function (alive_callback::AliveCallback)(integrator)
   @unpack t, dt, iter = integrator
 
-  # Checking for floating point equality is OK here as `DifferentialEquations.jl`
-  # sets the time exactly to the final time in the last iteration
-  if t == integrator.sol.prob.tspan[2] || isempty(integrator.opts.tstops)
+  if isfinished(integrator)
     println("-"^80)
     println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
     println("-"^80)
