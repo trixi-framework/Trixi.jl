@@ -158,20 +158,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
-  @testset "taal-confirmed elixir_euler_sedov_blast_wave_shockcapturing_amr.jl one step" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
-      l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
-      linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
-      maxiters=1)
-  end
-
-  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
-      l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
-      linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
-      maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
-  end
-
   @testset "taal-check-me cfl-magic elixir_euler_blob_shockcapturing_amr.jl" begin
   # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
@@ -306,6 +292,127 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 0.06), surface_flux = flux_hll)
   end
 
+  @testset "taal-check-me elixir_eulergravity_jeans_instability.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
+    l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
+    linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
+    tspan = (0.0, 0.1))
+  end
+
+  @testset "taal-check-me elixir_euler_gravity_sedov_blast_wave_shockcapturing_amr.jl" begin
+  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gravity_sedov_blast_wave_shockcapturing_amr.jl"),
+    l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
+    linf = [2.383463161765847, 4.0791883314039605, 4.07918833140396, 16.246070713311475],
+    tspan = (0.0, 0.05))
+  end
+end
+
+# Coverage test for all initial conditions
+@testset "Tests for initial conditions" begin
+  # TODO Taal: create separate elixirs for ICs/BCs to keep `basic` simple
+  # Linear scalar advection
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_sin_sin" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [0.0001424424804667062],
+      linf = [0.0007260692243250544],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_sin_sin)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_constant" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [6.120436421866528e-16],
+      linf = [1.3322676295501878e-15],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_x_y" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [2.559042358408011e-16],
+      linf = [6.8833827526759706e-15],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_linear_x_y,
+      boundary_conditions = Trixi.boundary_condition_linear_x_y,
+      periodicity=false)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_x" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [1.5901063275642836e-16],
+      linf = [1.5543122344752192e-15],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_linear_x,
+      boundary_conditions = Trixi.boundary_condition_linear_x,
+      periodicity=false)
+  end
+
+  @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_y" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [1.597250146891042e-16],
+      linf = [3.552713678800501e-15],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_linear_y,
+      boundary_conditions = Trixi.boundary_condition_linear_y,
+      periodicity=false)
+  end
+
+  # Compressible Euler
+  @testset "taal-confirmed elixir_euler_vortex.jl one step with initial_condition_density_pulse" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.003201074851451383, 0.0032010748514513724, 0.0032010748514513716, 0.0032010748514513794],
+      linf = [0.043716393835876444, 0.043716393835876444, 0.043716393835876, 0.04371639383587578],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_density_pulse)
+  end
+
+  @testset "taal-confirmed elixir_euler_vortex.jl one step with initial_condition_pressure_pulse" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.00018950189533270512, 0.0020542290689775757, 0.002054229068977579, 0.01013381064979542],
+      linf = [0.004763284475434837, 0.028439617580275578, 0.028439617580275467, 0.13640572175447918],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_pressure_pulse)
+  end
+
+  @testset "taal-confirmed elixir_euler_vortex.jl one step with initial_condition_density_pressure_pulse" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [0.0031880440066425803, 0.0050397619349217574, 0.005039761934921767, 0.014340770024960708],
+      linf = [0.04279723800834989, 0.06783565847184869, 0.06783565847184914, 0.19291274039254347],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_density_pressure_pulse)
+  end
+
+  @testset "taal-confirmed elixir_euler_vortex.jl one step with initial_condition_constant" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
+      l2   = [2.359732835648237e-16, 1.088770274131804e-16, 1.1814939065033234e-16, 1.980283448445849e-15],
+      linf = [4.440892098500626e-16, 2.914335439641036e-16, 4.718447854656915e-16, 3.552713678800501e-15],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
+  end
+
+  @testset "taal-confirmed differences-to-master elixir_euler_sedov_blast_wave_shockcapturing_amr.jl one step" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+      l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
+      linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
+      maxiters=1)
+  end
+
+  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+      l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
+      linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
+      maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
+  end
+
+  # GLM-MHD
+  @testset "taal-confirmed elixir_mhd_alfven_wave.jl one step with initial_condition_constant" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+      l2   = [1.9377318494777845e-16, 2.0108417179968547e-16, 4.706803550379074e-16, 9.849916218369067e-17, 9.578096259273606e-15, 4.995499731290712e-16, 2.72017579525395e-16, 9.963303137205655e-17, 1.7656549191657418e-16],
+      linf = [4.440892098500626e-16, 7.494005416219807e-16, 1.7763568394002505e-15, 2.220446049250313e-16, 2.1316282072803006e-14, 1.3322676295501878e-15, 8.881784197001252e-16, 2.220446049250313e-16, 7.414582366945819e-16],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
+  end
+
   @testset "taal-check-me cfl-magic elixir_mhd_rotor_shockcapturing_amr.jl" begin
   # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_shockcapturing_amr.jl"),
@@ -320,20 +427,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     l2   = [0.2101138028554417, 4.4379574949560014, 2.6239651859752238, 0.0, 359.15092246795564, 2.458555512327778, 1.4961525378625697, 0.0, 0.01346996306689436],
     linf = [2.4484577379812915, 63.229017006957584, 15.321798382742966, 0.0, 2257.8231751993367, 13.692356305778407, 10.026947993726841, 0.0, 0.2839557716528234],
     tspan = (0.0, 0.003))
-  end
-
-  @testset "taal-check-me elixir_eulergravity_jeans_instability.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
-    l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
-    linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
-    tspan = (0.0, 0.1))
-  end
-
-  @testset "taal-check-me elixir_euler_gravity_sedov_blast_wave_shockcapturing_amr.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_gravity_sedov_blast_wave_shockcapturing_amr.jl"),
-    l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
-    linf = [2.383463161765847, 4.0791883314039605, 4.07918833140396, 16.246070713311475],
-    tspan = (0.0, 0.05))
   end
 end
 

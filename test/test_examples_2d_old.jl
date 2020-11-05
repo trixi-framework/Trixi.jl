@@ -238,21 +238,21 @@ end
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_sin_sin" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_sin_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.0001424424804667062],
             linf = [0.0007260692243250544],
             n_steps_max = 1,
             initial_condition = "initial_condition_sin_sin")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.120436421866528e-16],
             linf = [1.3322676295501878e-15],
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_x_y" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_x_y" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [2.559042358408011e-16],
             linf = [6.8833827526759706e-15],
@@ -261,7 +261,7 @@ end
             boundary_conditions = "boundary_condition_linear_x_y",
             periodicity=false)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_x" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_x" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [1.5901063275642836e-16],
             linf = [1.5543122344752192e-15],
@@ -270,7 +270,7 @@ end
             boundary_conditions = "boundary_condition_linear_x",
             periodicity=false)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_y" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_y" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [1.597250146891042e-16],
             linf = [3.552713678800501e-15],
@@ -280,28 +280,28 @@ end
             periodicity=false)
   end
   # Compressible Euler
-  @testset "taal-check-me parameters_euler_vortex.toml one step with initial_condition_density_pulse" begin
+  @testset "taal-confirmed parameters_euler_vortex.toml one step with initial_condition_density_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.003201074851451383, 0.0032010748514513724, 0.0032010748514513716, 0.0032010748514513794],
             linf = [0.043716393835876444, 0.043716393835876444, 0.043716393835876, 0.04371639383587578],
             n_steps_max = 1,
             initial_condition = "initial_condition_density_pulse")
   end
-  @testset "taal-check-me parameters_euler_vortex.toml one step with initial_condition_pressure_pulse" begin
+  @testset "taal-confirmed parameters_euler_vortex.toml one step with initial_condition_pressure_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.00018950189533270512, 0.0020542290689775757, 0.002054229068977579, 0.01013381064979542],
             linf = [0.004763284475434837, 0.028439617580275578, 0.028439617580275467, 0.13640572175447918],
             n_steps_max = 1,
             initial_condition = "initial_condition_pressure_pulse")
   end
-  @testset "taal-check-me parameters_euler_vortex.toml one step with initial_condition_density_pressure_pulse" begin
+  @testset "taal-confirmed parameters_euler_vortex.toml one step with initial_condition_density_pressure_pulse" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [0.0031880440066425803, 0.0050397619349217574, 0.005039761934921767, 0.014340770024960708],
             linf = [0.04279723800834989, 0.06783565847184869, 0.06783565847184914, 0.19291274039254347],
             n_steps_max = 1,
             initial_condition = "initial_condition_density_pressure_pulse")
   end
-  @testset "taal-check-me parameters_euler_vortex.toml one step with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_euler_vortex.toml one step with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_vortex.toml"),
             l2   = [2.359732835648237e-16, 1.088770274131804e-16, 1.1814939065033234e-16, 1.980283448445849e-15],
             linf = [4.440892098500626e-16, 2.914335439641036e-16, 4.718447854656915e-16, 3.552713678800501e-15],
@@ -323,7 +323,7 @@ end
   end
 
   # GLM-MHD
-  @testset "taal-check-me parameters_mhd_alfven_wave.toml one step with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_mhd_alfven_wave.toml one step with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_alfven_wave.toml"),
             l2   = [1.9377318494777845e-16, 2.0108417179968547e-16, 4.706803550379074e-16, 9.849916218369067e-17, 9.578096259273606e-15, 4.995499731290712e-16, 2.72017579525395e-16, 9.963303137205655e-17, 1.7656549191657418e-16],
             linf = [4.440892098500626e-16, 7.494005416219807e-16, 1.7763568394002505e-15, 2.220446049250313e-16, 2.1316282072803006e-14, 1.3322676295501878e-15, 8.881784197001252e-16, 2.220446049250313e-16, 7.414582366945819e-16],
