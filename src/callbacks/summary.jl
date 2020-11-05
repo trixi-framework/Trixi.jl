@@ -16,6 +16,8 @@ end
 
 function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
 
+  mpi_isroot() || return nothing
+
   print_startup_message()
 
   io = stdout
@@ -56,7 +58,11 @@ end
 
 
 function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Condition, Affect!<:typeof(summary_callback)}
+
+  mpi_isroot() || return nothing
+
   print_timer(io, timer(), title="Trixi.jl",
               allocations=true, linechars=:ascii, compact=false)
   println(io)
+  return nothing
 end

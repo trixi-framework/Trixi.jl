@@ -210,7 +210,6 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
     cache.elements.surface_flux_values,
     have_nonconservative_terms(equations), equations,
     dg.mortar, dg, cache)
-  @info "mortar flux" any(isnan, du)
 
   # Finish to receive MPI data
   @timeit_debug timer() "finish MPI receive" finish_mpi_receive!(

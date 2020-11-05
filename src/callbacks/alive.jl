@@ -51,11 +51,11 @@ function (alive_callback::AliveCallback)(integrator)
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
   if t == integrator.sol.prob.tspan[2] || isempty(integrator.opts.tstops)
-    println("-"^80)
-    println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
-    println("-"^80)
-    println()
-  else
+    mpi_println("-"^80)
+    mpi_println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
+    mpi_println("-"^80)
+    mpi_println()
+  elseif mpi_isroot()
     runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
     @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
             iter, dt, t, runtime_absolute)
