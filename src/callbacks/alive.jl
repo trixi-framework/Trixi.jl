@@ -15,9 +15,10 @@ end
 
 function AliveCallback(; analysis_interval=0,
                          alive_interval=analysis_interval÷10)
+  # when is the callback activated
   condition = (u, t, integrator) -> alive_interval > 0 && (
     (integrator.iter % alive_interval == 0 && (analysis_interval == 0 || integrator.iter % analysis_interval != 0)) ||
-    t == integrator.sol.prob.tspan[2] || isempty(integrator.opts.tstops))
+    isfinished(integrator))
 
   alive_callback = AliveCallback(0.0, alive_interval, analysis_interval)
 
@@ -50,11 +51,11 @@ function (alive_callback::AliveCallback)(integrator)
 
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
-  if t == integrator.sol.prob.tspan[2] || isempty(integrator.opts.tstops)
-    mpi_println("-"^80)
-    mpi_println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
-    mpi_println("-"^80)
-    mpi_println()
+  if isfinished(integrator) && mpi_isroot()
+    println("-"^80)
+    println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
+    println("-"^80)
+    println()
   elseif mpi_isroot()
     runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
     @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",

@@ -61,8 +61,7 @@ function AnalysisCallback(semi::SemidiscretizationHyperbolic;
                           kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
-                                                     t in integrator.sol.prob.tspan ||
-                                                     isempty(integrator.opts.tstops))
+                                                     isfinished(integrator))
 
   _, equations, solver, _ = mesh_equations_solver_cache(semi)
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,

@@ -14,6 +14,15 @@ get_element_variables!(element_variables, u, mesh, equations, solver, cache,
 end
 
 
+@inline function isfinished(integrator)
+  # Checking for floating point equality is OK here as `DifferentialEquations.jl`
+  # sets the time exactly to the final time in the last iteration
+  return integrator.t == last(integrator.sol.prob.tspan) ||
+         isempty(integrator.opts.tstops) ||
+         integrator.iter == integrator.opts.maxiters
+end
+
+
 # `include` callback definitions in the order that we currently prefer
 # when combining them into a `CallbackSet` which is called after a complete step
 include("summary.jl")
