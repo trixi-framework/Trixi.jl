@@ -14,7 +14,7 @@ get_element_variables!(element_variables, u, mesh, equations, solver, cache,
 end
 
 
-function isfinished(integrator)
+@inline function isfinished(integrator)
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
   return integrator.t == last(integrator.sol.prob.tspan) ||

@@ -25,11 +25,9 @@ end
 function SaveRestartCallback(; interval=0,
                                save_final_restart=true,
                                output_directory="out")
-  # Checking for floating point equality is OK here as `DifferentialEquations.jl`
-  # sets the time exactly to the final time in the last iteration
+  # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
-                                                     (save_final_restart && (t == integrator.sol.prob.tspan[2] ||
-                                                                              isempty(integrator.opts.tstops))))
+                                                     (save_final_restart && isfinished(integrator)))
 
   restart_callback = SaveRestartCallback(interval, save_final_restart,
                                          output_directory)

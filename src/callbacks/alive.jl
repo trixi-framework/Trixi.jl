@@ -15,9 +15,10 @@ end
 
 function AliveCallback(; analysis_interval=0,
                          alive_interval=analysis_interval÷10)
+  # when is the callback activated
   condition = (u, t, integrator) -> alive_interval > 0 && (
     (integrator.iter % alive_interval == 0 && (analysis_interval == 0 || integrator.iter % analysis_interval != 0)) ||
-    t == integrator.sol.prob.tspan[2] || isempty(integrator.opts.tstops))
+    isfinished(integrator))
 
   alive_callback = AliveCallback(0.0, alive_interval, analysis_interval)
 
