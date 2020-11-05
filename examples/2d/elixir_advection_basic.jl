@@ -48,7 +48,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy, energy_total))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
-                        # save_restart, save_solution,
+                        save_restart, save_solution,
                         analysis_callback, alive_callback)
 
 

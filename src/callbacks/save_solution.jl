@@ -51,7 +51,7 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveSolutionCallback}
   solution_callback = cb.affect!
 
-  mkpath(solution_callback.output_directory)
+  mpi_isroot() && mkpath(solution_callback.output_directory)
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
