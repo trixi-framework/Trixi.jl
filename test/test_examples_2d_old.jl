@@ -19,26 +19,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [9.144681765639205e-6],
             linf = [6.437440532547356e-5])
   end
-  @testset "taal-check-me parameters_advection_basic.toml with polydeg=1" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with polydeg=1" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.05264106093598111],
             linf = [0.08754218386076518],
             polydeg=1)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with carpenter_kennedy_erk43" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with carpenter_kennedy_erk43" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [8.908962577028364e-6],
             linf = [6.969419032576418e-5],
             time_integration_scheme = "timestep_carpenter_kennedy_erk43_2N!",
             cfl = 0.5)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk94" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk94" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [7.932405161658336e-6],
             linf = [6.509399993848142e-5],
             time_integration_scheme = "timestep_parsani_ketcheson_deconinck_erk94_3Sstar!")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk32" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with parsani_ketcheson_deconinck_erk32" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.00440542760645958],
             linf = [0.012549162970726613],
@@ -54,7 +54,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.010844189678803203],
             linf = [0.0491178481591637])
   end
-  @testset "taal-check-me parameters_advection_amr_nonperiodic.toml" begin
+  @testset "taal-confirmed parameters_advection_amr_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_amr_nonperiodic.toml"),
             l2   = [0.008016815805080098],
             linf = [0.04229543866599861])
@@ -207,7 +207,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.5598159626426933, 0.5095082640545004, 0.655948904969917, 0.0, 0.9809725319955653, 0.39916604098537073, 0.6748429903024491, 0.0, 0.07124312329480051],
             t_end = 0.06, surface_flux = "flux_hll")
   end
-  @testset "taal-check-me parameters_euler_ec_mortar.toml with shock_capturing" begin
+  @testset "taal-confirmed parameters_euler_ec_mortar.toml with shock_capturing" begin
+    # TODO Taal, remove: This won't fix since we do not port the old-style EC mortars to Taal
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"),
             l2   = [0.04816136246215661, 0.03713041026830962, 0.03713130328181323, 0.1777051166244772],
             linf = [0.3118606868100966, 0.34614370128998007, 0.3460122144359348, 1.1085840270633454],

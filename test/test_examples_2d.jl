@@ -22,6 +22,41 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [6.437440532547356e-5])
   end
 
+  @testset "taal-confirmed elixir_advection_basic.jl with polydeg=1" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [0.05264106093598111],
+      linf = [0.08754218386076518],
+      polydeg=1)
+  end
+
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [8.908962577028364e-6],
+      linf = [6.969419032576418e-5],
+      ode_algorithm=Trixi.CarpenterKennedy2N43(),
+      cfl = 0.5)
+  end
+
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [7.932405161658336e-6],
+      linf = [6.509399993848142e-5],
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar94())
+  end
+
+  @testset "taal-confirmed elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [0.00440542760645958],
+      linf = [0.012549162970726613],
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32())
+  end
+
+  @testset "taal-confirmed elixir_advection_timeintegration.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [9.144681765639205e-6],
+      linf = [6.437440532547356e-5])
+  end
+
   @testset "taal-confirmed elixir_advection_mortar.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
       l2   = [0.022356422238096973],
@@ -32,6 +67,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
       l2   = [0.010844189678803203],
       linf = [0.0491178481591637])
+  end
+
+  @testset "taal-confirmed elixir_advection_amr_nonperiodic.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
+      l2   = [0.008016815805080098],
+      linf = [0.04229543866599861])
   end
 
   @testset "taal-confirmed elixir_advection_restart.jl" begin
