@@ -17,7 +17,7 @@ module Trixi
 using LinearAlgebra: dot
 using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
-using Profile: clear_malloc_data
+using Profile: clear_malloc_data # TODO: Taal, remove this dependency
 using Random: seed!
 
 import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
