@@ -13,7 +13,6 @@ initial_condition = initial_condition_gauss
 
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
-# boundary_conditions = boundary_conditions_convergence_test
 boundary_conditions = boundary_condition_gauss
 
 surface_flux = flux_lax_friedrichs
@@ -56,8 +55,9 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, IO
-# restart_interval = 10
+
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -65,7 +65,9 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
 # TODO: Taal decide, first AMR or save solution etc.
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_solution, analysis_callback, alive_callback);
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_restart, save_solution,
+                        analysis_callback, alive_callback);
 
 
 ###############################################################################
