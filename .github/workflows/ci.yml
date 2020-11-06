@@ -37,8 +37,6 @@ jobs:
           # - 'nightly'
         os:
           - ubuntu-latest
-          # - macOS-latest
-          # - windows-latest
         arch:
           - x64
         trixi_test:
@@ -50,6 +48,23 @@ jobs:
           - parallel_2d
           - 1D
           - misc
+        include:
+          - version: 1.5
+            os: macOS-latest
+            arch: x64
+            trixi_test: 2D
+          - version: 1.5
+            os: macOS-latest
+            arch: x64
+            trixi_test: parallel_2d
+          - version: 1.5
+            os: windows-latest
+            arch: x64
+            trixi_test: 2D
+          - version: 1.5
+            os: windows-latest
+            arch: x64
+            trixi_test: parallel_2d
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
