@@ -76,20 +76,22 @@ struct LobattoLegendreMortarL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix
   reverse_lower::MortarMatrix
 end
 
-function MortarL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
-  nnodes_ = nnodes(basis)
-  forward_upper = calc_forward_upper(nnodes_)
-  forward_lower = calc_forward_lower(nnodes_)
-  reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss))
-  reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
+function MortarL2(basis::LobattoLegendreBasis)
+  RealT = real(basis)
+  NNODES = nnodes(basis)
+
+  forward_upper = calc_forward_upper(NNODES)
+  forward_lower = calc_forward_lower(NNODES)
+  reverse_upper = calc_reverse_upper(NNODES, Val(:gauss))
+  reverse_lower = calc_reverse_lower(NNODES, Val(:gauss))
 
   # type conversions to make use of StaticArrays etc.
-  forward_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_upper))
-  forward_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_lower))
-  reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, reverse_upper))
-  reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, reverse_lower))
+  forward_upper = SMatrix{NNODES, NNODES}(convert.(RealT, forward_upper))
+  forward_lower = SMatrix{NNODES, NNODES}(convert.(RealT, forward_lower))
+  reverse_upper = SMatrix{NNODES, NNODES}(convert.(RealT, reverse_upper))
+  reverse_lower = SMatrix{NNODES, NNODES}(convert.(RealT, reverse_lower))
 
-  LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper)}(
+  LobattoLegendreMortarL2{RealT, NNODES, typeof(forward_upper)}(
     forward_upper, forward_lower,
     reverse_upper, reverse_lower)
 end
@@ -318,7 +320,7 @@ end
 
 
 # Calculate Lhat.
-function calc_lhat(x::Float64, nodes, weights)
+function calc_lhat(x, nodes, weights)
   n_nodes = length(nodes)
   wbary = barycentric_weights(nodes)
 
@@ -333,7 +335,7 @@ end
 
 
 # Calculate Lagrange polynomials for a given node distribution.
-function lagrange_interpolating_polynomials(x::Float64, nodes, wbary)
+function lagrange_interpolating_polynomials(x, nodes, wbary)
   n_nodes = length(nodes)
   polynomials = zeros(n_nodes)
 
