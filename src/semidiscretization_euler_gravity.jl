@@ -161,28 +161,30 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
 
   time_start = time_ns()
 
+  # compute gravitational potential and forces
+  # TODO: eulergravity
+  # @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode)
+
   # standard semidiscretization of the compressible Euler equations
   @timeit_debug timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
 
-  # compute gravitational potential and forces
-  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode)
-
   # add gravitational source source_terms to the Euler part
-  if ndims(semi_euler) == 2
-    @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
-    @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
-    @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                     u_euler[3, .., :] * u_gravity[3, .., :])
-  elseif ndims(semi_euler) == 3
-    @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
-    @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
-    @views @. du_euler[4, .., :] -=  u_euler[1, .., :] * u_gravity[4, .., :]
-    @views @. du_euler[5, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                     u_euler[3, .., :] * u_gravity[3, .., :] +
-                                     u_euler[4, .., :] * u_gravity[4, .., :])
-  else
-    error("Number of dimensions $(ndims(semi_euler)) not supported.")
-  end
+  # TODO: eulergravity
+  # if ndims(semi_euler) == 2
+  #   @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
+  #   @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
+  #   @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
+  #                                    u_euler[3, .., :] * u_gravity[3, .., :])
+  # elseif ndims(semi_euler) == 3
+  #   @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
+  #   @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
+  #   @views @. du_euler[4, .., :] -=  u_euler[1, .., :] * u_gravity[4, .., :]
+  #   @views @. du_euler[5, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
+  #                                    u_euler[3, .., :] * u_gravity[3, .., :] +
+  #                                    u_euler[4, .., :] * u_gravity[4, .., :])
+  # else
+  #   error("Number of dimensions $(ndims(semi_euler)) not supported.")
+  # end
 
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
@@ -265,13 +267,9 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     # OBS! subtract off the background density ρ_0 (spatial mean value)
     @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
 
-    a_stage = a[stage]
-    b_stage_dt = b[stage] * dt
     @timeit_debug timer() "Runge-Kutta step" begin
-      Threads.@threads for idx in eachindex(u_ode)
-        u_tmp1_ode[idx] = du_ode[idx] - u_tmp1_ode[idx] * a_stage
-        u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
-      end
+      @. u_tmp1_ode = du_ode - u_tmp1_ode * a[stage]
+      @. u_ode += u_tmp1_ode * b[stage] * dt
     end
   end
 

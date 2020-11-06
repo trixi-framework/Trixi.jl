@@ -35,10 +35,11 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
 
   for stage in eachindex(c)
     # Update gravity in every RK stage
-    if update_gravity_once_per_stage
-      @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
-                                                       gravity_parameters)
-    end
+    # TODO: eulergravity
+    # if update_gravity_once_per_stage
+    #   @timeit timer() "gravity solver" update_gravity!(solver_gravity, solver_euler.elements.u,
+    #                                                    gravity_parameters)
+    # end
 
     # Update stage time
     t_stage = t + dt * c[stage]
@@ -50,19 +51,20 @@ function timestep_euler_gravity!(solver_euler, solver_gravity, t::Float64, dt::F
     u_euler = solver_euler.elements.u
     u_t_euler = solver_euler.elements.u_t
     u_gravity = solver_gravity.elements.u
-    if ndims(solver_euler) == 2
-      @views @. u_t_euler[2,:,:,:] -= u_euler[1,:,:,:]*u_gravity[2,:,:,:]
-      @views @. u_t_euler[3,:,:,:] -= u_euler[1,:,:,:]*u_gravity[3,:,:,:]
-      @views @. u_t_euler[4,:,:,:] -= (u_euler[2,:,:,:]*u_gravity[2,:,:,:]
-                                      +u_euler[3,:,:,:]*u_gravity[3,:,:,:])
-    else
-      @views @. u_t_euler[2,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[2,:,:,:,:]
-      @views @. u_t_euler[3,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[3,:,:,:,:]
-      @views @. u_t_euler[4,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[4,:,:,:,:]
-      @views @. u_t_euler[5,:,:,:,:] -= (u_euler[2,:,:,:,:]*u_gravity[2,:,:,:,:]
-                                        +u_euler[3,:,:,:,:]*u_gravity[3,:,:,:,:]
-                                        +u_euler[4,:,:,:,:]*u_gravity[4,:,:,:,:])
-    end
+    # TODO: eulergravity
+    # if ndims(solver_euler) == 2
+    #   @views @. u_t_euler[2,:,:,:] -= u_euler[1,:,:,:]*u_gravity[2,:,:,:]
+    #   @views @. u_t_euler[3,:,:,:] -= u_euler[1,:,:,:]*u_gravity[3,:,:,:]
+    #   @views @. u_t_euler[4,:,:,:] -= (u_euler[2,:,:,:]*u_gravity[2,:,:,:]
+    #                                   +u_euler[3,:,:,:]*u_gravity[3,:,:,:])
+    # else
+    #   @views @. u_t_euler[2,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[2,:,:,:,:]
+    #   @views @. u_t_euler[3,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[3,:,:,:,:]
+    #   @views @. u_t_euler[4,:,:,:,:] -= u_euler[1,:,:,:,:]*u_gravity[4,:,:,:,:]
+    #   @views @. u_t_euler[5,:,:,:,:] -= (u_euler[2,:,:,:,:]*u_gravity[2,:,:,:,:]
+    #                                     +u_euler[3,:,:,:,:]*u_gravity[3,:,:,:,:]
+    #                                     +u_euler[4,:,:,:,:]*u_gravity[4,:,:,:,:])
+    # end
     # take RK step for compressible Euler
     @timeit timer() "Runge-Kutta step" begin
       @. solver_euler.elements.u_tmp2 = (solver_euler.elements.u_t

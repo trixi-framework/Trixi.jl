@@ -1,7 +1,9 @@
 ####################################################################################################
 # Simulation
 ndims = 2
-equations = "euler_gravity"
+# TODO: eulergravity
+equations = "CompressibleEulerEquations"
+# equations = "euler_gravity"
 gamma = 1.6666666666666667
 initial_condition = "initial_condition_jeans_instability"
 surface_flux = "flux_hll"
@@ -22,7 +24,8 @@ cfl = 0.5
 n_steps_max = 10000
 n_iterations_max = 1000
 analysis_interval = 100
-extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
+# TODO: eulergravity
+# extra_analysis_quantities = ["energy_total","energy_kinetic","energy_internal", "energy_potential"]
 save_analysis = true
 
 # Gravity

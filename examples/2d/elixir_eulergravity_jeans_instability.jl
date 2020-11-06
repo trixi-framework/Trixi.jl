@@ -103,7 +103,9 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan);
+# TODO: eulergravity
+ode = semidiscretize(semi_euler, tspan);
+# ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
@@ -142,8 +144,9 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t, semi::Semidiscr
 end
 
 analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
-                                     save_analysis=true,
-                                     extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
+                                     save_analysis=true)
+                                     # TODO: eulergravity
+                                    #  extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_restart, save_solution,
@@ -152,7 +155,9 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+# TODO: eulergravity
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+sol = Trixi.solve(ode, Trixi.CarpenterKennedy2N54(),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

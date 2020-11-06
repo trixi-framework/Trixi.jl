@@ -52,6 +52,9 @@ function init_simulation_euler_gravity()
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_condition = parameter("adapt_initial_condition", true)
   adapt_initial_condition_only_refine = parameter("adapt_initial_condition_only_refine", true)
+
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   begin
     print("Applying initial conditions... ")
     t_start = parameter("t_start")
