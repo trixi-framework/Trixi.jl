@@ -308,6 +308,7 @@ include("indicators_3d.jl")
 include("1d/containers.jl")
 include("1d/dg.jl")
 include("1d/amr.jl")
+include("containers_1d.jl")
 include("dg_1d.jl")
 
 # 2D DG implementation
