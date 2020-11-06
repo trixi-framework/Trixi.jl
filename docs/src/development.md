@@ -16,7 +16,7 @@ which destroys any potential benefits from caching. However, restarting
 Julia can be avoided by using the [Revise.jl](https://github.com/timholy/Revise.jl)
 package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
-To enter the packe REPL mode, press `]` in the standard Julia REPL mode. Then, execute
+To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia
 (@v1.5) pkg> add Revise
 ```
@@ -47,7 +47,7 @@ julia> using Revise; using Trixi
 ```
 You can run a simulation by executing
 ```julia
-julia> Trixi.run("examples/2d/parameters_advection_basic.toml")
+julia> trixi_include(default_example())
 ```
 Together, all of these commands can take some time, roughly half a minute on a
 modern workstation. Most of the time is spent on compilation of Julia code etc.
@@ -77,7 +77,7 @@ if Trixi is not installed in the global environment. The same procedure also
 applies should you opt to install the postprocessing tools
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl) and
 [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) manually such that
-you can modify their implemenations.
+you can modify their implementations.
 
 
 ### Pitfalls when using Revise
@@ -153,7 +153,7 @@ which will set the project path, load Revise (if installed), and import Trixi:
 ```bash
 julia> include("utils/juno.jl")
 ```
-Afterwards, you can start Trixi in the usual way by calling the `Trixi.run` method.
+Afterwards, you can start Trixi in the usual way by calling the `trixi_include` method.
 
 ### Vim or Emacs
 Vim and Emacs are both very popular editors that work great with Julia. One
@@ -246,8 +246,7 @@ You can also make it more detailed by benchmarking only, e.g., the calculation o
 6. Set the correct version number in the badge "GitHub commits since tagged version"
    in README.md.
    The badge will only show up correctly if TagBot has released a new version. This will
-   be done automatically over night. If you don't want to wait, trigger the GitHub Action
-   TagBot manually.
+   be done automatically.
 7. When a new version of Trixi was released, check whether the `[compat]` entries
    in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
    When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
