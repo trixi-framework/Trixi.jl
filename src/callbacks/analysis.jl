@@ -49,21 +49,25 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
-function AnalysisCallback(semi::SemidiscretizationHyperbolic;
+function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
+  _, equations, solver, _ = mesh_equations_solver_cache(semi)
+  AnalysisCallback(equations, solver; kwargs...)
+end
+
+function AnalysisCallback(equations::AbstractEquations, solver;
                           interval=0,
                           save_analysis=false,
                           output_directory="out",
                           analysis_filename="analysis.dat",
                           extra_analysis_errors=Symbol[],
-                          analysis_errors=union(default_analysis_errors(semi.equations), extra_analysis_errors),
+                          analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
-                          analysis_integrals=union(default_analysis_integrals(semi.equations), extra_analysis_integrals),
+                          analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
                           kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
                                                      isfinished(integrator))
 
-  _, equations, solver, _ = mesh_equations_solver_cache(semi)
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        SolutionAnalyzer(solver; kwargs...),
                                        analysis_errors, Tuple(analysis_integrals),

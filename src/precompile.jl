@@ -59,6 +59,39 @@ end
 function _precompile_manual_()
   ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
 
+  function equations_types_1d(RealT)
+    ( LinearScalarAdvectionEquation1D{RealT},
+      CompressibleEulerEquations1D{RealT},
+    )
+  end
+  function equations_types_2d(RealT)
+    ( LinearScalarAdvectionEquation2D{RealT},
+      HyperbolicDiffusionEquations2D{RealT},
+      CompressibleEulerEquations2D{RealT},
+      IdealGlmMhdEquations2D{RealT},
+    )
+  end
+  function equations_types_3d(RealT)
+    ( LinearScalarAdvectionEquation3D{RealT},
+      HyperbolicDiffusionEquations3D{RealT},
+      CompressibleEulerEquations3D{RealT},
+      IdealGlmMhdEquations3D{RealT},
+    )
+  end
+  function equations_types(RealT)
+    ( LinearScalarAdvectionEquation1D{RealT},
+      LinearScalarAdvectionEquation2D{RealT},
+      LinearScalarAdvectionEquation3D{RealT},
+      HyperbolicDiffusionEquations2D{RealT},
+      HyperbolicDiffusionEquations3D{RealT},
+      CompressibleEulerEquations1D{RealT},
+      CompressibleEulerEquations2D{RealT},
+      CompressibleEulerEquations3D{RealT},
+      IdealGlmMhdEquations2D{RealT},
+      IdealGlmMhdEquations3D{RealT},
+    )
+  end
+
   # Constructors: mesh
   for RealT in (Int, Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},RealT,RealT})
@@ -74,6 +107,25 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Type{LinearScalarAdvectionEquation2D},Tuple{RealT,RealT}})
     @assert Base.precompile(Tuple{Type{LinearScalarAdvectionEquation3D},RealT,RealT,RealT})
     @assert Base.precompile(Tuple{Type{LinearScalarAdvectionEquation3D},Tuple{RealT,RealT,RealT}})
+  end
+
+  # Constructors: hyperbolic diffusion
+  for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations2D},RealT})
+    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations3D},RealT})
+  end
+
+  # Constructors: Euler
+  for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Type{CompressibleEulerEquations1D},RealT})
+    @assert Base.precompile(Tuple{Type{CompressibleEulerEquations2D},RealT})
+    @assert Base.precompile(Tuple{Type{CompressibleEulerEquations3D},RealT})
+  end
+
+  # Constructors: MHD
+  for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations2D},RealT})
+    @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations3D},RealT})
   end
 
   # Constructors of the basis are inherently not type-stable since we pass integers
@@ -101,6 +153,47 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(Trixi.MortarL2),basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer},basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2},basis_type})
+  end
+
+  # Constructors: callbacks
+  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:analysis_interval,),Tuple{Int}},Type{AliveCallback}})
+  for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:cfl,),Tuple{RealT}},Type{StepsizeCallback}})
+  end
+  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_final_restart),Tuple{Int,Bool}},Type{SaveRestartCallback}})
+  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,Symbol}},Type{SaveSolutionCallback}})
+  for RealT in (Float64,), polydeg in 1:7
+    nnodes_ = polydeg + 1
+    nnodes_analysis = 2*polydeg + 1
+    @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(Trixi.entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
+    # We would need to use all special cases instead of
+    # Function,Trixi.AbstractVolumeIntegral
+    # for equations_type in equations_types(RealT)
+    #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
+    # end
+  end
+  Base.precompile(Tuple{typeof(SummaryCallback)})
+  # TODO: AMRCallback, ControllerThreeLevel, indicators
+
+  # init_elements, interfaces, etc.
+  for RealT in (Float64,), polydeg in 1:7
+    nnodes_ = polydeg + 1
+
+    # 2D, serial
+    Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,1,polydeg}})
+    Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,1,polydeg}})
+
+    # 2D, serial
+    Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
+    Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
+    Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+
+    # TODO: 2D, parallel
+
+    # 3D, serial
+    Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
+    Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
+    Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
   end
 end
 
