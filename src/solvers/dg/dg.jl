@@ -315,6 +315,7 @@ include("2d/containers.jl")
 include("2d/dg.jl")
 include("2d/amr.jl")
 include("2d/parallel.jl")
+include("containers_2d.jl")
 include("dg_2d.jl")
 include("dg_2d_parallel.jl")
 
