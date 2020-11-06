@@ -96,11 +96,11 @@ function MortarL2(basis::LobattoLegendreBasis)
     reverse_upper, reverse_lower)
 end
 
-function Base.show(io::IO, mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
-  print(io, "LobattoLegendreMortarL2{", RealT, "}(polydeg=", polydeg(mortar), ")")
+function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
+  print(io, "LobattoLegendreMortarL2{", real(mortar), "}(polydeg=", polydeg(mortar), ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2{RealT}) where {RealT}
-  print(io, "LobattoLegendreMortarL2{", RealT, "} with polynomials of degree ", polydeg(mortar))
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
+  print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ", polydeg(mortar))
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT

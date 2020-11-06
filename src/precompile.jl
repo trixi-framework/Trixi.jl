@@ -128,10 +128,12 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations3D},RealT})
   end
 
-  # Constructors of the basis are inherently not type-stable since we pass integers
+  # Constructors of the basis are inherently type-unstable since we pass integers
   # and use their values as parameters of static arrays.
   # Nevertheless, we can still precompile methods used to construct the bases.
+  Base.precompile(Tuple{Type{LobattoLegendreBasis},Int})
   for RealT in (Float64,)
+    Base.precompile(Tuple{Type{LobattoLegendreBasis},RealT,Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat),Vector{RealT},Vector{RealT}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_dsplit),Vector{RealT},Vector{RealT}})
     @assert Base.precompile(Tuple{typeof(Trixi.polynomial_derivative_matrix),Vector{RealT}})
@@ -145,6 +147,12 @@ function _precompile_manual_()
   end
   @assert Base.precompile(Tuple{typeof(Trixi.gauss_lobatto_nodes_weights),Int})
   @assert Base.precompile(Tuple{typeof(Trixi.gauss_nodes_weights),Int})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_upper),Int})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower),Int})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper),Int,Val{:gauss}})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower),Int,Val{:gauss}})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper),Int,Val{:gauss_lobatto}})
+  @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower),Int,Val{:gauss_lobatto}})
 
   # Constructors: mortars, analyzers, adaptors
   for RealT in (Float64,), polydeg in 1:7
