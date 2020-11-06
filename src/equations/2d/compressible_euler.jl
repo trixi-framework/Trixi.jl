@@ -549,6 +549,15 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Compr
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
+"""
+    source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
+"""
 @inline function source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
@@ -570,7 +579,7 @@ end
   return SVector(du1, du2, du3, du4)
 end
 
-# TODO: Taal, add docstring and remove method with the signature below
+# TODO: Taal and remove method with the signature below
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
@@ -594,6 +603,15 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
+"""
+    source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations2D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
+"""
 @inline function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
@@ -615,7 +633,7 @@ end
   return SVector(du1, du2, du3, du4)
 end
 
-# TODO: Taal, add docstring and remove method with the signature below
+# TODO: Taal, remove method with the signature below
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
