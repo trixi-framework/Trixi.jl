@@ -19,26 +19,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.00015975754755823664],
             linf = [0.001503873297666436])
   end
-  @testset "taal-check-me parameters_advection_basic.toml with restart and t_end=2" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with restart and t_end=2" begin
     Trixi.run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"))
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.00017800012466353434],
             linf = [0.001452075263740804],
             t_end = 2, restart = true, restart_filename = "out/restart_000040.h5")
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_sin" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_sin" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [0.002727292086517533],
             linf = [0.024833049753677727],
             initial_condition=Trixi.initial_condition_sin)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_constant" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [9.770171014620371e-16],
             linf = [2.4424906541753444e-15],
             initial_condition=Trixi.initial_condition_constant)
   end
-  @testset "taal-check-me parameters_advection_basic.toml with initial_condition_linear_z and periodicity=false" begin
+  @testset "taal-confirmed parameters_advection_basic.toml with initial_condition_linear_z and periodicity=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"),
             l2   = [6.607840408143593e-16],
             linf = [5.773159728050814e-15],
@@ -50,13 +50,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
             linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
   end
-  @testset "taal-check-me parameters_euler_source_terms.toml with split_form" begin
+  @testset "taal-confirmed parameters_euler_source_terms.toml with split_form" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_source_terms.toml"),
             l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
             linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979],
             volume_integral_type = "split_form")
   end
-  @testset "taal-check-me parameters_euler_eoc_test.toml" begin
+  @testset "taal-confirmed parameters_euler_eoc_test.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_eoc_test.toml"),
             l2   = [0.000363723832448333, 0.00039555684672049366, 0.0003955568467203738, 0.00039555684672064724, 0.0007811604790242773],
             linf = [0.002400072140187337, 0.0029635489437536133, 0.0029635489437540574, 0.0029635489437565, 0.007191455734479657])
@@ -67,7 +67,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.0034966337661186397, 0.0037643976198782347, 0.003764397619878901, 0.0037643976198780127, 0.008370354378078648, 0.0010129211321238465, 0.0024406779290754455, 0.002440677929075438, 0.0024406779290755756],
             resid_tol = 1.0e-4, t_end = 0.2)
   end
-  @testset "taal-check-me parameters_advection_mortar.toml" begin
+  @testset "taal-confirmed parameters_advection_mortar.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_advection_mortar.toml"),
             l2   = [0.0018461483161353273],
             linf = [0.017728496545256434])

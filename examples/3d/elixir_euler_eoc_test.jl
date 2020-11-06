@@ -5,11 +5,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations3D(1.4)
+equations = CompressibleEulerEquations3D(2.0)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_hll
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(3, surface_flux, volume_integral)
 
@@ -21,20 +21,19 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+                                    source_terms=source_terms_eoc_test_euler)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 # FIXME Taal restore after Taam sync
-# stepsize_callback = StepsizeCallback(cfl=1.0)
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
