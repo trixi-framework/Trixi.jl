@@ -4,7 +4,25 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'docs/**'
 
 jobs:
   test:
