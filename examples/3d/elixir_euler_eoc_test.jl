@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(2.0)
 
-initial_condition = Trixi.initial_condition_eoc_test_coupled_euler_gravity
+initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
 surface_flux = flux_hll
 volume_integral = VolumeIntegralWeakForm()
@@ -21,7 +21,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=Trixi.source_terms_eoc_test_euler)
+                                    source_terms=source_terms_eoc_test_euler)
 
 
 ###############################################################################
