@@ -300,13 +300,17 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
       # Iterate over all elements
       for element_id in 1:dg.n_elements
         target_distance = 3
+        distance_tolerance = 1
+
         cell_id = dg.elements.cell_ids[element_id]
-        cell_coordinates = mesh.tree.coordinates[cell_id]
+        cell_coordinate_x = mesh.tree.coordinates[1, cell_id]
+        cell_coordinate_y = mesh.tree.coordinates[2, cell_id]
+        cell_coordinates = SVector(cell_coordinate_x, cell_coordinate_x)
         cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
 
-        if cell_distance < target_distance - 1
+        if cell_distance < target_distance - distance_tolerance
           lambda[element_id] = 1.0
-        elseif cell_distance > target_distance + 1
+        elseif cell_distance > target_distance + distance_tolerance
           lambda[element_id] = -1.0
         else
           lambda[element_id] = 0.0
