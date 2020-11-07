@@ -356,8 +356,9 @@ function run_simulation_euler_gravity(mesh, solvers, time_parameters, time_integ
   # Return error norms for EOC calculation
   println("Number of gravity subcycles: ", globals[:gravity_subcycles])
   if get_name(solver_euler.initial_condition) == "initial_condition_eoc_test_coupled_euler_gravity"
-    return l2_error, linf_error, vcat(varnames_cons(solver.equations),
-                                      varnames_cons(solver_gravity.equations))
+    return (; l2=l2_error, linf=linf_error,
+              varnames=vcat(varnames_cons(solver.equations),
+                            varnames_cons(solver_gravity.equations)))
   else
     return (; l2=l2_error, linf=linf_error, varnames=varnames_cons(solver.equations))
   end

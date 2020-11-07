@@ -292,11 +292,19 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 0.06), surface_flux = flux_hll)
   end
 
+
+  @testset "taal-confirmed elixir_eulergravity_eoc_test.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+      l2   = [0.0002487158370511598, 0.0003370291440916084, 0.00033702914409161063, 0.0007231934514459757],
+      linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383],
+      tspan = (0.0, 0.1))
+  end
+
   @testset "taal-check-me elixir_eulergravity_jeans_instability.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
-    l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
-    linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
-    tspan = (0.0, 0.1))
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
+      l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
+      linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
+      tspan = (0.0, 0.1))
   end
 
   @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl" begin

@@ -40,7 +40,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             polydeg=4)
   end
 
-  @testset "taal-check-me parameters_eulergravity_eoc_test.toml" begin
+  @testset "taal-confirmed parameters_eulergravity_eoc_test.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_eoc_test.toml"),
             l2   = [0.0002487158370511598, 0.0003370291440916084, 0.00033702914409161063, 0.0007231934514459757, 0.00013852406160669235, 0.0007541252869723029, 0.0007541252869723299],
             linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383, 0.0009549587622960237, 0.0030981236291827237, 0.003098123629182964],
