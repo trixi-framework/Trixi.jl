@@ -21,17 +21,6 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   old_n_elements = nelements(dg.elements)
   old_u = dg.elements.u
 
-  # Get new list of leaf cells
-  if mpi_isparallel()
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-  else
-    leaf_cell_ids = leaf_cells(mesh.tree)
-  end
-
-  # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
-  n_elements = nelements(elements)
-
   (elements, n_elements, interfaces, n_interfaces, mpi_interfaces, n_mpi_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction, mortar_type, l2mortars, 
       ecmortars, n_l2mortars, n_ecmortars, mpi_neighbor_ranks, 
