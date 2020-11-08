@@ -89,41 +89,16 @@ end
 
 
 # Convenience constructor to create DG solver instance
-function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, volume_flux_function, initial_conditions, source_terms, mesh::TreeMesh, POLYDEG) where {NDIMS, NVARS}
-  # Get local cells for which an element needs to be created (i.e., all leaf cells)
-  if mpi_isparallel()
-    leaf_cell_ids = local_leaf_cells(mesh.tree)
-  else
-    leaf_cell_ids = leaf_cells(mesh.tree)
-  end
+function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, 
+    volume_flux_function, initial_conditions, source_terms, 
+    mesh::TreeMesh, POLYDEG) where {NDIMS, NVARS}
 
-  # Initialize element container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
-  n_elements = nelements(elements)
-
-  # Initialize interface container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
-  n_interfaces = ninterfaces(interfaces)
-
-  # Initialize MPI interface container
-  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
-  n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
-
-  # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
-  n_boundaries = nboundaries(boundaries)
-
-  # Initialize mortar containers
-  mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
-  n_l2mortars = nmortars(l2mortars)
-  n_ecmortars = nmortars(ecmortars)
-
-  # Sanity checks
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
-    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 2*n_elem")
-  end
+  (elements, n_elements, interfaces, n_interfaces, mpi_interfaces, n_mpi_interfaces,
+      boundaries, n_boundaries, n_boundaries_per_direction, mortar_type, l2mortars, 
+      ecmortars, n_l2mortars, n_ecmortars, mpi_neighbor_ranks, 
+      mpi_neighbor_interfaces, mpi_send_buffers, mpi_recv_buffers, 
+      mpi_send_requests, mpi_recv_requests, n_elements_by_rank, n_elements_global, 
+      first_element_global_id) = initialize_containers(mesh, NDIMS, NVARS, POLYDEG)
 
   # Initialize boundary conditions
   boundary_conditions = init_boundary_conditions(n_boundaries_per_direction, mesh)
@@ -214,45 +189,6 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   amr_alpha_min = parameter("amr_alpha_min", 0.001)
   amr_alpha_smooth = parameter("amr_alpha_smooth", false)
 
-  # Set up MPI neighbor connectivity and communication data structures
-  if mpi_isparallel()
-    (mpi_neighbor_ranks,
-     mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
-    (mpi_send_buffers,
-     mpi_recv_buffers,
-     mpi_send_requests,
-     mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
-                                                   Val(NDIMS), Val(NVARS), Val(POLYDEG))
-
-    # Determine local and total number of elements
-    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
-    n_elements_by_rank[mpi_rank() + 1] = n_elements
-    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
-    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
-    n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
-    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
-
-    # Determine the global element id of the first element
-    first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
-    if mpi_isroot()
-      # With Exscan, the result on the first rank is undefined
-      first_element_global_id = 1
-    else
-      # On all other ranks we need to add one, since Julia has one-based indices
-      first_element_global_id += 1
-    end
-  else
-    mpi_neighbor_ranks = Int[]
-    mpi_neighbor_interfaces = Vector{Int}[]
-    mpi_send_buffers = Vector{Float64}[]
-    mpi_recv_buffers = Vector{Float64}[]
-    mpi_send_requests = MPI.Request[]
-    mpi_recv_requests = MPI.Request[]
-    n_elements_by_rank = OffsetArray([n_elements], 0:0)
-    n_elements_global = n_elements
-    first_element_global_id = 1
-  end
-
   # Initialize element variables such that they are available in the first solution file
   if volume_integral_type === Val(:shock_capturing)
     element_variables[:blending_factor] = zeros(n_elements)
@@ -320,6 +256,90 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
       initial_state_integrals)
 
   return dg
+end
+
+
+function initialize_containers(mesh, NDIMS, NVARS, POLYDEG)
+  # Get local cells for which an element needs to be created (i.e., all leaf cells)
+  if mpi_isparallel()
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+  else
+    leaf_cell_ids = leaf_cells(mesh.tree)
+  end
+
+  # Initialize element container
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  n_elements = nelements(elements)
+
+  # Initialize interface container
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_interfaces = ninterfaces(interfaces)
+
+  # Initialize MPI interface container
+  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_mpi_interfaces = nmpiinterfaces(mpi_interfaces)
+
+  # Initialize boundaries
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_boundaries = nboundaries(boundaries)
+
+  # Initialize mortar containers
+  mortar_type = Val(Symbol(parameter("mortar_type", "l2", valid=["l2", "ec"])))
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, mortar_type)
+  n_l2mortars = nmortars(l2mortars)
+  n_ecmortars = nmortars(ecmortars)
+
+  # Sanity checks
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0 && mpi_isserial()
+    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Set up MPI neighbor connectivity and communication data structures
+  if mpi_isparallel()
+    (mpi_neighbor_ranks,
+     mpi_neighbor_interfaces) = init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+    (mpi_send_buffers,
+     mpi_recv_buffers,
+     mpi_send_requests,
+     mpi_recv_requests) = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                   Val(NDIMS), Val(NVARS), Val(POLYDEG))
+
+    # Determine local and total number of elements
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+    n_elements_by_rank[mpi_rank() + 1] = n_elements
+    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
+    n_elements_global = MPI.Allreduce(n_elements, +, mpi_comm())
+    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
+
+    # Determine the global element id of the first element
+    first_element_global_id = MPI.Exscan(n_elements, +, mpi_comm())
+    if mpi_isroot()
+      # With Exscan, the result on the first rank is undefined
+      first_element_global_id = 1
+    else
+      # On all other ranks we need to add one, since Julia has one-based indices
+      first_element_global_id += 1
+    end
+  else
+    mpi_neighbor_ranks = Int[]
+    mpi_neighbor_interfaces = Vector{Int}[]
+    mpi_send_buffers = Vector{Float64}[]
+    mpi_recv_buffers = Vector{Float64}[]
+    mpi_send_requests = MPI.Request[]
+    mpi_recv_requests = MPI.Request[]
+    n_elements_by_rank = OffsetArray([n_elements], 0:0)
+    n_elements_global = n_elements
+    first_element_global_id = 1
+  end
+
+  return elements, n_elements, interfaces, n_interfaces, mpi_interfaces, n_mpi_interfaces,
+      boundaries, n_boundaries, n_boundaries_per_direction, mortar_type, l2mortars, 
+      ecmortars, n_l2mortars, n_ecmortars, mpi_neighbor_ranks, 
+      mpi_neighbor_interfaces, mpi_send_buffers, mpi_recv_buffers, 
+      mpi_send_requests, mpi_recv_requests, n_elements_by_rank, n_elements_global, 
+      first_element_global_id
 end
 
 
