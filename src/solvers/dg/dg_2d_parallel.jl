@@ -100,22 +100,15 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2}
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-  # TODO: Taal refactor, we should pass the basis as argument,
-  # not polydeg, to all of the following initialization methods
-  elements = init_elements(leaf_cell_ids, mesh,
-                           RealT, nvariables(equations), polydeg(dg))
+  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
 
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               RealT, nvariables(equations), polydeg(dg))
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements,
-                                       RealT, nvariables(equations), polydeg(dg))
+  mpi_interfaces = init_mpi_interfaces(leaf_cell_ids, mesh, elements)
 
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  RealT, nvariables(equations), polydeg(dg))
+  boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         RealT, nvariables(equations), polydeg(dg), dg.mortar)
+  mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
   # MPI setup
   mpi_neighbor_ranks, mpi_neighbor_interfaces =
