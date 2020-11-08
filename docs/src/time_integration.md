@@ -7,14 +7,6 @@ Interesting classes of time integration schemes are
 - [Explicit low-storage Runge-Kutta methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
 - [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
 
-!!! note
-
-  If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
-  the total number of `rhs!` calls can be (slightly) bigger than the number of steps times the number
-  of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
-  and error-based time step control. In general, you often should not need to worry about this if you
-  use Trixi.
-
 Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are the following. Further documentation can be found in the
 [SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
@@ -25,3 +17,13 @@ are the following. Further documentation can be found in the
   (try to) save the numerical solution after every time step in RAM (until you run
   out of memory or start to swap).
 - You can set the maximal number of time steps via `maxiters=...`.
+- SSP methods and 2N low-storage methods from OrdinaryDiffEq.jl support
+  `stage_limiter!`s and `step_limiter!`s, e.g. `PositivityPreservingLimiterZhangShu`
+  from Trixi.
+
+!!! note "Number of `rhs!` calls"
+    If you use explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
+    the total number of `rhs!` calls can be (slightly) bigger than the number of steps times the number
+    of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
+    and error-based time step control. In general, you often should not need to worry about this if you
+    use Trixi.

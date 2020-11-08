@@ -18,7 +18,7 @@ using LinearAlgebra: dot
 using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
 using Profile: clear_malloc_data # TODO: Taal, remove this dependency
-using Random: seed!
+using Random: seed! # TODO: Taal, remove this dependency
 
 import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
@@ -136,6 +136,10 @@ export convergence_test, jacobian_fd, linear_structure
 function __init__()
   init_mpi()
 end
+
+
+include("precompile.jl")
+_precompile_manual_()
 
 
 end

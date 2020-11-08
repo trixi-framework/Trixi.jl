@@ -4,12 +4,30 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'docs/**'
 
 jobs:
   test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.trixi_test }} - ${{ github.event_name }}
+    name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,8 +37,6 @@ jobs:
           # - 'nightly'
         os:
           - ubuntu-latest
-          - macOS-latest
-          - windows-latest
         arch:
           - x64
         trixi_test:
@@ -32,6 +48,23 @@ jobs:
           - parallel_2d
           - 1D
           - misc
+        include:
+          - version: 1.5
+            os: macOS-latest
+            arch: x64
+            trixi_test: 2D
+          - version: 1.5
+            os: macOS-latest
+            arch: x64
+            trixi_test: parallel_2d
+          - version: 1.5
+            os: windows-latest
+            arch: x64
+            trixi_test: 2D
+          - version: 1.5
+            os: windows-latest
+            arch: x64
+            trixi_test: parallel_2d
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

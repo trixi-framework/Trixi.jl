@@ -1,11 +1,13 @@
 # https://docs.codecov.io/docs/codecovyml-reference
 
-# We have 8 * 3 parallel jobs in ci.yml
+# We have
+#   8 * [number of basic OS] + 2 * [number of additional OS]
+# parallel jobs in ci.yml
 codecov:
   notify:
-    after_n_builds: 24
+    after_n_builds: 12
 comment:
-  after_n_builds: 24
+  after_n_builds: 12
 
 coverage:
   range: 70..95

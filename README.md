@@ -42,7 +42,8 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools (2D) or ParaView/VisIt (2D/3D)
+* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl))
+  or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
 
 
 ## Installation
@@ -87,7 +88,7 @@ julia> using Trixi
 ```
 Then start a simulation by executing
 ```julia
-julia> Trixi.run(default_example())
+julia> trixi_include(default_example())
 ```
 To visualize the results, load the package Trixi2Img
 ```julia
@@ -103,21 +104,23 @@ that can be opened with any image viewer:
   <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
 </p>
 
-The method `Trixi.run(...)` expects a single string argument with the path to a
-Trixi parameter file. To quickly see Trixi in action, `default_example()`
-returns the path to an example parameter file with a short, two-dimensional
-problem setup. A list of all example parameter files packaged with Trixi can be
+The method `trixi_include(...)` expects a single string argument with the path to a
+Trixi elixir, i.e.. a text file containing Julia code necessary to set up and run a
+simulation. To quickly see Trixi in action, `default_example()`
+returns the path to an example elixir with a short, two-dimensional
+problem setup. A list of all example elixirs packaged with Trixi can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
-[`examples/`](examples/) subdirectory. If you want to
-modify one of the parameter files to set up your own simulation, download it to
-your machine, edit the configuration, and pass the file path to `Trixi.run(...)`.
+[`examples/`](examples/) subdirectory.
+If you want to modify one of the elixirs to set up your own simulation,
+download it to your machine, edit the configuration, and pass the file path to
+`trixi_include(...)`.
 
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
 of a Julia method is typically slow, with subsequent runs being much faster. For
-instance, in the example above the first execution of `Trixi.run` takes about 15
-seconds, while subsequent runs require less than 50 *milli*seconds.
+instance, in the example above the first execution of `trixi_include` takes about
+20 seconds, while subsequent runs require less than 50 *milli*seconds.
 
 
 ## Documentation
