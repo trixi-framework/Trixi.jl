@@ -42,8 +42,8 @@ function test_trixi_include(parameters_file; l2=nothing, linf=nothing,
                                              atol=200*eps(), rtol=0.001,
                                              kwargs...)
 
-  println("#"^80)
-  println(parameters_file)
+  Trixi.mpi_isroot() && println("#"^80)
+  Trixi.mpi_isroot() && println(parameters_file)
 
   # evaluate examples in the scope of the module they're called from
   @test_nowarn trixi_include(@__MODULE__, parameters_file; kwargs...)
@@ -65,8 +65,8 @@ function test_trixi_include(parameters_file; l2=nothing, linf=nothing,
     end
   end
 
-  println("#"^80)
-  println("\n\n")
+  Trixi.mpi_isroot() && println("#"^80)
+  Trixi.mpi_isroot() && println("\n\n")
 
   return nothing
 end
