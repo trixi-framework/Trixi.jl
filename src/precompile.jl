@@ -99,6 +99,10 @@ This kind of analysis helps finding type-unstable parts of the code, e.g.
 `init_interfaces` etc. in https://github.com/trixi-framework/Trixi.jl/pull/307.
 Moreover, it allows to generate precompile statements which reduce the latency
 by caching type inference results.
+The latency can be measured by running
+```bash
+julia --threads=1 -e '@time using Trixi; @time include(joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"))'
+```
 =#
 
 
