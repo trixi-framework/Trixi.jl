@@ -317,6 +317,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [2.3861430058270847, 4.083635578775231, 4.083635578775232, 16.246070713311475],
       tspan = (0.0, 0.05))
   end
+
+  @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl with amr_interval=0 and ref-level=8" begin
+    # Same comments as for `elixir_eulergravity_sedov_blast_wave.jl` with default settings
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
+      l2   = [0.0028922121586238323, 0.013724796675028317, 0.013724796675028307, 0.05822941648860658],
+      linf = [0.26747911779347966, 1.385822018653034, 1.385822018653034, 4.071204772447614],
+      tspan = (0.0, 0.005), initial_refinement_level=8, amr_callback=TrivialCallback())
+  end
 end
 
 # Coverage test for all initial conditions

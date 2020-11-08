@@ -115,7 +115,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
-       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback
+       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback,
+       TrivialCallback
 
 export load_mesh, load_time
 
