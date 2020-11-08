@@ -32,21 +32,6 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
   n_elements = nelements(elements)
 
-  # Loop over all elements in old container and either copy them or refine them
-  element_id = 1
-  for old_element_id in 1:old_n_elements
-    if needs_refinement[old_element_id]
-      # Refine element and store solution directly in new data structure
-      refine_element!(elements.u, element_id, old_u, old_element_id,
-                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
-      element_id += 2^ndims(dg)
-    else
-      # Copy old element data to new element container
-      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
-      element_id += 1
-    end
-  end
-
   (elements, n_elements, interfaces, n_interfaces, mpi_interfaces, n_mpi_interfaces,
       boundaries, n_boundaries, n_boundaries_per_direction, mortar_type, l2mortars, 
       ecmortars, n_l2mortars, n_ecmortars, mpi_neighbor_ranks, 
@@ -77,6 +62,21 @@ function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_elements_by_rank = n_elements_by_rank
   dg.n_elements_global = n_elements_global
   dg.first_element_global_id = first_element_global_id
+
+  # Loop over all elements in old container and either copy them or refine them
+  element_id = 1
+  for old_element_id in 1:old_n_elements
+    if needs_refinement[old_element_id]
+      # Refine element and store solution directly in new data structure
+      refine_element!(elements.u, element_id, old_u, old_element_id,
+                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
+      element_id += 2^ndims(dg)
+    else
+      # Copy old element data to new element container
+      @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+      element_id += 1
+    end
+  end
 end
 
 
