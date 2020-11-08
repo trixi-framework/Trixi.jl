@@ -138,8 +138,6 @@ function __init__()
 end
 
 
-# include("../dev/precompile/precompile_Trixi_copy.jl")
-# _precompile_()
 include("precompile.jl")
 _precompile_manual_()
 
