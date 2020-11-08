@@ -138,4 +138,8 @@ function __init__()
 end
 
 
+include("precompile.jl")
+_precompile_manual_()
+
+
 end
