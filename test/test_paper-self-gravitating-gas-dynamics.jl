@@ -97,15 +97,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             cfl_gravity=1.2)
   end
 
-  @testset "taal-check-me parameters_euler_gravity_sedov_blast_wave.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_gravity_sedov_blast_wave.toml"),
+  @testset "taal-confirmed parameters_eulergravity_sedov_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_sedov_blast_wave.toml"),
             l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
             linf = [2.3861430058270847, 4.083635578775231, 4.083635578775232, 16.246070713311475],
             t_end=0.05)
   end
 
-  @testset "taal-check-me parameters_euler_gravity_sedov_blast_wave.toml with amr_interval=0 and ref-level=8" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_gravity_sedov_blast_wave.toml"),
+  @testset "taal-confirmed parameters_eulergravity_sedov_blast_wave.toml with amr_interval=0 and ref-level=8" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_sedov_blast_wave.toml"),
             l2   = [0.0028922121586238323, 0.013724796675028317, 0.013724796675028307, 0.05822941648860658],
             linf = [0.26747911779347966, 1.385822018653034, 1.385822018653034, 4.071204772447614],
             t_end=0.005, amr_interval=0, initial_refinement_level=8)
