@@ -45,9 +45,9 @@ end
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
 """
-    test_trixi_include(elixir; l2=nothing, linf=nothing,
-                               atol=10*eps(), rtol=0.001,
-                               parameters...)
+    @test_trixi_include(elixir; l2=nothing, linf=nothing,
+                                atol=10*eps(), rtol=0.001,
+                                parameters...)
 
 Test Trixi by calling `trixi_include(elixir; parameters...)`.
 By default, only the absence of error output is checked.
@@ -96,4 +96,3 @@ macro test_trixi_include(elixir, args...)
     println("\n\n")
   end
 end
-
