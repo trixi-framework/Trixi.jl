@@ -82,7 +82,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [9.773858425669403e-6],
             linf = [0.0005853874124926092])
   end
-  @testset "taal-check-me parameters_euler_amr.toml" begin
+  @testset "taal-confirmed parameters_euler_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_amr.toml"),
             l2   = [0.00382819196730758, 0.0038281919673075725, 0.0038281919673075746, 0.0038281919673075738, 0.0057422879509614905],
             linf = [0.07390560349428554, 0.07390560349428577, 0.07390560349428621, 0.07390560349428643, 0.11085840524143098],

@@ -89,6 +89,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0005853874124926092])
   end
 
+  @testset "taal-confirmed elixir_euler_amr.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_amr.jl"),
+      l2   = [0.00382819196730758, 0.0038281919673075725, 0.0038281919673075746, 0.0038281919673075738, 0.0057422879509614905],
+      linf = [0.07390560349428554, 0.07390560349428577, 0.07390560349428621, 0.07390560349428643, 0.11085840524143098],
+      tspan=(0.0, 0.1))
+  end
 
   @testset "taal-confirmed elixir_hyp_diff_llf.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
