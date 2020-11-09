@@ -75,7 +75,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             t_end=0.1, time_integration_scheme_gravity="timestep_gravity_erk53_3Sstar!")
   end
 
-  @testset "taal-check-me parameters_eulergravity_jeans_instability.toml" begin
+  @testset "taal-confirmed cfl-magic parameters_eulergravity_jeans_instability.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_jeans_instability.toml"),
             l2   = [10734.053145404043, 13357.12732236844, 1.7837692768650575e-6, 26835.12522125218],
             linf = [15194.889944849536, 18881.971585248222, 8.201044698652684e-6, 37974.48081559688],
@@ -89,7 +89,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             t_end=0.1, update_gravity_once_per_stage=false)
   end
 
-  @testset "taal-check-me parameters_eulergravity_jeans_instability.toml with RK3S*" begin
+  @testset "taal-confirmed cfl-magic parameters_eulergravity_jeans_instability.toml with RK3S*" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_jeans_instability.toml"),
             l2   = [10734.45053135681, 13358.158052105966, 2.77477865977926e-6, 26836.118686572947],
             linf = [15195.451977761462, 18883.428246416606, 1.2227873818940334e-5, 37975.88590713963],

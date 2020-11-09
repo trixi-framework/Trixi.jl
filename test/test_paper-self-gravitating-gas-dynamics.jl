@@ -73,14 +73,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "taal-check-me elixir_eulergravity_jeans_instability.jl" begin
+  @testset "taal-confirmed cfl-magic elixir_eulergravity_jeans_instability.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
       l2   = [10733.634574440104, 13356.777246273672, 1.9930894028451876e-6, 26834.07879379781],
       linf = [15194.297536645085, 18881.47693900588, 8.325325156694497e-6, 37972.99978450313],
       tspan = (0.0, 0.1))
   end
 
-  @testset "taal-check-me elixir_eulergravity_jeans_instability.jl with RK3S*" begin
+  @testset "taal-confirmed cfl-magic elixir_eulergravity_jeans_instability.jl with RK3S*" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
       l2   = [10734.59878993429, 13358.214052395579, 2.7246732181080924e-6, 26836.489332980615],
       linf = [15195.661845114082, 18883.507539561684, 1.1096401891274226e-5, 37976.4105797708],
