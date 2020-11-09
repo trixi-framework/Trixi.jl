@@ -143,7 +143,7 @@ end
 
 analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
                                      save_analysis=true,
-                                     extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
+                                     extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_restart, save_solution,
