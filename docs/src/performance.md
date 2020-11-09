@@ -1,10 +1,10 @@
 # Performance
 
 Trixi.jl is designed to balance performance and readability. Since Julia provides
-a lot of zero-cost abstractions, it's often possible to optimize both goals
+a lot of zero-cost abstractions, it is often possible to optimize both goals
 simultaneously.
 
-A usual development workflow in Julia is
+The usual development workflow in Julia is
 
 1. Make it work.
 2. Make it fast.
@@ -16,7 +16,7 @@ Here, we just list some important aspects you should consider when developing Tr
 - Consider using `@views`/`view(...)` when using array slices, except on the left-side
   of an assignment
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-views)).
-- Functions are essentially for free, since they can usually be inlined using `@inline`
+- Functions are essentially for free, since they are usually automatically inlined where it makes sense (using `@inline` can be used as an additional hint to the compiler)
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#Break-functions-into-multiple-definitions)).
 - Function barriers can improve performance due to type stability
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#kernel-functions)).
