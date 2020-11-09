@@ -106,26 +106,22 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,5},
     # Loop over L2 mortars
     for mortar in eachmortar(dg, cache)
       # Get neighboring element ids
-      lower_left  = dg.l2mortars.neighbor_ids[1, l2mortar_id]
-      lower_right = dg.l2mortars.neighbor_ids[2, l2mortar_id]
-      upper_left  = dg.l2mortars.neighbor_ids[3, l2mortar_id]
-      upper_right = dg.l2mortars.neighbor_ids[4, l2mortar_id]
-      large       = dg.l2mortars.neighbor_ids[5, l2mortar_id]
+      lower_left  = cache.mortars.neighbor_ids[1, mortar]
+      lower_right = cache.mortars.neighbor_ids[2, mortar]
+      upper_left  = cache.mortars.neighbor_ids[3, mortar]
+      upper_right = cache.mortars.neighbor_ids[4, mortar]
+      large       = cache.mortars.neighbor_ids[5, mortar]
 
       # Apply smoothing
-      alpha[lower_left] = max(alpha_pre_smooth[lower_left],
-                              0.5 * alpha_pre_smooth[large], alpha[lower_left])
-      alpha[lower_right] = max(alpha_pre_smooth[lower_right],
-                               0.5 * alpha_pre_smooth[large], alpha[lower_right])
-      alpha[upper_left] = max(alpha_pre_smooth[upper_left],
-                              0.5 * alpha_pre_smooth[large], alpha[upper_left])
-      alpha[upper_right] = max(alpha_pre_smooth[upper_right],
-                               0.5 * alpha_pre_smooth[large], alpha[upper_right])
+      alpha[lower_left]  = max(alpha_tmp[lower_left],  0.5 * alpha_tmp[large], alpha[lower_left])
+      alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large], alpha[lower_right])
+      alpha[upper_left]  = max(alpha_tmp[upper_left],  0.5 * alpha_tmp[large], alpha[upper_left])
+      alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large], alpha[upper_right])
 
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_left],  alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[lower_right], alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_left],  alpha[large])
-      alpha[large] = max(alpha_pre_smooth[large], 0.5 * alpha_pre_smooth[upper_right], alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left],  alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left],  alpha[large])
+      alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
     end
   end
 
