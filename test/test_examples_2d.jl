@@ -158,6 +158,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
+  @testset "taal-confirmed elixir_euler_blob_shockcapturing_mortar.jl" begin
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_mortar.jl"),
+      l2   = [0.22114610074017435, 0.6275613030540599, 0.24325218693791564, 2.925865235621878],
+      linf = [10.524011747446043, 27.512527136693347, 9.454054943042742, 97.53367336970214],
+      tspan = (0.0, 0.5))
+  end
+
   @testset "taal-check-me cfl-magic elixir_euler_blob_shockcapturing_amr.jl" begin
   # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
@@ -496,13 +503,6 @@ end
   @test_nowarn display(alive_callback)
 
   @test_nowarn println(callbacks)
-end
-
-# Only run extended tests if environment variable is set
-if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
-  @testset "Examples (long execution time)" begin
-    @test_nowarn test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_mortar.jl"))
-  end
 end
 
 # Clean up afterwards: delete Trixi output directory

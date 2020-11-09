@@ -187,6 +187,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
             t_end = 0.2)
   end
+  @testset "taal-confirmed parameters_euler_blob_shockcapturing_mortar.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_mortar.toml"),
+            l2   = [0.22114615931709608, 0.6275614586395163, 0.24325207085080508, 2.9258710844826785],
+            linf = [10.524044134146688, 27.5126438384907, 9.454012378298625, 97.53392910067888],
+            t_end = 0.5)
+  end
   @testset "taal-check-me cfl-magic parameters_euler_blob_shockcapturing_amr.toml" begin
   # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
@@ -343,15 +349,6 @@ end
             l2   = [0.17537979197656783, 3.85063790427908, 2.475262063280408, 0.0, 355.77751756307794, 2.35355645151502, 1.3962841115302977, 0.0, 0.02800989397835333],
             linf = [1.5861429668357858, 44.06819961699249, 12.86121814597942, 0.0, 2240.622032533027, 13.20064555739219, 8.990518759210023, 0.0, 0.5100373526240609],
             t_end = 0.003)
-  end
-end
-
-
-# Only run extended tests if environment variable is set
-if haskey(ENV, "TRIXI_TEST_EXTENDED") && lowercase(ENV["TRIXI_TEST_EXTENDED"]) in ("1", "on", "yes")
-  @testset "Examples (long execution time)" begin
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_mortar.toml"))
-    @test_nowarn Trixi.run(joinpath(EXAMPLES_DIR, "parameters_euler_ec_mortar.toml"))
   end
 end
 

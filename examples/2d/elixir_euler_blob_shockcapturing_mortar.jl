@@ -14,7 +14,7 @@ volume_flux  = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.5,
+                                         alpha_max=0.05,
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
                                          variable=pressure)
@@ -28,6 +28,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-32, -32)
 coordinates_max = ( 32,  32)
 refinement_patches = (
+  (type="box", coordinates_min=(-40, -5), coordinates_max=(40, 5)),
   (type="box", coordinates_min=(-40, -5), coordinates_max=(40, 5)),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -46,7 +47,9 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=0.7)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=0.7)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -65,6 +68,7 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
