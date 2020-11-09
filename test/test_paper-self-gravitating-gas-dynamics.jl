@@ -1,4 +1,4 @@
-module TestExamples2D
+module TestPaperSelfgravitatingGasDynamics
 
 using Test
 using Trixi
@@ -73,14 +73,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_jeans_instability.jl" begin
+  @testset "taal-confirmed elixir_eulergravity_jeans_instability.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
       l2   = [10733.634574440104, 13356.777246273672, 1.9930894028451876e-6, 26834.07879379781],
       linf = [15194.297536645085, 18881.47693900588, 8.325325156694497e-6, 37972.99978450313],
       tspan = (0.0, 0.1))
   end
 
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_jeans_instability.jl with RK3S*" begin
+  @testset "taal-confirmed elixir_eulergravity_jeans_instability.jl with RK3S*" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
       l2   = [10734.59878993429, 13358.214052395579, 2.7246732181080924e-6, 26836.489332980615],
       linf = [15195.661845114082, 18883.507539561684, 1.1096401891274226e-5, 37976.4105797708],
@@ -94,22 +94,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl" begin
-    # Reducing the CFL number reduces the differences between Taam and Taal.
-    # Using Trixi.solve(ode, Trixi.CarpenterKennedy2N54() instead of
-    # solve(ode, CarpenterKennedy2N54(williamson_condition=false)
-    # reduces the differences even further (often a factor of ca. 2).
+  @testset "taal-confirmed elixir_eulergravity_sedov_blast_wave.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
-      linf = [2.3861430058270847, 4.083635578775231, 4.083635578775232, 16.246070713311475],
+      l2   = [0.04630745182888786, 0.06507397069616608, 0.0650739706961657, 0.48971269294846076],
+      linf = [2.386143005917894, 4.083635578827995, 4.0836355788279946, 16.24607071330087],
       tspan = (0.0, 0.05))
   end
 
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl with amr_interval=0 and ref-level=8" begin
-    # Same comments as for `elixir_eulergravity_sedov_blast_wave.jl` with default settings
+  @testset "taal-confirmed elixir_eulergravity_sedov_blast_wave.jl with amr_interval=0 and ref-level=8" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.0028922121586238323, 0.013724796675028317, 0.013724796675028307, 0.05822941648860658],
-      linf = [0.26747911779347966, 1.385822018653034, 1.385822018653034, 4.071204772447614],
+      l2   = [0.0028922121586240916, 0.013724796675028319, 0.013724796675028305, 0.05822941648860658],
+      linf = [0.26747911779347966, 1.3858220186530341, 1.3858220186530337, 4.0712047724476115],
       tspan = (0.0, 0.005), initial_refinement_level=8, amr_callback=TrivialCallback())
   end
 end
