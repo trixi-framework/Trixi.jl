@@ -9,7 +9,8 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = Trixi.initial_condition_density_pulse
 
-solver = DGSEM(3)
+surface_flux = flux_lax_friedrichs
+solver = DGSEM(3, surface_flux)
 
 coordinates_min = (-5, -5, -5)
 coordinates_max = ( 5,  5,  5)
@@ -55,8 +56,8 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 
 # TODO: Taal decide, first AMR or save solution etc.
 callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
-                        save_restart, save_solution,
-                        analysis_callback, alive_callback);
+                        save_restart, save_solution, analysis_callback,
+                        alive_callback);
 
 
 ###############################################################################
