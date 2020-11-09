@@ -165,11 +165,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan = (0.0, 0.5))
   end
 
-  @testset "taal-check-me cfl-magic elixir_euler_blob_shockcapturing_amr.jl" begin
-  # Gregor and Hendrik say: Results match only with CFL = 0.2 (ref values not yet updated)
+  @testset "taal-confirmed elixir_euler_blob_shockcapturing_amr.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
-      l2   = [0.2012143467980036, 1.1813241716700988, 0.10144725208346557, 5.230607564921326],
-      linf = [14.111578610092542, 71.21944410118338, 7.304666476530256, 291.9385076318331],
+      l2   = [0.2016728420174888, 1.1836138789789359, 0.10165086496270354, 5.237367755805095],
+      linf = [14.085819993255987, 71.07473800830421, 7.366144023918916, 297.24197965204814],
       tspan = (0.0, 0.12))
   end
 
@@ -406,19 +405,17 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @testset "taal-check-me cfl-magic elixir_mhd_rotor_shockcapturing_amr.jl" begin
-  # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
+  @testset "taal-confirmed elixir_mhd_rotor_shockcapturing_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_shockcapturing_amr.jl"),
-    l2   = [1.2635449181120562, 1.8356372101225815, 1.7037178920138905, 0.0, 2.3126474248436755, 0.21626214510814928, 0.23683073618598693, 0.0, 0.002132844459180628],
-    linf = [10.353812749882609, 14.287005221052532, 15.749922601372482, 0.0, 17.089103075830185, 1.342006287193983, 1.4341241435029897, 0.0, 0.053488038358224646],
+    l2   = [1.2428140306560267, 1.7997194450337968, 1.6900291785233619, 0.0, 2.2634513724749357, 0.212710214030601, 0.233276208669814, 0.0, 0.0026495769095112244],
+    linf = [10.47092272020676, 14.061476930703114, 15.55246880748034, 0.0, 16.619962600809156, 1.3033533536346604, 1.4125607690546562, 0.0, 0.07338769474671016],
     tspan = (0.0, 0.05))
   end
 
-  @testset "taal-check-me cfl-magic elixir_mhd_blast_wave_shockcapturing_amr.jl" begin
-  # Andrew and Michael say: Results match only with CFL = 0.2 (ref values not yet updated)
+  @testset "taal-confirmed elixir_mhd_blast_wave_shockcapturing_amr.jl" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave_shockcapturing_amr.jl"),
-    l2   = [0.2101138028554417, 4.4379574949560014, 2.6239651859752238, 0.0, 359.15092246795564, 2.458555512327778, 1.4961525378625697, 0.0, 0.01346996306689436],
-    linf = [2.4484577379812915, 63.229017006957584, 15.321798382742966, 0.0, 2257.8231751993367, 13.692356305778407, 10.026947993726841, 0.0, 0.2839557716528234],
+    l2   = [0.1757875762080873, 3.8532519959458216, 2.4727214755520532, 0.0, 355.0835842161213, 2.3454068130466776, 1.3916366548136, 0.0, 0.028930416439621368],
+    linf = [1.5948842870594393, 44.31605592215359, 12.854945034752436, 0.0, 2207.513124699695, 12.706623740109995, 8.987432397883575, 0.0, 0.4980365769225257],
     tspan = (0.0, 0.003))
   end
 end
