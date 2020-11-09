@@ -298,40 +298,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     linf = [0.5598159626426933, 0.5095082640545004, 0.655948904969917, 0.0, 0.9809725319955653, 0.39916604098537073, 0.6748429903024491, 0.0, 0.07124312329480051],
     tspan = (0.0, 0.06), surface_flux = flux_hll)
   end
-
-
-  @testset "taal-confirmed elixir_eulergravity_eoc_test.jl" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [0.0002487158370511598, 0.0003370291440916084, 0.00033702914409161063, 0.0007231934514459757],
-      linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383],
-      tspan = (0.0, 0.1))
-  end
-
-  @testset "taal-check-me elixir_eulergravity_jeans_instability.jl" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
-      l2   = [10733.633835505429, 13356.78041873671, 1.6035728244276416e-6, 26834.076946460955],
-      linf = [15194.296496834606, 18881.481413976213, 7.967111441550177e-6, 37972.997184962034],
-      tspan = (0.0, 0.1))
-  end
-
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl" begin
-    # Reducing the CFL number reduces the differences between Taam and Taal.
-    # Using Trixi.solve(ode, Trixi.CarpenterKennedy2N54() instead of
-    # solve(ode, CarpenterKennedy2N54(williamson_condition=false)
-    # reduces the differences even further (often a factor of ca. 2).
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.04630745182870653, 0.06507397069667138, 0.06507397069667123, 0.48971269294890085],
-      linf = [2.3861430058270847, 4.083635578775231, 4.083635578775232, 16.246070713311475],
-      tspan = (0.0, 0.05))
-  end
-
-  @testset "taal-confirmed cfl-magic elixir_eulergravity_sedov_blast_wave.jl with amr_interval=0 and ref-level=8" begin
-    # Same comments as for `elixir_eulergravity_sedov_blast_wave.jl` with default settings
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.0028922121586238323, 0.013724796675028317, 0.013724796675028307, 0.05822941648860658],
-      linf = [0.26747911779347966, 1.385822018653034, 1.385822018653034, 4.071204772447614],
-      tspan = (0.0, 0.005), initial_refinement_level=8, amr_callback=TrivialCallback())
-  end
 end
 
 # Coverage test for all initial conditions

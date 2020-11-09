@@ -37,6 +37,7 @@ env:
     - TRIXI_TEST=3D
     - TRIXI_TEST=3D_OLD
     - TRIXI_TEST=paper-self-gravitating-gas-dynamics
+    - TRIXI_TEST=paper-self-gravitating-gas-dynamics-old
     - TRIXI_TEST=parallel_2d
     - TRIXI_TEST=1D
     - TRIXI_TEST=misc
