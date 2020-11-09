@@ -142,6 +142,34 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
 
+  @testset "taal-confirmed elixir_euler_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+            l2   = [5.717218008425079e-16, 6.088971423170968e-16, 6.23130776282275e-16, 7.29884557381127e-16, 5.167198077601542e-15],
+            linf = [3.885780586188048e-15, 4.454769886308441e-15, 3.219646771412954e-15, 4.884981308350689e-15, 4.440892098500626e-14],
+            initial_condition=Trixi.initial_condition_constant)
+  end
+
+  @testset "taal-confirmed elixir_euler_ec.toml with flux_chandrashekar" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+            l2   = [0.025105743648126774, 0.016571417754430256, 0.01657141775443023, 0.016565202090289916, 0.09077232065771225],
+            linf = [0.4349225166034201, 0.27945714200874, 0.2794571420087401, 0.28021366413271664, 1.5240679700745954],
+            surface_flux=flux_chandrashekar, volume_flux=flux_chandrashekar)
+  end
+
+  @testset "taal-confirmed elixir_euler_ec.toml with flux_kennedy_gruber" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+            l2   = [0.025120431810845507, 0.016599310737401483, 0.01659931073740148, 0.016592567464138185, 0.090856457771812],
+            linf = [0.43120500632996794, 0.28419288751363336, 0.2841928875136334, 0.28583515705222146, 1.515485025725378],
+            surface_flux=flux_kennedy_gruber, volume_flux=flux_kennedy_gruber)
+  end
+
+  @testset "taal-confirmed elixir_euler_ec.toml with flux_shima_etal" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+            l2   = [0.025099944530993942, 0.016561611274319134, 0.016561611274319127, 0.01655478190136039, 0.09076538812894279],
+            linf = [0.43472962954165273, 0.2824065323711477, 0.2824065323711474, 0.28409419760015847, 1.4995295774522692],
+            surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
+  end
+
   @testset "taal-confirmed elixir_mhd_ec.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
