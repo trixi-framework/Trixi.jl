@@ -27,13 +27,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             polydeg=4)
   end
 
-  @testset "taal-check-me parameters_hyp_diff_eoc_test.toml" begin
+  @testset "taal-confirmedparameters_hyp_diff_eoc_test.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_eoc_test.toml"),
             l2   = [0.00315402168051244, 0.012394424055283394, 0.021859728673870843],
             linf = [0.017332075119072865, 0.07843510773347322, 0.11325788389718668])
   end
 
-  @testset "taal-check-me parameters_hyp_diff_eoc_test.toml with polydeg=4" begin
+  @testset "taal-confirmed parameters_hyp_diff_eoc_test.toml with polydeg=4" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_eoc_test.toml"),
             l2   = [0.00025112830138292663, 0.0008808243851096586, 0.0016313343234903468],
             linf = [0.001719090967553516, 0.0031291844657076145, 0.00994609342322228],
@@ -54,7 +54,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             t_end=0.1, polydeg=4)
   end
 
-  @testset "taal-wontfix parameters_eulergravity_eoc_test.toml with update_gravity_once_per_stage=false" begin
+  @testset "taal-check-wontfix parameters_eulergravity_eoc_test.toml with update_gravity_once_per_stage=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_eoc_test.toml"),
             l2   = [0.00039754984075255105, 0.0011317710289437735, 0.00113177102894379, 0.002302567979915388, 0.0002449228820755184, 0.0009838245219995854, 0.0009838245219995676],
             linf = [0.0013753628419428399, 0.0031706120730756737, 0.0031706120730756737, 0.0069469754604232214, 0.0008251489152860739, 0.0030597255494218545, 0.0030597255494215977],
@@ -82,7 +82,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             t_end=0.1)
   end
 
-  @testset "taal-wontfix parameters_eulergravity_jeans_instability.toml with update_gravity_once_per_stage=false" begin
+  @testset "taal-check-wontfix parameters_eulergravity_jeans_instability.toml with update_gravity_once_per_stage=false" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_eulergravity_jeans_instability.toml"),
             l2   = [10723.612236928993, 13336.218272054195, 1.9668755665996365e-6, 26809.0229428131],
             linf = [15180.113783512264, 18852.413655795124, 8.569420630932309e-6, 37937.54015120864],
