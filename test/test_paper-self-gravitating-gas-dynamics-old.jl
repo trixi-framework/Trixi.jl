@@ -14,13 +14,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Numerical examples from the Euler-gravity paper
 @testset "paper-self-gravitating-gas-dynamics" begin
-  @testset "taal-check-me parameters_euler_eoc_test.toml" begin
+  @testset "taal-confirmed parameters_euler_eoc_test.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_eoc_test.toml"),
             l2   = [0.00017409779099463607, 0.0003369287450282371, 0.00033692874502819616, 0.0006099035183426747],
             linf = [0.0010793454782482836, 0.0018836374478419238, 0.0018836374478410356, 0.003971446179607874])
   end
 
-  @testset "taal-check-me parameters_euler_eoc_test.toml with polydeg=4" begin
+  @testset "taal-confirmed parameters_euler_eoc_test.toml with polydeg=4" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_eoc_test.toml"),
             l2   = [1.7187032983384504e-5, 2.6780178144541376e-5, 2.678017814469407e-5, 4.952410417693103e-5],
             linf = [0.00015018092862240096, 0.00016548331714294484, 0.00016548331714405506, 0.00043726245511699346],
