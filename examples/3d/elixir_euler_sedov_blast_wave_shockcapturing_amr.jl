@@ -28,7 +28,8 @@ coordinates_min = (-4, -4, -4)
 coordinates_max = ( 4,  4,  4)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
-                n_cells_max=1_000_000)
+                n_cells_max=1_000_000,
+                periodicity=false)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -49,8 +50,8 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           variable=density_pressure)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level=4,
-                                      max_level =6, max_threshold=0.01)
+                                      base_level=2,
+                                      max_level =7, max_threshold=0.0003)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
