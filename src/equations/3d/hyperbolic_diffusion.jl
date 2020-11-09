@@ -39,6 +39,12 @@ varnames_prim(::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "
 default_analysis_quantities(::HyperbolicDiffusionEquations3D) = (:l2_error, :linf_error, :residual)
 default_analysis_errors(::HyperbolicDiffusionEquations3D)     = (:l2_error, :linf_error, :residual)
 
+"""
+    residual_steady_state(du, ::AbstractHyperbolicDiffusionEquations)
+
+Used to determine the termination criterion of a [`SteadyStateCallback`](@ref).
+For hyperbolic diffusion, this checks convergence of the potential ``\\phi``.
+"""
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations3D)
   abs(du[1])
 end

@@ -43,10 +43,11 @@ makedocs(
     # Explicitly specify documentation structure
     pages = [
         "Home" => "index.md",
+        "Visualization" => "visualization.md",
         "Conventions" => "conventions.md",
         "Time integration" => "time_integration.md",
         "Development" => "development.md",
-        "Visualization" => "visualization.md",
+        "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
