@@ -40,6 +40,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [6.495644794757283e-5])
   end
 
+  @testset "elixir_advection_timeintegration.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [9.144681778837444e-6],
+      linf = [6.437440532436334e-5])
+  end
+
+  @testset "elixir_advection_callbacks.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"))
+  end
+
 
   @testset "elixir_hyp_diff_llf.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
