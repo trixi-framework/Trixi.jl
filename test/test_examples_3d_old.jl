@@ -141,14 +141,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.025558219399128387, 0.01612806446620796, 0.016128064466207948, 0.016120400619198158, 0.09208276987000782],
             linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
   end
-  @testset "taal-check-me parameters_euler_shockcapturing.toml with initial_condition_sedov_blast_wave" begin
+  @testset "taal-confirmed parameters_euler_shockcapturing.toml with initial_condition_sedov_blast_wave" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.03627060784392582, 0.05178777376859809, 0.05178777376859804, 0.05178777376859802, 0.23043996953698023],
             linf = [0.9307998233177583, 1.4326649193439467, 1.4326649193439467, 1.4326649193439467, 12.80585041235138],
             initial_condition=Trixi.initial_condition_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
-  @testset "taal-check-me parameters_euler_shockcapturing.toml with initial_condition_sedov_self_gravity" begin
+  @testset "taal-confirmed parameters_euler_shockcapturing.toml with initial_condition_sedov_self_gravity" begin
     # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.04846527000320781, 0.051787773760055514, 0.051787773760055486, 0.05178777376005548, 0.23043996953467236],
