@@ -40,7 +40,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
       l2   = [9.770171014620371e-16],
       linf = [2.4424906541753444e-15],
-      initial_condition=Trixi.initial_condition_constant)
+      initial_condition=initial_condition_constant)
   end
 
   @testset "taal-confirmed elixir_advection_basic.jl with initial_condition_linear_z and periodicity=false" begin
@@ -141,7 +141,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
       l2   = [0.03627060784392582, 0.05178777376859809, 0.05178777376859804, 0.05178777376859802, 0.23043996953698023],
       linf = [0.9307998233177583, 1.4326649193439467, 1.4326649193439467, 1.4326649193439467, 12.80585041235138],
-      initial_condition=Trixi.initial_condition_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+      initial_condition=initial_condition_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
 
   @testset "taal-confirmed elixir_euler_shockcapturing.jl with initial_condition_sedov_self_gravity" begin
@@ -175,11 +175,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
 
-  @testset "taal-confirmed elixir_euler_ec.jl with initial_condition=Trixi.initial_condition_constant" begin
+  @testset "taal-confirmed elixir_euler_ec.jl with initial_condition=initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
       l2   = [5.717218008425079e-16, 6.088971423170968e-16, 6.23130776282275e-16, 7.29884557381127e-16, 5.167198077601542e-15],
       linf = [3.885780586188048e-15, 4.454769886308441e-15, 3.219646771412954e-15, 4.884981308350689e-15, 4.440892098500626e-14],
-      initial_condition=Trixi.initial_condition_constant)
+      initial_condition=initial_condition_constant)
   end
 
   @testset "taal-confirmed elixir_euler_ec.jl with flux_chandrashekar" begin
@@ -209,7 +209,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
   end
 
-  @testset "taal-confirmed elixir_mhd_ec.jl with initial_condition=Trixi.initial_condition_constant" begin
+  @testset "taal-confirmed elixir_mhd_ec.jl with initial_condition=initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
       linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
