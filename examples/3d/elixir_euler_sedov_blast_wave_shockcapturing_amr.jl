@@ -47,6 +47,7 @@ summary_callback = SummaryCallback()
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0,
+                                          alpha_smooth=false,
                                           variable=density_pressure)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
