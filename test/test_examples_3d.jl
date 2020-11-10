@@ -149,7 +149,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
       l2   = [0.04846527000320781, 0.051787773760055514, 0.051787773760055486, 0.05178777376005548, 0.23043996953467236],
       linf = [0.9307979866990295, 1.4326649193456429, 1.4326649193456429, 1.4326649193456429, 12.805850412386896],
-      initial_condition=Trixi.initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
+      initial_condition=initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
 
   @testset "taal-confirmed elixir_euler_shockcapturing_amr.jl" begin

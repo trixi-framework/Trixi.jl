@@ -7,8 +7,8 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_sedov_self_gravity
-boundary_conditions = Trixi.boundary_condition_sedov_self_gravity
+initial_condition = initial_condition_sedov_self_gravity
+boundary_conditions = boundary_condition_sedov_self_gravity
 
 surface_flux = flux_hll
 volume_flux = flux_ranocha
