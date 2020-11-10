@@ -54,6 +54,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
+# FIXME Taal restore after Taam sync
 stepsize_callback = StepsizeCallback(cfl=0.2)
 
 save_solution = SaveSolutionCallback(interval=100,
