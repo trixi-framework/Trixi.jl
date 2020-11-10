@@ -20,12 +20,18 @@ Here, we just list some important aspects you should consider when developing Tr
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#Break-functions-into-multiple-definitions)).
 - Function barriers can improve performance due to type stability
   ([further details](https://docs.julialang.org/en/v1/manual/performance-tips/#kernel-functions)).
+- Look for type instabilities using `@code_warntype`.
+  Consider using `@descend` from [Cthulhu.jl](https://github.com/JuliaDebug/Cthulhu.jl) to investigate
+  deeper call chains.
 
 
 
 ## Benchmarking
 
 If you modify some internal parts of Trixi, you should check the impact on performance.
+Hence, you should at least investigate the performance roughly by comparing the reported
+timings of several elixirs. Deeper investigations and micro-benchmarks should usually use
+[BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl).
 For example, the following steps were used to benchmark the changes introduced in
 https://github.com/trixi-framework/Trixi.jl/pull/256.
 
