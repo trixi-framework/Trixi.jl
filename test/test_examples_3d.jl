@@ -109,6 +109,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
   end
 
+  @testset "taal-confirmed elixir_hyp_diff_llf.jl with initial_refinement_level=2, surface_flux=Trixi.flux_upwind)" begin
+  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+          l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
+          linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
+          initial_refinement_level=2, surface_flux=Trixi.flux_upwind)
+  end
+
   @testset "taal-confirmed elixir_euler_mortar.jl" begin
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar.jl"),
       l2   = [0.0019011097431965655, 0.0018289464087588392, 0.0018289464087585998, 0.0018289464087588862, 0.003354766311541738],
@@ -129,17 +136,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.3950327737713353, 0.26324766244272796, 0.2632476624427279, 0.2634129727753079, 1.371321006006725])
   end
 
-  @testset "taal-confirmed elixir_euler_shockcapturing.toml with initial_condition_sedov_blast_wave" begin
+  @testset "taal-confirmed elixir_euler_shockcapturing.jl with initial_condition_sedov_blast_wave" begin
   # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
-  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.toml"),
+  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
           l2   = [0.03627060784392582, 0.05178777376859809, 0.05178777376859804, 0.05178777376859802, 0.23043996953698023],
           linf = [0.9307998233177583, 1.4326649193439467, 1.4326649193439467, 1.4326649193439467, 12.80585041235138],
           initial_condition=Trixi.initial_condition_sedov_blast_wave, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
 
-  @testset "taal-confirmed elixir_euler_shockcapturing.toml with initial_condition_sedov_self_gravity" begin
+  @testset "taal-confirmed elixir_euler_shockcapturing.jl with initial_condition_sedov_self_gravity" begin
   # OBS! This setup does not run longer but crashes (also the parameters do not make sense) -> only for testing the IC!
-  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.toml"),
+  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
           l2   = [0.04846527000320781, 0.051787773760055514, 0.051787773760055486, 0.05178777376005548, 0.23043996953467236],
           linf = [0.9307979866990295, 1.4326649193456429, 1.4326649193456429, 1.4326649193456429, 12.805850412386896],
           initial_condition=Trixi.initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
@@ -158,29 +165,29 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.43498932208478724, 0.2821813924028202, 0.28218139240282025, 0.2838043627560838, 1.5002293438086647])
   end
 
-  @testset "taal-confirmed elixir_euler_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+  @testset "taal-confirmed elixir_euler_ec.jl with initial_condition=Trixi.initial_condition_constant" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
             l2   = [5.717218008425079e-16, 6.088971423170968e-16, 6.23130776282275e-16, 7.29884557381127e-16, 5.167198077601542e-15],
             linf = [3.885780586188048e-15, 4.454769886308441e-15, 3.219646771412954e-15, 4.884981308350689e-15, 4.440892098500626e-14],
             initial_condition=Trixi.initial_condition_constant)
   end
 
-  @testset "taal-confirmed elixir_euler_ec.toml with flux_chandrashekar" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+  @testset "taal-confirmed elixir_euler_ec.jl with flux_chandrashekar" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
             l2   = [0.025105743648126774, 0.016571417754430256, 0.01657141775443023, 0.016565202090289916, 0.09077232065771225],
             linf = [0.4349225166034201, 0.27945714200874, 0.2794571420087401, 0.28021366413271664, 1.5240679700745954],
             surface_flux=flux_chandrashekar, volume_flux=flux_chandrashekar)
   end
 
-  @testset "taal-confirmed elixir_euler_ec.toml with flux_kennedy_gruber" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+  @testset "taal-confirmed elixir_euler_ec.jl with flux_kennedy_gruber" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
             l2   = [0.025120431810845507, 0.016599310737401483, 0.01659931073740148, 0.016592567464138185, 0.090856457771812],
             linf = [0.43120500632996794, 0.28419288751363336, 0.2841928875136334, 0.28583515705222146, 1.515485025725378],
             surface_flux=flux_kennedy_gruber, volume_flux=flux_kennedy_gruber)
   end
 
-  @testset "taal-confirmed elixir_euler_ec.toml with flux_shima_etal" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.toml"),
+  @testset "taal-confirmed elixir_euler_ec.jl with flux_shima_etal" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
             l2   = [0.025099944530993942, 0.016561611274319134, 0.016561611274319127, 0.01655478190136039, 0.09076538812894279],
             linf = [0.43472962954165273, 0.2824065323711477, 0.2824065323711474, 0.28409419760015847, 1.4995295774522692],
             surface_flux=flux_shima_etal, volume_flux=flux_shima_etal)
@@ -190,6 +197,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
       linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
+  end
+
+  @testset "taal-confirmed elixir_mhd_ec.jl with initial_condition=Trixi.initial_condition_constant" begin
+  test_trixi_run(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
+          l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
+          linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
+          atol = 1000*eps(),
+          initial_condition=Trixi.initial_condition_constant)
   end
 
   @testset "taal-confirmed elixir_mhd_alfven_wave.jl" begin

@@ -170,7 +170,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
             initial_refinement_level=2)
   end
-  @testset "taal-check-me parameters_hyp_diff_llf.toml with initial_refinement_level=2, surface_flux=Trixi.flux_upwind)" begin
+  @testset "taal-confirmed parameters_hyp_diff_llf.toml with initial_refinement_level=2, surface_flux=Trixi.flux_upwind)" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
             l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
             linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
@@ -186,7 +186,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.01921453037426997, 0.01924853398980921, 0.01924853398980923, 0.019247118340533328, 0.08310482412935676, 0.010362656540935251, 0.010362656540935237, 0.010364587080559528, 0.00020760700572485828],
             linf = [0.2645851360519166, 0.33611482816103344, 0.33611482816103466, 0.36952265576762666, 1.230825809630423, 0.09818527443798974, 0.09818527443798908, 0.10507242371450054, 0.008456471524217968])
   end
-  @testset "taal-check-me parameters_mhd_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
+  @testset "taal-confirmed parameters_mhd_ec.toml with initial_condition=Trixi.initial_condition_constant" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_mhd_ec.toml"),
             l2   = [4.850506049646793e-16, 2.4804155700127237e-15, 3.579471462379534e-15, 2.7395862184339726e-15, 2.4916602560342516e-14, 1.669368799061149e-15, 1.4052897861706032e-15, 1.0685989093080367e-15, 1.1611070325375158e-15],
             linf = [3.552713678800501e-15, 1.4710455076283324e-14, 2.3814283878209608e-14, 2.6423307986078726e-14, 1.6342482922482304e-13, 1.1546319456101628e-14, 1.0880185641326534e-14, 1.4099832412739488e-14, 1.1483287543575534e-14],
