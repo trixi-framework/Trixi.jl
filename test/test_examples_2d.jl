@@ -390,7 +390,7 @@ end
       l2   = [0.003201074851451383, 0.0032010748514513724, 0.0032010748514513716, 0.0032010748514513794],
       linf = [0.043716393835876444, 0.043716393835876444, 0.043716393835876, 0.04371639383587578],
       maxiters = 1,
-      initial_condition = Trixi.initial_condition_density_pulse)
+      initial_condition = initial_condition_density_pulse)
   end
 
   @testset "taal-confirmed elixir_euler_vortex.jl one step with initial_condition_pressure_pulse" begin

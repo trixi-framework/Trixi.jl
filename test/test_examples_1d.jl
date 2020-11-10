@@ -51,7 +51,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.003724642049410045, 0.0037246420494099837, 0.0018623210247047657],
       linf = [0.018538787219922304, 0.018538787219903874, 0.009269393609915078],
-      initial_condition = Trixi.initial_condition_density_pulse)
+      initial_condition = initial_condition_density_pulse)
   end
 
   @testset "taal-confirmed elixir_euler_density_wave.jl with initial_condition_constant" begin

@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_density_pulse
+initial_condition = initial_condition_density_pulse
 
 surface_flux = flux_ranocha
 volume_flux = flux_ranocha
