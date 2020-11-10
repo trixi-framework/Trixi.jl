@@ -9,13 +9,18 @@ module TrixiExtensionExample
 using Trixi
 using DiffEqCallbacks: DiscreteCallback, u_modified!
 
-
+# This is an example implementation for a simple limiter # (i.e., a callable
+# that is executed after each Runge-Kutta stage), which records some values
+# each time it is called. Its sole purpose here is to showcase how to implement
+# a limiter-like functionality for Trixi.
 struct ExampleLimiter
   times::Vector{Float64}
   min_values::Vector{Float64}
   max_values::Vector{Float64}
 
-  # You can optionally define an inner constructor to set up some required stuff.
+  # You can optionally define an inner constructor like the one below to set up
+  # some required stuff. You can also create outer constructors (not demonstrated
+  # here) for further customization options.
   function ExampleLimiter()
     new(Float64[], Float64[], Float64[])
   end
@@ -35,13 +40,19 @@ function (example_limiter::ExampleLimiter)(u_ode::AbstractVector, _, semi, t)
 end
 
 
+# This is an example implementation for a simple callback (i.e., a callable
+# that is potentially executed after each Runge-Kutta step), which records
+# some values each time it is called. Its sole purpose here is to showcase
+# how to implement a callback for Trixi.
 struct ExampleCallback
   message::String
   times::Vector{Float64}
   min_values::Vector{Float64}
   max_values::Vector{Float64}
 
-  # You can optionally define an inner constructor to set up some required stuff.
+  # You can optionally define an inner constructor like the one below to set up
+  # some required stuff. You can also create outer constructors (not demonstrated
+  # here) for further customization options.
   function ExampleCallback(message::String)
     new(message, Float64[], Float64[], Float64[])
   end
@@ -135,6 +146,14 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
                         example_callback,
                         analysis_callback, alive_callback)
 
+# In OrdinaryDiffEq.jl, the `step_limiter!` is called after every Runge-Kutta step
+# but before possible RHS evaluations of the new value occur. Hence, it's possible
+# to modify the new solution value there without impacting the performance of FSAL
+# methods.
+# The `stage_limiter!` is called additionally after computing a Runge-Kutta stage
+# value but before evaluating the corresponding stage derivatives.
+# Hence, if a limiter should be called before each RHS evaluation, it needs to be
+# set both as `stage_limiter!` and as `step_limiter!`.
 example_limiter! = TrixiExtensionExample.ExampleLimiter()
 stage_limiter! = example_limiter!
 step_limiter!  = example_limiter!
