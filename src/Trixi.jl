@@ -79,7 +79,7 @@ export flux_central, flux_lax_friedrichs, flux_hll, flux_upwind,
 
 export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_density_wave,
+       initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,

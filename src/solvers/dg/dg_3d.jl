@@ -1010,7 +1010,7 @@ function calc_mortar_flux!(surface_flux_values::AbstractArray{<:Any,5},
     for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
       fstar_lower_right[v, i, j] += noncons_diamond_lower_right[v, i, j]
     end
-    mortar_fluxes_to_elements!(surface_flux_values, dg, mortar_type, mortar,
+    mortar_fluxes_to_elements!(surface_flux_values, equations, mortar_l2, dg, cache, mortar,
                                fstar_upper_left, fstar_upper_right,
                                fstar_lower_left, fstar_lower_right,
                                fstar_tmp1)

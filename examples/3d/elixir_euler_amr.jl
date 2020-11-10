@@ -9,15 +9,14 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_density_pulse
 
-surface_flux = flux_ranocha
-volume_flux = flux_ranocha
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+surface_flux = flux_lax_friedrichs
+solver = DGSEM(3, surface_flux)
 
-coordinates_min = (-2, -2, -2)
-coordinates_max = ( 2,  2,  2)
+coordinates_min = (-5, -5, -5)
+coordinates_max = ( 5,  5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=100_000)
+                initial_refinement_level=4,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -26,13 +25,22 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync to something better
-stepsize_callback = StepsizeCallback(cfl=0.5)
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
+                                      base_level=4,
+                                      med_level=5, med_threshold=1.05,
+                                      max_level=6, max_threshold=1.3)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
+
+# FIXME Taal restore after Taam sync
+stepsize_callback = StepsizeCallback(cfl=0.4)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -44,11 +52,13 @@ save_restart = SaveRestartCallback(interval=100,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy,))
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
-                        save_restart, save_solution,
-                        analysis_callback, alive_callback)
+# TODO: Taal decide, first AMR or save solution etc.
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+                        save_restart, save_solution, analysis_callback,
+                        alive_callback);
 
 
 ###############################################################################
