@@ -292,31 +292,35 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
         lambda[element_id] = 0.0
       end
     end
-  elseif dg.amr_indicator === :gauss_solution_independent
-      #Calculate the theoretical location of the center.
-      advectionvelocity = SVector(1,1)
-      center = time .* advectionvelocity
-
-      # Iterate over all elements
+  elseif dg.amr_indicator === :gauss_test
       for element_id in 1:dg.n_elements
-        target_distance = 3
-        distance_tolerance = 1
-
-        cell_id = dg.elements.cell_ids[element_id]
-        cell_coordinate_x = mesh.tree.coordinates[1, cell_id]
-        cell_coordinate_y = mesh.tree.coordinates[2, cell_id]
-        cell_coordinates = SVector(cell_coordinate_x, cell_coordinate_x)
-        cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
-
-        if cell_distance < target_distance - distance_tolerance
-          lambda[element_id] = 1.0
-        elseif cell_distance > target_distance + distance_tolerance
-          lambda[element_id] = -1.0
-        else
-          lambda[element_id] = 0.0
+        lambda[element_id] = 0.0
+        if time == 0
+          lambda[1] = 1.0
         end
       end
+  elseif dg.amr_indicator === :gauss_solution_independent
+    # Calculate the theoretical location of the center.
+    advectionvelocity = SVector(1,1)
+    center = time * advectionvelocity
+    target_distance = 2
 
+    # Iterate over all elements
+    for element_id in 1:dg.n_elements
+      cell_id = dg.elements.cell_ids[element_id]
+      cell_x = mesh.tree.coordinates[1, cell_id]
+      cell_y = mesh.tree.coordinates[2, cell_id]
+      cell_coordinates = SVector(cell_x, cell_y)
+      cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
+
+      if cell_distance < target_distance
+        lambda[element_id] = 1.0
+      elseif cell_distance > target_distance
+        lambda[element_id] = -1.0
+      else
+        lambda[element_id] = 0.0
+      end
+    end
   elseif dg.amr_indicator === :isentropic_vortex
     base_level = 3
     max_level = 5
