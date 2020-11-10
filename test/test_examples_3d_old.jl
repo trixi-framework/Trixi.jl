@@ -155,7 +155,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.9307979866990295, 1.4326649193456429, 1.4326649193456429, 1.4326649193456429, 12.805850412386896],
             initial_condition=Trixi.initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
-  @testset "taal-check-me parameters_euler_shockcapturing.toml with amr_indicator=`sedov_self_gravity`" begin
+  @testset "taal-confirmed parameters_euler_shockcapturing.toml with amr_indicator=`sedov_self_gravity`" begin
     # OBS! This setup does not make much practical sense. It is only added to exercise the
     # `sedov_self_gravity` AMR indicator, which in its original configuration is too expensive for
     # CI testing

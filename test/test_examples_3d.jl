@@ -152,6 +152,16 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
           initial_condition=Trixi.initial_condition_sedov_self_gravity, cfl=0.25, shock_alpha_max=1.0, t_end=0.1)
   end
 
+  @testset "taal-confirmed elixir_euler_shockcapturing_amr.jl" begin
+    # OBS! This setup does not make much practical sense. It is only added to exercise the
+    # `sedov_self_gravity` AMR indicator, which in its original configuration is too expensive for
+    # CI testing
+    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_amr.jl"),
+      l2   = [0.022890627324485553, 0.013353127563710173, 0.013353127563710156, 0.013352146925243637, 0.08348119429398775],
+      linf = [0.3769085161148348, 0.380358363190641, 0.3803583631906434, 0.380366775575835, 1.3162027903728162],
+      maxiters=10)
+  end
+
   @testset "taal-confirmed elixir_euler_density_pulse.jl with source_terms_harmonic" begin
   test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_pulse.jl"),
       l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
