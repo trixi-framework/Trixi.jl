@@ -20,8 +20,8 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                         volume_flux_dg=volume_flux,
-                                         volume_flux_fv=surface_flux)
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-4, -4, -4)
@@ -59,6 +59,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
+# FIXME Taal restore after Taam sync
 stepsize_callback = StepsizeCallback(cfl=0.35)
 
 save_solution = SaveSolutionCallback(interval=100,
