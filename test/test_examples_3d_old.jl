@@ -170,11 +170,11 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
             initial_refinement_level=2)
   end
-  @testset "taal-confirmed parameters_hyp_diff_llf.toml with initial_refinement_level=2, surface_flux=Trixi.flux_upwind)" begin
+  @testset "taal-confirmed parameters_hyp_diff_llf.toml with initial_refinement_level=2, surface_flux=flux_upwind)" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
             l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
             linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
-            initial_refinement_level=2, surface_flux=Trixi.flux_upwind)
+            initial_refinement_level=2, surface_flux=flux_upwind)
   end
   @testset "taal-confirmed parameters_hyp_diff_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),
