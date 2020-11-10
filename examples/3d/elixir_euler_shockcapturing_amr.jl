@@ -49,7 +49,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=2,
-                                      max_level =7, max_threshold=0.0003)
+                                      max_level =4, max_threshold=0.0003)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=1,
@@ -71,7 +71,7 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
                         save_restart, save_solution,
                         analysis_callback, alive_callback)
 
@@ -80,6 +80,6 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary
 
