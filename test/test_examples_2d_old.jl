@@ -64,8 +64,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [2.0750351586876505e-6, 0.003281637561081054, 0.0032807189382436106, 0.0046470466205649425],
             linf = [4.625172721961501e-5, 0.0318570623352572, 0.031910329823320094, 0.04575283708569344])
   end
-  @testset "taal-confirmed parameters_euler_blast_wave_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing.toml"),
+  @testset "taal-confirmed parameters_euler_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave.toml"),
             l2   = [0.13910202327088322, 0.11538722576277083, 0.1153873048510009, 0.3387876385945495],
             linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368],
             n_steps_max=30)
@@ -187,14 +187,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
             t_end = 0.2)
   end
-  @testset "taal-confirmed parameters_euler_blob_shockcapturing_mortar.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_mortar.toml"),
+  @testset "taal-confirmed parameters_euler_blob_mortar.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_mortar.toml"),
             l2   = [0.22114615931709608, 0.6275614586395163, 0.24325207085080508, 2.9258710844826785],
             linf = [10.524044134146688, 27.5126438384907, 9.454012378298625, 97.53392910067888],
             t_end = 0.5)
   end
-  @testset "taal-confirmed parameters_euler_blob_shockcapturing_amr.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_shockcapturing_amr.toml"),
+  @testset "taal-confirmed parameters_euler_blob_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blob_amr.toml"),
             l2   = [0.2016728420174888, 1.1836138789789359, 0.10165086496270354, 5.237367755805095],
             linf = [14.085819993255987, 71.07473800830421, 7.366144023918916, 297.24197965204814],
             t_end = 0.12)
@@ -228,8 +228,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             restart = true, restart_filename = "out/restart_000040.h5")
   end
   @test_nowarn Trixi.convtest(joinpath(EXAMPLES_DIR, "parameters_advection_basic.toml"), 3)
-  @testset "taal-confirmed parameters_euler_blast_wave_shockcapturing_amr.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
+  @testset "taal-confirmed parameters_euler_blast_wave_amr.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_amr.toml"), t_end=1.0,
             l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
             linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
   end

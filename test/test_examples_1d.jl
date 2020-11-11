@@ -126,8 +126,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.1872570975062362, 0.245999816865685, 0.7037939282238272])
   end
 
-  @testset "elixir_euler_blast_wave_shockcapturing.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing.jl"),
+  @testset "elixir_euler_blast_wave.jl" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.21530530948120738, 0.2805965425286348, 0.5591770920395336],
       linf = [1.508388610723991, 1.5622010377944118, 2.035149673163788],
       maxiters=30)

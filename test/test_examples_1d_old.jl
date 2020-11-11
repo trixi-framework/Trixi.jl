@@ -34,8 +34,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [3.8103398423084437e-6, 1.6765350427819571e-6, 7.733123446821975e-6],
             linf = [1.2975101617795914e-5, 9.274867029507305e-6, 3.093686036947929e-5])
   end
-  @testset "taal-confirmed parameters_euler_blast_wave_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing.toml"),
+  @testset "taal-confirmed parameters_euler_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave.toml"),
             l2   = [0.21530530948120738, 0.2805965425286348, 0.5591770920395336],
             linf = [1.508388610723991, 1.5622010377944118, 2.035149673163788],
             n_steps_max=30)
