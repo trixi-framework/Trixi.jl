@@ -410,7 +410,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 end
 
 
-# TODO: Taal interface
+# TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)
 # - ndims(mesh)

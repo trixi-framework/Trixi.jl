@@ -22,7 +22,6 @@ varnames_prim(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "p"
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::CompressibleEulerEquations2D)
 
@@ -165,7 +164,6 @@ function boundary_condition_convergence_test(u_inner, orientation, direction, x,
 end
 
 
-# TODO: Taal IC unused?
 """
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations2D)
 
@@ -567,7 +565,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4)
 end
 
-# TODO: Taal and remove method with the signature below
+# TODO: Taal remove method with the signature below
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0

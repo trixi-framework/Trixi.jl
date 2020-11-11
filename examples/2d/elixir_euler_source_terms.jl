@@ -39,8 +39,6 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-# TODO: Taal, restart
-# restart_interval = 100
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)

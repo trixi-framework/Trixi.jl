@@ -20,7 +20,6 @@ varnames_cons(::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_
 varnames_prim(::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
 
 
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::CompressibleEulerEquations1D)
 
@@ -145,7 +144,6 @@ function boundary_condition_convergence_test(u_inner, orientation, direction, x,
 end
 
 
-# TODO: Taal IC unused?
 """
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
 

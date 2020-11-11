@@ -22,7 +22,6 @@ varnames_prim(::CompressibleEulerEquations3D) = @SVector ["rho", "v1", "v2", "v3
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::CompressibleEulerEquations3D)
 

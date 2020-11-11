@@ -30,7 +30,6 @@ default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative,
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
 initial_condition_constant(x, t, equations::IdealGlmMhdEquations3D)
 

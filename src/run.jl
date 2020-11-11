@@ -620,7 +620,6 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
 end
 
 
-# TODO: Taal migrate
 """
     convtest(parameters_file, iterations; parameters...)
 
