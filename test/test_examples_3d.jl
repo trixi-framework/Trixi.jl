@@ -51,32 +51,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       boundary_conditions=Trixi.boundary_condition_linear_z, periodicity=false)
   end
 
-  @testset "elixir_euler_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
-      linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
-  end
-
-  @testset "elixir_euler_source_terms.jl with split_form" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-      l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
-      linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979],
-      volume_integral=VolumeIntegralFluxDifferencing(flux_central))
-  end
-
-  @testset "elixir_euler_eoc_test.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
-      l2   = [0.000363723832448333, 0.00039555684672049366, 0.0003955568467203738, 0.00039555684672064724, 0.0007811604790242773],
-      linf = [0.002400072140187337, 0.0029635489437536133, 0.0029635489437540574, 0.0029635489437565, 0.007191455734479657])
-  end
-
-  @testset "elixir_eulergravity_eoc_test.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [0.00042767972112699913, 0.00047204316046796835, 0.00047204316046784795, 0.0004720431604680035, 0.0010987015429634586],
-      linf = [0.0034966337661186397, 0.0037643976198782347, 0.003764397619878901, 0.0037643976198780127, 0.008370354378078648],
-      resid_tol = 1.0e-4, tspan = (0.0, 0.2))
-  end
-
   @testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
       l2   = [0.0018461483161353273],
@@ -89,13 +63,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.0005853874124926092])
   end
 
-  @testset "elixir_euler_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_amr.jl"),
-      l2   = [0.00382819196730758, 0.0038281919673075725, 0.0038281919673075746, 0.0038281919673075738, 0.0057422879509614905],
-      linf = [0.07390560349428554, 0.07390560349428577, 0.07390560349428621, 0.07390560349428643, 0.11085840524143098],
-      tspan=(0.0, 0.1))
-  end
 
+  # Hyperbolic diffusion
   @testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0015303292770225546, 0.011314166522881952, 0.011314166522881981, 0.011314166522881947],
@@ -116,12 +85,39 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       initial_refinement_level=2, surface_flux=flux_upwind)
   end
 
+
+  # Compressible Euler
+  @testset "elixir_euler_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+      l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
+      linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979])
+  end
+
+  @testset "elixir_euler_source_terms.jl with split_form" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+      l2   = [0.010323099666828388, 0.00972876713766357, 0.00972876713766343, 0.009728767137663324, 0.015080409341036285],
+      linf = [0.034894880154510144, 0.03383545920056008, 0.033835459200560525, 0.03383545920054587, 0.06785780622711979],
+      volume_integral=VolumeIntegralFluxDifferencing(flux_central))
+  end
+
+  @testset "elixir_euler_eoc_test.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
+      l2   = [0.000363723832448333, 0.00039555684672049366, 0.0003955568467203738, 0.00039555684672064724, 0.0007811604790242773],
+      linf = [0.002400072140187337, 0.0029635489437536133, 0.0029635489437540574, 0.0029635489437565, 0.007191455734479657])
+  end
+
   @testset "elixir_euler_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_mortar.jl"),
       l2   = [0.0019011097431965655, 0.0018289464087588392, 0.0018289464087585998, 0.0018289464087588862, 0.003354766311541738],
       linf = [0.011918594206950184, 0.011808582644224241, 0.011808582644249999, 0.011808582644239785, 0.02464803617735356])
   end
 
+  @testset "elixir_euler_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_amr.jl"),
+      l2   = [0.00382819196730758, 0.0038281919673075725, 0.0038281919673075746, 0.0038281919673075738, 0.0057422879509614905],
+      linf = [0.07390560349428554, 0.07390560349428577, 0.07390560349428621, 0.07390560349428643, 0.11085840524143098],
+      tspan=(0.0, 0.1))
+  end
 
   @testset "elixir_euler_taylor_green_vortex.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_taylor_green_vortex.jl"),
@@ -162,11 +158,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       maxiters=10)
   end
 
-  @testset "elixir_euler_density_pulse.jl with source_terms_harmonic" begin
+  @testset "elixir_euler_density_pulse.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_pulse.jl"),
       l2   = [0.05719652660597408, 0.0571965266059741, 0.05719652660597407, 0.05719652660597409, 0.08579478990896279],
-      linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033],
-      source_terms=Trixi.source_terms_harmonic)
+      linf = [0.27375961853433606, 0.27375961853433517, 0.27375961853433384, 0.2737596185343343, 0.4106394278015033])
   end
 
   @testset "elixir_euler_ec.jl" begin
@@ -210,6 +205,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan = (0.0, 0.2))
   end
 
+
+  # MHD
   @testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
       l2   = [0.01921450065559267, 0.01924845602881232, 0.019248456028812297, 0.019247034500388407, 0.08310151500300048, 0.010362455768167987, 0.01036245576816798, 0.010364382822765496, 0.00020767131203828276],
@@ -242,6 +239,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       l2   = [0.00439116057420682, 0.04144735653385548, 0.04150129965691855, 0.041503535999488944, 0.03693119774857556, 0.02112559882076128, 0.03295606809724133, 0.03296235602381271, 6.360272913944777e-6],
       linf = [0.017893839530771283, 0.08496187662550556, 0.08909116119215815, 0.08505952842998604, 0.10443373427682529, 0.05387851079490486, 0.08812989362867353, 0.07804874526892829, 8.210135094902004e-5],
       tspan = (0.0, 0.06))
+  end
+
+
+  # Compressible Euler with self-gravity
+  @testset "elixir_eulergravity_eoc_test.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
+      l2   = [0.00042767972112699913, 0.00047204316046796835, 0.00047204316046784795, 0.0004720431604680035, 0.0010987015429634586],
+      linf = [0.0034966337661186397, 0.0037643976198782347, 0.003764397619878901, 0.0037643976198780127, 0.008370354378078648],
+      resid_tol = 1.0e-4, tspan = (0.0, 0.2))
   end
 end
 
