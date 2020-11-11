@@ -394,7 +394,7 @@ end
       maxiters=1)
   end
 
-  @testset "parameters_euler_sedov_blast_wave.toml one step with initial_condition_medium_sedov_blast_wave" begin
+  @testset "elixir_euler_sedov_blast_wave.jl one step with initial_condition_medium_sedov_blast_wave" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
       linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
