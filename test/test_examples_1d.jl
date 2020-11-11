@@ -120,8 +120,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       shock_indicator_variable = density)
   end
 
-  @testset "elixir_euler_weak_blast_wave_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_shockcapturing.jl"),
+  @testset "elixir_euler_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
       l2   = [0.1166063015913971, 0.15097998823740955, 0.4348178492249418],
       linf = [0.1872570975062362, 0.245999816865685, 0.7037939282238272])
   end
