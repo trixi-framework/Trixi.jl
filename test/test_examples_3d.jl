@@ -96,21 +96,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan=(0.0, 0.1))
   end
 
-  @testset "elixir_hyp_diff_llf.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+  @testset "elixir_hypdiff_lax_friedrichs.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0015303292770225546, 0.011314166522881952, 0.011314166522881981, 0.011314166522881947],
       linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
       initial_refinement_level=2)
   end
 
-  @testset "elixir_hyp_diff_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
+  @testset "elixir_hypdiff_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
       linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
   end
 
-  @testset "elixir_hyp_diff_llf.jl with initial_refinement_level=2, surface_flux=flux_upwind)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+  @testset "elixir_hypdiff_lax_friedrichs.jl with initial_refinement_level=2, surface_flux=flux_upwind)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
       linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
       initial_refinement_level=2, surface_flux=flux_upwind)

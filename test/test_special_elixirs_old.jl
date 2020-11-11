@@ -19,7 +19,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < length(λ) * eps(real(eltype(λ)))
 
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters_hyp_diff_llf.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "2d", "parameters_hypdiff_lax_friedrichs.toml"),
                                           Trixi.source_terms_harmonic,
                                           initial_refinement_level=2)
     λ = eigvals(Matrix(A))
@@ -44,7 +44,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < length(λ) * eps(real(eltype(λ)))
 
-    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters_hyp_diff_llf.toml"),
+    A, b = Trixi.compute_linear_structure(joinpath(EXAMPLES_DIR, "3d", "parameters_hypdiff_lax_friedrichs.toml"),
                                           Trixi.source_terms_harmonic,
                                           polydeg=2, initial_refinement_level=1)
     λ = eigvals(Matrix(A))

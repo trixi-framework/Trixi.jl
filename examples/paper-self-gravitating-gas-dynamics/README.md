@@ -14,12 +14,12 @@ Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_euler_eo
 ## Sec. 4.1.2, Table 3, EOC tests hyperbolic diffusion
 **polydeg = 3**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_hyp_diff_eoc_test.toml", 4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_hypdiff_eoc_test.toml", 4)
 ```
 
 **polydeg = 4**:
 ```julia
-Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_hyp_diff_eoc_test.toml", 4, polydeg=4)
+Trixi.convtest("examples/paper-self-gravitating-gas-dynamics/parameters_hypdiff_eoc_test.toml", 4, polydeg=4)
 ```
 
 ## Sec. 4.1.3, Table 4, EOC tests coupled Euler-gravity

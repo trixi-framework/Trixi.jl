@@ -86,26 +86,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "elixir_hyp_diff_llf.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+  @testset "elixir_hypdiff_lax_friedrichs.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0001568775108748819, 0.0010259867353406083, 0.0010259867353406382],
       linf = [0.0011986956416590866, 0.006423873516411938, 0.006423873516411938])
   end
 
-  @testset "elixir_hyp_diff_harmonic_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_harmonic_nonperiodic.jl"),
+  @testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [8.618132353932638e-8, 5.619399844708813e-7, 5.619399845476024e-7],
       linf = [1.124861862326869e-6, 8.622436471483752e-6, 8.622436469707395e-6])
   end
 
-  @testset "elixir_hyp_diff_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
+  @testset "elixir_hypdiff_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [8.523077654037775e-6, 2.877932365308637e-5, 5.454942769137812e-5],
       linf = [5.484978959957587e-5, 0.00014544895979200218, 0.000324491268921534])
   end
 
-  @testset "elixir_hyp_diff_upwind.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_upwind.jl"),
+  @testset "elixir_hypdiff_upwind.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_upwind.jl"),
       l2   = [5.868147556488962e-6, 3.8051792732628014e-5, 3.8051792732620214e-5],
       linf = [3.70196549871471e-5, 0.0002072058411455302, 0.00020720584114464202])
   end

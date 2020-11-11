@@ -15,7 +15,7 @@ of convergence (EOC):
   EOC tests for Euler equations with `polydeg = 3`.
 * [`parameters_mhd_alfven_wave.toml`](parameters_mhd_alfven_wave.toml):
   EOC tests for MHD equations with `polydeg = 3`.
-* [`parameters_hyp_diff_llf.toml`](parameters_hyp_diff_llf.toml):
+* [`parameters_hypdiff_lax_friedrichs.toml`](parameters_hypdiff_lax_friedrichs.toml):
   EOC tests for hyperbolic diffusion equations with `polydeg = 4`.
 
 In general, a good first parameter file to try out as a new user is
