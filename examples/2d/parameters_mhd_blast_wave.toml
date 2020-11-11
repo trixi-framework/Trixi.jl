@@ -21,7 +21,7 @@ t_end   = 0.01
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.5
+cfl = 0.2
 n_steps_max = 10000
 analysis_interval = 100
 volume_integral_type = "shock_capturing"

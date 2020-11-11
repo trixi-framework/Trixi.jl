@@ -298,6 +298,9 @@ function init_simulation()
   amr_interval = parameter("amr_interval", 0)
   adapt_initial_condition = parameter("adapt_initial_condition", true)
   adapt_initial_condition_only_refine = parameter("adapt_initial_condition_only_refine", true)
+
+  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
+  seed!(0)
   if restart
     mpi_print("Loading restart file...")
     time, step = load_restart_file!(solver, restart_filename)
@@ -613,7 +616,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   end
 
   # Return error norms for EOC calculation
-  return l2_error, linf_error, varnames_cons(solver.equations)
+  return (; l2=l2_error, linf=linf_error, varnames=varnames_cons(solver.equations))
 end
 
 

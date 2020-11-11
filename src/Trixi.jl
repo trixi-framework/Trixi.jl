@@ -80,11 +80,11 @@ export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
 
 export initial_condition_constant,
        initial_condition_gauss,
-       initial_condition_density_wave,
+       initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
-       initial_condition_sedov_blast_wave,
+       initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor
@@ -97,7 +97,7 @@ export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_c
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
-export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity
+export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export TreeMesh
 
@@ -116,7 +116,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
-       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback
+       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback,
+       TrivialCallback
 
 export load_mesh, load_time
 

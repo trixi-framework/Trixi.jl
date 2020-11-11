@@ -131,6 +131,8 @@ end
   mesh_equations_solver_cache(semi.semi_euler)
 end
 
+@inline Base.real(semi::SemidiscretizationEulerGravity) = real(semi.semi_euler)
+
 
 # computes the coefficients of the initial condition
 @inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
@@ -331,22 +333,20 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
   return nothing
 end
 
-# This function is commented out since it's less performant than timestep_gravity_erk52_3Sstar!
-# Nevertheless, we want to keep the coefficients as reference values.
-# function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
-#   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
-#   # and examples/parameters_hyp_diff_llf.toml
-#   # 5 stages, order 1
-#   gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
-#   gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
-#   gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 8.0043329115077388E-01, 1.3550099149374278E-01]
-#   beta   = @SVector [1.9189497208340553E-01, 5.4506406707700059E-02, 1.2103893164085415E-01, 6.8582252490550921E-01, 8.7914657211972225E-01]
-#   delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
-#   c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
+function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 1
+  gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
+  gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 8.0043329115077388E-01, 1.3550099149374278E-01]
+  beta   = @SVector [1.9189497208340553E-01, 5.4506406707700059E-02, 1.2103893164085415E-01, 6.8582252490550921E-01, 8.7914657211972225E-01]
+  delta  = @SVector [1.0000000000000000E+00, 7.8593091509463076E-01, 1.2639038717454840E-01, 1.7726945920209813E-01, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01, 2.4241635859769023E-01, 5.0728347557552977E-01]
 
-#   timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
-#                            gamma1, gamma2, gamma3, beta, delta, c)
-# end
+  timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+                           gamma1, gamma2, gamma3, beta, delta, c)
+end
 
 function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
@@ -363,22 +363,20 @@ function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameter
                            gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-# This function is commented out since it's less performant than timestep_gravity_erk52_3Sstar!
-# Nevertheless, we want to keep the coefficients as reference values.
-# function timestep_gravity_erk53_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
-#   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
-#   # and examples/parameters_hyp_diff_llf.toml
-#   # 5 stages, order 3
-#   gamma1 = @SVector [0.0000000000000000E+00, 6.9362208054011210E-01, 9.1364483229179472E-01, 1.3129305757628569E+00, -1.4615811339132949E+00]
-#   gamma2 = @SVector [1.0000000000000000E+00, 1.3224582239681788E+00, 2.4213162353103135E-01, -3.8532017293685838E-01, 1.5603355704723714E+00]
-#   gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 3.8306787039991996E-01, -3.5683121201711010E-01]
-#   beta   = @SVector [8.4476964977404881E-02, 3.0834660698015803E-01, 3.2131664733089232E-01, 2.8783574345390539E-01, 8.2199204703236073E-01]
-#   delta  = @SVector [1.0000000000000000E+00, -7.6832695815481578E-01, 1.2497251501714818E-01, 1.4496404749796306E+00, 0.0000000000000000E+00]
-#   c      = @SVector [0.0000000000000000E+00, 8.4476964977404881E-02, 2.8110631488732202E-01, 5.7093842145029405E-01, 7.2999896418559662E-01]
+function timestep_gravity_erk53_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
+  # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
+  # and examples/parameters_hyp_diff_llf.toml
+  # 5 stages, order 3
+  gamma1 = @SVector [0.0000000000000000E+00, 6.9362208054011210E-01, 9.1364483229179472E-01, 1.3129305757628569E+00, -1.4615811339132949E+00]
+  gamma2 = @SVector [1.0000000000000000E+00, 1.3224582239681788E+00, 2.4213162353103135E-01, -3.8532017293685838E-01, 1.5603355704723714E+00]
+  gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 3.8306787039991996E-01, -3.5683121201711010E-01]
+  beta   = @SVector [8.4476964977404881E-02, 3.0834660698015803E-01, 3.2131664733089232E-01, 2.8783574345390539E-01, 8.2199204703236073E-01]
+  delta  = @SVector [1.0000000000000000E+00, -7.6832695815481578E-01, 1.2497251501714818E-01, 1.4496404749796306E+00, 0.0000000000000000E+00]
+  c      = @SVector [0.0000000000000000E+00, 8.4476964977404881E-02, 2.8110631488732202E-01, 5.7093842145029405E-01, 7.2999896418559662E-01]
 
-#   timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
-#                            gamma1, gamma2, gamma3, beta, delta, c)
-# end
+  timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+                           gamma1, gamma2, gamma3, beta, delta, c)
+end
 
 
 # TODO: Taal decide, where should specific parts like these be?

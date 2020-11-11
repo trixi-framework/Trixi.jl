@@ -14,9 +14,9 @@ t_end   = 12.5
 # Solver
 solver = "dg"
 polydeg = 3
-cfl = 0.5
+cfl = 0.3
 n_steps_max = 10000
-analysis_interval = 100
+analysis_interval = 1000
 volume_integral_type = "shock_capturing"
 shock_indicator_variable = "density_pressure"
 shock_alpha_min = 0.001

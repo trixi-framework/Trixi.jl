@@ -1,14 +1,24 @@
 
-# The following structures and methods provide a minimal implementation of
-# the low-storage explicit Runge-Kutta method of
-# Carpenter, Kennedy (1994) Fourth order 2N storage RK schemes, Solution 3
-# using the same interface as OrdinaryDiffEq.jl.
-struct SimpleAlgorithm2N45
+# Abstract base type for time integration schemes of storage class `2N`
+abstract type SimpleAlgorithm2N end
+
+
+"""
+    CarpenterKennedy2N54()
+
+The following structures and methods provide a minimal implementation of
+the low-storage explicit Runge-Kutta method of
+
+    Carpenter, Kennedy (1994) Fourth order 2N storage RK schemes, Solution 3
+
+using the same interface as OrdinaryDiffEq.jl.
+"""
+struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
   a::SVector{5, Float64}
   b::SVector{5, Float64}
   c::SVector{5, Float64}
 
-  function SimpleAlgorithm2N45()
+  function CarpenterKennedy2N54()
     a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
     b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
@@ -20,6 +30,27 @@ struct SimpleAlgorithm2N45
     new(a, b, c)
   end
 end
+
+
+"""
+      CarpenterKennedy2N43()
+
+Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
+"""
+struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
+  a::SVector{4, Float64}
+  b::SVector{4, Float64}
+  c::SVector{4, Float64}
+
+  function CarpenterKennedy2N43()
+    a = @SVector [0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297]
+    b = @SVector [8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383]
+    c = @SVector [0, 8 / 141, 86 / 125, 1]
+
+    new(a, b, c)
+  end
+end
+
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct SimpleIntegrator2NOptions{Callback}
@@ -55,8 +86,8 @@ mutable struct SimpleIntegrator2N{RealT<:Real, uType, Params, Sol, Alg, SimpleIn
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::SimpleAlgorithm2N45;
-               dt, callback=nothing, kwargs...)
+function solve(ode::ODEProblem, alg::T;
+               dt, callback=nothing, kwargs...) where {T<:SimpleAlgorithm2N}
   u = copy(ode.u0)
   du = similar(u)
   u_tmp = similar(u)
@@ -157,7 +188,17 @@ function Base.resize!(integrator::SimpleIntegrator2N, new_size)
 end
 
 
-struct HypDiffN3Erk3Sstar25
+# Abstract base type for time integration schemes of storage class `3S*`
+abstract type SimpleAlgorithm3Sstar end
+
+
+"""
+    HypDiffN3Erk3Sstar52()
+
+Five stage, second-order acurate explicit Runge-Kutta scheme with stability region optimized for
+the hyperbolic diffusion equation with LLF flux and polynomials of degree polydeg=3.
+"""
+struct HypDiffN3Erk3Sstar52 <: SimpleAlgorithm3Sstar
   gamma1::SVector{5, Float64}
   gamma2::SVector{5, Float64}
   gamma3::SVector{5, Float64}
@@ -165,7 +206,7 @@ struct HypDiffN3Erk3Sstar25
   delta::SVector{5, Float64}
   c::SVector{5, Float64}
 
-  function HypDiffN3Erk3Sstar25()
+  function HypDiffN3Erk3Sstar52()
     gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
     gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
     gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 4.1301005663300466E-01, -5.4537881202277507E-03]
@@ -176,6 +217,63 @@ struct HypDiffN3Erk3Sstar25
     new(gamma1, gamma2, gamma3, beta, delta, c)
   end
 end
+
+
+"""
+    ParsaniKetchesonDeconinck3Sstar94()
+
+Parsani, Ketcheson, Deconinck (2013)
+  Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
+[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+"""
+struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
+  gamma1::SVector{9, Float64}
+  gamma2::SVector{9, Float64}
+  gamma3::SVector{9, Float64}
+  beta::SVector{9, Float64}
+  delta::SVector{9, Float64}
+  c::SVector{9, Float64}
+
+  function ParsaniKetchesonDeconinck3Sstar94()
+    gamma1 = @SVector [0.0000000000000000E+00, -4.6556413837561301E+00, -7.7202649689034453E-01, -4.0244202720632174E+00, -2.1296873883702272E-02, -2.4350219407769953E+00, 1.9856336960249132E-02, -2.8107894116913812E-01, 1.6894354373677900E-01]
+    gamma2 = @SVector [1.0000000000000000E+00, 2.4992627683300688E+00, 5.8668202764174726E-01, 1.2051419816240785E+00, 3.4747937498564541E-01, 1.3213458736302766E+00, 3.1196363453264964E-01, 4.3514189245414447E-01, 2.3596980658341213E-01]
+    gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00, 7.6209857891449362E-01, -1.9811817832965520E-01, -6.2289587091629484E-01, -3.7522475499063573E-01, -3.3554373281046146E-01, -4.5609629702116454E-02]
+    beta   = @SVector [2.8363432481011769E-01, 9.7364980747486463E-01, 3.3823592364196498E-01, -3.5849518935750763E-01, -4.1139587569859462E-03, 1.4279689871485013E+00, 1.8084680519536503E-02, 1.6057708856060501E-01, 2.9522267863254809E-01]
+    delta  = @SVector [1.0000000000000000E+00, 1.2629238731608268E+00, 7.5749675232391733E-01, 5.1635907196195419E-01, -2.7463346616574083E-02, -4.3826743572318672E-01, 1.2735870231839268E+00, -6.2947382217730230E-01, 0.0000000000000000E+00]
+    c      = @SVector [0.0000000000000000E+00, 2.8363432481011769E-01, 5.4840742446661772E-01, 3.6872298094969475E-01, -6.8061183026103156E-01, 3.5185265855105619E-01, 1.6659419385562171E+00, 9.7152778807463247E-01, 9.0515694340066954E-01]
+
+    new(gamma1, gamma2, gamma3, beta, delta, c)
+  end
+end
+
+
+"""
+    ParsaniKetchesonDeconinck3Sstar32()
+
+Parsani, Ketcheson, Deconinck (2013)
+  Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
+[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+"""
+struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
+  gamma1::SVector{3, Float64}
+  gamma2::SVector{3, Float64}
+  gamma3::SVector{3, Float64}
+  beta::SVector{3, Float64}
+  delta::SVector{3, Float64}
+  c::SVector{3, Float64}
+
+  function ParsaniKetchesonDeconinck3Sstar32()
+    gamma1 = @SVector [0.0000000000000000E+00, -1.2664395576322218E-01, 1.1426980685848858E+00]
+    gamma2 = @SVector [1.0000000000000000E+00, 6.5427782599406470E-01, -8.2869287683723744E-02]
+    gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00]
+    beta   = @SVector [7.2366074728360086E-01, 3.4217876502651023E-01, 3.6640216242653251E-01]
+    delta  = @SVector [1.0000000000000000E+00, 7.2196567116037724E-01, 0.0000000000000000E+00]
+    c      = @SVector [0.0000000000000000E+00, 7.2366074728360086E-01, 5.9236433182015646E-01]
+
+    new(gamma1, gamma2, gamma3, beta, delta, c)
+  end
+end
+
 
 mutable struct SimpleIntegrator3SstarOptions{Callback}
   callback::Callback # callbacks; used in Trixi
@@ -207,8 +305,8 @@ mutable struct SimpleIntegrator3Sstar{RealT<:Real, uType, Params, Sol, Alg, Simp
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::HypDiffN3Erk3Sstar25;
-               dt, callback=nothing, kwargs...)
+function solve(ode::ODEProblem, alg::T;
+               dt, callback=nothing, kwargs...) where {T<:SimpleAlgorithm3Sstar}
   u = copy(ode.u0)
   du = similar(u)
   u_tmp1 = similar(u)

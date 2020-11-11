@@ -167,6 +167,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
             "               " *
             " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     println(" sim. time:      " * @sprintf("%10.8e", t))
+    println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
+    println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
 
     # Level information (only show for AMR)
     uses_amr = false
@@ -190,7 +192,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
         max_level = max(max_level, current_level)
       end
 
-      println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
       for level = max_level:-1:min_level+1
         println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
       end

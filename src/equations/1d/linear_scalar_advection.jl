@@ -201,8 +201,8 @@ end
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation1D) = Val(true)
 
-@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation1D)
-  return abs.(eq.advectionvelocity)
+@inline function max_abs_speeds(equation::LinearScalarAdvectionEquation1D)
+  return abs.(equation.advectionvelocity)
 end
 
 

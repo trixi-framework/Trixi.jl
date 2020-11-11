@@ -965,8 +965,6 @@ end
 # Call equation-specific initial conditions functions and apply to all elements
 function set_initial_condition!(dg::Dg1D, time)
   equation = equations(dg)
-  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
-  seed!(0)
   for element_id in 1:dg.n_elements
       for i in 1:nnodes(dg)
         dg.elements.u[:, i, element_id] .= dg.initial_condition(

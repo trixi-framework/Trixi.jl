@@ -53,7 +53,9 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density=0.0, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
-                                    cfl=2.4,
+                                    # FIXME Taal restore after Taam sync
+                                    # cfl=2.4,
+                                    cfl=1.2,
                                     n_iterations_max=100,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
@@ -80,7 +82,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+# FIXME Taal restore after Taam sync
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -105,7 +108,8 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

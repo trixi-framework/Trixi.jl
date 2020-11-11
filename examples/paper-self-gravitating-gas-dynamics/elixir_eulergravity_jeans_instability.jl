@@ -94,7 +94,9 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density=1.5e7, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
-                                    cfl=1.6,
+                                    # FIXME Taal restore after Taam sync
+                                    # cfl=1.6,
+                                    cfl=0.8,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_carpenter_kennedy_erk54_2N!)
 
@@ -108,7 +110,9 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
@@ -142,7 +146,7 @@ end
 
 analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
                                      save_analysis=true,
-                                     extra_analysis_integrals=(entropy, energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
+                                     extra_analysis_integrals=(energy_total, energy_kinetic, energy_internal, Val(:energy_potential)))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_restart, save_solution,
@@ -151,7 +155,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

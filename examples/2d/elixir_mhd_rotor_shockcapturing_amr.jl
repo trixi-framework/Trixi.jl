@@ -2,10 +2,6 @@
 using OrdinaryDiffEq
 using Trixi
 
-##
-# OBS! This crashes due to an issue with the combination of shockcapturing + non-conservative terms
-#      It can be run if "have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)" is set
-#      to false in the ideal_glm_mhd.jl
 
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
@@ -15,7 +11,8 @@ initial_condition = initial_condition_rotor
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_derigs_etal
-basis = LobattoLegendreBasis(4)
+polydeg = 4
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
@@ -47,17 +44,18 @@ summary_callback = SummaryCallback()
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=0.5,
                                           alpha_min=0.001,
-                                          alpha_smooth=true,
+                                          alpha_smooth=false,
                                           variable=density_pressure)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=4,
                                       max_level =6, max_threshold=0.01)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=5,
+                           interval=6,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.95)
+# FIXME Taal restore after Taam sync
+stepsize_callback = StepsizeCallback(cfl=0.2)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,

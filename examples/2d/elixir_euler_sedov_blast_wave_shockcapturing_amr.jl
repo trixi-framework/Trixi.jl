@@ -53,7 +53,9 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.4)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -73,5 +75,5 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary

@@ -11,6 +11,13 @@ equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 initial_condition = initial_condition_convergence_test
 
+# you can either use a single function to impose the BCs weakly in all
+# 1*ndims == 2 directions or you can pass a tuple containing BCs for
+# each direction
+# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
+#       fully periodic domains. Here, however, it is included to allow easy override during testing
+boundary_conditions = boundary_condition_periodic
+
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
@@ -18,10 +25,12 @@ coordinates_min = (-1, -1, -1)
 coordinates_max = ( 1,  1,  1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
-                n_cells_max=30_000)
+                n_cells_max=30_000,
+                periodicity=true)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
@@ -32,7 +41,9 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.2)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=0.4)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -56,5 +67,5 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary

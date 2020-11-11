@@ -10,7 +10,8 @@ equations = CompressibleEulerEquations3D(1.4)
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+volume_integral = VolumeIntegralWeakForm()
+solver = DGSEM(3, surface_flux, volume_integral)
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (2, 2, 2)
@@ -31,7 +32,9 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+# FIXME Taal restore after Taam sync
+# stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.3)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
