@@ -16,7 +16,7 @@ solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 coordinates_min = (-1, -1, -1)
 coordinates_max = ( 1,  1,  1)
 refinement_patches = (
-  (type="box",  coordinates_min=(-0.5, -0.5, -0.5), 
+  (type="box",  coordinates_min=(-0.5, -0.5, -0.5),
                 coordinates_max=( 0.5,  0.5,  0.5)),
 )
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -54,6 +54,7 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
