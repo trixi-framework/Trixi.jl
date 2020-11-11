@@ -233,8 +233,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [0.6776486969229697, 0.2813026529898539, 0.28130256451012314, 0.7174702524881598],
             linf = [2.8939055423031532, 1.7997630098946864, 1.799711865996927, 3.034122348258568])
   end
-  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"), t_end=1.0,
+  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"), t_end=1.0,
             l2   = [0.4820048896322639, 0.16556563003698888, 0.16556563003698901, 0.643610807739157],
             linf = [2.485752556439829, 1.2870638985941658, 1.2870638985941667, 6.474544663221404])
   end
@@ -313,14 +313,14 @@ end
             n_steps_max = 1,
             initial_condition = "initial_condition_constant")
   end
-  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
+  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave.toml one step" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"),
             l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
             linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
             n_steps_max = 1)
   end
-  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
+  @testset "taal-confirmed differences-to-master parameters_euler_sedov_blast_wave.toml one step with initial_condition_medium_sedov_blast_wave" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"),
             l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
             linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
             n_steps_max = 1,

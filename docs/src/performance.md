@@ -41,7 +41,7 @@ https://github.com/trixi-framework/Trixi.jl/pull/256.
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave_shockcapturing_amr.jl")
+   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> du_test = copy(sol.u[end]); u_test = copy(sol.u[end]);
 
@@ -64,7 +64,7 @@ https://github.com/trixi-framework/Trixi.jl/pull/256.
 
    shell> git checkout 222241ff54f8a4ca9876cc1fc25ae262416a4ea0
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave_shockcapturing_amr.jl")
+   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> @benchmark Trixi.rhs!(
              $(du_test),

@@ -156,8 +156,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with tend = 1.0" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl with tend = 1.0" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
     l2   = [0.4820048896322639, 0.16556563003698888, 0.16556563003698901, 0.643610807739157],
     linf = [2.485752556439829, 1.2870638985941658, 1.2870638985941667, 6.474544663221404],
     tspan = (0.0, 1.0))
@@ -387,15 +387,15 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @testset "differences-to-master elixir_euler_sedov_blast_wave_shockcapturing_amr.jl one step" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl one step" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
       linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
       maxiters=1)
   end
 
-  @testset "differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "parameters_euler_sedov_blast_wave.toml one step with initial_condition_medium_sedov_blast_wave" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
       linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
       maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)

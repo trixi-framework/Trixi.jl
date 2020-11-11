@@ -100,21 +100,21 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       volume_flux = flux_hll)
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [1.252250990134887, 0.068566581088377, 0.9448804645921002],
       linf = [2.989362275712484, 0.16948139637812973, 2.665646470846281])
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with pressure" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl with pressure" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [1.297435677146544, 0.07960523576439762, 0.9453356096003658],
       linf = [3.1803117766542313, 0.21385627917778924, 2.665017066963603],
       shock_indicator_variable = pressure)
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with density" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl with density" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [1.2778131494486642, 0.0709461986289949, 0.9456057083034296],
       linf = [3.1163652756237115, 0.17652352860779985, 2.66646958937844],
       shock_indicator_variable = density)
