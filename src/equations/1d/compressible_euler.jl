@@ -145,7 +145,6 @@ function boundary_condition_convergence_test(u_inner, orientation, direction, x,
 end
 
 
-# TODO: Taal IC unused?
 """
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations1D)
 
