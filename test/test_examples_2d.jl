@@ -177,7 +177,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan = (0.0, 0.12))
   end
 
-  @testset "elixir_euler_khi_shockcapturing.jl" begin
+  @testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -185,17 +185,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # of random numbers is not guaranteed to be the same across different
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
         l2   = [0.002046615463716511, 0.002862576343897973, 0.001971146183422579, 0.004817029337018751],
         linf = [0.024299256322982465, 0.01620011715132652, 0.009869197749689947, 0.02060000394920891],
         tspan = (0.0, 0.2))
     else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
         tspan = (0.0, 0.2))
     end
   end
 
-  @testset "elixir_euler_khi_shockcapturing_amr.jl" begin
+  @testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -203,12 +203,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # of random numbers is not guaranteed to be the same across different
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
         l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
         linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
         tspan = (0.0, 0.2))
     else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
         tspan = (0.0, 0.2))
     end
   end
