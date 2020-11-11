@@ -575,9 +575,7 @@ end
   #        https://github.com/trixi-framework/Trixi.jl/issues/257
   equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
-  # FIXME Taal restore after Taam sync
-  # return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
-  return (sqrt(v1^2 + v2^2 + v3^2) + cf_max), 0.0, 0.0
+  return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
 end
 
 

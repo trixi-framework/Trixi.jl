@@ -157,9 +157,7 @@ end
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
-  # FIXME Taal restore after Taam sync
-  # return abs.(equation.advectionvelocity)
-  return maximum(abs.(equation.advectionvelocity)), 0.0, 0.0
+  return abs.(equation.advectionvelocity)
 end
 
 
