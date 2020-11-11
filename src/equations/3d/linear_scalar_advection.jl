@@ -69,7 +69,7 @@ end
 """
     initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation1D)
 
-A Gaussien pulse.
+A Gaussian pulse.
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
   # Store translated coordinate for easy use of exact solution

@@ -2,7 +2,7 @@
 # Simulation
 ndims = 3
 equations = "CompressibleEulerEquations"
-gamma = 1.66667
+gamma = 1.6666666666666667
 initial_condition = "initial_condition_blob"
 t_start = 0.0
 t_end   = 2.5
@@ -27,7 +27,7 @@ n_cells_max = 500000
 coordinates_min = [-20.0, -20.0, -20.0]
 coordinates_max =  [20.0, 20.0, 20.0]
 initial_refinement_level = 2
- refinement_patches = [
+refinement_patches = [
    {type = "box", coordinates_min = [-20.0, -10.0, -10.0], coordinates_max = [-10.0, 10.0, 10.0]},
    {type = "box", coordinates_min = [-20.0, -5.0, -5.0], coordinates_max = [-10.0, 5.0, 5.0]},
    {type = "box", coordinates_min = [-17.0, -2.0, -2.0], coordinates_max = [-13.0, 2.0, 2.0]},

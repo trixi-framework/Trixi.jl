@@ -481,19 +481,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 end
 
 
-"""
-    initial_condition_jeans_instability(x, t, equations::CompressibleEulerEquations2D)
-
-The classical Jeans instability taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
-  A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
-  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
-- Flash manual https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-in CGS (centimeter, gram, second) units.
-"""
+# TODO: Taal, remove the method below (moved to the elixir)
 function initial_condition_jeans_instability(x, t, equations::CompressibleEulerEquations2D)
   # Jeans gravitational instability test case
   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6

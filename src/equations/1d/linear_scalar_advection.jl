@@ -90,7 +90,7 @@ end
 """
     initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation1D)
 
-A Gaussien pulse used together with
+A Gaussian pulse used together with
 [`boundary_condition_gauss`](@ref).
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation1D)

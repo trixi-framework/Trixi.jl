@@ -17,10 +17,15 @@ want to use by either setting the environment variable `JULIA_NUM_THREADS` or by
 providing the `-t/--threads` command line argument. For example, to start Julia
 with four threads, start Julia with
 ```bash
-julia -t 4
+julia --threads=4
 ```
 If both the environment variable and the command line argument are specified at
 the same time, the latter takes precedence.
+
+!!! warning
+    Not everything is parallelized yet and there are likely opportunities to
+    improve scalability. Multi-threading isn't considered part of the public
+    API of Trixi yet.
 
 
 ## Distributed computing with MPI
@@ -34,6 +39,10 @@ running MPI programs on a cluster or supercomputer
 ([see the MPI.jl docs](https://juliaparallel.github.io/MPI.jl/stable/configuration/)
 to find out how to select the employed MPI library).
 
+!!! warning "Work in progress"
+    MPI-based parallelization is work in progress and not finished yet. Nothing
+    related to MPI is part of the official API of Trixi yet.
+
 To start Trixi in parallel with MPI, there are three options:
 
 1. **Run from the REPL with `mpiexec()`:** You can start a parallel execution directly from the
@@ -42,7 +51,7 @@ To start Trixi in parallel with MPI, there are three options:
    julia> using MPI
 
    julia> mpiexec() do cmd
-            run(`$cmd -n 3 $(Base.julia_cmd()) --project=. -e 'using Trixi; Trixi.run("examples/2d/parameters.toml")'`)
+            run(`$cmd -n 3 $(Base.julia_cmd()) --project=@. -e 'using Trixi; trixi_include("examples/2d/parameters.toml")'`)
           end
    ```
    The parameter `-n 3` specifies that Trixi should run with three processes (or
@@ -51,7 +60,7 @@ To start Trixi in parallel with MPI, there are three options:
    ensures that Julia is executed in parallel with the same optimization level
    etc. as you used for the REPL; if this is unnecessary or undesired, you can
    also just use `julia`.  Further, if you are not running Trixi from a local
-   clone but have installed it as a package, you need to omit the `--project=.`.
+   clone but have installed it as a package, you need to omit the `--project=@.`.
 2. **Run from the command line with `mpiexecjl`:** Alternatively, you can
    use the `mpiexecjl` script provided by MPI.jl, which allows you to start
    Trixi in parallel directly from the command line. As a preparation, you need to
@@ -64,7 +73,7 @@ To start Trixi in parallel with MPI, there are three options:
    Then, to execute Trixi in parallel, execute the following command from your
    command line:
    ```bash
-   mpiexecjl -n 3 julia --project=. -e 'using Trixi; Trixi.run("examples/2d/parameters.toml")'
+   mpiexecjl -n 3 julia --project=@. -e 'using Trixi; trixi_include("examples/2d/parameters.toml")'
    ```
 3. **Run interactively with `tmpi` (Linux/MacOS only):** If you are on a
    Linux/macOS system, you have a third option which lets you run Julia in
@@ -86,7 +95,7 @@ To start Trixi in parallel with MPI, there are three options:
    Finally, you can start and control multiple Julia REPLs simultaneously by
    running
    ```bash
-   tmpi 3 julia --project=.
+   tmpi 3 julia --project=@.
    ```
    This will start Julia inside `tmux` three times and multiplexes all commands
    you enter in one REPL to all other REPLs (try for yourself to understand what

@@ -4,7 +4,7 @@ This page contains information on how to use GitHub and Git when developing Trix
 
 ## Development workflow
 
-For adding modifcations to Trixi, we generally follow these steps:
+For adding modifications to Trixi, we generally follow these steps:
 
 ### Create an issue (optional)
 In many cases it makes sense to start by creating an issue on GitHub. For
@@ -42,7 +42,8 @@ git push -u myfork
     Immediately creating a PR for your branch has the benefit that all
     code discussions can now be held directly next to the corresponding code. Also,
     the PR allows to easily compare your branch to the upstream branch
-    (usually `master`) to see what you have changed.
+    (usually `master`) to see what you have changed. Moreover, tests will run
+    automatically.
 
 ### Make changes
 With a branch and PR in place, you can now write your code and commit
@@ -86,13 +87,13 @@ review. That is, you should
 
   * merge the current `master` to your branch
   * run tests if available, but at least ensure that you did not accidentally
-    change the results for one of the existing parameter files
+    change the results for one of the existing example elixirs
   * properly comment your code
   * delete old/unused code, especially commented lines (unless they contain
     helpful code, in which case you should add a comment on why you keep this
     around)
   * remove debug statements
-  * add a `parameters_xxx.toml` that uses your feature (only relevant for new
+  * add a `elixir_xxx.jl` that uses your feature (only relevant for new
     features)
   * make sure your code formatting adheres to the [Style guide](@ref)
 
@@ -116,10 +117,12 @@ we just try to keep Trixi as accessible and easy to use for everyone.
 
 ### Merge branch
 Once your branch is reviewed and declared ready for merging by the reviewer,
-make sure that all the latest changes have been pushed. Then, go
+make sure that all the latest changes have been pushed. Then, one of the
+developers will merge your PR. If you are one of the developers, you can also go
 to the pull request page on GitHub and and click on **Merge pull request**.
 Voilá, you are done! Your branch will have been merged to
-`master` and the source branch will have been deleted in the GitHub repository (if you are not working in your own fork).
+`master` and the source branch will have been deleted in the GitHub repository
+(if you are not working in your own fork).
 
 ### Update your working copy
 Once you have merged your branch by accepting the PR on GitHub, you
@@ -156,7 +159,7 @@ git reset HEAD~
 ```
 This only works if you have not yet pushed your branch to the GitHub repository.
 In this case, please talk to one of the core developers on how to proceed.
-Especially when you accidentally commited a large file (image, or video), please
+Especially when you accidentally committed a large file (image, or video), please
 let us know as fast as possible, since the effort to fix the repository grows
 considerably over time.
 
@@ -164,7 +167,7 @@ considerably over time.
 If a large file was accidentally committed **and pushed** to the Trixi
 repository, please talk to one of the core developers as soon as possible so that they can fix it.
 
-!!! danger
+!!! danger "Large files"
     You should never try to fix this yourself, as it potentially
     disrupts/destroys the work of others!
 

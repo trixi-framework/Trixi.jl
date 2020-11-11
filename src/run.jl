@@ -42,7 +42,7 @@ function find_assignment(expr, destination)
 end
 
 
-# Note: Wa can't call the method below `Trixi.include` since that is created automatically
+# Note: We can't call the method below `Trixi.include` since that is created automatically
 # inside `module Trixi` to `include` source files and evaluate them within the global scope
 # of `Trixi`. However, users will want to evaluate in the global scope of `Main` or something
 # similar to manage dependencies on their own.
@@ -58,8 +58,9 @@ providing examples with sensible default values for users.
 # Examples
 
 ```jldoctest
-julia> trixi_include(default_example(), tspan=(0.0, 0.1))
-...
+julia> trixi_include(@__MODULE__, default_example(), tspan=(0.0, 0.1))
+[...]
+
 julia> sol.t[end]
 0.1
 ```

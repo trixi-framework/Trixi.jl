@@ -10,19 +10,13 @@ function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = leaf_cells(mesh.tree)
 
-  # TODO: Taal refactor, we should pass the basis as argument,
-  # not polydeg, to all of the following initialization methods
-  elements = init_elements(leaf_cell_ids, mesh,
-                           RealT, nvariables(equations), polydeg(dg))
+  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
 
-  interfaces = init_interfaces(leaf_cell_ids, mesh, elements,
-                               RealT, nvariables(equations), polydeg(dg))
+  interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
-  boundaries, _ = init_boundaries(leaf_cell_ids, mesh, elements,
-                                  RealT, nvariables(equations), polydeg(dg))
+  boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
-  mortars = init_mortars(leaf_cell_ids, mesh, elements,
-                         RealT, nvariables(equations), polydeg(dg), dg.mortar)
+  mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
   cache = (; elements, interfaces, boundaries, mortars)
 

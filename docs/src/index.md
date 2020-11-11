@@ -8,13 +8,16 @@ focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
 * Hierarchical quadtree/octree grid with adaptive mesh refinement
-* Native support for 2D and 3D simulations
+* Native support for 1D, 2D, and 3D simulations
 * High-order accuracy in space in time
 * Nodal discontinuous Galerkin spectral element methods
   * Kinetic energy-preserving and entropy-stable split forms
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
-* Explicit low-storage Runge-Kutta time integration
+* Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
+  * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
+  * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+  * CFL-based and error-based time step control
 * Square/cubic domains with periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -24,7 +27,8 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl)) or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
+* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl))
+  or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
 
 
 ## Installation
@@ -65,7 +69,7 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    ```bash
    git clone git@github.com:trixi-framework/Trixi.jl.git
    cd Trixi.jl
-   julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
+   julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
    ```
    The last line can also be used to *update* the dependencies if they have changed
    since you first installed Trixi.
@@ -73,12 +77,11 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    If you installed Trixi this way, you always have to start Julia with the `--project`
    flag set to your local Trixi clone, e.g.,
    ```bash
-   julia --project=.
+   julia --project=@.
    ```
 
-Either way, since the
-postprocessing tools typically do not need to be modified, it is recommended to
-install them as normal packages by executing
+Either way, since the postprocessing tools typically do not need to be modified,
+it is recommended to install them as normal packages by executing
 ```julia
 julia> import Pkg
 
@@ -109,7 +112,7 @@ julia> using Trixi
 ```
 Then start a simulation by executing
 ```julia
-julia> Trixi.run(default_example())
+julia> trixi_include(default_example())
 ```
 To visualize the results, load the package Trixi2Img
 ```julia
@@ -124,16 +127,19 @@ that can be opened with any image viewer:
 
 !["solution_000040_scalar_resized"](assets/solution_000040_scalar_resized.png)
 
-The method `Trixi.run(...)` expects a single string argument with the path to a
-Trixi parameter file. To quickly see Trixi in action, `default_example()`
-returns the path to an example parameter file with a short, two-dimensional
-problem setup. A list of all example parameter files packaged with Trixi can be
+The method `trixi_include(...)` expects a single string argument with the path to a
+Trixi elixir, i.e.. a text file containing Julia code necessary to set up and run a
+simulation. To quickly see Trixi in action, `default_example()`
+returns the path to an example elixir with a short, two-dimensional
+problem setup. A list of all example elixirs packaged with Trixi can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
-[`examples/`](https://github.com/trixi-framework/Trixi.jl/examples/) subdirectory. If you want to
-modify one of the parameter files to set up your own simulation, download it to
-your machine, edit the configuration, and pass the file path to `Trixi.run(...)`.
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/examples/) subdirectory.
+If you want to modify one of the elixirs to set up your own simulation,
+download it to your machine, edit the configuration, and pass the file path to
+`trixi_include(...)`.
 
 ### Example: Running a simulation with Trixi
+<!-- TODO: Taal docs, create new version of this asciicast -->
 ```@raw html
   <script id="asciicast-356942"
           src="https://asciinema.org/a/356942.js"
@@ -145,25 +151,25 @@ your machine, edit the configuration, and pass the file path to `Trixi.run(...)`
 source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
 of a Julia method is typically slow, with subsequent runs being much faster. For
-instance, in the example above the first execution of `Trixi.run` takes about 15
-seconds, while subsequent runs require less than 50 *milli*seconds.
+instance, in the example above the first execution of `trixi_include` takes about
+20 seconds, while subsequent runs require less than 50 *milli*seconds.
 
 
 ### Performing a convergence analysis
 To automatically determine the experimental order of convergence (EOC) for a
 given setup, execute
 ```julia
-Trixi.convtest("examples/2d/parameters_advection_basic.toml", 4)
+julia> convergence_test(default_example(), 4)
 ```
-This will run a convergence test with the parameters file `examples/2d/parameters_advection_basic.toml`,
+This will run a convergence test with the elixir `default_example()`,
 using four iterations with different initial refinement levels. The initial
 iteration will use the parameters file unchanged, while for each subsequent
 iteration the `initial_refinement_level` parameter is incremented by one.
-Finally, the measured ``L^2`` and ``L^\infty`` errors and the determined EOCs
+Finally, the measured ``l^2`` and ``l^\infty`` errors and the determined EOCs
 will be displayed like this:
 ```
 [...]
-L2
+l2
 scalar
 error     EOC
 9.14e-06  -
@@ -173,7 +179,7 @@ error     EOC
 
 mean      4.00
 --------------------------------------------------------------------------------
-Linf
+linf
 scalar
 error     EOC
 6.44e-05  -
@@ -187,11 +193,11 @@ mean      3.99
 
 An example with multiple variables looks like this:
 ```julia
-julia> Trixi.convtest("examples/2d/parameters_euler_source_terms.toml", 3)
+julia> convergence_test(joinpath(examples_dir(), "2d", "elixir_euler_source_terms.jl"), 3)
 ```
 ```
 [...]
-L2
+l2
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
 8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
@@ -200,7 +206,7 @@ error     EOC       error     EOC       error     EOC       error     EOC
 
 mean      3.81      mean      3.92      mean      3.92      mean      3.90
 --------------------------------------------------------------------------------
-Linf
+linf
 rho                 rho_v1              rho_v2              rho_e
 error     EOC       error     EOC       error     EOC       error     EOC
 8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
