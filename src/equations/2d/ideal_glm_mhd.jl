@@ -574,6 +574,7 @@ phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{nor
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
 
+# TODO: Taal remove the method below
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
@@ -581,10 +582,7 @@ end
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equations::IdealGlmMhdEquations2D, dg)
   λ_max = 0.0
-  equations.c_h = 0.0
-  # FIXME Taal restore after Taam sync
-  # for j in 1:nnodes(dg), i in 1:nnodes(dg)
-  for j in nnodes(dg), i in 1:nnodes(dg)
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
     rho, rho_v1, rho_v2, rho_v3, _ = u_node
     v1 = rho_v1 / rho
@@ -611,6 +609,10 @@ end
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
   cf_max = max(cf_x_direction, cf_y_direction)
+
+  # FIXME: This should be implemented properly using another callback
+  #        or something else, cf.
+  #        https://github.com/trixi-framework/Trixi.jl/issues/257
   equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
   # FIXME Taal restore after Taam sync

@@ -34,4 +34,3 @@ function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
-
