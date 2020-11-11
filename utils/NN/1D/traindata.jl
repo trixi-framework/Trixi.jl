@@ -32,15 +32,15 @@ function addtrainingdata(func, u, a, b, meshsize, polydeg)
                 Xi = zeros(5,1)
                 Yi = zeros(2,1)
 
-                #Create Xi
+                # Create Xi
                 _, _, Xi[1] = legendreapprox(u, left-h, left, r)
                 Xi[4], Xi[5], Xi[2]= legendreapprox(u, left, right, r)
                 _, _, Xi[3] = legendreapprox(u, right, right+1, r)
 
-                #Create label Yi
+                # Create label Yi
                 Yi=Output(func,xi,h)
 
-                #append to X and Y
+                # append to X and Y
                 global X = cat(X, Xi, dims=2)
                 global Y = cat(Y, Yi, dims=2)
 
@@ -54,28 +54,60 @@ function addtrainingdata(func, u, a, b, meshsize, polydeg)
 end
 
 
-h=0.01:0.01:0.4
 r = [1 2 3 4 5 6]
+h=0.001:0.001:0.4
+
 
 u1(x)=sin(4*pi*x)
 a = 0
 b = 1
 addtrainingdata(1, u1, a, b, h, r)
 
+u1(x)=sin(5*pi*x)
+a = 0
+b = 1
+addtrainingdata(1, u1, a, b, h, r)
+u1(x)=sin(pi*x)
+a = 0
+b = 1
+addtrainingdata(1, u1, a, b, h, r)
+
+h=0.01:0.011:0.4
+
+u1(x)=sin(2*pi*x)
+a = -1
+b = 1
+addtrainingdata(1, u1, a, b, h, r)
+
+u1(x)=sin(2*pi*x)
+a = -1
+b = 1
+addtrainingdata(1, u1, a, b, h, r)
+
+
 u1(x)=sin(3*pi*x)+sin(2*pi*x)*cos(5*pi*x)
 a = 0
 b = 2
 addtrainingdata(1, u1, a, b, h, r)
 
+u1(x)=sin(1*pi*x)+sin(2*pi*x)*cos(6*pi*x)
+a = -1
+b = 1
+addtrainingdata(1, u1, a, b, h, r)
+
 
 a=-1
 b=1
-h=0.01:0.01:0.1
+h=0.01:0.01:0.4
 r = [1 2 3 4 5 6]
 
 u2(x) =  2*x
 addtrainingdata(2, u2, a, b, h, r)
 u2(x) =  -3*x
+addtrainingdata(2, u2, a, b, h, r)
+u2(x) =  -8*x
+addtrainingdata(2, u2, a, b, h, r)
+u2(x) =  0.1*x
 addtrainingdata(2, u2, a, b, h, r)
 
 a=-0.5
@@ -88,9 +120,9 @@ addtrainingdata(3, u3, a, b, h, r)
 
 #For u4: just troubled cells
 for ul in -1:0.5:1
-    for ur in -1:0.5:1
+    for ur in -1:0.25:1
         for x0 in -0.75:0.25:0.75
-            for h in 0.1:0.1:0.3
+            for h in 0.01:0.01:0.2
                 for xi in x0-(3/2)*h:0.1:x0+(3/2)*h
                     for r = [1 2 3 4 5 6]
                         Xi = zeros(5,1)

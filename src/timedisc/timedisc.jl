@@ -9,10 +9,15 @@
 Perform one timestep using an explicit Runge-Kutta method of the low-storage
 class 2N of Williamson.
 """
-@inline function timestep_2N!(solver, t, dt, a, b, c)
+@inline function timestep_2N!(mesh, solver, t, dt, a, b, c)
   for stage in eachindex(c)
     t_stage = t + dt * c[stage]
-    @timeit timer() "rhs" rhs!(solver, t_stage)
+    ndims_ = parameter("ndims")::Int
+    if ndims_ == 3
+      @timeit timer() "rhs" rhs!(solver, t_stage)
+    else
+      @timeit timer() "rhs" rhs!(mesh, solver, t_stage)
+    end
 
     a_stage    = a[stage]
     b_stage_dt = b[stage] * dt
@@ -31,7 +36,7 @@ end
 
 Carpenter, Kennedy (1994) Fourth order 2N storage RK schemes, Solution 3
 """
-function timestep_carpenter_kennedy_erk54_2N!(solver::AbstractSolver, t, dt)
+function timestep_carpenter_kennedy_erk54_2N!(mesh::TreeMesh, solver::AbstractSolver, t, dt)
   a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
        3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
   b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
@@ -40,7 +45,7 @@ function timestep_carpenter_kennedy_erk54_2N!(solver::AbstractSolver, t, dt)
   c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
        2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
 
-  timestep_2N!(solver, t, dt, a, b, c)
+  timestep_2N!(mesh, solver, t, dt, a, b, c)
 end
 
 """
@@ -48,12 +53,12 @@ end
 
 Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
 """
-function timestep_carpenter_kennedy_erk43_2N!(solver::AbstractSolver, t, dt)
+function timestep_carpenter_kennedy_erk43_2N!(mesh::TreeMesh, solver::AbstractSolver, t, dt)
   a = @SVector [0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297]
   b = @SVector [8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383]
   c = @SVector [0, 8 / 141, 86 / 125, 1]
 
-  timestep_2N!(solver, t, dt, a, b, c)
+  timestep_2N!(mesh, solver, t, dt, a, b, c)
 end
 
 

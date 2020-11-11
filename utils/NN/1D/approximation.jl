@@ -1,5 +1,5 @@
 using Tullio: @tullio
-include("../../src/solvers/dg/interpolation.jl")
+include("../../../src/solvers/dg/interpolation.jl")
 
 function legendreapprox(u, a, b, r)
     coef=zeros(r+1)   

@@ -326,3 +326,7 @@ function cell2node(cell_centered_data::AbstractArray{Float64})
 end
 
 end
+
+Trixi2Txt.trixi2txt(joinpath("out", "solution_000000.h5"), output_directory="utils")
+Trixi2Txt.trixi2txt(joinpath("out", "solution_000500.h5"), output_directory="utils")
+Trixi2Txt.trixi2txt(joinpath("out", "solution_001240.h5"), output_directory="utils")

@@ -650,9 +650,9 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-function calc_entropy_timederivative(dg::Dg1D, t)
+function calc_entropy_timederivative(mesh::TreeMesh, dg::Dg1D, t)
   # Compute ut = rhs(u) with current solution u
-  @notimeit timer() rhs!(dg, t)
+  @notimeit timer() rhs!(mesh, dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   dsdu_ut = integrate(dg, dg.elements.u, dg.elements.u_t) do i, element_id, dg, u, u_t
@@ -820,7 +820,7 @@ function analyze_solution(dg::Dg1D, mesh::TreeMesh, time::Real, dt::Real, step::
 
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
-    duds_ut = calc_entropy_timederivative(dg, time)
+    duds_ut = calc_entropy_timederivative(mesh, dg, time)
     print(" ∑∂S/∂U ⋅ Uₜ: ")
     @printf("  % 10.8e", duds_ut)
     dg.save_analysis && @printf(f, "  % 10.8e", duds_ut)
@@ -970,12 +970,12 @@ end
 
 
 # Calculate time derivative
-function rhs!(dg::Dg1D, t_stage)
+function rhs!(mesh::TreeMesh, dg::Dg1D, t_stage)
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(mesh, dg)
 
   # Prolong solution to interfaces
   @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
@@ -1005,11 +1005,11 @@ function apply_positivity_preserving_limiter!(dg::Dg1D)
 end
 
 # Calculate volume integral and update u_t
-calc_volume_integral!(dg::Dg1D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
+calc_volume_integral!(mesh::TreeMesh, dg::Dg1D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, mesh, dg)
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(u_t, ::Val{:weak_form}, dg::Dg1D)
+function calc_volume_integral!(u_t, ::Val{:weak_form}, mesh::TreeMesh, dg::Dg1D)
   @unpack dhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1028,12 +1028,12 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg1D)
-  calc_volume_integral!(u_t, volume_integral_type, dg.thread_cache, dg)
+@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, mesh::TreeMesh, dg::Dg1D)
+  calc_volume_integral!(u_t, volume_integral_type, dg.thread_cache, mesh, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, cache, dg::Dg1D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, cache, mesh::TreeMesh, dg::Dg1D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, cache, dg)
   end
@@ -1068,7 +1068,7 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg1D)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, mesh::TreeMesh, dg::Dg1D)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
@@ -1093,11 +1093,11 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg1D)
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
                         dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
                         dg.thread_cache,
-                        dg)
+                        mesh, dg)
 end
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, dg::Dg1D)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, mesh::TreeMesh, dg::Dg1D)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
@@ -1122,11 +1122,11 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, dg::Dg1D)
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
                         dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
                         dg.thread_cache,
-                        dg)
+                        mesh, dg)
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg1D)
+                               element_ids_dg, element_ids_dgfv, thread_cache, mesh::TreeMesh, dg::Dg1D)
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack fstar1_threaded = thread_cache
 
@@ -1165,7 +1165,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg1D)
+                               element_ids_dg, element_ids_dgfv, thread_cache, mesh::TreeMesh, dg::Dg1D)
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack fstar1_threaded = thread_cache
 
@@ -1174,7 +1174,7 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, alpha, alpha_tmp
     dg.shock_alpha_max,
     dg.shock_alpha_min,
     dg.shock_alpha_smooth,
-    dg.shock_indicator_variable, thread_cache, dg)
+    dg.shock_indicator_variable, thread_cache, mesh, dg)
 
     # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
@@ -1473,40 +1473,65 @@ end
 # Calculate blending factors used for ann shock capturing
 function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
   alpha_max, alpha_min, do_smoothing,
-  indicator_variable, thread_cache, dg::Dg1D)
+  indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg1D)
   # temporary buffers
   @unpack indicator_threaded, modal_threaded = thread_cache
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
+  c2e = zeros(Int, length(mesh.tree))
+  for element_id in 1:dg.n_elements 
+    c2e[dg.elements.cell_ids[element_id]] = element_id
+  end
 
   #TODO: boundary
-  Threads.@threads for element_id in 2:(dg.n_elements-1)
+  Threads.@threads for element_id in 1:(dg.n_elements)
       indicator  = indicator_threaded[Threads.threadid()]
-      #modal      = modal_threaded[Threads.threadid()]
+      cell_id = dg.elements.cell_ids[element_id]
+      neighbor_ids = Array{Int64}(undef, 2)#zeros(n_directions(mesh.tree))
 
+      for direction in 1:n_directions(mesh.tree)
+        
+        if has_neighbor(mesh.tree, cell_id, direction)
+          neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+          if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor
+            if direction == 1
+              neighbor_ids[direction] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+            else
+              neighbor_ids[direction] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+            end
+          else # Cell has same refinement level neighbor
+            neighbor_ids[direction] = c2e[neighbor_cell_id]
+          end
+        else # Cell is small and has large neighbor
+          parent_id = mesh.tree.parent_ids[cell_id]
+          neighbor_cell_id = mesh.tree.neighbor_ids[direction, parent_id]
+          neighbor_ids[direction] = c2e[neighbor_cell_id]
+        end
+      end
+      
       # Calculate indicator variables at Gauss-Lobatto nodes
       cons2indicator!(indicator, u, element_id, indicator_variable, dg)
       avg = sum(indicator)/nnodes(dg)
       left = indicator[1,1]
       right = indicator[1,end]
 
-      cons2indicator!(indicator, u, element_id-1, indicator_variable, dg)
+      cons2indicator!(indicator, u, neighbor_ids[1], indicator_variable, dg)
       avg_left = sum(indicator)/nnodes(dg)
 
-      cons2indicator!(indicator, u, element_id+1, indicator_variable, dg)
+      cons2indicator!(indicator, u, neighbor_ids[2], indicator_variable, dg)
       avg_right = sum(indicator)/nnodes(dg)
     
       model_input = [avg_left; avg; avg_right; left; right]
       model_input = model_input ./max(maximum(abs.(model_input)),1)
       
-      if model(model_input)[1] > 0.5
+      if model1d(model_input)[1] > 0.5
         alpha[element_id] = 1
       else
         alpha[element_id] = 0
       end
 
-      #alpha[element_id] = model(model_input)[1]
+      #alpha[element_id] = model1d(model_input)[1]
       
       # Take care of the case close to pure DG
       if (alpha[element_id] < alpha_min)
@@ -1519,8 +1544,12 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
       end
 
       # Clip the maximum amount of FV allowed
-      alpha[element_id] = min(alpha_max, alpha[element_id])
+      #alpha[element_id] = min(alpha_max, alpha[element_id])
   end
+  
+  #h5open("alpha.h5", "w") do file
+  #  write(file, "alpha", alpha)
+  #end
   
   if (do_smoothing)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

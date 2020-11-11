@@ -248,7 +248,12 @@ function init_simulation()
   if !restart && parameter("save_initial_solution", true)
     # we need to make sure, that derived quantities, such as e.g. blending
     # factor is already computed for the initial condition
-    @notimeit timer() rhs!(solver, time)
+    if ndims_ == 3
+      @notimeit timer() rhs!(solver, time)
+    else
+      @notimeit timer() rhs!(mesh, solver, time)
+    end
+      
     save_solution_file(solver, mesh, time, 0, step)
   end
 
@@ -305,7 +310,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     end
 
     # Evolve solution by one time step
-    time_integration_function(solver, time, dt)
+    time_integration_function(mesh, solver, time, dt)
     step += 1
     time += dt
     n_analysis_timesteps += 1
@@ -547,7 +552,11 @@ function compute_linear_structure(parameters_file, source_terms=nothing; verbose
 
   # get the right hand side from the source terms
   solver.elements.u .= 0
-  rhs!(solver, 0)
+  if ndims_ == 3
+    rhs!(solver, 0)
+  else
+    rhs!(mesh, solver, 0)
+  end
   b = vec(-solver.elements.u_t) |> copy
 
   # set the source terms to zero to extract the linear operator
@@ -565,7 +574,11 @@ function compute_linear_structure(parameters_file, source_terms=nothing; verbose
   end
   A = LinearMap(length(solver.elements.u), ismutating=true) do dest,src
     vec(solver.elements.u) .= src
-    rhs!(solver, 0)
+    if ndims_ == 3
+      rhs!(solver, 0)
+    else
+      rhs!(mesh, solver, 0)
+    end
     dest .= vec(solver.elements.u_t)
   end
 
@@ -595,7 +608,11 @@ function compute_jacobian_dg(parameters_file; verbose=false, parameters...)
   u0 = dg.elements.u |> copy
 
   #compute residual of linearisation state
-  rhs!(dg, 0)
+  if ndims_ == 3
+    rhs!(dg, 0)
+  else
+    rhs!(mesh, dg, 0)
+  end
   res0 = vec(dg.elements.u_t) |> copy
 
   # initialize Jacobian matrix
@@ -607,12 +624,20 @@ function compute_jacobian_dg(parameters_file; verbose=false, parameters...)
     epsilon = sqrt(eps(u0[idx]))
     # plus fluctuation
     dg.elements.u[idx] = u0[idx] + epsilon
-    rhs!(dg, 0)
+    if ndims_ == 3
+      rhs!(dg, 0)
+    else
+      rhs!(mesh, dg, 0)
+    end
     # stores the right hand side with plus epsilon fluctuation
     res_p = vec(dg.elements.u_t) |> copy
     # minus fluctuation
     dg.elements.u[idx] = u0[idx] - epsilon
-    rhs!(dg, 0)
+    if ndims_ == 3
+      rhs!(dg, 0)
+    else
+      rhs!(mesh, dg, 0)
+    end
     # stores the right hand side with minus epsilon fluctuation
     res_m = vec(dg.elements.u_t) |> copy
     # restore linearisation state
