@@ -2499,6 +2499,14 @@ end
 # Calculate stable time step size
 function calc_dt(dg::Dg3D, cfl)
   min_dt = Inf
+
+  # FIXME: This should be implemented properly using another callback
+  #        or something else, cf.
+  #        https://github.com/trixi-framework/Trixi.jl/issues/257
+  if dg.equations isa AbstractIdealGlmMhdEquations
+    dg.equations.c_h = zero(dg.equations.c_h)
+  end
+
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id,
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)
