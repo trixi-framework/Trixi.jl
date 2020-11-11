@@ -54,8 +54,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync: increase value with new timestep size calculation?
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
