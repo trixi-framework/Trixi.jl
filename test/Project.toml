@@ -8,5 +8,5 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 DiffEqCallbacks = "2.14"
-MPI = "0.15"
+MPI = "0.15, 0.16"
 OrdinaryDiffEq = "5.44"
