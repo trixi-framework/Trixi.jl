@@ -16,28 +16,29 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
 # Run basic tests
 @testset "Examples 2D" begin
+  # Linear advection
   @testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [9.144681765639205e-6],
-      linf = [6.437440532547356e-5])
+      l2   = [9.14468177884088e-6],
+      linf = [6.437440532947036e-5])
   end
 
   @testset "elixir_advection_basic.jl with polydeg=1" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.05264106093598111],
-      linf = [0.08754218386076518],
+      l2   = [0.052738240907090894],
+      linf = [0.08754218386076529],
       polydeg=1)
   end
 
   @testset "elixir_advection_timeintegration.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [9.144681765639205e-6],
-      linf = [6.437440532547356e-5])
+      l2   = [9.144681778837444e-6],
+      linf = [6.437440532436334e-5])
   end
 
   @testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [8.908962577028364e-6],
+      l2   = [8.90896259060052e-6],
       linf = [6.969419032576418e-5],
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 1.0)
@@ -45,72 +46,76 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [7.932405161658336e-6],
+      l2   = [7.932405176905278e-6],
       linf = [6.509399993848142e-5],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar94())
   end
 
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [0.00440542760645958],
+      l2   = [0.004405427606459577],
       linf = [0.012549162970726613],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32())
   end
 
   @testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
-      l2   = [0.001613367076589483],
+      l2   = [0.0016133676309497648],
       linf = [0.013960195840607481])
   end
 
   @testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-      l2   = [0.010844189678803203],
-      linf = [0.0491178481591637])
+      l2   = [0.009907208939244499],
+      linf = [0.04335954152178878])
   end
 
   @testset "elixir_advection_amr_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
-      l2   = [0.008016815805080098],
-      linf = [0.04229543866599861])
+      l2   = [0.007013561257721758],
+      linf = [0.039176916074623536])
   end
 
   @testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [1.2148032444677485e-5],
-      linf = [6.495644794757283e-5])
+      l2   = [1.2148032454832534e-5],
+      linf = [6.495644795245781e-5])
   end
 
   @testset "elixir_advection_callbacks.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"))
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_callbacks.jl"),
+      l2   = [9.14468177884088e-6],
+      linf = [6.437440532947036e-5])
   end
 
 
+  # Hyperbolic diffusion
   @testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
-      l2   = [0.0001568775108748819, 0.0010259867353406083, 0.0010259867353406382],
-      linf = [0.0011986956416590866, 0.006423873516411938, 0.006423873516411938])
+      l2   = [0.00015687751817403066, 0.001025986772216324, 0.0010259867722164071],
+      linf = [0.001198695637957381, 0.006423873515531753, 0.006423873515533529])
   end
 
   @testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
-      l2   = [8.618132353932638e-8, 5.619399844708813e-7, 5.619399845476024e-7],
-      linf = [1.124861862326869e-6, 8.622436471483752e-6, 8.622436469707395e-6])
+      l2   = [8.618132355121019e-8, 5.619399844384306e-7, 5.619399844844044e-7],
+      linf = [1.1248618588430072e-6, 8.622436487026874e-6, 8.622436487915053e-6])
   end
 
   @testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
-      l2   = [8.523077654037775e-6, 2.877932365308637e-5, 5.454942769137812e-5],
-      linf = [5.484978959957587e-5, 0.00014544895979200218, 0.000324491268921534])
+      l2   = [8.523077653954864e-6, 2.8779323653020624e-5, 5.454942769125663e-5],
+      linf = [5.522740952468297e-5, 0.00014544895978971679, 0.00032396328684924924])
   end
 
   @testset "elixir_hypdiff_upwind.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_upwind.jl"),
-      l2   = [5.868147556488962e-6, 3.8051792732628014e-5, 3.8051792732620214e-5],
-      linf = [3.70196549871471e-5, 0.0002072058411455302, 0.00020720584114464202])
+      l2   = [5.868147556427088e-6, 3.80517927324465e-5, 3.805179273249344e-5],
+      linf = [3.701965498725812e-5, 0.0002122422943138247, 0.00021224229431116015])
   end
 
 
+  # Compressible Euler
   @testset "elixir_euler_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
       l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
@@ -270,6 +275,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [4.625172721961501e-5, 0.0318570623352572, 0.031910329823320094, 0.04575283708569344])
   end
 
+
+  # MHD
   @testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [0.00011134329189093838, 5.879976755457151e-6, 5.879976755467383e-6, 8.43292512821684e-6, 1.294413664064275e-6, 1.223741200505245e-6, 1.2237412005047353e-6, 1.830592551435133e-6, 8.09851353166173e-7],
@@ -310,24 +317,24 @@ end
   # Linear scalar advection
   @testset "elixir_advection_basic.jl with initial_condition_sin_sin" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.0001424424804667062],
-      linf = [0.0007260692243250544],
+      l2   = [0.0001424424872539405],
+      linf = [0.0007260692243253875],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_sin_sin)
   end
 
   @testset "elixir_advection_basic.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [6.120436421866528e-16],
-      linf = [1.3322676295501878e-15],
+      l2   = [3.2933000250376106e-16],
+      linf = [6.661338147750939e-16],
       maxiters = 1,
       initial_condition = initial_condition_constant)
   end
 
   @testset "elixir_advection_basic.jl with initial_condition_linear_x_y" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [2.559042358408011e-16],
-      linf = [6.8833827526759706e-15],
+      l2   = [2.478798286796091e-16],
+      linf = [7.105427357601002e-15],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_linear_x_y,
       boundary_conditions = Trixi.boundary_condition_linear_x_y,
@@ -336,7 +343,7 @@ end
 
   @testset "elixir_advection_basic.jl with initial_condition_linear_x" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [1.5901063275642836e-16],
+      l2   = [1.475643203742897e-16],
       linf = [1.5543122344752192e-15],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_linear_x,
@@ -346,8 +353,8 @@ end
 
   @testset "elixir_advection_basic.jl with initial_condition_linear_y" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [1.597250146891042e-16],
-      linf = [3.552713678800501e-15],
+      l2   = [1.5465148503676022e-16],
+      linf = [3.6637359812630166e-15],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_linear_y,
       boundary_conditions = Trixi.boundary_condition_linear_y,
