@@ -1,5 +1,5 @@
 # Calculate time derivative
-function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{true})
+function rhs!(mesh::TreeMesh, dg::Dg2D, t_stage, uses_mpi::Val{true})
   # Start to receive MPI data
   @timeit timer() "start MPI receive" start_mpi_receive!(dg)
 
@@ -13,7 +13,7 @@ function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{true})
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(mesh, dg)
 
   # Prolong solution to interfaces
   @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
@@ -516,7 +516,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
 
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
-    dsdu_ut = calc_entropy_timederivative(dg, time)
+    dsdu_ut = calc_entropy_timederivative(mesh, dg, time)
     if mpi_isroot()
       print(" ∑∂S/∂U ⋅ Uₜ: ")
       @printf("  % 10.8e", dsdu_ut)

@@ -33,6 +33,13 @@ using UnPack: @unpack
 using Tullio: @tullio
 using LoopVectorization
 
+# ANN
+using Flux
+using BSON: @load
+Core.eval(Main, :(import NNlib, Flux))  #ToDo 
+@load "utils/NN/1D/model-0.9011699507389163.bson" model1d
+@load "utils/NN/2D/ann_shock_capturing_2d.bson" model
+
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()
 export globals

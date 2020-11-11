@@ -139,7 +139,8 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize differentiation operator
   volume_integral_type = Val(Symbol(parameter("volume_integral_type", "weak_form",
-                                              valid=["weak_form", "split_form", "shock_capturing"])))
+                                              valid=["weak_form", "split_form", "shock_capturing",
+                                              "shock_capturing_nn"])))
   # FIXME: This should be removed as soon as it possible to set solver-specific parameters
   if equation isa HyperbolicDiffusionEquations2D && globals[:euler_gravity]
     volume_integral_type = Val(:weak_form)
@@ -254,7 +255,7 @@ function Dg2D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
   end
 
   # Initialize element variables such that they are available in the first solution file
-  if volume_integral_type === Val(:shock_capturing)
+  if volume_integral_type === Val(:shock_capturing) || volume_integral_type === Val(:shock_capturing_nn)
     element_variables[:blending_factor] = zeros(n_elements)
   end
 
@@ -908,10 +909,10 @@ end
 
 
 # Integrate ∂S/∂u ⋅ ∂u/∂t over the entire domain
-calc_entropy_timederivative(dg::Dg2D, t) = calc_entropy_timederivative(dg, t, uses_mpi(dg))
-function calc_entropy_timederivative(dg::Dg2D, t, uses_mpi)
+calc_entropy_timederivative(mesh::TreeMesh, dg::Dg2D, t) = calc_entropy_timederivative(mesh, dg, t, uses_mpi(dg))
+function calc_entropy_timederivative(mesh::TreeMesh, dg::Dg2D, t, uses_mpi)
   # Compute ut = rhs(u) with current solution u
-  @notimeit timer() rhs!(dg, t)
+  @notimeit timer() rhs!(mesh, dg, t)
 
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   dsdu_ut = integrate(dg, uses_mpi, dg.elements.u, dg.elements.u_t) do i, j, element_id, dg, u, u_t
@@ -1118,7 +1119,7 @@ function analyze_solution(dg::Dg2D, mesh::TreeMesh, time, dt, step, runtime_abso
 
   # Entropy time derivative
   if :dsdu_ut in dg.analysis_quantities
-    dsdu_ut = calc_entropy_timederivative(dg, time)
+    dsdu_ut = calc_entropy_timederivative(mesh, dg, time)
     print(" ∑∂S/∂U ⋅ Uₜ: ")
     @printf("  % 10.8e", dsdu_ut)
     dg.save_analysis && @printf(f, "  % 10.8e", dsdu_ut)
@@ -1346,13 +1347,13 @@ end
 
 
 # Calculate time derivative
-@inline rhs!(dg::Dg2D, t_stage) = rhs!(dg, t_stage, uses_mpi(dg))
-function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{false})
+@inline rhs!(mesh::TreeMesh, dg::Dg2D, t_stage) = rhs!(mesh, dg, t_stage, uses_mpi(dg))
+function rhs!(mesh::TreeMesh, dg::Dg2D, t_stage, uses_mpi::Val{false})
   # Reset u_t
   @timeit timer() "reset ∂u/∂t" dg.elements.u_t .= 0
 
   # Calculate volume integral
-  @timeit timer() "volume integral" calc_volume_integral!(dg)
+  @timeit timer() "volume integral" calc_volume_integral!(mesh, dg)
 
   # Prolong solution to interfaces
   @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
@@ -1388,7 +1389,7 @@ function apply_positivity_preserving_limiter!(dg::Dg2D)
 end
 
 # Calculate volume integral and update u_t
-calc_volume_integral!(dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, dg)
+calc_volume_integral!(mesh::TreeMesh, dg::Dg2D) = calc_volume_integral!(dg.elements.u_t, dg.volume_integral_type, mesh, dg)
 
 
 # Calculate 2D twopoint flux (element version)
@@ -1441,7 +1442,7 @@ end
 
 
 # Calculate volume integral (DGSEM in weak form)
-function calc_volume_integral!(u_t, ::Val{:weak_form}, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:weak_form}, mesh::TreeMesh, dg::Dg2D)
   @unpack dhat = dg
 
   Threads.@threads for element_id in 1:dg.n_elements
@@ -1468,12 +1469,12 @@ end
 
 
 # Calculate volume integral (DGSEM in split form)
-@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, dg::Dg2D)
-  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, dg)
+@inline function calc_volume_integral!(u_t, volume_integral_type::Val{:split_form}, mesh::TreeMesh, dg::Dg2D)
+  calc_volume_integral!(u_t, volume_integral_type, have_nonconservative_terms(equations(dg)), dg.thread_cache, mesh, dg)
 end
 
 
-function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:split_form}, nonconservative_terms, cache, mesh::TreeMesh, dg::Dg2D)
   Threads.@threads for element_id in 1:dg.n_elements
     split_form_kernel!(u_t, element_id, nonconservative_terms, cache, dg)
   end
@@ -1546,7 +1547,7 @@ end
 
 
 # Calculate volume integral (DGSEM in split form with shock capturing)
-function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing}, mesh::TreeMesh, dg::Dg2D)
   # (Re-)initialize element variable storage for blending factor
   if (!haskey(dg.element_variables, :blending_factor) ||
       length(dg.element_variables[:blending_factor]) != dg.n_elements)
@@ -1571,11 +1572,40 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, dg::Dg2D)
                         dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
                         dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
                         dg.thread_cache,
-                        dg)
+                        mesh, dg)
+end
+
+# Calculate volume integral (DGSEM in split form with shock capturing)
+function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, mesh::TreeMesh, dg::Dg2D)
+  # (Re-)initialize element variable storage for blending factor
+  if (!haskey(dg.element_variables, :blending_factor) ||
+      length(dg.element_variables[:blending_factor]) != dg.n_elements)
+    dg.element_variables[:blending_factor] = Vector{Float64}(undef, dg.n_elements)
+  end
+  if (!haskey(dg.element_variables, :blending_factor_tmp) ||
+      length(dg.element_variables[:blending_factor_tmp]) != dg.n_elements)
+    dg.element_variables[:blending_factor_tmp] = Vector{Float64}(undef, dg.n_elements)
+  end
+
+  # Initialize element variable storage for the cache
+  if (!haskey(dg.cache, :element_ids_dg))
+    dg.cache[:element_ids_dg] = Int[]
+    sizehint!(dg.cache[:element_ids_dg], dg.n_elements)
+  end
+  if (!haskey(dg.cache, :element_ids_dgfv))
+    dg.cache[:element_ids_dgfv] = Int[]
+    sizehint!(dg.cache[:element_ids_dgfv], dg.n_elements)
+  end
+
+  calc_volume_integral!(u_t, Val(:shock_capturing_nn),
+                        dg.element_variables[:blending_factor], dg.element_variables[:blending_factor_tmp],
+                        dg.cache[:element_ids_dg], dg.cache[:element_ids_dgfv],
+                        dg.thread_cache,
+                        mesh, dg)
 end
 
 function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
-                               element_ids_dg, element_ids_dgfv, thread_cache, dg::Dg2D)
+                               element_ids_dg, element_ids_dgfv, thread_cache, mesh::TreeMesh, dg::Dg2D)
   @unpack dsplit_transposed, inverse_weights = dg
   @unpack fstar1_threaded, fstar2_threaded = thread_cache
 
@@ -1610,6 +1640,48 @@ function calc_volume_integral!(u_t, ::Val{:shock_capturing}, alpha, alpha_tmp,
         u_t[v, i, j, element_id] += ( alpha[element_id] *
                                         (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
                                         inverse_weights[j]  * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
+
+      end
+    end
+  end
+end
+
+function calc_volume_integral!(u_t, ::Val{:shock_capturing_nn}, alpha, alpha_tmp,
+    element_ids_dg, element_ids_dgfv, thread_cache, mesh::TreeMesh, dg::Dg2D)
+  @unpack dsplit_transposed, inverse_weights = dg
+  @unpack fstar1_threaded, fstar2_threaded = thread_cache
+
+  # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
+  @timeit timer() "blending factors" calc_blending_factors_nn!(alpha, alpha_tmp, dg.elements.u,
+    dg.shock_alpha_max,
+    dg.shock_alpha_min,
+    dg.shock_alpha_smooth,
+    dg.shock_indicator_variable, thread_cache, mesh, dg)
+
+  # Determine element ids for DG-only and blended DG-FV volume integral
+  pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg)
+
+  # Loop over pure DG elements
+  @timeit timer() "pure DG" Threads.@threads for element_id in element_ids_dg
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg)
+  end
+
+  # Loop over blended DG-FV elements
+  @timeit timer() "blended DG-FV" Threads.@threads for element_id in element_ids_dgfv
+    # Calculate DG volume integral contribution
+    split_form_kernel!(u_t, element_id, have_nonconservative_terms(equations(dg)), thread_cache, dg, 1 - alpha[element_id])
+
+    # Calculate FV two-point fluxes
+    fstar1 = fstar1_threaded[Threads.threadid()]
+    fstar2 = fstar2_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1, fstar2, dg.elements.u, element_id, dg)
+
+    # Calculate FV volume integral contribution
+    for j in 1:nnodes(dg), i in 1:nnodes(dg)
+      for v in 1:nvariables(dg)
+        u_t[v, i, j, element_id] += ( alpha[element_id] *
+                  (inverse_weights[i] * (fstar1[v, i+1, j] - fstar1[v, i, j]) +
+                  inverse_weights[j]  * (fstar2[v, i, j+1] - fstar2[v, i, j])) )
 
       end
     end
@@ -2396,11 +2468,11 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
                                 indicator_variable, thread_cache, dg::Dg2D)
   calc_blending_factors!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing,
-                         indicator_variable, thread_cache, dg, uses_mpi(dg))
+                         indicator_variable, thread_cache,  dg, uses_mpi(dg))
 end
 function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                                 alpha_max, alpha_min, do_smoothing,
-                                indicator_variable, thread_cache, dg::Dg2D, uses_mpi::Val{false})
+                                indicator_variable, thread_cache,  dg::Dg2D, uses_mpi::Val{false})
   # temporary buffers
   @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
   # magic parameters
@@ -2414,7 +2486,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, indicator_variable, dg)
-
+  
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
@@ -2437,6 +2509,171 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
                  (total_energy_clip1 - total_energy_clip2)/total_energy_clip1)
 
     alpha[element_id] = 1 / (1 + exp(-parameter_s/threshold * (energy - threshold)))
+
+    # Take care of the case close to pure DG
+    if (alpha[element_id] < alpha_min)
+      alpha[element_id] = 0.
+    end
+
+    # Take care of the case close to pure FV
+    if (alpha[element_id] > 1-alpha_min)
+      alpha[element_id] = 1.
+    end
+
+    # Clip the maximum amount of FV allowed
+    alpha[element_id] = min(alpha_max, alpha[element_id])
+  end
+
+  if (do_smoothing)
+    smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi)
+  end
+end
+
+# Calculate blending factors used for shock capturing, or amr control
+function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
+  alpha_max, alpha_min, do_smoothing,
+  indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg2D)
+calc_blending_factors_nn!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing,
+indicator_variable, thread_cache, mesh, dg, uses_mpi(dg))
+end
+function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
+    alpha_max, alpha_min, do_smoothing,
+    indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg2D, uses_mpi::Val{false})
+  # temporary buffers
+  @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
+  # magic parameters
+  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
+  parameter_s = log((1 - 0.0001)/0.0001)
+  c2e = zeros(Int, length(mesh.tree))
+  for element_id in 1:dg.n_elements 
+    c2e[dg.elements.cell_ids[element_id]] = element_id
+  end
+
+  Threads.@threads for element_id in 1:dg.n_elements
+    indicator  = indicator_threaded[Threads.threadid()]
+    modal      = modal_threaded[Threads.threadid()]
+    modal2     = modal_threaded[Threads.threadid()]
+    modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
+    cell_id = dg.elements.cell_ids[element_id]
+
+    # Calculate indicator variables at Gauss-Lobatto nodes
+    cons2indicator!(indicator, u, element_id, indicator_variable, dg)
+
+    umin = minimum(indicator)
+    umax = maximum(indicator)
+    # Convert to modal representation
+    multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+
+    X = zeros(15,1)
+    
+    X[1]=modal[1,1,1]
+    X[2]=modal[1,2,1]
+    X[3]=modal[1,1,2]
+
+    for direction in 1:n_directions(mesh.tree)
+      neighbor_ids = 0
+      # Ghost Layer einfügen 
+      # if no neighbor exists and current cell is not small --> Ghost Layer: TODO 
+      if !has_any_neighbor(mesh.tree, cell_id, direction) && !isperiodic(mesh.tree)
+        X[3*direction+1] = modal[1,dg.n_nodes-1,1]   # TODO 
+        X[3*direction+2] = modal[1,dg.n_nodes,1]
+        X[3*direction+3] = modal[1,dg.n_nodes,2]
+        
+      end
+
+      #Get Input data from neighbors
+      if has_neighbor(mesh.tree, cell_id, direction)
+        neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+        if has_children(mesh.tree, neighbor_cell_id) # Cell has small neighbor 
+          #data2 for other neighbr and mean over both cells ?
+          if direction == 1
+            neighbor_ids = c2e[mesh.tree.child_ids[2, neighbor_cell_id]] 
+            neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]] 
+                                    
+            cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+            multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+            cons2indicator!(indicator, u, neighbor_ids2, indicator_variable, dg)
+            multiply_dimensionwise!(modal2, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+            X[3*direction+1]=(modal[1,1,1]+modal2[1,1,1])/2
+            X[3*direction+2]=(modal[1,1,2]+modal2[1,1,2])/2
+            X[3*direction+3]=(modal[1,2,1]+modal2[1,2,1])/2
+          elseif direction == 2
+            neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+            neighbor_ids2 = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+                                    
+            cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+            multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+            cons2indicator!(indicator, u, neighbor_ids2, indicator_variable, dg)
+            multiply_dimensionwise!(modal2, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+            X[3*direction+1]=(modal[1,1,1]+modal2[1,1,1])/2
+            X[3*direction+2]=(modal[1,1,2]+modal2[1,1,2])/2
+            X[3*direction+3]=(modal[1,2,1]+modal2[1,2,1])/2
+
+          elseif direction == 3
+            neighbor_ids = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+            neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+                                    
+            cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+            multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+            cons2indicator!(indicator, u, neighbor_ids2, indicator_variable, dg)
+            multiply_dimensionwise!(modal2, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+            X[3*direction+1]=(modal[1,1,1]+modal2[1,1,1])/2
+            X[3*direction+2]=(modal[1,1,2]+modal2[1,1,2])/2
+            X[3*direction+3]=(modal[1,2,1]+modal2[1,2,1])/2
+
+          elseif direction == 4
+            neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+            neighbor_ids2 = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+            cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+            multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+            cons2indicator!(indicator, u, neighbor_ids2, indicator_variable, dg)
+            multiply_dimensionwise!(modal2, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+            X[3*direction+1]=(modal[1,1,1]+modal2[1,1,1])/2
+            X[3*direction+2]=(modal[1,1,2]+modal2[1,1,2])/2
+            X[3*direction+3]=(modal[1,2,1]+modal2[1,2,1])/2
+                                
+          end
+        else # Cell has same refinement level neighbor
+          neighbor_ids = c2e[neighbor_cell_id]
+          cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+          multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+          X[3*direction+1]=modal[1,1,1]
+          X[3*direction+2]=modal[1,2,1]
+          X[3*direction+3]=modal[1,1,2]
+        end
+      else # Cell is small and has large neighbor
+        parent_id = mesh.tree.parent_ids[cell_id]
+        neighbor_ids = c2e[mesh.tree.neighbor_ids[direction, parent_id]]
+                            
+        cons2indicator!(indicator, u, neighbor_ids, indicator_variable, dg)
+        multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
+                                
+        X[3*direction+1]=modal[1,1,1]
+        X[3*direction+2]=modal[1,2,1]
+        X[3*direction+3]=modal[1,1,2]
+
+      end
+    end
+            
+    X = X ./max(maximum(abs.(X)),1)
+    
+    if model(X)[1] > 0.5
+      alpha[element_id] = 1
+    else
+      alpha[element_id] = 0
+    end
+    
+    if (umax-umin) < 0.01 * max(abs(umax),abs(umin))
+      alpha[element_id] = 0
+    end
+    #alpha[element_id] = model(X)[1]
+
+    
 
     # Take care of the case close to pure DG
     if (alpha[element_id] < alpha_min)
