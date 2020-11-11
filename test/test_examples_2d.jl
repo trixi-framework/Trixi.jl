@@ -29,12 +29,18 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       polydeg=1)
   end
 
+  @testset "elixir_advection_timeintegration.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [9.144681765639205e-6],
+      linf = [6.437440532547356e-5])
+  end
+
   @testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [8.908962577028364e-6],
       linf = [6.969419032576418e-5],
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
-      cfl = 0.5)
+      cfl = 1.0)
   end
 
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
@@ -51,16 +57,10 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32())
   end
 
-  @testset "elixir_advection_timeintegration.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [9.144681765639205e-6],
-      linf = [6.437440532547356e-5])
-  end
-
   @testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
-      l2   = [0.022356422238096973],
-      linf = [0.5043638249003257])
+      l2   = [0.001613367076589483],
+      linf = [0.013960195840607481])
   end
 
   @testset "elixir_advection_amr.jl" begin
