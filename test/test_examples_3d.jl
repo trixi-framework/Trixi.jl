@@ -18,71 +18,71 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 @testset "Examples 3D" begin
   @testset "elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.00015975754755823664],
-      linf = [0.001503873297666436])
+      l2   = [0.00015975755208652597],
+      linf = [0.0015038732976652147])
   end
 
   @testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-      l2   = [0.00017800012466353434],
-      linf = [0.001452075263740804])
+      l2   = [0.0001780001287314664],
+      linf = [0.0014520752637396939])
   end
 
   # TODO Taal: create separate elixirs for ICs/BCs etc. to keep `basic` simple
   @testset "elixir_advection_basic.jl with initial_condition_sin" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [0.002727292086517533],
+      l2   = [0.002727293067654415],
       linf = [0.024833049753677727],
       initial_condition=Trixi.initial_condition_sin)
   end
 
   @testset "elixir_advection_basic.jl with initial_condition_constant" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [9.770171014620371e-16],
-      linf = [2.4424906541753444e-15],
+      l2   = [7.033186506921888e-16],
+      linf = [2.6645352591003757e-15],
       initial_condition=initial_condition_constant)
   end
 
   @testset "elixir_advection_basic.jl with initial_condition_linear_z and periodicity=false" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [6.607840408143593e-16],
-      linf = [5.773159728050814e-15],
+      l2   = [5.887699520794518e-16],
+      linf = [6.217248937900877e-15],
       initial_condition=Trixi.initial_condition_linear_z,
       boundary_conditions=Trixi.boundary_condition_linear_z, periodicity=false)
   end
 
   @testset "elixir_advection_mortar.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_mortar.jl"),
-      l2   = [0.0018461483161353273],
-      linf = [0.017728496545256434])
+      l2   = [0.0018461529502663268],
+      linf = [0.01785420966285467])
   end
 
   @testset "elixir_advection_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-      l2   = [9.773858425669403e-6],
-      linf = [0.0005853874124926092])
+      l2   = [9.773852895157622e-6],
+      linf = [0.0005853874124926162])
   end
 
 
   # Hyperbolic diffusion
   @testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
-      l2   = [0.0015303292770225546, 0.011314166522881952, 0.011314166522881981, 0.011314166522881947],
-      linf = [0.022634590339093097, 0.10150613595329361, 0.10150613595329361, 0.10150613595329361],
+      l2   = [0.001530331609036682, 0.011314177033289238, 0.011314177033289402, 0.011314177033289631],
+      linf = [0.02263459033909354, 0.10139777904683545, 0.10139777904683545, 0.10139777904683545],
       initial_refinement_level=2)
+  end
+
+  @testset "elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_upwind)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
+      l2   = [0.0015377731806850128, 0.01137685274151801, 0.011376852741518175, 0.011376852741518494],
+      linf = [0.022715420630041172, 0.10183745338964201, 0.10183745338964201, 0.1018374533896429],
+      initial_refinement_level=2, surface_flux=flux_upwind)
   end
 
   @testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
-      l2   = [0.00022868324220593294, 0.0007974310370259415, 0.0015035143239197598, 0.0015035143239198418],
-      linf = [0.0016329580288680923, 0.0029870270738030775, 0.009177053066089513, 0.009177053066084184])
-  end
-
-  @testset "elixir_hypdiff_lax_friedrichs.jl with initial_refinement_level=2, surface_flux=flux_upwind)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
-      l2   = [0.0015377708559180534, 0.011376842329542572, 0.011376842329542624, 0.0113768423295426],
-      linf = [0.02271542063004106, 0.10191067906109286, 0.10191067906109552, 0.10191067906109286],
-      initial_refinement_level=2, surface_flux=flux_upwind)
+      l2   = [0.00022868320512754316, 0.0007974309948540525, 0.0015035143230654987, 0.0015035143230655293],
+      linf = [0.0016405001653623241, 0.0029870057159104594, 0.009410031618285686, 0.009410031618287462])
   end
 
 
