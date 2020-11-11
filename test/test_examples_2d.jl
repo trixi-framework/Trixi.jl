@@ -86,26 +86,26 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
 
 
-  @testset "elixir_hyp_diff_llf.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_llf.jl"),
+  @testset "elixir_hypdiff_lax_friedrichs.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0001568775108748819, 0.0010259867353406083, 0.0010259867353406382],
       linf = [0.0011986956416590866, 0.006423873516411938, 0.006423873516411938])
   end
 
-  @testset "elixir_hyp_diff_harmonic_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_harmonic_nonperiodic.jl"),
+  @testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_harmonic_nonperiodic.jl"),
       l2   = [8.618132353932638e-8, 5.619399844708813e-7, 5.619399845476024e-7],
       linf = [1.124861862326869e-6, 8.622436471483752e-6, 8.622436469707395e-6])
   end
 
-  @testset "elixir_hyp_diff_nonperiodic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_nonperiodic.jl"),
+  @testset "elixir_hypdiff_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
       l2   = [8.523077654037775e-6, 2.877932365308637e-5, 5.454942769137812e-5],
       linf = [5.484978959957587e-5, 0.00014544895979200218, 0.000324491268921534])
   end
 
-  @testset "elixir_hyp_diff_upwind.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hyp_diff_upwind.jl"),
+  @testset "elixir_hypdiff_upwind.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_upwind.jl"),
       l2   = [5.868147556488962e-6, 3.8051792732628014e-5, 3.8051792732620214e-5],
       linf = [3.70196549871471e-5, 0.0002072058411455302, 0.00020720584114464202])
   end
@@ -136,48 +136,48 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.29912627861573327, 0.30886767304359375, 0.3088108573487326, 1.0657556075017878])
   end
 
-  @testset "elixir_euler_blast_wave_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing.jl"),
+  @testset "elixir_euler_blast_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.13910202327088322, 0.11538722576277083, 0.1153873048510009, 0.3387876385945495],
       linf = [1.454418325889352, 1.3236875559310013, 1.323687555933169, 1.8225476335086368],
       maxiters=30)
   end
 
-  @testset "elixir_euler_weak_blast_wave_shockcapturing.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_shockcapturing.jl"),
+  @testset "elixir_euler_shockcapturing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
       l2   = [0.05365734539276933, 0.04683903386565478, 0.04684207891980008, 0.19632055541821553],
       linf = [0.18542234326379825, 0.24074440953554058, 0.23261143887822433, 0.687464986948263])
   end
 
-  @testset "elixir_euler_blast_wave_shockcapturing_amr.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_blast_wave_amr.jl" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_amr.jl"),
     l2   = [0.6776486969229696, 0.2813026529898539, 0.2813025645101231, 0.7174702524881597],
     linf = [2.8939055423031546, 1.7997630098946877, 1.7997118659969253, 3.0341223482585686],
     tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl with tend = 1.0" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl with tend = 1.0" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
     l2   = [0.4820048896322639, 0.16556563003698888, 0.16556563003698901, 0.643610807739157],
     linf = [2.485752556439829, 1.2870638985941658, 1.2870638985941667, 6.474544663221404],
     tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_blob_shockcapturing_mortar.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_mortar.jl"),
+  @testset "elixir_euler_blob_mortar.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_mortar.jl"),
       l2   = [0.22114610074017435, 0.6275613030540599, 0.24325218693791564, 2.925865235621878],
       linf = [10.524011747446043, 27.512527136693347, 9.454054943042742, 97.53367336970214],
       tspan = (0.0, 0.5))
   end
 
-  @testset "elixir_euler_blob_shockcapturing_amr.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_shockcapturing_amr.jl"),
+  @testset "elixir_euler_blob_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blob_amr.jl"),
       l2   = [0.2016728420174888, 1.1836138789789359, 0.10165086496270354, 5.237367755805095],
       linf = [14.085819993255987, 71.07473800830421, 7.366144023918916, 297.24197965204814],
       tspan = (0.0, 0.12))
   end
 
-  @testset "elixir_euler_khi_shockcapturing.jl" begin
+  @testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -185,17 +185,17 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # of random numbers is not guaranteed to be the same across different
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
         l2   = [0.002046615463716511, 0.002862576343897973, 0.001971146183422579, 0.004817029337018751],
         linf = [0.024299256322982465, 0.01620011715132652, 0.009869197749689947, 0.02060000394920891],
         tspan = (0.0, 0.2))
     else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability.jl"),
         tspan = (0.0, 0.2))
     end
   end
 
-  @testset "elixir_euler_khi_shockcapturing_amr.jl" begin
+  @testset "elixir_euler_kelvin_helmholtz_instability_amr.jl" begin
     if Threads.nthreads() == 1
       # This example uses random numbers to generate the initial condition.
       # Hence, we can only check "errors" if everything is made reproducible.
@@ -203,12 +203,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       # of random numbers is not guaranteed to be the same across different
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
         l2   = [0.001653490458693617, 0.0023814551690212226, 0.0013742646130843919, 0.0031589243386909585],
         linf = [0.022479473484114054, 0.015056172762090259, 0.0070761455651367836, 0.01461791479513419],
         tspan = (0.0, 0.2))
     else
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_khi_shockcapturing_amr.jl"),
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
         tspan = (0.0, 0.2))
     end
   end
@@ -289,15 +289,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.23502083666166018, 0.3156846367743936, 0.31227895161037256, 0.2118146956106238, 0.9743049414302711, 0.09050624115026618, 0.09131633488909774, 0.15693063355520998, 0.0038394720095667593])
   end
 
-  @testset "elixir_mhd_orszag_tang_shockcapturing_amr.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_shockcapturing_amr.jl"),
+  @testset "elixir_mhd_orszag_tang.jl" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
     l2   = [0.21662313415818582, 0.2635698604231871, 0.31395699611730377, 0.0, 0.5122276249069517, 0.22914894367706035, 0.34302293430536107, 0.0, 0.0031837261356598232],
     linf = [1.2455340346415893, 0.6656259804847943, 0.8530619473770993, 0.0, 2.762224683447692, 0.6641473992806939, 0.9631804383659317, 0.0, 0.04504842687596635],
     tspan = (0.0, 0.09))
   end
 
-  @testset "elixir_mhd_orszag_tang_shockcapturing_amr.jl with flux_hll" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_shockcapturing_amr.jl"),
+  @testset "elixir_mhd_orszag_tang.jl with flux_hll" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
     l2   = [0.10797773670821377, 0.20183575429259998, 0.2297276946458608, 0.0, 0.29942847198143785, 0.1567941428185007, 0.24283635408491952, 0.0, 0.0032487131364797796],
     linf = [0.5598159626426933, 0.5095082640545004, 0.655948904969917, 0.0, 0.9809725319955653, 0.39916604098537073, 0.6748429903024491, 0.0, 0.07124312329480051],
     tspan = (0.0, 0.06), surface_flux = flux_hll)
@@ -387,15 +387,15 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @testset "differences-to-master elixir_euler_sedov_blast_wave_shockcapturing_amr.jl one step" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl one step" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.0021037031798961936, 0.010667428589443041, 0.010667428589443027, 0.11041565217737695],
       linf = [0.11754829172684966, 0.7227194329885249, 0.7227194329885249, 5.42708544137305],
       maxiters=1)
   end
 
-  @testset "differences-to-master parameters_euler_sedov_blast_wave_shockcapturing_amr.toml one step with initial_condition_medium_sedov_blast_wave" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_euler_sedov_blast_wave.jl one step with initial_condition_medium_sedov_blast_wave" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.002102553227287478, 0.01066154856802227, 0.010661548568022277, 0.11037470219676422],
       linf = [0.11749257043751615, 0.7223475657303381, 0.7223475657303381, 5.425015419074852],
       maxiters=1, initial_condition=initial_condition_medium_sedov_blast_wave)
@@ -410,15 +410,15 @@ end
       initial_condition = initial_condition_constant)
   end
 
-  @testset "elixir_mhd_rotor_shockcapturing_amr.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_shockcapturing_amr.jl"),
+  @testset "elixir_mhd_rotor.jl" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
     l2   = [1.2428140306560267, 1.7997194450337968, 1.6900291785233619, 0.0, 2.2634513724749357, 0.212710214030601, 0.233276208669814, 0.0, 0.0026495769095112244],
     linf = [10.47092272020676, 14.061476930703114, 15.55246880748034, 0.0, 16.619962600809156, 1.3033533536346604, 1.4125607690546562, 0.0, 0.07338769474671016],
     tspan = (0.0, 0.05))
   end
 
-  @testset "elixir_mhd_blast_wave_shockcapturing_amr.jl" begin
-  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave_shockcapturing_amr.jl"),
+  @testset "elixir_mhd_blast_wave.jl" begin
+  @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_blast_wave.jl"),
     l2   = [0.1757875762080873, 3.8532519959458216, 2.4727214755520532, 0.0, 355.0835842161213, 2.3454068130466776, 1.3916366548136, 0.0, 0.028930416439621368],
     linf = [1.5948842870594393, 44.31605592215359, 12.854945034752436, 0.0, 2207.513124699695, 12.706623740109995, 8.987432397883575, 0.0, 0.4980365769225257],
     tspan = (0.0, 0.003))

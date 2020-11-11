@@ -34,8 +34,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             l2   = [3.8103398423084437e-6, 1.6765350427819571e-6, 7.733123446821975e-6],
             linf = [1.2975101617795914e-5, 9.274867029507305e-6, 3.093686036947929e-5])
   end
-  @testset "taal-confirmed parameters_euler_blast_wave_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave_shockcapturing.toml"),
+  @testset "taal-confirmed parameters_euler_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_blast_wave.toml"),
             l2   = [0.21530530948120738, 0.2805965425286348, 0.5591770920395336],
             linf = [1.508388610723991, 1.5622010377944118, 2.035149673163788],
             n_steps_max=30)
@@ -78,25 +78,25 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             surface_flux = "flux_hll",
             volume_flux = "flux_hll")
   end
-  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"),
             l2   = [1.252250990134887, 0.068566581088377, 0.9448804645921002],
             linf = [2.989362275712484, 0.16948139637812973, 2.665646470846281])
   end
-  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with pressure" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave.toml with pressure" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"),
             l2   = [1.297435677146544, 0.07960523576439762, 0.9453356096003658],
             linf = [3.1803117766542313, 0.21385627917778924, 2.665017066963603],
             shock_indicator_variable = "pressure")
   end
-  @testset "taal-confirmed parameters_euler_sedov_blast_wave_shockcapturing_amr.toml with density" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave_shockcapturing_amr.toml"),
+  @testset "taal-confirmed parameters_euler_sedov_blast_wave.toml with density" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_sedov_blast_wave.toml"),
             l2   = [1.2778131494486642, 0.0709461986289949, 0.9456057083034296],
             linf = [3.1163652756237115, 0.17652352860779985, 2.66646958937844],
             shock_indicator_variable = "density")
   end
-  @testset "taal-confirmed parameters_euler_weak_blast_wave_shockcapturing.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_weak_blast_wave_shockcapturing.toml"),
+  @testset "taal-confirmed parameters_euler_shockcapturing.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_euler_shockcapturing.toml"),
             l2   = [0.1166063015913971, 0.15097998823740955, 0.4348178492249418],
             linf = [0.1872570975062362, 0.245999816865685, 0.7037939282238272])
   end

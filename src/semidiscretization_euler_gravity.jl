@@ -335,7 +335,7 @@ end
 
 function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
-  # and examples/parameters_hyp_diff_llf.toml
+  # and examples/parameters_hypdiff_lax_friedrichs.toml
   # 5 stages, order 1
   gamma1 = @SVector [0.0000000000000000E+00, 5.2910412316555866E-01, 2.8433964362349406E-01, -1.4467571130907027E+00, 7.5592215948661057E-02]
   gamma2 = @SVector [1.0000000000000000E+00, 2.6366970460864109E-01, 3.7423646095836322E-01, 7.8786901832431289E-01, 3.7754129043053775E-01]
@@ -350,7 +350,7 @@ end
 
 function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
-  # and examples/parameters_hyp_diff_llf.toml
+  # and examples/parameters_hypdiff_lax_friedrichs.toml
   # 5 stages, order 2
   gamma1 = @SVector [0.0000000000000000E+00, 5.2656474556752575E-01, 1.0385212774098265E+00, 3.6859755007388034E-01, -6.3350615190506088E-01]
   gamma2 = @SVector [1.0000000000000000E+00, 4.1892580153419307E-01, -2.7595818152587825E-02, 9.1271323651988631E-02, 6.8495995159465062E-01]
@@ -365,7 +365,7 @@ end
 
 function timestep_gravity_erk53_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
-  # and examples/parameters_hyp_diff_llf.toml
+  # and examples/parameters_hypdiff_lax_friedrichs.toml
   # 5 stages, order 3
   gamma1 = @SVector [0.0000000000000000E+00, 6.9362208054011210E-01, 9.1364483229179472E-01, 1.3129305757628569E+00, -1.4615811339132949E+00]
   gamma2 = @SVector [1.0000000000000000E+00, 1.3224582239681788E+00, 2.4213162353103135E-01, -3.8532017293685838E-01, 1.5603355704723714E+00]

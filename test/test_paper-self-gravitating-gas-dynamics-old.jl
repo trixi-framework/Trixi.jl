@@ -27,14 +27,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
             polydeg=4)
   end
 
-  @testset "taal-confirmedparameters_hyp_diff_eoc_test.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_eoc_test.toml"),
+  @testset "taal-confirmedparameters_hypdiff_eoc_test.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_eoc_test.toml"),
             l2   = [0.00315402168051244, 0.012394424055283394, 0.021859728673870843],
             linf = [0.017332075119072865, 0.07843510773347322, 0.11325788389718668])
   end
 
-  @testset "taal-confirmed parameters_hyp_diff_eoc_test.toml with polydeg=4" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_eoc_test.toml"),
+  @testset "taal-confirmed parameters_hypdiff_eoc_test.toml with polydeg=4" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_eoc_test.toml"),
             l2   = [0.00025112830138292663, 0.0008808243851096586, 0.0016313343234903468],
             linf = [0.001719090967553516, 0.0031291844657076145, 0.00994609342322228],
             polydeg=4)
