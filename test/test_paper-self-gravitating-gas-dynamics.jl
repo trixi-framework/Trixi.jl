@@ -12,83 +12,80 @@ isdir(outdir) && rm(outdir, recursive=true)
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "paper-self-gravitating-gas-dynamics")
 
-@testset "2D" begin
-
-# Run basic tests
+# Numerical examples from the Euler-gravity paper
 @testset "paper-self-gravitating-gas-dynamics" begin
   @testset "elixir_euler_eoc_test.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
-      l2   = [0.00017409779099463607, 0.0003369287450282371, 0.00033692874502819616, 0.0006099035183426747],
-      linf = [0.0010793454782482836, 0.0018836374478419238, 0.0018836374478410356, 0.003971446179607874])
+      l2   = [0.0001740977055972079, 0.0003369355182519592, 0.0003369355182518708, 0.0006099171220334989],
+      linf = [0.001079347149189669, 0.0018836938381321389, 0.001883693838132583, 0.003971575376718217])
   end
 
   @testset "elixir_euler_eoc_test.jl with polydeg=4" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_eoc_test.jl"),
-      l2   = [1.7187032983384504e-5, 2.6780178144541376e-5, 2.678017814469407e-5, 4.952410417693103e-5],
-      linf = [0.00015018092862240096, 0.00016548331714294484, 0.00016548331714405506, 0.00043726245511699346],
+      l2   = [1.7187201161597772e-5, 2.678065111772951e-5, 2.678065111783027e-5, 4.952504160091526e-5],
+      linf = [0.0001501749544159381, 0.00016549482504535362, 0.00016549482504601976, 0.0004372960291432193],
       polydeg = 4)
   end
 
 
   @testset "elixir_hypdiff_eoc_test.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_eoc_test.jl"),
-      l2   = [0.00315402168051244, 0.012394424055283394, 0.021859728673870843],
-      linf = [0.017332075119072865, 0.07843510773347322, 0.11325788389718668])
+      l2   = [0.003154024896093942, 0.012394432074951856, 0.02185973823794725],
+      linf = [0.01731850928579215, 0.07843510773347553, 0.11242300176349201])
   end
 
   @testset "elixir_hypdiff_eoc_test.jl with polydeg=4" begin
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_eoc_test.jl"),
-    l2   = [0.00025112830138292663, 0.0008808243851096586, 0.0016313343234903468],
-    linf = [0.001719090967553516, 0.0031291844657076145, 0.00994609342322228],
+    l2   = [0.0002511283012128458, 0.0008808243846610255, 0.0016313343228567005],
+    linf = [0.0017290715087938668, 0.003129184465704738, 0.01000728849316701],
     polydeg = 4)
   end
 
 
   @testset "elixir_eulergravity_eoc_test.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [0.0002487158370511598, 0.0003370291440916084, 0.00033702914409161063, 0.0007231934514459757],
-      linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383],
+      l2   = [0.00024871265138964204, 0.0003370077102132591, 0.0003370077102131964, 0.0007231525513793697],
+      linf = [0.0015813032944647087, 0.0020494288423820173, 0.0020494288423824614, 0.004793821195083758],
       tspan = (0.0, 0.1))
   end
 
   @testset "elixir_eulergravity_eoc_test.jl with polydeg=4" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [1.9536732064098693e-5, 2.756381055173374e-5, 2.7563810551703437e-5, 5.688705902953846e-5],
-      linf = [0.00012335977351507488, 0.00020086338378089152, 0.00020086338378044744, 0.0004962132679873221],
+      l2   = [1.9537712148648045e-5, 2.7564396197947587e-5, 2.7564396197967635e-5, 5.688838772067586e-5],
+      linf = [0.00012335710672761735, 0.00020086268350816283, 0.00020086268350727465, 0.0004962155455632278],
       tspan = (0.0, 0.1), polydeg = 4)
   end
 
   @testset "elixir_eulergravity_eoc_test.jl with 1st order RK3S*" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [0.00024871583705119436, 0.0003370291440915927, 0.0003370291440916112, 0.0007231934514459859],
-      linf = [0.001581173125044355, 0.002049389755695241, 0.0020493897556961294, 0.004793721268126383],
+      l2   = [0.00024871265138959434, 0.000337007710281087, 0.0003370077102811394, 0.0007231525515231289],
+      linf = [0.0015813032941613958, 0.002049428843978518, 0.0020494288439798503, 0.004793821198143977],
       tspan = (0.0, 0.1), timestep_gravity=Trixi.timestep_gravity_erk51_3Sstar!)
   end
 
   @testset "elixir_eulergravity_eoc_test.jl with 3rd order RK3S*" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_eoc_test.jl"),
-      l2   = [0.000248715837047647, 0.0003370291440257414, 0.00033702914402587556, 0.0007231934513057375],
-      linf = [0.00158117312532835, 0.0020493897540796446, 0.0020493897540800887, 0.0047937212650124295],
+      l2   = [0.0002487126513894034, 0.00033700771023049785, 0.00033700771023048245, 0.0007231525514158737],
+      linf = [0.0015813032943847727, 0.002049428842844314, 0.0020494288428452023, 0.004793821195971937],
       tspan = (0.0, 0.1), timestep_gravity=Trixi.timestep_gravity_erk53_3Sstar!)
   end
 
 
   @testset "elixir_eulergravity_jeans_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
-      l2   = [10733.634574440104, 13356.777246273672, 1.9930894028451876e-6, 26834.07879379781],
-      linf = [15194.297536645085, 18881.47693900588, 8.325325156694497e-6, 37972.99978450313],
+      l2   = [10733.63378538114, 13356.780607423452, 1.6721408750434403e-6, 26834.076821148774],
+      linf = [15194.296424901113, 18881.481685044182, 6.809717915492584e-6, 37972.99700513482],
       tspan = (0.0, 0.1))
   end
 
   @testset "elixir_eulergravity_jeans_instability.jl with RK3S*" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_jeans_instability.jl"),
-      l2   = [10734.59878993429, 13358.214052395579, 2.7246732181080924e-6, 26836.489332980615],
-      linf = [15195.661845114082, 18883.507539561684, 1.1096401891274226e-5, 37976.4105797708],
+      l2   = [10734.598193238024, 13358.217234481384, 1.9105446886104614e-6, 26836.487841241516],
+      linf = [15195.661004798487, 18883.512035906537, 7.864715319982429e-6, 37976.408478975296],
       tspan = (0.0, 0.1),
       parameters=ParametersEulerGravity(background_density=1.5e7,
                                         gravitational_constant=6.674e-8,
-                                        # FIXME Taal restore after Taam sync
-                                        cfl=1.2,
+                                        cfl=2.4,
                                         n_iterations_max=1000,
                                         timestep_gravity=timestep_gravity_erk52_3Sstar!))
   end
@@ -96,22 +93,20 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 
   @testset "elixir_eulergravity_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.04630745182888786, 0.06507397069616608, 0.0650739706961657, 0.48971269294846076],
-      linf = [2.386143005917894, 4.083635578827995, 4.0836355788279946, 16.24607071330087],
+      l2   = [0.046315994852653024, 0.0650818006233669, 0.06508180062336677, 0.4896707211656037],
+      linf = [2.3874843337593776, 4.07876384374792, 4.07876384374792, 16.23914384809855],
       tspan = (0.0, 0.05))
   end
 
-  @testset "elixir_eulergravity_sedov_blast_wave.jl with amr_interval=0 and ref-level=8" begin
+  @testset "elixir_eulergravity_sedov_blast_wave.jl with ref-level=8 and no AMR" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
-      l2   = [0.0028922121586240916, 0.013724796675028319, 0.013724796675028305, 0.05822941648860658],
-      linf = [0.26747911779347966, 1.3858220186530341, 1.3858220186530337, 4.0712047724476115],
+      l2   = [0.00289222135995042, 0.013724813590853825, 0.013724813590853832, 0.05822904710548214],
+      linf = [0.26361780693997594, 1.3908873830688688, 1.3908873830688688, 4.066701303607613],
       tspan = (0.0, 0.005), initial_refinement_level=8, amr_callback=TrivialCallback())
   end
 end
 
 # Clean up afterwards: delete Trixi output directory
 @test_nowarn rm(outdir, recursive=true)
-
-end # 2D
 
 end #module
