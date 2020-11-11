@@ -80,12 +80,14 @@ macro test_trixi_include(elixir, args...)
       l2_measured, linf_measured = analysis_callback(sol)
 
       if !isnothing($l2)
+        @test length($l2) == length(l2_measured)
         for (l2_expected, l2_actual) in zip($l2, l2_measured)
           @test isapprox(l2_expected, l2_actual, atol=$atol, rtol=$rtol)
         end
       end
 
       if !isnothing($linf)
+        @test length($linf) == length(linf_measured)
         for (linf_expected, linf_actual) in zip($linf, linf_measured)
           @test isapprox(linf_expected, linf_actual, atol=$atol, rtol=$rtol)
         end
