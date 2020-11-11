@@ -41,8 +41,7 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # rho0 is (ab)used to add a "+8π" term to the source terms
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
-                                    # FIXME Taal restore after Taam sync
-                                    cfl=0.5,
+                                    cfl=1.0,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
