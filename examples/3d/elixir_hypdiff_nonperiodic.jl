@@ -42,9 +42,7 @@ summary_callback = SummaryCallback()
 
 steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
-# FIXME Taal restore after Taam sync
-# stepsize_callback = StepsizeCallback(cfl=0.9)
-stepsize_callback = StepsizeCallback(cfl=0.6)
+stepsize_callback = StepsizeCallback(cfl=1.8)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -64,6 +62,7 @@ callbacks = CallbackSet(summary_callback, steady_state_callback, stepsize_callba
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52(), dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52(),
+                  dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
