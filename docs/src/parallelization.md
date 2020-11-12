@@ -105,3 +105,10 @@ To start Trixi in parallel with MPI, there are three options:
    [available](https://github.com/tmux/tmux/wiki/Getting-Started) and once you
    get the hang of it, developing Trixi in parallel becomes much smoother this
    way.
+
+!!! note "Hybrid parallelism"
+    It is possible to combine MPI with shared memory parallelism via threads by starting
+    Julia with more than one thread, e.g. by passing the command line argument
+    `julia --threads=2` instead of `julia --threads=1` used in the examples above.
+    In that case, you should make sure that your system supports the number of processes/threads
+    that you try to start.
