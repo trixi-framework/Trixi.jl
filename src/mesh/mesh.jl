@@ -130,7 +130,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
     end
   end
 
-  # Partition mesh
+  # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
   partition!(mesh)
 
   return mesh
