@@ -510,6 +510,8 @@ end
   v2_avg    = 0.5 * (v2_ll + v2_rr)
   v1_square = 0.5 * (v1_ll^2 + v1_rr^2)
   v2_square = 0.5 * (v2_ll^2 + v2_rr^2)
+  v_ll_sq   = 0.5 * (v1_ll^2 + v2_ll^2)
+  v_rr_sq   = 0.5 * (v1_rr^2 + v2_rr^2)
   v_sum     = v1_avg + v2_avg
 
   # multicomponent specific values
@@ -536,133 +538,133 @@ end
   Dv_y      = zeros(Float64, (5))
 
   # Help variables
-  e1    = equation.csv1 * T 
-  e2    = equation.csv2 * T
-  r     = (rho1_avg / rho_avg) * equation.rs1 + (rho2_avg / rho_avg) * equation.rs2
-  a     = sqrt(gamma * T * r)
-  k_x   = 0.5 * (v1_square + v2_square)
-  k_y   = 0.5 * (v1_square + v2_square)
-  h1    = e1 + equation.rs1 * T
-  h2    = e2 + equation.rs2 * T
+  e1    = equation.csv1 * T # check
+  e2    = equation.csv2 * T # check
+  r     = (rho1_avg / rho_avg) * equation.rs1 + (rho2_avg / rho_avg) * equation.rs2 # check
+  a     = sqrt(gamma * T * r) # check
+  k_x   = 0.5 * (v_ll_sq + v_rr_sq) # Not Sure 
+  k_y   = 0.5 * (v_ll_sq + v_rr_sq) # Not Sure
+  h1    = e1 + equation.rs1 * T # check
+  h2    = e2 + equation.rs2 * T # check
   h     = (rho1_avg / rho_avg) * h1 + (rho2_avg / rho_avg) * h2 # weighted sum correct?
-  d1    = h1 - gamma * e1
-  d2    = h2 - gamma * e2
-  ht_x  = h + k_x
-  ht_y  = h + k_y
-  tauh  = sqrt(rho_avg/(gamma * r))
+  d1    = h1 - gamma * e1 # check
+  d2    = h2 - gamma * e2 # check
+  ht_x  = h + k_x # check
+  ht_y  = h + k_y # check
+  tauh  = sqrt(rho_avg/(gamma * r)) # check 
 
   # Matrices, 3e Spalte eventuell falsch bei R?
   # -------------------------------- #
 
-  R_x[1,1]  = 1.0
-  R_x[1,2]  = 0.0
-  R_x[1,3]  = 0.0
-  R_x[1,4]  = rho1_avg / rho_avg 
-  R_x[1,5]  = R_x[1,4]
+  R_x[1,1]  = 1.0 # check
+  R_x[1,2]  = 0.0 # check
+  R_x[1,3]  = 0.0 # check
+  R_x[1,4]  = rho1_avg / rho_avg # check
+  R_x[1,5]  = R_x[1,4] # check
 
-  R_x[2,1]  = 0.0
-  R_x[2,2]  = 1.0
-  R_x[2,3]  = 0.0
-  R_x[2,4]  = rho2_avg / rho_avg
-  R_x[2,5]  = R_x[2,4]
+  R_x[2,1]  = 0.0 # check
+  R_x[2,2]  = 1.0 # check
+  R_x[2,3]  = 0.0 # check
+  R_x[2,4]  = rho2_avg / rho_avg # check
+  R_x[2,5]  = R_x[2,4] # check
 
-  R_x[3,1]  = v1_avg
-  R_x[3,2]  = v1_avg
-  R_x[3,3]  = 0.0
-  R_x[3,4]  = v1_avg + a
-  R_x[3,5]  = v1_avg - a
+  R_x[3,1]  = v1_avg # check
+  R_x[3,2]  = v1_avg # check
+  R_x[3,3]  = 0.0 
+  R_x[3,4]  = v1_avg + a # check
+  R_x[3,5]  = v1_avg - a # check
 
-  R_x[4,1]  = v2_avg
-  R_x[4,2]  = v2_avg
-  R_x[4,3]  = a
-  R_x[4,4]  = v2_avg
-  R_x[4,5]  = v2_avg
+  R_x[4,1]  = v2_avg # check
+  R_x[4,2]  = v2_avg # check
+  R_x[4,3]  = a 
+  R_x[4,4]  = v2_avg # check
+  R_x[4,5]  = v2_avg # check
 
-  R_x[5,1]  = k_x - (d1/(gamma - 1.0))
-  R_x[5,2]  = k_x - (d2/(gamma - 1.0))
-  R_x[5,3]  = a * v2_avg
-  R_x[5,4]  = ht_x + a * v1_avg
-  R_x[5,5]  = ht_x - a * v1_avg
-
-  # -------------------------------- #
-
-  R_y[1,1]  = 1.0
-  R_y[1,2]  = 0.0
-  R_y[1,3]  = 0.0
-  R_y[1,4]  = rho1_avg / rho_avg 
-  R_y[1,5]  = R_x[1,4]
-
-  R_y[2,1]  = 0.0
-  R_y[2,2]  = 1.0
-  R_y[2,3]  = 0.0
-  R_y[2,4]  = rho2_avg / rho_avg
-  R_y[2,5]  = R_x[2,4]
-
-  R_y[3,1]  = v1_avg
-  R_y[3,2]  = v1_avg
-  R_y[3,3]  = -1.0 * a
-  R_y[3,4]  = v1_avg
-  R_y[3,5]  = v1_avg
-
-  R_y[4,1]  = v2_avg
-  R_y[4,2]  = v2_avg
-  R_y[4,3]  = 0.0
-  R_y[4,4]  = v2_avg + a 
-  R_y[4,5]  = v2_avg - a
-
-  R_y[5,1]  = k_y - (d1/(gamma - 1))
-  R_y[5,2]  = k_y - (d2/(gamma - 1))
-  R_y[5,3]  = -1.0 * a * v1_avg
-  R_y[5,4]  = ht_y + a * v2_avg
-  R_y[5,5]  = ht_y - a * v2_avg
+  R_x[5,1]  = k_x - (d1/(gamma - 1.0)) # check
+  R_x[5,2]  = k_x - (d2/(gamma - 1.0)) # check
+  R_x[5,3]  = a * v2_avg 
+  R_x[5,4]  = ht_x + a * v1_avg # check
+  R_x[5,5]  = ht_x - a * v1_avg # check
 
   # -------------------------------- #
 
-  Lambda_x[1,1] = abs(v1_avg)
-  Lambda_x[2,2] = abs(v1_avg)
-  Lambda_x[3,3] = abs(v1_avg)
-  Lambda_x[4,4] = abs(v1_avg) + abs(a)
-  Lambda_x[5,5] = abs(v1_avg) - abs(a)
+  R_y[1,1]  = 1.0 # check
+  R_y[1,2]  = 0.0 # check
+  R_y[1,3]  = 0.0 # check
+  R_y[1,4]  = rho1_avg / rho_avg # check
+  R_y[1,5]  = R_y[1,4] # check
+
+  R_y[2,1]  = 0.0 # check
+  R_y[2,2]  = 1.0 # check
+  R_y[2,3]  = 0.0 # check
+  R_y[2,4]  = rho2_avg / rho_avg # check
+  R_y[2,5]  = R_y[2,4] # check
+
+  R_y[3,1]  = v1_avg # check
+  R_y[3,2]  = v1_avg # check
+  R_y[3,3]  = -1.0 * a 
+  R_y[3,4]  = v1_avg # check
+  R_y[3,5]  = v1_avg # check
+
+  R_y[4,1]  = v2_avg # check
+  R_y[4,2]  = v2_avg # check
+  R_y[4,3]  = 0.0 
+  R_y[4,4]  = v2_avg + a # check
+  R_y[4,5]  = v2_avg - a # check
+
+  R_y[5,1]  = k_y - (d1/(gamma - 1)) # check
+  R_y[5,2]  = k_y - (d2/(gamma - 1)) # check
+  R_y[5,3]  = -1.0 * a * v1_avg 
+  R_y[5,4]  = ht_y + a * v2_avg # check
+  R_y[5,5]  = ht_y - a * v2_avg # check
 
   # -------------------------------- #
 
-  Lambda_y[1,1] = abs(v2_avg)
-  Lambda_y[2,2] = abs(v2_avg)
-  Lambda_y[3,3] = abs(v2_avg)
-  Lambda_y[4,4] = abs(v2_avg) + abs(a)
-  Lambda_y[5,5] = abs(v2_avg) - abs(a)
+  Lambda_x[1,1] = abs(v1_avg) # check
+  Lambda_x[2,2] = abs(v1_avg) # check
+  Lambda_x[3,3] = abs(v1_avg) # check
+  Lambda_x[4,4] = abs(v1_avg + a) # check
+  Lambda_x[5,5] = abs(v1_avg - a) # check
 
   # -------------------------------- #
 
-  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equation.rs2 / equation.rs1)))
-  Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0))
-  Tau[1,3]  = 0.0
-  Tau[1,4]  = 0.0
-  Tau[1,5]  = 0.0
+  Lambda_y[1,1] = abs(v2_avg) # check
+  Lambda_y[2,2] = abs(v2_avg) # check
+  Lambda_y[3,3] = abs(v2_avg) # check
+  Lambda_y[4,4] = abs(v2_avg + a) # check
+  Lambda_y[5,5] = abs(v2_avg - a) # check
 
-  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equation.rs1 / equation.rs2)))
-  Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0))
-  Tau[2,3]  = 0.0
-  Tau[2,4]  = 0.0
-  Tau[2,5]  = 0.0
+  # -------------------------------- #
+
+  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equation.rs2 / equation.rs1))) # check
+  Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) # check
+  Tau[1,3]  = 0.0 # check
+  Tau[1,4]  = 0.0 # check
+  Tau[1,5]  = 0.0 # check
+
+  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equation.rs1 / equation.rs2))) # check
+  Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) # check
+  Tau[2,3]  = 0.0 # check
+  Tau[2,4]  = 0.0 # check
+  Tau[2,5]  = 0.0 # check
 
   Tau[3,1]  = 0.0
   Tau[3,2]  = 0.0
-  Tau[3,3]  = tauh
+  Tau[3,3]  = tauh / a# latest change
   Tau[3,4]  = 0.0
   Tau[3,5]  = 0.0
 
-  Tau[4,1]  = 0.0
-  Tau[4,2]  = 0.0
-  Tau[4,3]  = 0.0 
-  Tau[4,4]  = tauh / sqrt(2)
-  Tau[4,5]  = 0.0
+  Tau[4,1]  = 0.0 # check
+  Tau[4,2]  = 0.0 # check
+  Tau[4,3]  = 0.0 # check
+  Tau[4,4]  = tauh / sqrt(2) # check
+  Tau[4,5]  = 0.0 # check
 
-  Tau[5,1]  = 0.0
-  Tau[5,2]  = 0.0
-  Tau[5,3]  = 0.0
-  Tau[5,4]  = 0.0
-  Tau[5,5]  = tauh / sqrt(2)
+  Tau[5,1]  = 0.0 # check
+  Tau[5,2]  = 0.0 # check
+  Tau[5,3]  = 0.0 # check
+  Tau[5,4]  = 0.0 # check
+  Tau[5,5]  = tauh / sqrt(2) # check
 
   # -------------------------------- #
 
