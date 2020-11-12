@@ -144,7 +144,7 @@ leaf_cells_by_rank(t::AbstractTree, rank) = leaf_cells(t)
 
 
 # Return an array with the ids of all local leaf cells
-local_leaf_cells(t::AbstractTree) = leaf_cells_by_rank(t, mpi_rank())
+local_leaf_cells(t::AbstractTree) = leaf_cells(t)
 
 
 # Count the number of leaf cells.

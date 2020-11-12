@@ -8,7 +8,7 @@
 function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
                       dg::DG, RealT)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  leaf_cell_ids = local_leaf_cells(mesh.tree)
 
   elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
 
@@ -303,7 +303,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,3},
     flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
 
     # Copy flux to left and right element storage
-    for v in 1:nvariables(equations)
+    for v in eachvariable(equations)
       surface_flux_values[v, left_direction,  left_id]  = flux[v]
       surface_flux_values[v, right_direction, right_id] = flux[v]
     end

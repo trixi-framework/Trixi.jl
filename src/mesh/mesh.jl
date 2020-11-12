@@ -1,7 +1,6 @@
 include("abstract_tree.jl")
 include("serial_tree.jl")
 include("parallel_tree.jl")
-include("parallel.jl")
 
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
@@ -53,6 +52,15 @@ const TreeMesh1D = TreeMesh{1, TreeType} where {TreeType <: AbstractTree{1}}
 const TreeMesh2D = TreeMesh{2, TreeType} where {TreeType <: AbstractTree{2}}
 const TreeMesh3D = TreeMesh{3, TreeType} where {TreeType <: AbstractTree{3}}
 
+const SerialTreeMesh{NDIMS}   = TreeMesh{NDIMS, <:SerialTree{NDIMS}}
+const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
+
+@inline mpi_parallel(mesh::SerialTreeMesh) = Val(false)
+@inline mpi_parallel(mesh::ParallelTreeMesh) = Val(true)
+
+partition!(mesh::SerialTreeMesh) = nothing
+
+
 # Constructor for passing the dimension and mesh type as an argument
 TreeMesh(::Type{TreeType}, args...) where {NDIMS, TreeType<:AbstractTree{NDIMS}} = TreeMesh{NDIMS, TreeType}(args...)
 
@@ -61,12 +69,11 @@ function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true
   return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
 end
 
-function TreeMesh(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS}
+function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  TreeMesh{NDIMS, SerialTree{NDIMS}}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
+  TreeMesh{NDIMS, TreeType}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
 end
 
-# TODO: MPI, create similar nice interface for a parallel tree/mesh
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
                   n_cells_max,
                   periodicity=true,
@@ -86,8 +93,15 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   domain_center = @. (coordinates_min + coordinates_max) / 2
   domain_length = maximum(coordinates_max .- coordinates_min)
 
+  # TODO: MPI, create nice interface for a parallel tree/mesh
+  if mpi_parallel() === Val(true)
+    TreeType = ParallelTree{NDIMS}
+  else
+    TreeType = SerialTree{NDIMS}
+  end
+
   # Create mesh
-  mesh = @timeit timer() "creation" TreeMesh(n_cells_max, domain_center, domain_length, periodicity)
+  mesh = @timeit timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
 
   # Create initial refinement
   @timeit timer() "initial refinement" for _ in 1:initial_refinement_level
@@ -96,7 +110,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
 
   # Apply refinement patches
   @timeit timer() "refinement patches" for patch in refinement_patches
-    # TODO: Taal refactor, use multiple dispatch
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
+    # TODO: Taal refactor, use multiple dispatch?
     if patch.type == "box"
       refine_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
     else
@@ -106,6 +121,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
 
   # Apply coarsening patches
   @timeit timer() "coarsening patches" for patch in coarsening_patches
+    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
     # TODO: Taal refactor, use multiple dispatch
     if patch.type == "box"
       coarsen_box!(mesh.tree, patch.coordinates_min, patch.coordinates_max)
@@ -113,6 +129,9 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
       error("unknown coarsening patch type '$(patch.type)'")
     end
   end
+
+  # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
+  partition!(mesh)
 
   return mesh
 end
@@ -122,12 +141,12 @@ function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
 end
 
 
-function Base.show(io::IO, mesh::TreeMesh{NDIMS}) where {NDIMS}
-  print(io, "TreeMesh{", NDIMS, "} with length ", mesh.tree.length)
+function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
+  print(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with length ", mesh.tree.length)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS}) where {NDIMS}
-  println(io, "TreeMesh{", NDIMS, "} with")
+function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
+  println(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with")
   println(io, "- center_level_0: ", mesh.tree.center_level_0)
   println(io, "- length_level_0: ", mesh.tree.length_level_0)
   println(io, "- periodicity   : ", mesh.tree.periodicity)
@@ -193,10 +212,8 @@ function generate_mesh()
     end
   end
 
-  # Partition mesh
-  if mpi_isparallel()
-    partition!(mesh)
-  end
+  # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
+  partition!(mesh)
 
   return mesh
 end
@@ -244,8 +261,6 @@ end
 
 
 # Obtain the mesh filename from a restart file
-get_restart_mesh_filename(restart_filename) = get_restart_mesh_filename(restart_filename, mpi_parallel())
-
 function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
   # Get directory name
   dirname, _ = splitdir(restart_filename)
@@ -259,3 +274,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
   # Construct and return filename
   return joinpath(dirname, mesh_file)
 end
+
+
+include("parallel.jl")
+include("mesh_io.jl")

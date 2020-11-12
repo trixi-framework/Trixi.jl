@@ -41,7 +41,7 @@ end
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:SaveRestartCallback}
   restart_callback = cb.affect!
 
-  mkpath(restart_callback.output_directory)
+  mpi_isroot() && mkpath(restart_callback.output_directory)
 
   semi = integrator.p
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
@@ -82,50 +82,6 @@ end
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
   save_restart_file(u, t, dt, iter, mesh, equations, solver, cache, restart_callback)
-end
-
-
-"""
-    load_mesh(restart_file::AbstractString; n_cells_max)
-
-Load the mesh from the `restart_file`.
-"""
-function load_mesh(restart_file::AbstractString; n_cells_max)
-  ndims_ = h5open(restart_file, "r") do file
-    read(attrs(file)["ndims"])
-  end
-
-  # TODO: MPI, we should also read the mesh type
-  mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
-  load_mesh!(mesh, restart_file)
-end
-
-function load_mesh!(mesh, restart_file::AbstractString)
-  # Determine mesh filename
-  filename = get_restart_mesh_filename(restart_file)
-  mesh.current_filename = filename
-  mesh.unsaved_changes = false
-
-  # Open mesh file
-  h5open(filename, "r") do file
-    # Set domain information
-    mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
-    mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
-    mesh.tree.periodicity    = Tuple(read(attrs(file)["periodicity"]))
-
-    # Set length
-    n_cells = read(attrs(file)["n_cells"])
-    resize!(mesh.tree, n_cells)
-
-    # Read in data
-    mesh.tree.parent_ids[1:n_cells] = read(file["parent_ids"])
-    mesh.tree.child_ids[:, 1:n_cells] = read(file["child_ids"])
-    mesh.tree.neighbor_ids[:, 1:n_cells] = read(file["neighbor_ids"])
-    mesh.tree.levels[1:n_cells] = read(file["levels"])
-    mesh.tree.coordinates[:, 1:n_cells] = read(file["coordinates"])
-  end
-
-  return mesh
 end
 
 

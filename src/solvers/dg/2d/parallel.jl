@@ -53,13 +53,6 @@ function rhs!(dg::Dg2D, t_stage, uses_mpi::Val{true})
 end
 
 
-function start_mpi_receive!(dg::Dg2D)
-  for (index, d) in enumerate(dg.mpi_neighbor_ranks)
-    dg.mpi_recv_requests[index] = MPI.Irecv!(dg.mpi_recv_buffers[index], d, d, mpi_comm())
-  end
-end
-
-
 # Count the number of MPI interfaces that need to be created
 function count_required_mpi_interfaces(mesh::TreeMesh2D, cell_ids)
   count = 0
@@ -216,9 +209,8 @@ end
 
 
 # Initialize MPI data structures
-function init_mpi_data_structures(mpi_neighbor_interfaces, ::Val{NDIMS}, ::Val{NVARS},
-                                  ::Val{POLYDEG}) where {NDIMS, NVARS, POLYDEG}
-  data_size = NVARS * (POLYDEG + 1)^(NDIMS - 1)
+function init_mpi_data_structures(mpi_neighbor_interfaces, ndims, nvars, n_nodes)
+  data_size = nvars * n_nodes^(ndims - 1)
   mpi_send_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
   mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
   for index in 1:length(mpi_neighbor_interfaces)
@@ -259,6 +251,13 @@ function prolong2mpiinterfaces!(dg::Dg2D)
         end
       end
     end
+  end
+end
+
+
+function start_mpi_receive!(dg::Dg2D)
+  for (index, d) in enumerate(dg.mpi_neighbor_ranks)
+    dg.mpi_recv_requests[index] = MPI.Irecv!(dg.mpi_recv_buffers[index], d, d, mpi_comm())
   end
 end
 

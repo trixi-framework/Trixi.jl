@@ -182,12 +182,14 @@ end
 @inline eachinterface(dg::DG, cache) = Base.OneTo(ninterfaces(dg, cache))
 @inline eachboundary(dg::DG, cache)  = Base.OneTo(nboundaries(dg, cache))
 @inline eachmortar(dg::DG, cache)    = Base.OneTo(nmortars(dg, cache))
+@inline eachmpiinterface(dg::DG, cache) = Base.OneTo(nmpiinterfaces(dg, cache))
 
 @inline nnodes(dg::DG)             = nnodes(dg.basis)
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
 @inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
+@inline nmpiinterfaces(dg::DG, cache) = nmpiinterfaces(cache.mpi_interfaces)
 
 
 @inline function get_node_coords(x, equations, solver::DG, indices...)

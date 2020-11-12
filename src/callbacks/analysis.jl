@@ -88,7 +88,7 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   analysis_callback.initial_state_integrals = initial_state_integrals
   @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
-  if save_analysis
+  if save_analysis && mpi_isroot()
     mkpath(output_directory)
 
     # write header of output file
@@ -155,20 +155,20 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
   @timeit_debug timer() "analyze solution" begin
     # General information
-    println()
-    println("-"^80)
+    mpi_println()
+    mpi_println("-"^80)
     # TODO: Taal refactor, polydeg is specific to DGSEM
-    println(" Simulation running '", get_name(equations), "' with POLYDEG = ", polydeg(solver))
-    println("-"^80)
-    println(" #timesteps:     " * @sprintf("% 14d", iter) *
-            "               " *
-            " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-    println(" dt:             " * @sprintf("%10.8e", dt) *
-            "               " *
-            " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
-    println(" sim. time:      " * @sprintf("%10.8e", t))
-    println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
-    println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
+    mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
+    mpi_println("-"^80)
+    mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
+                "               " *
+                " run time:       " * @sprintf("%10.8e s", runtime_absolute))
+    mpi_println(" dt:             " * @sprintf("%10.8e", dt) *
+                "               " *
+                " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+    mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
+    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
 
     # Level information (only show for AMR)
     uses_amr = false
@@ -193,18 +193,18 @@ function (analysis_callback::AnalysisCallback)(integrator)
       end
 
       for level = max_level:-1:min_level+1
-        println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+        mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
       end
-      println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+      mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
     end
-    println()
+    mpi_println()
 
     # Open file for appending and store time step and time information
-    if analysis_callback.save_analysis
+    if mpi_isroot() && analysis_callback.save_analysis
       io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
-      @printf(io, "% 9d", iter)
-      @printf(io, "  %10.8e", t)
-      @printf(io, "  %10.8e", dt)
+      mpi_isroot() && @printf(io, "% 9d", iter)
+      mpi_isroot() && @printf(io, "  %10.8e", t)
+      mpi_isroot() && @printf(io, "  %10.8e", dt)
     end
 
     # the time derivative can be unassigned before the first step is made
@@ -221,11 +221,11 @@ function (analysis_callback::AnalysisCallback)(integrator)
       # Variable names required for L2 error, Linf error, and conservation error
       if any(q in analysis_errors for q in
             (:l2_error, :linf_error, :conservation_error, :residual))
-        print(" Variable:    ")
+        mpi_isroot() && print(" Variable:    ")
         for v in eachvariable(equations)
-          @printf("   %-14s", varnames_cons(equations)[v])
+          mpi_isroot() && @printf("   %-14s", varnames_cons(equations)[v])
         end
-        println()
+        mpi_println()
       end
 
       # Calculate L2/Linf errors, which are also returned by analyze_solution
@@ -233,22 +233,22 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
       # L2 error
       if :l2_error in analysis_errors
-        print(" L2 error:    ")
+        mpi_isroot() && print(" L2 error:    ")
         for v in eachvariable(equations)
-          @printf("  % 10.8e", l2_error[v])
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error[v])
+          mpi_isroot() && @printf("  % 10.8e", l2_error[v])
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", l2_error[v])
         end
-        println()
+        mpi_println()
       end
 
       # Linf error
       if :linf_error in analysis_errors
-        print(" Linf error:  ")
+        mpi_isroot() && print(" Linf error:  ")
         for v in eachvariable(equations)
-          @printf("  % 10.8e", linf_error[v])
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error[v])
+          mpi_isroot() && @printf("  % 10.8e", linf_error[v])
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", linf_error[v])
         end
-        println()
+        mpi_println()
       end
 
       # Conservation errror
@@ -256,55 +256,61 @@ function (analysis_callback::AnalysisCallback)(integrator)
         @unpack initial_state_integrals = analysis_callback
         state_integrals = integrate(integrator.u, semi)
 
-        print(" |∑U - ∑U₀|:  ")
+        mpi_isroot() && print(" |∑U - ∑U₀|:  ")
         for v in eachvariable(equations)
           err = abs(state_integrals[v] - initial_state_integrals[v])
-          @printf("  % 10.8e", err)
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", err)
+          mpi_isroot() && @printf("  % 10.8e", err)
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", err)
         end
-        println()
+        mpi_println()
       end
 
       # Residual (defined here as the vector maximum of the absolute values of the time derivatives)
       if :residual in analysis_errors
-        print(" max(|Uₜ|):   ")
+        mpi_isroot() && print(" max(|Uₜ|):   ")
         for v in eachvariable(equations)
           # Calculate maximum absolute value of Uₜ
-          @views res = maximum(abs, view(du, v, ..))
-          @printf("  % 10.8e", res)
-          analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
+          res = maximum(abs, view(du, v, ..))
+          if mpi_isparallel()
+            global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
+            if mpi_isroot()
+              res = global_res[]
+            end
+          end
+          mpi_isroot() && @printf("  % 10.8e", res)
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
         end
-        println()
+        mpi_println()
       end
 
       # L2/L∞ errors of the primitive variables
       if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
         l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, semi, t)
 
-        print(" Variable:    ")
+        mpi_isroot() && print(" Variable:    ")
         for v in eachvariable(equations)
-          @printf("   %-14s", varnames_prim(equations)[v])
+          mpi_isroot() && @printf("   %-14s", varnames_prim(equations)[v])
         end
-        println()
+        mpi_println()
 
         # L2 error
         if :l2_error_primitive in analysis_errors
-          print(" L2 error prim.: ")
+          mpi_isroot() && print(" L2 error prim.: ")
           for v in eachvariable(equations)
-            @printf("%10.8e   ", l2_error_prim[v])
-            analysis_callback.save_analysis && @printf(io, "  % 10.8e", l2_error_prim[v])
+            mpi_isroot() && @printf("%10.8e   ", l2_error_prim[v])
+            analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", l2_error_prim[v])
           end
-          println()
+          mpi_println()
         end
 
         # L∞ error
         if :linf_error_primitive in analysis_errors
-          print(" Linf error pri.:")
+          mpi_isroot() && print(" Linf error pri.:")
           for v in eachvariable(equations)
-            @printf("%10.8e   ", linf_error_prim[v])
-            analysis_callback.save_analysis && @printf(io, "  % 10.8e", linf_error_prim[v])
+            mpi_isroot() && @printf("%10.8e   ", linf_error_prim[v])
+            analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", linf_error_prim[v])
           end
-          println()
+          mpi_println()
         end
       end
 
@@ -312,18 +318,18 @@ function (analysis_callback::AnalysisCallback)(integrator)
       # additional
       for quantity in analysis_integrals
         res = analyze(quantity, du, u, t, semi)
-        @printf(" %-12s:", pretty_form_utf(quantity))
-        @printf("  % 10.8e", res)
-        analysis_callback.save_analysis && @printf(io, "  % 10.8e", res)
-        println()
+        mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
+        mpi_isroot() && @printf("  % 10.8e", res)
+        analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
+        mpi_println()
       end
     end # GC.@preserve du_ode
 
-    println("-"^80)
-    println()
+    mpi_println("-"^80)
+    mpi_println()
 
     # Add line break and close analysis file if it was opened
-    if analysis_callback.save_analysis
+    if mpi_isroot() && analysis_callback.save_analysis
       println(io)
       close(io)
     end
@@ -393,4 +399,5 @@ pretty_form_ascii(::Val{:linf_divb}) = "linf_divb"
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")

@@ -69,8 +69,8 @@ macro test_trixi_include(elixir, args...)
   end
 
   quote
-    println("#"^80)
-    println($elixir)
+    Trixi.mpi_isroot() && println("#"^80)
+    Trixi.mpi_isroot() && println($elixir)
 
     # evaluate examples in the scope of the module they're called from
     @test_nowarn trixi_include(@__MODULE__, $elixir; $kwargs...)
@@ -79,14 +79,14 @@ macro test_trixi_include(elixir, args...)
     if !isnothing($l2) || !isnothing($linf)
       l2_measured, linf_measured = analysis_callback(sol)
 
-      if !isnothing($l2)
+      if Trixi.mpi_isroot() && !isnothing($l2)
         @test length($l2) == length(l2_measured)
         for (l2_expected, l2_actual) in zip($l2, l2_measured)
           @test isapprox(l2_expected, l2_actual, atol=$atol, rtol=$rtol)
         end
       end
 
-      if !isnothing($linf)
+      if Trixi.mpi_isroot() && !isnothing($linf)
         @test length($linf) == length(linf_measured)
         for (linf_expected, linf_actual) in zip($linf, linf_measured)
           @test isapprox(linf_expected, linf_actual, atol=$atol, rtol=$rtol)
@@ -94,7 +94,7 @@ macro test_trixi_include(elixir, args...)
       end
     end
 
-    println("#"^80)
-    println("\n\n")
+    Trixi.mpi_isroot() && println("#"^80)
+    Trixi.mpi_isroot() && println("\n\n")
   end
 end

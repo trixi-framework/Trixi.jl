@@ -43,10 +43,21 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "parallel_2d"
+    # Do a dummy `@test true`:
+    # If the process errors out the testset would error out as well,
+    # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
+    @test true
+
     # Based on `runtests.jl` from `MPI.jl` and `PencilArrays.jl`
     # Precompilation disabled to prevent race conditions when loading packages
+    # TODO: We can remove the flag `--compiled-modules=no` on Julia v1.6.
     mpiexec() do cmd
-      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no --threads=1 --check-bounds=yes test_examples_parallel_2d.jl`)
+      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no --threads=1 --check-bounds=yes test_examples_2d_parallel.jl`)
+    end
+
+    # TODO: Taal, remove old tests below
+    mpiexec() do cmd
+      run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --compiled-modules=no --threads=1 --check-bounds=yes test_examples_2d_parallel_old.jl`)
     end
   end
 end
