@@ -158,67 +158,6 @@ end
 @inline Base.ndims(mesh::TreeMesh) = ndims(mesh.tree)
 
 
-# Generate initial mesh
-function generate_mesh()
-  # Get number of spatial dimensions
-  ndims_ = parameter("ndims")
-
-  # Get maximum number of cells that should be supported
-  n_cells_max = parameter("n_cells_max")
-
-  # Get domain boundaries
-  coordinates_min = parameter("coordinates_min")
-  coordinates_max = parameter("coordinates_max")
-
-  # Domain length is calculated as the maximum length in any axis direction
-  domain_center = @. (coordinates_min + coordinates_max) / 2
-  domain_length = maximum(coordinates_max .- coordinates_min)
-
-  # By default, mesh is periodic in all dimensions
-  periodicity = parameter("periodicity", true)
-
-  # Create mesh
-  if mpi_isparallel()
-    tree_type = ParallelTree{ndims_}
-  else
-    tree_type = SerialTree{ndims_}
-  end
-  mesh = @timeit_debug timer() "creation" TreeMesh(tree_type, n_cells_max, domain_center,
-                                                   domain_length, periodicity)
-
-  # Create initial refinement
-  initial_refinement_level = parameter("initial_refinement_level")
-  @timeit_debug timer() "initial refinement" for l in 1:initial_refinement_level
-    refine!(mesh.tree)
-  end
-
-  # Apply refinement patches
-  @timeit_debug timer() "refinement patches" for patch in parameter("refinement_patches", [])
-    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
-    if patch["type"] == "box"
-      refine_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
-    else
-      error("unknown refinement patch type '$(patch["type"])'")
-    end
-  end
-
-  # Apply coarsening patches
-  @timeit_debug timer() "coarsening patches" for patch in parameter("coarsening_patches", [])
-    mpi_isparallel() && error("non-uniform meshes not supported in parallel")
-    if patch["type"] == "box"
-      coarsen_box!(mesh.tree, patch["coordinates_min"], patch["coordinates_max"])
-    else
-      error("unknown coarsening patch type '$(patch["type"])'")
-    end
-  end
-
-  # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
-  partition!(mesh)
-
-  return mesh
-end
-
-
 
 # Obtain the mesh filename from a restart file
 function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})

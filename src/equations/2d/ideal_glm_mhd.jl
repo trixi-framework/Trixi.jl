@@ -229,36 +229,6 @@ end
 
 # Calculate the nonconservative terms from Powell and Galilean invariance
 # OBS! This is scaled by 1/2 becuase it will cancel later with the factor of 2 in dsplit_transposed
-@inline function calcflux_twopoint_nonconservative!(f1, f2, u, element_id, equations::IdealGlmMhdEquations2D, dg)
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = get_node_vars(u, dg, i, j, element_id)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-
-    # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    phi_pow = 0.5 * SVector(0, B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-
-    # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-    # x-direction
-    phi_gal_x = 0.5 * SVector(0, 0, 0, 0, v1*psi, 0, 0, 0, v1)
-    # y-direction
-    phi_gal_y = 0.5 * SVector(0, 0, 0, 0, v2*psi, 0, 0, 0, v2)
-
-    # add both nonconservative terms into the volume
-    for l in 1:nnodes(dg)
-      _, _, _, _, _, B1, _, _, psi = get_node_vars(u, dg, l, j, element_id)
-      for v in 1:nvariables(dg)
-        f1[v, l, i, j] += phi_pow[v] * B1 + phi_gal_x[v] * psi
-      end
-      _, _, _, _, _, _, B2, _, psi = get_node_vars(u, dg, i, l, element_id)
-      for v in 1:nvariables(dg)
-        f2[v, l, i, j] += phi_pow[v] * B2 + phi_gal_y[v] * psi
-      end
-    end
-  end
-end
-
 @inline function calcflux_twopoint_nonconservative!(f1, f2,
                                                     u::AbstractArray{<:Any,4}, element,
                                                     equations::IdealGlmMhdEquations2D, dg, cache)
