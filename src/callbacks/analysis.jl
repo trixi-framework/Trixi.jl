@@ -167,6 +167,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
                 "               " *
                 " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
+    mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
+    mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
 
     # Level information (only show for AMR)
     uses_amr = false
@@ -190,7 +192,6 @@ function (analysis_callback::AnalysisCallback)(integrator)
         max_level = max(max_level, current_level)
       end
 
-      mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
       for level = max_level:-1:min_level+1
         mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
       end
@@ -199,7 +200,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
 
     # Open file for appending and store time step and time information
-    if analysis_callback.save_analysis && mpi_isroot()
+    if mpi_isroot() && analysis_callback.save_analysis
       io = open(joinpath(analysis_callback.output_directory, analysis_callback.analysis_filename), "a")
       mpi_isroot() && @printf(io, "% 9d", iter)
       mpi_isroot() && @printf(io, "  %10.8e", t)
@@ -325,7 +326,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println()
 
     # Add line break and close analysis file if it was opened
-    if analysis_callback.save_analysis && mpi_isroot()
+    if mpi_isroot() && analysis_callback.save_analysis
       println(io)
       close(io)
     end

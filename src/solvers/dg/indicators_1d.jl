@@ -24,7 +24,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
   @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-  #       Shall we implement `resize!(semi::AbstractSemidiscretization)`
+  #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
   resize!(alpha, nelements(dg, cache))
   if alpha_smooth

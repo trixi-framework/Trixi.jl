@@ -5,59 +5,63 @@ using Trixi
 
 include("test_trixi.jl")
 
+# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
-
-# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
 
 @testset "1D" begin
 
 # Run basic tests
 @testset "Examples 1D" begin
-  @testset "elixir_advection_basic.jl" begin
-    test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-      l2   = [6.0388296447998465e-6],
-      linf = [3.217887726258972e-5])
+  # Linear scalar advection
+  include("test_examples_1d_advection.jl")
+
+
+  # Compressible Euler
+  include("test_examples_1d_euler.jl")
+end
+
+# Coverage test for all initial conditions
+@testset "Tests for initial conditions" begin
+  # Linear scalar advection
+  @testset "elixir_advection_basic.jl with initial_condition_sin" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [0.00017373554109980247],
+      linf = [0.0006021275678165239],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_sin)
   end
 
-  @testset "elixir_advection_amr.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
-    l2   = [0.3540209654959832],
-    linf = [0.9999905446337742])
+  @testset "elixir_advection_basic.jl with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [2.441369287653687e-16],
+      linf = [4.440892098500626e-16],
+      maxiters = 1,
+      initial_condition = initial_condition_constant)
   end
 
-  @testset "elixir_advection_amr_nonperiodic.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
-    l2   = [4.323675034078241e-6],
-    linf = [3.239622040579655e-5])
+  @testset "elixir_advection_basic.jl with initial_condition_linear_x" begin
+    # TODO Taal: create separate `*_linear_x.jl` elixir to keep `basic` simple
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [1.9882464973192864e-16],
+      linf = [1.4432899320127035e-15],
+      maxiters = 1,
+      initial_condition = Trixi.initial_condition_linear_x,
+      boundary_conditions = Trixi.boundary_condition_linear_x,
+      periodicity=false)
   end
 
-
-  @testset "elixir_euler_source_terms.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
-    l2   = [2.3017487546631118e-8, 1.9137514928527178e-8, 7.732828544277078e-8],
-    linf = [1.6282751857943367e-7, 1.426988238684146e-7, 5.298297782729833e-7])
-  end
-
-  @testset "elixir_euler_nonperiodic.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
-    l2   = [3.80950031272884e-6, 1.671745083458876e-6, 7.730956863549413e-6],
-    linf = [1.2966215741316844e-5, 9.2635164730126e-6, 3.090770562241829e-5])
-  end
-
-  @testset "elixir_euler_ec.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
-    l2   = [0.1188410508446165, 0.15463666913848456, 0.4444355816866067],
-    linf = [0.23934128951004474, 0.27246473813214184, 0.8697154266487717])
-  end
-
-  @testset "elixir_euler_blast_wave_shockcapturing.jl" begin
-  test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_shockcapturing.jl"),
-      l2   = [0.21218593029900773, 0.2769530413665288, 0.5518482111667276],
-      linf = [1.505221631144809, 1.4864840122024228, 2.0501644413816162],
-      tspan = (0.0, 0.13))
+  @testset "elixir_advection_basic.jl with initial_condition_convergence_test" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+      l2   = [6.1803596620800215e-6],
+      linf = [2.4858560899509996e-5],
+      maxiters = 1,
+      initial_condition = initial_condition_convergence_test,
+      boundary_conditions = boundary_condition_convergence_test,
+      periodicity=false)
   end
 end
 

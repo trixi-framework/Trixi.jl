@@ -1357,8 +1357,6 @@ end
 # Call equation-specific initial conditions functions and apply to all elements
 function set_initial_condition!(dg::Dg2D, time)
   equation = equations(dg)
-  # make sure that the random number generator is reseted and the ICs are reproducible in the julia REPL/interactive mode
-  seed!(0)
   for element_id in 1:dg.n_elements
     for j in 1:nnodes(dg)
       for i in 1:nnodes(dg)
@@ -2550,6 +2548,14 @@ end
 @inline calc_dt(dg, cfl) = calc_dt(dg, cfl, uses_mpi(dg))
 function calc_dt(dg::Dg2D, cfl, uses_mpi::Val{false})
   min_dt = Inf
+
+  # FIXME: This should be implemented properly using another callback
+  #        or something else, cf.
+  #        https://github.com/trixi-framework/Trixi.jl/issues/257
+  if dg.equations isa AbstractIdealGlmMhdEquations
+    dg.equations.c_h = zero(dg.equations.c_h)
+  end
+
   for element_id in 1:dg.n_elements
     dt = calc_max_dt(dg.elements.u, element_id,
                      dg.elements.inverse_jacobian[element_id], cfl, equations(dg), dg)

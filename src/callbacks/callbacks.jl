@@ -33,3 +33,5 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("analysis.jl")
 include("alive.jl")
+
+include("trivial.jl")

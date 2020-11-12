@@ -30,7 +30,6 @@ default_analysis_integrals(::IdealGlmMhdEquations2D)  = (entropy_timederivative,
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::IdealGlmMhdEquations2D)
 
@@ -206,14 +205,15 @@ end
   v1 = rho_v1/rho
   v2 = rho_v2/rho
   v3 = rho_v3/rho
+  kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
   mag_en = 0.5*(B1^2 + B2^2 + B3^2)
-  p = (equations.gamma - 1) * (rho_e - 0.5*rho*(v1^2 + v2^2 + v3^2) - mag_en - 0.5*psi^2)
+  p = (equations.gamma - 1) * (rho_e - kin_en - mag_en - 0.5*psi^2)
   if orientation == 1
     f1 = rho_v1
     f2 = rho_v1*v1 + p + mag_en - B1^2
     f3 = rho_v1*v2 - B1*B2
     f4 = rho_v1*v3 - B1*B3
-    f5 = (rho_e + p + mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
+    f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v1 - B1*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B1
     f6 = equations.c_h*psi
     f7 = v1*B2 - v2*B1
     f8 = v1*B3 - v3*B1
@@ -223,7 +223,7 @@ end
     f2 = rho_v2*v1 - B1*B2
     f3 = rho_v2*v2 + p + mag_en - B2^2
     f4 = rho_v2*v3 - B2*B3
-    f5 = (rho_e + p + mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
+    f5 = (kin_en + equations.gamma*p/(equations.gamma - 1) + 2*mag_en)*v2 - B2*(v1*B1 + v2*B2 + v3*B3) + equations.c_h*psi*B2
     f6 = v2*B1 - v1*B2
     f7 = equations.c_h*psi
     f8 = v2*B3 - v3*B2
@@ -573,6 +573,7 @@ phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{nor
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
 
+# TODO: Taal remove the method below
 # 1) Determine maximum stable time step based on polynomial degree and CFL number
 # 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
 #    magnetoacoustic over the entire domain (note this routine is called in a loop
@@ -580,8 +581,7 @@ end
 function calc_max_dt(u, element_id, invjacobian, cfl,
                      equations::IdealGlmMhdEquations2D, dg)
   λ_max = 0.0
-  equations.c_h = 0.0
-  for j in nnodes(dg), i in 1:nnodes(dg)
+  for j in 1:nnodes(dg), i in 1:nnodes(dg)
     u_node = get_node_vars(u, dg, i, j, element_id)
     rho, rho_v1, rho_v2, rho_v3, _ = u_node
     v1 = rho_v1 / rho
@@ -608,6 +608,10 @@ end
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
   cf_max = max(cf_x_direction, cf_y_direction)
+
+  # FIXME: This should be implemented properly using another callback
+  #        or something else, cf.
+  #        https://github.com/trixi-framework/Trixi.jl/issues/257
   equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction

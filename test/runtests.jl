@@ -38,6 +38,10 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_paper-self-gravitating-gas-dynamics.jl")
   end
 
+  @time if (TRIXI_TEST == "all" && !ON_APPVEYOR) || TRIXI_TEST == "paper-self-gravitating-gas-dynamics-old" # TODO: Taal remove
+    include("test_paper-self-gravitating-gas-dynamics-old.jl")
+  end
+
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "parallel_2d"
     # Based on `runtests.jl` from `MPI.jl` and `PencilArrays.jl`
     # Precompilation disabled to prevent race conditions when loading packages

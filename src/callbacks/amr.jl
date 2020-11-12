@@ -27,9 +27,9 @@ function AMRCallback(semi, controller, adaptor;
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
   end
 
-  # AMR every `interval` time steps
+  # AMR every `interval` time steps, but not after the final step
   if interval > 0
-    condition = (u, t, integrator) -> integrator.iter % interval == 0
+    condition = (u, t, integrator) -> integrator.iter % interval == 0 && !isfinished(integrator)
   else # disable the AMR callback except possibly for initial refinement during initialization
     condition = (u, t, integrator) -> false
   end
@@ -86,12 +86,13 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 
   @timeit_debug timer() "initial condition AMR" if amr_callback.adapt_initial_condition
     # iterate until mesh does not change anymore
-    has_changed = true
+    has_changed = amr_callback(integrator,
+                               only_refine=amr_callback.adapt_initial_condition_only_refine)
     while has_changed
-      has_changed = amr_callback(integrator,
-                                 only_refine=amr_callback.adapt_initial_condition_only_refine)
       compute_coefficients!(integrator.u, t, semi)
       u_modified!(integrator, true)
+      has_changed = amr_callback(integrator,
+                                 only_refine=amr_callback.adapt_initial_condition_only_refine)
     end
   end
 

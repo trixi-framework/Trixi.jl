@@ -2,7 +2,7 @@
 # Simulation
 ndims = 3
 equations = "CompressibleEulerEquations"
-gamma = 1.66667
+gamma = 1.6666666666666667
 initial_condition = "initial_condition_blob"
 t_start = 0.0
 t_end   = 2.5

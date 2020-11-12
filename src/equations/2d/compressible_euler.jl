@@ -22,7 +22,6 @@ varnames_prim(::CompressibleEulerEquations2D) = @SVector ["rho", "v1", "v2", "p"
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::CompressibleEulerEquations2D)
 
@@ -165,7 +164,6 @@ function boundary_condition_convergence_test(u_inner, orientation, direction, x,
 end
 
 
-# TODO: Taal IC unused?
 """
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations2D)
 
@@ -481,19 +479,7 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 end
 
 
-"""
-    initial_condition_jeans_instability(x, t, equations::CompressibleEulerEquations2D)
-
-The classical Jeans instability taken from
-- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
-  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
-  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
-- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, Stefanie Walch (2016)
-  A Novel High-Order, Entropy Stable, 3D AMR MHD Solver with Guaranteed Positive Pressure
-  [arXiv: 1605.03572](https://arxiv.org/abs/1605.03572)
-- Flash manual https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-in CGS (centimeter, gram, second) units.
-"""
+# TODO: Taal, remove the method below (moved to the elixir)
 function initial_condition_jeans_instability(x, t, equations::CompressibleEulerEquations2D)
   # Jeans gravitational instability test case
   # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
@@ -549,7 +535,37 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Compr
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
-# TODO: Taal, port to Taal, add docstring, and remove method with the signature below
+"""
+    source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
+"""
+@inline function source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations::CompressibleEulerEquations2D)
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0 # gravitational constant, must match coupling solver
+  C_grav = -2.0 * G / pi # 2 == 4 / ndims
+
+  x1, x2 = x
+  # TODO: sincospi
+  si, co = sincos(pi * (x1 + x2 - t))
+  rhox = A * pi * co
+  rho  = c + A *  si
+
+  du1 = rhox
+  du2 = rhox
+  du3 = rhox
+  du4 = (1.0 - C_grav*rho)*rhox
+
+  return SVector(du1, du2, du3, du4)
+end
+
+# TODO: Taal remove method with the signature below
 function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0
@@ -573,7 +589,37 @@ function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_
   return nothing
 end
 
-# TODO: Taal, port to Taal, add docstring, and remove method with the signature below
+"""
+    source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations2D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
+"""
+@inline function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations2D)
+  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
+  c = 2.0
+  A = 0.1
+  G = 1.0
+  C_grav = -2 * G / pi # 2 == 4 / ndims
+
+  x1, x2 = x
+  # TODO: sincospi
+  si, co = sincos(pi * (x1 + x2 - t))
+  rhox = A * pi * co
+  rho  = c + A *  si
+
+  du1 = rhox
+  du2 = rhox * (1 -     C_grav * rho)
+  du3 = rhox * (1 -     C_grav * rho)
+  du4 = rhox * (1 - 3 * C_grav * rho)
+
+  return SVector(du1, du2, du3, du4)
+end
+
+# TODO: Taal, remove method with the signature below
 function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
   # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
   c = 2.0

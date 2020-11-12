@@ -26,7 +26,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
 
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_hyp_diff_llf.jl"),
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_hypdiff_lax_friedrichs.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=2)
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))

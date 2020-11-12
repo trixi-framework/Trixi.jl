@@ -47,23 +47,23 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   #           l2   = [0.03607862694368351, 0.04281395008247395, 0.04280207686965749, 0.025746770192645763, 0.1611518499414067, 0.017455917249117023, 0.017456981264942977, 0.02688321120361229, 0.00015024027267648003],
   #           linf = [0.23502083666166018, 0.3156846367743936, 0.31227895161037256, 0.2118146956106238, 0.9743049414302711, 0.09050624115026618, 0.09131633488909774, 0.15693063355520998, 0.0038394720095667593])
   # end
-  @testset "parameters_hyp_diff_harmonic_nonperiodic.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_harmonic_nonperiodic.toml"),
+  @testset "parameters_hypdiff_harmonic_nonperiodic.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_harmonic_nonperiodic.toml"),
             l2   = [8.618132353932638e-8, 5.619399844708813e-7, 5.619399845476024e-7],
             linf = [1.124861862326869e-6, 8.622436471483752e-6, 8.622436469707395e-6])
   end
-  @testset "parameters_hyp_diff_llf.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_llf.toml"),
+  @testset "parameters_hypdiff_lax_friedrichs.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_lax_friedrichs.toml"),
             l2   = [0.00015687751088073104, 0.0010259867353397119, 0.0010259867353398994],
             linf = [0.001198695640053704, 0.006423873515701395, 0.006423873515686296])
   end
-  @testset "parameters_hyp_diff_nonperiodic.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_nonperiodic.toml"),
+  @testset "parameters_hypdiff_nonperiodic.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_nonperiodic.toml"),
             l2   = [8.523077654037775e-6, 2.877932365308637e-5, 5.454942769137812e-5],
             linf = [5.484978959957587e-5, 0.00014544895979200218, 0.000324491268921534])
   end
-  @testset "parameters_hyp_diff_upwind.toml" begin
-    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hyp_diff_upwind.toml"),
+  @testset "parameters_hypdiff_upwind.toml" begin
+    test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_hypdiff_upwind.toml"),
             l2   = [5.868147556488962e-6, 3.8051792732628014e-5, 3.8051792732620214e-5],
             linf = [3.70196549871471e-5, 0.0002072058411455302, 0.00020720584114464202])
   end

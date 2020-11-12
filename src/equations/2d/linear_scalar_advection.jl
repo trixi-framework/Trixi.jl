@@ -40,7 +40,6 @@ function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(
 end
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation2D)
 
@@ -261,8 +260,8 @@ end
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation2D) = Val(true)
 
-@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation2D)
-  return abs.(eq.advectionvelocity)
+@inline function max_abs_speeds(equation::LinearScalarAdvectionEquation2D)
+  return abs.(equation.advectionvelocity)
 end
 
 

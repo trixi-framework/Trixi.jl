@@ -33,7 +33,6 @@ varnames_prim(::LinearScalarAdvectionEquation3D) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
-# TODO: Taal IC needs test
 """
     initial_condition_constant(x, t, equations::LinearScalarAdvectionEquation1D)
 
@@ -156,8 +155,8 @@ end
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
 
-@inline function max_abs_speeds(eq::LinearScalarAdvectionEquation3D)
-  return abs.(eq.advectionvelocity)
+@inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
+  return abs.(equation.advectionvelocity)
 end
 
 

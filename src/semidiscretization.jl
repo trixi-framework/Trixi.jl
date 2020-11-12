@@ -62,6 +62,8 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan)
+  RealT = real(semi)
+  tspan = (convert(RealT, first(tspan)), convert(RealT, last(tspan)))
   u0_ode = compute_coefficients(first(tspan), semi)
   # TODO: MPI, do we want to synchonize loading and print debug statements, e.g. using
   #       mpi_isparallel() && MPI.Barrier(mpi_comm())
@@ -414,7 +416,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
 end
 
 
-# TODO: Taal interface
+# TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)
 # - ndims(mesh)

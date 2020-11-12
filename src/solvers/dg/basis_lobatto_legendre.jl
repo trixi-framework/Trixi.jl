@@ -1,4 +1,9 @@
 
+"""
+    LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
+
+Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
+"""
 struct LobattoLegendreBasis{RealT<:Real, NNODES,
                             InverseVandermondeLegendre<:AbstractMatrix{RealT},
                             BoundaryMatrix<:AbstractMatrix{RealT},
