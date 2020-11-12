@@ -262,7 +262,32 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
  return has_changed
 end
 
-# function original2refined(original_cell_ids, refined_original_cells, mesh) in src/amr/amr.jl
+
+# After refining cells, shift original cell ids to match new locations
+# Note: Assumes sorted lists of original and refined cell ids!
+# Note: `mesh` is only required to extract ndims
+function original2refined(original_cell_ids, refined_original_cells, mesh)
+  # Sanity check
+  @assert issorted(original_cell_ids) "`original_cell_ids` not sorted"
+  @assert issorted(refined_original_cells) "`refined_cell_ids` not sorted"
+
+  # Create array with original cell ids (not yet shifted)
+  shifted_cell_ids = collect(1:original_cell_ids[end])
+
+  # Loop over refined original cells and apply shift for all following cells
+  for cell_id in refined_original_cells
+    # Only calculate shifts for cell ids that are relevant
+    if cell_id > length(shifted_cell_ids)
+      break
+    end
+
+    # Shift all subsequent cells by 2^ndims ids
+    shifted_cell_ids[(cell_id + 1):end] .+= 2^ndims(mesh)
+  end
+
+  # Convert original cell ids to their shifted values
+  return shifted_cell_ids[original_cell_ids]
+end
 
 
 

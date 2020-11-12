@@ -8,13 +8,6 @@ struct CompressibleEulerEquations2D{RealT<:Real} <: AbstractCompressibleEulerEqu
   gamma::RealT
 end
 
-# TODO Taal refactor, remove old constructors and replace them with default values
-function CompressibleEulerEquations2D()
-  gamma::Float64 = parameter("gamma", 1.4)
-
-  CompressibleEulerEquations2D(gamma)
-end
-
 
 get_name(::CompressibleEulerEquations2D) = "CompressibleEulerEquations2D"
 varnames_cons(::CompressibleEulerEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_e"]
@@ -99,45 +92,6 @@ Source terms used for convergence tests in combination with
   #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
   return SVector(du1, du2, du3, du4)
-end
-
-# TODO: Taal remove methods with the signature below
-function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
-  # Same settings as in `initial_condition`
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  γ = equations.gamma
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    si, co = sincos((x1 + x2 - t)*ω)
-    tmp1 = co * A * ω
-    tmp2 = si * A
-    tmp3 = γ - 1
-    tmp4 = (2*c - 1)*tmp3
-    tmp5 = (2*tmp2*γ - 2*tmp2 + tmp4 + 1)*tmp1
-    tmp6 = tmp2 + c
-
-    ut[1, i, j, element_id] += tmp1
-    ut[2, i, j, element_id] += tmp5
-    ut[3, i, j, element_id] += tmp5
-    ut[4, i, j, element_id] += 2*((tmp6 - 1)*tmp3 + tmp6*γ)*tmp1
-
-    # Original terms (without performanc enhancements)
-    # ut[1, i, j, element_id] += cos((x1 + x2 - t)*ω)*A*ω
-    # ut[2, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-    #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-    # ut[3, i, j, element_id] += (2*sin((x1 + x2 - t)*ω)*A*γ - 2*sin((x1 + x2 - t)*ω)*A +
-    #                             2*c*γ - 2*c - γ + 2)*cos((x1 + x2 - t)*ω)*A*ω
-    # ut[4, i, j, element_id] += 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
-    #                               (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
-  end
-
-  return nothing
 end
 
 """
@@ -479,34 +433,6 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
 end
 
 
-# TODO: Taal, remove the method below (moved to the elixir)
-function initial_condition_jeans_instability(x, t, equations::CompressibleEulerEquations2D)
-  # Jeans gravitational instability test case
-  # see Derigs et al. https://arxiv.org/abs/1605.03572; Sec. 4.6
-  # OBS! this uses cgs (centimeter, gram, second) units
-  # periodic boundaries
-  # domain size [0,L]^2 depends on the wave number chosen for the perturbation
-  # OBS! Be very careful here L must be chosen such that problem is periodic
-  # typical final time is T = 5
-  # gamma = 5/3
-  dens0  = 1.5e7 # g/cm^3
-  pres0  = 1.5e7 # dyn/cm^2
-  delta0 = 1e-3
-  # set wave vector values for pertubation (units 1/cm)
-  # see FLASH manual: https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-  kx = 2.0*pi/0.5 # 2π/λ_x, λ_x = 0.5
-  ky = 0.0   # 2π/λ_y, λ_y = 1e10
-  k_dot_x = kx*x[1] + ky*x[2]
-  # perturb density and pressure away from reference states ρ_0 and p_0
-  dens = dens0*(1.0 + delta0*cos(k_dot_x))                # g/cm^3
-  pres = pres0*(1.0 + equations.gamma*delta0*cos(k_dot_x)) # dyn/cm^2
-  # flow starts as stationary
-  velx = 0.0 # cm/s
-  vely = 0.0 # cm/s
-  return prim2cons(SVector(dens, velx, vely, pres), equations)
-end
-
-
 """
     initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::CompressibleEulerEquations2D)
 
@@ -565,30 +491,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   return SVector(du1, du2, du3, du4)
 end
 
-# TODO: Taal remove method with the signature below
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
-  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
-  c = 2.0
-  A = 0.1
-  G = 1.0 # gravitational constant, must match coupling solver
-  C_grav = -2.0 * G / pi # 2 == 4 / ndims
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    si, co = sincos(pi * (x1 + x2 - t))
-    rhox = A * pi * co
-    rho  = c + A *  si
-
-    ut[1, i, j, element_id] += rhox
-    ut[2, i, j, element_id] += rhox
-    ut[3, i, j, element_id] += rhox
-    ut[4, i, j, element_id] += (1.0 - C_grav*rho)*rhox
-  end
-
-  return nothing
-end
-
 """
     source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquations2D)
 
@@ -617,30 +519,6 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
   du4 = rhox * (1 - 3 * C_grav * rho)
 
   return SVector(du1, du2, du3, du4)
-end
-
-# TODO: Taal, remove method with the signature below
-function source_terms_eoc_test_euler(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
-  # Same settings as in `initial_condition_eoc_test_coupled_euler_gravity`
-  c = 2.0
-  A = 0.1
-  G = 1.0
-  C_grav = -2 * G / pi # 2 == 4 / ndims
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    si, co = sincos(pi * (x1 + x2 - t))
-    rhox = A * pi * co
-    rho  = c + A *  si
-
-    ut[1, i, j, element_id] += rhox
-    ut[2, i, j, element_id] += rhox * (1 -     C_grav * rho)
-    ut[3, i, j, element_id] += rhox * (1 -     C_grav * rho)
-    ut[4, i, j, element_id] += rhox * (1 - 3 * C_grav * rho)
-  end
-
-  return nothing
 end
 
 
@@ -721,15 +599,6 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 
 
-# TODO: Taal remove the method below
-# Empty source terms required for coupled Euler-gravity simulations
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations2D)
-  # OBS! used for the Jeans instability as well as self-gravitating Sedov blast
-  # TODO: make this cleaner and let each solver have a different source term name
-  return nothing
-end
-
-
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
@@ -755,12 +624,12 @@ end
     function flux_shima_etal(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
 This flux is is a modification of the original kinetic energy preserving two-point flux by
-Kuya, Totani and Kawai (2018)
+- Kuya, Totani and Kawai (2018)
   Kinetic energy and entropy preserving schemes for compressible flows
   by split convective forms
   [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 The modification is in the energy flux to guarantee pressure equilibrium and was developed by
-Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
+- Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
   Preventing spurious pressure oscillations in split convective form discretizations for
   compressible flows
 """
@@ -805,10 +674,11 @@ end
 """
     flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
-Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
+Kinetic energy preserving two-point flux by
+- Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
-[DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
+  [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
@@ -848,10 +718,11 @@ end
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
-Entropy conserving two-point flux by Chandrashekar (2013)
+Entropy conserving two-point flux by
+- Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
-[DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
+  [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
@@ -899,14 +770,16 @@ end
 """
     flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
-Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018)
+Entropy conserving and kinetic energy preserving two-point flux by
+- Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
-[PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
-See also Ranocha (2020)
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+See also
+- Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
-[Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   # Unpack left and right state
@@ -1021,24 +894,6 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
 end
 
 
-# Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equations::CompressibleEulerEquations2D, dg)
-  λ_max = 0.0
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    rho, rho_v1, rho_v2, rho_e = get_node_vars(u, dg, i, j, element_id)
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v_mag = sqrt(v1^2 + v2^2)
-    p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
-    c = sqrt(equations.gamma * p / rho)
-    λ_max = max(λ_max, v_mag + c)
-  end
-
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
-
-  return dt
-end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u

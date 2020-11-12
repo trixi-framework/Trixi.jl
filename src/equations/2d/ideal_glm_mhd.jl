@@ -13,13 +13,6 @@ function IdealGlmMhdEquations2D(gamma)
   IdealGlmMhdEquations2D(gamma, zero(gamma))
 end
 
-# TODO Taal refactor, remove old constructors and replace them with default values
-function IdealGlmMhdEquations2D()
-  gamma::Float64 = parameter("gamma", 1.4)
-  c_h = zero(gamma)
-  IdealGlmMhdEquations2D(gamma, c_h)
-end
-
 
 get_name(::IdealGlmMhdEquations2D) = "IdealGlmMhdEquations2D"
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)
@@ -304,10 +297,11 @@ end
 """
     flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-Entropy conserving two-point flux by Derigs et al. (2018)
+Entropy conserving two-point flux by
+- Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations
-[DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
+  [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
 function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   # Unpack left and right states to get velocities, pressure, and inverse temperature (called beta)
@@ -573,32 +567,6 @@ phi^L 1/2 (B^L + B^R)_{normal} - phi^L B^L+{normal} = phi^L 1/2 (B^R - B^L)_{nor
   return SVector(0, noncons2, noncons3, noncons4, noncons5, noncons6, noncons7, noncons8, noncons9)
 end
 
-# TODO: Taal remove the method below
-# 1) Determine maximum stable time step based on polynomial degree and CFL number
-# 2) Update the GLM cleaning wave speed c_h to be the largest value of the fast
-#    magnetoacoustic over the entire domain (note this routine is called in a loop
-#    over all elements in dg.jl)
-function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equations::IdealGlmMhdEquations2D, dg)
-  λ_max = 0.0
-  for j in 1:nnodes(dg), i in 1:nnodes(dg)
-    u_node = get_node_vars(u, dg, i, j, element_id)
-    rho, rho_v1, rho_v2, rho_v3, _ = u_node
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v3 = rho_v3 / rho
-    v_mag = sqrt(v1^2 + v2^2 + v3^2)
-    cf_x_direction = calc_fast_wavespeed(u_node, 1, equations)
-    cf_y_direction = calc_fast_wavespeed(u_node, 2, equations)
-    cf_max = max(cf_x_direction, cf_y_direction)
-    equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
-    λ_max = max(λ_max, v_mag + cf_max)
-  end
-
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
-
-  return dt
-end
 
 @inline function max_abs_speeds(u, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, _ = u

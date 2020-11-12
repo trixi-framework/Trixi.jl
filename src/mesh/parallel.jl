@@ -43,7 +43,7 @@ function load_mesh_old(restart_filename, mpi_parallel::Val{true})
   n_cells_max = parameter("n_cells_max")
 
   # Create mesh
-  @timeit timer() "creation" mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
+  mesh = @timeit_debug timer() "creation" TreeMesh(ParallelTree{ndims_}, n_cells_max)
 
   # Determine mesh filename
   filename = get_restart_mesh_filename(restart_filename, Val(true))
