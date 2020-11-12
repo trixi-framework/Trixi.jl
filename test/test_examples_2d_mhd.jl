@@ -1,3 +1,4 @@
+module TestExamples2DMHD
 
 using Test
 using Trixi
@@ -41,3 +42,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 0.06), surface_flux = flux_hll)
   end
 end
+
+end # module

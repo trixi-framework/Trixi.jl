@@ -1,3 +1,4 @@
+module TestExamples1DEuler
 
 using Test
 using Trixi
@@ -107,3 +108,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       maxiters = 30)
   end
 end
+
+end # module

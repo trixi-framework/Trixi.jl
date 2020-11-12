@@ -1,3 +1,4 @@
+module TestExamples3DHypDiff
 
 using Test
 using Trixi
@@ -28,3 +29,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       linf = [0.0016405001653623241, 0.0029870057159104594, 0.009410031618285686, 0.009410031618287462])
   end
 end
+
+end # module

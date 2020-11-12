@@ -1,3 +1,4 @@
+module TestExamples2DEuler
 
 using Test
 using Trixi
@@ -167,3 +168,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [4.667437348149228e-5, 0.03175420871507906, 0.0318039789241531, 0.04561735256198318])
   end
 end
+
+end # module

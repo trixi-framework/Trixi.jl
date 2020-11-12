@@ -1,3 +1,4 @@
+module TestExamples1DAdvection
 
 using Test
 using Trixi
@@ -26,3 +27,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [3.235356127918171e-5])
   end
 end
+
+end # module

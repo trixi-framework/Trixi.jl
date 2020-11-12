@@ -1,3 +1,4 @@
+module TestExamples3DMHD
 
 using Test
 using Trixi
@@ -42,3 +43,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       tspan = (0.0, 0.06))
   end
 end
+
+end # module
