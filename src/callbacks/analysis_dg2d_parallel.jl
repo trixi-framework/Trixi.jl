@@ -17,8 +17,13 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
   global_linf_error = Vector(linf_error)
   MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
   MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
-  l2_error = convert(typeof(l2_error), global_l2_error)
-  linf_error = convert(typeof(linf_error), global_linf_error)
+  if mpi_isroot()
+    l2_error   = convert(typeof(l2_error),   global_l2_error)
+    linf_error = convert(typeof(linf_error), global_linf_error)
+  else
+    l2_error   = convert(typeof(l2_error),   NaN)
+    linf_error = convert(typeof(linf_error), NaN)
+  end
 
   l2_error = @. sqrt(l2_error / total_volume)
 
@@ -39,8 +44,12 @@ function integrate_via_indices(func, u::AbstractArray{<:Any,4},
     func, u, mesh, equations, dg, cache, args..., normalize=normalize)
 
   # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-  global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+  if mpi_isroot()
+    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())[]
+  else
+    global_integral = convert(typeof(integral), NaN)
+  end
 
-  return mpi_isroot() ? global_integral[] : integral
+  return global_integral
 end
 
