@@ -1,10 +1,10 @@
-# Example files for Trixi
+# Example elixirs for Trixi
 
-This folder contains example files that can be used to just try out Trixi and
+This folder contains example files ("elixirs") that can be used to just try out Trixi and
 that also serve as a starting point to create new simulation setups.
 Furthermore, these files are also the basis for our automated Trixi tests and
-**each new file put in here** should be added either to the test sets in
-`../test/test_examples_Xd.jl`.
+**each new file put in here** should be added to the test sets in
+`../test/test_examples_Xd_equation.jl`.
 
 There are also a few files that were configured such that they lend themselves
 to doing convergence tests with `convergence_test`, i.e., to determine the
@@ -22,7 +22,7 @@ experimental order of convergence (EOC):
 Similar setups are available for other spatial dimensions in the directories
 `1d` and `3d`.
 
-In general, a good first parameter file to try out as a new user is
+In general, a good first elixir to try out as a new user is
 [`2d/elixir_advection_basic.jl`](2d/elixir_advection_basic.jl),
 as it is short, takes less than a second to run, and uses only the basic features
 of Trixi.
