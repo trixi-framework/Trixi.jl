@@ -88,50 +88,50 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
   analysis_callback.initial_state_integrals = initial_state_integrals
   @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
 
-  if save_analysis
+  if save_analysis && mpi_isroot()
     mkpath(output_directory)
 
     # write header of output file
     open(joinpath(output_directory, analysis_filename), "w") do io
-      mpi_isroot() && @printf(io, "#%-8s", "timestep")
-      mpi_isroot() && @printf(io, "  %-14s", "time")
-      mpi_isroot() && @printf(io, "  %-14s", "dt")
+      @printf(io, "#%-8s", "timestep")
+      @printf(io, "  %-14s", "time")
+      @printf(io, "  %-14s", "dt")
       if :l2_error in analysis_errors
         for v in varnames_cons(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "l2_" * v)
+          @printf(io, "   %-14s", "l2_" * v)
         end
       end
       if :linf_error in analysis_errors
         for v in varnames_cons(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "linf_" * v)
+          @printf(io, "   %-14s", "linf_" * v)
         end
       end
       if :conservation_error in analysis_errors
         for v in varnames_cons(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "cons_" * v)
+          @printf(io, "   %-14s", "cons_" * v)
         end
       end
       if :residual in analysis_errors
         for v in varnames_cons(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "res_" * v)
+          @printf(io, "   %-14s", "res_" * v)
         end
       end
       if :l2_error_primitive in analysis_errors
         for v in varnames_prim(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "l2_" * v)
+          @printf(io, "   %-14s", "l2_" * v)
         end
       end
       if :linf_error_primitive in analysis_errors
         for v in varnames_prim(equations)
-          mpi_isroot() && @printf(io, "   %-14s", "linf_" * v)
+          @printf(io, "   %-14s", "linf_" * v)
         end
       end
 
       for quantity in analysis_integrals
-        mpi_isroot() && @printf(io, "   %-14s", pretty_form_ascii(quantity))
+        @printf(io, "   %-14s", pretty_form_ascii(quantity))
       end
 
-      mpi_isroot() && println(io)
+      println(io)
     end
 
   end
