@@ -135,8 +135,13 @@ end
 
 function load_mesh(restart_file::AbstractString, mpi_parallel::Val{true};
                    n_cells_max)
-  ndims_ = h5open(restart_file, "r") do file
-    read(attrs(file)["ndims"])
+  if mpi_isroot()
+    ndims_ = h5open(restart_file, "r") do file
+      read(attrs(file)["ndims"])
+    end
+    MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
+  else
+    ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
   end
 
   mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
