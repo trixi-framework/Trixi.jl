@@ -45,7 +45,7 @@ function (steady_state_callback::SteadyStateCallback)(u_ode::AbstractVector, t, 
     terminate_integer = Int(terminate)
     terminate = !iszero(MPI.Allreduce!(Ref(terminate_integer), +, mpi_comm())[])
   end
-  if terminate && mpi_isroot()
+  if mpi_isroot() && terminate 
     @info "  Steady state tolerance reached" steady_state_callback t
   end
   return terminate
