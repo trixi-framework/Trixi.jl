@@ -52,13 +52,13 @@ function test_trixi_include(parameters_file; l2=nothing, linf=nothing,
   if !isnothing(l2) || !isnothing(linf)
     l2_measured, linf_measured = analysis_callback(sol)
 
-    if !isnothing(l2) && Trixi.mpi_isroot()
+    if Trixi.mpi_isroot() && !isnothing(l2)
       for (l2_expected, l2_actual) in zip(l2, l2_measured)
         @test isapprox(l2_expected, l2_actual, atol=atol, rtol=rtol)
       end
     end
 
-    if !isnothing(linf) && Trixi.mpi_isroot()
+    if Trixi.mpi_isroot() && !isnothing(linf)
       for (linf_expected, linf_actual) in zip(linf, linf_measured)
         @test isapprox(linf_expected, linf_actual, atol=atol, rtol=rtol)
       end
