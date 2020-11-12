@@ -285,7 +285,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
       # L2/L∞ errors of the primitive variables
       if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
-        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, semi, t)
+        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u, t, analyzer, semi)
 
         mpi_isroot() && print(" Variable:    ")
         for v in eachvariable(equations)
