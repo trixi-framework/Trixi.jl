@@ -108,7 +108,7 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Send element data to root
-    for (v, (key, element_variable)) in enumerate(element_variables)
+    for (key, element_variable) in element_variables
       MPI.Gatherv(element_variable, element_counts, mpi_root(), mpi_comm())
     end
 
