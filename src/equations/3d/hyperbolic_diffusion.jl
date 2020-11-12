@@ -11,13 +11,12 @@ struct HyperbolicDiffusionEquations3D{RealT<:Real} <: AbstractHyperbolicDiffusio
   Lr::RealT     # reference length scale
   inv_Tr::RealT # inverse of the reference time scale
   nu::RealT     # diffusion constant
-  resid_tol::RealT # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
 # TODO Taal refactor, remove old constructors and replace them with default values
-function HyperbolicDiffusionEquations3D(resid_tol; nu=1.0, Lr=inv(2pi))
+function HyperbolicDiffusionEquations3D(; nu=1.0, Lr=inv(2pi))
   Tr = Lr^2 / nu
-  HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu, resid_tol)...)
+  HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
 end
 
 

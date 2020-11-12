@@ -86,6 +86,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       parameters=ParametersEulerGravity(background_density=1.5e7,
                                         gravitational_constant=6.674e-8,
                                         cfl=2.4,
+                                        resid_tol=1.0e-4,
                                         n_iterations_max=1000,
                                         timestep_gravity=timestep_gravity_erk52_3Sstar!))
   end

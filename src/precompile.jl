@@ -174,8 +174,8 @@ function _precompile_manual_()
 
   # Constructors: hyperbolic diffusion
   for RealT in (Float64,)
-    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations2D},RealT})
-    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations3D},RealT})
+    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations2D},})
+    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations3D},})
   end
 
   # Constructors: Euler
