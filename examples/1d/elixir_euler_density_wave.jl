@@ -29,7 +29,6 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
 save_solution = SaveSolutionCallback(interval=100,
@@ -52,6 +51,7 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

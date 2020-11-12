@@ -41,8 +41,7 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # rho0 is (ab)used to add a "+8π" term to the source terms
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
-                                    # FIXME Taal restore after Taam sync
-                                    cfl=0.5,
+                                    cfl=1.1,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
@@ -51,13 +50,12 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
-tspan = (0.0, 5.0)
+tspan = (0.0, 0.5)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,

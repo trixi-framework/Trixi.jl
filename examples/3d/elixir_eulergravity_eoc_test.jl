@@ -37,9 +37,7 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     gravitational_constant=1.0, # aka G
-                                    # FIXME Taal restore after Taam sync
-                                    # cfl=1.5,
-                                    cfl=0.5,
+                                    cfl=1.5,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
@@ -53,9 +51,7 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync
-# stepsize_callback = StepsizeCallback(cfl=1.0)
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.1)
 
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,

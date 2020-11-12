@@ -54,8 +54,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 summary_callback = SummaryCallback()
 
-# FIXME Taal restore after Taam sync: increase value with new timestep size calculation?
-stepsize_callback = StepsizeCallback(cfl=0.3)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -73,6 +72,7 @@ callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback, save_
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), dt=stepsize_callback(ode),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
