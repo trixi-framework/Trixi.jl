@@ -205,6 +205,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       tspan = (0.0, 0.2))
   end
 
+  @testset "elixir_euler_sedov_blast_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
+      l2   = [0.0007127163978031706, 0.0023166296394624025, 0.002316629639462401, 0.0023166296394624038, 0.010200581509653256],
+      linf = [0.06344190883105805, 0.6292607955969378, 0.6292607955969377, 0.6292607955969377, 2.397746252817731],
+      maxiters=5, max_level=6)
+  end
+
 
   # MHD
   @testset "elixir_mhd_ec.jl" begin
