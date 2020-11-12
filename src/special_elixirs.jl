@@ -1,46 +1,4 @@
 
-# Apply the function `f` to `expr` and all sub-expressions recursively.
-walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
-walkexpr(f, x) = f(x)
-
-# Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
-function replace_assignments(expr; kwargs...)
-  # replace explicit and keyword assignemnts
-  expr = walkexpr(expr) do x
-    if x isa Expr
-      for (key,val) in kwargs
-        if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(key)
-          x.args[2] = :( $val )
-          # dump(x)
-        end
-      end
-    end
-    return x
-  end
-
-  return expr
-end
-
-# find a (keyword or common) assignment to `destination` in `expr`
-# and return the assigned value
-function find_assignment(expr, destination)
-  # declare result to be able to assign to it in the closure
-  local result
-
-  # find explicit and keyword assignemnts
-  walkexpr(expr) do x
-    if x isa Expr
-      if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(destination)
-        result = x.args[2]
-        # dump(x)
-      end
-    end
-    return x
-  end
-
-  result
-end
-
 
 # Note: We can't call the method below `Trixi.include` since that is created automatically
 # inside `module Trixi` to `include` source files and evaluate them within the global scope
@@ -168,3 +126,50 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
 end
 
 convergence_test(elixir::AbstractString, iterations; kwargs...) = convergence_test(Main, elixir::AbstractString, iterations; kwargs...)
+
+
+
+# Helper methods used in the functions defined above
+
+# Apply the function `f` to `expr` and all sub-expressions recursively.
+walkexpr(f, expr::Expr) = f(Expr(expr.head, (walkexpr(f, arg) for arg in expr.args)...))
+walkexpr(f, x) = f(x)
+
+# Replace assignments to `key` in `expr` by `key = val` for all `(key,val)` in `kwargs`.
+function replace_assignments(expr; kwargs...)
+  # replace explicit and keyword assignemnts
+  expr = walkexpr(expr) do x
+    if x isa Expr
+      for (key,val) in kwargs
+        if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(key)
+          x.args[2] = :( $val )
+          # dump(x)
+        end
+      end
+    end
+    return x
+  end
+
+  return expr
+end
+
+# find a (keyword or common) assignment to `destination` in `expr`
+# and return the assigned value
+function find_assignment(expr, destination)
+  # declare result to be able to assign to it in the closure
+  local result
+
+  # find explicit and keyword assignemnts
+  walkexpr(expr) do x
+    if x isa Expr
+      if (x.head === Symbol("=") || x.head === :kw) && x.args[1] === Symbol(destination)
+        result = x.args[2]
+        # dump(x)
+      end
+    end
+    return x
+  end
+
+  result
+end
+
