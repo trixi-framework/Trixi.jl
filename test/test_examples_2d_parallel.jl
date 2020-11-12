@@ -12,7 +12,7 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
-@testset "2D" begin
+@testset "Parallel 2D" begin
 
 # Run basic tests
 @testset "Examples 2D" begin
