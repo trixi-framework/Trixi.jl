@@ -103,6 +103,15 @@ The latency can be measured by running
 ```bash
 julia --threads=1 -e '@time using Trixi; @time include(joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"))'
 ```
+
+
+We add `@assert` to the precompile statements below to make sure that we don't include
+failing precompile statements, cf. https://timholy.github.io/SnoopCompile.jl/stable/snoopi/.
+If any assertions below fail, it is generally safe to just disable the failing call
+to precompile (or to not include precompile.jl at all).
+To still get the same latency reductions, you should consider to adapt the failing precompile
+statements in accordance with the changes in Trixi's source code. Please, feel free to ping
+the code developers of Trixi to get help with that.
 =#
 
 
