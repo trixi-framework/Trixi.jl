@@ -2,6 +2,9 @@
 
 # We have
 #   6 * [number of basic OS] + 2 * [number of additional OS]
+# with
+# [number of basic OS] = 1 (Linux)
+# [number of additional OS] = 2 (Windows, MacOS)
 # parallel jobs in ci.yml
 codecov:
   notify:
