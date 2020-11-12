@@ -41,9 +41,7 @@ jobs:
           - x64
         trixi_test:
           - 2D
-          - 2D_OLD
           - 3D
-          - 3D_OLD
           - paper-self-gravitating-gas-dynamics
           - parallel_2d
           - 1D
