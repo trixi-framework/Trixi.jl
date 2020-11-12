@@ -272,7 +272,10 @@ function (analysis_callback::AnalysisCallback)(integrator)
           # Calculate maximum absolute value of Uₜ
           res = maximum(abs, view(du, v, ..))
           if mpi_isparallel()
-            res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())[]
+            global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
+            if mpi_isroot()
+              res = global_res[]
+            end
           end
           mpi_isroot() && @printf("  % 10.8e", res)
           analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)

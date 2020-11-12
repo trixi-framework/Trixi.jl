@@ -21,8 +21,8 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
     l2_error   = convert(typeof(l2_error),   global_l2_error)
     linf_error = convert(typeof(linf_error), global_linf_error)
   else
-    l2_error   = convert(typeof(l2_error),   NaN)
-    linf_error = convert(typeof(linf_error), NaN)
+    l2_error   = convert(typeof(l2_error),   NaN * global_l2_error)
+    linf_error = convert(typeof(linf_error), NaN * global_linf_error)
   end
 
   l2_error = @. sqrt(l2_error / total_volume)
@@ -38,18 +38,19 @@ function integrate_via_indices(func, u::AbstractArray{<:Any,4},
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
-  integral = invoke(integrate_via_indices,
+  local_integral = invoke(integrate_via_indices,
     Tuple{typeof(func), typeof(u), TreeMesh{2}, typeof(equations),
           typeof(dg), typeof(cache), map(typeof, args)...},
     func, u, mesh, equations, dg, cache, args..., normalize=normalize)
 
   # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
+  global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
   if mpi_isroot()
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())[]
+    integral = convert(typeof(local_integral), global_integral[])
   else
-    global_integral = convert(typeof(integral), NaN)
+    integral = convert(typeof(local_integral), NaN * local_integral)
   end
 
-  return global_integral
+  return integral
 end
 
