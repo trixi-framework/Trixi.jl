@@ -212,7 +212,7 @@ function generate_mesh()
     end
   end
 
-  # Partition mesh
+  # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
   partition!(mesh)
 
   return mesh
