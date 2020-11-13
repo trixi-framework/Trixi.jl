@@ -46,7 +46,7 @@ include("basic_types.jl")
 
 # Include all top-level source files
 include("auxiliary/auxiliary.jl")
-include("mpi.jl")
+include("auxiliary/mpi.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/dg/dg.jl")
@@ -55,10 +55,10 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration.jl")
+include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
-include("special_elixirs.jl")
+include("auxiliary/special_elixirs.jl")
 
 
 # export types/functions that define the public API of Trixi
@@ -131,7 +131,7 @@ function __init__()
 end
 
 
-include("precompile.jl")
+include("auxiliary/precompile.jl")
 _precompile_manual_()
 
 
