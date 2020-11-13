@@ -11,25 +11,11 @@ struct HyperbolicDiffusionEquations2D{RealT<:Real} <: AbstractHyperbolicDiffusio
   Lr::RealT     # reference length scale
   inv_Tr::RealT # inverse of the reference time scale
   nu::RealT     # diffusion constant
-  resid_tol::RealT # TODO Taal refactor, make this a parameter of a specialized steady-state solver
 end
 
-function HyperbolicDiffusionEquations2D(resid_tol; nu=1.0, Lr=inv(2pi))
+function HyperbolicDiffusionEquations2D(; nu=1.0, Lr=inv(2pi))
   Tr = Lr^2 / nu
-  HyperbolicDiffusionEquations2D(Lr, inv(Tr), nu, resid_tol)
-end
-
-# TODO Taal refactor, remove old constructors and replace them with default values
-function HyperbolicDiffusionEquations2D()
-  # diffusion coefficient
-  nu = parameter("nu", 1.0)
-  # relaxation length scale
-  Lr = parameter("Lr", 1.0/(2.0*pi))
-  # relaxation time
-  Tr = Lr*Lr/nu
-  # stopping tolerance for the pseudotime "steady-state"
-  resid_tol = parameter("resid_tol", 1e-12)
-  HyperbolicDiffusionEquations2D(Lr, inv(Tr), nu, resid_tol)
+  HyperbolicDiffusionEquations2D(promote(Lr, inv(Tr), nu)...)
 end
 
 
@@ -76,27 +62,6 @@ end
   return SVector(du1, du2, du3)
 end
 
-# TODO: Taal remove methods with the signature below
-function source_terms_poisson_periodic(ut, u, x, element_id, t, n_nodes,
-                                       equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
-  @unpack inv_Tr = equations
-  C = -8.0*equations.nu*pi*pi
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    tmp1 = sin(2.0*pi*x1)
-    tmp2 = sin(2.0*pi*x2)
-    ut[1, i, j, element_id] -= C*tmp1*tmp2
-    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-  end
-
-  return nothing
-end
-
 
 function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
@@ -123,24 +88,6 @@ end
   du3 = -inv_Tr * u[3]
 
   return SVector(du1, du2, du3)
-end
-
-# TODO: Taal remove methods with the signature below
-function source_terms_poisson_nonperiodic(ut, u, x, element_id, t, n_nodes,
-                                          equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
-  @unpack inv_Tr = equations
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    x1 = x[1, i, j, element_id]
-    x2 = x[2, i, j, element_id]
-    ut[1, i, j, element_id] += 10 * pi^2 * cos(pi*x1) * sin(2.0*pi*x2)
-    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-  end
-
-  return nothing
 end
 
 function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction, x, t,
@@ -189,20 +136,6 @@ end
   return SVector(0, du2, du3)
 end
 
-# TODO: Taal remove methods with the signature below
-function source_terms_harmonic(ut, u, x, element_id, t, n_nodes,
-                               equations::HyperbolicDiffusionEquations2D)
-  # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-  @unpack inv_Tr = equations
-
-  for j in 1:n_nodes, i in 1:n_nodes
-    ut[2, i, j, element_id] -= inv_Tr * u[2, i, j, element_id]
-    ut[3, i, j, element_id] -= inv_Tr * u[3, i, j, element_id]
-  end
-
-  return nothing
-end
-
 function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
                                                   surface_flux_function,
                                                   equations::HyperbolicDiffusionEquations2D)
@@ -221,21 +154,6 @@ function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction
   end
 
   return flux
-end
-
-
-# TODO: Taal, remove the method below (moved to the elixir)
-function initial_condition_jeans_instability(x, t, equations::HyperbolicDiffusionEquations2D)
-  # gravity equation: -Δϕ = -4πGρ
-  # Constants taken from the FLASH manual
-  # https://flash.uchicago.edu/site/flashcode/user_support/flash_ug_devel.pdf
-  rho0 = 1.5e7
-  delta0 = 1e-3
-  #
-  phi = rho0*delta0 # constant background pertubation magnitude
-  q1  = 0.0
-  q2  = 0.0
-  return @SVector [phi, q1, q2]
 end
 
 
@@ -261,13 +179,6 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   q2  = q1                                     # = gravity acceleration in y-direction
 
   return @SVector [phi, q1, q2]
-end
-
-# TODO: Taal remove the method below
-# The coupled EOC test does not require additional sources
-function source_terms_eoc_test_coupled_euler_gravity(ut, u, x, element_id, t, n_nodes,
-                                                     equations::HyperbolicDiffusionEquations2D)
-  return source_terms_harmonic(ut, u, x, element_id, t, n_nodes, equations)
 end
 
 
@@ -372,14 +283,6 @@ end
 end
 
 
-# Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equations::HyperbolicDiffusionEquations2D, dg)
-  λ_max = sqrt(equations.nu * equations.inv_Tr)
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
-
-  return dt
-end
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations2D) = Val(true)
 

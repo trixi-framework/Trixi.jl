@@ -152,6 +152,83 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2}
 end
 
 
+# Initialize connectivity between MPI neighbor ranks
+function init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh::TreeMesh2D)
+  tree = mesh.tree
+
+  # Determine neighbor ranks and sides for MPI interfaces
+  neighbor_ranks = fill(-1, nmpiinterfaces(mpi_interfaces))
+  # The global interface id is the smaller of the (globally unique) neighbor cell ids, multiplied by
+  # number of directions (2 * ndims) plus direction minus one
+  global_interface_ids = fill(-1, nmpiinterfaces(mpi_interfaces))
+  for interface_id in 1:nmpiinterfaces(mpi_interfaces)
+    orientation = mpi_interfaces.orientations[interface_id]
+    remote_side = mpi_interfaces.remote_sides[interface_id]
+    # Direction is from local cell to remote cell
+    if orientation == 1 # MPI interface in x-direction
+      if remote_side == 1 # remote cell on the "left" of MPI interface
+        direction = 1
+      else # remote cell on the "right" of MPI interface
+        direction = 2
+      end
+    else # MPI interface in y-direction
+      if remote_side == 1 # remote cell on the "left" of MPI interface
+        direction = 3
+      else # remote cell on the "right" of MPI interface
+        direction = 4
+      end
+    end
+    local_element_id = mpi_interfaces.local_element_ids[interface_id]
+    local_cell_id = elements.cell_ids[local_element_id]
+    remote_cell_id = tree.neighbor_ids[direction, local_cell_id]
+    neighbor_ranks[interface_id] = tree.mpi_ranks[remote_cell_id]
+    if local_cell_id < remote_cell_id
+      global_interface_ids[interface_id] = 2 * ndims(tree) * local_cell_id + direction - 1
+    else
+      global_interface_ids[interface_id] = (2 * ndims(tree) * remote_cell_id +
+                                            opposite_direction(direction) - 1)
+    end
+  end
+
+  # Get sorted, unique neighbor ranks
+  mpi_neighbor_ranks = unique(sort(neighbor_ranks))
+
+  # Sort interfaces by global interface id
+  p = sortperm(global_interface_ids)
+  neighbor_ranks .= neighbor_ranks[p]
+  interface_ids = collect(1:nmpiinterfaces(mpi_interfaces))[p]
+
+  # For each neighbor rank, init connectivity data structures
+  mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+  for (index, d) in enumerate(mpi_neighbor_ranks)
+    mpi_neighbor_interfaces[index] = interface_ids[findall(x->(x == d), neighbor_ranks)]
+  end
+
+  # Sanity check that we counted all interfaces exactly once
+  @assert sum(length(v) for v in mpi_neighbor_interfaces) == nmpiinterfaces(mpi_interfaces)
+
+  return mpi_neighbor_ranks, mpi_neighbor_interfaces
+end
+
+
+# TODO: MPI dimension agnostic
+# Initialize MPI data structures
+function init_mpi_data_structures(mpi_neighbor_interfaces, ndims, nvars, n_nodes)
+  data_size = nvars * n_nodes^(ndims - 1)
+  mpi_send_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
+  mpi_recv_buffers = Vector{Vector{Float64}}(undef, length(mpi_neighbor_interfaces))
+  for index in 1:length(mpi_neighbor_interfaces)
+    mpi_send_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
+    mpi_recv_buffers[index] = Vector{Float64}(undef, length(mpi_neighbor_interfaces[index]) * data_size)
+  end
+
+  mpi_send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+  mpi_recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_interfaces))
+
+  return mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests
+end
+
+
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
               mesh::ParallelTreeMesh{2}, equations,
               initial_condition, boundary_conditions, source_terms,

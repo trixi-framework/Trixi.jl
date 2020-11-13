@@ -26,8 +26,7 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
-resid_tol = 1.0e-10
-equations_gravity = HyperbolicDiffusionEquations2D(resid_tol)
+equations_gravity = HyperbolicDiffusionEquations2D()
 
 solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
 
@@ -42,6 +41,7 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
                                     cfl=1.1,
+                                    resid_tol=1.0e-10,
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 

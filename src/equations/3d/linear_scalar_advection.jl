@@ -20,12 +20,6 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
   LinearScalarAdvectionEquation3D(SVector(a1, a2, a3))
 end
 
-# TODO Taal refactor, remove old constructors and replace them with default values
-function LinearScalarAdvectionEquation3D()
-  a = convert(SVector{3,Float64}, parameter("advectionvelocity"))
-  LinearScalarAdvectionEquation3D(a)
-end
-
 
 get_name(::LinearScalarAdvectionEquation3D) = "LinearScalarAdvectionEquation3D"
 varnames_cons(::LinearScalarAdvectionEquation3D) = SVector("scalar")
@@ -146,12 +140,6 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdve
 end
 
 
-# Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equation::LinearScalarAdvectionEquation3D, dg)
-  λ_max = maximum(abs, equation.advectionvelocity)
-  return cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
-end
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
 

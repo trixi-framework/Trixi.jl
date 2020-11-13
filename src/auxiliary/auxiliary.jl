@@ -44,58 +44,6 @@ function Base.put!(counter::PerformanceCounter, runtime::Real)
 end
 
 
-# Initialize top-level parameters structure for program-wide parameters
-const parameters = Dict{Symbol,Any}()
-
-
-# Parse parameters file into global dict
-parse_parameters_file(filename) = parse_parameters_file(filename, mpi_parallel())
-function parse_parameters_file(filename, mpi_parallel::Val{false})
-  parameters[:default] = parsefile(filename)
-  parameters[:default]["parameters_file"] = filename
-end
-function parse_parameters_file(filename, mpi_parallel::Val{true})
-  if mpi_isroot()
-    buffer = read(filename)
-    MPI.Bcast!(Ref(length(buffer)), mpi_root(), mpi_comm())
-    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
-  else
-    count = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())
-    buffer = Vector{UInt8}(undef, count[])
-    MPI.Bcast!(buffer, mpi_root(), mpi_comm())
-  end
-  parameters[:default] = parse(String(buffer))
-  parameters[:default]["parameters_file"] = filename
-end
-
-
-# Return parameter by name, optionally taking a default value and a range of valid values.
-#
-# If no default value is specified, the parameter is required and the program
-# stops if the parameter was not found. The range of valid parameters is used
-# to restrict parameters to sane values.
-function parameter(name, default=nothing; valid=nothing)
-  if haskey(parameters[:default], name)
-    # If parameter exists, use its value
-    value = parameters[:default][name]
-  else
-    # Otherwise check whether a default is given and abort if not
-    if default === nothing
-      error("requested parameter '$name' does not exist and no default value was provided")
-    else
-      value = default
-    end
-  end
-
-  # If a range of valid values has been specified, check parameter value against it
-  if valid !== nothing
-    if !(value in valid)
-      error("'$value' is not a valid value for parameter '$name' (valid: $valid)")
-    end
-  end
-
-  return value
-end
 
 """
     examples_dir()
@@ -107,7 +55,8 @@ modified. To find out which files are available, use, e.g., `readdir`:
 # Examples
 ```julia
 julia> readdir(examples_dir())
-4-element Array{String,1}:
+5-element Array{String,1}:
+ "1d"
  "2d"
  "3d"
  "README.md"
@@ -120,13 +69,13 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example parameter files that are provided by Trixi.
+Return a list of all example elixirs that are provided by Trixi.
 """
 function get_examples()
   examples = String[]
   for (root, dirs, files) in walkdir(examples_dir())
     for f in files
-      if endswith(f, ".toml")
+      if startswith(f, "elixir_") && endswith(f, ".jl")
         push!(examples, joinpath(root, f))
       end
     end
@@ -139,22 +88,9 @@ end
 """
     default_example()
 
-Return the path to an example parameter file that can be used to quickly see Trixi in action.
+Return the path to an example elixir that can be used to quickly see Trixi in action.
 """
 default_example() = joinpath(examples_dir(), "2d", "elixir_advection_basic.jl")
-
-
-"""
-    setparameter(name::String, value)
-
-Set parameter with the specified `name` to the specified `value`.
-"""
-function setparameter(name::String, value) # TODO: Taal remove
-  parameters[:default][name] = value
-end
-
-# Return true if parameter exists.
-parameter_exists(name::String) = haskey(parameters[:default], name) # TODO: Taal remove
 
 
 # Print informative message at startup

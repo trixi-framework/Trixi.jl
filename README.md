@@ -104,7 +104,7 @@ that can be opened with any image viewer:
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
-Trixi elixir, i.e.. a text file containing Julia code necessary to set up and run a
+Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
 simulation. To quickly see Trixi in action, `default_example()`
 returns the path to an example elixir with a short, two-dimensional
 problem setup. A list of all example elixirs packaged with Trixi can be

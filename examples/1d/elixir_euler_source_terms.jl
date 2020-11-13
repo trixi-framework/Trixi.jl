@@ -43,7 +43,9 @@ save_restart = SaveRestartCallback(interval=100,
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_errors=(:l2_error_primitive,
+                                                            :linf_error_primitive))
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
                         save_restart, save_solution,

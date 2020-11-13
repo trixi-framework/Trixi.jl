@@ -7,7 +7,7 @@ using Trixi
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# Run various manual (= non-parameter-file-triggered tests)
+# Run various manual (= non-elixir-triggered tests)
 @testset "Manual tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin

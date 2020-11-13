@@ -5,8 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
 
-resid_tol = 1.0e-5 # TODO: Taal, move this parameter to the callback
-equations = HyperbolicDiffusionEquations3D(resid_tol)
+equations = HyperbolicDiffusionEquations3D()
 
 initial_condition = initial_condition_poisson_nonperiodic
 boundary_conditions = (x_neg=boundary_condition_poisson_nonperiodic,
@@ -40,6 +39,7 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
+resid_tol = 1.0e-5
 steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
 stepsize_callback = StepsizeCallback(cfl=1.8)

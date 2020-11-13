@@ -27,59 +27,13 @@ Given the conservative variables `u`, calculate the (physical) flux in spatial
 direction `orientation` for the coressponding set of governing `equations`
 `orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
 """
-calcflux(u, orientation, equations)
+function calcflux(u, orientation, equations) end
 
 
-# TODO: Taal remove method below
-# Create an instance of a system of equation type based on a given name
-function make_equations(name::String, ndims_)
-  if name == "LinearScalarAdvectionEquation"
-    if ndims_ == 1
-      return LinearScalarAdvectionEquation1D()
-    elseif ndims_ == 2
-      return LinearScalarAdvectionEquation2D()
-    elseif ndims_ == 3
-      return LinearScalarAdvectionEquation3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "CompressibleEulerEquations"
-    if ndims_ == 1
-      return CompressibleEulerEquations1D()
-    elseif ndims_ == 2
-      return CompressibleEulerEquations2D()
-    elseif ndims_ == 3
-      return CompressibleEulerEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "IdealGlmMhdEquations"
-    if ndims_ == 2
-      return IdealGlmMhdEquations2D()
-    elseif ndims_ == 3
-      return IdealGlmMhdEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "HyperbolicDiffusionEquations"
-    if ndims_ == 2
-      return HyperbolicDiffusionEquations2D()
-    elseif ndims_ == 3
-      return HyperbolicDiffusionEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  else
-    error("'$name' does not name a valid system of equations")
-  end
-end
-
-
+# set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
 
-# TODO: Taal refactor, remove default_analysis_quantities
-default_analysis_quantities(::AbstractEquations) = (:l2_error, :linf_error, :dsdu_ut)
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
 default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 

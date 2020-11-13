@@ -7,13 +7,6 @@ struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEqu
   gamma::RealT
 end
 
-# TODO Taal refactor, allow other real types, remove old constructors and replace them with default values
-function CompressibleEulerEquations1D()
-  gamma = parameter("gamma", 1.4)
-
-  CompressibleEulerEquations1D(gamma)
-end
-
 
 get_name(::CompressibleEulerEquations1D) = "CompressibleEulerEquations1D"
 varnames_cons(::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_e"]
@@ -88,36 +81,6 @@ Source terms used for convergence tests in combination with
   #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
 
   return SVector(du1, du2, du3)
-end
-
-# TODO: Taal remove methods with the signature below
-function source_terms_convergence_test(ut, u, x, element_id, t, n_nodes, equations::CompressibleEulerEquations1D)
-  # Same settings as in `initial_condition`
-  c = 2
-  A = 0.1
-  L = 2
-  f = 1/L
-  ω = 2 * pi * f
-  γ = equations.gamma
-
-  for i in 1:n_nodes
-    x1 = x[1, i, element_id]
-
-    si, co = sincos((t - x1)*ω)
-    tmp = (-((4 * si * A - 4c) + 1) * (γ - 1) * co * A * ω) / 2
-
-    ut[2, i, element_id] += tmp
-    ut[3, i, element_id] += tmp
-
-    # Original terms (without performanc enhancements)
-    # ut[1, i, element_id] += 0
-    # ut[2, i, element_id] += (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-    #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-    # ut[3, i, element_id] += (-(((4 * sin((t - x1) * ω) * A - 4c) + 1)) *
-    #                          (γ - 1) * cos((t - x1) * ω) * A * ω) / 2
-  end
-
-  return nothing
 end
 
 """
@@ -329,10 +292,11 @@ end
 """
     flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
-Kinetic energy preserving two-point flux by Kennedy and Gruber (2008)
+Kinetic energy preserving two-point flux by
+- Kennedy and Gruber (2008)
   Reduced aliasing formulations of the convective terms within the
   Navier-Stokes equations for a compressible fluid
-[DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
+  [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
@@ -361,10 +325,11 @@ end
 """
     flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
-Entropy conserving two-point flux by Chandrashekar (2013)
+Entropy conserving two-point flux by
+- Chandrashekar (2013)
   Kinetic Energy Preserving and Entropy Stable Finite Volume Schemes
   for Compressible Euler and Navier-Stokes Equations
-[DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
+  [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   # Unpack left and right state
@@ -402,11 +367,13 @@ end
 """
     flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
 
-Entropy conserving and kinetic energy preserving two-point flux by Ranocha (2018)
+Entropy conserving and kinetic energy preserving two-point flux by
+- Ranocha (2018)
   Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
   for Hyperbolic Balance Laws
-[PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
-See also Ranocha (2020)
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+See also
+- Ranocha (2020)
   Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
   the Euler Equations Using Summation-by-Parts Operators
 [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
@@ -501,23 +468,6 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
 end
 
 
-# Determine maximum stable time step based on polynomial degree and CFL number
-function calc_max_dt(u, element_id, invjacobian, cfl,
-                     equations::CompressibleEulerEquations1D, dg)
-  λ_max = 0.0
-  for i in 1:nnodes(dg)
-    rho, rho_v1, rho_e = get_node_vars(u, dg, i, element_id)
-    v1 = rho_v1 / rho
-    v_mag = abs(v1)
-    p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v_mag^2)
-    c = sqrt(equations.gamma * p / rho)
-    λ_max = max(λ_max, v_mag + c)
-  end
-
-  dt = cfl * 2 / (nnodes(dg) * invjacobian * λ_max)
-
-  return dt
-end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u

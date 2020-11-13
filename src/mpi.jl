@@ -1,5 +1,6 @@
+
 """
-    init_mpi
+    init_mpi()
 
 Initialize MPI by calling `MPI.Initialized()`. The function will check if MPI is already initialized
 and if yes, do nothing, thus it is safe to call it multiple times.

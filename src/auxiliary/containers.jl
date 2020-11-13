@@ -38,6 +38,7 @@ Base.size(c::AbstractContainer) = (length(c),)
 
 """
     resize!(c::AbstractContainer, new_length) -> AbstractContainer
+
 Resize `c` to contain `new_length` elements. If `new_length` is smaller than the current container
 length, the first `new_length` elements will be retained. If `new_length` is
 larger, the new elements are invalidated.

@@ -3,6 +3,7 @@
     ParametersEulerGravity(; background_density=0.0,
                              gravitational_constant=1.0,
                              cfl=1.0,
+                             resid_tol=1.0e-4,
                              n_iterations_max=10^4,
                              timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
@@ -12,6 +13,7 @@ struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
   background_density    ::RealT # aka rho0
   gravitational_constant::RealT # aka G
   cfl                   ::RealT
+  resid_tol             ::RealT
   n_iterations_max      ::Int
   timestep_gravity::TimestepGravity
 end
@@ -19,10 +21,11 @@ end
 function ParametersEulerGravity(; background_density=0.0,
                                   gravitational_constant=1.0,
                                   cfl=1.0,
+                                  resid_tol=1.0e-4,
                                   n_iterations_max=10^4,
                                   timestep_gravity=timestep_gravity_erk52_3Sstar!)
-  background_density, gravitational_constant, cfl = promote(background_density, gravitational_constant, cfl)
-  ParametersEulerGravity(background_density, gravitational_constant, cfl, n_iterations_max, timestep_gravity)
+  background_density, gravitational_constant, cfl, resid_tol = promote(background_density, gravitational_constant, cfl, resid_tol)
+  ParametersEulerGravity(background_density, gravitational_constant, cfl, resid_tol, n_iterations_max, timestep_gravity)
 end
 
 function Base.show(io::IO, parameters::ParametersEulerGravity)
@@ -206,8 +209,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   # set up main loop
   finalstep = false
-  @unpack n_iterations_max, cfl, timestep_gravity = parameters
-  @unpack resid_tol = semi_gravity.equations
+  @unpack n_iterations_max, cfl, resid_tol, timestep_gravity = parameters
   iter = 0
   t = zero(real(semi_gravity.solver))
 

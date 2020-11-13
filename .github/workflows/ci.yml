@@ -13,6 +13,7 @@ on:
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
       - 'docs/**'
+      - 'utils/**'
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'
@@ -23,6 +24,7 @@ on:
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
       - 'docs/**'
+      - 'utils/**'
 
 jobs:
   test:
@@ -41,9 +43,7 @@ jobs:
           - x64
         trixi_test:
           - 2D
-          - 2D_OLD
           - 3D
-          - 3D_OLD
           - paper-self-gravitating-gas-dynamics
           - parallel_2d
           - 1D
