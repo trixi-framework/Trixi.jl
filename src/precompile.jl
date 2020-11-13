@@ -111,7 +111,7 @@ If any assertions below fail, it is generally safe to just disable the failing c
 to precompile (or to not include precompile.jl at all).
 To still get the same latency reductions, you should consider to adapt the failing precompile
 statements in accordance with the changes in Trixi's source code. Please, feel free to ping
-the code developers of Trixi to get help with that.
+the core developers of Trixi to get help with that.
 =#
 
 
