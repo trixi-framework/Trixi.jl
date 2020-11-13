@@ -215,21 +215,13 @@ and especially helpful for novice programmers, it has a MATLAB-like
 appearance with easy and interactive access to the current variables, the
 help system, and a debugger.
 
-When using Juno's REPL to run Trixi, you cannot execute the `bin/trixi` script
-to start Trixi interactively. Instead, you can include the file `utils/juno.jl`,
-which will set the project path, load Revise (if installed), and import Trixi:
-```bash
-julia> include("utils/juno.jl")
-```
-Afterwards, you can start Trixi in the usual way by calling the `trixi_include` method.
-
 ### Vim or Emacs
 Vim and Emacs are both very popular editors that work great with Julia. One
 of their advantages is that they are text editors without a GUI and as such
 are available for almost any operating system. They also are preinstalled on
 virtually all Unix-like systems.  However, Vim and Emacs come with their own,
-steep learning curve if they have never been used before. Therfore, if in doubt, it
-is probably easier to get started with a classic GUI-based text edito (like
+steep learning curve if they have never been used before. Therefore, if in doubt, it
+is probably easier to get started with a classic GUI-based text editor (like
 Juno). If you decide to use Vim or Emacs, make sure that you install the
 corresponding Vim plugin
 [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
