@@ -65,11 +65,30 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
   amr_callback = cb.affect!
+
+  if get(io, :summary, false)
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 80)
+    setup = Pair{String,Any}[ 
+             "controller" => amr_callback.controller,
+             "interval" => amr_callback.interval,
+             "adapt IC" => amr_callback.adapt_initial_condition ? "yes" : "no",
+            ]
+    if amr_callback.adapt_initial_condition
+      push!(setup,
+            "│ only refine" => amr_callback.adapt_initial_condition_only_refine ? "yes" : "no")
+    end
+    print(io, boxed_setup("AMRCallback", key_width, total_width, setup))
+    return nothing
+  end
+
   println(io, "AMRCallback with")
   println(io, "- controller: ", amr_callback.controller)
   println(io, "- interval: ", amr_callback.interval)
   println(io, "- adapt_initial_condition: ", amr_callback.adapt_initial_condition)
   print(io,   "- adapt_initial_condition_only_refine: ", amr_callback.adapt_initial_condition_only_refine)
+
+  return nothing
 end
 
 

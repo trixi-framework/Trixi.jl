@@ -16,6 +16,23 @@ function Base.show(io::IO, equations::AbstractEquations)
   end
 end
 
+function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
+  if get(io, :summary, false)
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 80)
+    setup = Pair{String,Any}[ 
+             "#variables" => nvariables(equations),
+            ]
+    for variable in eachvariable(equations)
+      push!(setup, "│ variable " * string(variable) => varnames_cons(equations)[variable])
+    end
+    print(io, boxed_setup(get_name(equations), key_width, total_width, setup))
+    return nothing
+  end
+
+  show(io, equations)
+end
+
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
 

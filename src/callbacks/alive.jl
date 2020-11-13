@@ -32,9 +32,22 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   alive_callback = cb.affect!
   print(io, "AliveCallback(alive_interval=", alive_callback.alive_interval, ")")
 end
-# TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
+  if get(io, :summary, false)
+    alive_callback = cb.affect!
+
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 80)
+    setup = [ 
+             "interval" => alive_callback.alive_interval,
+            ]
+    print(io, boxed_setup("AliveCallback", key_width, total_width, setup))
+    return nothing
+  end
+
+  show(io, cb)
+end
 
 
 

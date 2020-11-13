@@ -38,6 +38,29 @@ end
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
+
+  if get(io, :summary, false)
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 80)
+    setup = Pair{String,Any}[ 
+             "interval" => analysis_callback.interval,
+             "analyzer" => analysis_callback.analyzer,
+            ]
+    for (idx, error) in enumerate(analysis_callback.analysis_errors)
+      push!(setup, "│ error " * string(idx) => error)
+    end
+    for (idx, integral) in enumerate(analysis_callback.analysis_integrals)
+      push!(setup, "│ integral " * string(idx) => integral)
+    end
+    push!(setup, "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
+    if analysis_callback.save_analysis
+      push!(setup, "│ filename" => analysis_callback.analysis_filename)
+      push!(setup, "│ output directory" => abspath(normpath(analysis_callback.output_directory)))
+    end
+    print(io, boxed_setup("AnalysisCallback", key_width, total_width, setup))
+    return nothing
+  end
+
   println(io, "AnalysisCallback with")
   println(io, "- interval: ", analysis_callback.interval)
   println(io, "- save_analysis: ", analysis_callback.save_analysis)
