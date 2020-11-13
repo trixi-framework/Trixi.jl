@@ -146,7 +146,9 @@ function Base.show(io::IO, mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeTy
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, mesh)
+  else
     key_width = get(io, :key_width, 25)
     total_width = get(io, :total_width, 100)
     setup = [ 
@@ -158,17 +160,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) 
             ]
     print(io, boxed_setup("TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
                           key_width, total_width, setup))
-    return nothing
   end
-
-  println(io, "TreeMesh{", NDIMS, ", ", TreeType, "} with")
-  println(io, "- center_level_0: ", mesh.tree.center_level_0)
-  println(io, "- length_level_0: ", mesh.tree.length_level_0)
-  println(io, "- periodicity   : ", mesh.tree.periodicity)
-  println(io, "- capacity      : ", mesh.tree.capacity)
-  print(io,   "- length        : ", mesh.tree.length)
-
-  return nothing
 end
 
 

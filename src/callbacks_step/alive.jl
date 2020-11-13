@@ -34,7 +34,9 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, cb)
+  else
     alive_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
@@ -43,10 +45,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
              "interval" => alive_callback.alive_interval,
             ]
     print(io, boxed_setup("AliveCallback", key_width, total_width, setup))
-    return nothing
   end
-
-  show(io, cb)
 end
 
 

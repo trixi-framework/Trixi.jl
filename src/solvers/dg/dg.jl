@@ -97,7 +97,9 @@ function Base.show(io::IO, dg::DG{RealT}) where {RealT}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, dg)
+  else
     key_width = get(io, :key_width, 25)
     total_width = get(io, :total_width, 100)
     setup = [ 
@@ -107,16 +109,7 @@ function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
              "volume integral" => dg.volume_integral,
             ]
     print(io, boxed_setup("DG{" * string(RealT) * "}", key_width, total_width, setup))
-    return nothing
   end
-
-  println(io, "DG{", RealT, "} using")
-  println(io, "- ", dg.basis)
-  println(io, "- ", dg.mortar)
-  println(io, "- ", dg.surface_flux)
-  print(io,   "- ", dg.volume_integral)
-
-  return nothing
 end
 
 @inline Base.real(dg::DG{RealT}) where {RealT} = RealT

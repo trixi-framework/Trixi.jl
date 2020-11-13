@@ -25,7 +25,9 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, cb)
+  else
     save_solution_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
@@ -38,10 +40,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
              "output directory" => abspath(normpath(save_solution_callback.output_directory)),
             ]
     print(io, boxed_setup("SaveSolutionCallback", key_width, total_width, setup))
-    return nothing
   end
-
-  show(io, cb)
 end
 
 

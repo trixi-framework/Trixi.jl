@@ -93,7 +93,9 @@ function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, semi)
+  else
     key_width = get(io, :key_width, 25)
     total_width = get(io, :total_width, 100)
     setup = [ 
@@ -106,23 +108,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
              "total #DOFs" => ndofs(semi),
             ]
     print(io, boxed_setup("SemidiscretizationHyperbolic", key_width, total_width, setup))
-    return nothing
   end
-
-  println(io, "SemidiscretizationHyperbolic using")
-  println(io, "- ", semi.mesh)
-  println(io, "- ", semi.equations)
-  println(io, "- ", semi.initial_condition)
-  println(io, "- ", semi.boundary_conditions)
-  println(io, "- ", semi.source_terms)
-  println(io, "- ", semi.solver)
-  print(io, "- cache with fields:")
-  for key in keys(semi.cache)
-    print(io, " ", key)
-  end
-  print(io, "\nTotal number of degrees of freedom: ", ndofs(semi))
-
-  return nothing
 end
 
 

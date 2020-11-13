@@ -17,7 +17,9 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, cb)
+  else
     stepsize_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
@@ -26,10 +28,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
              "CFL number" => stepsize_callback.cfl_number,
             ]
     print(io, boxed_setup("StepsizeCallback", key_width, total_width, setup))
-    return nothing
   end
-
-  show(io, cb)
 end
 
 

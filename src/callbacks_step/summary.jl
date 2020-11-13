@@ -86,7 +86,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   io = stdout
   key_width = 25
   total_width = 100 
-  io_context = IOContext(io, :summary => true, :key_width => key_width, :total_width => total_width)
+  io_context = IOContext(io, :compact => false, :key_width => key_width, :total_width => total_width)
 
   semi = integrator.p
   show(io_context, MIME"text/plain"(), semi)

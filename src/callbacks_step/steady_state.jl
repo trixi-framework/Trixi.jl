@@ -26,7 +26,9 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
 end
 
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SteadyStateCallback}
-  if get(io, :summary, false)
+  if get(io, :compact, false)
+    show(io, cb)
+  else
     steady_state_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
@@ -36,10 +38,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
              "relative tolerance" => steady_state_callback.reltol,
             ]
     print(io, boxed_setup("SteadyStateCallback", key_width, total_width, setup))
-    return nothing
   end
-
-  show(io, cb)
 end
 
 
