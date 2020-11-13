@@ -64,22 +64,22 @@ end
 
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("1d/linear_scalar_advection.jl")
-include("2d/linear_scalar_advection.jl")
-include("3d/linear_scalar_advection.jl")
+include("linear_scalar_advection_1d.jl")
+include("linear_scalar_advection_2d.jl")
+include("linear_scalar_advection_3d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("1d/compressible_euler.jl")
-include("2d/compressible_euler.jl")
-include("3d/compressible_euler.jl")
+include("compressible_euler_1d.jl")
+include("compressible_euler_2d.jl")
+include("compressible_euler_3d.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("2d/ideal_glm_mhd.jl")
-include("3d/ideal_glm_mhd.jl")
+include("ideal_glm_mhd_2d.jl")
+include("ideal_glm_mhd_3d.jl")
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("2d/hyperbolic_diffusion.jl")
-include("3d/hyperbolic_diffusion.jl")
+include("hyperbolic_diffusion_2d.jl")
+include("hyperbolic_diffusion_3d.jl")
