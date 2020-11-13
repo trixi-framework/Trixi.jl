@@ -50,10 +50,11 @@ include("mpi.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
 include("solvers/dg/dg.jl")
-include("semidiscretization.jl")
+include("semidiscretization/semidiscretization.jl")
+include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks.jl")
 include("callbacks_stage/callbacks_stage.jl")
-include("semidiscretization_euler_gravity.jl")
+include("semidiscretization/semidiscretization_euler_gravity.jl")
 include("time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
