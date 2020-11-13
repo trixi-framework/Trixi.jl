@@ -292,35 +292,39 @@ function calc_amr_indicator(dg::Dg2D, mesh::TreeMesh, time)
         lambda[element_id] = 0.0
       end
     end
-  elseif dg.amr_indicator === :gauss_test
-      for element_id in 1:dg.n_elements
-        lambda[element_id] = 0.0
-        if time == 0
-          lambda[1] = 1.0
-        end
-      end
   elseif dg.amr_indicator === :gauss_solution_independent
     # Calculate the theoretical location of the center.
     advectionvelocity = SVector(1,1)
     center = time * advectionvelocity
-    target_distance = 2
+    target_distance = 1.4
+    tolerance = 0.4
 
     # Iterate over all elements
     for element_id in 1:dg.n_elements
-      cell_id = dg.elements.cell_ids[element_id]
-      cell_x = mesh.tree.coordinates[1, cell_id]
-      cell_y = mesh.tree.coordinates[2, cell_id]
-      cell_coordinates = SVector(cell_x, cell_y)
-      cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
+        # Set target_level according to the distance between cell and the center.
+        cell_id = dg.elements.cell_ids[element_id]
+        cell_coordinates = mesh.tree.coordinates[1:2, cell_id]
+        cell_distance = periodic_distance_2d(cell_coordinates, center, 5)
 
-      if cell_distance < target_distance
-        lambda[element_id] = 1.0
-      elseif cell_distance > target_distance
-        lambda[element_id] = -1.0
-      else
-        lambda[element_id] = 0.0
+        if cell_distance < target_distance - tolerance
+          target_level = 6
+        elseif cell_distance > target_distance + tolerance
+          target_level = 4
+        else
+          target_level = 5
+        end
+
+        # Compare target level with actual level to set indicator
+        cell_id = dg.elements.cell_ids[element_id]
+        actual_level = mesh.tree.levels[cell_id]
+        if actual_level < target_level
+          lambda[element_id] = 1.0
+        elseif actual_level > target_level
+          lambda[element_id] = -1.0
+        else
+          lambda[element_id] = 0.0
+        end
       end
-    end
   elseif dg.amr_indicator === :isentropic_vortex
     base_level = 3
     max_level = 5
@@ -560,7 +564,8 @@ end
 # For periodic domains, distance between two points must take into account
 # periodic extensions of the domain
 function periodic_distance_2d(coordinates, center, domain_length)
-  dx = abs.(coordinates - center)
-  dx_periodic = min.(dx, domain_length .- dx)
+  dx = coordinates - center
+  dx_shifted = abs.(dx .% domain_length)
+  dx_periodic = min.(dx_shifted, domain_length .- dx_shifted)
   return sqrt(sum(dx_periodic.^2))
 end
