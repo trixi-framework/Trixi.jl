@@ -30,7 +30,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
     steady_state_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "absolute tolerance" => steady_state_callback.abstol,
              "relative tolerance" => steady_state_callback.reltol,

@@ -95,7 +95,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
   if get(io, :summary, false)
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "#spatial dimensions" => ndims(semi.equations),
              "equations" => typeof(semi.equations),

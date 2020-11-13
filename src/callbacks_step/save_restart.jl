@@ -23,7 +23,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
     save_restart_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => save_restart_callback.interval,
              "save final solution" => save_restart_callback.save_final_restart ? "yes" : "no",

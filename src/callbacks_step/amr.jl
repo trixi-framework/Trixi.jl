@@ -68,7 +68,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 
   if get(io, :summary, false)
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = Pair{String,Any}[ 
              "controller" => amr_callback.controller,
              "interval" => amr_callback.interval,

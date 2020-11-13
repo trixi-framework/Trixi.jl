@@ -148,7 +148,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) where {NDIMS, TreeType}
   if get(io, :summary, false)
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "center" => mesh.tree.center_level_0,
              "length" => mesh.tree.length_level_0,

@@ -38,7 +38,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
     alive_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => alive_callback.alive_interval,
             ]
@@ -65,13 +65,13 @@ function (alive_callback::AliveCallback)(integrator)
   # Checking for floating point equality is OK here as `DifferentialEquations.jl`
   # sets the time exactly to the final time in the last iteration
   if isfinished(integrator) && mpi_isroot()
-    println("-"^80)
+    println("─"^100)
     println("Trixi simulation run finished.    Final time: ", integrator.t, "    Time steps: ", integrator.iter)
-    println("-"^80)
+    println("─"^100)
     println()
   elseif mpi_isroot()
     runtime_absolute = 1.0e-9 * (time_ns() - alive_callback.start_time)
-    @printf("#t/s: %6d | dt: %.4e | Sim. time: %.4e | Run time: %.4e s\n",
+    @printf("#timesteps: %6d │ Δt: %.4e │ sim. time: %.4e │ run time: %.4e s\n",
             iter, dt, t, runtime_absolute)
   end
 

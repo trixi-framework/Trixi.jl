@@ -61,7 +61,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     append!(errors[:linf], linf_error)
 
     println("\n\n")
-    println("#"^80)
+    println("#"^100)
   end
 
   # number of variables
@@ -119,7 +119,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
     end
     eoc_mean_values[kind] = mean_values
     println("")
-    println("-"^80)
+    println("-"^100)
   end
 
   return eoc_mean_values

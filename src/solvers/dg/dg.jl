@@ -99,7 +99,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
   if get(io, :summary, false)
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "basis" => dg.basis,
              "mortar" => dg.mortar,

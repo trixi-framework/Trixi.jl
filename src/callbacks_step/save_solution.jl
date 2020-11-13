@@ -29,7 +29,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
     save_solution_callback = cb.affect!
 
     key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 80)
+    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => save_solution_callback.interval,
              "solution variables" => save_solution_callback.solution_variables,
