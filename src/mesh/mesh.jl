@@ -156,7 +156,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) 
              "current number of cells" => mesh.tree.length,
              "maximum number of cells" => mesh.tree.capacity,
             ]
-    print(io, boxed_setup("TreeMesh{" * string(NDIMS) * ", " * string(NDIMS) * "}", key_width, total_width, setup))
+    print(io, boxed_setup("TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
+                          key_width, total_width, setup))
     return nothing
   end
 
