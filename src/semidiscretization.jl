@@ -352,6 +352,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
     key_width = get(io, :key_width, 25)
     total_width = get(io, :total_width, 80)
     setup = [ 
+             "#spatial dimensions" => ndims(semi.equations),
              "equations" => typeof(semi.equations),
              "initial condition" => semi.initial_condition,
              "boundary conditions" => semi.boundary_conditions,
