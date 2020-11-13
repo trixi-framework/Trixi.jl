@@ -43,9 +43,9 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   p4est = mesh.tree.forest
   CvolumeIterate = @cfunction(setOldIdtoZero, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
   P4est.p4est_iterate( p4est,  C_NULL, C_NULL, CvolumeIterate, C_NULL, C_NULL)
-  
+  @show "ADAPT MESH"
   recursive = 0
-  allowed_level = P4est.P4EST_QMAXLEVEL
+  allowed_level = 3 #P4est.P4EST_QMAXLEVEL
   #  * # 1. Call p4est with coarse and refine 
   p4est.user_pointer = pointer(to_refine_to_coarse)
   refine_fn = @cfunction(refine_function, Cint, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
@@ -57,7 +57,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
                                 Cint, 
                                 Ptr{Ptr{P4est.p4est_quadrant_t}}))
 
-  @show replace_quads_fn
+  # @show replace_quads_fn
   P4est.p4est_refine_ext(p4est, recursive, allowed_level,
                         refine_fn, C_NULL,
                         replace_quads_fn)
@@ -70,7 +70,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   P4est.p4est_balance_ext(p4est, P4est.P4EST_CONNECT_FACE, C_NULL, replace_quads_fn)
   
   p4est.user_pointer = C_NULL
-  @show coarse_fn
+  # @show coarse_fn
 
 # 
 
@@ -81,91 +81,139 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   ChangesInfo = zeros(Int64, 4,local_num_quads)
   CahngesInfo_ptr = pointer(ChangesInfo)
   P4est.p4est_iterate(p4est,  C_NULL, CahngesInfo_ptr, getchanges_fn, C_NULL, C_NULL)
-  @show ChangesInfo[:,:]
-  @assert 1 == 0
+  # @show ChangesInfo[:,:]
+ 
   # TODO  3. Rebuld mesh structure
+  Connection = zeros(Int32, 11,local_num_quads)
+  conn_ptr = pointer(Connection)
+  CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
+  P4est.p4est_iterate(p4est,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
+  t = mesh.tree
+  QuadInfo = zeros(Int32, 4,local_num_quads)
+  quadinfo_ptr = pointer(QuadInfo)
+  CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+
+  t.length = local_num_quads
+  t.parent_ids[1:local_num_quads] .= 0
+  t.child_ids[:, 1:local_num_quads] .= 0
+  t.levels[1:local_num_quads] .= QuadInfo[2,1:local_num_quads]
+  
+ 
+  P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
+   # Get domain boundaries
+  coordinates_min = parameter("coordinates_min")
+  coordinates_max = parameter("coordinates_max")
+   # t.coordinates[:, 1] .= t.center_level_0
+  for id = 1:local_num_quads
+    t.coordinates[1, id] = coordinates_min[1] + (coordinates_max[1] - coordinates_min[1]) / 512 *
+        (QuadInfo[3, id] + 512/(2^(QuadInfo[2,id] + 1)))
+    t.coordinates[2, id] = coordinates_min[2] +  (coordinates_max[2] - coordinates_min[2]) / 512 *
+        (QuadInfo[4, id] + 512/(2^(QuadInfo[2,id] + 1)))
+  end
+  # dg = solver
+  t.original_cell_ids[1:local_num_quads] .= QuadInfo[1,1:local_num_quads]
+  for id = 1:local_num_quads
+      t.neighbor_ids[1, id] = Connection[4,id]
+      t.neighbor_ids[2, id] = Connection[6,id]
+      t.neighbor_ids[3, id] = Connection[8,id]
+      t.neighbor_ids[4, id] = Connection[10,id]
+  end
+
+  # # Get new list of leaf cells
+  # leaf_cell_ids = leaf_cells(tree)
+
+
+  # Initialize new elements container
+  # elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  # n_elements = nelements(elements)
+  
+  # TODO: Create function to refine Coarse  
+  @timeit timer() "solver" adapt!(solver, mesh, ChangesInfo)
+    
+  # @show Connection
+  # @assert 1 == 0
   # 4. 
-#### 
-  # Determine list of cells to refine or coarsen
-  to_refine = leaf_cell_ids[lambda .> indicator_threshold_refinement]
-  to_coarsen = leaf_cell_ids[lambda .< indicator_threshold_coarsening]
+# #### 
+#   # Determine list of cells to refine or coarsen
+#   to_refine = leaf_cell_ids[lambda .> indicator_threshold_refinement]
+#   to_coarsen = leaf_cell_ids[lambda .< indicator_threshold_coarsening]
 
-  # Start by refining cells
-  @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
-    # Refine mesh
-    refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
+#   # Start by refining cells
+#   @timeit timer() "refine" if !only_coarsen && !isempty(to_refine)
+#     # Refine mesh
+#     refined_original_cells = @timeit timer() "mesh" refine!(tree, to_refine)
 
-    # Refine solver
-    @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
-    if !isempty(passive_solvers)
-      @timeit timer() "passive solvers" for ps in passive_solvers
-        refine!(ps, mesh, refined_original_cells)
-      end
-    end
-  else
-    # If there is nothing to refine, create empty array for later use
-    refined_original_cells = Int[]
-  end
+#     # Refine solver
+#     @timeit timer() "solver" refine!(solver, mesh, refined_original_cells)
+#     if !isempty(passive_solvers)
+#       @timeit timer() "passive solvers" for ps in passive_solvers
+#         refine!(ps, mesh, refined_original_cells)
+#       end
+#     end
+#   else
+#     # If there is nothing to refine, create empty array for later use
+#     refined_original_cells = Int[]
+#   end
 
-  # Then, coarsen cells
-  @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
-    # Since the cells may have been shifted due to refinement, first we need to
-    # translate the old cell ids to the new cell ids
-    if !isempty(to_coarsen)
-      to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
-    end
+#   # Then, coarsen cells
+#   @timeit timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+#     # Since the cells may have been shifted due to refinement, first we need to
+#     # translate the old cell ids to the new cell ids
+#     if !isempty(to_coarsen)
+#       to_coarsen = original2refined(to_coarsen, refined_original_cells, mesh)
+#     end
 
-    # Next, determine the parent cells from which the fine cells are to be
-    # removed, since these are needed for the coarsen! function. However, since
-    # we only want to coarsen if *all* child cells are marked for coarsening,
-    # we count the coarsening indicators for each parent cell and only coarsen
-    # if all children are marked as such (i.e., where the count is 2^ndims). At
-    # the same time, check if a cell is marked for coarsening even though it is
-    # *not* a leaf cell -> this can only happen if it was refined due to 2:1
-    # smoothing during the preceding refinement operation.
-    parents_to_coarsen = zeros(Int, length(tree))
-    for cell_id in to_coarsen
-      # If cell has no parent, it cannot be coarsened
-      if !has_parent(tree, cell_id)
-        continue
-      end
+#     # Next, determine the parent cells from which the fine cells are to be
+#     # removed, since these are needed for the coarsen! function. However, since
+#     # we only want to coarsen if *all* child cells are marked for coarsening,
+#     # we count the coarsening indicators for each parent cell and only coarsen
+#     # if all children are marked as such (i.e., where the count is 2^ndims). At
+#     # the same time, check if a cell is marked for coarsening even though it is
+#     # *not* a leaf cell -> this can only happen if it was refined due to 2:1
+#     # smoothing during the preceding refinement operation.
+#     parents_to_coarsen = zeros(Int, length(tree))
+#     for cell_id in to_coarsen
+#       # If cell has no parent, it cannot be coarsened
+#       if !has_parent(tree, cell_id)
+#         continue
+#       end
 
-      # If cell is not leaf (anymore), it cannot be coarsened
-      if !is_leaf(tree, cell_id)
-        continue
-      end
+#       # If cell is not leaf (anymore), it cannot be coarsened
+#       if !is_leaf(tree, cell_id)
+#         continue
+#       end
 
-      # Increase count for parent cell
-      parent_id = tree.parent_ids[cell_id]
-      parents_to_coarsen[parent_id] += 1
-    end
+#       # Increase count for parent cell
+#       parent_id = tree.parent_ids[cell_id]
+#       parents_to_coarsen[parent_id] += 1
+#     end
 
-    # Extract only those parent cells for which all children should be coarsened
-    to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+#     # Extract only those parent cells for which all children should be coarsened
+#     to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
-    # Finally, coarsen mesh
-    coarsened_original_cells = @timeit timer() "mesh" coarsen!(tree, to_coarsen)
+#     # Finally, coarsen mesh
+#     coarsened_original_cells = @timeit timer() "mesh" coarsen!(tree, to_coarsen)
 
-    # Convert coarsened parent cell ids to the list of child cell ids that have
-    # been removed, since this is the information that is expected by the solver
-    removed_child_cells = zeros(Int, n_children_per_cell(tree) * length(coarsened_original_cells))
-    for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
-      for child in 1:n_children_per_cell(tree)
-        removed_child_cells[n_children_per_cell(tree) * (index-1) + child] = coarse_cell_id + child
-      end
-    end
+#     # Convert coarsened parent cell ids to the list of child cell ids that have
+#     # been removed, since this is the information that is expected by the solver
+#     removed_child_cells = zeros(Int, n_children_per_cell(tree) * length(coarsened_original_cells))
+#     for (index, coarse_cell_id) in enumerate(coarsened_original_cells)
+#       for child in 1:n_children_per_cell(tree)
+#         removed_child_cells[n_children_per_cell(tree) * (index-1) + child] = coarse_cell_id + child
+#       end
+#     end
 
-    # Coarsen solver
-    @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
-    if !isempty(passive_solvers)
-      @timeit timer() "passive solvers" for ps in passive_solvers
-        coarsen!(ps, mesh, removed_child_cells)
-      end
-    end
-  else
-    # If there is nothing to coarsen, create empty array for later use
-    coarsened_original_cells = Int[]
-  end
+#     # Coarsen solver
+#     @timeit timer() "solver" coarsen!(solver, mesh, removed_child_cells)
+#     if !isempty(passive_solvers)
+#       @timeit timer() "passive solvers" for ps in passive_solvers
+#         coarsen!(ps, mesh, removed_child_cells)
+#       end
+#     end
+#   else
+#     # If there is nothing to coarsen, create empty array for later use
+#     coarsened_original_cells = Int[]
+#   end
 
   # Debug output
   globals[:verbose] && println("done (refined: $(length(refined_original_cells)), " *
@@ -173,6 +221,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
                                "new number of cells/elements: " *
                                "$(length(tree))/$(solver.n_elements))")
 
+  return true
   # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
 end

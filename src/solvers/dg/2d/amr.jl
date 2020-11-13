@@ -1,4 +1,102 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
+# P4est Coarse+Refine function
+
+function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
+    cells_to_change::AbstractArray{Int}) where {Eqn, MeshType, NVARS, POLYDEG}
+  # Return early if there is nothing to do
+  if isempty(cells_to_change)
+    return
+  end
+  tree = mesh.tree
+  p4est = tree.forest
+  # @show p4est.local_num_quadrants
+
+  # @show cells_to_change[:,1]
+  old_n_elements = nelements(dg.elements)
+  # @show old_n_elements
+  old_u = dg.elements.u
+  # # Get new list of leaf cells
+  # leaf_cell_ids = leaf_cells(tree)
+  leaf_cell_ids = collect(1:p4est.local_num_quadrants)
+  # @show leaf_cell_ids
+  # leaf_cell_ids = range(1:p4est.local_num_quadrants)
+  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
+  n_elements = nelements(elements)
+  element_id = 1
+  skip = 0
+  for old_element_id in 1:old_n_elements
+    if cells_to_change[1,old_element_id] < 0
+      # @show "Refine"
+      refine_element!(elements.u, element_id, old_u, old_element_id,
+                      dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
+      element_id += 2^ndims(dg)
+    
+    elseif cells_to_change[1,old_element_id] > 0 &&  cells_to_change[2,old_element_id] > 0
+
+      @show "Coarse"
+      @assert 3 == 4
+      if skip > 0
+        skip -= 1
+        continue
+      end
+      # 2^ndims Elements to Coarse
+      to_coarse = cells_to_change[:,old_element_id]
+      # Check if the to_coarse consecutive
+      @assert to_coarse .== [to_coarse[1]:size(to_coarse)[1];]
+      coarsen_elements!(elements.u, element_id, old_u, old_element_id,
+                  dg.l2mortar_reverse_upper, dg.l2mortar_reverse_lower, dg)
+      
+      element_id += 1
+      skip = 2^ndims(dg) - 1
+      @assert 3 == 2
+    # if cells_to_change[1,old_element_id]
+    #   # Refine element and store solution directly in new data structure
+    #   refine_element!(elements.u, element_id, old_u, old_element_id,
+    #                   dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
+    #   element_id += 2^ndims(dg)
+    else
+       # Copy old element data to new element container
+       @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
+       element_id += 1
+    end
+  end
+  leaf_cell_ids = leaf_cells(tree)
+  # Initialize new interfaces container
+  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_interfaces = ninterfaces(interfaces)
+
+  # Initialize boundaries
+  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  n_boundaries = nboundaries(boundaries)
+
+  # Initialize new mortar containers
+  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type)
+  n_l2mortars = nmortars(l2mortars)
+  n_ecmortars = nmortars(ecmortars)
+  # @show n_interfaces
+  # @show interfaces
+  # @show n_boundaries, n_boundaries_per_direction
+  # @show n_l2mortars, n_ecmortars
+  # Sanity check
+  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
+    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
+                                        * "n_surf must be the same as 2*n_elem")
+  end
+
+  # Update DG instance with new data
+  dg.elements = elements
+  dg.n_elements = n_elements
+  dg.interfaces = interfaces
+  dg.n_interfaces = n_interfaces
+  dg.boundaries = boundaries
+  dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
+  dg.l2mortars = l2mortars
+  dg.n_l2mortars = n_l2mortars
+  dg.ecmortars = ecmortars
+  dg.n_ecmortars = n_ecmortars
+  # @assert 1 == 2
+end
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,

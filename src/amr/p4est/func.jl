@@ -132,7 +132,7 @@ function refine_function(p4est::Ptr{P4est.p4est_t},
     elem_id = dataptr.id
     # @show dataptr.id, to_refine[dataptr.id]
     if (to_refine[elem_id] > 0) #  && to_refine[elem_id] > q.level
-        @show 1, "REFINE"
+        # @show 1, "REFINE"
         # return Cint(0) #TODO: REMOVE
         return Cint(1)
     else
@@ -156,9 +156,9 @@ function coarse_function(p4est::Ptr{P4est.p4est_t},
     for i = 1:4 #2*NDIMS
         data = unsafe_wrap(quad_inner_data_t, children[i].p.user_data)
  
-        @show data.id
+        # @show data.id
         if (data.oldids[1] < 0 || data.id == 0)
-            @show "Not TO Coarse"
+            # @show "Not TO Coarse"
             return Cint(0)# This Element was refined and we don't need to check it.
         end
         to_coarse = unsafe_wrap(Array, Ptr{Int32}(user_data_ptr), (data.id); own = false)
@@ -173,24 +173,14 @@ function coarse_function(p4est::Ptr{P4est.p4est_t},
         end
     end
     if (Coarse4 == 4) 
-        @show "TO Coarse"
+        # @show "TO Coarse"
         return Cint(0)  #TODO: return Cint(1)
     else
-        @show " 1 Not TO Coarse"
+        # @show " 1 Not TO Coarse"
         return Cint(0)
     end
 end
 
-#TODO: replace_quads
-
-# const jstep3_replace_quads=cfunction(step3_replace_quads, Void,
-#                                     (Ptr{p4est.p8est_t},
-#                                     p4est.p4est_topidx_t,
-#                                     Int32,
-#                                     Ptr{Ptr{p4est.p8est_quadrant_t}},
-#                                     Int32,
-#                                     Ptr{Ptr{p4est.p8est_quadrant_t}}
-#                                     )) #It WorkS!!!
 
 
 function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
@@ -200,8 +190,8 @@ function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
         num_incoming::Int32,#int num_incoming
         incoming_array_ptr::Ptr{Ptr{P4est.p4est_quadrant_t}}#p4est_quadrant_t * incoming[]
         )
-        @show num_outgoing
-        @show num_incoming
+        # @show num_outgoing
+        # @show num_incoming
 
         incoming = unsafe_wrap(Array, Ptr{Ptr{P4est.p4est_quadrant_t}}(incoming_array_ptr), num_incoming; own = false)
         outgoing = unsafe_wrap(Array, Ptr{Ptr{P4est.p4est_quadrant_t}}(outgoing_array_ptr), num_outgoing; own = false)
