@@ -59,6 +59,6 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any},
 end
 
 
-include("limiters_dg1d.jl")
-include("limiters_dg2d.jl")
-include("limiters_dg3d.jl")
+include("positivity_zhang_shu_dg1d.jl")
+include("positivity_zhang_shu_dg2d.jl")
+include("positivity_zhang_shu_dg3d.jl")
