@@ -51,13 +51,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   end
   @testset "parameters_amr.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr.toml"),
-            l2   = [0.011021735725622825],
-            linf = [0.0491178481591637])
+            l2   = [0.00021082657842083974],
+            linf = [0.0010248412275789627])
   end
   @testset "parameters_amr_nonperiodic.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr_nonperiodic.toml"),
-            l2   = [0.008203315648075351],
-            linf = [0.04172459513670268])
+            l2   = [0.0001241049017178548],
+            linf = [0.0009839676196739236])
   end
   @testset "parameters_amr_vortex.toml" begin
     test_trixi_run(joinpath(EXAMPLES_DIR, "parameters_amr_vortex.toml"),
