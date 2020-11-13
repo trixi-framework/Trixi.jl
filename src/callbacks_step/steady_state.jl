@@ -24,9 +24,23 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   print(io, "SteadyStateCallback(abstol=", steady_state_callback.abstol, ", ",
                                 "reltol=", steady_state_callback.reltol, ")")
 end
-# TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SteadyStateCallback}
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SteadyStateCallback}
+  if get(io, :summary, false)
+    steady_state_callback = cb.affect!
+
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 80)
+    setup = [ 
+             "absolute tolerance" => steady_state_callback.abstol,
+             "relative tolerance" => steady_state_callback.reltol,
+            ]
+    print(io, boxed_setup("SteadyStateCallback", key_width, total_width, setup))
+    return nothing
+  end
+
+  show(io, cb)
+end
 
 
 # affect!
