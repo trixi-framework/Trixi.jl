@@ -69,7 +69,7 @@ examples_dir() = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 """
     get_examples()
 
-Return a list of all example parameter files that are provided by Trixi.
+Return a list of all example elixirs that are provided by Trixi.
 """
 function get_examples()
   examples = String[]
@@ -88,7 +88,7 @@ end
 """
     default_example()
 
-Return the path to an example parameter file that can be used to quickly see Trixi in action.
+Return the path to an example elixir that can be used to quickly see Trixi in action.
 """
 default_example() = joinpath(examples_dir(), "2d", "elixir_advection_basic.jl")
 

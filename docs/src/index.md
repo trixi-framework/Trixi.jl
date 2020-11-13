@@ -163,7 +163,7 @@ julia> convergence_test(default_example(), 4)
 ```
 This will run a convergence test with the elixir `default_example()`,
 using four iterations with different initial refinement levels. The initial
-iteration will use the parameters file unchanged, while for each subsequent
+iteration will use the elixir unchanged, while for each subsequent
 iteration the `initial_refinement_level` parameter is incremented by one.
 Finally, the measured ``l^2`` and ``l^\infty`` errors and the determined EOCs
 will be displayed like this:
