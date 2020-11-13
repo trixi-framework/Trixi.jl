@@ -13,7 +13,6 @@ struct HyperbolicDiffusionEquations3D{RealT<:Real} <: AbstractHyperbolicDiffusio
   nu::RealT     # diffusion constant
 end
 
-# TODO Taal refactor, remove old constructors and replace them with default values
 function HyperbolicDiffusionEquations3D(; nu=1.0, Lr=inv(2pi))
   Tr = Lr^2 / nu
   HyperbolicDiffusionEquations3D(promote(Lr, inv(Tr), nu)...)
