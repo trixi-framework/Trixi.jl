@@ -88,7 +88,7 @@ The indicator estimates a weighted second derivative of a specified variable loc
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node59.html#SECTION05163100000000000000
 """
 struct IndicatorLöhner{RealT<:Real, Variable, Cache} <: AbstractIndicator
-  f_wave::RealT # TODO: Taal, better name and documentation
+  f_wave::RealT # TODO: Taal documentation
   variable::Variable
   cache::Cache
 end

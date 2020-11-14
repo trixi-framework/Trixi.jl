@@ -144,7 +144,6 @@ function compute_coefficients!(u_ode::AbstractVector, t, semi::Semidiscretizatio
 end
 
 
-# TODO: Taal better name
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
   @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 

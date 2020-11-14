@@ -165,7 +165,6 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
                                                                 dg.volume_integral, dg, cache)
 
   # Prolong solution to interfaces
-  # TODO: Taal decide order of arguments, consistent vs. modified cache first?
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
 
   # Calculate interface fluxes
