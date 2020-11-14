@@ -197,7 +197,7 @@ function refine_unbalanced!(t::ParallelTree, cell_ids)
       t.mpi_ranks[child_id] = t.mpi_ranks[cell_id]
 
       # For determining neighbors, use neighbor connections of parent cell
-      for direction in 1:n_directions(t)
+      for direction in eachdirection(t)
         # If neighbor is a sibling, establish one-sided connectivity
         # Note: two-sided is not necessary, as each sibling will do this
         if has_sibling(child, direction)

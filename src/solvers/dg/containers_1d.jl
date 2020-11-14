@@ -1,21 +1,12 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-# TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 mutable struct ElementContainer1D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
-  u::Array{RealT, 3}                   # [variables, i, elements]
-  u_t::Array{RealT, 3}                 # [variables, i, elements]
-  u_tmp2::Array{RealT, 3}              # [variables, i, elements]
-  u_tmp3::Array{RealT, 3}              # [variables, i, elements]
   inverse_jacobian::Vector{RealT}      # [elements]
   node_coordinates::Array{RealT, 3}    # [orientation, i, elements]
   surface_flux_values::Array{RealT, 3} # [variables, direction, elements]
   cell_ids::Vector{Int}                # [elements]
   # internal `resize!`able storage
-  _u::Vector{RealT}
-  _u_t::Vector{RealT}
-  _u_tmp2::Vector{RealT}
-  _u_tmp3::Vector{RealT}
   _node_coordinates::Vector{RealT}
   _surface_flux_values::Vector{RealT}
 end
@@ -28,24 +19,8 @@ end
 function Base.resize!(elements::ElementContainer1D{RealT, NVARS, POLYDEG},
                       capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
-  @unpack _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values,
+  @unpack _node_coordinates, _surface_flux_values,
           inverse_jacobian, cell_ids = elements
-
-  resize!(_u, NVARS * n_nodes * capacity)
-  elements.u = unsafe_wrap(Array, pointer(_u),
-                           (NVARS, n_nodes, capacity))
-
-  resize!(_u_t, NVARS * n_nodes * capacity)
-  elements.u_t = unsafe_wrap(Array, pointer(_u_t),
-                             (NVARS, n_nodes, capacity))
-
-  resize!(_u_tmp2, NVARS * n_nodes * capacity)
-  elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
-                                (NVARS, n_nodes, capacity))
-
-  resize!(_u_tmp3, NVARS * n_nodes * capacity)
-  elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
-                                (NVARS, n_nodes, capacity))
 
   resize!(inverse_jacobian, capacity)
 
@@ -68,23 +43,6 @@ function ElementContainer1D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  _u = fill(nan, NVARS * n_nodes * capacity)
-  u = unsafe_wrap(Array, pointer(_u),
-                  (NVARS, n_nodes, capacity))
-
-  _u_t = fill(nan, NVARS *  n_nodes * capacity)
-  u_t = unsafe_wrap(Array, pointer(_u_t),
-                    (NVARS, n_nodes, capacity))
-
-  # u_rungakutta is initialized to non-NaN since it is used directly
-  _u_tmp2 = fill(zero(RealT), NVARS * n_nodes * capacity)
-  u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
-                       (NVARS, n_nodes, capacity))
-
-  _u_tmp3 = fill(zero(RealT), NVARS * n_nodes * capacity)
-  u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
-                       (NVARS, n_nodes, capacity))
-
   inverse_jacobian = fill(nan, capacity)
 
   _node_coordinates = fill(nan, 1 * n_nodes * capacity)
@@ -98,14 +56,15 @@ function ElementContainer1D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   cell_ids = fill(typemin(Int), capacity)
 
   return ElementContainer1D{RealT, NVARS, POLYDEG}(
-    u, u_t, u_tmp2, u_tmp3,
     inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values)
+    _node_coordinates, _surface_flux_values)
 end
 
 
 # Return number of elements
 @inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
+# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+@inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
 
 
 # Create element container and initialize element data
@@ -127,19 +86,19 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh1D, nodes)
   elements.cell_ids .= cell_ids
 
   # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = cell_ids[element_id]
+    cell_id = cell_ids[element]
 
     # Get cell length
     dx = length_at_cell(mesh.tree, cell_id)
 
     # Calculate inverse Jacobian as 1/(h/2)
-    elements.inverse_jacobian[element_id] = 2/dx
+    elements.inverse_jacobian[element] = 2/dx
 
     # Calculate node coordinates
       for i in 1:n_nodes
-        elements.node_coordinates[1, i, element_id] = (
+        elements.node_coordinates[1, i, element] = (
             mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
       end
   end
@@ -223,7 +182,7 @@ function count_required_interfaces(mesh::TreeMesh1D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only count interfaces in positive direction to avoid double counting
       if direction == 1
         continue
@@ -246,20 +205,20 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
-  for element_id in 1:nelements(elements)
-    c2e[elements.cell_ids[element_id]] = element_id
+  for element in eachelement(elements)
+    c2e[elements.cell_ids[element]] = element
   end
 
   # Reset interface count
   count = 0
 
   # Iterate over all elements to find neighbors and to connect via interfaces
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = elements.cell_ids[element_id]
+    cell_id = elements.cell_ids[element]
 
     # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only create interfaces in positive direction
       if direction == 1
         continue
@@ -285,7 +244,7 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
         interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
       end
 
-      interfaces.neighbor_ids[1, count] = element_id
+      interfaces.neighbor_ids[1, count] = element
       # Set orientation (x -> 1)
       interfaces.orientations[count] = 1
     end
@@ -386,7 +345,7 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -417,11 +376,11 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
   # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
   #            obviating the need to store the boundary condition to be applied explicitly.
   # Loop over directions
-  for direction in 1:n_directions(mesh.tree)
+  for direction in eachdirection(mesh.tree)
     # Iterate over all elements to find missing neighbors and to connect to boundaries
-    for element_id in 1:nelements(elements)
+    for element in eachelement(elements)
       # Get cell id
-      cell_id = elements.cell_ids[element_id]
+      cell_id = elements.cell_ids[element]
 
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
@@ -438,7 +397,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
       counts_per_direction[direction] += 1
 
       # Set neighbor element id
-      boundaries.neighbor_ids[count] = element_id
+      boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
       if direction == 2
@@ -453,9 +412,9 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, count] .= enc[:, 1,  element_id]
+        boundaries.node_coordinates[:, count] .= enc[:, 1,  element]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, count] .= enc[:, end, element_id]
+        boundaries.node_coordinates[:, count] .= enc[:, end, element]
       else
         error("should not happen")
       end
