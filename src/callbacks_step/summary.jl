@@ -53,11 +53,13 @@ function squeeze(message, max_width; filler='…')
 
   length(message) <= max_width && return message
 
-  keep_front = div(max_width, 2)
-  keep_back = div(max_width, 2) - (isodd(max_width) ? 0 : 1)
-  squeezed = message[begin:keep_front] * filler * message[end-keep_back+1:end]
+keep_front = div(max_width, 2)
+  keep_back  = div(max_width, 2) - (isodd(max_width) ? 0 : 1)
+  remove_back  = length(message) - keep_front
+  remove_front = length(message) - keep_back
+  squeezed = chop(message, head=0, tail=remove_back) * filler * chop(message, head=remove_front, tail=0)
 
-  @assert length(squeezed) == max_width "should not happen: algorithm error!"
+  @assert length(squeezed) == max_width "`$(length(squeezed)) != $max_width` should not happen: algorithm error!"
 
   return squeezed
 end
