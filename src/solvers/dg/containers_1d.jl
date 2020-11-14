@@ -1,21 +1,12 @@
 
 # Container data structure (structure-of-arrays style) for DG elements
-# TODO: Taal refactor, remove u, u_t, u_tmp2, u_tmp3
 # TODO: Taal refactor, remove NVARS, POLYDEG?
 mutable struct ElementContainer1D{RealT<:Real, NVARS, POLYDEG} <: AbstractContainer
-  u::Array{RealT, 3}                   # [variables, i, elements]
-  u_t::Array{RealT, 3}                 # [variables, i, elements]
-  u_tmp2::Array{RealT, 3}              # [variables, i, elements]
-  u_tmp3::Array{RealT, 3}              # [variables, i, elements]
   inverse_jacobian::Vector{RealT}      # [elements]
   node_coordinates::Array{RealT, 3}    # [orientation, i, elements]
   surface_flux_values::Array{RealT, 3} # [variables, direction, elements]
   cell_ids::Vector{Int}                # [elements]
   # internal `resize!`able storage
-  _u::Vector{RealT}
-  _u_t::Vector{RealT}
-  _u_tmp2::Vector{RealT}
-  _u_tmp3::Vector{RealT}
   _node_coordinates::Vector{RealT}
   _surface_flux_values::Vector{RealT}
 end
@@ -28,24 +19,8 @@ end
 function Base.resize!(elements::ElementContainer1D{RealT, NVARS, POLYDEG},
                       capacity) where {RealT, NVARS, POLYDEG}
   n_nodes = POLYDEG + 1
-  @unpack _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values,
+  @unpack _node_coordinates, _surface_flux_values,
           inverse_jacobian, cell_ids = elements
-
-  resize!(_u, NVARS * n_nodes * capacity)
-  elements.u = unsafe_wrap(Array, pointer(_u),
-                           (NVARS, n_nodes, capacity))
-
-  resize!(_u_t, NVARS * n_nodes * capacity)
-  elements.u_t = unsafe_wrap(Array, pointer(_u_t),
-                             (NVARS, n_nodes, capacity))
-
-  resize!(_u_tmp2, NVARS * n_nodes * capacity)
-  elements.u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
-                                (NVARS, n_nodes, capacity))
-
-  resize!(_u_tmp3, NVARS * n_nodes * capacity)
-  elements.u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
-                                (NVARS, n_nodes, capacity))
 
   resize!(inverse_jacobian, capacity)
 
@@ -68,23 +43,6 @@ function ElementContainer1D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   nan = convert(RealT, NaN)
 
   # Initialize fields with defaults
-  _u = fill(nan, NVARS * n_nodes * capacity)
-  u = unsafe_wrap(Array, pointer(_u),
-                  (NVARS, n_nodes, capacity))
-
-  _u_t = fill(nan, NVARS *  n_nodes * capacity)
-  u_t = unsafe_wrap(Array, pointer(_u_t),
-                    (NVARS, n_nodes, capacity))
-
-  # u_rungakutta is initialized to non-NaN since it is used directly
-  _u_tmp2 = fill(zero(RealT), NVARS * n_nodes * capacity)
-  u_tmp2 = unsafe_wrap(Array, pointer(_u_tmp2),
-                       (NVARS, n_nodes, capacity))
-
-  _u_tmp3 = fill(zero(RealT), NVARS * n_nodes * capacity)
-  u_tmp3 = unsafe_wrap(Array, pointer(_u_tmp3),
-                       (NVARS, n_nodes, capacity))
-
   inverse_jacobian = fill(nan, capacity)
 
   _node_coordinates = fill(nan, 1 * n_nodes * capacity)
@@ -98,14 +56,15 @@ function ElementContainer1D{RealT, NVARS, POLYDEG}(capacity::Integer) where {Rea
   cell_ids = fill(typemin(Int), capacity)
 
   return ElementContainer1D{RealT, NVARS, POLYDEG}(
-    u, u_t, u_tmp2, u_tmp3,
     inverse_jacobian, node_coordinates, surface_flux_values, cell_ids,
-    _u, _u_t, _u_tmp2, _u_tmp3, _node_coordinates, _surface_flux_values)
+    _node_coordinates, _surface_flux_values)
 end
 
 
 # Return number of elements
 @inline nelements(elements::ElementContainer1D) = length(elements.cell_ids)
+# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+@inline eachelement(elements::ElementContainer1D) = Base.OneTo(nelements(elements))
 
 
 # Create element container and initialize element data
