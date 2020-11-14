@@ -22,11 +22,18 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
 end
 
 
+# Format a key/value pair for output from the SummaryCallback
 function format_key_value_line(key::AbstractString, value::AbstractString, key_width, total_width;
-                               guide='…', filler='…', prefix="│ ", suffix=" │")
+                               indentation_level=0, guide='…', filler='…', prefix="│ ", suffix=" │")
   @assert key_width < total_width
   line  = prefix
-  squeezed_key = squeeze(key, key_width, filler=filler)
+  if indentation_level == 0
+    squeezed_key = squeeze(key, key_width, filler=filler)
+  else
+    indentation = prefix^indentation_level
+    reduced_key_width = key_width - length(indentation)
+    squeezed_key = indentation * squeeze(key, reduced_key_width, filler=filler)
+  end
   line *= squeezed_key
   line *= ": "
   short = key_width - length(squeezed_key)
@@ -48,33 +55,74 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
 end
 format_key_value_line(key, value, args...; kwargs...) = format_key_value_line(string(key), string(value), args...; kwargs...)
 
+# Squeeze a string to fit into a maximum width by deleting characters from the center
 function squeeze(message, max_width; filler='…')
   @assert max_width >= 3 "squeezing works only for a minimum `max_width` of 3"
 
   length(message) <= max_width && return message
 
-keep_front = div(max_width, 2)
+  keep_front = div(max_width, 2)
   keep_back  = div(max_width, 2) - (isodd(max_width) ? 0 : 1)
   remove_back  = length(message) - keep_front
   remove_front = length(message) - keep_back
-  squeezed = chop(message, head=0, tail=remove_back) * filler * chop(message, head=remove_front, tail=0)
+  squeezed = (chop(message, head=0, tail=remove_back)
+              * filler *
+              chop(message, head=remove_front, tail=0))
 
   @assert length(squeezed) == max_width "`$(length(squeezed)) != $max_width` should not happen: algorithm error!"
 
   return squeezed
 end
 
-function boxed_setup(heading, key_width, total_width, setup=[]; guide='…', filler='…')
-  s  = ""
-  s *= "┌" * "─"^(total_width-2) * "┐\n"
-  s *= "│ " * heading * " "^(total_width - length(heading) - 4) * " │\n"
-  # s *= "├" * "─"^(total_width-2) * "┤\n"
-  s *= "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │\n"
+# Print a summary with a box around it with a given heading and a setup of key=>value pairs
+function summary_box(io::IO, heading, setup=[])
+  summary_header(io, heading)
   for (key, value) in setup
-    s *= format_key_value_line(key, value, key_width, total_width) * "\n"
+    summary_line(io, key, value)
   end
-  s *= "└" * "─"^(total_width-2) * "┘"
+  summary_footer(io)
 end
+
+function summary_header(io, heading; total_width=100, indentation_level=0)
+  total_width = get(io, :total_width, total_width)
+  indentation_level = get(io, :indentation_level, indentation_level)
+
+  @assert indentation_level >= 0 "indentation level may not be negative"
+
+  # If indentation level is greater than zero, we assume the header has already been printed
+  indentation_level > 0 && return
+
+  # Print header
+  println(io, "┌" * "─"^(total_width-2) * "┐")
+  println(io, "│ " * heading * " "^(total_width - length(heading) - 4) * " │")
+  println(io, "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │")
+end
+
+function summary_line(io, key, value; key_width=30, total_width=100, indentation_level=0)
+  key_width = get(io, :key_width, key_width)
+  total_width = get(io, :total_width, total_width)
+  indentation_level = get(io, :indentation_level, indentation_level)
+
+  s = format_key_value_line(key, value, key_width, total_width,
+                            indentation_level=indentation_level)
+
+  println(io, s)
+end
+
+function summary_footer(io; total_width=100, indentation_level=0)
+  total_width = get(io, :total_width, 100)
+  indentation_level = get(io, :indentation_level, 0)
+
+  if indentation_level == 0
+    s = "└" * "─"^(total_width-2) * "┘"
+  else
+    s = ""
+  end
+
+  print(io, s)
+end
+
+@inline increment_indent(io) = IOContext(io, :indentation_level => get(io, :indentation_level, 0) + 1)
 
 
 # Print information about the current simulation setup
@@ -86,9 +134,11 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   print_startup_message()
 
   io = stdout
-  key_width = 25
-  total_width = 100 
-  io_context = IOContext(io, :compact => false, :key_width => key_width, :total_width => total_width)
+  io_context = IOContext(io,
+                         :compact => false,
+                         :key_width => 30,
+                         :total_width => 100,
+                         :indentation_level => 0)
 
   semi = integrator.p
   show(io_context, MIME"text/plain"(), semi)
@@ -124,7 +174,8 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
            "Final time" => last(integrator.sol.prob.tspan),
            "time integrator" => typeof(integrator.alg).name,
           ]
-  println(io, boxed_setup("Time integration", key_width, total_width, setup))
+  summary_box(io, "Time integration", setup)
+  println()
 
   reset_timer!(timer())
 

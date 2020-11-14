@@ -39,12 +39,10 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     alive_callback = cb.affect!
 
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => alive_callback.alive_interval,
             ]
-    print(io, boxed_setup("AliveCallback", key_width, total_width, setup))
+    summary_box(io, "AliveCallback", setup)
   end
 end
 

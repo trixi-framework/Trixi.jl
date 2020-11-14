@@ -149,17 +149,14 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) 
   if get(io, :compact, false)
     show(io, mesh)
   else
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
              "center" => mesh.tree.center_level_0,
              "length" => mesh.tree.length_level_0,
              "periodicity" => mesh.tree.periodicity,
-             "current number of cells" => mesh.tree.length,
-             "maximum number of cells" => mesh.tree.capacity,
+             "current #cells" => mesh.tree.length,
+             "maximum #cells" => mesh.tree.capacity,
             ]
-    print(io, boxed_setup("TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
-                          key_width, total_width, setup))
+    summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}", setup)
   end
 end
 

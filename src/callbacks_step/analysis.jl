@@ -41,8 +41,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
     show(io, cb)
   else
     analysis_callback = cb.affect!
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
+
     setup = Pair{String,Any}[ 
              "interval" => analysis_callback.interval,
              "analyzer" => analysis_callback.analyzer,
@@ -58,7 +57,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
       push!(setup, "│ filename" => analysis_callback.analysis_filename)
       push!(setup, "│ output directory" => abspath(normpath(analysis_callback.output_directory)))
     end
-    print(io, boxed_setup("AnalysisCallback", key_width, total_width, setup))
+    summary_box(io, "AnalysisCallback", setup)
   end
 end
 

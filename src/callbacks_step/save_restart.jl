@@ -24,14 +24,12 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     save_restart_callback = cb.affect!
 
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => save_restart_callback.interval,
              "save final solution" => save_restart_callback.save_final_restart ? "yes" : "no",
              "output directory" => abspath(normpath(save_restart_callback.output_directory)),
             ]
-    print(io, boxed_setup("SaveRestartCallback", key_width, total_width, setup))
+    summary_box(io, "SaveRestartCallback", setup)
   end
 end
 

@@ -30,8 +30,6 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     save_solution_callback = cb.affect!
 
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
              "interval" => save_solution_callback.interval,
              "solution variables" => save_solution_callback.solution_variables,
@@ -39,7 +37,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
              "save final solution" => save_solution_callback.save_final_solution ? "yes" : "no",
              "output directory" => abspath(normpath(save_solution_callback.output_directory)),
             ]
-    print(io, boxed_setup("SaveSolutionCallback", key_width, total_width, setup))
+    summary_box(io, "SaveSolutionCallback", setup)
   end
 end
 

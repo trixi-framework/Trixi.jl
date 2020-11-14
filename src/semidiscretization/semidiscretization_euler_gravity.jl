@@ -41,16 +41,14 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
   if get(io, :compact, false)
     show(io, parameters)
   else
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
-             "background density" => parameters.background_density,
-             "gravitational constant" => parameters.gravitational_constant,
+             "background density (ρ₀)" => parameters.background_density,
+             "gravitational constant (G)" => parameters.gravitational_constant,
              "CFL (gravity)" => parameters.cfl,
              "max. #iterations" => parameters.n_iterations_max,
              "time integrator" => parameters.timestep_gravity,
             ]
-    print(io, boxed_setup("ParametersEulerGravity", key_width, total_width, setup))
+    summary_box(io, "ParametersEulerGravity", setup)
   end
 end
 
@@ -127,18 +125,14 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
   if get(io, :compact, false)
     show(io, semi)
   else
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
-    setup = [ 
-            ]
-    print(io, boxed_setup("SemidiscretizationEulerGravity", key_width, total_width, setup))
-    println()
-    show(io, mime, semi.semi_euler)
-    println(io)
-    show(io, mime, semi.semi_gravity)
-    println(io)
-    show(io, mime, semi.parameters)
-    println(io)
+    summary_header(io, "SemidiscretizationEulerGravity")
+    summary_line(io, "semidiscretization Euler", typeof(semi.semi_euler).name)
+    show(increment_indent(io), mime, semi.semi_euler)
+    summary_line(io, "semidiscretization gravity", typeof(semi.semi_gravity).name)
+    show(increment_indent(io), mime, semi.semi_gravity)
+    summary_line(io, "parameters", typeof(semi.parameters).name)
+    show(increment_indent(io), mime, semi.parameters)
+    summary_footer(io)
   end
 end
 

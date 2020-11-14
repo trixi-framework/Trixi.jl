@@ -31,13 +31,11 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     steady_state_callback = cb.affect!
 
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
     setup = [ 
              "absolute tolerance" => steady_state_callback.abstol,
              "relative tolerance" => steady_state_callback.reltol,
             ]
-    print(io, boxed_setup("SteadyStateCallback", key_width, total_width, setup))
+    summary_box(io, "SteadyStateCallback", setup)
   end
 end
 

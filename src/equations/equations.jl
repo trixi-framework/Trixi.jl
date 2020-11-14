@@ -20,15 +20,14 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
   if get(io, :compact, false)
     show(io, equations)
   else
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
-    setup = Pair{String,Any}[ 
-             "#variables" => nvariables(equations),
-            ]
+    summary_header(io, get_name(equations))
+    summary_line(io, "#variables ", nvariables(equations))
     for variable in eachvariable(equations)
-      push!(setup, "│ variable " * string(variable) => varnames_cons(equations)[variable])
+      summary_line(increment_indent(io),
+                   "variable " * string(variable),
+                   varnames_cons(equations)[variable])
     end
-    print(io, boxed_setup(get_name(equations), key_width, total_width, setup))
+    summary_footer(io)
   end
 end
 

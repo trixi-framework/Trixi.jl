@@ -43,6 +43,18 @@ struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
   volume_flux::VolumeFlux
 end
 
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux" => integral.volume_flux
+            ]
+    summary_box(io, "VolumeIntegralFluxDifferencing", setup)
+  end
+end
+
+
 """
     VolumeIntegralShockCapturingHG
 
@@ -63,6 +75,18 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
+function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    summary_header(io, "VolumeIntegralFluxDifferencing")
+    summary_line(io, "volume flux DG", integral.volume_flux_dg)
+    summary_line(io, "volume flux FV", integral.volume_flux_dg)
+    summary_line(io, "indicator", typeof(integral.indicator).name)
+    show(increment_indent(io), mime, integral.indicator)
+    summary_footer(io)
+  end
+end
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
@@ -96,19 +120,20 @@ function Base.show(io::IO, dg::DG{RealT}) where {RealT}
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", dg::DG{RealT}) where {RealT}
+function Base.show(io::IO, mime::MIME"text/plain", dg::DG{RealT}) where {RealT}
   if get(io, :compact, false)
     show(io, dg)
   else
-    key_width = get(io, :key_width, 25)
-    total_width = get(io, :total_width, 100)
-    setup = [ 
-             "basis" => dg.basis,
-             "mortar" => dg.mortar,
-             "surface flux" => dg.surface_flux,
-             "volume integral" => dg.volume_integral,
-            ]
-    print(io, boxed_setup("DG{" * string(RealT) * "}", key_width, total_width, setup))
+    summary_header(io, "DG{" * string(RealT) * "}")
+    summary_line(io, "polynomial degree", polydeg(dg))
+    summary_line(io, "basis", dg.basis)
+    summary_line(io, "mortar", dg.mortar)
+    summary_line(io, "surface flux", dg.surface_flux)
+    summary_line(io, "volume integral", typeof(dg.volume_integral).name)
+    if !(dg.volume_integral isa VolumeIntegralWeakForm)
+      show(increment_indent(io), mime, dg.volume_integral)
+    end
+    summary_footer(io)
   end
 end
 
