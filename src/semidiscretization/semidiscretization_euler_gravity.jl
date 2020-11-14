@@ -38,12 +38,20 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
   print(io, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
-  println(io, "ParametersEulerGravity using")
-  println(io, "- background_density:     ", parameters.background_density)
-  println(io, "- gravitational_constant: ", parameters.gravitational_constant)
-  println(io, "- cfl (gravity):    ", parameters.cfl)
-  println(io, "- n_iterations_max: ", parameters.n_iterations_max)
-  print(io,   "- timestep_gravity: ", parameters.timestep_gravity)
+  if get(io, :compact, false)
+    show(io, parameters)
+  else
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 100)
+    setup = [ 
+             "background density" => parameters.background_density,
+             "gravitational constant" => parameters.gravitational_constant,
+             "CFL (gravity)" => parameters.cfl,
+             "max. #iterations" => parameters.n_iterations_max,
+             "time integrator" => parameters.timestep_gravity,
+            ]
+    print(io, boxed_setup("ParametersEulerGravity", key_width, total_width, setup))
+  end
 end
 
 
@@ -116,13 +124,21 @@ function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
-  println(io, "SemidiscretizationEulerGravity using")
-  print(io, "  "); show(io, mime, semi.semi_euler); println()
-  print(io, "  "); show(io, mime, semi.semi_gravity); println()
-  print(io, "  "); show(io, mime, semi.parameters); println()
-  print(io, "  cache with fields:")
-  for key in keys(semi.cache)
-    print(io, " ", key)
+  if get(io, :compact, false)
+    show(io, semi)
+  else
+    key_width = get(io, :key_width, 25)
+    total_width = get(io, :total_width, 100)
+    setup = [ 
+            ]
+    print(io, boxed_setup("SemidiscretizationEulerGravity", key_width, total_width, setup))
+    println()
+    show(io, mime, semi.semi_euler)
+    println(io)
+    show(io, mime, semi.semi_gravity)
+    println(io)
+    show(io, mime, semi.parameters)
+    println(io)
   end
 end
 
