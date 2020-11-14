@@ -179,7 +179,7 @@ function refine_unbalanced!(t::SerialTree, cell_ids)
       t.original_cell_ids[child_id] = 0
 
       # For determining neighbors, use neighbor connections of parent cell
-      for direction in 1:n_directions(t)
+      for direction in eachdirection(t)
         # If neighbor is a sibling, establish one-sided connectivity
         # Note: two-sided is not necessary, as each sibling will do this
         if has_sibling(child, direction)

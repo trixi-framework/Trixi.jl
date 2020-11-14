@@ -86,19 +86,19 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh1D, nodes)
   elements.cell_ids .= cell_ids
 
   # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = cell_ids[element_id]
+    cell_id = cell_ids[element]
 
     # Get cell length
     dx = length_at_cell(mesh.tree, cell_id)
 
     # Calculate inverse Jacobian as 1/(h/2)
-    elements.inverse_jacobian[element_id] = 2/dx
+    elements.inverse_jacobian[element] = 2/dx
 
     # Calculate node coordinates
       for i in 1:n_nodes
-        elements.node_coordinates[1, i, element_id] = (
+        elements.node_coordinates[1, i, element] = (
             mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
       end
   end
@@ -182,7 +182,7 @@ function count_required_interfaces(mesh::TreeMesh1D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only count interfaces in positive direction to avoid double counting
       if direction == 1
         continue
@@ -205,20 +205,20 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
-  for element_id in 1:nelements(elements)
-    c2e[elements.cell_ids[element_id]] = element_id
+  for element in eachelement(elements)
+    c2e[elements.cell_ids[element]] = element
   end
 
   # Reset interface count
   count = 0
 
   # Iterate over all elements to find neighbors and to connect via interfaces
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = elements.cell_ids[element_id]
+    cell_id = elements.cell_ids[element]
 
     # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only create interfaces in positive direction
       if direction == 1
         continue
@@ -244,7 +244,7 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh1D)
         interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
       end
 
-      interfaces.neighbor_ids[1, count] = element_id
+      interfaces.neighbor_ids[1, count] = element
       # Set orientation (x -> 1)
       interfaces.orientations[count] = 1
     end
@@ -345,7 +345,7 @@ function count_required_boundaries(mesh::TreeMesh1D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -376,11 +376,11 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
   # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
   #            obviating the need to store the boundary condition to be applied explicitly.
   # Loop over directions
-  for direction in 1:n_directions(mesh.tree)
+  for direction in eachdirection(mesh.tree)
     # Iterate over all elements to find missing neighbors and to connect to boundaries
-    for element_id in 1:nelements(elements)
+    for element in eachelement(elements)
       # Get cell id
-      cell_id = elements.cell_ids[element_id]
+      cell_id = elements.cell_ids[element]
 
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
@@ -397,7 +397,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
       counts_per_direction[direction] += 1
 
       # Set neighbor element id
-      boundaries.neighbor_ids[count] = element_id
+      boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
       if direction == 2
@@ -412,9 +412,9 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh1D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, count] .= enc[:, 1,  element_id]
+        boundaries.node_coordinates[:, count] .= enc[:, 1,  element]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, count] .= enc[:, end, element_id]
+        boundaries.node_coordinates[:, count] .= enc[:, end, element]
       else
         error("should not happen")
       end

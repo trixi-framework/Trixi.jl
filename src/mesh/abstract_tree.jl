@@ -68,7 +68,9 @@ n_children_per_cell(dims::Integer) = 2^dims
 # 4 -> +y
 # 5 -> -z
 # 6 -> +z
-n_directions(::AbstractTree{NDIMS}) where NDIMS = 2 * NDIMS
+@inline n_directions(::AbstractTree{NDIMS}) where NDIMS = 2 * NDIMS
+# TODO: Taal performance, 1:n_directions(tree) vs. Base.OneTo(n_directions(tree)) vs. SOneTo(n_directions(tree))
+@inline eachdirection(tree::AbstractTree) = Base.OneTo(n_directions(tree))
 
 # For a given direction, return its opposite direction
 #
@@ -232,7 +234,7 @@ function rebalance!(t::AbstractTree, refined_cell_ids)
   # Iterate over cell ids that have previously been refined
   for cell_id in refined_cell_ids
     # Go over all potential neighbors of child cell
-    for direction in 1:n_directions(t)
+    for direction in eachdirection(t)
       # Continue if refined cell has a neighbor in that direction
       if has_neighbor(t, cell_id, direction)
         continue
@@ -350,7 +352,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
       # Go over all neighbors of child cell. If it has a neighbor that is *not*
       # a sibling and that is not a leaf cell, we cannot coarsen its parent
       # without creating an unbalanced tree.
-      for direction in 1:n_directions(t)
+      for direction in eachdirection(t)
         # Continue if neighbor would be a sibling
         if has_sibling(child, direction)
           continue
@@ -492,7 +494,7 @@ function delete_connectivity!(t::AbstractTree, first::Int, last::Int)
     end
 
     # Delete connectivity from neighboring cells
-    for direction in 1:n_directions(t)
+    for direction in eachdirection(t)
       if has_neighbor(t, cell_id, direction)
         t.neighbor_ids[opposite_direction(direction), t.neighbor_ids[direction, cell_id]] = 0
       end
@@ -554,7 +556,7 @@ function move_connectivity!(t::AbstractTree, first::Int, last::Int, destination:
     end
 
     # Update neighbors
-    for direction in 1:n_directions(t)
+    for direction in eachdirection(t)
       if has_neighbor(t, target, direction)
         # Get neighbor cell
         neighbor_id = t.neighbor_ids[direction, target]

@@ -64,6 +64,8 @@ end
 
 # Return number of elements
 nelements(elements::ElementContainer3D) = length(elements.cell_ids)
+# TODO: Taal performance, 1:nelements(elements) vs. Base.OneTo(nelements(elements))
+@inline eachelement(elements::ElementContainer3D) = Base.OneTo(nelements(elements))
 
 
 # Create element container and initialize element data
@@ -85,23 +87,23 @@ function init_elements!(elements, cell_ids, mesh::TreeMesh3D, nodes)
   elements.cell_ids .= cell_ids
 
   # Calculate inverse Jacobian and node coordinates
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = cell_ids[element_id]
+    cell_id = cell_ids[element]
 
     # Get cell length
     dx = length_at_cell(mesh.tree, cell_id)
 
     # Calculate inverse Jacobian as 1/(h/2)
-    elements.inverse_jacobian[element_id] = 2/dx
+    elements.inverse_jacobian[element] = 2/dx
 
     # Calculate node coordinates
     for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
-      elements.node_coordinates[1, i, j, k, element_id] = (
+      elements.node_coordinates[1, i, j, k, element] = (
           mesh.tree.coordinates[1, cell_id] + dx/2 * nodes[i])
-      elements.node_coordinates[2, i, j, k, element_id] = (
+      elements.node_coordinates[2, i, j, k, element] = (
           mesh.tree.coordinates[2, cell_id] + dx/2 * nodes[j])
-      elements.node_coordinates[3, i, j, k, element_id] = (
+      elements.node_coordinates[3, i, j, k, element] = (
           mesh.tree.coordinates[3, cell_id] + dx/2 * nodes[k])
     end
   end
@@ -186,7 +188,7 @@ function count_required_interfaces(mesh::TreeMesh3D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only count interfaces in positive direction to avoid double counting
       if direction % 2 == 1
         continue
@@ -215,20 +217,20 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
-  for element_id in 1:nelements(elements)
-    c2e[elements.cell_ids[element_id]] = element_id
+  for element in eachelement(elements)
+    c2e[elements.cell_ids[element]] = element
   end
 
   # Reset interface count
   count = 0
 
   # Iterate over all elements to find neighbors and to connect via interfaces
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = elements.cell_ids[element_id]
+    cell_id = elements.cell_ids[element]
 
     # Loop over directions
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # Only create interfaces in positive direction
       if direction % 2 == 1
         continue
@@ -248,7 +250,7 @@ function init_interfaces!(interfaces, elements, mesh::TreeMesh3D)
       # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
       interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
-      interfaces.neighbor_ids[1, count] = element_id
+      interfaces.neighbor_ids[1, count] = element
 
       # Set orientation (x -> 1, y -> 2, z -> 3)
       if direction in (1, 2)
@@ -356,7 +358,7 @@ function count_required_boundaries(mesh::TreeMesh3D, cell_ids)
 
   # Iterate over all cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -387,11 +389,11 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
   # Rationale: This way the boundaries are internally sorted by the directions -x, +x, -y etc.,
   #            obviating the need to store the boundary condition to be applied explicitly.
   # Loop over directions
-  for direction in 1:n_directions(mesh.tree)
+  for direction in eachdirection(mesh.tree)
     # Iterate over all elements to find missing neighbors and to connect to boundaries
-    for element_id in 1:nelements(elements)
+    for element in eachelement(elements)
       # Get cell id
-      cell_id = elements.cell_ids[element_id]
+      cell_id = elements.cell_ids[element]
 
       # If neighbor exists, current cell is not at a boundary
       if has_neighbor(mesh.tree, cell_id, direction)
@@ -408,7 +410,7 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
       counts_per_direction[direction] += 1
 
       # Set neighbor element id
-      boundaries.neighbor_ids[count] = element_id
+      boundaries.neighbor_ids[count] = element
 
       # Set neighbor side, which denotes the direction (1 -> negative, 2 -> positive) of the element
       if direction in (2, 4, 6)
@@ -429,17 +431,17 @@ function init_boundaries!(boundaries, elements, mesh::TreeMesh3D)
       # Store node coordinates
       enc = elements.node_coordinates
       if direction == 1 # -x direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, 1,   :,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, 1,   :,    :,   element]
       elseif direction == 2 # +x direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, end, :,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, end, :,    :,   element]
       elseif direction == 3 # -y direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   1,    :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   1,    :,   element]
       elseif direction == 4 # +y direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   end,  :,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   end,  :,   element]
       elseif direction == 5 # -z direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    1,   element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    1,   element]
       elseif direction == 6 # +z direction
-        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    end, element_id]
+        boundaries.node_coordinates[:, :, :, count] .= enc[:, :,   :,    end, element]
       else
         error("should not happen")
       end
@@ -615,7 +617,7 @@ function count_required_mortars(mesh::TreeMesh3D, cell_ids)
 
   # Iterate over all cells and count mortars from perspective of coarse cells
   for cell_id in cell_ids
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # If no neighbor exists, cell is small with large neighbor or at boundary -> do nothing
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -639,19 +641,19 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
-  for element_id in 1:nelements(elements)
-    c2e[elements.cell_ids[element_id]] = element_id
+  for element in eachelement(elements)
+    c2e[elements.cell_ids[element]] = element
   end
 
   # Reset interface count
   count = 0
 
   # Iterate over all elements to find neighbors and to connect via interfaces
-  for element_id in 1:nelements(elements)
+  for element in eachelement(elements)
     # Get cell id
-    cell_id = elements.cell_ids[element_id]
+    cell_id = elements.cell_ids[element]
 
-    for direction in 1:n_directions(mesh.tree)
+    for direction in eachdirection(mesh.tree)
       # If no neighbor exists, cell is small with large neighbor -> do nothing
       if !has_neighbor(mesh.tree, cell_id, direction)
         continue
@@ -687,7 +689,7 @@ function init_mortars!(mortars, elements, mesh::TreeMesh3D)
       # 5 -> large element
       #
       count += 1
-      mortars.neighbor_ids[5, count] = element_id
+      mortars.neighbor_ids[5, count] = element
 
       # Directions are from the perspective of the large element
       # ("Where are the small elements? Ah, in the ... direction!")
