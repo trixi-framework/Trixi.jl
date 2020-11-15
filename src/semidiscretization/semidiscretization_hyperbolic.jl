@@ -98,6 +98,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
   else
     summary_header(io, "SemidiscretizationHyperbolic")
     summary_line(io, "#spatial dimensions", ndims(semi.equations))
+    summary_line(io, "mesh", semi.mesh)
     summary_line(io, "equations", typeof(semi.equations).name)
     summary_line(io, "initial condition", semi.initial_condition)
     summary_line(io, "boundary conditions", 2*ndims(semi))
