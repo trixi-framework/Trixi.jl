@@ -70,7 +70,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
              "indicator variable" => indicator.variable,
              "max. α" => indicator.alpha_max,
              "min. α" => indicator.alpha_min,
-             "α smoothing" => (indicator.alpha_smooth ? "yes" : "no"),
+             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
             ]
     summary_box(io, "IndicatorHennemannGassner", setup)
   end
@@ -121,7 +121,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
   else
     setup = [
              "indicator variable" => indicator.variable,
-             "f_wave" => indicator.wave,
+             "f_wave" => indicator.f_wave,
             ]
     summary_box(io, "IndicatorLöhner", setup)
   end
@@ -173,4 +173,3 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
     summary_box(io, "IndicatorMax", setup)
   end
 end
-

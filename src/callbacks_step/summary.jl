@@ -27,13 +27,10 @@ function format_key_value_line(key::AbstractString, value::AbstractString, key_w
                                indentation_level=0, guide='…', filler='…', prefix="│ ", suffix=" │")
   @assert key_width < total_width
   line  = prefix
-  if indentation_level == 0
-    squeezed_key = squeeze(key, key_width, filler=filler)
-  else
-    indentation = prefix^indentation_level
-    reduced_key_width = key_width - length(indentation)
-    squeezed_key = indentation * squeeze(key, reduced_key_width, filler=filler)
-  end
+  # Indent the key as requested (or not at all if `indentation_level == 0`)
+  indentation = prefix^indentation_level
+  reduced_key_width = key_width - length(indentation)
+  squeezed_key = indentation * squeeze(key, reduced_key_width, filler=filler)
   line *= squeezed_key
   line *= ": "
   short = key_width - length(squeezed_key)
@@ -56,7 +53,7 @@ end
 format_key_value_line(key, value, args...; kwargs...) = format_key_value_line(string(key), string(value), args...; kwargs...)
 
 # Squeeze a string to fit into a maximum width by deleting characters from the center
-function squeeze(message, max_width; filler='…')
+function squeeze(message, max_width; filler::Char='…')
   @assert max_width >= 3 "squeezing works only for a minimum `max_width` of 3"
 
   length(message) <= max_width && return message

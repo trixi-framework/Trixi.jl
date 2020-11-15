@@ -21,7 +21,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
     show(io, equations)
   else
     summary_header(io, get_name(equations))
-    summary_line(io, "#variables ", nvariables(equations))
+    summary_line(io, "#variables", nvariables(equations))
     for variable in eachvariable(equations)
       summary_line(increment_indent(io),
                    "variable " * string(variable),
