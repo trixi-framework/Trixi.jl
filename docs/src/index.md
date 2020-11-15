@@ -92,6 +92,7 @@ in the Julia REPL.
 
 
 ### Example: Installing Trixi as a package
+<!-- TODO: Taal docs, create new version of this asciicast -->
 ```@raw html
   <script id="asciicast-356938"
           src="https://asciinema.org/a/356938.js"
@@ -139,10 +140,9 @@ download it to your machine, edit the configuration, and pass the file path to
 `trixi_include(...)`.
 
 ### Example: Running a simulation with Trixi
-<!-- TODO: Taal docs, create new version of this asciicast -->
 ```@raw html
-  <script id="asciicast-356942"
-          src="https://asciinema.org/a/356942.js"
+  <script id="asciicast-372987"
+          src="https://asciinema.org/a/372987.js"
           async
           data-cols=90
           data-rows=48></script>
@@ -152,7 +152,7 @@ source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
 of a Julia method is typically slow, with subsequent runs being much faster. For
 instance, in the example above the first execution of `trixi_include` takes about
-20 seconds, while subsequent runs require less than 50 *milli*seconds.
+20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
 
 ### Performing a convergence analysis
