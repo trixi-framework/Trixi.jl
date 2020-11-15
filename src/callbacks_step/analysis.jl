@@ -37,15 +37,28 @@ end
 # function Base.show(io::IO, analysis_callback::AnalysisCallback)
 # end
 function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
-  analysis_callback = cb.affect!
-  println(io, "AnalysisCallback with")
-  println(io, "- interval: ", analysis_callback.interval)
-  println(io, "- save_analysis: ", analysis_callback.save_analysis)
-  println(io, "- output_directory: ", analysis_callback.output_directory)
-  println(io, "- analysis_filename: ", analysis_callback.analysis_filename)
-  println(io, "- analyzer: ", analysis_callback.analyzer)
-  println(io, "- analysis_errors: ", analysis_callback.analysis_errors)
-  print(io,   "- analysis_integrals: ", analysis_callback.analysis_integrals)
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    analysis_callback = cb.affect!
+
+    setup = Pair{String,Any}[ 
+             "interval" => analysis_callback.interval,
+             "analyzer" => analysis_callback.analyzer,
+            ]
+    for (idx, error) in enumerate(analysis_callback.analysis_errors)
+      push!(setup, "│ error " * string(idx) => error)
+    end
+    for (idx, integral) in enumerate(analysis_callback.analysis_integrals)
+      push!(setup, "│ integral " * string(idx) => integral)
+    end
+    push!(setup, "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
+    if analysis_callback.save_analysis
+      push!(setup, "│ filename" => analysis_callback.analysis_filename)
+      push!(setup, "│ output directory" => abspath(normpath(analysis_callback.output_directory)))
+    end
+    summary_box(io, "AnalysisCallback", setup)
+  end
 end
 
 
@@ -156,16 +169,16 @@ function (analysis_callback::AnalysisCallback)(integrator)
   @timeit_debug timer() "analyze solution" begin
     # General information
     mpi_println()
-    mpi_println("-"^80)
+    mpi_println("─"^100)
     # TODO: Taal refactor, polydeg is specific to DGSEM
     mpi_println(" Simulation running '", get_name(equations), "' with polydeg = ", polydeg(solver))
-    mpi_println("-"^80)
+    mpi_println("─"^100)
     mpi_println(" #timesteps:     " * @sprintf("% 14d", iter) *
                 "               " *
                 " run time:       " * @sprintf("%10.8e s", runtime_absolute))
-    mpi_println(" dt:             " * @sprintf("%10.8e", dt) *
+    mpi_println(" Δt:             " * @sprintf("%10.8e", dt) *
                 "               " *
-                " Time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
+                " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
     mpi_println(" sim. time:      " * @sprintf("%10.8e", t))
     mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)))
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
@@ -325,7 +338,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
       end
     end # GC.@preserve du_ode
 
-    mpi_println("-"^80)
+    mpi_println("─"^100)
     mpi_println()
 
     # Add line break and close analysis file if it was opened

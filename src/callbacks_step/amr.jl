@@ -63,13 +63,22 @@ end
 #   amr_callback = cb.affect!
 #   print(io, "AMRCallback")
 # end
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
-  amr_callback = cb.affect!
-  println(io, "AMRCallback with")
-  println(io, "- controller: ", amr_callback.controller)
-  println(io, "- interval: ", amr_callback.interval)
-  println(io, "- adapt_initial_condition: ", amr_callback.adapt_initial_condition)
-  print(io,   "- adapt_initial_condition_only_refine: ", amr_callback.adapt_initial_condition_only_refine)
+function Base.show(io::IO, mime::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback}
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    amr_callback = cb.affect!
+
+    summary_header(io, "AMRCallback")
+    summary_line(io, "controller", typeof(amr_callback.controller).name)
+    show(increment_indent(io), mime, amr_callback.controller)
+    summary_line(io, "interval", amr_callback.interval)
+    summary_line(io, "adapt IC", amr_callback.adapt_initial_condition ? "yes" : "no",)
+    if amr_callback.adapt_initial_condition
+      summary_line(io, "│ only refine", amr_callback.adapt_initial_condition_only_refine ? "yes" : "no")
+    end
+    summary_footer(io)
+  end
 end
 
 
@@ -335,14 +344,20 @@ function Base.show(io::IO, controller::ControllerThreeLevel)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevel)
-  println(io, "ControllerThreeLevel with")
-  println(io, "- ", controller.indicator)
-  println(io, "- base_level: ", controller.base_level)
-  println(io, "- med_level:  ", controller.med_level)
-  println(io, "- max_level:  ", controller.max_level)
-  println(io, "- med_threshold: ", controller.med_threshold)
-  print(io,   "- max_threshold: ", controller.max_threshold)
+function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLevel)
+  if get(io, :compact, false)
+    show(io, controller)
+  else
+    summary_header(io, "ControllerThreeLevel")
+    summary_line(io, "indicator", typeof(controller.indicator).name)
+    show(increment_indent(io), mime, controller.indicator)
+    summary_line(io, "base_level", controller.base_level)
+    summary_line(io, "med_level", controller.med_level)
+    summary_line(io, "max_level", controller.max_level)
+    summary_line(io, "med_threshold", controller.med_threshold)
+    summary_line(io, "max_threshold", controller.max_threshold)
+    summary_footer(io)
+  end
 end
 
 
@@ -459,16 +474,23 @@ function Base.show(io::IO, controller::ControllerThreeLevelCombined)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", controller::ControllerThreeLevelCombined)
-  println(io, "ControllerThreeLevelCombined with")
-  println(io, "- ", controller.indicator_primary)
-  println(io, "- ", controller.indicator_secondary)
-  println(io, "- base_level: ", controller.base_level)
-  println(io, "- med_level:  ", controller.med_level)
-  println(io, "- max_level:  ", controller.max_level)
-  println(io, "- med_threshold: ", controller.med_threshold)
-  println(io, "- max_threshold: ", controller.max_threshold)
-  print(io,   "- max_threshold_secondary: ", controller.max_threshold_secondary)
+function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLevelCombined)
+  if get(io, :compact, false)
+    show(io, controller)
+  else
+    summary_header(io, "ControllerThreeLevelCombined")
+    summary_line(io, "primary indicator", typeof(controller.indicator_primary).name)
+    show(increment_indent(io), mime, controller.indicator_primary)
+    summary_line(io, "secondary indicator", typeof(controller.indicator_secondary).name)
+    show(increment_indent(io), mime, controller.indicator_secondary)
+    summary_line(io, "base_level", controller.base_level)
+    summary_line(io, "med_level", controller.med_level)
+    summary_line(io, "max_level", controller.max_level)
+    summary_line(io, "med_threshold", controller.med_threshold)
+    summary_line(io, "max_threshold", controller.max_threshold)
+    summary_line(io, "max_threshold_secondary", controller.max_threshold_secondary)
+    summary_footer(io)
+  end
 end
 
 

@@ -15,9 +15,19 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   @unpack cfl_number = stepsize_callback
   print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
 end
-# TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    stepsize_callback = cb.affect!
+
+    setup = [ 
+             "CFL number" => stepsize_callback.cfl_number,
+            ]
+    summary_box(io, "StepsizeCallback", setup)
+  end
+end
 
 
 function StepsizeCallback(; cfl::Real=1.0)

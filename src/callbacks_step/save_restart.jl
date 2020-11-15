@@ -17,9 +17,21 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   restart_callback = cb.affect!
   print(io, "SaveRestartCallback(interval=", restart_callback.interval, ")")
 end
-# TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveRestartCallback}
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveRestartCallback}
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    save_restart_callback = cb.affect!
+
+    setup = [ 
+             "interval" => save_restart_callback.interval,
+             "save final solution" => save_restart_callback.save_final_restart ? "yes" : "no",
+             "output directory" => abspath(normpath(save_restart_callback.output_directory)),
+            ]
+    summary_box(io, "SaveRestartCallback", setup)
+  end
+end
 
 
 function SaveRestartCallback(; interval=0,

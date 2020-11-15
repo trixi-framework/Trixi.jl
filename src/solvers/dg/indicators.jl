@@ -63,14 +63,16 @@ function Base.show(io::IO, indicator::IndicatorHennemannGassner)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
-  println(io, "IndicatorHennemannGassner(")
-  println(io, "- ", indicator.variable)
-  println(io, "- alpha_max:    ", indicator.alpha_max)
-  println(io, "- alpha_min:    ", indicator.alpha_min)
-  println(io, "- alpha_smooth: ", indicator.alpha_smooth)
-  print(io,   "- cache with fields:")
-  for key in keys(indicator.cache)
-    print(io, " ", key)
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = [
+             "indicator variable" => indicator.variable,
+             "max. α" => indicator.alpha_max,
+             "min. α" => indicator.alpha_min,
+             "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+            ]
+    summary_box(io, "IndicatorHennemannGassner", setup)
   end
 end
 
@@ -112,11 +114,18 @@ function Base.show(io::IO, indicator::IndicatorLöhner)
   print(io, "IndicatorLöhner(")
   print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
-#   println(io, "IndicatorLöhner with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = [
+             "indicator variable" => indicator.variable,
+             "f_wave" => indicator.f_wave,
+            ]
+    summary_box(io, "IndicatorLöhner", setup)
+  end
+end
 
 const IndicatorLoehner = IndicatorLöhner
 
@@ -153,9 +162,14 @@ function Base.show(io::IO, indicator::IndicatorMax)
   print(io, "IndicatorMax(")
   print(io, "variable=", indicator.variable, ")")
 end
-# TODO: Taal bikeshedding, implement a method with extended information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
-#   println(io, "IndicatorMax with")
-#   println(io, "- indicator: ", indicator.indicator)
-# end
 
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
+  if get(io, :compact, false)
+    show(io, indicator)
+  else
+    setup = [
+             "indicator variable" => indicator.variable,
+            ]
+    summary_box(io, "IndicatorMax", setup)
+  end
+end

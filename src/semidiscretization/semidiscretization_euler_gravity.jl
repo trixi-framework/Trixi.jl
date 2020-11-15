@@ -38,12 +38,18 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
   print(io, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
-  println(io, "ParametersEulerGravity using")
-  println(io, "- background_density:     ", parameters.background_density)
-  println(io, "- gravitational_constant: ", parameters.gravitational_constant)
-  println(io, "- cfl (gravity):    ", parameters.cfl)
-  println(io, "- n_iterations_max: ", parameters.n_iterations_max)
-  print(io,   "- timestep_gravity: ", parameters.timestep_gravity)
+  if get(io, :compact, false)
+    show(io, parameters)
+  else
+    setup = [ 
+             "background density (ρ₀)" => parameters.background_density,
+             "gravitational constant (G)" => parameters.gravitational_constant,
+             "CFL (gravity)" => parameters.cfl,
+             "max. #iterations" => parameters.n_iterations_max,
+             "time integrator" => parameters.timestep_gravity,
+            ]
+    summary_box(io, "ParametersEulerGravity", setup)
+  end
 end
 
 
@@ -116,13 +122,17 @@ function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
-  println(io, "SemidiscretizationEulerGravity using")
-  print(io, "  "); show(io, mime, semi.semi_euler); println()
-  print(io, "  "); show(io, mime, semi.semi_gravity); println()
-  print(io, "  "); show(io, mime, semi.parameters); println()
-  print(io, "  cache with fields:")
-  for key in keys(semi.cache)
-    print(io, " ", key)
+  if get(io, :compact, false)
+    show(io, semi)
+  else
+    summary_header(io, "SemidiscretizationEulerGravity")
+    summary_line(io, "semidiscretization Euler", typeof(semi.semi_euler).name)
+    show(increment_indent(io), mime, semi.semi_euler)
+    summary_line(io, "semidiscretization gravity", typeof(semi.semi_gravity).name)
+    show(increment_indent(io), mime, semi.semi_gravity)
+    summary_line(io, "parameters", typeof(semi.parameters).name)
+    show(increment_indent(io), mime, semi.parameters)
+    summary_footer(io)
   end
 end
 

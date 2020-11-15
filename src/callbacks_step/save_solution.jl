@@ -23,9 +23,23 @@ function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condi
   save_solution_callback = cb.affect!
   print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval, ")")
 end
-# TODO: Taal bikeshedding, implement a method with more information and the signature
-# function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
-# end
+
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
+  if get(io, :compact, false)
+    show(io, cb)
+  else
+    save_solution_callback = cb.affect!
+
+    setup = [ 
+             "interval" => save_solution_callback.interval,
+             "solution variables" => save_solution_callback.solution_variables,
+             "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
+             "save final solution" => save_solution_callback.save_final_solution ? "yes" : "no",
+             "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            ]
+    summary_box(io, "SaveSolutionCallback", setup)
+  end
+end
 
 
 function SaveSolutionCallback(; interval=0,

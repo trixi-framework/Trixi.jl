@@ -93,18 +93,37 @@ function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
-  println(io, "SemidiscretizationHyperbolic using")
-  println(io, "- ", semi.mesh)
-  println(io, "- ", semi.equations)
-  println(io, "- ", semi.initial_condition)
-  println(io, "- ", semi.boundary_conditions)
-  println(io, "- ", semi.source_terms)
-  println(io, "- ", semi.solver)
-  print(io, "- cache with fields:")
-  for key in keys(semi.cache)
-    print(io, " ", key)
+  if get(io, :compact, false)
+    show(io, semi)
+  else
+    summary_header(io, "SemidiscretizationHyperbolic")
+    summary_line(io, "#spatial dimensions", ndims(semi.equations))
+    summary_line(io, "mesh", semi.mesh)
+    summary_line(io, "equations", typeof(semi.equations).name)
+    summary_line(io, "initial condition", semi.initial_condition)
+    summary_line(io, "boundary conditions", 2*ndims(semi))
+    if (semi.boundary_conditions isa Tuple ||
+        semi.boundary_conditions isa NamedTuple ||
+        semi.boundary_conditions isa AbstractArray)
+      bcs = semi.boundary_conditions
+    else
+      bcs = collect(semi.boundary_conditions for _ in 1:(2*ndims(semi)))
+    end
+    summary_line(increment_indent(io), "negative x", bcs[1])
+    summary_line(increment_indent(io), "positive x", bcs[2])
+    if ndims(semi) > 1
+      summary_line(increment_indent(io), "negative y", bcs[3])
+      summary_line(increment_indent(io), "positive y", bcs[4])
+    end
+    if ndims(semi) > 2
+      summary_line(increment_indent(io), "negative z", bcs[5])
+      summary_line(increment_indent(io), "positive z", bcs[6])
+    end
+    summary_line(io, "source terms", semi.source_terms)
+    summary_line(io, "solver", typeof(semi.solver).name)
+    summary_line(io, "total #DOFs", ndofs(semi))
+    summary_footer(io)
   end
-  print(io, "\nTotal number of degrees of freedom: ", ndofs(semi))
 end
 
 
