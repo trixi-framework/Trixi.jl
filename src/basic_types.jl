@@ -47,6 +47,4 @@ A singleton struct indicating periodic boundary conditions.
 """
 const boundary_condition_periodic = BoundaryConditionPeriodic()
 
-function Base.show(io::IO, ::BoundaryConditionPeriodic)
-  print(io, "BoundaryConditionPeriodic()")
-end
+Base.show(io::IO, ::BoundaryConditionPeriodic) = print(io, "boundary_condition_periodic")
