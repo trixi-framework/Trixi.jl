@@ -21,22 +21,22 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       linf = [0.0014520752637396939])
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_sin" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_sin" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.002727293067654415],
       linf = [0.024833049753677727],
       initial_condition=Trixi.initial_condition_sin)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_constant" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [7.033186506921888e-16],
       linf = [2.6645352591003757e-15],
       initial_condition=initial_condition_constant)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_linear_z and periodicity=false" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_linear_z and periodicity=false" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [5.887699520794518e-16],
       linf = [6.217248937900877e-15],
       initial_condition=Trixi.initial_condition_linear_z,

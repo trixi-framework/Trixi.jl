@@ -5,11 +5,11 @@ using Trixi
 ###############################################################################
 # create a restart file
 
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_basic.jl"))
+trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"))
 
 
 ###############################################################################
-# adapt the parameters that have changed compared to "elixir_advection_basic.jl"
+# adapt the parameters that have changed compared to "elixir_advection_extended.jl"
 
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file

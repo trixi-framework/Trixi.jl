@@ -36,24 +36,24 @@ end
 @testset "Tests for initial conditions" begin
   # TODO Taal: create separate elixirs for ICs/BCs to keep `basic` simple
   # Linear scalar advection
-  @testset "elixir_advection_basic.jl with initial_condition_sin_sin" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_sin_sin" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.0001424424872539405],
       linf = [0.0007260692243253875],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_sin_sin)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_constant" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [3.2933000250376106e-16],
       linf = [6.661338147750939e-16],
       maxiters = 1,
       initial_condition = initial_condition_constant)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_linear_x_y" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_linear_x_y" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [2.478798286796091e-16],
       linf = [7.105427357601002e-15],
       maxiters = 1,
@@ -62,8 +62,8 @@ end
       periodicity=false)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_linear_x" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [1.475643203742897e-16],
       linf = [1.5543122344752192e-15],
       maxiters = 1,
@@ -72,8 +72,8 @@ end
       periodicity=false)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_linear_y" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_linear_y" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [1.5465148503676022e-16],
       linf = [3.6637359812630166e-15],
       maxiters = 1,
