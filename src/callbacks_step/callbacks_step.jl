@@ -45,4 +45,6 @@ include("save_solution.jl")
 include("amr.jl")
 include("stepsize.jl")
 
+# The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
+# when using `trixi_include` or `test_trixi_include`
 include("trivial.jl")
