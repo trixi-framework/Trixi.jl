@@ -52,16 +52,20 @@ with Julia v1.5.
 
 ### For users
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
-can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
-the following commands in the Julia REPL:
+can install Trixi, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
+and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl), and the
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package by
+executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img"); Pkg.add("OrdinaryDiffEq")
 ```
 Note that you can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
+The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+provides time integration schemes used by Trixi.
 
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
@@ -71,6 +75,7 @@ git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
 julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")' # Install postprocessing tools
+julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
 flag set to your local Trixi clone, e.g.,
@@ -119,7 +124,7 @@ source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
 of a Julia method is typically slow, with subsequent runs being much faster. For
 instance, in the example above the first execution of `trixi_include` takes about
-20 seconds, while subsequent runs require less than 50 *milli*seconds.
+20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
 
 ## Documentation

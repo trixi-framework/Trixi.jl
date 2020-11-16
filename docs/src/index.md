@@ -38,16 +38,20 @@ with Julia v1.5.
 
 ### For users
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
-can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
-the following commands in the Julia REPL:
+can install Trixi, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
+and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl), and the
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package by
+executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img"); Pkg.add("OrdinaryDiffEq")
 ```
 Note that you can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
+The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+provides time integration schemes used by Trixi.
 
 ### [For developers](@id for-developers)
 If you plan on editing Trixi itself, you have two options: installing it as a
@@ -87,7 +91,14 @@ julia> import Pkg
 
 julia> Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
 ```
-in the Julia REPL.
+in the Julia REPL. Likewise, you can install
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+as an ordinary package with the following REPL commands:
+```julia
+julia> import Pkg
+
+julia> Pkg.add("OrdinaryDiffEq")
+```
 
 
 
