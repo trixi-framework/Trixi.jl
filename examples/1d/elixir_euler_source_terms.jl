@@ -47,9 +47,10 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_errors=(:l2_error_primitive,
                                                             :linf_error_primitive))
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
-                        analysis_callback, alive_callback)
+                        stepsize_callback)
 
 
 ###############################################################################

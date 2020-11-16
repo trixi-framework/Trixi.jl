@@ -55,10 +55,10 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
-# TODO: Taal decide, first AMR or save solution etc.
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
-                        analysis_callback, alive_callback);
+                        amr_callback, stepsize_callback)
 
 
 ###############################################################################
