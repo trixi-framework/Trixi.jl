@@ -15,8 +15,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [6.437440532947036e-5])
   end
 
-  @testset "elixir_advection_basic.jl with polydeg=1" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with polydeg=1" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.052738240907090894],
       linf = [0.08754218386076529],
       polydeg=1)

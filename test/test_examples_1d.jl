@@ -27,25 +27,25 @@ end
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
   # Linear scalar advection
-  @testset "elixir_advection_basic.jl with initial_condition_sin" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_sin" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [0.00017373554109980247],
       linf = [0.0006021275678165239],
       maxiters = 1,
       initial_condition = Trixi.initial_condition_sin)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_constant" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_constant" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [2.441369287653687e-16],
       linf = [4.440892098500626e-16],
       maxiters = 1,
       initial_condition = initial_condition_constant)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_linear_x" begin
+  @testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
     # TODO Taal: create separate `*_linear_x.jl` elixir to keep `basic` simple
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [1.9882464973192864e-16],
       linf = [1.4432899320127035e-15],
       maxiters = 1,
@@ -54,8 +54,8 @@ end
       periodicity=false)
   end
 
-  @testset "elixir_advection_basic.jl with initial_condition_convergence_test" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+  @testset "elixir_advection_extended.jl with initial_condition_convergence_test" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [6.1803596620800215e-6],
       linf = [2.4858560899509996e-5],
       maxiters = 1,
