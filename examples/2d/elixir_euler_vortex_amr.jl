@@ -89,6 +89,20 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 200
+
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
+                                     extra_analysis_errors=(:conservation_error,),
+                                     extra_analysis_integrals=(entropy, energy_total,
+                                                               energy_kinetic, energy_internal))
+
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+
+save_solution = SaveSolutionCallback(interval=50,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
+
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorVortex(semi),
                                       base_level=3,
                                       med_level=4, med_threshold=-3.0,
@@ -100,23 +114,10 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl=1.1)
 
-save_solution = SaveSolutionCallback(interval=50,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=:primitive)
-
-analysis_interval = 200
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
-                                     extra_analysis_errors=(:conservation_error,),
-                                     extra_analysis_integrals=(entropy, energy_total,
-                                                               energy_kinetic, energy_internal))
-
-# TODO: Taal decide, first AMR or save solution etc.
-callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback, 
                         save_solution,
-                        analysis_callback, alive_callback)
+                        amr_callback, stepsize_callback)
 
 
 ###############################################################################
