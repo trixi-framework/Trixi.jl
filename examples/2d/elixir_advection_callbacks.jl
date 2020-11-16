@@ -9,11 +9,11 @@ module TrixiExtensionExample
 using Trixi
 using DiffEqCallbacks: DiscreteCallback, u_modified!
 
-# This is an example implementation for a simple limiter # (i.e., a callable
-# that is executed after each Runge-Kutta stage), which records some values
+# This is an example implementation for a simple stage callback (i.e., a callable
+# that is executed after each Runge-Kutta *stage*), which records some values
 # each time it is called. Its sole purpose here is to showcase how to implement
-# a limiter-like functionality for Trixi.
-struct ExampleLimiter
+# a stage callback for Trixi.
+struct ExampleStageCallback
   times::Vector{Float64}
   min_values::Vector{Float64}
   max_values::Vector{Float64}
@@ -21,30 +21,30 @@ struct ExampleLimiter
   # You can optionally define an inner constructor like the one below to set up
   # some required stuff. You can also create outer constructors (not demonstrated
   # here) for further customization options.
-  function ExampleLimiter()
+  function ExampleStageCallback()
     new(Float64[], Float64[], Float64[])
   end
 end
 
-# This method is called when the `ExampleLimiter` is used as `stage_limiter!`
+# This method is called when the `ExampleStageCallback` is used as `stage_limiter!`
 # which gets called after every RK stage. There is no specific initialization
 # method for such `stage_limiter!`s in OrdinaryDiffEq.jl.
-function (example_limiter::ExampleLimiter)(u_ode::AbstractVector, _, semi, t)
+function (example_stage_callback::ExampleStageCallback)(u_ode::AbstractVector, _, semi, t)
 
   min_val, max_val = extrema(u_ode)
-  push!(example_limiter.times, t)
-  push!(example_limiter.min_values, min_val)
-  push!(example_limiter.max_values, max_val)
+  push!(example_stage_callback.times, t)
+  push!(example_stage_callback.min_values, min_val)
+  push!(example_stage_callback.max_values, max_val)
 
   return nothing
 end
 
 
-# This is an example implementation for a simple callback (i.e., a callable
-# that is potentially executed after each Runge-Kutta step), which records
+# This is an example implementation for a simple step callback (i.e., a callable
+# that is potentially executed after each Runge-Kutta *step*), which records
 # some values each time it is called. Its sole purpose here is to showcase
-# how to implement a callback for Trixi.
-struct ExampleCallback
+# how to implement a step callback for Trixi.
+struct ExampleStepCallback
   message::String
   times::Vector{Float64}
   min_values::Vector{Float64}
@@ -53,14 +53,14 @@ struct ExampleCallback
   # You can optionally define an inner constructor like the one below to set up
   # some required stuff. You can also create outer constructors (not demonstrated
   # here) for further customization options.
-  function ExampleCallback(message::String)
+  function ExampleStepCallback(message::String)
     new(message, Float64[], Float64[], Float64[])
   end
 end
 
-# This method is called when the `ExampleCallback` is used as callback
+# This method is called when the `ExampleStepCallback` is used as callback
 # which gets called after RK steps.
-function (example_callback::ExampleCallback)(integrator)
+function (example_callback::ExampleStepCallback)(integrator)
   u_ode = integrator.u
   t = integrator.t
   # You can also access semi = integrator.p
@@ -75,18 +75,18 @@ function (example_callback::ExampleCallback)(integrator)
   return nothing
 end
 
-# This method is used to wrap an `ExampleCallback` inside a `DiscreteCallback`
+# This method is used to wrap an `ExampleStepCallback` inside a `DiscreteCallback`
 # which gets called after every RK step. You can pass an additional initialization
 # method and a separate condition specifying whether the callback shall be called.
-function ExampleCallback(; message::String)
-  # Call the `ExampleCallback` after every RK step.
+function ExampleStepCallback(; message::String)
+  # Call the `ExampleStepCallback` after every RK step.
   condition = (u_ode, t, integrator) -> true
 
   # You can optionally pass an initialization method. There, you can access the
-  # `ExampleCallback` as `cb.affect!`.
+  # `ExampleStepCallback` as `cb.affect!`.
   initialize = (cb, u_ode, t, integrator) -> println(cb.affect!.message)
 
-  example_callback = ExampleCallback(message)
+  example_callback = ExampleStepCallback(message)
 
   DiscreteCallback(condition, example_callback,
                    save_positions=(false,false),
@@ -134,7 +134,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:conservative)
 
-example_callback = TrixiExtensionExample.ExampleCallback(message="안녕하세요?")
+example_callback = TrixiExtensionExample.ExampleStepCallback(message="안녕하세요?")
 
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -154,9 +154,9 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 # value but before evaluating the corresponding stage derivatives.
 # Hence, if a limiter should be called before each RHS evaluation, it needs to be
 # set both as `stage_limiter!` and as `step_limiter!`.
-example_limiter! = TrixiExtensionExample.ExampleLimiter()
-stage_limiter! = example_limiter!
-step_limiter!  = example_limiter!
+example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
+stage_limiter! = example_stage_callback!
+step_limiter!  = example_stage_callback!
 
 ###############################################################################
 # run the simulation
@@ -168,6 +168,6 @@ summary_callback() # print the timer summary
 
 # Check whether we recorded the same values.
 # Remember that CarpenterKennedy2N54 has five stages per step.
-@assert example_limiter!.times[5:5:end] ≈ example_callback.affect!.times
-@assert example_limiter!.min_values[5:5:end] ≈ example_callback.affect!.min_values
-@assert example_limiter!.max_values[5:5:end] ≈ example_callback.affect!.max_values
+@assert example_stage_callback!.times[5:5:end] ≈ example_callback.affect!.times
+@assert example_stage_callback!.min_values[5:5:end] ≈ example_callback.affect!.min_values
+@assert example_stage_callback!.max_values[5:5:end] ≈ example_callback.affect!.max_values
