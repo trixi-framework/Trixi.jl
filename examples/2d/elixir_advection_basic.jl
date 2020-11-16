@@ -8,28 +8,24 @@ using Trixi
 advectionvelocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-solver = DGSEM(3,                   # polynomial degree
-               flux_lax_friedrichs) # surface flux function
+# Create DG solver with polynomial degree 3 and the Lax-Friedrichs surface flux
+solver = DGSEM(3, flux_lax_friedrichs)
 
-coordinates_min = 
-coordinates_max = 
-mesh = TreeMesh((-1, -1), # minimum coordinates (min(x), min(y))
-                ( 1,  1), # maximum coordinates (max(x), max(y))
+coordinates_min = (-1, -1)
+coordinates_max = ( 1,  1)
+mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh,
-                                    equations,
-                                    initial_condition_convergence_test, # initial condition function
-                                    solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+# Create ODE problem with time span from 0.0 to 1.0
+ode = semidiscretize(semi, (0.0, 1.0));
 
 summary_callback = SummaryCallback()
 
