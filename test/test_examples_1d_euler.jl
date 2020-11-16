@@ -91,7 +91,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       l2   = [1.2983852642398792, 0.07961334122389492, 0.9270679298118678],
       linf = [3.185530212032373, 0.2136435252219927, 2.6651572539845736],
       shock_indicator_variable = pressure,
-      rtol = 200*sqrt(eps()))
+      rtol = 2000*sqrt(eps()))
   end
 
   @testset "elixir_euler_sedov_blast_wave.jl with density" begin
@@ -100,7 +100,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [3.1132929378257703, 0.17699767997572083, 2.66685149106963],
       shock_indicator_variable = density,
       cfl = 0.5,
-      rtol = 200*sqrt(eps()))
+      rtol = 2000*sqrt(eps()))
   end
 
   @testset "elixir_euler_blast_wave.jl" begin
