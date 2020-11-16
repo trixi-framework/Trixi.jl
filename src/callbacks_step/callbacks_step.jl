@@ -24,14 +24,25 @@ end
 
 
 # `include` callback definitions in the order that we currently prefer
-# when combining them into a `CallbackSet` which is called after a complete step
+# when combining them into a `CallbackSet` which is called *after* a complete step
+# The motivation is as follows:
+# * `SummaryCallback` controls, among other things, timers and should thus be first
+# * `SteadyStateCallback` may mark a time step as the last step, which is needed by other callbacks
+# * `AnalysisCallback` may also do some checks that mark a step as the last one
+# * `AliveCallback` belongs to `AnalysisCallback` and should thus be nearby
+# * `SaveRestartCallback`/`SaveSolutionCallback` should save the current solution state before it is
+#   potentially degraded by AMR
+# * `AMRCallback` really belongs to the next time step already, as it should be the "first" callback
+#   in a time step loop (however, callbacks are always executed *after* a step, thus it comes near
+#   the end here)
+# * `StepsizeCallback` must come after AMR to accomodate potential changes in the minimum cell size
 include("summary.jl")
 include("steady_state.jl")
-include("amr.jl")
-include("stepsize.jl")
-include("save_restart.jl")
-include("save_solution.jl")
 include("analysis.jl")
 include("alive.jl")
+include("save_restart.jl")
+include("save_solution.jl")
+include("amr.jl")
+include("stepsize.jl")
 
 include("trivial.jl")
