@@ -31,6 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy,))
 
@@ -55,9 +56,6 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 stepsize_callback = StepsizeCallback(cfl=1.2)
 
-analysis_interval = 100
-
-# TODO: Taal decide, first AMR or save solution etc.
 callbacks = CallbackSet(summary_callback, 
                         analysis_callback, 
                         alive_callback,

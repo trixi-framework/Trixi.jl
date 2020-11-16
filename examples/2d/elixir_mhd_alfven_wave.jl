@@ -31,6 +31,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_analysis=true,
                                      extra_analysis_integrals=(entropy, energy_total,
                                                                energy_kinetic, energy_internal,
@@ -42,8 +43,6 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
-
-analysis_interval = 100
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 

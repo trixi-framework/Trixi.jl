@@ -51,6 +51,7 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi_euler, interval=analysis_interval,
                                      save_analysis=true)
 
@@ -65,8 +66,6 @@ save_solution = SaveSolutionCallback(interval=10,
                                    solution_variables=:primitive)
 
 stepsize_callback = StepsizeCallback(cfl=1.1)
-
-analysis_interval = 100
 
 callbacks = CallbackSet(summary_callback, 
                         analysis_callback, 

@@ -34,7 +34,6 @@ end
 
 # Coverage test for all initial conditions
 @testset "Tests for initial conditions" begin
-  # TODO Taal: create separate elixirs for ICs/BCs to keep `basic` simple
   # Linear scalar advection
   @testset "elixir_advection_extended.jl with initial_condition_sin_sin" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),

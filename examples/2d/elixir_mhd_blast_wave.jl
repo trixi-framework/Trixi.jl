@@ -40,6 +40,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
@@ -63,8 +64,6 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=0.3)
-
-analysis_interval = 100
 
 callbacks = CallbackSet(summary_callback, 
                         analysis_callback, 
