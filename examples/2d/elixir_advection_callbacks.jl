@@ -141,10 +141,11 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_integrals=(entropy, energy_total))
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback, 
                         save_solution,
                         example_callback,
-                        analysis_callback, alive_callback)
+                        stepsize_callback)
 
 # In OrdinaryDiffEq.jl, the `step_limiter!` is called after every Runge-Kutta step
 # but before possible RHS evaluations of the new value occur. Hence, it's possible
