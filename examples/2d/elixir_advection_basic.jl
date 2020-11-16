@@ -8,11 +8,11 @@ using Trixi
 advectionvelocity = (1.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-# Create DG solver with polynomial degree 3 and the Lax-Friedrichs surface flux
+# Create DG solver with polynomial degree = 3 and Lax-Friedrichs flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
-coordinates_min = (-1, -1)
-coordinates_max = ( 1,  1)
+coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000)

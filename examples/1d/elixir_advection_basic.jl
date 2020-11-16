@@ -8,56 +8,35 @@ using Trixi
 advectionvelocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advectionvelocity)
 
-initial_condition = initial_condition_convergence_test
+# Create DG solver with polynomial degree = 3 and Lax-Friedrichs flux as surface flux
+solver = DGSEM(3, flux_lax_friedrichs)
 
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
-boundary_conditions = boundary_condition_periodic
-
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
-
-coordinates_min = (-1,)
-coordinates_max = ( 1,)
+coordinates_min = -1 # minimum coordinate 
+coordinates_max =  1 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=30_000,
-                periodicity=true)
+                n_cells_max=30_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_conditions)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+# Create ODE problem with time span from 0.0 to 1.0
+ode = semidiscretize(semi, (0.0, 1.0));
 
 summary_callback = SummaryCallback()
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=:conservative)
+                                     solution_variables=:primitive)
 
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
+analysis_callback = AnalysisCallback(semi, interval=100)
 
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
-
-callbacks = CallbackSet(summary_callback, stepsize_callback,
-                        save_restart, save_solution,
-                        analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback)
 
 
 ###############################################################################
@@ -65,5 +44,5 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
