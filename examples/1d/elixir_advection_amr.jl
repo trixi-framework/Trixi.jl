@@ -31,6 +31,19 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy,))
+
+save_solution = SaveSolutionCallback(interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
+
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       base_level=4,
                                       med_level=5, med_threshold=0.1,
@@ -41,19 +54,6 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine=true)
 
 stepsize_callback = StepsizeCallback(cfl=1.6)
-
-save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=:primitive)
-
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
-
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy,))
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
