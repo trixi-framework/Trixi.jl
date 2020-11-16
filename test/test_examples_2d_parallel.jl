@@ -75,7 +75,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_nonperiodic.jl"),
       l2   = [2.3652137675654753e-6, 2.1386731303685556e-6, 2.138673130413185e-6, 6.009920290578574e-6],
       linf = [1.4080448659026246e-5, 1.7581818010814487e-5, 1.758181801525538e-5, 5.9568540361709665e-5],
-      rtol = 2000*sqrt(eps()))
+      rtol = 0.0002)
   end
 
   @testset "elixir_euler_ec.jl" begin
@@ -88,14 +88,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex.jl"),
       l2   = [3.6342636871275523e-6, 0.0032111366825032443, 0.0032111479254594345, 0.004545714785045611],
       linf = [7.903587114788113e-5, 0.030561314311228993, 0.030502600162385596, 0.042876297246817074],
-      rtol = 2000*sqrt(eps()))
+      rtol = 0.0002)
   end
 
   @testset "elixir_euler_vortex_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_shockcapturing.jl"),
       l2   = [3.80342739421474e-6, 5.561118953968859e-5, 5.564042529709319e-5, 0.0001570628548096201],
       linf = [8.491382365727329e-5, 0.0009602965158113097, 0.0009669978616948516, 0.0030750353269972663],
-      rtol = 2000*sqrt(eps()))
+      rtol = 0.0002)
   end
 end
 
