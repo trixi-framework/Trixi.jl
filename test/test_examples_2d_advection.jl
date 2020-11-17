@@ -48,30 +48,31 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
   @testset "elixir_advection_timeintegration.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [9.144681778837444e-6],
-      linf = [6.437440532436334e-5])
+      l2   = [0.005575819174358793],
+      linf = [0.030180876541832102])
   end
 
   @testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [8.90896259060052e-6],
-      linf = [6.969419032576418e-5],
+      l2   = [0.00567625639783006],
+      linf = [0.02989004624813346],
       ode_algorithm=Trixi.CarpenterKennedy2N43(),
       cfl = 1.0)
   end
 
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [7.932405176905278e-6],
-      linf = [6.509399993848142e-5],
+      l2   = [0.005573040696209662],
+      linf = [0.030176768981231283],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar94())
   end
 
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
-      l2   = [0.004405427606459577],
-      linf = [0.012549162970726613],
-      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32())
+      l2   = [0.005563707516447738],
+      linf = [0.02964401754871232],
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
+      cfl = 1.0)
   end
 
   @testset "elixir_advection_callbacks.jl" begin
