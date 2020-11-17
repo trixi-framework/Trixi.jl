@@ -102,8 +102,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       # minor versions of Julia.
       # See https://github.com/trixi-framework/Trixi.jl/issues/232#issuecomment-709738400
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
-        l2   = [0.0016547879036312315, 0.0023815990489650233, 0.0013738124611069249, 0.0031578210702852003],
-        linf = [0.022466749278200915, 0.016671527732386116, 0.007178033902807723, 0.015014697702609325],
+        l2   = [0.0015773943210539198, 0.0023012411276933705, 0.0013793453564426015, 0.003239622733845669],
+        linf = [0.025791632274568155, 0.015170620391733003, 0.00958159135384009, 0.013265593557157729],
         tspan = (0.0, 0.2))
     else
       @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_kelvin_helmholtz_instability_amr.jl"),
