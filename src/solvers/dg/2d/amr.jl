@@ -126,21 +126,46 @@ function coarsen!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg.elements))
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_remove = searchsortedfirst.(Ref(dg.elements.cell_ids[1:nelements(dg.elements)]),
-                                          child_cells_to_coarsen)
+
+  # Find all indices of elements whose cell ids are in child_cells_to_coarsen
+  elements_to_remove = findall(cell_id -> cell_id in child_cells_to_coarsen, dg.elements.cell_ids)
+
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
   old_n_elements = nelements(dg.elements)
   old_u = dg.elements.u
 
-  # Get new list of leaf cells
-  leaf_cell_ids = leaf_cells(mesh.tree)
+  (elements, n_elements, interfaces, n_interfaces, mpi_interfaces, n_mpi_interfaces,
+  boundaries, n_boundaries, n_boundaries_per_direction, mortar_type, l2mortars, 
+  ecmortars, n_l2mortars, n_ecmortars, mpi_neighbor_ranks, 
+  mpi_neighbor_interfaces, mpi_send_buffers, mpi_recv_buffers, 
+  mpi_send_requests, mpi_recv_requests, n_elements_by_rank, n_elements_global, 
+  first_element_global_id) = initialize_containers(mesh, ndims(dg), NVARS, POLYDEG)
 
-  # Initialize new elements container
-  elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
-  n_elements = nelements(elements)
+  # Update DG instance with new data
+  dg.elements = elements
+  dg.n_elements = n_elements
+  dg.interfaces = interfaces
+  dg.n_interfaces = n_interfaces
+  dg.mpi_interfaces = mpi_interfaces
+  dg.n_mpi_interfaces = n_mpi_interfaces
+  dg.boundaries = boundaries
+  dg.n_boundaries = n_boundaries
+  dg.n_boundaries_per_direction = n_boundaries_per_direction
+  dg.l2mortars = l2mortars
+  dg.n_l2mortars = n_l2mortars
+  dg.ecmortars = ecmortars
+  dg.n_ecmortars = n_ecmortars
+  dg.mpi_neighbor_ranks = mpi_neighbor_ranks
+  dg.mpi_neighbor_interfaces = mpi_neighbor_interfaces
+  dg.mpi_send_buffers = mpi_send_buffers
+  dg.mpi_recv_buffers = mpi_recv_buffers
+  dg.mpi_send_requests = mpi_send_requests
+  dg.mpi_recv_requests = mpi_recv_requests
+  dg.n_elements_by_rank = n_elements_by_rank
+  dg.n_elements_global = n_elements_global
+  dg.first_element_global_id = first_element_global_id
 
   # Loop over all elements in old container and either copy them or coarsen them
   skip = 0
@@ -169,38 +194,6 @@ function coarsen!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
       element_id += 1
     end
   end
-
-  # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
-  n_interfaces = ninterfaces(interfaces)
-
-  # Initialize boundaries
-  boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
-  n_boundaries = nboundaries(boundaries)
-
-  # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type)
-  n_l2mortars = nmortars(l2mortars)
-  n_ecmortars = nmortars(ecmortars)
-
-  # Sanity check
-  if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
-    @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
-                                        * "n_surf must be the same as 2*n_elem")
-  end
-
-  # Update DG instance with new data
-  dg.elements = elements
-  dg.n_elements = n_elements
-  dg.interfaces = interfaces
-  dg.n_interfaces = n_interfaces
-  dg.boundaries = boundaries
-  dg.n_boundaries = n_boundaries
-  dg.n_boundaries_per_direction = n_boundaries_per_direction
-  dg.l2mortars = l2mortars
-  dg.n_l2mortars = n_l2mortars
-  dg.ecmortars = ecmortars
-  dg.n_ecmortars = n_ecmortars
 end
 
 
