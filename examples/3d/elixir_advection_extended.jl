@@ -18,7 +18,7 @@ initial_condition = initial_condition_convergence_test
 #       fully periodic domains. Here, however, it is included to allow easy override during testing
 boundary_conditions = boundary_condition_periodic
 
-# Create DG solver with polynomial degree = 3 and Lax-Friedrichs flux as surface flux
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 surface_flux = flux_lax_friedrichs
 polydeg = 3
 solver = DGSEM(polydeg, surface_flux)
