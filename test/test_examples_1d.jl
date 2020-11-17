@@ -89,6 +89,10 @@ end
   @test_nowarn println(solver.mortar)
   @test_nowarn display(solver.mortar)
 
+  @test_nowarn show(solver.volume_integral); println()
+  @test_nowarn println(solver.volume_integral)
+  @test_nowarn display(solver.volume_integral)
+
   @test_nowarn show(semi); println()
   @test_nowarn println(semi)
   @test_nowarn display(semi)
