@@ -33,13 +33,15 @@ function partition!(mesh)
       # To keep children of parent together if they are all leaves, 
       # all children are added to this rank
       additional_cells = last_id+1:mesh.tree.child_ids[end, parent_id]
-      last_id = additional_cells[end]
+      if length(additional_cells) > 0
+        last_id = additional_cells[end]
 
-      additional_leaves = count(id -> is_leaf(mesh.tree, id), additional_cells)
-      leaf_count += additional_leaves
-      # Add leaves to this rank, remove from next rank
-      n_leaves_per_rank[d] += additional_leaves
-      n_leaves_per_rank[d+1] -= additional_leaves
+        additional_leaves = count(id -> is_leaf(mesh.tree, id), additional_cells)
+        leaf_count += additional_leaves
+        # Add leaves to this rank, remove from next rank
+        n_leaves_per_rank[d] += additional_leaves
+        n_leaves_per_rank[d+1] -= additional_leaves
+      end
     end
 
     mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
