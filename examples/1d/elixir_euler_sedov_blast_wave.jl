@@ -54,7 +54,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
