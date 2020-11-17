@@ -29,7 +29,7 @@ macro test_trixi_include(elixir, args...)
   end
 
   quote
-    Trixi.mpi_isroot() && println("#"^80)
+    Trixi.mpi_isroot() && println("═"^100)
     Trixi.mpi_isroot() && println($elixir)
 
     # evaluate examples in the scope of the module they're called from
@@ -54,7 +54,7 @@ macro test_trixi_include(elixir, args...)
       end
     end
 
-    Trixi.mpi_isroot() && println("#"^80)
+    Trixi.mpi_isroot() && println("═"^100)
     Trixi.mpi_isroot() && println("\n\n")
   end
 end

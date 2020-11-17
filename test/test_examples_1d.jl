@@ -44,7 +44,6 @@ end
   end
 
   @testset "elixir_advection_extended.jl with initial_condition_linear_x" begin
-    # TODO Taal: create separate `*_linear_x.jl` elixir to keep `basic` simple
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
       l2   = [1.9882464973192864e-16],
       linf = [1.4432899320127035e-15],

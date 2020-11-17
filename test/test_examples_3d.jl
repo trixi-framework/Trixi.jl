@@ -16,7 +16,6 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run basic tests
 @testset "Examples 3D" begin
-  # TODO Taal: create separate elixirs for ICs/BCs etc. to keep `basic` simple
   # Linear scalar advection
   include("test_examples_3d_advection.jl")
 

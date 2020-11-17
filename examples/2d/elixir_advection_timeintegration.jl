@@ -32,21 +32,23 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy, energy_total))
+
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=:conservative)
 
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback, 
                         save_solution,
-                        analysis_callback, alive_callback)
+                        stepsize_callback)
 
 
 ###############################################################################

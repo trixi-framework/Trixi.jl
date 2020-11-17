@@ -8,7 +8,7 @@ using Trixi
 advectionvelocity = (1.0, 1.0, 1.0)
 equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
-# Create DG solver with polynomial degree = 3 and Lax-Friedrichs flux as surface flux
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
 coordinates_min = (-1, -1, -1) # minimum coordinates (min(x), min(y), min(z))
@@ -33,18 +33,18 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # and resets the timers
 summary_callback = SummaryCallback()
 
-# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.2)
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=:primitive)
-
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+#
+# The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
+stepsize_callback = StepsizeCallback(cfl=1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, stepsize_callback, save_solution, analysis_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################

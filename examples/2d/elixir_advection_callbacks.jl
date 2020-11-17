@@ -127,7 +127,11 @@ ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl=1.6)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(entropy, energy_total))
+
+alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
@@ -136,15 +140,13 @@ save_solution = SaveSolutionCallback(interval=100,
 
 example_callback = TrixiExtensionExample.ExampleStepCallback(message="안녕하세요?")
 
-analysis_interval = 100
-alive_callback = AliveCallback(analysis_interval=analysis_interval)
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
-callbacks = CallbackSet(summary_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback, 
                         save_solution,
                         example_callback,
-                        analysis_callback, alive_callback)
+                        stepsize_callback)
 
 # In OrdinaryDiffEq.jl, the `step_limiter!` is called after every Runge-Kutta step
 # but before possible RHS evaluations of the new value occur. Hence, it's possible
