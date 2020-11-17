@@ -54,8 +54,6 @@ const MPI_IS_ROOT = Ref(true)
 
 @inline mpi_isparallel() = MPI_IS_PARALLEL[]
 
-@inline mpi_isserial() = MPI_IS_SERIAL[]
-
 @inline mpi_isroot() = MPI_IS_ROOT[]
 
 @inline mpi_root() = 0

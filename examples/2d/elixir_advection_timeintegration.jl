@@ -9,13 +9,13 @@ advectionvelocity = (1.0, 1.0)
 # advectionvelocity = (0.2, -0.3)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_gauss
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-coordinates_min = (-1, -1)
-coordinates_max = ( 1,  1)
+coordinates_min = (-5, -5)
+coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=30_000)
@@ -34,7 +34,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(entropy, energy_total))
+                                     extra_analysis_integrals=(entropy,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -43,12 +43,21 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:conservative)
 
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
+                                      base_level=4,
+                                      med_level=5, med_threshold=0.1,
+                                      max_level=6, max_threshold=0.6)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
+
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
-                        stepsize_callback)
+                        amr_callback, stepsize_callback)
 
 
 ###############################################################################
