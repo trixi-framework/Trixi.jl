@@ -102,6 +102,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       cfl = 0.2)
   end
 
+  @testset "elixir_euler_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
+      l2   = [1.6498230875693451, 0.1984519373150308, 0.9783989260735952],
+      linf = [4.719883825173003, 0.5271899316169246, 2.742587023816883])
+  end
+
   @testset "elixir_euler_blast_wave.jl" begin
   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
       l2   = [0.21535606561541146, 0.2805347806732941, 0.5589053506095726],
