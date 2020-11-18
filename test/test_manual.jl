@@ -219,6 +219,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @testset "Printing" begin
+    # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
+    # just useful to run basic tests of `show` methods.
+
     c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary", "cache")
     @test_nowarn show(stdout, c)
 
