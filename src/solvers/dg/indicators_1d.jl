@@ -110,7 +110,7 @@ function create_cache(::Type{IndicatorLöhner}, equations::AbstractEquations{1},
   alpha = Vector{real(basis)}()
 
   A = Array{real(basis), ndims(equations)}
-  indicator_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
+  indicator_threaded = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
 
   return (; alpha, indicator_threaded)
 end
@@ -134,7 +134,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
     # Calculate indicator variables at Gauss-Lobatto nodes
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, element)
-      indicator[i, j] = löhner.variable(u_local, equations)
+      indicator[i] = löhner.variable(u_local, equations)
     end
 
     estimate = zero(real(dg))
@@ -143,7 +143,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
       u0 = indicator[i  ]
       up = indicator[i+1]
       um = indicator[i-1]
-      estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner_))
+      estimate = max(estimate, local_löhner_estimate(um, u0, up, löhner))
     end
 
     # use the maximum as DG element indicator
