@@ -91,6 +91,15 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
                                         timestep_gravity=timestep_gravity_erk52_3Sstar!))
   end
 
+  @testset "Printing" begin
+    # These tests rely on the previous tests above and re-use some of their variables.
+    show(stdout, parameters)
+    show(stdout, semi)
+    show(stdout, semi_euler.boundary_conditions)
+    show(stdout, TrivialCallback())
+    show(stdout, equations_euler)
+  end
+
 
   @testset "elixir_eulergravity_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulergravity_sedov_blast_wave.jl"),
