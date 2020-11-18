@@ -54,10 +54,17 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 1.0))
   end
 
-  @testset "elixir_euler_sedov_blast_wave.jl with tend = 1.0" begin
+  @testset "elixir_euler_sedov_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
       l2   = [0.4819231474652106, 0.1655453843075888, 0.16554538430758944, 0.6182451347074112],
       linf = [2.4849541392059202, 1.2816207838889486, 1.2816207838888944, 6.4743208586529875],
+      tspan = (0.0, 1.0))
+  end
+
+  @testset "elixir_euler_positivity.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
+      l2   = [0.4840730214025547, 0.16609789915445533, 0.16609789915450993, 0.6181626523936349],
+      linf = [2.492609441544464, 1.2902105228458267, 1.2902105228499854, 6.47249646815797],
       tspan = (0.0, 1.0))
   end
 
