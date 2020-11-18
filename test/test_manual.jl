@@ -89,6 +89,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "L2 projection" begin
+    @testset "calc_reverse_upper for LGL" begin
+      @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)), [[0.25, 0.25] [0.0, 0.5]])
+    end
+    @testset "calc_reverse_lower for LGL" begin
+      @test isapprox(Trixi.calc_reverse_lower(2, Val(:gauss_lobatto)), [[0.5, 0.0] [0.25, 0.25]])
+    end
+  end
+
   @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
@@ -197,7 +206,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "example parameters" begin
+  @testset "example elixirs" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
     @test endswith(default_example(), "elixir_advection_basic.jl")
