@@ -196,7 +196,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
 
       c = MyContainer([1, 2, 3, 4])
-      @show "jo"
       @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
     end
 
@@ -217,6 +216,20 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{Float64, 1, 1}(1)
     @test isnothing(display(c3d))
+  end
+
+  @testset "Printing" begin
+    c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary", "cache")
+    @test_nowarn show(stdout, c)
+
+    indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
+    @test_nowarn show(stdout, indicator_hg)
+
+    indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache=nothing))
+    @test_nowarn show(stdout, indicator_loehner)
+
+    indicator_max = IndicatorMax("variable", (; cache=nothing))
+    @test_nowarn show(stdout, indicator_max)
   end
 end
 
