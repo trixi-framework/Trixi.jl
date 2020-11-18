@@ -57,7 +57,7 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       med_level =0, med_threshold=0.1, # med_level = current level
                                       max_level =6, max_threshold=0.3)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=1,
+                           interval=2,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
@@ -69,7 +69,7 @@ callbacks = CallbackSet(summary_callback,
                         amr_callback, stepsize_callback)
 
 
-limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-7, 1.0e-7),
+limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
                                                variables=(density, pressure))
 stage_limiter! = limiter!
 step_limiter!  = limiter!
