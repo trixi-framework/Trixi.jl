@@ -1,113 +1,100 @@
 
-# Base type from which all systems of equations types inherit from
-abstract type AbstractEquation{NDIMS, NVARS} end
-
-
-# Retrieve number of variables from equation type
-@inline nvariables(::Type{AbstractEquation{NDIMS, NVARS}}) where {NDIMS, NVARS} = NVARS
-
 # Retrieve number of variables from equation instance
-@inline nvariables(::AbstractEquation{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
+@inline nvariables(::AbstractEquations{NDIMS, NVARS}) where {NDIMS, NVARS} = NVARS
+
+# TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
+@inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
 
 # Add method to show some information on system of equations
-function Base.show(io::IO, equation::AbstractEquation)
-  print(io, "name = ", get_name(equation), ", n_vars = ", nvariables(equation))
+function Base.show(io::IO, equations::AbstractEquations)
+  print(io, get_name(equations), " with ")
+  if nvariables(equations) == 1
+    print(io, "one variable")
+  else
+    print(io, nvariables(equations), " variables")
+  end
 end
 
-
-@inline Base.ndims(::AbstractEquation{NDIMS}) where NDIMS = NDIMS
-
-
-# Create an instance of a system of equation type based on a given name
-function make_equations(name::String, ndims_)
-  if name == "LinearScalarAdvectionEquation"
-    if ndims_ == 1
-      return LinearScalarAdvectionEquation1D()
-    elseif ndims_ == 2
-      return LinearScalarAdvectionEquation2D()
-    elseif ndims_ == 3
-      return LinearScalarAdvectionEquation3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "CompressibleEulerEquations"
-    if ndims_ == 1
-      return CompressibleEulerEquations1D()
-    elseif ndims_ == 2
-      return CompressibleEulerEquations2D()
-    elseif ndims_ == 3
-      return CompressibleEulerEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "IdealGlmMhdEquations"
-    if ndims_ == 2
-      return IdealGlmMhdEquations2D()
-    elseif ndims_ == 3
-      return IdealGlmMhdEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
-  elseif name == "HyperbolicDiffusionEquations"
-    if ndims_ == 2
-      return HyperbolicDiffusionEquations2D()
-    elseif ndims_ == 3
-      return HyperbolicDiffusionEquations3D()
-    else
-      error("Unsupported number of spatial dimensions: ", ndims_)
-    end
+function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
+  if get(io, :compact, false)
+    show(io, equations)
   else
-    error("'$name' does not name a valid system of equations")
+    summary_header(io, get_name(equations))
+    summary_line(io, "#variables", nvariables(equations))
+    for variable in eachvariable(equations)
+      summary_line(increment_indent(io),
+                   "variable " * string(variable),
+                   varnames_cons(equations)[variable])
+    end
+    summary_footer(io)
   end
 end
 
 
-have_nonconservative_terms(::AbstractEquation) = Val(false)
-default_analysis_quantities(::AbstractEquation) = (:l2_error, :linf_error, :dsdu_ut)
+@inline Base.ndims(::AbstractEquations{NDIMS}) where NDIMS = NDIMS
 
 
 """
-    flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
+    calcflux(u, orientation, equations)
+
+Given the conservative variables `u`, calculate the (physical) flux in spatial
+direction `orientation` for the coressponding set of governing `equations`
+`orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
+"""
+function calcflux(u, orientation, equations) end
+
+
+# set sensible default values that may be overwritten by specific equations
+have_nonconservative_terms(::AbstractEquations) = Val(false)
+have_constant_speed(::AbstractEquations) = Val(false)
+
+default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
+default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
+
+
+"""
+    flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
 DG method (except floating point errors).
 """
-@inline function flux_central(u_ll, u_rr, orientation, equation::AbstractEquation)
+@inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
   # Calculate regular 1D fluxes
-  f_ll = calcflux(u_ll, orientation, equation)
-  f_rr = calcflux(u_rr, orientation, equation)
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)
 end
 
 
-@inline cons2cons(u, equation::AbstractEquation) = u
+@inline cons2cons(u, ::AbstractEquations) = u
+@inline Base.first(u, ::AbstractEquations) = first(u)
 
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
 # Linear scalar advection
-abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
-include("1d/linear_scalar_advection.jl")
-include("2d/linear_scalar_advection.jl")
-include("3d/linear_scalar_advection.jl")
+abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("linear_scalar_advection_1d.jl")
+include("linear_scalar_advection_2d.jl")
+include("linear_scalar_advection_3d.jl")
 
 # CompressibleEulerEquations
-abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
-include("1d/compressible_euler.jl")
-include("2d/compressible_euler.jl")
-include("3d/compressible_euler.jl")
+abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_euler_1d.jl")
+include("compressible_euler_2d.jl")
+include("compressible_euler_3d.jl")
 
 # Ideal MHD
-abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
-include("2d/ideal_glm_mhd.jl")
-include("3d/ideal_glm_mhd.jl")
+abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_2d.jl")
+include("ideal_glm_mhd_3d.jl")
 
 # Diffusion equation: first order hyperbolic system
-abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquation{NDIMS, NVARS} end
-include("2d/hyperbolic_diffusion.jl")
-include("3d/hyperbolic_diffusion.jl")
+abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("hyperbolic_diffusion_2d.jl")
+include("hyperbolic_diffusion_3d.jl")

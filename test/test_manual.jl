@@ -7,7 +7,7 @@ using Trixi
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# Run various manual (= non-parameter-file-triggered tests)
+# Run various manual (= non-elixir-triggered tests)
 @testset "Manual tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin
@@ -16,7 +16,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     @testset "helper functions" begin
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
-      @test isnothing(display(t))
+      @test_nowarn display(t)
       @test Trixi.ndims(t) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
@@ -54,7 +54,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "TreeMesh" begin
     @testset "constructors" begin
-      Trixi.TreeMesh{Trixi.SerialTree{1}}(1, 5.0, 2.0) isa Trixi.TreeMesh
+      @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
     end
   end
 
@@ -200,13 +200,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "example parameters" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
-    @test endswith(default_example(), "parameters.toml")
+    @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
   @testset "DG L2 mortar container debug output" begin
-    c2d = Trixi.L2MortarContainer2D{1, 1}(1)
+    c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
     @test isnothing(display(c2d))
-    c3d = Trixi.L2MortarContainer3D{1, 1}(1)
+    c3d = Trixi.L2MortarContainer3D{Float64, 1, 1}(1)
     @test isnothing(display(c3d))
   end
 end

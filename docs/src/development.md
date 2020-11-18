@@ -16,7 +16,7 @@ which destroys any potential benefits from caching. However, restarting
 Julia can be avoided by using the [Revise.jl](https://github.com/timholy/Revise.jl)
 package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
-To enter the packe REPL mode, press `]` in the standard Julia REPL mode. Then, execute
+To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia
 (@v1.5) pkg> add Revise
 ```
@@ -47,7 +47,7 @@ julia> using Revise; using Trixi
 ```
 You can run a simulation by executing
 ```julia
-julia> Trixi.run("examples/2d/parameters.toml")
+julia> trixi_include(default_example())
 ```
 Together, all of these commands can take some time, roughly half a minute on a
 modern workstation. Most of the time is spent on compilation of Julia code etc.
@@ -77,7 +77,7 @@ if Trixi is not installed in the global environment. The same procedure also
 applies should you opt to install the postprocessing tools
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl) and
 [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) manually such that
-you can modify their implemenations.
+you can modify their implementations.
 
 
 ### Pitfalls when using Revise
@@ -122,6 +122,74 @@ will usually continue to work as expected again. However, if you want to keep
 your type modifications, you need to restart the REPL.
 
 
+## Using the Julia REPL effectively
+The [Julia manual](https://docs.julialang.org/en/v1/manual/getting-started/)
+is an excellent resource to learn Julia. Here, we list some helpful commands
+than can increase your productivity in the Julia REPL.
+
+- Use the [REPL help mode](https://docs.julialang.org/en/v1/stdlib/REPL/#Help-mode)
+  entered by typing `?`.
+  ```julia
+  julia> using Trixi
+
+  help?> trixi_include
+  search: trixi_include
+
+    trixi_include([mod::Module=Main,] elixir::AbstractString; kwargs...)
+
+    include the file elixir and evaluate its content in the global scope of module mod. You can override specific
+    assignments in elixir by supplying keyword arguments. It's basic purpose is to make it easier to modify some
+    parameters while running Trixi from the REPL. Additionally, this is used in tests to reduce the computational
+    burden for CI while still providing examples with sensible default values for users.
+
+    Examples
+    ≡≡≡≡≡≡≡≡≡≡
+
+    julia> trixi_include(@__MODULE__, default_example(), tspan=(0.0, 0.1))
+    [...]
+
+    julia> sol.t[end]
+    0.1
+  ```
+- You can copy and paste REPL history including `julia>` prompts into the REPL.
+- Use tab completion in the REPL, both for names of functions/types/variables and
+  for function arguments.
+  ```julia
+  julia> flux_ranocha( # and TAB
+  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D) in Trixi at ~/.julia/dev/Trixi/src/equations/1d/compressible_euler.jl:416
+  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:865
+  flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D) in Trixi at ~/.julia/dev/Trixi/src/equations/3d/compressible_euler.jl:710
+  ```
+- Use `methodswith` to discover methods associated to a given type etc.
+  ```julia
+  julia> methodswith(CompressibleEulerEquations2D)
+  [1] boundary_condition_convergence_test(u_inner, orientation, direction, x, t, surface_flux_function, equations::CompressibleEulerEquations2D) in Trixi at ~/.julia/dev/Trixi/src/equations/2d/compressible_euler.jl:152
+  [...]
+  ```
+- Use `@which` (or `@edit`) for method calls.
+  ```julia
+  julia> @which trixi_include(default_example())
+  trixi_include(elixir::AbstractString; kwargs...) in Trixi at ~/.julia/dev/Trixi/src/run.jl:72
+  ```
+- Use `apropos` to search through the documentation and docstrings.
+  ```julia
+  julia> apropos("MHD")
+  Trixi.initial_condition_constant
+  Trixi.initial_condition_rotor
+  Trixi.IdealGlmMhdEquations2D
+  Trixi.initial_condition_jeans_instability
+  Trixi.IdealGlmMhdEquations3D
+  Trixi.flux_derigs_etal
+  Trixi.initial_condition_weak_blast_wave
+  Trixi.initial_condition_blast_wave
+  Trixi.initial_condition_convergence_test
+  Trixi.noncons_interface_flux
+  Trixi.initial_condition_orszag_tang
+  Trixi.calc_fast_wavespeed_roe
+  Trixi.flux_hll
+  ```
+
+
 ## Text editors
 When writing code, the choice of text editor can have a significant impact on
 productivity and developer satisfaction. While using the default text editor
@@ -147,48 +215,40 @@ and especially helpful for novice programmers, it has a MATLAB-like
 appearance with easy and interactive access to the current variables, the
 help system, and a debugger.
 
-When using Juno's REPL to run Trixi, you cannot execute the `bin/trixi` script
-to start Trixi interactively. Instead, you can include the file `utils/juno.jl`,
-which will set the project path, load Revise (if installed), and import Trixi:
-```bash
-julia> include("utils/juno.jl")
-```
-Afterwards, you can start Trixi in the usual way by calling the `Trixi.run` method.
-
 ### Vim or Emacs
 Vim and Emacs are both very popular editors that work great with Julia. One
 of their advantages is that they are text editors without a GUI and as such
 are available for almost any operating system. They also are preinstalled on
 virtually all Unix-like systems.  However, Vim and Emacs come with their own,
-steep learning curve if they have never been used before. Therfore, if in doubt, it
-is probably easier to get started with a classic GUI-based text edito (like
+steep learning curve if they have never been used before. Therefore, if in doubt, it
+is probably easier to get started with a classic GUI-based text editor (like
 Juno). If you decide to use Vim or Emacs, make sure that you install the
 corresponding Vim plugin
 [julia-vim](https://github.com/JuliaEditorSupport/julia-vim) or Emacs major
 mode [julia-emacs](https://github.com/JuliaEditorSupport/julia-emacs).
 
 
+
 ## Releasing a new version of Trixi, Trixi2Vtk, Trixi2Img
 
-1. Check whether everything is okay, tests pass etc.
-2. Set the new version number in `Project.toml` according to the Julian version of semver.
-   Commit and push.
-3. Comment `@JuliaRegistrator register` on the commit setting the version number.
-4. `JuliaRegistrator` will create a PR with the new version in the General registry.
-   Wait for it to be merged.
-5. Increment the version number in `Project.toml` again with suffix `-pre`. For example,
-   if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
-6. Set the correct version number in the badge "GitHub commits since tagged version"
-   in README.md.
-   The badge will only show up correctly if TagBot has released a new version. This will
-   be done automatically over night. If you don't want to wait, trigger the GitHub Action
-   TagBot manually.
-7. When a new version of Trixi was released, check whether the `[compat]` entries
-   in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
-   When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
-   entries in `docs/Project.toml` in Trixi should be updated.
+- Check whether everything is okay, tests pass etc.
+- Set the new version number in `Project.toml` according to the Julian version of semver.
+  Commit and push.
+- Comment `@JuliaRegistrator register` on the commit setting the version number.
+- `JuliaRegistrator` will create a PR with the new version in the General registry.
+  Wait for it to be merged.
+- Increment the version number in `Project.toml` again with suffix `-pre`. For example,
+  if you have released version `v0.2.0`, use `v0.2.1-pre` as new version number.
+- Set the correct version number in the badge "GitHub commits since tagged version"
+  in README.md.
+  The badge will only show up correctly if TagBot has released a new version. This will
+  be done automatically.
+- When a new version of Trixi was released, check whether the `[compat]` entries
+  in `test/Project.toml` in Trixi2Vtk/Trixi2Img should be updated.
+  When a new version of Trixi2Vtk/Trixi2Img was released, check whether the `[compat]`
+  entries in `docs/Project.toml` in Trixi should be updated.
 
-   These entries will also be checked regularly by CompatHelper (once a day). Hence,
-   if everything was released correctly, you should only need to do these checks manually
-   if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
-   but no new version of Trixi was released afterwards.
+  These entries will also be checked regularly by CompatHelper (once a day). Hence,
+  if everything was released correctly, you should only need to do these checks manually
+  if new minor versions with changes in the docs of Trixi2Vtk/Trixi2Img were released
+  but no new version of Trixi was released afterwards.

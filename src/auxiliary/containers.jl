@@ -38,6 +38,7 @@ Base.size(c::AbstractContainer) = (length(c),)
 
 """
     resize!(c::AbstractContainer, new_length) -> AbstractContainer
+
 Resize `c` to contain `new_length` elements. If `new_length` is smaller than the current container
 length, the first `new_length` elements will be retained. If `new_length` is
 larger, the new elements are invalidated.
@@ -69,7 +70,7 @@ end
 # Calls `raw_copy` internally, which must be implemented for each concrete type
 # inheriting from AbstractContainer.
 # TODO: Shall we extend Base.copyto! ?
-function copy!(target::AbstractContainer, source::AbstractContainer,
+function Trixi.copy!(target::AbstractContainer, source::AbstractContainer,
                first::Int, last::Int, destination::Int)
   @assert 1 <= first <= length(source) "First cell out of range"
   @assert 1 <= last <= length(source) "Last cell out of range"
@@ -88,20 +89,20 @@ end
 
 
 # Convenience method to copy a single element
-function copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
-  copy!(target, source, from, from, destination)
+function Trixi.copy!(target::AbstractContainer, source::AbstractContainer, from::Int, destination::Int)
+  Trixi.copy!(target, source, from, from, destination)
 end
 
 
 # Convenience method for copies within a single container
-function copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
-  copy!(c, c, first, last, destination)
+function Trixi.copy!(c::AbstractContainer, first::Int, last::Int, destination::Int)
+  Trixi.copy!(c, c, first, last, destination)
 end
 
 
 # Convenience method for copying a single element within a single container
-function copy!(c::AbstractContainer, from::Int, destination::Int)
-  copy!(c, c, from, from, destination)
+function Trixi.copy!(c::AbstractContainer, from::Int, destination::Int)
+  Trixi.copy!(c, c, from, from, destination)
 end
 
 

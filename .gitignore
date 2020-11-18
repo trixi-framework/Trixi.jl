@@ -8,7 +8,7 @@
 *.avi
 *.ogv
 **/Manifest.toml
-out/
+out*/
 docs/build
 docs/src/authors.md
 public/

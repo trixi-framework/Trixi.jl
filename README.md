@@ -3,7 +3,6 @@
 [![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
-[![Build Windows](https://ci.appveyor.com/api/projects/status/uu0xds4hyc1i10n8/branch/master?svg=true)](https://ci.appveyor.com/project/ranocha/trixi-jl/branch/master)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
@@ -29,7 +28,10 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable split forms
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
-* Explicit low-storage Runge-Kutta time integration
+* Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
+  * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
+  * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+  * CFL-based and error-based time step control
 * Square/cubic domains with periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -39,7 +41,8 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools (2D) or ParaView/VisIt (2D/3D)
+* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl))
+  or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
 
 
 ## Installation
@@ -49,16 +52,20 @@ with Julia v1.5.
 
 ### For users
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
-can install Trixi, [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl) by executing
-the following commands in the Julia REPL:
+can install Trixi, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
+and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl), and the
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package by
+executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img"); Pkg.add("OrdinaryDiffEq")
 ```
 Note that you can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
+The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+provides time integration schemes used by Trixi.
 
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
@@ -66,13 +73,14 @@ within the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
-julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
+julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
 julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")' # Install postprocessing tools
+julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
 flag set to your local Trixi clone, e.g.,
 ```bash
-julia --project=.
+julia --project=@.
 ```
 Further details can be found in the [documentation](#documentation).
 
@@ -84,7 +92,7 @@ julia> using Trixi
 ```
 Then start a simulation by executing
 ```julia
-julia> Trixi.run(default_example())
+julia> trixi_include(default_example())
 ```
 To visualize the results, load the package Trixi2Img
 ```julia
@@ -100,21 +108,23 @@ that can be opened with any image viewer:
   <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
 </p>
 
-The method `Trixi.run(...)` expects a single string argument with the path to a
-Trixi parameter file. To quickly see Trixi in action, `default_example()`
-returns the path to an example parameter file with a short, two-dimensional
-problem setup. A list of all example parameter files packaged with Trixi can be
+The method `trixi_include(...)` expects a single string argument with the path to a
+Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
+simulation. To quickly see Trixi in action, `default_example()`
+returns the path to an example elixir with a short, two-dimensional
+problem setup. A list of all example elixirs packaged with Trixi can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
-[`examples/`](examples/) subdirectory. If you want to
-modify one of the parameter files to set up your own simulation, download it to
-your machine, edit the configuration, and pass the file path to `Trixi.run(...)`.
+[`examples/`](examples/) subdirectory.
+If you want to modify one of the elixirs to set up your own simulation,
+download it to your machine, edit the configuration, and pass the file path to
+`trixi_include(...)`.
 
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
 of a Julia method is typically slow, with subsequent runs being much faster. For
-instance, in the example above the first execution of `Trixi.run` takes about 15
-seconds, while subsequent runs require less than 50 *milli*seconds.
+instance, in the example above the first execution of `trixi_include` takes about
+20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
 
 ## Documentation
