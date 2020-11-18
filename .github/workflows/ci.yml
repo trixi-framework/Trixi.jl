@@ -42,11 +42,11 @@ jobs:
         arch:
           - x64
         trixi_test:
+          - 1D
           - 2D
+          - 2D_parallel
           - 3D
           - paper-self-gravitating-gas-dynamics
-          - parallel_2d
-          - 1D
           - misc
         include:
           - version: 1.5
@@ -56,7 +56,7 @@ jobs:
           - version: 1.5
             os: macOS-latest
             arch: x64
-            trixi_test: parallel_2d
+            trixi_test: 2D_parallel
           - version: 1.5
             os: windows-latest
             arch: x64
@@ -64,7 +64,7 @@ jobs:
           - version: 1.5
             os: windows-latest
             arch: x64
-            trixi_test: parallel_2d
+            trixi_test: 2D_parallel
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

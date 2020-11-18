@@ -27,7 +27,7 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_paper-self-gravitating-gas-dynamics.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "parallel_2d"
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2D_parallel"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
     # cf. https://github.com/JuliaParallel/MPI.jl/pull/391
