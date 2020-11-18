@@ -89,6 +89,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "L2 projection" begin
+    @testset "calc_reverse_upper for LGL" begin
+      @test isapprox(Trixi.calc_reverse_upper(2, Val(:gauss_lobatto)), [[0.25, 0.25] [0.0, 0.5]])
+    end
+    @testset "calc_reverse_lower for LGL" begin
+      @test isapprox(Trixi.calc_reverse_lower(2, Val(:gauss_lobatto)), [[0.5, 0.0] [0.25, 0.25]])
+    end
+  end
+
   @testset "containers" begin
     # Set up mock container
     mutable struct MyContainer <: Trixi.AbstractContainer
@@ -187,7 +196,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.remove_fill!(c, 2, 1) == MyContainer([1, 2, 3, 4]) # no-op
 
       c = MyContainer([1, 2, 3, 4])
-      @show "jo"
       @test Trixi.remove_fill!(c, 2, 2) == MyContainer([1, 4, 3], 4)
     end
 
@@ -197,7 +205,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
-  @testset "example parameters" begin
+  @testset "example elixirs" begin
     @test basename(examples_dir()) == "examples"
     @test !isempty(get_examples())
     @test endswith(default_example(), "elixir_advection_basic.jl")
@@ -208,6 +216,23 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isnothing(display(c2d))
     c3d = Trixi.L2MortarContainer3D{Float64, 1, 1}(1)
     @test isnothing(display(c3d))
+  end
+
+  @testset "Printing" begin
+    # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
+    # just useful to run basic tests of `show` methods.
+
+    c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary", "cache")
+    @test_nowarn show(stdout, c)
+
+    indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
+    @test_nowarn show(stdout, indicator_hg)
+
+    indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache=nothing))
+    @test_nowarn show(stdout, indicator_loehner)
+
+    indicator_max = IndicatorMax("variable", (; cache=nothing))
+    @test_nowarn show(stdout, indicator_max)
   end
 end
 

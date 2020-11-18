@@ -155,7 +155,7 @@ download it to your machine, edit the configuration, and pass the file path to
   <script id="asciicast-372987"
           src="https://asciinema.org/a/372987.js"
           async
-          data-cols=90
+          data-cols=110
           data-rows=48></script>
 ```
 *Note on performance:* Julia uses just-in-time compilation to transform its
