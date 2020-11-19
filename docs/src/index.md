@@ -103,17 +103,16 @@ julia> Pkg.add("OrdinaryDiffEq")
 
 
 ### Example: Installing Trixi as a package
-<!-- TODO: Taal docs, create new version of this asciicast -->
 ```@raw html
-  <script id="asciicast-356938"
-          src="https://asciinema.org/a/356938.js"
+  <script id="asciicast-373869"
+          src="https://asciinema.org/a/373869.js"
           async
-          data-cols=90
+          data-cols=100
           data-rows=20
           data-speed=3></script>
 ```
 Please note that the playback speed is set to 3x, thus the entire installation
-procedure lasts around 1.5 minutes  in real time (depending on the performance of
+procedure lasts around 45 seconds in real time (depending on the performance of
 your computer and on how many dependencies had already been installed before).
 
 
@@ -155,7 +154,7 @@ download it to your machine, edit the configuration, and pass the file path to
   <script id="asciicast-372987"
           src="https://asciinema.org/a/372987.js"
           async
-          data-cols=110
+          data-cols=100
           data-rows=48></script>
 ```
 *Note on performance:* Julia uses just-in-time compilation to transform its
