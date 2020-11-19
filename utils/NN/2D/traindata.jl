@@ -27,7 +27,7 @@ include("../../../src/run.jl")
 include("../../../src/solvers/solvers.jl")
 include("../../../src/solvers/dg/interpolation.jl")
 
-include("approximation.jl")
+include("approximation2.jl")
 include("functions.jl")
 
 init_mpi()
@@ -48,14 +48,13 @@ for i in 1:4
     n_elements = length(leaf_cell_ids)
 
     #loop over polydeg
-    for r in 1:7
+    for r in 1:7 
         #println("Polydeg $r")
 
         n_nodes = r + 1
         nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
-        _, inverse_vandermonde_legendre = vandermonde_legendre(nodes)
         node_coordinates = zeros(2,n_nodes, n_nodes, n_elements)
-        modal = zeros(1, n_nodes, n_nodes, n_elements)
+        modal = zeros(1, 3, n_elements)
         c2e = zeros(Int, length(mesh.tree))
         for element_id in 1:n_elements 
             cell_id = leaf_cell_ids[element_id]
@@ -77,9 +76,7 @@ for i in 1:4
 
             for element_id in 1:n_elements 
                 data = node_coordinates[:, :, :, element_id]
-                indicator = zeros(1, n_nodes, n_nodes)
-                indicator[1, :, :] = legendreapprox(u, data , r)
-                modal[1,:,:, element_id] = multiply_dimensionwise_naive(inverse_vandermonde_legendre, indicator)
+                modal[1, :, element_id] .= legendreapprox(u, data , r)
             end
             
             for element_id in 1:n_elements 
@@ -109,55 +106,55 @@ for i in 1:4
                                 neighbor_ids = c2e[mesh.tree.child_ids[2, neighbor_cell_id]] 
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]] 
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
                             elseif direction == 2
                                 neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
 
                             elseif direction == 3
                                 neighbor_ids = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
 
                             elseif direction == 4
                                 neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
                                 
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
 
                             end
                         else # Cell has same refinement level neighbor
                             neighbor_ids = c2e[neighbor_cell_id]
                                 
-                            Xi[3*direction+1]=modal[1,1,1,neighbor_ids]
-                            Xi[3*direction+2]=modal[1,2,1,neighbor_ids]
-                            Xi[3*direction+3]=modal[1,1,2,neighbor_ids]
+                            Xi[3*direction+1]=modal[1,1,neighbor_ids]
+                            Xi[3*direction+2]=modal[1,2,neighbor_ids]
+                            Xi[3*direction+3]=modal[1,3,neighbor_ids]
                         end
                     else # Cell is small and has large neighbor
                         parent_id = mesh.tree.parent_ids[cell_id]
                         neighbor_ids = c2e[mesh.tree.neighbor_ids[direction, parent_id]]
                             
-                        Xi[3*direction+1]=modal[1,1,1,neighbor_ids]
-                        Xi[3*direction+2]=modal[1,2,1,neighbor_ids]
-                        Xi[3*direction+3]=modal[1,1,2,neighbor_ids]
+                        Xi[3*direction+1]=modal[1,1,neighbor_ids]
+                        Xi[3*direction+2]=modal[1,2,neighbor_ids]
+                        Xi[3*direction+3]=modal[1,3,neighbor_ids]
 
                     end
                 end
             
-                Xi[1]=modal[1,1,1,element_id]
-                Xi[2]=modal[1,2,1,element_id]
-                Xi[3]=modal[1,1,2,element_id]
+                Xi[1]=modal[1,1,element_id]
+                Xi[2]=modal[1,2,element_id]
+                Xi[3]=modal[1,3,element_id]
 
                 # Create label Yi
                 Yi=[0; 1] #good cell
@@ -190,13 +187,11 @@ for i in 1:4
             
             for element_id in 1:n_elements 
                 data = node_coordinates[:, :, :, element_id]
-                indicator = zeros(1, n_nodes, n_nodes)
                 if func == 1
-                    indicator[1, :, :] = legendreapprox(u1, data , r)
+                    modal[1, :, element_id] .= legendreapprox(u, data , r)
                 elseif func == 2
-                    indicator[1, :, :] = legendreapprox(u2, data , r)
+                    modal[1, :, element_id] .= legendreapprox(u, data , r)
                 end
-                modal[1,:,:, element_id] = multiply_dimensionwise_naive(inverse_vandermonde_legendre, indicator)
             end
             for element_id in 1:n_elements 
                 cell_id = leaf_cell_ids[element_id]
@@ -206,6 +201,7 @@ for i in 1:4
                 if good_cell(node_coordinates[:, 1, 1, element_id], dx, func, m, x0, y0)
                     continue
                 end
+
                 n_troubledcells[func] += 1
                 neighbor_ids = 0
                 Xi = zeros(15,1)
@@ -229,55 +225,54 @@ for i in 1:4
                                 neighbor_ids = c2e[mesh.tree.child_ids[2, neighbor_cell_id]] 
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]] 
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
                             elseif direction == 2
                                 neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
 
                             elseif direction == 3
                                 neighbor_ids = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
                                     
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
 
                             elseif direction == 4
                                 neighbor_ids = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
                                 neighbor_ids2 = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
                                 
-                                Xi[3*direction+1] = (modal[1,1,1,neighbor_ids] + modal[1,1,1,neighbor_ids2])/2
-                                Xi[3*direction+2] = (modal[1,1,2,neighbor_ids] + modal[1,1,2,neighbor_ids2])/2
-                                Xi[3*direction+3] = (modal[1,2,1,neighbor_ids] + modal[1,2,1,neighbor_ids2])/2
-
+                                Xi[3*direction+1] = (modal[1,1,neighbor_ids] + modal[1,1,neighbor_ids2])/2
+                                Xi[3*direction+2] = (modal[1,2,neighbor_ids] + modal[1,2,neighbor_ids2])/2
+                                Xi[3*direction+3] = (modal[1,3,neighbor_ids] + modal[1,3,neighbor_ids2])/2
                             end
                         else # Cell has same refinement level neighbor
                             neighbor_ids = c2e[neighbor_cell_id]
                                 
-                            Xi[3*direction+1]=modal[1,1,1,neighbor_ids]
-                            Xi[3*direction+2]=modal[1,2,1,neighbor_ids]
-                            Xi[3*direction+3]=modal[1,1,2,neighbor_ids]
+                            Xi[3*direction+1]=modal[1,1,neighbor_ids]
+                            Xi[3*direction+2]=modal[1,2,neighbor_ids]
+                            Xi[3*direction+3]=modal[1,3,neighbor_ids]
                         end
                     else # Cell is small and has large neighbor
                         parent_id = mesh.tree.parent_ids[cell_id]
                         neighbor_ids = c2e[mesh.tree.neighbor_ids[direction, parent_id]]
                             
-                        Xi[3*direction+1]=modal[1,1,1,neighbor_ids]
-                        Xi[3*direction+2]=modal[1,2,1,neighbor_ids]
-                        Xi[3*direction+3]=modal[1,1,2,neighbor_ids]
+                        Xi[3*direction+1]=modal[1,1,neighbor_ids]
+                        Xi[3*direction+2]=modal[1,2,neighbor_ids]
+                        Xi[3*direction+3]=modal[1,3,neighbor_ids]
 
                     end
                 end
             
-                Xi[1]=modal[1,1,1,element_id]
-                Xi[2]=modal[1,2,1,element_id]
-                Xi[3]=modal[1,1,2,element_id]
+                Xi[1]=modal[1,1,element_id]
+                Xi[2]=modal[1,2,element_id]
+                Xi[3]=modal[1,3,element_id]
 
                 # Create label Yi
                 Yi=[1; 0] #troubled cell
@@ -300,10 +295,11 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("traindata2d.h5", "w") do file
+h5open("traindata2dlagrange.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end
+
 println(n_traindata)
 println(n_troubledcells)
 

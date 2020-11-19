@@ -6,24 +6,24 @@ using HDF5: h5open
 using BSON: @save
 
 η = 0.001                # learning rate
-β = 0.01                # regularization parameter
+β = 0.001                # regularization parameter
 ν = 0.001                # leakyrelu parameter
 number_epochs = 100
-Sb = 500                 # batch size
+Sb = 700                 # batch size
 L = 10                   # early stopping parameter
 R = 1
 
 # Load data
-x_train = h5open("utils/NN/2D/traindata2d.h5", "r") do file
+x_train = h5open("utils/NN/2D/traindata2dlagrange.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/2D/traindata2d.h5", "r") do file
+y_train = h5open("utils/NN/2D/traindata2dlagrange.h5", "r") do file
     read(file, "Y")
 end
-x_valid = h5open("utils/NN/2D/validdata2d.h5", "r") do file
+x_valid = h5open("utils/NN/2D/validdata2dlagrange.h5", "r") do file
     read(file, "X")
 end
-y_valid = h5open("utils/NN/2D/validdata2d.h5", "r") do file
+y_valid = h5open("utils/NN/2D/validdata2dlagrange.h5", "r") do file
     read(file, "Y")
 end
 
@@ -71,7 +71,7 @@ function trainnetwork(d1,d2,d3,d4,d5)
                 best_acc = acc
                 last_improvement = epoch_idx
                 #save model
-                @save "utils/NN/2D/models/model-$(acc).bson" model2d
+                @save "utils/NN/2D/models/modellagrange-$(acc).bson" model2d
             end
 
             if epoch_idx - last_improvement >= L
@@ -98,10 +98,10 @@ end
 
 grid_best = 0
 grid_acc = 0
-for d1 in [200], d2 in [120], d3 in [90], d4 in [70], d5 in[20]
+for d1 in [20], d2 in [20], d3 in [20], d4 in [20], d5 in [20]
     grid_acc = trainnetwork(d1,d2,d3,d4,d5)
     if grid_acc > grid_best
         grid_best = grid_acc
-        @show d1, d2, d3, d4, d5, grid_acc
+        @show d1, d2, d3, d4, d5, grid_acc 
     end
 end

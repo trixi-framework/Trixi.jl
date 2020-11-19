@@ -37,8 +37,13 @@ using LoopVectorization
 using Flux
 using BSON: @load
 Core.eval(Main, :(import NNlib, Flux))  #ToDo 
-@load "utils/NN/1D/model-0.9011699507389163.bson" model1d
-@load "utils/NN/2D/ann_shock_capturing_2d.bson" model
+#@load "utils/NN/1D/model-0.9011699507389163.bson" model1d
+##@load "utils/NN/1D/modelnew-0.9855911802672435.bson" model1d
+@load "utils/NN/1D/modelnew-0.9615706660154206.bson" model1d
+
+#@load "utils/NN/2D/model-0.8680710265097088.bson" model2d
+#@load "utils/NN/2D/modelcoef-0.8011134692873182.bson" model2d
+@load "utils/NN/2D/modellag-0.7063587269363776.bson" model2d
 
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()

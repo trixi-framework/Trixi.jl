@@ -2490,6 +2490,14 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
+    ##if element_id == 1
+    #  println("Neu")
+    #  println(dg.elements.node_coordinates[1, :, :, element_id])
+    #  println(dg.elements.node_coordinates[2, :, :, element_id])
+    #  println(indicator[1, :, :])
+    #  println(modal[1, :, :])
+    #end
+    
     # Calculate total energies for all modes, without highest, without two highest
     total_energy = 0.0
     for j in 1:nnodes(dg), i in 1:nnodes(dg)
@@ -2541,9 +2549,7 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg2D, uses_mpi::Val{false})
   # temporary buffers
   @unpack indicator_threaded, modal_threaded, modal_tmp1_threaded = thread_cache
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
+  
   c2e = zeros(Int, length(mesh.tree))
   for element_id in 1:dg.n_elements 
     c2e[dg.elements.cell_ids[element_id]] = element_id
@@ -2555,12 +2561,12 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     modal2     = modal_threaded[Threads.threadid()]
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
     cell_id = dg.elements.cell_ids[element_id]
+    #umin = minimum(indicator)
+    #umax = maximum(indicator)
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, indicator_variable, dg)
 
-    umin = minimum(indicator)
-    umax = maximum(indicator)
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
@@ -2571,13 +2577,12 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     X[3]=modal[1,1,2]
 
     for direction in 1:n_directions(mesh.tree)
-      neighbor_ids = 0
-      # Ghost Layer einfügen 
+      neighbor_ids = 0 
       # if no neighbor exists and current cell is not small --> Ghost Layer: TODO 
       if !has_any_neighbor(mesh.tree, cell_id, direction) && !isperiodic(mesh.tree)
-        X[3*direction+1] = modal[1,dg.n_nodes-1,1]   # TODO 
-        X[3*direction+2] = modal[1,dg.n_nodes,1]
-        X[3*direction+3] = modal[1,dg.n_nodes,2]
+        X[3*direction+1] = modal[1,1,1]   ## TODO 
+        X[3*direction+2] = modal[1,2,1]
+        X[3*direction+3] = modal[1,1,2]
         
       end
 
@@ -2662,18 +2667,17 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
             
     X = X ./max(maximum(abs.(X)),1)
     
-    if model(X)[1] > 0.5
+    if model2d(X)[1] > 0.5
       alpha[element_id] = 1
     else
       alpha[element_id] = 0
     end
     
-    if (umax-umin) < 0.01 * max(abs(umax),abs(umin))
-      alpha[element_id] = 0
-    end
-    #alpha[element_id] = model(X)[1]
+    #alpha[element_id] = model2d(X)[1]
 
-    
+    #if (umax-umin) < 0.01 * max(abs(umax),abs(umin))
+    #  alpha[element_id] = 0
+    # end
 
     # Take care of the case close to pure DG
     if (alpha[element_id] < alpha_min)

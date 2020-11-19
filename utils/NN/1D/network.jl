@@ -5,24 +5,24 @@ using HDF5: h5open
 using BSON: @save
 
 η = 0.001                # learning rate
-β = 0.001                 # regularization paramter
+β = 0.001                # regularization paramter
 ν = 0.001                # leakyeelu parameter
 number_epochs = 100
-Sb = 500                 # batch size
+Sb = 300                 # batch size
 L = 10                   # early stopping parameter
 R = 1
 
 #Load data
-x_train = h5open("utils/NN/1D/traindata.h5", "r") do file
+x_train = h5open("utils/NN/1D/traindata1d.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/1D/traindata.h5", "r") do file
+y_train = h5open("utils/NN/1D/traindata1d.h5", "r") do file
     read(file, "Y")
 end
-x_valid = h5open("utils/NN/1D/validdata.h5", "r") do file
+x_valid = h5open("utils/NN/1D/validdata1d.h5", "r") do file
     read(file, "X")
 end
-y_valid = h5open("utils/NN/1D/validdata.h5", "r") do file
+y_valid = h5open("utils/NN/1D/validdata1d.h5", "r") do file
     read(file, "Y")
 end
 
@@ -32,12 +32,12 @@ opt_acc = 0
 for r in 1:R
     @info("Building model...")
     model1d = Chain(
-        Dense(5, 256, leakyrelu, initW=Flux.glorot_normal),
-        Dense(256, 128, leakyrelu, initW=Flux.glorot_normal),
-        Dense(128, 64, leakyrelu, initW=Flux.glorot_normal),
-        Dense(64, 32, leakyrelu, initW=Flux.glorot_normal),
-        Dense(32, 16, leakyrelu, initW=Flux.glorot_normal),
-        Dense(16, 2),
+        Dense(5, 10, leakyrelu, initW=Flux.glorot_normal),
+        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
+        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
+        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
+        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
+        Dense(10, 2),
         softmax) 
 
     # Getting predictions

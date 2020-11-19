@@ -1,6 +1,6 @@
 using Tullio: @tullio
 using Plots; pyplot()
-include("../../../src/solvers/dg/interpolation.jl")
+#include("../../../src/solvers/dg/interpolation.jl")
 
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     if N == 0
@@ -115,15 +115,57 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
     end
   
     return nodes, weights
-  end
+end
+
+# Calculate Lagrange polynomials for a given node distribution.
+function lagrange_interpolating_polynomials(x::Float64, nodes, wbary)
+    n_nodes = length(nodes)
+    polynomials = zeros(n_nodes)
+  
+    for i in 1:n_nodes
+      if isapprox(x, nodes[i], rtol=eps(x))
+        polynomials[i] = 1
+        return polynomials
+      end
+    end
+  
+    for i in 1:n_nodes
+      polynomials[i] = wbary[i] / (x - nodes[i])
+    end
+    total = sum(polynomials)
+  
+    for i in 1:n_nodes
+      polynomials[i] /= total
+    end
+  
+    return polynomials
+end
+
+# Calculate the barycentric weights for a given node distribution.
+function barycentric_weights(nodes)
+    n_nodes = length(nodes)
+    weights = ones(n_nodes)
+  
+    for j = 2:n_nodes, k = 1:(j-1)
+      weights[k] *= nodes[k] - nodes[j]
+      weights[j] *= nodes[j] - nodes[k]
+    end
+  
+    for j in 1:n_nodes
+      weights[j] = 1 / weights[j]
+    end
+  
+    return weights
+end
+
 
 function legendreapprox(u, data, r)
     a = data[:, 1, 1]
     b = data[:, end, end]
 
-    #r=3
-    #a=[-1, -1]
-    #b=[1, 1]
+    #r = 3
+    #a = [-1, -1]
+    #b = [1, 1]
     #f(x,y) = sin(2*pi*x)+cos(2*pi*y)
 
     coef=zeros(r+1,r+1) 
@@ -138,7 +180,13 @@ function legendreapprox(u, data, r)
     b2 = b[2]
     h=r+1
     n,w = gauss_lobatto_nodes_weights(h)
-  
+    wbary = barycentric_weights(n)
+    polynomials2 = zeros(h,h)
+    for i in 1:h
+      polynomials2[:,i] = lagrange_interpolating_polynomials(n[i], n, wbary)
+    end
+    #println(size(polynomials2))
+
     #Transformation: [-1,1] to [a,b]
     nab=zeros(h)
     wab=zeros(h)
@@ -153,21 +201,19 @@ function legendreapprox(u, data, r)
       wab2[j]=(b2-a2)/2*w[j]
     end
     
-    for j=1:r+1
-        for i=1:r+1
+    for j=1:h
+        for i=1:h
 
             for l=1:h #y
                 coef[i,j] = 0
                 help[i,j] = 0
                 for l2=1:h #x
-                    poly,_= legendre_polynomial_and_derivative(i-1,n[l2])./sqrt(i-0.5)
-                    coef[i,j] += f(nab[l2],nab2[l])*poly*wab[l2]
-                    help[i,j] += poly*wab[l2]*poly
+                    coef[i,j] += f(nab[l2],nab2[l])*wab[l2]*polynomials2[i,l2]
+                    help[i,j] += polynomials2[i,l2]*wab[l2]*polynomials2[i,l2]
                 end
                 coef[i,j] = coef[i,j]/help[i,j]
-                polyj,_= legendre_polynomial_and_derivative(j-1,n[l])./sqrt(j-0.5)
-                coef2[i,j] += coef[i,j]*polyj*wab2[l]
-                help2[i,j] += polyj*wab2[l]*polyj
+                coef2[i,j] += coef[i,j]*wab2[l]*polynomials2[j,l]
+                help2[i,j] += polynomials2[j,l]*wab2[l]*polynomials2[j,l]
             end
             coef2[i,j] = coef2[i,j]/help2[i,j] 
 
@@ -179,26 +225,25 @@ function legendreapprox(u, data, r)
       uh_approx=0
       for j=1:r+1
         t=y*2/(b2-a2)-(a2+b2)/(b2-a2)
-        phi,_= legendre_polynomial_and_derivative(j-1,t)./sqrt(j-0.5)
+        phi= lagrange_interpolating_polynomials(t, n, wbary)
         sum = 0
         for i=1:r+1
             t2=x*2/(b1-a1)-(a1+b1)/(b1-a1)
-            phij,_= legendre_polynomial_and_derivative(i-1,t2)./sqrt(i-0.5)
-            sum +=coef2[i,j]*phij
+            phii = lagrange_interpolating_polynomials(t2, n, wbary)
+            sum +=coef2[i,j]*phii[i]
         end
-        uh_approx += sum*phi
+        uh_approx += sum*phi[j]
       end
       uh_approx
     end
     =#
-    
   
     ##uhp = uh.(data[1,:,:],data[2,:,:])
-    
+
     #xh= a1:(1/10):b1
     #yh= a2:(1/10):b2
     #display(plot(nab, nab2 , f, st=:surface))
     #display(plot(nab, nab2, uh, st=:surface))
     
-    return coef2[1,1], coef2[2,1], coef2[1,2]   #uhp
+    return coef2[1,1], coef2[1,2], coef2[2,1]       #, uhp
 end

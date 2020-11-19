@@ -1450,6 +1450,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     # Clip the maximum amount of FV allowed
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
+  #println(alpha)
 
   if (do_smoothing)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
@@ -1476,9 +1477,7 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
   indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg1D)
   # temporary buffers
   @unpack indicator_threaded, modal_threaded = thread_cache
-  # magic parameters
-  threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-  parameter_s = log((1 - 0.0001)/0.0001)
+  
   c2e = zeros(Int, length(mesh.tree))
   for element_id in 1:dg.n_elements 
     c2e[dg.elements.cell_ids[element_id]] = element_id
@@ -1488,7 +1487,7 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
   Threads.@threads for element_id in 1:(dg.n_elements)
       indicator  = indicator_threaded[Threads.threadid()]
       cell_id = dg.elements.cell_ids[element_id]
-      neighbor_ids = Array{Int64}(undef, 2)#zeros(n_directions(mesh.tree))
+      neighbor_ids = Array{Int64}(undef, 2)
 
       for direction in 1:n_directions(mesh.tree)
         
@@ -1525,12 +1524,13 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
       model_input = [avg_left; avg; avg_right; left; right]
       model_input = model_input ./max(maximum(abs.(model_input)),1)
       
+      
       if model1d(model_input)[1] > 0.5
         alpha[element_id] = 1
       else
         alpha[element_id] = 0
       end
-
+      
       #alpha[element_id] = model1d(model_input)[1]
       
       # Take care of the case close to pure DG
@@ -1546,10 +1546,6 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
       # Clip the maximum amount of FV allowed
       #alpha[element_id] = min(alpha_max, alpha[element_id])
   end
-  
-  #h5open("alpha.h5", "w") do file
-  #  write(file, "alpha", alpha)
-  #end
   
   if (do_smoothing)
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha

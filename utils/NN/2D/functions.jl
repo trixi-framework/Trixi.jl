@@ -2,16 +2,16 @@ using Distributions: Uniform
 
 function trainfunction(func,x,y)
     if func == 1
-        a1 = 9 #rand(Uniform(-10,10)) 
-        b1 = -4 #rand(Uniform(-10,10))
+        a1 = 9  
+        b1 = -4 
         u = a1*x + b1*y   
     elseif func == 2
-        a = [0.9, 0.1, -0.4]#rand(Uniform(-1,1),3)
-        b = [0.7, -0.6, -0.3]#rand(Uniform(-1,1),3)
+        a = [0.9, 0.1, -0.4]
+        b = [0.7, -0.6, -0.3]
         u = a[1]*sin(pi*x)+b[2]cos(pi*y)
     elseif func == 3
-        a = [-0.4, 0.1, 0.7]    #rand(Uniform(-1,1),3)
-        b = [-0.7, 0.9, -0.2]   #rand(Uniform(-1,1),3)
+        a = [-0.4, 0.1, 0.7]    
+        b = [-0.7, 0.9, -0.2] 
         u = a[1]*sin(pi*x)+b[2]cos(pi*y)
     elseif func == 4
         a = [-0.9, 0.1, 0.8]#rand(Uniform(-1,1),3)

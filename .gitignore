@@ -9,6 +9,10 @@
 *.ogv
 **/Manifest.toml
 out/
+utils/NN/1d/models
+utils/NN/1d/alt
+utils/NN/2d/models
+utils/NN/2d/alt
 docs/build
 docs/src/authors.md
 public/
