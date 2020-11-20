@@ -45,7 +45,7 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("amr.jl")
 include("stepsize.jl")
-include("glm_speed.jl")
+include("glm_speed_dg.jl")
 
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
