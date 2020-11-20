@@ -544,8 +544,7 @@ end
   v3 = rho_v3 / rho
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
-  cf_max = max(cf_x_direction, cf_y_direction)
-
+  
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction
 end
 

@@ -2,10 +2,10 @@
 """
     GlmSpeedCallback(; glm_scale=0.5, cfl_scale=1.0)
 
-Update the divergence cleaning wave speed c_h according to the time step
-computed in StepsizeCallback for the ideal GLM-MHD equations.
+Update the divergence cleaning wave speed `c_h` according to the time step
+computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations.
 """
-mutable struct GlmSpeedCallback{RealT<:Real}
+struct GlmSpeedCallback{RealT<:Real}
   glm_scale::RealT
   cfl_scale::RealT
 end
@@ -58,11 +58,7 @@ end
   @unpack glm_scale, cfl_scale = glm_speed_callback
 
   # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-  max_scaled_speed_for_c_h = nextfloat(zero(dt))
-  for element in eachelement(solver, cache)
-    inv_jacobian = cache.elements.inverse_jacobian[element]
-    max_scaled_speed_for_c_h = max(max_scaled_speed_for_c_h, ndims(semi.equations) * inv_jacobian)
-  end
+  max_scaled_speed_for_c_h = maximum(cache.elements.inverse_jacobian) * ndims(semi.equations)
   c_h_deltat = cfl_scale * 2 / (nnodes(solver) * max_scaled_speed_for_c_h)
 
   # c_h is proportional to its own time step divided by the complete MHD time step
