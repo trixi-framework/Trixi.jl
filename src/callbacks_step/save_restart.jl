@@ -104,7 +104,7 @@ Load the time saved in a `restart_file`.
 """
 function load_time(restart_file::AbstractString)
   h5open(restart_file, "r") do file
-    read(attrs(file)["time"])
+    read(attributes(file)["time"])
   end
 end
 

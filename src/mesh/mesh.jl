@@ -173,7 +173,7 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
   # Read mesh filename from restart file
   mesh_file = ""
   h5open(restart_filename, "r") do file
-    mesh_file = read(attrs(file)["mesh_file"])
+    mesh_file = read(attributes(file)["mesh_file"])
   end
 
   # Construct and return filename

@@ -20,14 +20,14 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["n_cells"] = n_cells
-    attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
-    attrs(file)["minimum_level"] = minimum_level(mesh.tree)
-    attrs(file)["maximum_level"] = maximum_level(mesh.tree)
-    attrs(file)["center_level_0"] = mesh.tree.center_level_0
-    attrs(file)["length_level_0"] = mesh.tree.length_level_0
-    attrs(file)["periodicity"] = collect(mesh.tree.periodicity)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["n_cells"] = n_cells
+    attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
+    attributes(file)["minimum_level"] = minimum_level(mesh.tree)
+    attributes(file)["maximum_level"] = maximum_level(mesh.tree)
+    attributes(file)["center_level_0"] = mesh.tree.center_level_0
+    attributes(file)["length_level_0"] = mesh.tree.length_level_0
+    attributes(file)["periodicity"] = collect(mesh.tree.periodicity)
 
     # Add tree data
     file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
@@ -62,14 +62,14 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["n_cells"] = n_cells
-    attrs(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
-    attrs(file)["minimum_level"] = minimum_level(mesh.tree)
-    attrs(file)["maximum_level"] = maximum_level(mesh.tree)
-    attrs(file)["center_level_0"] = mesh.tree.center_level_0
-    attrs(file)["length_level_0"] = mesh.tree.length_level_0
-    attrs(file)["periodicity"] = collect(mesh.tree.periodicity)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["n_cells"] = n_cells
+    attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
+    attributes(file)["minimum_level"] = minimum_level(mesh.tree)
+    attributes(file)["maximum_level"] = maximum_level(mesh.tree)
+    attributes(file)["center_level_0"] = mesh.tree.center_level_0
+    attributes(file)["length_level_0"] = mesh.tree.length_level_0
+    attributes(file)["periodicity"] = collect(mesh.tree.periodicity)
 
     # Add tree data
     file["parent_ids"] = @view mesh.tree.parent_ids[1:n_cells]
@@ -95,7 +95,7 @@ end
 function load_mesh(restart_file::AbstractString, mpi_parallel::Val{false};
                    n_cells_max)
   ndims_ = h5open(restart_file, "r") do file
-    read(attrs(file)["ndims"])
+    read(attributes(file)["ndims"])
   end
 
   mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
@@ -111,12 +111,12 @@ function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
   # Read mesh file
   h5open(filename, "r") do file
     # Set domain information
-    mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
-    mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
-    mesh.tree.periodicity    = Tuple(read(attrs(file)["periodicity"]))
+    mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
+    mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
+    mesh.tree.periodicity    = Tuple(read(attributes(file)["periodicity"]))
 
     # Set length
-    n_cells = read(attrs(file)["n_cells"])
+    n_cells = read(attributes(file)["n_cells"])
     resize!(mesh.tree, n_cells)
 
     # Read in data
@@ -135,7 +135,7 @@ function load_mesh(restart_file::AbstractString, mpi_parallel::Val{true};
                    n_cells_max)
   if mpi_isroot()
     ndims_ = h5open(restart_file, "r") do file
-      read(attrs(file)["ndims"])
+      read(attributes(file)["ndims"])
     end
     MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
   else
@@ -155,15 +155,15 @@ function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)
   if mpi_isroot()
     h5open(filename, "r") do file
       # Set domain information
-      mesh.tree.center_level_0 = read(attrs(file)["center_level_0"])
-      mesh.tree.length_level_0 = read(attrs(file)["length_level_0"])
-      mesh.tree.periodicity    = Tuple(read(attrs(file)["periodicity"]))
+      mesh.tree.center_level_0 = read(attributes(file)["center_level_0"])
+      mesh.tree.length_level_0 = read(attributes(file)["length_level_0"])
+      mesh.tree.periodicity    = Tuple(read(attributes(file)["periodicity"]))
       MPI.Bcast!(collect(mesh.tree.center_level_0), mpi_root(), mpi_comm())
       MPI.Bcast!(collect(mesh.tree.length_level_0), mpi_root(), mpi_comm())
       MPI.Bcast!(collect(mesh.tree.periodicity),    mpi_root(), mpi_comm())
 
       # Set length
-      n_cells = read(attrs(file)["n_cells"])
+      n_cells = read(attributes(file)["n_cells"])
       MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
       resize!(mesh.tree, n_cells)
 
