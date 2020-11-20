@@ -353,6 +353,31 @@ function create_thread_cache_2d(n_variables, n_nodes)
             indicator_threaded, modal_threaded, modal_tmp1_threaded)
 end
 
+# Count the number of interfaces that need to be created
+function p4_count_required_interfaces(mesh::TreeMesh2D, cell_ids, Connections)
+  count = 0
+  for cell_id in cell_ids
+  
+      for direction in 0:n_directions(mesh.tree)-1
+        index = 4 + 2*direction
+        # Only count interfaces in positive direction to avoid double counting
+        if direction % 2 == 0
+          continue
+        end
+        if Connections[index + 1,cell_id] == 0 
+          count = count + 1
+        end
+      end
+    end
+        # if  Connection[4,id], 5
+    #   Connection[8,id], 9
+    #   Connection[10,id], 11
+    # Connection[4,id], 5
+    # Connection[6,id], 7
+    # Connection[8,id], 9
+    # Connection[10,id], 11
+    return count
+end
 
 # Count the number of interfaces that need to be created
 function count_required_interfaces(mesh::TreeMesh2D, cell_ids)
@@ -499,6 +524,22 @@ function init_interfaces(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG
   return interfaces
 end
 
+# Create interface container, initialize interface data, and return interface container for further use
+#
+# NVARS: number of variables
+# POLYDEG: polynomial degree
+function p4_init_interfaces(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements, Connections) where {NVARS, POLYDEG}
+  # Initialize container
+  n_interfaces = p4_count_required_interfaces(mesh, cell_ids,Connections)
+  interfaces = InterfaceContainer2D{NVARS, POLYDEG}(n_interfaces)
+
+  # Connect elements with interfaces
+  p4_init_interface_connectivity!(elements, interfaces, mesh, Connections)
+
+  return interfaces
+end
+
+
 
 # Create boundaries container, initialize boundary data, and return boundaries container
 #
@@ -545,6 +586,62 @@ function init_mortars(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, 
   end
 
   return l2mortars, ecmortars
+end
+
+
+
+# Initialize connectivity between elements and interfaces
+function p4_init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D, Connections)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(elements)
+    c2e[elements.cell_ids[element_id]] = element_id
+  end
+
+  # Reset interface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via interfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    # Loop over directions
+    for direction in 1:n_directions(mesh.tree)
+      # Only create interfaces in positive direction
+      if direction % 2 == 1
+        continue
+      end
+
+      # If no neighbor exists, current cell is small and thus we need a mortar
+      if !has_neighbor(mesh.tree, cell_id, direction)
+        continue
+      end
+
+      # Skip if neighbor has children
+      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      if has_children(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Skip if neighbor is on different rank -> create MPI interface instead
+      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+        continue
+      end
+
+      # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
+      count += 1
+      interfaces.neighbor_ids[2, count] = c2e[neighbor_cell_id]
+      interfaces.neighbor_ids[1, count] = element_id
+
+      # Set orientation (x -> 1, y -> 2)
+      interfaces.orientations[count] = div(direction, 2)
+    end
+  end
+
+  @assert count == ninterfaces(interfaces) ("Actual interface count ($count) does not match " *
+                                            "expectations $(ninterfaces(interfaces))")
 end
 
 

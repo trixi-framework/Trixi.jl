@@ -273,3 +273,13 @@ function GetChanges(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{C
     end
     return nothing
 end
+
+
+function p4_get_connections(p4est::Ptr{p4est_t})
+    local_num_quads = Int64(p4est.local_num_quadrants)
+    Connection = zeros(Int32, 11,local_num_quads)
+    conn_ptr = pointer(Connection)
+    CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
+    P4est.p4est_iterate(p4est,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
+    return Connection
+end

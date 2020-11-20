@@ -221,7 +221,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
                                "new number of cells/elements: " *
                                "$(length(tree))/$(solver.n_elements))")
 
-  return true
+  return false
   # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
 end

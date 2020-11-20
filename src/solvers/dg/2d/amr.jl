@@ -60,10 +60,14 @@ function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
        element_id += 1
     end
   end
+  Connections = p4_get_connections(tree.forest)
+
   leaf_cell_ids = leaf_cells(tree)
   # Initialize new interfaces container
-  interfaces = init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
+  interfaces = p4_init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, Connections)
   n_interfaces = ninterfaces(interfaces)
+  @show n_interfaces
+  @assert 1 == 4
 
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
