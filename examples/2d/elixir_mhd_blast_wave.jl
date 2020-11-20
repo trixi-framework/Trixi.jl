@@ -66,7 +66,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 cfl = 0.3
 stepsize_callback = StepsizeCallback(cfl=cfl)
 
-glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl_scale=cfl)
+glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
