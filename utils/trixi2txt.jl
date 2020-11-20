@@ -3,7 +3,7 @@ module Trixi2Txt
 using EllipsisNotation
 using Glob: glob
 using Printf: @printf
-using HDF5: h5open, attributes, exists
+using HDF5: h5open, attributes, haskey
 using Tullio: @tullio
 using LoopVectorization
 
@@ -126,7 +126,7 @@ function is_solution_restart_file(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # If attribute "mesh_file" exists, this must be a data file
-    return exists(attributes(file), "mesh_file")
+    return haskey(attributes(file), "mesh_file")
   end
 end
 
@@ -148,7 +148,7 @@ function read_meshfile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Check dimension - only 1D supported
-    if exists(attributes(file), "ndims")
+    if haskey(attributes(file), "ndims")
       ndims_ = read(attributes(file)["ndims"])
     else
       ndims_ = read(attributes(file)["ndim"]) # FIXME once Trixi's 3D branch is merged & released
@@ -197,12 +197,12 @@ function read_datafile(filename::String)
   # Open file for reading
   h5open(filename, "r") do file
     # Extract basic information
-    if exists(attributes(file), "ndims")
+    if haskey(attributes(file), "ndims")
       ndims_ = read(attributes(file)["ndims"])
     else
       ndims_ = read(attributes(file)["ndim"])
     end
-    if exists(attributes(file), "polydeg")
+    if haskey(attributes(file), "polydeg")
       polydeg = read(attributes(file)["polydeg"])
     else
       polydeg = read(attributes(file)["N"])
@@ -233,7 +233,7 @@ function read_datafile(filename::String)
     # Extract element variable arrays
     element_variables = Dict{String, Union{Vector{Float64}, Vector{Int}}}()
     index = 1
-    while exists(file, "element_variables_$index")
+    while haskey(file, "element_variables_$index")
       varname = read(attributes(file["element_variables_$index"])["name"])
       element_variables[varname] = read(file["element_variables_$index"])
       index +=1
