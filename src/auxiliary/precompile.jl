@@ -230,7 +230,7 @@ function _precompile_manual_()
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:analysis_interval,),Tuple{Int}},Type{AliveCallback}})
   for RealT in (Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:cfl,),Tuple{RealT}},Type{StepsizeCallback}})
-    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:glm_scale,),Tuple{RealT}},Type{GlmSpeedCallback}})
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:glm_scale, :cfl_scale),Tuple{RealT,RealT}},Type{GlmSpeedCallback}})
   end
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_final_restart),Tuple{Int,Bool}},Type{SaveRestartCallback}})
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,Symbol}},Type{SaveSolutionCallback}})
