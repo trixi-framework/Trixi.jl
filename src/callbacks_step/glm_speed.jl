@@ -60,7 +60,7 @@ end
   max_scaled_speed_for_c_h = nextfloat(zero(dt))
   for element in eachelement(solver, cache)
     inv_jacobian = cache.elements.inverse_jacobian[element]
-    max_scaled_speed_for_c_h = max(max_scaled_speed_for_c_h, 2 * inv_jacobian)
+    max_scaled_speed_for_c_h = max(max_scaled_speed_for_c_h, ndims(semi.equations) * inv_jacobian)
   end
   cfl = 1.0 # FIXME: This is a hack beacuse I was not sure how to get access to this information from StepsizeCallback
   c_h_deltat = cfl * 2 / (nnodes(solver) * max_scaled_speed_for_c_h)
