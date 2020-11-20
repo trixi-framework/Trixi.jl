@@ -31,15 +31,15 @@ function save_solution_file(u, time, dt, timestep,
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["equations"] = get_name(equations)
-    attrs(file)["polydeg"] = polydeg(dg)
-    attrs(file)["n_vars"] = nvariables(equations)
-    attrs(file)["n_elements"] = nelements(dg, cache)
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-    attrs(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-    attrs(file)["timestep"] = timestep
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["equations"] = get_name(equations)
+    attributes(file)["polydeg"] = polydeg(dg)
+    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+    attributes(file)["timestep"] = timestep
 
     # Store each variable of the solution
     for v in eachvariable(equations)
@@ -48,7 +48,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames[v]
     end
 
     # Store element variables
@@ -58,7 +58,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["element_variables_$v"]
-      attrs(var)["name"] = string(key)
+      attributes(var)["name"] = string(key)
     end
   end
 
@@ -118,15 +118,15 @@ function save_solution_file(u, time, dt, timestep,
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["equations"] = get_name(equations)
-    attrs(file)["polydeg"] = polydeg(dg)
-    attrs(file)["n_vars"] = nvariables(equations)
-    attrs(file)["n_elements"] = nelements(dg, cache)
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-    attrs(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-    attrs(file)["timestep"] = timestep
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["equations"] = get_name(equations)
+    attributes(file)["polydeg"] = polydeg(dg)
+    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+    attributes(file)["timestep"] = timestep
 
     # Store each variable of the solution
     for v in eachvariable(equations)
@@ -135,7 +135,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames[v]
     end
 
     # Store element variables
@@ -145,7 +145,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["element_variables_$v"]
-      attrs(var)["name"] = string(key)
+      attributes(var)["name"] = string(key)
     end
   end
 

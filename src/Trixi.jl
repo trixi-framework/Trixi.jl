@@ -23,7 +23,7 @@ using Printf: @printf, @sprintf, println
 import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
-using HDF5: h5open, attrs
+using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector

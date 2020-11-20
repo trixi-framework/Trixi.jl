@@ -14,15 +14,15 @@ function save_restart_file(u, time, dt, timestep,
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["equations"] = get_name(equations)
-    attrs(file)["polydeg"] = polydeg(dg)
-    attrs(file)["n_vars"] = nvariables(equations)
-    attrs(file)["n_elements"] = nelements(dg, cache)
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-    attrs(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-    attrs(file)["timestep"] = timestep
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["equations"] = get_name(equations)
+    attributes(file)["polydeg"] = polydeg(dg)
+    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+    attributes(file)["timestep"] = timestep
 
     # Store each variable of the solution
     for v in eachvariable(equations)
@@ -31,7 +31,7 @@ function save_restart_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames[v]
     end
   end
 
@@ -47,16 +47,16 @@ function load_restart_file(mesh::SerialTreeMesh, equations, dg::DG, cache, resta
 
   h5open(restart_file, "r") do file
     # Read attributes to perform some sanity checks
-    if read(attrs(file)["ndims"]) != ndims(mesh)
+    if read(attributes(file)["ndims"]) != ndims(mesh)
       error("restart mismatch: ndims differs from value in restart file")
     end
-    if read(attrs(file)["equations"]) != get_name(equations)
+    if read(attributes(file)["equations"]) != get_name(equations)
       error("restart mismatch: equations differ from value in restart file")
     end
-    if read(attrs(file)["polydeg"]) != polydeg(dg)
+    if read(attributes(file)["polydeg"]) != polydeg(dg)
       error("restart mismatch: polynomial degree in solver differs from value in restart file")
     end
-    if read(attrs(file)["n_elements"]) != nelements(dg, cache)
+    if read(attributes(file)["n_elements"]) != nelements(dg, cache)
       error("restart mismatch: number of elements in solver differs from value in restart file")
     end
 
@@ -65,7 +65,7 @@ function load_restart_file(mesh::SerialTreeMesh, equations, dg::DG, cache, resta
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]
-      if (name = read(attrs(var)["name"])) != varnames[v]
+      if (name = read(attributes(var)["name"])) != varnames[v]
         error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
       end
 
@@ -109,15 +109,15 @@ function save_restart_file(u, time, dt, timestep,
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
-    attrs(file)["ndims"] = ndims(mesh)
-    attrs(file)["equations"] = get_name(equations)
-    attrs(file)["polydeg"] = polydeg(dg)
-    attrs(file)["n_vars"] = nvariables(equations)
-    attrs(file)["n_elements"] = nelements(dg, cache)
-    attrs(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attrs(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-    attrs(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-    attrs(file)["timestep"] = timestep
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["equations"] = get_name(equations)
+    attributes(file)["polydeg"] = polydeg(dg)
+    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+    attributes(file)["timestep"] = timestep
 
     # Store each variable of the solution
     for v in eachvariable(equations)
@@ -126,7 +126,7 @@ function save_restart_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attrs(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames[v]
     end
   end
 
@@ -158,16 +158,16 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
   # read only on MPI root
   h5open(restart_file, "r") do file
     # Read attributes to perform some sanity checks
-    if read(attrs(file)["ndims"]) != ndims(mesh)
+    if read(attributes(file)["ndims"]) != ndims(mesh)
       error("restart mismatch: ndims differs from value in restart file")
     end
-    if read(attrs(file)["equations"]) != get_name(equations)
+    if read(attributes(file)["equations"]) != get_name(equations)
       error("restart mismatch: equations differ from value in restart file")
     end
-    if read(attrs(file)["polydeg"]) != polydeg(dg)
+    if read(attributes(file)["polydeg"]) != polydeg(dg)
       error("restart mismatch: polynomial degree in solver differs from value in restart file")
     end
-    if read(attrs(file)["n_elements"]) != nelements(dg, cache)
+    if read(attributes(file)["n_elements"]) != nelements(dg, cache)
       error("restart mismatch: number of elements in solver differs from value in restart file")
     end
 
@@ -176,7 +176,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]
-      if (name = read(attrs(var)["name"])) != varnames[v]
+      if (name = read(attributes(var)["name"])) != varnames[v]
         error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
       end
 
