@@ -57,7 +57,6 @@ callbacks = CallbackSet(summary_callback,
                         glm_speed_callback)
 
 
-
 ###############################################################################
 # run the simulation
 

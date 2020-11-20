@@ -47,13 +47,17 @@ save_solution = SaveSolutionCallback(interval=10,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+cfl_number = 1.0
+stepsize_callback = StepsizeCallback(cfl=cfl_number)
+
+glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl_scale=cfl_number)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, 
-                        alive_callback, 
+                        analysis_callback,
+                        alive_callback,
                         save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        glm_speed_callback)
 
 ###############################################################################
 # run the simulation
