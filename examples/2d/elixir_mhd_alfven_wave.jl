@@ -36,7 +36,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval, save_anal
                                      extra_analysis_integrals=(entropy, energy_total,
                                                                energy_kinetic, energy_internal,
                                                                energy_magnetic, cross_helicity))
-                                                    
+
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 save_solution = SaveSolutionCallback(interval=10,
@@ -46,11 +46,14 @@ save_solution = SaveSolutionCallback(interval=10,
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
-callbacks = CallbackSet(summary_callback, 
-                        analysis_callback, 
+glm_speed_callback = GlmSpeedCallback(glm_scale=0.5)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
                         alive_callback,
                         save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        glm_speed_callback)
 
 
 
