@@ -21,6 +21,7 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
     # 1) compute time step for ONLY the GLM linear advection equation with c_h = 1
     # 2) must be redone each time due to the AMR possibility
     #    OBS! possibly could use the max_dt function below somehow for the constant wave speed case
+    #    OBS! This needs to be scaled by the CFL number for consistency
     max_scaled_speed_for_c_h = nextfloat(zero(t))
     for element in eachelement(dg, cache)
       inv_jacobian = cache.elements.inverse_jacobian[element]
