@@ -546,11 +546,6 @@ end
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
   cf_max = max(cf_x_direction, cf_y_direction)
 
-  # FIXME: This should be implemented properly using another callback
-  #        or something else, cf.
-  #        https://github.com/trixi-framework/Trixi.jl/issues/257
-  equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
-
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction
 end
 
