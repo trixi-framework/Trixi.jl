@@ -1,6 +1,6 @@
 
 """
-    GlmSpeedCallback(; glm_scale=0.5, cfl=1.0)
+    GlmSpeedCallback(; glm_scale=0.5, cfl)
 
 Update the divergence cleaning wave speed `c_h` according to the time step
 computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations.
@@ -41,7 +41,7 @@ function GlmSpeedCallback(; glm_scale=0.5, cfl)
   # when is the callback activated
   condition = (u, t, integrator) -> true
 
-  @assert 0 <= glm_speed_callback.glm_scale <= 1 "glm_scale must be between 0 and 1"
+  @assert 0 <= glm_scale <= 1 "glm_scale must be between 0 and 1"
 
   glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
 
