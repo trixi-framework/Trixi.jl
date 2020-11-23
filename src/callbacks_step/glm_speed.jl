@@ -37,13 +37,13 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
-function GlmSpeedCallback(; glm_scale=0.5, cfl=1.0)
+function GlmSpeedCallback(; glm_scale=0.5, cfl)
   # when is the callback activated
   condition = (u, t, integrator) -> true
 
-  glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
+  @assert 0 <= glm_speed_callback.glm_scale <= 1 "glm_scale must be between 0 and 1"
 
-  @assert(0<=glm_speed_callback.glm_scale<=1,"glm_scale must be between 0 and 1")
+  glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
 
   DiscreteCallback(condition, glm_speed_callback,
                    save_positions=(false,false),
