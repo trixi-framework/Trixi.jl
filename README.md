@@ -6,7 +6,7 @@
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.0.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.1.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 <!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
 
@@ -51,6 +51,17 @@ operating system](https://julialang.org/downloads/platform/). Trixi works
 with Julia v1.5.
 
 ### For users
+**Notice: As of Nov 22nd, the Julia package servers seem to ship outdated
+packages. Thus it can happen that adding Trixi as described in this "For users"
+section may not work properly on your machine, giving you the old Trixi v0.2
+instead of the current Trixi v0.3. In that case, all the examples listed here
+will not work due to breaking changes introduced in v0.3.**
+
+**The best options right now are to either use the installation procedure given
+below in [For developers](#for-developers), or to try the solutions discussed in
+the related [issue](https://github.com/trixi-framework/Trixi.jl/issues/354). If
+you have further questions or you are still having problems, please let us know.**
+
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
 can install Trixi, the visualization tools
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
