@@ -4,6 +4,10 @@
 
 Update the divergence cleaning wave speed `c_h` according to the time step
 computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations.
+The `cfl` number should be set to the same value as for the time step size calculation. The
+`glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
+solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale` = 0
+deactivates the divergence cleaning.
 """
 struct GlmSpeedCallback{RealT<:Real}
   glm_scale::RealT
@@ -38,6 +42,8 @@ function GlmSpeedCallback(; glm_scale=0.5, cfl=1.0)
   condition = (u, t, integrator) -> true
 
   glm_speed_callback = GlmSpeedCallback(glm_scale, cfl)
+
+  @assert(0<=glm_speed_callback.glm_scale<=1,"glm_scale must be between 0 and 1")
 
   DiscreteCallback(condition, glm_speed_callback,
                    save_positions=(false,false),
