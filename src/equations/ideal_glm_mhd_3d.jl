@@ -9,8 +9,9 @@ mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquatio
   c_h::RealT # GLM cleaning speed
 end
 
-function IdealGlmMhdEquations3D(gamma)
-  IdealGlmMhdEquations3D(gamma, zero(gamma))
+function IdealGlmMhdEquations3D(gamma; initial_c_h=convert(typeof(gamma), NaN))
+  # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
+  IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
 end
 
 
