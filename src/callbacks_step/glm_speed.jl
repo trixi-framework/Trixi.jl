@@ -55,11 +55,11 @@ end
 
   dt = get_proposed_dt(integrator)
   semi = integrator.p
-  _, equations, solver, cache = mesh_equations_solver_cache(semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack glm_scale, cfl = glm_speed_callback
 
   # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-  c_h_deltat = calc_dt_for_cleaning_speed(cfl, equations, solver, cache)
+  c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
   # c_h is proportional to its own time step divided by the complete MHD time step
   equations.c_h = glm_scale * c_h_deltat / dt
