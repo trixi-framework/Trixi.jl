@@ -20,7 +20,8 @@ module Trixi
 using LinearAlgebra: dot
 using Printf: @printf, @sprintf, println
 
-import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!
+import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!,
+                   get_proposed_dt
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes
@@ -107,9 +108,9 @@ export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integ
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
-export SummaryCallback, SteadyStateCallback, AMRCallback, StepsizeCallback,
-       SaveRestartCallback, SaveSolutionCallback, AnalysisCallback, AliveCallback,
-       TrivialCallback
+export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
+       SaveRestartCallback, SaveSolutionCallback, AMRCallback, StepsizeCallback,
+       GlmSpeedCallback, TrivialCallback
 
 export load_mesh, load_time
 

@@ -36,6 +36,7 @@ end
 #   in a time step loop (however, callbacks are always executed *after* a step, thus it comes near
 #   the end here)
 # * `StepsizeCallback` must come after AMR to accomodate potential changes in the minimum cell size
+# * `GlmSpeedCallback` must come after computing time step size because it affects the value of c_h
 include("summary.jl")
 include("steady_state.jl")
 include("analysis.jl")
@@ -44,6 +45,8 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("amr.jl")
 include("stepsize.jl")
+include("glm_speed.jl")
+
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks
 # when using `trixi_include` or `test_trixi_include`

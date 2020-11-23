@@ -5,13 +5,6 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  # FIXME: This should be implemented properly using another callback
-  #        or something else, cf.
-  #        https://github.com/trixi-framework/Trixi.jl/issues/257
-  if equations isa AbstractIdealGlmMhdEquations
-    equations.c_h = zero(equations.c_h)
-  end
-
   for element in eachelement(dg, cache)
     max_λ1 = max_λ2 = zero(max_scaled_speed)
     for j in eachnode(dg), i in eachnode(dg)
