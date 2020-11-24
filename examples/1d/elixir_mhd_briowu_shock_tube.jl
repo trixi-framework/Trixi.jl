@@ -9,24 +9,38 @@ equations = IdealGlmMhdEquations1D(gamma)
 
 initial_condition = initial_condition_briowu_shock_tube
 
-surface_flux = flux_derigs_etal
+boundary_conditions = boundary_condition_briowu_shock_tube
+
+surface_flux = flux_hll
 volume_flux  = flux_derigs_etal
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+basis = LobattoLegendreBasis(4)
+
+indicator_sc = IndicatorHennemannGassner(equations, basis,
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = 0
 coordinates_max = 1
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                n_cells_max=10_000)
+                n_cells_max=10_000,
+                periodicity=false)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.04)
+tspan = (0.0, 0.12)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -46,12 +60,25 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=:primitive)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+amr_indicator = IndicatorHennemannGassner(semi,
+                                          alpha_max=0.5,
+                                          alpha_min=0.001,
+                                          alpha_smooth=true,
+                                          variable=density_pressure)
+amr_controller = ControllerThreeLevel(semi, amr_indicator,
+                                      base_level=4,
+                                      max_level=6, max_threshold=0.01)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
+
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_restart, save_solution,
-                        stepsize_callback)
+                        amr_callback, stepsize_callback)
 
 
 ###############################################################################

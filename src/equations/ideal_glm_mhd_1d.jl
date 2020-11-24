@@ -55,7 +55,7 @@ end
 
 
 """
-    initial_condition_compound_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+    initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
 
 Compound shock tube test case for one dimensional ideal MHD equations. It is bascially an
 MHD extension of the Sod shock tube. Taken from Section V of the article
@@ -64,7 +64,7 @@ MHD extension of the Sod shock tube. Taken from Section V of the article
   [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
 
 """
-function initial_condition_compound_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [0, 1], γ = 2, final time = 0.12
   rho = x[1] < 0.5 ? 1.0 : 0.125
   v1 = 0.0
@@ -77,6 +77,27 @@ function initial_condition_compound_shock_tube(x, t, equations::IdealGlmMhdEquat
   return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 
+"""
+    boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equations::IdealGlmMhdEquations1D)
+
+Boundary conditions used for the Brio and Wu shock tube in combination with
+[`initial_condition_briowu_shock_tube`](@ref).
+"""
+function boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equations::IdealGlmMhdEquations1D)
+  u_boundary = initial_condition_briowu_shock_tube(x, t, equations)
+  # Calculate boundary flux
+  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::IdealGlmMhdEquations1D)
@@ -88,6 +109,7 @@ end
   mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
   p = (equations.gamma - 1) * (rho_e - kin_en - mag_en)
 
+  # Ignore orientation since it is always "1" in 1D
   f1 = rho_v1
   f2 = rho_v1*v1 + p + mag_en - B1^2
   f3 = rho_v1*v2 - B1*B2
@@ -149,6 +171,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquatio
   mag_norm_avg = 0.5*(mag_norm_ll+mag_norm_rr)
   vel_dot_mag_avg = 0.5*(vel_dot_mag_ll+vel_dot_mag_rr)
 
+  # Ignore orientation since it is always "1" in 1D
   f1 = rho_mean*v1_avg
   f2 = f1*v1_avg + p_mean + 0.5*mag_norm_avg - B1_avg*B1_avg
   f3 = f1*v2_avg - B1_avg*B2_avg

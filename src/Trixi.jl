@@ -81,10 +81,11 @@ export initial_condition_constant,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_compound_shock_tube
+       initial_condition_briowu_shock_tube
 
 export boundary_condition_periodic,
-       boundary_condition_gauss
+       boundary_condition_gauss,
+       boundary_condition_briowu_shock_tube
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
