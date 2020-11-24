@@ -80,7 +80,8 @@ export initial_condition_constant,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
        initial_condition_orszag_tang,
-       initial_condition_rotor
+       initial_condition_rotor,
+       initial_condition_compound_shock_tube
 
 export boundary_condition_periodic,
        boundary_condition_gauss
