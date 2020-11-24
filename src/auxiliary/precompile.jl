@@ -125,6 +125,7 @@ function _precompile_manual_()
   function equations_types_1d(RealT)
     ( LinearScalarAdvectionEquation1D{RealT},
       CompressibleEulerEquations1D{RealT},
+      IdealGlmMhdEquations1D{RealT},
     )
   end
   function equations_types_2d(RealT)
@@ -150,6 +151,7 @@ function _precompile_manual_()
       CompressibleEulerEquations1D{RealT},
       CompressibleEulerEquations2D{RealT},
       CompressibleEulerEquations3D{RealT},
+      IdealGlmMhdEquations1D{RealT},
       IdealGlmMhdEquations2D{RealT},
       IdealGlmMhdEquations3D{RealT},
     )
@@ -187,6 +189,7 @@ function _precompile_manual_()
 
   # Constructors: MHD
   for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations1D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations2D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations3D},RealT})
   end

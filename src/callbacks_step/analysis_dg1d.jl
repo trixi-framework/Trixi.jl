@@ -84,3 +84,36 @@ function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u
   end
 end
 
+function analyze(::Val{:l2_divb}, du::AbstractArray{<:Any,3}, u, t,
+                 mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
+                 dg::DG, cache)
+  integrate_via_indices(u, mesh, equations, dg, cache, dg.basis.derivative_matrix) do u, i, element, equations, dg, derivative_matrix
+    divb = zero(eltype(u))
+    for k in eachnode(dg)
+      divb += derivative_matrix[i, k] * u[6, k, element]
+    end
+    divb *= cache.elements.inverse_jacobian[element]
+    divb^2
+  end |> sqrt
+end
+
+function analyze(::Val{:linf_divb}, du::AbstractArray{<:Any,3}, u, t,
+                 mesh::TreeMesh{1}, equations::IdealGlmMhdEquations1D,
+                 dg::DG, cache)
+  @unpack derivative_matrix, weights = dg.basis
+
+  # integrate over all elements to get the divergence-free condition errors
+  linf_divb = zero(eltype(u))
+  for element in eachelement(dg, cache)
+    for i in eachnode(dg)
+      divb = zero(eltype(u))
+      for k in eachnode(dg)
+        divb += derivative_matrix[i, k] * u[6, k, element]
+      end
+      divb *= cache.elements.inverse_jacobian[element]
+      linf_divb = max(linf_divb, abs(divb))
+    end
+  end
+
+  return linf_divb
+end

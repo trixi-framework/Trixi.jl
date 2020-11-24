@@ -91,6 +91,7 @@ include("compressible_euler_3d.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_1d.jl")
 include("ideal_glm_mhd_2d.jl")
 include("ideal_glm_mhd_3d.jl")
 
