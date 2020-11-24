@@ -99,6 +99,52 @@ function boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x
   return flux
 end
 
+
+"""
+    initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+
+Torrilhon's shock tube test case for one dimensional ideal MHD equations.
+- Torrilhon (2003)
+  Uniqueness conditions for Riemann problems of ideal magnetohydrodynamics
+  [DOI: 10.1017/S0022377803002186](https://doi.org/10.1017/S0022377803002186)
+
+"""
+function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+  # domain must be set to [-1, 1.5], γ = 5/3, final time = 0.4
+  rho = x[1] <= 0 ? 3.0 : 1.0
+  v1 = 0.0
+  v2 = 0.0
+  v3 = 0.0
+  p = x[1] <= 0 ? 3.0 : 1.0
+  B1 = 1.5
+  B2 = x[1] <= 0 ? 1.0 : cos(1.5)
+  B3 = x[1] <= 0 ? 0.0 : sin(1.5)
+  return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
+end
+
+"""
+    boundary_condition_torrilhon_shock_tube(u_inner, orientation, direction, x, t,
+                                            surface_flux_function,
+                                            equations::IdealGlmMhdEquations1D)
+
+Boundary conditions used for the Torrilhon shock tube in combination with
+[`initial_condition_torrilhon_shock_tube`](@ref).
+"""
+function boundary_condition_torrilhon_shock_tube(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equations::IdealGlmMhdEquations1D)
+  u_boundary = initial_condition_torrilhon_shock_tube(x, t, equations)
+  # Calculate boundary flux
+  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
