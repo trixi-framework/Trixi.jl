@@ -150,7 +150,7 @@ end
     initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
 
 Ryu and Jones shock tube test case for one dimensional ideal MHD equations. Contains
-fast shocks, slow shocks, and rational disconinuties that propagate on either side
+fast shocks, slow shocks, and rational discontinuities that propagate on either side
 of the contact discontinuity. Exercises the scheme to capture all 7 types of waves
 present in the one dimensional MHD equations. It is the second test from Section 4 of
 - Ryu and Jones (1995)
