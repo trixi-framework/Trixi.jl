@@ -158,7 +158,7 @@ present in the one dimensional MHD equations. It is the second test from Section
   for One-Dimensional Flow
   [DOI: 10.1086/175437](https://doi.org/10.1086/175437)
 !!! note
-    This paper has a typo in the initial condtions. Their vairable `E` should be `p`.
+    This paper has a typo in the initial conditions. Their variable `E` should be `p`.
 """
 function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [0, 1], γ = 5/3, final time = 0.2
