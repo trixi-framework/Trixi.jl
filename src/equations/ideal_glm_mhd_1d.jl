@@ -1,9 +1,10 @@
 @doc raw"""
     IdealGlmMhdEquations1D
 
-The ideal compressible GLM-MHD equations in two space dimensions.
-OBS! There is no divergence cleaning variable `psi` because the divergence-free constraint is
-     satisfied trivially in one spatial dimension.
+The ideal compressible GLM-MHD equations in one space dimensions.
+!!! note
+    There is no divergence cleaning variable `psi` because the divergence-free constraint
+    is satisfied trivially in one spatial dimension.
 """
 struct IdealGlmMhdEquations1D{RealT<:Real} <: AbstractIdealGlmMhdEquations{1, 8}
   gamma::RealT
@@ -44,8 +45,10 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
   # domain must be set to [0, 1], γ = 5/3
   rho = 1.0
   v1 = 0.0
-  v2 = 0.1*sin(2.0*pi*x[1])
-  v3 = 0.1*cos(2.0*pi*x[1])
+  # TODO: sincospi
+  si, co = sincos(2 * pi * x[1])
+  v2 = 0.1 * si
+  v3 = 0.1 * co
   p = 0.1
   B1 = 1.0
   B2 = v2
@@ -62,7 +65,6 @@ MHD extension of the Sod shock tube. Taken from Section V of the article
 - Brio and Wu (1988)
   An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics
   [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
-
 """
 function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [0, 1], γ = 2, final time = 0.12
@@ -79,15 +81,15 @@ end
 
 """
     boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::IdealGlmMhdEquations1D)
+                                         surface_flux_function,
+                                         equations::IdealGlmMhdEquations1D)
 
 Boundary conditions used for the Brio and Wu shock tube in combination with
 [`initial_condition_briowu_shock_tube`](@ref).
 """
 function boundary_condition_briowu_shock_tube(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equations::IdealGlmMhdEquations1D)
+                                              surface_flux_function,
+                                              equations::IdealGlmMhdEquations1D)
   u_boundary = initial_condition_briowu_shock_tube(x, t, equations)
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -107,7 +109,6 @@ Torrilhon's shock tube test case for one dimensional ideal MHD equations.
 - Torrilhon (2003)
   Uniqueness conditions for Riemann problems of ideal magnetohydrodynamics
   [DOI: 10.1017/S0022377803002186](https://doi.org/10.1017/S0022377803002186)
-
 """
 function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [-1, 1.5], γ = 5/3, final time = 0.4
@@ -131,8 +132,8 @@ Boundary conditions used for the Torrilhon shock tube in combination with
 [`initial_condition_torrilhon_shock_tube`](@ref).
 """
 function boundary_condition_torrilhon_shock_tube(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equations::IdealGlmMhdEquations1D)
+                                                 surface_flux_function,
+                                                 equations::IdealGlmMhdEquations1D)
   u_boundary = initial_condition_torrilhon_shock_tube(x, t, equations)
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -273,9 +274,10 @@ end
 """
     flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-HLL flux for ideal GLM-MHD equations like that by Li (2005)
+HLL flux for ideal GLM-MHD equations like that by
+- Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
-[DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
+  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
@@ -445,10 +447,11 @@ end
     calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations1D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages
-as given by Cargo and Gallice (1997)
+as given by
+- Cargo and Gallice (1997)
   Roe Matrices for Ideal MHD and Systematic Construction
   of Roe Matrices for Systems of Conservation Laws
-[DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
+  [DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
 """
 @inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations1D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll = u_ll
@@ -499,20 +502,13 @@ as given by Cargo and Gallice (1997)
   a_square_roe = ((2.0 - equations.gamma) * X +
                  (equations.gamma -1.0) * (H_roe - 0.5*(v1_roe^2 + v2_roe^2 + v3_roe^2) -
                                           b_square_roe)) # acoustic speed
-  # finally compute the average wave speed and set the output velocity (depends on orientation)
-  if direction == 1 # x-direction
-    c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
-    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
-    vel_out_roe = v1_roe
-  else # y-direction
-    c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
-    c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
-    vel_out_roe = v2_roe
-  end
+  # finally compute the average wave speed and set the output velocity
+  # Ignore orientation since it is always "1" in 1D
+  c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
+  a_star_roe = sqrt( (a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe )
+  c_f_roe = sqrt( 0.5 * (a_square_roe + b_square_roe + a_star_roe) )
 
-  return vel_out_roe, c_f_roe
+  return v1_roe, c_f_roe
 end
 
 
