@@ -34,7 +34,10 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                      extra_analysis_errors=(:l2_error_primitive,
-                                                            :linf_error_primitive))
+                                                            :linf_error_primitive),
+                                     extra_analysis_integrals=(entropy, energy_total,
+                                                               energy_kinetic, energy_internal,
+                                                               energy_magnetic, cross_helicity))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
