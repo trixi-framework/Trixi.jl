@@ -22,6 +22,10 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler
   include("test_examples_1d_euler.jl")
+
+
+  # MHD
+  include("test_examples_1d_mhd.jl")
 end
 
 # Coverage test for all initial conditions

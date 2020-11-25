@@ -389,9 +389,10 @@ end
 """
     flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-HLL flux for ideal GLM-MHD equations like that by Li (2005)
+HLL flux for ideal GLM-MHD equations like that by
+- Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
-[DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
+  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -651,10 +652,11 @@ end
     calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations2D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages
-as given by Cargo and Gallice (1997)
+as given by
+- Cargo and Gallice (1997)
   Roe Matrices for Ideal MHD and Systematic Construction
   of Roe Matrices for Systems of Conservation Laws
-[DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
+  [DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
 """
 @inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll

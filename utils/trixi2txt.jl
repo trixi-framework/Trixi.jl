@@ -1,3 +1,10 @@
+#
+#  To use do the following
+#    using Revise
+#    includet("utils/trixi2txt.jl")
+#    using .Trixi2Txt
+#    Trixi2Txt.trixi2txt("out/file_name")
+#
 module Trixi2Txt
 
 using EllipsisNotation
@@ -6,9 +13,11 @@ using Printf: @printf
 using HDF5: h5open, attributes, haskey
 using Tullio: @tullio
 using LoopVectorization
+using StaticArrays
 
+include("../src/basic_types.jl")
+include("../src/solvers/dg/basis_lobatto_legendre.jl")
 include("../src/solvers/dg/interpolation.jl")
-
 
 function trixi2txt(filename::AbstractString...;
                    variables=[], output_directory=".", nvisnodes=nothing, max_supported_level=11)
