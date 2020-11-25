@@ -49,19 +49,19 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       tspan = (0.0, 0.1))
   end
 
-  @testset "elixir_mhd_shu_osher.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher.jl"),
+  @testset "elixir_mhd_shu_osher_shock_tube.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
       l2   = [1.011173124884092, 8.271206982561576, 1.3087914055352385, 0.0, 52.19213714506333, 6.743357635607637e-16, 1.0102652381088522, 0.0],
       linf = [2.8649230108993886, 22.600699637929466, 4.166209106166631, 0.0, 135.11479022821882, 3.4416913763379853e-15, 2.83396622829752, 0.0],
       tspan = (0.0, 0.2))
   end
 
-  @testset "elixir_mhd_shu_osher.jl with flipped shock direction" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher.jl"),
+  @testset "elixir_mhd_shu_osher_shock_tube.jl with flipped shock direction" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shu_osher_shock_tube.jl"),
       l2   = [1.0150653343383023, 8.293796006442639, 1.2953342215936525, 0.0, 52.34290101591115, 3.352946970627566e-16, 1.0046607148062305, 0.0],
       linf = [2.9091039190988806, 22.734543670960285, 4.124890055211936, 0.0, 136.89057030285923, 1.5543122344752192e-15, 2.806658251289774, 0.0],
-      initial_condition = initial_condition_shu_osher_flipped,
-      boundary_conditions=boundary_condition_shu_osher_flipped,
+      initial_condition = initial_condition_shu_osher_shock_tube_flipped,
+      boundary_conditions=boundary_condition_shu_osher_shock_tube_flipped,
       tspan = (0.0, 0.2))
   end
 end

@@ -1,7 +1,7 @@
 @doc raw"""
     IdealGlmMhdEquations1D
 
-The ideal compressible GLM-MHD equations in one space dimensions.
+The ideal compressible GLM-MHD equations in one space dimension.
 !!! note
     There is no divergence cleaning variable `psi` because the divergence-free constraint
     is satisfied trivially in one spatial dimension.
@@ -199,7 +199,7 @@ end
 
 
 """
-    initial_condition_shu_osher(x, t, equations::IdealGlmMhdEquations1D)
+    initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
 
 Extended version of the test of Shu and Osher for one dimensional ideal MHD equations.
 Taken from Section 4.1 of
@@ -207,7 +207,7 @@ Taken from Section 4.1 of
   A Novel High-Order, Entropy Stable, 3D AMR MHD Solver withGuaranteed Positive Pressure
   [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
-function initial_condition_shu_osher(x, t, equations::IdealGlmMhdEquations1D)
+function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
   # initial shock location is taken to be at x = -4
   x_0 = -4.0
@@ -224,17 +224,17 @@ function initial_condition_shu_osher(x, t, equations::IdealGlmMhdEquations1D)
 end
 
 """
-    boundary_condition_shu_osher(u_inner, orientation, direction, x, t,
+    boundary_condition_shu_osher_shock_tube(u_inner, orientation, direction, x, t,
                                             surface_flux_function,
                                             equations::IdealGlmMhdEquations1D)
 
 Boundary conditions used for the MHD extension of the Shu-Osher test case
-in combination with [`initial_condition_shu_osher`](@ref).
+in combination with [`initial_condition_shu_osher_shock_tube`](@ref).
 """
-function boundary_condition_shu_osher(u_inner, orientation, direction, x, t,
+function boundary_condition_shu_osher_shock_tube(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_shu_osher(x, t, equations)
+  u_boundary = initial_condition_shu_osher_shock_tube(x, t, equations)
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
@@ -247,14 +247,14 @@ end
 
 
 """
-    initial_condition_shu_osher_flipped(x, t, equations::IdealGlmMhdEquations1D)
+    initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
 
 Extended version of the test of Shu and Osher for one dimensional ideal MHD equations
 but shock propogates from right to left.
 !!! note
     This is useful to exercise some of the components of the HLL flux.
 """
-function initial_condition_shu_osher_flipped(x, t, equations::IdealGlmMhdEquations1D)
+function initial_condition_shu_osher_shock_tube_flipped(x, t, equations::IdealGlmMhdEquations1D)
   # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
   # initial shock location is taken to be at x = 4
   x_0 = 4.0
@@ -271,17 +271,17 @@ function initial_condition_shu_osher_flipped(x, t, equations::IdealGlmMhdEquatio
 end
 
 """
-    boundary_condition_shu_osher_flipped(u_inner, orientation, direction, x, t,
+    boundary_condition_shu_osher_shock_tube_flipped(u_inner, orientation, direction, x, t,
                                             surface_flux_function,
                                             equations::IdealGlmMhdEquations1D)
 
 Boundary conditions used for the MHD extension of the Shu-Osher test case that travels
-from right to left. Use in combination with [`initial_condition_shu_osher_flipped`](@ref).
+from right to left. Use with [`initial_condition_shu_osher_shock_tube_flipped`](@ref).
 """
-function boundary_condition_shu_osher_flipped(u_inner, orientation, direction, x, t,
+function boundary_condition_shu_osher_shock_tube_flipped(u_inner, orientation, direction, x, t,
                                                 surface_flux_function,
                                                 equations::IdealGlmMhdEquations1D)
-  u_boundary = initial_condition_shu_osher_flipped(x, t, equations)
+  u_boundary = initial_condition_shu_osher_shock_tube_flipped(x, t, equations)
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)

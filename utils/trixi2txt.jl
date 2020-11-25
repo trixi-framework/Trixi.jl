@@ -1,5 +1,6 @@
 #
 #  To use do the following
+#    using Revise
 #    includet("utils/trixi2txt.jl")
 #    using .Trixi2Txt
 #    Trixi2Txt.trixi2txt("out/file_name")
