@@ -39,6 +39,8 @@ end
 
 A non-priodic smooth initial condition. Can be used for convergence tests in combination with
 [`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
+!!! note
+    The solution is periodic but the initial guess is not.
 """
 function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
   # elliptic equation: -νΔϕ = f
@@ -71,7 +73,7 @@ diffusion system that is used with [`initial_condition_poisson_nonperiodic`](@re
   du1 = pi^2 * sinpi(x[1])
   du2 = -inv_Tr * u[2]
 
-  return SVector(du1, du2)
+  return @SVector [du1, du2]
 end
 
 """
@@ -100,52 +102,71 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   return flux
 end
 
+"""
+    initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
 
-# function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
-#   # elliptic equation: -νΔϕ = f
-#   if t == 0.0
-#     phi = 1.0
-#     q1  = 1.0
-#     q2  = 1.0
-#   else
-#     C   = 1.0/sinh(pi)
-#     phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-#     q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-#     q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-#   end
-#   return @SVector [phi, q1, q2]
-# end
-#
-# @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
-#   # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
-#   @unpack inv_Tr = equations
-#   phi, q1, q2 = u
-#
-#   du2 = -inv_Tr * q1
-#   du3 = -inv_Tr * q2
-#
-#   return SVector(0, du2, du3)
-# end
-#
-# function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-#                                                   surface_flux_function,
-#                                                   equations::HyperbolicDiffusionEquations1D)
-#   # elliptic equation: -νΔϕ = f
-#   C   = 1.0/sinh(pi)
-#   phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-#   q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-#   q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-#   u_boundary = @SVector [phi, q1, q2]
-#
-#   # Calculate boundary flux
-#   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-#     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-#   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-#     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-#   end
-#
-#   return flux
-# end
+A non-priodic harmonic function used in combination with
+[`source_terms_poisson_nonperiodic`](@ref) and [`boundary_condition_poisson_nonperiodic`](@ref).
+!!! note
+    The only harmonic functions in 1D have the form phi(x) = A + Bx
+"""
+function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations1D)
+  # elliptic equation: -νΔϕ = f
+  if t == 0.0
+    phi = 5.0
+    q1  = 0.0
+  else
+    A = 3
+    B = exp(1)
+    phi = A + B * x[1]
+    q1  = B
+  end
+  return @SVector [phi, q1]
+end
+
+"""
+    source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
+
+Source term that only includes the forcing from the hyperbolic diffusion system
+used with [`initial_condition_harmonic_nonperiodic`](@ref) and
+[`boundary_condition_harmonic_nonperiodic`](@ref).
+"""
+@inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations1D)
+  # harmonic solution of the form ϕ = A + B * x, so f = 0
+  @unpack inv_Tr = equations
+
+  du2 = -inv_Tr * u[2]
+
+  return @SVector [0, du2]
+end
+
+"""
+    boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equations::HyperbolicDiffusionEquations1D)
+
+Boundary conditions used for the harmonic function test case
+[`initial_condition_harmonic_nonperiodic`](@ref) and [`source_terms_harmonic`](@ref).
+"""
+function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+                                                 surface_flux_function,
+                                                 equations::HyperbolicDiffusionEquations1D)
+  # harmonic function and its first derivative
+  A = 3
+  B = exp(1)
+  phi = A + B * x[1]
+  q1  = B
+  u_boundary = @SVector [phi, q1]
+
+  # Calculate boundary flux
+  if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
 
 
 # Calculate 1D flux in for a single point
@@ -170,25 +191,6 @@ end
 
   return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
 end
-
-
-@inline function flux_upwind(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
-  # Obtain left and right fluxes
-  phi_ll, q1_ll = u_ll
-  phi_rr, q1_rr = u_rr
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
-
-  # this is an optimized version of the application of the upwind dissipation matrix:
-  #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
-  # Ignore orientation since it is always "1" in 1D
-  λ_max = sqrt(equations.nu * equations.inv_Tr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (phi_rr - phi_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (q1_rr - q1_ll)
-
-  return SVector(f1, f2, f3)
-end
-
 
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = Val(true)
