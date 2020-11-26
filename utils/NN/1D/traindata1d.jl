@@ -4,6 +4,8 @@ using Printf: @printf, @sprintf, println
 using Plots; pyplot()
 #using Profile: clear_malloc_data
 #using Random: seed!
+using Statistics: mean
+using Distributions: Uniform
 
 using EllipsisNotation
 using HDF5: h5open, attrs
@@ -38,9 +40,9 @@ n_traindata = zeros(26)
 n_troubledcells = 0
 
 #loop over meshs
-for i in 1:4  
+for i in 1:6
     println("Mesh $i")
-    file = "utils/NN/1D/new/mesh$i.toml"
+    file = "utils/NN/1D/mesh$i.toml"
     parse_parameters_file(file)
     reset_timer!(timer())
     mesh = generate_mesh()
@@ -193,13 +195,10 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("traindata1dnew.h5", "w") do file
+h5open("traindata1d6m.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end
 println(n_traindata)
 println(n_troubledcells)
-
-
-
 

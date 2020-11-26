@@ -1,0 +1,15 @@
+ndims = 1
+
+# Mesh
+n_cells_max = 50000
+coordinates_min = [-1]
+coordinates_max =  [1]
+initial_refinement_level = 6
+refinement_patches = [
+   {type = "box", coordinates_min = [-0.8], coordinates_max = [-0.5]},
+   {type = "box", coordinates_min = [-0.7], coordinates_max = [-0.6]},
+   {type = "box", coordinates_min = [-0.2], coordinates_max = [0.1]},
+   {type = "box", coordinates_min = [0.0], coordinates_max = [0.1]},
+   {type = "box", coordinates_min = [0.4], coordinates_max = [0.7]},
+   {type = "box", coordinates_min = [0.5], coordinates_max = [0.6]},
+]

@@ -156,7 +156,7 @@ function Dg1D(equation::AbstractEquation{NDIMS, NVARS}, surface_flux_function, v
 
   # Initialize AMR
   amr_indicator = Symbol(parameter("amr_indicator", "n/a",
-                                   valid=["n/a", "gauss", "blast_wave"]))
+                                   valid=["n/a", "gauss", "blast_wave","blast_wave_nn"]))
 
   # Set global number of elements
   n_elements_global = n_elements
@@ -976,7 +976,7 @@ function rhs!(mesh::TreeMesh, dg::Dg1D, t_stage)
 
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(mesh, dg)
-
+  
   # Prolong solution to interfaces
   @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
 
@@ -1544,7 +1544,7 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
       end
 
       # Clip the maximum amount of FV allowed
-      #alpha[element_id] = min(alpha_max, alpha[element_id])
+      alpha[element_id] = min(alpha_max, alpha[element_id])
   end
   
   if (do_smoothing)

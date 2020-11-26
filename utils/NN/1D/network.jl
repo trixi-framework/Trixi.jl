@@ -13,10 +13,10 @@ L = 10                   # early stopping parameter
 R = 1
 
 #Load data
-x_train = h5open("utils/NN/1D/traindata1d.h5", "r") do file
+x_train = h5open("utils/NN/1D/traindata1d6m.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/1D/traindata1d.h5", "r") do file
+y_train = h5open("utils/NN/1D/traindata1d6m.h5", "r") do file
     read(file, "Y")
 end
 x_valid = h5open("utils/NN/1D/validdata1d.h5", "r") do file
@@ -32,12 +32,12 @@ opt_acc = 0
 for r in 1:R
     @info("Building model...")
     model1d = Chain(
-        Dense(5, 10, leakyrelu, initW=Flux.glorot_normal),
-        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
-        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
-        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
-        Dense(10, 10, leakyrelu, initW=Flux.glorot_normal),
-        Dense(10, 2),
+        Dense(5, 20, leakyrelu, initW=Flux.glorot_normal),
+        Dense(20, 20, leakyrelu, initW=Flux.glorot_normal),
+        Dense(20, 20, leakyrelu, initW=Flux.glorot_normal),
+        Dense(20, 20, leakyrelu, initW=Flux.glorot_normal),
+        Dense(20, 20, leakyrelu, initW=Flux.glorot_normal),
+        Dense(20, 2),
         softmax) 
 
     # Getting predictions
@@ -80,7 +80,7 @@ for r in 1:R
         ps_opt = params(model1d)
         global opt_acc = best_acc
         #save model
-        @save "utils/NN/1D/models/model-$(opt_acc).bson" model1d
+        @save "utils/NN/1D/models/model6m-$(opt_acc).bson" model1d
     end
     println(accuracy(model1d(x_train), y_train))
     #println(accuracy(model1d(x_valid), y_valid))

@@ -33,7 +33,7 @@ include("functions.jl")
 init_mpi()
 X = zeros(15,0)
 Y = zeros(2,0)
-n_validdata = zeros(6)
+n_validdata = zeros(9)
 n_troubledcells = zeros(2)
 
 #loop over meshs
@@ -70,7 +70,7 @@ for i in 1:4
         end
         
         #loop over functions
-        for func in 1:6
+        for func in 1:9
             #println("Funktion $func")
             u(x,y) = validfunction(func,x,y)
 
@@ -168,15 +168,15 @@ for i in 1:4
         println(size(X))
         
         #troubled cells
-        for t in 1:25
-            if t < 15
+        for t in 1:75
+            if t < 45
                 func = 1
                 a = rand(Uniform(-100, 100)) 
                 m = rand(Uniform(-1,1)) 
                 x0 = rand(Uniform(-0.5, 0.5)) 
                 y0 = rand(Uniform(-0.5, 0.5)) 
                 u1(x,y) = troubledcellfunctionabs(x, y, a, m, x0, y0)
-            elseif t >=15
+            elseif t >=4 5
                 func = 2
                 ui = rand(Uniform(-1,1),4)
                 m = rand(Uniform(0,20))
@@ -294,7 +294,7 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("utils/NN/2D/validdata2dlagrange.h5", "w") do file
+h5open("utils/NN/2D/validdata2dlag2.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end

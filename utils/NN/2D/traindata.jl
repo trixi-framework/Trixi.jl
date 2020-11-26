@@ -33,7 +33,7 @@ include("functions.jl")
 init_mpi()
 X = zeros(15,0)
 Y = zeros(2,0)
-n_traindata = zeros(12)
+n_traindata = zeros(17)
 n_troubledcells = zeros(2)
 
 #loop over meshs
@@ -56,6 +56,7 @@ for i in 1:4
         node_coordinates = zeros(2,n_nodes, n_nodes, n_elements)
         modal = zeros(1, 3, n_elements)
         c2e = zeros(Int, length(mesh.tree))
+        
         for element_id in 1:n_elements 
             cell_id = leaf_cell_ids[element_id]
             dx = length_at_cell(mesh.tree, cell_id) 
@@ -70,7 +71,7 @@ for i in 1:4
         end
         
         #loop over functions
-        for func in 1:12
+        for func in 1:17
             #println("Funktion $func")
             u(x,y) = trainfunction(func,x,y)
 
@@ -168,15 +169,15 @@ for i in 1:4
         println(size(X))
         
         #troubled cells
-        for t in 1:160
-            if t < 140
+        for t in 1:200
+            if t < 150
                 func = 1
                 a = rand(Uniform(-100, 100)) 
                 m = rand(Uniform(-1,1)) 
                 x0 = rand(Uniform(-0.5, 0.5)) 
                 y0 = rand(Uniform(-0.5, 0.5)) 
                 u1(x,y) = troubledcellfunctionabs(x, y, a, m, x0, y0)
-            elseif t >=140
+            elseif t >=150
                 func = 2
                 ui = rand(Uniform(-1,1),4)
                 m = rand(Uniform(0,20))
@@ -188,9 +189,9 @@ for i in 1:4
             for element_id in 1:n_elements 
                 data = node_coordinates[:, :, :, element_id]
                 if func == 1
-                    modal[1, :, element_id] .= legendreapprox(u, data , r)
+                    modal[1, :, element_id] .= legendreapprox(u1, data , r)
                 elseif func == 2
-                    modal[1, :, element_id] .= legendreapprox(u, data , r)
+                    modal[1, :, element_id] .= legendreapprox(u2, data , r)
                 end
             end
             for element_id in 1:n_elements 
