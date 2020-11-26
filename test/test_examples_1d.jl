@@ -30,6 +30,10 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # MHD
   include("test_examples_1d_mhd.jl")
+
+
+  # Compressible Euler with self-gravity
+  include("test_examples_1d_eulergravity.jl")
 end
 
 # Coverage test for all initial conditions

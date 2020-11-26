@@ -169,6 +169,30 @@ function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction
 end
 
 
+"""
+    initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations1D)
+
+Setup used for convergence tests of the Euler equations with self-gravity used in
+- Michael Schlottke-Lakemper, Andrew R. Winters, Hendrik Ranocha, Gregor J. Gassner (2020)
+  A purely hyperbolic discontinuous Galerkin approach for self-gravitating gas dynamics
+  [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
+in combination with [`source_terms_harmonic`](@ref).
+"""
+function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations1D)
+
+  # Determine phi_x
+  G = 1.0           # gravitational constant
+  C = -4.0 * G / pi # -4 * G / ndims * pi
+  A = 0.1           # perturbation coefficient must match Euler setup
+  rho1 = A * sin(pi * (x[1] - t))
+  # intialize with ansatz of gravity potential
+  phi = C * rho1
+  q1  = C * A * pi * cos(pi*(x[1] - t)) # = gravity acceleration in x-direction
+
+  return @SVector [phi, q1]
+end
+
+
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations1D)
   phi, q1 = u
