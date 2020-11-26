@@ -244,7 +244,8 @@ with self-gravity from
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 !!! note
     There is no additional source term necessary for the manufactured solution in one
-    spatial dimension. Thus, `source_terms_eoc_test_coupled_euler_gravity`is not present
+    spatial dimension. Thus, [`source_terms_eoc_test_coupled_euler_gravity`](@ref) is not
+    present there.
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::CompressibleEulerEquations1D)
   # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
@@ -253,7 +254,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Compr
   end
   c = 2.0
   A = 0.1
-  ini = c + A * sin(pi * (x[1] - t))
+  ini = c + A * sinpi(x[1] - t)
   G = 1.0 # gravitational constant
 
   rho = ini

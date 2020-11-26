@@ -60,9 +60,9 @@ save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
 
 save_solution = SaveSolutionCallback(interval=10,
-                                   save_initial_solution=true,
-                                   save_final_solution=true,
-                                   solution_variables=:primitive)
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=:primitive)
 
 stepsize_callback = StepsizeCallback(cfl=1.1)
 

@@ -151,12 +151,7 @@ Boundary conditions used for the harmonic function test case
 function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
                                                  surface_flux_function,
                                                  equations::HyperbolicDiffusionEquations1D)
-  # harmonic function and its first derivative
-  A = 3
-  B = exp(1)
-  phi = A + B * x[1]
-  q1  = B
-  u_boundary = @SVector [phi, q1]
+  u_boundary =  initial_condition_harmonic_nonperiodic(x, t, equations)
 
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -184,10 +179,10 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   G = 1.0           # gravitational constant
   C = -4.0 * G / pi # -4 * G / ndims * pi
   A = 0.1           # perturbation coefficient must match Euler setup
-  rho1 = A * sin(pi * (x[1] - t))
+  rho1 = A * sinpi(x[1] - t)
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  q1  = C * A * pi * cos(pi*(x[1] - t)) # = gravity acceleration in x-direction
+  q1  = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
 
   return @SVector [phi, q1]
 end
