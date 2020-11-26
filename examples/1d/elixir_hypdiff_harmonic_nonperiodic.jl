@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the hyperbolic diffusion equations
 
-equations = HyperbolicDiffusionEquations1D()
+equations = HyperbolicDiffusionEquations1D(nu=1.25)
 
 initial_condition = initial_condition_harmonic_nonperiodic
 
