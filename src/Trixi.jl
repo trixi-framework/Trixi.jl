@@ -65,7 +65,7 @@ include("auxiliary/special_elixirs.jl")
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
-       HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
+       HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,

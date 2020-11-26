@@ -97,5 +97,6 @@ include("ideal_glm_mhd_3d.jl")
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("hyperbolic_diffusion_1d.jl")
 include("hyperbolic_diffusion_2d.jl")
 include("hyperbolic_diffusion_3d.jl")

@@ -20,6 +20,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_advection.jl")
 
 
+  # Hyperbolic diffusion
+  include("test_examples_1d_hypdiff.jl")
+
+
   # Compressible Euler
   include("test_examples_1d_euler.jl")
 
