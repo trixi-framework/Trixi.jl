@@ -1,7 +1,7 @@
 # This file contains functions that are related to the AMR capabilities of the DG solver
 # P4est Coarse+Refine function
 
-function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
+function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
     cells_to_change::AbstractArray{Int}) where {Eqn, MeshType, NVARS, POLYDEG}
   # Return early if there is nothing to do
   if isempty(cells_to_change)
@@ -15,6 +15,8 @@ function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   old_n_elements = nelements(dg.elements)
   # @show old_n_elements
   old_u = dg.elements.u
+  # @show old_u
+  
   # # Get new list of leaf cells
   # leaf_cell_ids = leaf_cells(tree)
   leaf_cell_ids = collect(1:p4est.local_num_quadrants)
@@ -30,7 +32,7 @@ function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
       refine_element!(elements.u, element_id, old_u, old_element_id,
                       dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
       element_id += 2^ndims(dg)
-    
+      
     elseif cells_to_change[1,old_element_id] > 0 &&  cells_to_change[2,old_element_id] > 0
 
       @show "Coarse"
@@ -62,26 +64,28 @@ function adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   end
   Connections = p4_get_connections(tree.forest)
 
+  @show elements.u
   leaf_cell_ids = leaf_cells(tree)
   # Initialize new interfaces container
   interfaces = p4_init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, Connections)
   n_interfaces = ninterfaces(interfaces)
-  @show n_interfaces
-  @assert 1 == 4
+  # @show n_interfaces
+
 
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
 
   # Initialize new mortar containers
-  l2mortars, ecmortars = init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type)
+  l2mortars, ecmortars = p4_init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type, Connections)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
-  # @show n_interfaces
+  @show n_interfaces
   # @show interfaces
-  # @show n_boundaries, n_boundaries_per_direction
-  # @show n_l2mortars, n_ecmortars
+  @show n_boundaries, n_boundaries_per_direction
+  @show n_l2mortars, n_ecmortars
   # Sanity check
+  # @assert 1 == 4
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")

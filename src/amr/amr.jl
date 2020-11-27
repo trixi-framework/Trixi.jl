@@ -43,9 +43,9 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   p4est = mesh.tree.forest
   CvolumeIterate = @cfunction(setOldIdtoZero, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
   P4est.p4est_iterate( p4est,  C_NULL, C_NULL, CvolumeIterate, C_NULL, C_NULL)
-  @show "ADAPT MESH"
+
   recursive = 0
-  allowed_level = 3 #P4est.P4EST_QMAXLEVEL
+  allowed_level = 6 #P4est.P4EST_QMAXLEVEL
   #  * # 1. Call p4est with coarse and refine 
   p4est.user_pointer = pointer(to_refine_to_coarse)
   refine_fn = @cfunction(refine_function, Cint, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
@@ -79,8 +79,8 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   getchanges_fn = @cfunction(GetChanges, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
   local_num_quads = Int64(p4est.local_num_quadrants)
   ChangesInfo = zeros(Int64, 4,local_num_quads)
-  CahngesInfo_ptr = pointer(ChangesInfo)
-  P4est.p4est_iterate(p4est,  C_NULL, CahngesInfo_ptr, getchanges_fn, C_NULL, C_NULL)
+  ChangesInfo_ptr = pointer(ChangesInfo)
+  P4est.p4est_iterate(p4est,  C_NULL, ChangesInfo_ptr, getchanges_fn, C_NULL, C_NULL)
   # @show ChangesInfo[:,:]
  
   # TODO  3. Rebuld mesh structure
@@ -128,7 +128,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   # n_elements = nelements(elements)
   
   # TODO: Create function to refine Coarse  
-  @timeit timer() "solver" adapt!(solver, mesh, ChangesInfo)
+  @timeit timer() "solver" p4_adapt!(solver, mesh, ChangesInfo)
     
   # @show Connection
   # @assert 1 == 0

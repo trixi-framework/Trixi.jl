@@ -110,7 +110,7 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   min_level = parameter("initial_refinement_level")::Int
   uniform = 1
   t.forest = P4est.p4est_new_ext(0, t.conn,0,min_level,uniform,sizeof(quad_inner_data_t), C_NULL, C_NULL)
-  @show sizeof(quad_inner_data_t)
+  # @show sizeof(quad_inner_data_t)
   local_num_quads = Int64(t.forest.local_num_quadrants)
   Connection = zeros(Int32, 11,local_num_quads)
   QuadInfo = zeros(Int32, 4,local_num_quads)
@@ -142,7 +142,18 @@ quadinfo_ptr = pointer(QuadInfo)
   CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
 
   P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
+  # @show Connection[4:11,1]
+  # @show Connection[4:11,2]
+  # @show Connection[4:11,3]
+  # @show Connection[4:11,4]
+  # @show Connection[4:11,5]
+  # @show Connection[4:11,6]
+  # @show Connection[4:11,7]
+  # @show Connection[4:11,8]
+  # @show Connection[4:11,9]
+  # @show Connection[4:11,10]
 
+  # @assert 15 == 11
   # Create root cells
   t.length += local_num_quads
   t.parent_ids[1:local_num_quads] .= 0

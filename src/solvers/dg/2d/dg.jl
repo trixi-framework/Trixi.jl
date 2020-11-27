@@ -442,6 +442,35 @@ end
 
 
 # Count the number of mortars that need to be created
+function p4_count_required_mortars(mesh::TreeMesh2D, cell_ids, Connections)
+  count = 0
+
+  # Iterate over all cells and count mortars from perspective of coarse cells
+  for cell_id in cell_ids
+    for direction in 0:n_directions(mesh.tree)-1
+        index = 4 + 2*direction
+        if Connections[index,cell_id] == Connections[index + 1,cell_id]
+          count = count + 1
+        end
+      # If no neighbor exists, cell is small with large neighbor or at boundary -> do nothing
+      # if !has_neighbor(mesh.tree, cell_id, direction)
+      #   continue
+      # end
+
+      # # If neighbor has no children, this is a conforming interface -> do nothing
+      # neighbor_id = mesh.tree.neighbor_ids[direction, cell_id]
+      # if !has_children(mesh.tree, neighbor_id)
+      #   continue
+      # end
+
+      # count +=1
+    end
+  end
+
+  return count
+end
+
+# Count the number of mortars that need to be created
 function count_required_mortars(mesh::TreeMesh2D, cell_ids)
   count = 0
 
@@ -534,7 +563,7 @@ function p4_init_interfaces(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLY
   interfaces = InterfaceContainer2D{NVARS, POLYDEG}(n_interfaces)
 
   # Connect elements with interfaces
-  p4_init_interface_connectivity!(elements, interfaces, mesh, Connections)
+  p4_init_interface_connectivity!(elements, interfaces, Connections, mesh)
 
   return interfaces
 end
@@ -556,6 +585,37 @@ function init_boundaries(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG
   return boundaries, n_boundaries_per_direction
 end
 
+
+# Create mortar container, initialize mortar data, and return mortar container for further use
+#
+# NVARS: number of variables
+# POLYDEG: polynomial degree
+function p4_init_mortars(cell_ids, mesh::TreeMesh2D, ::Val{NVARS}, ::Val{POLYDEG}, elements, mortar_type, Connections) where {NVARS, POLYDEG}
+  # Initialize containers
+  n_mortars = p4_count_required_mortars(mesh, cell_ids, Connections)
+  if mortar_type === Val(:l2)
+    n_l2mortars = n_mortars
+    n_ecmortars = 0
+  elseif mortar_type === Val(:ec)
+    n_l2mortars = 0
+    n_ecmortars = n_mortars
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
+  l2mortars = L2MortarContainer2D{NVARS, POLYDEG}(n_l2mortars)
+  ecmortars = EcMortarContainer2D{NVARS, POLYDEG}(n_ecmortars)
+
+  # Connect elements with interfaces and l2mortars
+  if mortar_type === Val(:l2)
+    p4_init_mortar_connectivity!(elements, l2mortars, mesh, Connections)
+  elseif mortar_type === Val(:ec)
+    p4_init_mortar_connectivity!(elements, ecmortars, mesh, Connections)
+  else
+    error("unknown mortar type '$(mortar_type)'")
+  end
+
+  return l2mortars, ecmortars
+end
 
 # Create mortar container, initialize mortar data, and return mortar container for further use
 #
@@ -591,7 +651,7 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function p4_init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D, Connections)
+function p4_init_interface_connectivity!(elements, interfaces, Connections::Array{Int32,2}, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
@@ -610,25 +670,30 @@ function p4_init_interface_connectivity!(elements, interfaces, mesh::TreeMesh2D,
     # Loop over directions
     for direction in 1:n_directions(mesh.tree)
       # Only create interfaces in positive direction
+      index = 4 + (2 * (direction - 1))
       if direction % 2 == 1
         continue
       end
-
-      # If no neighbor exists, current cell is small and thus we need a mortar
-      if !has_neighbor(mesh.tree, cell_id, direction)
+      # # If no neighbor exists, current cell is small and thus we need a mortar
+      # if !has_neighbor(mesh.tree, cell_id, direction)
+      #   continue
+      # end
+      if Connections[index + 1, cell_id] > 0
         continue
       end
+
 
       # Skip if neighbor has children
-      neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
-      if has_children(mesh.tree, neighbor_cell_id)
-        continue
-      end
+      # neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      neighbor_cell_id =  Connections[index, cell_id]
+      # if has_children(mesh.tree, neighbor_cell_id)
+      #   continue
+      # end
 
-      # Skip if neighbor is on different rank -> create MPI interface instead
-      if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
-        continue
-      end
+      # # Skip if neighbor is on different rank -> create MPI interface instead
+      # if mpi_isparallel() && !is_own_cell(mesh.tree, neighbor_cell_id)
+      #   continue
+      # end
 
       # Create interface between elements (1 -> "left" of interface, 2 -> "right" of interface)
       count += 1
@@ -772,6 +837,99 @@ function init_boundary_connectivity!(elements, boundaries, mesh::TreeMesh2D)
   return SVector(counts_per_direction)
 end
 
+
+# Initialize connectivity between elements and mortars
+function p4_init_mortar_connectivity!(elements, mortars, mesh::TreeMesh2D, Connections)
+  # Construct cell -> element mapping for easier algorithm implementation
+  tree = mesh.tree
+  c2e = zeros(Int, length(tree))
+  for element_id in 1:nelements(elements)
+    c2e[elements.cell_ids[element_id]] = element_id
+  end
+
+  # Reset interface count
+  count = 0
+
+  # Iterate over all elements to find neighbors and to connect via interfaces
+  for element_id in 1:nelements(elements)
+    # Get cell id
+    cell_id = elements.cell_ids[element_id]
+
+    for direction in 1:n_directions(mesh.tree)
+      index = 4 + (2 * (direction - 1))
+
+       # If neighbor has no children, this is a conforming interface -> do nothing
+      if Connections[index + 1, cell_id] == 0
+        continue
+      end
+
+
+      # # If no neighbor exists, cell is small with large neighbor -> do nothing
+      # if !has_neighbor(mesh.tree, cell_id, direction)
+      #   continue
+      # end
+
+      # If neighbor has no children, this is a conforming interface -> do nothing
+      # neighbor_cell_id = mesh.tree.neighbor_ids[direction, cell_id]
+      neighbor_cell_id = Connections[index, cell_id]
+      # if !has_children(mesh.tree, neighbor_cell_id)
+      #   continue
+      # end
+      # This is a Big Side
+      if Connections[index + 1, cell_id] != Connections[index, cell_id] && Connections[index + 1, cell_id] != 0
+        continue
+      end
+      # This is a small Side
+      if Connections[index + 1, cell_id] == Connections[index, cell_id]
+        continue
+      end
+      
+      # Create mortar between elements:
+      # 1 -> small element in negative coordinate direction
+      # 2 -> small element in positive coordinate direction
+      # 3 -> large element
+
+      
+      count += 1
+      mortars.neighbor_ids[3, count] = element_id
+      mortars.neighbor_ids[1, count] = Connections[index, cell_id]
+      mortars.neighbor_ids[2, count] = Connections[index + 1, cell_id]
+
+      # if direction == 1
+      #   mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+      #   mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+      # elseif direction == 2
+      #   mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+      #   mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+      # elseif direction == 3
+      #   mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[3, neighbor_cell_id]]
+      #   mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[4, neighbor_cell_id]]
+      # elseif direction == 4
+      #   mortars.neighbor_ids[1, count] = c2e[mesh.tree.child_ids[1, neighbor_cell_id]]
+      #   mortars.neighbor_ids[2, count] = c2e[mesh.tree.child_ids[2, neighbor_cell_id]]
+      # else
+      #   error("should not happen")
+      # end
+
+      # Set large side, which denotes the direction (1 -> negative, 2 -> positive) of the large side
+      if direction in [2, 4]
+        mortars.large_sides[count] = 1
+      else
+        mortars.large_sides[count] = 2
+      end
+
+      # Set orientation (x -> 1, y -> 2)
+      if direction in [1, 2]
+        mortars.orientations[count] = 1
+      else
+        mortars.orientations[count] = 2
+      end
+    end
+  end
+
+  @assert count == nmortars(mortars) ("Actual mortar count ($count) does not match " *
+                                      "expectations $(nmortars(mortars))")
+end
 
 # Initialize connectivity between elements and mortars
 function init_mortar_connectivity!(elements, mortars, mesh::TreeMesh2D)
