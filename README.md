@@ -51,17 +51,6 @@ operating system](https://julialang.org/downloads/platform/). Trixi works
 with Julia v1.5.
 
 ### For users
-**Notice: As of Nov 22nd, the Julia package servers seem to ship outdated
-packages. Thus it can happen that adding Trixi as described in this "For users"
-section may not work properly on your machine, giving you the old Trixi v0.2
-instead of the current Trixi v0.3. In that case, all the examples listed here
-will not work due to breaking changes introduced in v0.3.**
-
-**The best options right now are to either use the installation procedure given
-below in [For developers](#for-developers), or to try the solutions discussed in
-the related [issue](https://github.com/trixi-framework/Trixi.jl/issues/354). If
-you have further questions or you are still having problems, please let us know.**
-
 Trixi and related postprocessing tools are registered Julia packages. Hence, you
 can install Trixi, the visualization tools
 [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
