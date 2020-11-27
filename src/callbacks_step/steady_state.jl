@@ -31,7 +31,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     steady_state_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "absolute tolerance" => steady_state_callback.abstol,
              "relative tolerance" => steady_state_callback.reltol,
             ]
@@ -56,7 +56,7 @@ function (steady_state_callback::SteadyStateCallback)(u_ode::AbstractVector, t, 
     terminate_integer = Int(terminate)
     terminate = !iszero(MPI.Allreduce!(Ref(terminate_integer), +, mpi_comm())[])
   end
-  if mpi_isroot() && terminate 
+  if mpi_isroot() && terminate
     @info "  Steady state tolerance reached" steady_state_callback t
   end
   return terminate
@@ -66,6 +66,6 @@ function (steady_state_callback::SteadyStateCallback)(du, u, semi::AbstractSemid
   steady_state_callback(du, u, mesh_equations_solver_cache(semi)...)
 end
 
-
+include("steady_state_dg1d.jl")
 include("steady_state_dg2d.jl")
 include("steady_state_dg3d.jl")

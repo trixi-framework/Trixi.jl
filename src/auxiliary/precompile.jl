@@ -124,6 +124,7 @@ function _precompile_manual_()
 
   function equations_types_1d(RealT)
     ( LinearScalarAdvectionEquation1D{RealT},
+      HyperbolicDiffusionEquation1D{RealT},
       CompressibleEulerEquations1D{RealT},
       IdealGlmMhdEquations1D{RealT},
     )
@@ -146,6 +147,7 @@ function _precompile_manual_()
     ( LinearScalarAdvectionEquation1D{RealT},
       LinearScalarAdvectionEquation2D{RealT},
       LinearScalarAdvectionEquation3D{RealT},
+      HyperbolicDiffusionEquations1D{RealT},
       HyperbolicDiffusionEquations2D{RealT},
       HyperbolicDiffusionEquations3D{RealT},
       CompressibleEulerEquations1D{RealT},
@@ -176,6 +178,7 @@ function _precompile_manual_()
 
   # Constructors: hyperbolic diffusion
   for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations1D},})
     @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations2D},})
     @assert Base.precompile(Tuple{Type{HyperbolicDiffusionEquations3D},})
   end
