@@ -4,25 +4,32 @@
 
 The Lattice-Boltzmann equation
 ```math
-\partial_t f_\alpha + v_{\alpha,1} \partial_1 f_\alpha + v_{\alpha,2} \partial_2 f_\alpha = 0
+\partial_t u_\alpha + v_{\alpha,1} \partial_1 u_\alpha + v_{\alpha,2} \partial_2 u_\alpha = 0
 ```
 in two space dimensions.
 """
 struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquation{2, 9}
-  c_s::RealT
   c::RealT
+  c_s::RealT
+  Ma::RealT
+  u0::RealT
+  Re::RealT
+  L::RealT
+  nu::RealT
+  omega_alpha::SVector{9, RealT}
   v_alpha1::SVector{9, RealT}
   v_alpha2::SVector{9, RealT}
-  # v_alpha::SMatrix{(9,2), RealT, 2, 18}
 end
 
-function LatticeBoltzmannEquation2D(c_s::Real)
-  c = convert(Real, sqrt(3)) * c_s
-  v_alpha1 = @SVector ([ 0,  1,  0, -1,  0,  1, -1,  -1,  1] * c)
-  v_alpha2 = @SVector ([ 0,  0,  1,  0, -1,  1,  1,  -1, -1] * c)
-  # v_alpha = @SMatrix [ 0 0; c 0; 0 c; -c 0; 0 -c; c c; -c c; -c -c; c -c]
-  LatticeBoltzmannEquation2D(c_s, c, v_alpha1, v_alpha2)
-  # LatticeBoltzmannEquation2D(c_s, c, v_alpha)
+function LatticeBoltzmannEquation2D(Ma::Real, Re::Real; c::Real=1, L::Real=1)
+  Ma, Re, c, L = promote(Ma, Re, c, L)...
+  c_s = c / sqrt(3)
+  u0 = Ma * c_s
+  nu = u0 * L / Re
+  omega_alpha = @SVector [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36]
+  v_alpha1 =    @SVector [ 0,  c,  0, -c,  0,  c, -c,  -c,  c]
+  v_alpha2 =    @SVector [ 0,  0,  c,  0, -c,  c,  c,  -c, -c]
+  LatticeBoltzmannEquation2D(c, c_s, Ma, u0, Re, L, nu, v_alpha1, v_alpha2)
 end
 
 
@@ -85,6 +92,68 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LatticeBoltzmann
     v_alpha = equation.v_alpha2
   end
   return 0.5 * ( v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll) )
+end
+
+
+density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
+
+
+function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
+  if orientation == 1
+    v_alpha = equation.v_alpha1
+  else
+    v_alpha = equation.v_alpha2
+  end
+  
+  return sum(v_alpha .* u)/density(u, equation)
+end
+
+
+function velocity(u, equation::LatticeBoltzmannEquation2D)
+  @unpack v_alpha1, v_alpha2 = equation
+  rho = density(u, equation)
+  
+  return SVector(sum(v_alpha1 .* u)/rho, sum(v_alpha2 .* u)/rho)
+end
+
+
+function local_maxwell_equilibrium(u, alpha, equation::LatticeBoltzmannEquation2D)
+  rho = density(u, equation)
+  v1, v2 = velocity(u, equation)
+
+  return local_maxwell_equilibrium(u, alpha, rho, v1, v2, equation)
+end
+
+
+function local_maxwell_equilibrium(u, alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+  @unpack omega_alpha, c_s, v_alpha1, v_alpha2 = equation
+  va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
+  cs_squared = c_s^2
+  v_squared = v1^2 + v2^2
+
+  return omega_alpha[alpha] * rho * (1 + va_v/cs_squared
+                                       - v_squared/(2*cs_squared)
+                                       + va_v^2/(2*cs_squared))
+end
+
+
+function local_maxwell_equilibrium(u, equation::LatticeBoltzmannEquation2D)
+  return SVector(local_maxwell_equilibrium(u, 1, equation),
+                 local_maxwell_equilibrium(u, 2, equation),
+                 local_maxwell_equilibrium(u, 3, equation),
+                 local_maxwell_equilibrium(u, 4, equation),
+                 local_maxwell_equilibrium(u, 5, equation),
+                 local_maxwell_equilibrium(u, 6, equation),
+                 local_maxwell_equilibrium(u, 7, equation),
+                 local_maxwell_equilibrium(u, 8, equation),
+                 local_maxwell_equilibrium(u, 9, equation))
+end
+
+
+function collision_bgk(u, dt, equations::LatticeBoltzmannEquation2D)
+  @unpack c_s, nu = equation
+  tau = nu / (c_s^2 * dt)
+  return -(u - local_maxwell_equilibrium(u, equation))/(tau + 1/2)
 end
 
 
