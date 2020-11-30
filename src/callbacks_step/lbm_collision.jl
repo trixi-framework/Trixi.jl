@@ -47,11 +47,12 @@ end
   dt = get_proposed_dt(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack collision_op = equations
 
   u_ode = integrator.u
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  apply_collision!(collision_bgk, u, dt, mesh, equations, solver, cache)
+  apply_collision!(collision_op, u, dt, mesh, equations, solver, cache)
 
   return nothing
 end

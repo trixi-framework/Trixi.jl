@@ -66,7 +66,8 @@ include("auxiliary/special_elixirs.jl")
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
-       LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
+       LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
+       LatticeBoltzmannEquation2D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal

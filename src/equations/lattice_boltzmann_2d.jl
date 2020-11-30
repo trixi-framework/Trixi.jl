@@ -8,7 +8,7 @@ The Lattice-Boltzmann equation
 ```
 in two space dimensions.
 """
-struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquations{2, 9}
+struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
   c::RealT
   c_s::RealT
   Ma::RealT
@@ -16,20 +16,56 @@ struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquati
   Re::RealT
   L::RealT
   nu::RealT
+
   omega_alpha::SVector{9, RealT}
   v_alpha1::SVector{9, RealT}
   v_alpha2::SVector{9, RealT}
+
+  collision_op::CollisionOp
 end
 
-function LatticeBoltzmannEquation2D(Ma::Real, Re::Real; c::Real=1, L::Real=1)
-  Ma, Re, c, L = promote(Ma, Re, c, L)
+function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bg,
+                                    c::Real=1, L::Real=1, u0=nothing, nu=nothing)
+  # Sanity check that exactly one of Ma, u0 is not `nothing`
+  if isnothing(Ma) && isnothing(u0)
+    error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
+  elseif !isnothing(Ma) && !isnothing(u0)
+    error("Mach number `Ma` and reference speed `u0` may not both be set")
+  end
+
+  # Sanity check that exactly one of Re, nu is not `nothing`
+  if isnothing(Re) && isnothing(nu)
+    error("Reynolds number `Re` and visocsity `nu` may not both be `nothing`")
+  elseif !isnothing(Re) && !isnothing(nu)
+    error("Reynolds number `Re` and visocsity `nu` may not both be set")
+  end
+
+  # Calculate speed of sound
   c_s = c / sqrt(3)
-  u0 = Ma * c_s
-  nu = u0 * L / Re
+
+  # Calculate missing quantities
+  if isnothing(Ma)
+    Ma = u0 / c_s
+  elseif isnothing(u0)
+    u0 = Ma * c_s
+  end
+  if isnothing(Re)
+    Re = u0 * L / nu
+  elseif isnothing(nu)
+    nu = u0 * L / Re
+  end
+
+  # Promote to common data type
+  Ma, Re, c, L, u0, nu = promote(Ma, Re, c, L, u0, nu)
+
+  # Source for weights and speeds: https://cims.nyu.edu/~billbao/report930.pdf
   omega_alpha = @SVector [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36]
   v_alpha1 =    @SVector [ 0,  c,  0, -c,  0,  c, -c,  -c,  c]
   v_alpha2 =    @SVector [ 0,  0,  c,  0, -c,  c,  c,  -c, -c]
-  LatticeBoltzmannEquation2D(c, c_s, Ma, u0, Re, L, nu, v_alpha1, v_alpha2)
+
+  LatticeBoltzmannEquation2D(c, c_s, Ma, u0, Re, L, nu,
+                             omega_alpha, v_alpha1, v_alpha2,
+                             collision_op)
 end
 
 
@@ -39,20 +75,18 @@ varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 """
-    initial_condition_constant(x, t, equations::LatticeBoltzmannEquation2D)
+    initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
 
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
-
+  @unpack u0 = equation
   return @SVector [2.0]
 end
 
 
 """
-    initial_condition_convergence_test(x, t, equations::LatticeBoltzmannEquation2D)
+    initial_condition_convergence_test(x, t, equation::LatticeBoltzmannEquation2D)
 
 A smooth initial condition used for convergence tests.
 """
@@ -71,7 +105,7 @@ end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquation2D)
+# function source_terms_WHATEVER(u, x, t, equation::LatticeBoltzmannEquation2D)
 
 
 # Calculate 1D flux in for a single point
@@ -117,7 +151,20 @@ function velocity(u, equation::LatticeBoltzmannEquation2D)
 end
 
 
-function local_maxwell_equilibrium(u, alpha, equation::LatticeBoltzmannEquation2D)
+function local_maxwell_equilibrium(alpha::Real, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+  @unpack omega_alpha, c_s, v_alpha1, v_alpha2 = equation
+
+  va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
+  cs_squared = c_s^2
+  v_squared = v1^2 + v2^2
+
+  return omega_alpha[alpha] * rho * (1 + va_v/cs_squared
+                                       + va_v^2/(2*cs_squared^2)
+                                       - v_squared/(2*cs_squared))
+end
+
+
+function local_maxwell_equilibrium(alpha, u, equation::LatticeBoltzmannEquation2D)
   rho = density(u, equation)
   v1, v2 = velocity(u, equation)
 
@@ -125,32 +172,28 @@ function local_maxwell_equilibrium(u, alpha, equation::LatticeBoltzmannEquation2
 end
 
 
-function local_maxwell_equilibrium(u, alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  @unpack omega_alpha, c_s, v_alpha1, v_alpha2 = equation
-  va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
-  cs_squared = c_s^2
-  v_squared = v1^2 + v2^2
-
-  return omega_alpha[alpha] * rho * (1 + va_v/cs_squared
-                                       - v_squared/(2*cs_squared)
-                                       + va_v^2/(2*cs_squared))
+function local_maxwell_equilibrium(u, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+  return SVector(local_maxwell_equilibrium(u, 1, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 2, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 3, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 4, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 5, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 6, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 7, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 8, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(u, 9, rho, v1, v2, equation))
 end
 
 
 function local_maxwell_equilibrium(u, equation::LatticeBoltzmannEquation2D)
-  return SVector(local_maxwell_equilibrium(u, 1, equation),
-                 local_maxwell_equilibrium(u, 2, equation),
-                 local_maxwell_equilibrium(u, 3, equation),
-                 local_maxwell_equilibrium(u, 4, equation),
-                 local_maxwell_equilibrium(u, 5, equation),
-                 local_maxwell_equilibrium(u, 6, equation),
-                 local_maxwell_equilibrium(u, 7, equation),
-                 local_maxwell_equilibrium(u, 8, equation),
-                 local_maxwell_equilibrium(u, 9, equation))
+  rho = density(u, equation)
+  v1, v2 = velocity(u, equation)
+
+  return local_maxwell_equilibrium(rho, v1, v2, equation)
 end
 
 
-function collision_bgk(u, dt, equations::LatticeBoltzmannEquation2D)
+function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
   @unpack c_s, nu = equation
   tau = nu / (c_s^2 * dt)
   return -(u - local_maxwell_equilibrium(u, equation))/(tau + 1/2)
