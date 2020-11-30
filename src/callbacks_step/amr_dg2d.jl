@@ -10,9 +10,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
 
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_refine = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          cells_to_refine)
+  # Find all indices of elements whose cell ids are in cells_to_refine
+  elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, cache.elements.cell_ids)
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -58,6 +57,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
+  if mpi_isparallel()
+    # re-initialize mpi_interfaces container
+    @unpack mpi_interfaces = cache
+    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+  end
+
   # re-initialize boundaries container
   @unpack boundaries = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
@@ -68,8 +74,41 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
   init_mortars!(mortars, elements, mesh)
 
+  if mpi_isparallel()
+    # MPI setup
+    mpi_neighbor_ranks, mpi_neighbor_interfaces =
+      init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+
+    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
+      init_mpi_data_structures(mpi_neighbor_interfaces,
+                              ndims(mesh), nvariables(equations), nnodes(dg))
+
+    # Determine local and total number of elements
+    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
+    n_elements_by_rank[mpi_rank() + 1] = nelements(elements)
+    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
+    n_elements_global = MPI.Allreduce(nelements(elements), +, mpi_comm())
+    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
+
+    # Determine the global element id of the first element
+    first_element_global_id = MPI.Exscan(nelements(elements), +, mpi_comm())
+    if mpi_isroot()
+      # With Exscan, the result on the first rank is undefined
+      first_element_global_id = 1
+    else
+      # On all other ranks we need to add one, since Julia has one-based indices
+      first_element_global_id += 1
+    end
+    @pack! cache.mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                        mpi_send_buffers, mpi_recv_buffers,
+                        mpi_send_requests, mpi_recv_requests,
+                        n_elements_by_rank, n_elements_global,
+                        first_element_global_id
+  end
+
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
+  if isperiodic(mesh.tree) && nmortars(mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
