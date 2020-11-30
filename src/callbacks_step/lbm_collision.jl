@@ -4,7 +4,9 @@
 
 Apply the LBM collision operator before each time step.
 """
-struct LBMCollisionCallback end
+struct LBMCollisionCallback
+  dummy::Bool # FIXME: Remove once we figure out how to define an outer constructor for a struct without fields
+end
 
 
 function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:LBMCollisionCallback}
@@ -24,11 +26,11 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
-function LBMCollisionCallback(; )
+function LBMCollisionCallback()
   # when is the callback activated
   condition = (u, t, integrator) -> true
 
-  lbm_collision_callback = LBMCollisionCallback(glm_scale, cfl)
+  lbm_collision_callback = LBMCollisionCallback(false)
 
   DiscreteCallback(condition, lbm_collision_callback,
                    save_positions=(false,false),

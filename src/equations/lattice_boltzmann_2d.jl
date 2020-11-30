@@ -24,7 +24,7 @@ struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBo
   collision_op::CollisionOp
 end
 
-function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bg,
+function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
                                     c::Real=1, L::Real=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
@@ -72,6 +72,7 @@ end
 get_name(::LatticeBoltzmannEquation2D) = "LatticeBoltzmannEquation2D"
 varnames_cons(::LatticeBoltzmannEquation2D) = @SVector ["pdf"*string(i) for i in 1:9]
 varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
+varnames_macroscopic(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -81,7 +82,11 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
   @unpack u0 = equation
-  return @SVector [2.0]
+  rho = pi
+  v1 = u0
+  v2 = u0
+
+  return local_maxwell_equilibrium(rho, v1, v2, equation)
 end
 
 
@@ -151,7 +156,10 @@ function velocity(u, equation::LatticeBoltzmannEquation2D)
 end
 
 
-function local_maxwell_equilibrium(alpha::Real, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c^2 / 3
+
+
+function local_maxwell_equilibrium(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
   @unpack omega_alpha, c_s, v_alpha1, v_alpha2 = equation
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
@@ -168,20 +176,20 @@ function local_maxwell_equilibrium(alpha, u, equation::LatticeBoltzmannEquation2
   rho = density(u, equation)
   v1, v2 = velocity(u, equation)
 
-  return local_maxwell_equilibrium(u, alpha, rho, v1, v2, equation)
+  return local_maxwell_equilibrium(alpha, rho, v1, v2, equation)
 end
 
 
-function local_maxwell_equilibrium(u, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  return SVector(local_maxwell_equilibrium(u, 1, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 2, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 3, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 4, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 5, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 6, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 7, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 8, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(u, 9, rho, v1, v2, equation))
+function local_maxwell_equilibrium(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+  return SVector(local_maxwell_equilibrium(1, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(2, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(3, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(4, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(5, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(6, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(7, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(8, rho, v1, v2, equation),
+                 local_maxwell_equilibrium(9, rho, v1, v2, equation))
 end
 
 
@@ -211,8 +219,15 @@ end
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LatticeBoltzmannEquation2D) = error("not implemented")
 
+# Convert conservative variables to macroscopic
+@inline function cons2macro(u, equation::LatticeBoltzmannEquation2D)
+  return SVector(density(u, equation),
+                 velocity(u, equation)...,
+                 pressure(u, equation))
+end
+
 # Convert conservative variables to entropy variables
-@inline cons2entropy(u, equation::LatticeBoltzmannEquation2D) = error("not implemented")
+@inline cons2entropy(u, equation::LatticeBoltzmannEquation2D) = u
 
 
 # Calculate entropy for a conservative state `cons`

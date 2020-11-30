@@ -121,7 +121,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, AMRCallback, StepsizeCallback,
-       GlmSpeedCallback, TrivialCallback
+       GlmSpeedCallback, LBMCollisionCallback,
+       TrivialCallback
 
 export load_mesh, load_time
 
