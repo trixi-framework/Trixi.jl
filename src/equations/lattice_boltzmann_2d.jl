@@ -72,7 +72,6 @@ end
 get_name(::LatticeBoltzmannEquation2D) = "LatticeBoltzmannEquation2D"
 varnames_cons(::LatticeBoltzmannEquation2D) = @SVector ["pdf"*string(i) for i in 1:9]
 varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
-varnames_macroscopic(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -216,11 +215,8 @@ end
 end
 
 
-# Convert conservative variables to primitive
-@inline cons2prim(u, equation::LatticeBoltzmannEquation2D) = error("not implemented")
-
-# Convert conservative variables to macroscopic
-@inline function cons2macro(u, equation::LatticeBoltzmannEquation2D)
+# Convert conservative variables to primitive (macroscopic)
+@inline function cons2prim(u, equation::LatticeBoltzmannEquation2D)
   return SVector(density(u, equation),
                  velocity(u, equation)...,
                  pressure(u, equation))

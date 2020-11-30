@@ -65,6 +65,80 @@ function save_solution_file(u, time, dt, timestep,
   return filename
 end
 
+function save_solution_file(u, time, dt, timestep,
+                            mesh::SerialTreeMesh, equations::LatticeBoltzmannEquation2D, dg::DG,
+                            cache,
+                            solution_callback, element_variables=Dict{Symbol,Any}();
+                            system="")
+  @unpack output_directory, solution_variables = solution_callback
+
+  # Filename without extension based on current time step
+  if isempty(system)
+    filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+  else
+    filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
+  end
+
+  # Convert to primitive variables if requested
+  if solution_variables === :conservative
+    data = u
+    varnames = varnames_cons(equations)
+    nvars = size(data, 1) # TODO LBM output
+  elseif solution_variables === :primitive
+    nvars = length(varnames_prim(equations))
+    data = Array{eltype(u)}(undef, nvars, nnodes(dg), nnodes(dg), nelements(dg, cache))
+    Threads.@threads for element in eachelement(dg, cache)
+      for j in eachnode(dg), i in eachnode(dg)
+        cons = get_node_vars(u, equations, dg, i, j, element)
+        prim = cons2prim(cons, equations)
+        for v in 1:nvars
+          data[v, i, j, element] = prim[v]
+        end
+      end
+    end
+    varnames = varnames_prim(equations)
+  else
+    error("Unknown solution_variables $solution_variables")
+  end
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["equations"] = get_name(equations)
+    attributes(file)["polydeg"] = polydeg(dg)
+    attributes(file)["n_vars"] = nvars # nvariables(equations)
+    attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
+    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
+    attributes(file)["timestep"] = timestep
+
+    # Store each variable of the solution
+    # for v in eachvariable(equations) # TODO LBM output
+    for v in 1:nvars
+      # Convert to 1D array
+      file["variables_$v"] = vec(data[v, .., :])
+
+      # Add variable name as attribute
+      var = file["variables_$v"]
+      attributes(var)["name"] = varnames[v]
+    end
+
+    # Store element variables
+    for (v, (key, element_variable)) in enumerate(element_variables)
+      # Add to file
+      file["element_variables_$v"] = element_variable
+
+      # Add variable name as attribute
+      var = file["element_variables_$v"]
+      attributes(var)["name"] = string(key)
+    end
+  end
+
+  return filename
+end
+
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::ParallelTreeMesh, equations, dg::DG, cache,
