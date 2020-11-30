@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-equations = LatticeBoltzmannEquation2D(Ma=0.1, Re=nothing, nu=0)
+equations = LatticeBoltzmannEquation2D(Ma=0.1, Re=Inf)
 
 initial_condition = initial_condition_constant
 
@@ -18,7 +18,7 @@ coordinates_max = ( 1,  1)
 #   (type="box", coordinates_min=(0.0, -1.0), coordinates_max=(1.0, 1.0)),
 # )
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=4,
                 # refinement_patches=refinement_patches,
                 n_cells_max=10_000,)
 
