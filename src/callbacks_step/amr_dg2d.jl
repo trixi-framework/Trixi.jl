@@ -75,36 +75,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   init_mortars!(mortars, elements, mesh)
 
   if mpi_isparallel()
-    # MPI setup
-    mpi_neighbor_ranks, mpi_neighbor_interfaces =
-      init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
-
-    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
-      init_mpi_data_structures(mpi_neighbor_interfaces,
-                              ndims(mesh), nvariables(equations), nnodes(dg))
-
-    # Determine local and total number of elements
-    n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
-    n_elements_by_rank[mpi_rank() + 1] = nelements(elements)
-    MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
-    n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
-    n_elements_global = MPI.Allreduce(nelements(elements), +, mpi_comm())
-    @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
-
-    # Determine the global element id of the first element
-    first_element_global_id = MPI.Exscan(nelements(elements), +, mpi_comm())
-    if mpi_isroot()
-      # With Exscan, the result on the first rank is undefined
-      first_element_global_id = 1
-    else
-      # On all other ranks we need to add one, since Julia has one-based indices
-      first_element_global_id += 1
-    end
-    @pack! cache.mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                        mpi_send_buffers, mpi_recv_buffers,
-                        mpi_send_requests, mpi_recv_requests,
-                        n_elements_by_rank, n_elements_global,
-                        first_element_global_id
+    @unpack mpi_cache = cache
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
   end
 
   # Sanity check

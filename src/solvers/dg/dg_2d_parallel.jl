@@ -18,6 +18,25 @@ mutable struct MPICache
 end
 
 
+function MPICache()
+  mpi_neighbor_ranks = Vector{Int}(undef, 0)
+  mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0)
+  mpi_send_buffers = Vector{Vector{Float64}}(undef, 0)
+  mpi_recv_buffers = Vector{Vector{Float64}}(undef, 0)
+  mpi_send_requests = Vector{MPI.Request}(undef, 0)
+  mpi_recv_requests = Vector{MPI.Request}(undef, 0)
+  n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
+  n_elements_global = 0
+  first_element_global_id = 0
+
+  MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces,
+           mpi_send_buffers, mpi_recv_buffers,
+           mpi_send_requests, mpi_recv_requests,
+           n_elements_by_rank, n_elements_global,
+           first_element_global_id)
+end
+
+
 # TODO: MPI dimension agnostic
 function start_mpi_receive!(mpi_cache::MPICache)
 
@@ -110,13 +129,34 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2}
 
   mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
-  # MPI setup
+  mpi_cache = init_mpi_cache(mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+
+  cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
+             mpi_cache)
+
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+
+  return cache
+end
+
+
+function init_mpi_cache(mesh, elements, mpi_interfaces, nvars, nnodes)
+  mpi_cache = MPICache()
+
+  init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes)
+  return mpi_cache
+end
+
+
+function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes)
   mpi_neighbor_ranks, mpi_neighbor_interfaces =
-    init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+  init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
 
   mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
-    init_mpi_data_structures(mpi_neighbor_interfaces,
-                             ndims(mesh), nvariables(equations), nnodes(dg))
+  init_mpi_data_structures(mpi_neighbor_interfaces,
+                          ndims(mesh), nvars, nnodes)
 
   # Determine local and total number of elements
   n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
@@ -135,20 +175,11 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2}
     # On all other ranks we need to add one, since Julia has one-based indices
     first_element_global_id += 1
   end
-  mpi_cache = MPICache(mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                       mpi_send_buffers, mpi_recv_buffers,
-                       mpi_send_requests, mpi_recv_requests,
-                       n_elements_by_rank, n_elements_global,
-                       first_element_global_id)
-
-  cache = (; elements, interfaces, mpi_interfaces, boundaries, mortars,
-             mpi_cache)
-
-  # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
-  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
-
-  return cache
+  @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
+                     mpi_send_buffers, mpi_recv_buffers,
+                     mpi_send_requests, mpi_recv_requests,
+                     n_elements_by_rank, n_elements_global,
+                     first_element_global_id
 end
 
 
