@@ -1,5 +1,8 @@
-# Partition mesh using a static domain decomposition algorithm based on leaf cell count alone
-function partition!(mesh::ParallelTreeMesh)
+# Partition mesh using a static domain decomposition algorithm
+# based on leaf cell count and tree structure.
+# If all children of a cell are leaves, the algorithm will keep them together on one rank
+# to allow for coarsening.
+function partition!(mesh)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
   @assert length(leaves) > mpi_nranks()
@@ -16,16 +19,38 @@ function partition!(mesh::ParallelTreeMesh)
   mesh.n_cells_by_rank = similar(n_leaves_per_rank)
 
   leaf_count = 0
-  last_id = leaves[n_leaves_per_rank[0]]
   mesh.first_cell_by_rank[0] = 1
-  mesh.n_cells_by_rank[0] = last_id
-  mesh.tree.mpi_ranks[1:last_id] .= 0
-  for d in 1:(length(n_leaves_per_rank)-1)
-    leaf_count += n_leaves_per_rank[d-1]
-    last_id = leaves[leaf_count + n_leaves_per_rank[d]]
-    mesh.first_cell_by_rank[d] = mesh.first_cell_by_rank[d-1] + mesh.n_cells_by_rank[d-1]
+  # Iterate over all ranks
+  for d in 0:(length(n_leaves_per_rank) - 1)
+    leaf_count += n_leaves_per_rank[d]
+    last_id = leaves[leaf_count]
+    parent_id = mesh.tree.parent_ids[last_id]
+
+    # Check if all children of the last parent are leaves
+    if all(id -> is_leaf(mesh.tree, id), mesh.tree.child_ids[:, parent_id]) && 
+        d < length(n_leaves_per_rank) - 1
+
+      # To keep children of parent together if they are all leaves, 
+      # all children are added to this rank
+      additional_cells = last_id+1:mesh.tree.child_ids[end, parent_id]
+      if length(additional_cells) > 0
+        last_id = additional_cells[end]
+
+        additional_leaves = count(id -> is_leaf(mesh.tree, id), additional_cells)
+        leaf_count += additional_leaves
+        # Add leaves to this rank, remove from next rank
+        n_leaves_per_rank[d] += additional_leaves
+        n_leaves_per_rank[d+1] -= additional_leaves
+      end
+    end
+
     mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
     mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
+    
+    # Set first cell of next rank
+    if d < length(n_leaves_per_rank) - 1
+      mesh.first_cell_by_rank[d+1] = mesh.first_cell_by_rank[d] + mesh.n_cells_by_rank[d]
+    end
   end
 
   @assert all(x->x >= 0, mesh.tree.mpi_ranks[1:length(mesh.tree)])
