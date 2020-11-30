@@ -102,4 +102,5 @@ include("hyperbolic_diffusion_2d.jl")
 include("hyperbolic_diffusion_3d.jl")
 
 # Lattice-Boltzmann equation (advection part only)
+abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("lattice_boltzmann_2d.jl")

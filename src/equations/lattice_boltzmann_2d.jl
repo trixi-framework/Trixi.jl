@@ -8,7 +8,7 @@ The Lattice-Boltzmann equation
 ```
 in two space dimensions.
 """
-struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquation{2, 9}
+struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquations{2, 9}
   c::RealT
   c_s::RealT
   Ma::RealT
@@ -22,7 +22,7 @@ struct LatticeBoltzmannEquation2D{RealT<:Real} <: AbstractLatticeBoltzmannEquati
 end
 
 function LatticeBoltzmannEquation2D(Ma::Real, Re::Real; c::Real=1, L::Real=1)
-  Ma, Re, c, L = promote(Ma, Re, c, L)...
+  Ma, Re, c, L = promote(Ma, Re, c, L)
   c_s = c / sqrt(3)
   u0 = Ma * c_s
   nu = u0 * L / Re
