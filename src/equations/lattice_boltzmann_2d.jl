@@ -11,13 +11,16 @@ in two space dimensions.
 struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
   c::RealT
   c_s::RealT
+  rho0::RealT
+
   Ma::RealT
   u0::RealT
+
   Re::RealT
   L::RealT
   nu::RealT
 
-  omega_alpha::SVector{9, RealT}
+  weights::SVector{9, RealT}
   v_alpha1::SVector{9, RealT}
   v_alpha2::SVector{9, RealT}
 
@@ -25,7 +28,7 @@ struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBo
 end
 
 function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
-                                    c::Real=1, L::Real=1, u0=nothing, nu=nothing)
+                                    c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
     error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
@@ -56,15 +59,34 @@ function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
   end
 
   # Promote to common data type
-  Ma, Re, c, L, u0, nu = promote(Ma, Re, c, L, u0, nu)
+  Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
   # Source for weights and speeds: https://cims.nyu.edu/~billbao/report930.pdf
-  omega_alpha = @SVector [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36]
-  v_alpha1 =    @SVector [ 0,  c,  0, -c,  0,  c, -c,  -c,  c]
-  v_alpha2 =    @SVector [ 0,  0,  c,  0, -c,  c,  c,  -c, -c]
+  weights  = @SVector [1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9]
+  v_alpha1 = @SVector [ c,   0,  -c,   0,   c,   -c,   -c,    c,    0 ]
+  v_alpha2 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
+  # Visualization of the lattice and the velocity directions:
+  #  6  2  5
+  #   ╲ │ ╱
+  #    ╲│╱
+  #  3──9──1
+  #    ╱│╲
+  #   ╱ │ ╲
+  #  7  4  8
+  #
+  # Opposite directions:
+  # 1 <--> 3
+  # 2 <--> 4
+  # 3 <--> 1
+  # 4 <--> 2
+  # 5 <--> 7
+  # 6 <--> 8
+  # 7 <--> 5
+  # 8 <--> 6
+  # 9 <--> 9
 
-  LatticeBoltzmannEquation2D(c, c_s, Ma, u0, Re, L, nu,
-                             omega_alpha, v_alpha1, v_alpha2,
+  LatticeBoltzmannEquation2D(c, c_s, rho0, Ma, u0, Re, L, nu,
+                             weights, v_alpha1, v_alpha2,
                              collision_op)
 end
 
@@ -89,22 +111,149 @@ function initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
 end
 
 
-"""
-    initial_condition_convergence_test(x, t, equation::LatticeBoltzmannEquation2D)
+function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equation::LatticeBoltzmannEquation2D)
+  # For LBM no-slip wall boundary conditions, we set the boundary state to
+  # - the inner state for outgoing particle distribution functions
+  # - the *opposite* inner state for all otherparticle distribution functions
+  if direction == 1 # boundary in -x direction
+    pdf1 = u_inner[3]
+    pdf2 = u_inner[4]
+    pdf3 = u_inner[3] # outgoing
+    pdf4 = u_inner[2]
+    pdf5 = u_inner[7]
+    pdf6 = u_inner[6] # outgoing
+    pdf7 = u_inner[7] # outgoing
+    pdf8 = u_inner[6]
+    pdf9 = u_inner[9]
+  elseif direction == 2 # boundary in +x direction
+    pdf1 = u_inner[1] # outgoing
+    pdf2 = u_inner[4]
+    pdf3 = u_inner[1]
+    pdf4 = u_inner[2]
+    pdf5 = u_inner[5] # outgoing
+    pdf6 = u_inner[8]
+    pdf7 = u_inner[5]
+    pdf8 = u_inner[8] # outgoing
+    pdf9 = u_inner[9]
+  elseif direction == 3 # boundary in -y direction
+    pdf1 = u_inner[3]
+    pdf2 = u_inner[4]
+    pdf3 = u_inner[1]
+    pdf4 = u_inner[4] # outgoing
+    pdf5 = u_inner[7]
+    pdf6 = u_inner[8]
+    pdf7 = u_inner[7] # outgoing
+    pdf8 = u_inner[8] # outgoing
+    pdf9 = u_inner[9]
+  else # boundary in +y direction
+    pdf1 = u_inner[3]
+    pdf2 = u_inner[2] # outgoing
+    pdf3 = u_inner[1]
+    pdf4 = u_inner[2]
+    pdf5 = u_inner[5] # outgoing
+    pdf6 = u_inner[6] # outgoing
+    pdf7 = u_inner[5]
+    pdf8 = u_inner[6]
+    pdf9 = u_inner[9]
+  end
+  u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
 
-A smooth initial condition used for convergence tests.
-"""
-function initial_condition_convergence_test(x, t, equation::LatticeBoltzmannEquation2D)
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x - equation.advectionvelocity * t
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
 
-  c = 1.0
-  A = 0.5
-  L = 2
-  f = 1/L
-  omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_trans))
-  return @SVector [scalar]
+  return flux
+end
+
+
+function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
+                                             surface_flux_function,
+                                             equation::LatticeBoltzmannEquation2D)
+  @assert direction == 4 "moving wall assumed in +y direction"
+
+  @unpack rho0, u0, weights, c_s = equation
+  cs_squared = c_s^2
+
+  pdf1 = u_inner[3] + 2 * weights[1] * rho0 * u0 / cs_squared
+  pdf2 = u_inner[2] # outgoing
+  pdf3 = u_inner[1] + 2 * weights[3] * rho0 * (-u0) / cs_squared
+  pdf4 = u_inner[2]
+  pdf5 = u_inner[5] # outgoing
+  pdf6 = u_inner[6] # outgoing
+  pdf7 = u_inner[5] + 2 * weights[7] * rho0 * (-u0) / cs_squared
+  pdf8 = u_inner[6] + 2 * weights[8] * rho0 * u0 / cs_squared
+  pdf9 = u_inner[9]
+
+  u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+  end
+
+  return flux
+end
+
+
+function initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEquation2D)
+  @unpack L, u0, nu = equation
+
+  rho = 1
+  v1 = 0
+  v2 = 0
+
+  return local_maxwell_equilibrium(rho, v1, v2, equation)
+end
+
+
+function boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equation::LatticeBoltzmannEquation2D)
+  return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
+                                             surface_flux_function, equation)
+end
+
+
+function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
+  @unpack L, u0, rho0 = equation
+
+  x1, x2 = x
+  v1 = u0*x2/L
+  for m in 1:100
+    lambda_m = m * pi / L
+    v1 += 2 * u0 * (-1)^m/(lambda_m * L) * exp(-nu * lambda_m^2 * t) * sin(lambda_m * x2)
+  end
+
+  rho = 1
+  v2 = 0
+
+  return local_maxwell_equilibrium(rho, v1, v2, equation)
+end
+
+
+function initial_condition_couette_steady(x, t, equation::LatticeBoltzmannEquation2D)
+  @unpack L, u0, rho0 = equation
+
+  rho = rho0
+  v1 = u0 * x[2] / L
+  v2 = 0
+
+  return local_maxwell_equilibrium(rho, v1, v2, equation)
+end
+
+
+function boundary_condition_couette(u_inner, orientation, direction, x, t,
+                                    surface_flux_function,
+                                    equation::LatticeBoltzmannEquation2D)
+  return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
+                                             surface_flux_function, equation)
 end
 
 
@@ -159,15 +308,15 @@ pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equat
 
 
 function local_maxwell_equilibrium(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  @unpack omega_alpha, c_s, v_alpha1, v_alpha2 = equation
+  @unpack weights, c_s, v_alpha1, v_alpha2 = equation
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
   cs_squared = c_s^2
   v_squared = v1^2 + v2^2
 
-  return omega_alpha[alpha] * rho * (1 + va_v/cs_squared
-                                       + va_v^2/(2*cs_squared^2)
-                                       - v_squared/(2*cs_squared))
+  return weights[alpha] * rho * (1 + va_v/cs_squared
+                                   + va_v^2/(2*cs_squared^2)
+                                   - v_squared/(2*cs_squared))
 end
 
 
@@ -211,7 +360,9 @@ end
 @inline have_constant_speed(::LatticeBoltzmannEquation2D) = Val(true)
 
 @inline function max_abs_speeds(equation::LatticeBoltzmannEquation2D)
-  return SVector(1, 1) * equation.c
+  @unpack c = equation
+
+  return c, c
 end
 
 

@@ -94,7 +94,8 @@ export boundary_condition_periodic,
        boundary_condition_torrilhon_shock_tube,
        boundary_condition_ryujones_shock_tube,
        boundary_condition_shu_osher_shock_tube,
-       boundary_condition_shu_osher_shock_tube_flipped
+       boundary_condition_shu_osher_shock_tube_flipped,
+       boundary_condition_wall_noslip
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
@@ -102,6 +103,8 @@ export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
+export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
+export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 
 export TreeMesh
 
