@@ -152,11 +152,10 @@ end
 
 function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnodes)
   mpi_neighbor_ranks, mpi_neighbor_interfaces =
-  init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
+    init_mpi_neighbor_connectivity(elements, mpi_interfaces, mesh)
 
   mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests =
-  init_mpi_data_structures(mpi_neighbor_interfaces,
-                          ndims(mesh), nvars, nnodes)
+    init_mpi_data_structures(mpi_neighbor_interfaces, ndims(mesh), nvars, nnodes)
 
   # Determine local and total number of elements
   n_elements_by_rank = Vector{Int}(undef, mpi_nranks())

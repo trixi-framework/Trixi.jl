@@ -2,7 +2,7 @@
 # based on leaf cell count and tree structure.
 # If all children of a cell are leaves, the algorithm will keep them together on one rank
 # to allow for coarsening.
-function partition!(mesh)
+function partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
   @assert length(leaves) > mpi_nranks()
@@ -21,18 +21,19 @@ function partition!(mesh)
   leaf_count = 0
   mesh.first_cell_by_rank[0] = 1
   # Iterate over all ranks
-  for d in 0:(length(n_leaves_per_rank) - 1)
+  for d in 0:(mpi_nranks() - 1)
     leaf_count += n_leaves_per_rank[d]
     last_id = leaves[leaf_count]
     parent_id = mesh.tree.parent_ids[last_id]
 
     # Check if all children of the last parent are leaves
-    if all(id -> is_leaf(mesh.tree, id), mesh.tree.child_ids[:, parent_id]) && 
+    if allow_coarsening &&
+        all(id -> is_leaf(mesh.tree, id), mesh.tree.child_ids[:, parent_id]) && 
         d < length(n_leaves_per_rank) - 1
 
       # To keep children of parent together if they are all leaves, 
       # all children are added to this rank
-      additional_cells = last_id+1:mesh.tree.child_ids[end, parent_id]
+      additional_cells = (last_id+1):mesh.tree.child_ids[end, parent_id]
       if length(additional_cells) > 0
         last_id = additional_cells[end]
 
