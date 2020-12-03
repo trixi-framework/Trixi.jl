@@ -4,47 +4,38 @@
 
 Apply the LBM collision operator before each time step.
 """
-struct LBMCollisionCallback
-  dummy::Bool # FIXME: Remove once we figure out how to define an outer constructor for a struct without fields
+function LBMCollisionCallback()
+  DiscreteCallback(lbm_collision_callback, lbm_collision_callback,
+                   save_positions=(false,false),
+                   initialize=initialize!)
 end
 
+# Always execute collision step after a time step, but not after the last step
+lbm_collision_callback(u, t, integrator) = !isfinished(integrator)
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:LBMCollisionCallback}
-  lbm_collision_callback = cb.affect!
+
+function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(lbm_collision_callback)}
   print(io, "LBMCollisionCallback()")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:LBMCollisionCallback}
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(lbm_collision_callback)}
   if get(io, :compact, false)
     show(io, cb)
   else
-    lbm_collision_callback = cb.affect!
-
     summary_box(io, "LBMCollisionCallback")
   end
 end
 
 
-function LBMCollisionCallback()
-  # when is the callback activated
-  condition = (u, t, integrator) -> true
-
-  lbm_collision_callback = LBMCollisionCallback(false)
-
-  DiscreteCallback(condition, lbm_collision_callback,
-                   save_positions=(false,false),
-                   initialize=initialize!)
-end
-
-
-function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:LBMCollisionCallback}
+# Execute collision step once in the very beginning
+function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:typeof(lbm_collision_callback)}
   cb.affect!(integrator)
 end
 
 
 # This method is called as callback after the StepsizeCallback during the time integration.
-@inline function (lbm_collision_callback::LBMCollisionCallback)(integrator)
+@inline function lbm_collision_callback(integrator)
 
   dt = get_proposed_dt(integrator)
   semi = integrator.p
