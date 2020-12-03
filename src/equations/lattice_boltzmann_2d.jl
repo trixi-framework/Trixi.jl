@@ -222,7 +222,7 @@ end
 
 
 function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
-  @unpack L, u0, rho0 = equation
+  @unpack L, u0, rho0, nu = equation
 
   x1, x2 = x
   v1 = u0*x2/L

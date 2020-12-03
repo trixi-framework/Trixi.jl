@@ -19,17 +19,17 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Linear advection
   include("test_examples_2d_advection.jl")
 
-
   # Hyperbolic diffusion
   include("test_examples_2d_hypdiff.jl")
-
 
   # Compressible Euler
   include("test_examples_2d_euler.jl")
 
-
   # MHD
   include("test_examples_2d_mhd.jl")
+
+  # Lattice-Boltzmann
+  include("test_examples_2d_lbm.jl")
 end
 
 # Coverage test for all initial conditions
