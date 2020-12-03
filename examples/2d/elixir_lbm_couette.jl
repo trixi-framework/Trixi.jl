@@ -7,7 +7,7 @@ using Trixi
 
 equations = LatticeBoltzmannEquation2D(Ma=0.05, Re=2000)
 
-initial_condition = initial_condition_steady_couette
+initial_condition = initial_condition_couette_unsteady
 boundary_conditions = (
                        x_neg=boundary_condition_periodic,
                        x_pos=boundary_condition_periodic,
@@ -24,7 +24,7 @@ coordinates_max = (1, 1)
 #   (type="box", coordinates_min=(0.0, -1.0), coordinates_max=(1.0, 1.0)),
 # )
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 # refinement_patches=refinement_patches,
                 periodicity=(true, false),
                 n_cells_max=10_000,)
@@ -37,7 +37,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 100.0)
+tspan = (0.0, 40.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
