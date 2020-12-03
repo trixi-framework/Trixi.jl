@@ -110,10 +110,17 @@ function initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
   v1 = u0
   v2 = u0
 
-  return local_maxwell_equilibrium(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equation)
 end
 
 
+"""
+    boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
+                                   surface_flux_function,
+                                   equation::LatticeBoltzmannEquation2D)
+
+No-slip wall boundary condition using the bounce-back approach.
+"""
 function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
                                         surface_flux_function,
                                         equation::LatticeBoltzmannEquation2D)
@@ -205,6 +212,12 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
 end
 
 
+"""
+    initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEquation2D)
+
+Initial state for a lid-driven cavity flow setup. To be used in combination with
+[`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_wall_noslip`](@ref).
+"""
 function initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEquation2D)
   @unpack L, u0, nu = equation
 
@@ -212,10 +225,18 @@ function initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEqu
   v1 = 0
   v2 = 0
 
-  return local_maxwell_equilibrium(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equation)
 end
 
 
+"""
+    boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
+                                         surface_flux_function,
+                                         equation::LatticeBoltzmannEquation2D)
+    
+Boundary condition for a lid-driven cavity flow setup, where the top lid (+y boundary) is a moving
+no-slip wall. To be used in combination with [`initial_condition_lid_driven_cavity`](@ref).
+"""
 function boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
                                               equation::LatticeBoltzmannEquation2D)
@@ -224,6 +245,14 @@ function boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x
 end
 
 
+"""
+    initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
+
+Initial state for an *unsteady* Couette flow setup, which is also the exact solution for the
+incompressible Navier-Stokes equations. To be used in combination with
+[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref). In the limit,
+this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
+"""
 function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
   @unpack L, u0, rho0, nu = equation
 
@@ -237,10 +266,16 @@ function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEqua
   rho = 1
   v2 = 0
 
-  return local_maxwell_equilibrium(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equation)
 end
 
 
+"""
+    initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
+
+Initial state for a *steady* Couette flow setup. To be used in combination with
+[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref).
+"""
 function initial_condition_couette_steady(x, t, equation::LatticeBoltzmannEquation2D)
   @unpack L, u0, rho0 = equation
 
@@ -248,10 +283,19 @@ function initial_condition_couette_steady(x, t, equation::LatticeBoltzmannEquati
   v1 = u0 * x[2] / L
   v2 = 0
 
-  return local_maxwell_equilibrium(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equation)
 end
 
 
+"""
+    boundary_condition_couette(u_inner, orientation, direction, x, t,
+                               surface_flux_function,
+                               equation::LatticeBoltzmannEquation2D)
+
+Moving *upper* wall boundary condition for a Couette flow setup. To be used in combination with
+[`boundary_condition_wall_noslip`](@ref) for the lower wall and
+[`boundary_condition_periodic`](@ref) for the lateral boundaries.
+"""
 function boundary_condition_couette(u_inner, orientation, direction, x, t,
                                     surface_flux_function,
                                     equation::LatticeBoltzmannEquation2D)
@@ -331,7 +375,13 @@ Calculate the macroscopic pressure from the particle distribution functions `u`.
 pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c^2 / 3
 
 
-function local_maxwell_equilibrium(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+"""
+    equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+
+Calculate the local equilibrium distribution for the distribution function with index `alpha` and
+given the macroscopic state defined by `rho`, `v1`, `v2`.
+"""
+function equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
   @unpack weights, c_s, v_alpha1, v_alpha2 = equation
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
@@ -344,44 +394,44 @@ function local_maxwell_equilibrium(alpha, rho, v1, v2, equation::LatticeBoltzman
 end
 
 
-function local_maxwell_equilibrium(alpha, u, equation::LatticeBoltzmannEquation2D)
+function equilibrium_distribution(alpha, u, equation::LatticeBoltzmannEquation2D)
   rho = density(u, equation)
   v1, v2 = velocity(u, equation)
 
-  return local_maxwell_equilibrium(alpha, rho, v1, v2, equation)
+  return equilibrium_distribution(alpha, rho, v1, v2, equation)
 end
 
 
-function local_maxwell_equilibrium(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  return SVector(local_maxwell_equilibrium(1, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(2, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(3, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(4, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(5, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(6, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(7, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(8, rho, v1, v2, equation),
-                 local_maxwell_equilibrium(9, rho, v1, v2, equation))
+function equilibrium_distribution(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+  return SVector(equilibrium_distribution(1, rho, v1, v2, equation),
+                 equilibrium_distribution(2, rho, v1, v2, equation),
+                 equilibrium_distribution(3, rho, v1, v2, equation),
+                 equilibrium_distribution(4, rho, v1, v2, equation),
+                 equilibrium_distribution(5, rho, v1, v2, equation),
+                 equilibrium_distribution(6, rho, v1, v2, equation),
+                 equilibrium_distribution(7, rho, v1, v2, equation),
+                 equilibrium_distribution(8, rho, v1, v2, equation),
+                 equilibrium_distribution(9, rho, v1, v2, equation))
 end
 
 
-function local_maxwell_equilibrium(u, equation::LatticeBoltzmannEquation2D)
+function equilibrium_distribution(u, equation::LatticeBoltzmannEquation2D)
   rho = density(u, equation)
   v1, v2 = velocity(u, equation)
 
-  return local_maxwell_equilibrium(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equation)
 end
 
 
 """
     collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
 
-Collision operator (source term) for the Bhatnagar, Gross, and Krook (BGK) model.
+Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 """
 function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
   @unpack c_s, nu = equation
   tau = nu / (c_s^2 * dt)
-  return -(u - local_maxwell_equilibrium(u, equation))/(tau + 1/2)
+  return -(u - equilibrium_distribution(u, equation))/(tau + 1/2)
 end
 
 
