@@ -6,7 +6,29 @@ The Lattice-Boltzmann equation
 ```math
 \partial_t u_\alpha + v_{\alpha,1} \partial_1 u_\alpha + v_{\alpha,2} \partial_2 u_\alpha = 0
 ```
-in two space dimensions.
+in two space dimensions for the D2Q9 scheme. The nine discrete velocity directions are sorted as
+follows:
+
+```
+  6  2  5
+   ╲ │ ╱
+    ╲│╱
+  3──9──1
+    ╱│╲
+   ╱ │ ╲
+  7  4  8
+```
+
+The corresponding opposite directions are:
+* 1 ←→  3
+* 2 ←→  4
+* 3 ←→  1
+* 4 ←→  2
+* 5 ←→  7
+* 6 ←→  8
+* 7 ←→  5
+* 8 ←→  6
+* 9 ←→  9
 """
 struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
   c::RealT
@@ -65,25 +87,6 @@ function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
   weights  = @SVector [1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9]
   v_alpha1 = @SVector [ c,   0,  -c,   0,   c,   -c,   -c,    c,    0 ]
   v_alpha2 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
-  # Visualization of the lattice and the velocity directions:
-  #  6  2  5
-  #   ╲ │ ╱
-  #    ╲│╱
-  #  3──9──1
-  #    ╱│╲
-  #   ╱ │ ╲
-  #  7  4  8
-  #
-  # Opposite directions:
-  # 1 <--> 3
-  # 2 <--> 4
-  # 3 <--> 1
-  # 4 <--> 2
-  # 5 <--> 7
-  # 6 <--> 8
-  # 7 <--> 5
-  # 8 <--> 6
-  # 9 <--> 9
 
   LatticeBoltzmannEquation2D(c, c_s, rho0, Ma, u0, Re, L, nu,
                              weights, v_alpha1, v_alpha2,
@@ -282,9 +285,20 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LatticeBoltzmann
 end
 
 
+"""
+    density(u, equation::LatticeBoltzmannEquation2D)
+
+Calculate the macroscopic density from the particle distribution functions `u`.
+"""
 density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
 
 
+"""
+    velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
+
+Calculate the macroscopic velocity for the given `orientation` (1 -> x, 2 -> y) from the
+particle distribution functions `u`.
+"""
 function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
   if orientation == 1
     v_alpha = equation.v_alpha1
@@ -296,6 +310,11 @@ function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
 end
 
 
+"""
+    velocity(u, equation::LatticeBoltzmannEquation2D)
+
+Calculate the macroscopic velocity vector from the particle distribution functions `u`.
+"""
 function velocity(u, equation::LatticeBoltzmannEquation2D)
   @unpack v_alpha1, v_alpha2 = equation
   rho = density(u, equation)
@@ -304,6 +323,11 @@ function velocity(u, equation::LatticeBoltzmannEquation2D)
 end
 
 
+"""
+    pressure(u, equation::LatticeBoltzmannEquation2D)
+
+Calculate the macroscopic pressure from the particle distribution functions `u`.
+"""
 pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c^2 / 3
 
 
@@ -349,6 +373,11 @@ function local_maxwell_equilibrium(u, equation::LatticeBoltzmannEquation2D)
 end
 
 
+"""
+    collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
+
+Collision operator (source term) for the Bhatnagar, Gross, and Krook (BGK) model.
+"""
 function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
   @unpack c_s, nu = equation
   tau = nu / (c_s^2 * dt)
