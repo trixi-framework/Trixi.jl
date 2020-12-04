@@ -71,11 +71,12 @@ end
 
 
 @inline cons2cons(u, ::AbstractEquations) = u
+function cons2prim(u, ::AbstractEquations) end
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 # `varnames_cons` and `varnames_prim` are deprecated
-@deprecate varnames_cons(equations) varnames(::typeof(cons2cons), equations)
-@deprecate varnames_prim(equations) varnames(::typeof(cons2prim), equations)
+@deprecate varnames_cons(equations) varnames(cons2cons, equations)
+@deprecate varnames_prim(equations) varnames(cons2prim, equations)
 
 
 ####################################################################################################
