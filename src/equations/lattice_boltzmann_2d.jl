@@ -20,15 +20,15 @@ follows:
 ```
 
 The corresponding opposite directions are:
-* 1 ←→  3
-* 2 ←→  4
-* 3 ←→  1
-* 4 ←→  2
-* 5 ←→  7
-* 6 ←→  8
-* 7 ←→  5
-* 8 ←→  6
-* 9 ←→  9
+* 1 ←→ 3
+* 2 ←→ 4
+* 3 ←→ 1
+* 4 ←→ 2
+* 5 ←→ 7
+* 6 ←→ 8
+* 7 ←→ 5
+* 8 ←→ 6
+* 9 ←→ 9
 
 The main sources for the base implementation were
 * Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
@@ -103,7 +103,7 @@ end
 
 
 get_name(::LatticeBoltzmannEquation2D) = "LatticeBoltzmannEquation2D"
-varnames_cons(::LatticeBoltzmannEquation2D) = @SVector ["pdf"*string(i) for i in 1:9]
+varnames_cons(equations::LatticeBoltzmannEquation2D) = @SVector ["pdf"*string(v) for v in eachvariable(equations)]
 varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
@@ -134,7 +134,8 @@ function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
                                         equation::LatticeBoltzmannEquation2D)
   # For LBM no-slip wall boundary conditions, we set the boundary state to
   # - the inner state for outgoing particle distribution functions
-  # - the *opposite* inner state for all otherparticle distribution functions
+  # - the *opposite* inner state for all other particle distribution functions
+  # See the list of (opposite) directions in the docstring of `LatticeBoltzmannEquation2D`.
   if direction == 1 # boundary in -x direction
     pdf1 = u_inner[3]
     pdf2 = u_inner[4]
@@ -338,7 +339,7 @@ end
 
 Calculate the macroscopic density from the particle distribution functions `u`.
 """
-density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
+@inline density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
 
 
 """
@@ -347,7 +348,7 @@ density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
 Calculate the macroscopic velocity for the given `orientation` (1 -> x, 2 -> y) from the
 particle distribution functions `u`.
 """
-function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
+@inline function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
   if orientation == 1
     v_alpha = equation.v_alpha1
   else
@@ -363,7 +364,7 @@ end
 
 Calculate the macroscopic velocity vector from the particle distribution functions `u`.
 """
-function velocity(u, equation::LatticeBoltzmannEquation2D)
+@inline function velocity(u, equation::LatticeBoltzmannEquation2D)
   @unpack v_alpha1, v_alpha2 = equation
   rho = density(u, equation)
   
@@ -385,7 +386,7 @@ pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equat
 Calculate the local equilibrium distribution for the distribution function with index `alpha` and
 given the macroscopic state defined by `rho`, `v1`, `v2`.
 """
-function equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+@inline function equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
   @unpack weights, c_s, v_alpha1, v_alpha2 = equation
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
@@ -406,7 +407,7 @@ function equilibrium_distribution(alpha, u, equation::LatticeBoltzmannEquation2D
 end
 
 
-function equilibrium_distribution(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+@inline function equilibrium_distribution(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
   return SVector(equilibrium_distribution(1, rho, v1, v2, equation),
                  equilibrium_distribution(2, rho, v1, v2, equation),
                  equilibrium_distribution(3, rho, v1, v2, equation),
@@ -432,7 +433,7 @@ end
 
 Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 """
-function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
+@inline function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
   @unpack c_s, nu = equation
   tau = nu / (c_s^2 * dt)
   return -(u - equilibrium_distribution(u, equation))/(tau + 1/2)

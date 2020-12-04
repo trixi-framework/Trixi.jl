@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
 
 equations = LatticeBoltzmannEquation2D(Ma=0.1, Re=1000)
 
@@ -20,12 +20,8 @@ solver = DGSEM(5, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
-# refinement_patches = (
-#   (type="box", coordinates_min=(0.0, -1.0), coordinates_max=(1.0, 1.0)),
-# )
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
-                # refinement_patches=refinement_patches,
                 periodicity=false,
                 n_cells_max=10_000,)
 

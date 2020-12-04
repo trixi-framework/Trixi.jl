@@ -2,7 +2,8 @@
 """
     LBMCollisionCallback()
 
-Apply the LBM collision operator before each time step.
+Apply the Lattice-Boltzmann method (LBM) collision operator before each time step.
+See [`LatticeBoltzmannEquation2D`](@ref) for further details.
 """
 function LBMCollisionCallback()
   DiscreteCallback(lbm_collision_callback, lbm_collision_callback,

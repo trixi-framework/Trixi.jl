@@ -163,7 +163,7 @@ end
               2.2481261510165496e-6, 1.0692966335143494e-5, 9.606391697600247e-6,
               9.62138334279633e-6, 1.0725969916147021e-5, 3.3861802251067274e-15],
       initial_condition=initial_condition_couette_steady,
-      tspan = (0, 1))
+      tspan = (0.0, 1.0))
   end
 
   @testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
