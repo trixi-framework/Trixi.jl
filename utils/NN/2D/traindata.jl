@@ -1,7 +1,7 @@
 #using LinearAlgebra: dot
 using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
-using Plots; pyplot()
+using Plots
 #using Profile: clear_malloc_data
 #using Random: seed!
 
@@ -27,19 +27,20 @@ include("../../../src/run.jl")
 include("../../../src/solvers/solvers.jl")
 include("../../../src/solvers/dg/interpolation.jl")
 
-include("approximation2.jl")
+include("approximation3.jl")
 include("functions.jl")
 
 init_mpi()
 X = zeros(15,0)
 Y = zeros(2,0)
-n_traindata = zeros(17)
+n_traindata = zeros(13)
 n_troubledcells = zeros(2)
 
 #loop over meshs
-for i in 1:4  
+for i in 1:4
+    
     println("Mesh $i")
-    file = "utils/NN/2D/mesh$i.toml"
+    file = "utils/NN/2D/mesh/mesh$i.toml"
     parse_parameters_file(file)
     reset_timer!(timer())
     mesh = generate_mesh()
@@ -71,7 +72,7 @@ for i in 1:4
         end
         
         #loop over functions
-        for func in 1:17
+        for func in 1:13
             #println("Funktion $func")
             u(x,y) = trainfunction(func,x,y)
 
@@ -169,18 +170,18 @@ for i in 1:4
         println(size(X))
         
         #troubled cells
-        for t in 1:200
-            if t < 150
+        for t in 1:500
+            if t < 400
                 func = 1
-                a = rand(Uniform(-100, 100)) 
-                m = rand(Uniform(-1,1)) 
+                a = rand(Uniform(-0.5, 0.5)) 
+                m = rand(Uniform(-2,2)) 
                 x0 = rand(Uniform(-0.5, 0.5)) 
                 y0 = rand(Uniform(-0.5, 0.5)) 
                 u1(x,y) = troubledcellfunctionabs(x, y, a, m, x0, y0)
-            elseif t >=150
+            elseif t >= 400
                 func = 2
                 ui = rand(Uniform(-1,1),4)
-                m = rand(Uniform(0,20))
+                m = rand(Uniform(0,10))
                 x0 = rand(Uniform(-0.5, 0.5))
                 y0 = rand(Uniform(-0.5, 0.5))
                 u2(x,y) = troubledcellfunctionstep(x, y, ui, m, x0, y0)
@@ -296,7 +297,7 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("traindata2dlagrange.h5", "w") do file
+h5open("utils/NN/2D/traindata2dlagrangemodal4.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end
@@ -307,3 +308,4 @@ println(n_troubledcells)
 
 
 
+ 

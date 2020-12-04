@@ -1,11 +1,11 @@
 using Flux
-using Flux: onecold, crossentropy, @epochs, Data.DataLoader, params
+using Flux: onecold, crossentropy, @epochs, Data.DataLoader, params, Dropout
 using Statistics
 using HDF5: h5open
 using BSON: @save
 
 η = 0.001                # learning rate
-β = 0.001                # regularization parameter
+β = 0.001             # regularization parameter
 ν = 0.001                # leakyrelu parameter
 number_epochs = 100
 Sb = 500                 # batch size
@@ -13,18 +13,20 @@ L = 10                   # early stopping parameter
 R = 1
 
 # Load data
-x_train = h5open("utils/NN/2D/traindata2dlag.h5", "r") do file
+x_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal3.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/2D/traindata2dlag.h5", "r") do file
+y_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal3.h5", "r") do file
     read(file, "Y")
 end
-x_valid = h5open("utils/NN/2D/validdata2dlag2.h5", "r") do file
+x_valid = h5open("utils/NN/2D/validdata2dlagrangemodal.h5", "r") do file
     read(file, "X")
 end
-y_valid = h5open("utils/NN/2D/validdata2dlag2.h5", "r") do file
+y_valid = h5open("utils/NN/2D/validdata2dlagrangemodal.h5", "r") do file
     read(file, "Y")
 end
+
+println(size(x_train))
 
 leakyreluv(x) = Flux.leakyrelu(x,ν)
 
@@ -34,12 +36,13 @@ function trainnetwork(d1,d2,d3,d4,d5)
     #for r in 1:R
         @info("Building model...")
         model2d = Chain(
-            Dense(15, d1, leakyrelu),         #initW=Flux.glorot_normal
-            Dense(d1, d2, leakyrelu),
-            Dense(d2, d3, leakyrelu),
-            Dense(d3, d4, leakyrelu),
-            Dense(d4, d5, leakyrelu),
-            Dense(d5, 2),
+            Dense(15, d1, leakyrelu, initW=Flux.glorot_normal),         #initW=Flux.glorot_normal
+            Dense(d1, d2, leakyrelu, initW=Flux.glorot_normal),
+            Dense(d2, d3, leakyrelu, initW=Flux.glorot_normal),
+            #Dropout(0.1),
+            Dense(d3, d4, leakyrelu, initW=Flux.glorot_normal),
+            Dense(d4, d5, leakyrelu, initW=Flux.glorot_normal),
+            Dense(d5, 2, initW=Flux.glorot_normal),
             softmax) 
 
         # Getting predictions
@@ -70,7 +73,7 @@ function trainnetwork(d1,d2,d3,d4,d5)
                 best_acc = acc
                 last_improvement = epoch_idx
                 #save model
-                @save "utils/NN/2D/models/modellag-$(acc).bson" model2d
+                @save "utils/NN/2D/models/modellagmodal3-$(acc).bson" model2d
             end
 
             if epoch_idx - last_improvement >= L
@@ -98,7 +101,7 @@ end
 grid_best = 0
 grid_acc = 0
 for d1 in [20], d2 in [20], d3 in [20], d4 in [20], d5 in [20]
-    grid_acc = trainnetwork(d1, d2, d3, d4,d5)
+    grid_acc = trainnetwork(d1, d2, d3, d4, d5)
     if grid_acc > grid_best
         grid_best = grid_acc
         @show grid_acc , d1, d2, d3, d4, d5

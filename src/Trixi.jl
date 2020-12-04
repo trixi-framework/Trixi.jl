@@ -33,7 +33,8 @@ using UnPack: @unpack
 using Tullio: @tullio
 using LoopVectorization
 
-using Plots: plot, plot!, contourf!
+using Plots: plot, plot!, contourf!, savefig
+using Plots; pyplot()
 # ANN
 using Flux
 using BSON: @load
@@ -43,10 +44,10 @@ Core.eval(Main, :(import NNlib, Flux))  #ToDo
 @load "utils/NN/1D/modelnew-0.9615706660154206.bson" model1d
 #@load "utils/NN/1D/modelm6-0.9726302201444371.bson" model1d
 
-#@load "utils/NN/2D/model-0.8680710265097088.bson" model2d
+#@load "utils/NN/2D/alt/model-0.8680710265097088.bson" model2d
 ##@load "utils/NN/2D/modelcoef-0.8011134692873182.bson" model2d
-##@load "utils/NN/2D/modellag-0.7063587269363776.bson" model2d
-@load "utils/NN/2D/modellagtest-0.8817216989159959.bson" model2d
+@load "utils/NN/2D/modellagmodal3-0.9722979956286746.bson" model2d    
+##@load "utils/NN/2D/modellagmodal-0.6558615325801816.bson" model2d
 
 # Use a central dictionary for global settings
 const globals = Dict{Symbol, Any}()

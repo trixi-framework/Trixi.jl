@@ -218,6 +218,6 @@ function trixi2img3d(filename::AbstractString...;
   println()
 end
 
-trixi2img3d(joinpath("out", "solution_000042.h5"), output_directory="out", grid_lines=false)
+trixi2img3d(joinpath("out", "solution_000086.h5"), output_directory="out", grid_lines=false)
 #trixi2img3d(joinpath("out", "solution_000020.h5"), output_directory="out", grid_lines=false)
 #trixi2img3d(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=false)

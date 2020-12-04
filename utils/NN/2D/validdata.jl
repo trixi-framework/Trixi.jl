@@ -1,7 +1,7 @@
 #using LinearAlgebra: dot
 using Pkg.TOML: parsefile, parse
 using Printf: @printf, @sprintf, println
-using Plots; pyplot()
+using Plots #; pyplot()
 #using Profile: clear_malloc_data
 #using Random: seed!
 
@@ -27,7 +27,7 @@ include("../../../src/run.jl")
 include("../../../src/solvers/solvers.jl")
 include("../../../src/solvers/dg/interpolation.jl")
 
-include("approximation2.jl")
+include("approximation3.jl")
 include("functions.jl")
 
 init_mpi()
@@ -39,7 +39,7 @@ n_troubledcells = zeros(2)
 #loop over meshs
 for i in 1:4  
     println("Mesh $i")
-    file = "utils/NN/2D/mesh$i.toml"
+    file = "utils/NN/2D/mesh/mesh$i.toml"
     parse_parameters_file(file)
     reset_timer!(timer())
     mesh = generate_mesh()
@@ -168,15 +168,15 @@ for i in 1:4
         println(size(X))
         
         #troubled cells
-        for t in 1:75
-            if t < 45
+        for t in 1:200
+            if t < 150
                 func = 1
                 a = rand(Uniform(-100, 100)) 
                 m = rand(Uniform(-1,1)) 
                 x0 = rand(Uniform(-0.5, 0.5)) 
                 y0 = rand(Uniform(-0.5, 0.5)) 
                 u1(x,y) = troubledcellfunctionabs(x, y, a, m, x0, y0)
-            elseif t >=4 5
+            elseif t >= 140
                 func = 2
                 ui = rand(Uniform(-1,1),4)
                 m = rand(Uniform(0,20))
@@ -294,7 +294,7 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("utils/NN/2D/validdata2dlag2.h5", "w") do file
+h5open("utils/NN/2D/validdata2dlagrangemodal.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end
@@ -303,4 +303,5 @@ println(n_troubledcells)
 
 
 
-
+#[26656.0, 26656.0, 26656.0, 26656.0, 26656.0, 26656.0, 26656.0, 26656.0, 26656.0]
+#[122431.0, 50812.0]

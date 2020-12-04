@@ -1355,6 +1355,12 @@ function rhs!(mesh::TreeMesh, dg::Dg2D, t_stage, uses_mpi::Val{false})
   # Calculate volume integral
   @timeit timer() "volume integral" calc_volume_integral!(mesh, dg)
 
+  ###
+  #println(analysis_interval)
+  #if dg.analysis_interval > 0 && step % dg.analysis_interval == 0 
+  #  plot()
+  #end
+
   # Prolong solution to interfaces
   @timeit timer() "prolong2interfaces" prolong2interfaces!(dg)
 
@@ -2490,7 +2496,7 @@ function calc_blending_factors!(alpha, alpha_pre_smooth, u,
     # Convert to modal representation
     multiply_dimensionwise!(modal, dg.inverse_vandermonde_legendre, indicator, modal_tmp1)
 
-    ##if element_id == 1
+    #if element_id == dg.n_elements/2
     #  println("Neu")
     #  println(dg.elements.node_coordinates[1, :, :, element_id])
     #  println(dg.elements.node_coordinates[2, :, :, element_id])
@@ -2544,6 +2550,8 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
 calc_blending_factors_nn!(alpha, alpha_pre_smooth, u, alpha_max, alpha_min, do_smoothing,
 indicator_variable, thread_cache, mesh, dg, uses_mpi(dg))
 end
+
+
 function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     alpha_max, alpha_min, do_smoothing,
     indicator_variable, thread_cache, mesh::TreeMesh, dg::Dg2D, uses_mpi::Val{false})
@@ -2561,8 +2569,8 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     modal2     = modal_threaded[Threads.threadid()]
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
     cell_id = dg.elements.cell_ids[element_id]
-    #umin = minimum(indicator)
-    #umax = maximum(indicator)
+    umin = minimum(indicator)
+    umax = maximum(indicator)
 
     # Calculate indicator variables at Gauss-Lobatto nodes
     cons2indicator!(indicator, u, element_id, indicator_variable, dg)
@@ -2675,24 +2683,28 @@ function calc_blending_factors_nn!(alpha, alpha_pre_smooth, u,
     
     #alpha[element_id] = model2d(X)[1]
 
-    #if (umax-umin) < 0.01 * max(abs(umax),abs(umin))
-    #  alpha[element_id] = 0
-    # end
+    #constant cell
+    if abs(umax-umin) < 0.01 * max(abs(umax),abs(umin)) && model2d(X)[1] < 0.5
+      #println(umin)
+      #println(umax)
+      alpha[element_id] = 0
+      #println('konstant')
+    end
 
     # Take care of the case close to pure DG
-    if (alpha[element_id] < alpha_min)
-      alpha[element_id] = 0.
-    end
+    #if (alpha[element_id] < alpha_min)
+     # alpha[element_id] = 0.
+    #end
 
     # Take care of the case close to pure FV
-    if (alpha[element_id] > 1-alpha_min)
-      alpha[element_id] = 1.
-    end
+    #if (alpha[element_id] > 1-alpha_min)
+    #  alpha[element_id] = 1.
+    #end
 
     # Clip the maximum amount of FV allowed
     alpha[element_id] = min(alpha_max, alpha[element_id])
   end
-
+  #println(alpha)
   if (do_smoothing)
     smooth_alpha!(alpha, alpha_pre_smooth, dg, uses_mpi)
   end
