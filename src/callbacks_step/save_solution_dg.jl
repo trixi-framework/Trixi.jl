@@ -15,7 +15,7 @@ function save_solution_file(u, time, dt, timestep,
   # Convert to primitive variables if requested
   if solution_variables === :conservative
     data = u
-    varnames = varnames(cons2cons, equations)
+    varnames_ = varnames(cons2cons, equations)
   elseif solution_variables === :primitive
     # Reinterpret the solution array as an array of conservative variables,
     # compute the primitive variables via broadcasting, and reinterpret the
@@ -23,7 +23,7 @@ function save_solution_file(u, time, dt, timestep,
     data = Array(reinterpret(eltype(u),
            cons2prim.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
-    varnames = varnames(cons2prim, equations)
+    varnames_ = varnames(cons2prim, equations)
   else
     error("Unknown solution_variables $solution_variables")
   end
@@ -48,7 +48,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames_[v]
     end
 
     # Store element variables
@@ -82,7 +82,7 @@ function save_solution_file(u, time, dt, timestep,
   # Convert to primitive variables if requested
   if solution_variables === :conservative
     data = u
-    varnames = varnames(cons2cons, equations)
+    varnames_ = varnames(cons2cons, equations)
   elseif solution_variables === :primitive
     # Reinterpret the solution array as an array of conservative variables,
     # compute the primitive variables via broadcasting, and reinterpret the
@@ -90,7 +90,7 @@ function save_solution_file(u, time, dt, timestep,
     data = Array(reinterpret(eltype(u),
            cons2prim.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
-    varnames = varnames(cons2prim, equations)
+    varnames_ = varnames(cons2prim, equations)
   else
     error("Unknown solution_variables $solution_variables")
   end
@@ -135,7 +135,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames_[v]
     end
 
     # Store element variables
