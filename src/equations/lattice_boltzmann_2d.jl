@@ -209,12 +209,8 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
 
   u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
 
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
-  end
+  # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
 
   return flux
 end
@@ -462,11 +458,3 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LatticeBoltzmannEquation2D) = u
-
-
-# Calculate entropy for a conservative state `cons`
-@inline entropy(u, equation::LatticeBoltzmannEquation2D) = error("not implemented") 
-
-
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(u, equation::LatticeBoltzmannEquation2D) = error("not implemented")

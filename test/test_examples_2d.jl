@@ -165,6 +165,18 @@ end
       initial_condition=initial_condition_couette_steady,
       tspan = (0, 1))
   end
+
+  @testset "elixir_lbm_lid_driven_cavity.jl with stationary walls" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_lbm_lid_driven_cavity.jl"),
+      l2   = [1.7198203373689985e-16, 1.685644347036533e-16, 2.1604974801394525e-16,
+              2.1527076266915764e-16, 4.2170298143732604e-17, 5.160156233016299e-17,
+              6.167794865198169e-17, 5.24166554417795e-17, 6.694740573885739e-16],
+      linf = [5.967448757360216e-16, 6.522560269672795e-16, 6.522560269672795e-16,
+              6.245004513516506e-16, 2.1163626406917047e-16, 2.185751579730777e-16,
+              2.185751579730777e-16, 2.393918396847994e-16, 1.887379141862766e-15],
+      boundary_conditions=boundary_condition_wall_noslip,
+      tspan = (0, 0.1))
+  end
 end
 
 
