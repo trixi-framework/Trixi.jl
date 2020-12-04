@@ -393,7 +393,7 @@ end
 
 Calculate the macroscopic pressure from the particle distribution functions `u`.
 """
-pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c^2 / 3
+pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c_s^2
 
 
 """
