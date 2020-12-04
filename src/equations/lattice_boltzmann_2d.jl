@@ -1,13 +1,24 @@
 
 @doc raw"""
-    LatticeBoltzmannEquation2D
+    LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
+                               c=1, L=1, rho0=1, u0=nothing, nu=nothing)
 
 The Lattice-Boltzmann equation
 ```math
 \partial_t u_\alpha + v_{\alpha,1} \partial_1 u_\alpha + v_{\alpha,2} \partial_2 u_\alpha = 0
 ```
-in two space dimensions for the D2Q9 scheme. The nine discrete velocity directions are sorted as
-follows:
+in two space dimensions for the D2Q9 scheme.
+
+The characteristic Mach number and Reynolds numbers are specified as `Ma` and `Re`. By the
+default, the collision operator `collision_op` is set to the BGK model. `c`, `L`, and `rho0`
+specify the mean thermal molecular velocity, the characteristic length, and the reference density,
+respectively. They can usually be left to the default values. If desired, instead of the Mach
+number, one can set the macroscopic reference velocity `u0` directly (`Ma` needs to be set to
+`nothing` in this case). Likewise, instead of the Reynolds number one can specify the kinematic
+viscosity `nu` directly (in this case, `Re` needs to be set to `nothing`).
+
+
+The nine discrete velocity directions of the D2Q9 scheme are sorted as follows:
 
 ```
   6  2  5
