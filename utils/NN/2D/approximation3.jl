@@ -1,5 +1,5 @@
 using Tullio: @tullio
-using Plots; pyplot()
+#using Plots; pyplot()
 include("../../../src/solvers/dg/interpolation.jl")
 
 
@@ -37,6 +37,7 @@ function legendreapprox(u, data, r)
     end
     
     modal[:,:] = multiply_dimensionwise(inverse_vandermonde_legendre, indicator)
+    
     
     return modal[1,1], modal[1,2], modal[2,1]
 end
