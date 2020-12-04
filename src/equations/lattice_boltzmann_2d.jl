@@ -42,30 +42,32 @@ The corresponding opposite directions are:
 * 9 ←→ 9
 
 The main sources for the base implementation were
-* Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-  nearly incompressible flows**, J Comput Phys 230(1), 2011
-  [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
-* Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
-  (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
-  Raum**, Master Thesis, University of Cologne, 2018.
+1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
+   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
+2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
+   (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
+   Raum**, Master Thesis, University of Cologne, 2018.
+3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
+   [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
 """
 struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
-  c::RealT
-  c_s::RealT
-  rho0::RealT
+  c::RealT    # mean thermal molecular velocity
+  c_s::RealT  # isothermal speed of sound
+  rho0::RealT # macroscopic reference density
 
-  Ma::RealT
-  u0::RealT
+  Ma::RealT   # characteristic Mach number
+  u0::RealT   # macroscopic reference velocity
 
-  Re::RealT
-  L::RealT
-  nu::RealT
+  Re::RealT   # characteristic Reynolds number
+  L::RealT    # reference length
+  nu::RealT   # kinematic viscosity
 
-  weights::SVector{9, RealT}
-  v_alpha1::SVector{9, RealT}
-  v_alpha2::SVector{9, RealT}
+  weights::SVector{9, RealT}  # weighting factors for the equilibrium distribution
+  v_alpha1::SVector{9, RealT} # discrete molecular velocity components in x-direction
+  v_alpha2::SVector{9, RealT} # discrete molecular velocity components in y-direction
 
-  collision_op::CollisionOp
+  collision_op::CollisionOp   # collision operator for the collision kernel
 end
 
 function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
@@ -84,7 +86,10 @@ function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
     error("Reynolds number `Re` and visocsity `nu` may not both be set")
   end
 
-  # Calculate speed of sound
+  # Calculate isothermal speed of sound
+  # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
+  # `c` depends on the used phase space discretization, and is valid for D2Q9 (and others). For
+  # details, see, e.g., [3] in the docstring above.
   c_s = c / sqrt(3)
 
   # Calculate missing quantities
