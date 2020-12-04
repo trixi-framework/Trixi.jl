@@ -36,7 +36,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2prim)
 
 cfl = 1.1
 stepsize_callback = StepsizeCallback(cfl=cfl)

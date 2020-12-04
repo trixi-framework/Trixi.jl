@@ -55,7 +55,7 @@ inf_timing = @snoopi tmin=0.01 begin
   save_solution = SaveSolutionCallback(interval=100,
                                       save_initial_solution=true,
                                       save_final_solution=true,
-                                      solution_variables=:primitive)
+                                      solution_variables=cons2prim)
 
   save_restart = SaveRestartCallback(interval=100,
                                     save_final_restart=true)
