@@ -12,20 +12,16 @@ function save_solution_file(u, time, dt, timestep,
     filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
   end
 
-  # Convert to primitive variables if requested
-  if solution_variables === :conservative
+  # Convert to different set of variables if requested
+  if solution_variables === cons2cons
     data = u
-    varnames_ = varnames(cons2cons, equations)
-  elseif solution_variables === :primitive
+  else
     # Reinterpret the solution array as an array of conservative variables,
-    # compute the primitive variables via broadcasting, and reinterpret the
+    # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     data = Array(reinterpret(eltype(u),
-           cons2prim.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
-    varnames_ = varnames(cons2prim, equations)
-  else
-    error("Unknown solution_variables $solution_variables")
   end
 
   # Open file (clobber existing content)
@@ -34,7 +30,7 @@ function save_solution_file(u, time, dt, timestep,
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_vars"] = length(varnames(solution_variables, equations))
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -48,7 +44,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames_[v]
+      attributes(var)["name"] = varnames(solution_variables, equations)[v]
     end
 
     # Store element variables
@@ -79,18 +75,16 @@ function save_solution_file(u, time, dt, timestep,
     filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
   end
 
-  # Convert to primitive variables if requested
+  # Convert to different set of variables if requested
   if solution_variables === :conservative
     data = u
-    varnames_ = varnames(cons2cons, equations)
   elseif solution_variables === :primitive
     # Reinterpret the solution array as an array of conservative variables,
     # compute the primitive variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     data = Array(reinterpret(eltype(u),
-           cons2prim.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
-    varnames_ = varnames(cons2prim, equations)
   else
     error("Unknown solution_variables $solution_variables")
   end
@@ -121,7 +115,7 @@ function save_solution_file(u, time, dt, timestep,
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["n_vars"] = nvariables(equations)
+    attributes(file)["n_vars"] = length(varnames(solution_variables, equations))
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -135,7 +129,7 @@ function save_solution_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames_[v]
+      attributes(var)["name"] = varnames(solution_variables, equations)[v]
     end
 
     # Store element variables

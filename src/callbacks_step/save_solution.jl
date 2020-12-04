@@ -1,21 +1,22 @@
 
-# TODO: Taal refactor, allow saving arbitrary functions of the conservative variables
-# TODO: Taal refactor, make solution_variables a function instead of a Symbol
 """
     SaveSolutionCallback(; interval=0,
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
-                           solution_variables=:primitive)
+                           solution_variables=cons2prim)
 
-Save the current numerical solution every `interval` time steps.
+Save the current numerical solution every `interval` time steps. `solution_variables` can be any
+callable that converts the conservative variables at a single point to a set of solution variables.
+The first parameter passed to `solution_variables` will be the set of conservative variables and the
+second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback
+mutable struct SaveSolutionCallback{SolutionVariables}
   interval::Int
   save_initial_solution::Bool
   save_final_solution::Bool
   output_directory::String
-  solution_variables::Symbol
+  solution_variables::SolutionVariables
 end
 
 
@@ -46,7 +47,7 @@ function SaveSolutionCallback(; interval=0,
                                 save_initial_solution=true,
                                 save_final_solution=true,
                                 output_directory="out",
-                                solution_variables=:primitive)
+                                solution_variables=cons2prim)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
                                                      (save_final_solution && isfinished(integrator)))
