@@ -34,7 +34,7 @@ using Tullio: @tullio
 using LoopVectorization
 
 using Plots: plot, plot!, contourf!, savefig
-using Plots; pyplot()
+#using Plots; pyplot()
 # ANN
 using Flux
 using BSON: @load

@@ -1,5 +1,5 @@
 using LinearMaps: LinearMap
-using Plots: plot
+#using Plots: plot
 
 
 """
@@ -315,7 +315,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
     step += 1
     time += dt
     n_analysis_timesteps += 1
-    
+    #=
     if analysis_interval > 0 && (step % analysis_interval == 0 || finalstep)
       xa = solver.elements.node_coordinates[1, 1, 1, :]
       ya = solver.elements.node_coordinates[2, 1, 1, :]
@@ -325,6 +325,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       #display(fig1)
       Plots.savefig(fig1,"C:\\Users\\julia\\Trixi.jl\\utils\\NN\\2D\\alpha\\alpha$step.png")
     end
+    =#
     
 
     # Check if we reached the maximum number of time steps

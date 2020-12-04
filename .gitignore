@@ -1,6 +1,6 @@
 *.pdf
 *.png
-*.h5
+#*.h5
 *.mp4
 *.mem
 *.vtu
@@ -15,6 +15,7 @@ utils/NN/1d/alt
 utils/NN/2d/models
 utils/NN/2d/alt
 utils/NN/2d/traindata
+utils/NN/2d/validdata
 
 
 docs/build
