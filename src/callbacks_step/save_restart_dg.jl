@@ -9,7 +9,7 @@ function save_restart_file(u, time, dt, timestep,
 
   # Restart files always store conservative variables
   data = u
-  varnames = varnames_cons(equations)
+  varnames = varnames(cons2cons, equations)
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
@@ -61,7 +61,7 @@ function load_restart_file(mesh::SerialTreeMesh, equations, dg::DG, cache, resta
     end
 
     # Read data
-    varnames = varnames_cons(equations)
+    varnames = varnames(cons2cons, equations)
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]
@@ -89,7 +89,7 @@ function save_restart_file(u, time, dt, timestep,
 
   # Restart files always store conservative variables
   data = u
-  varnames = varnames_cons(equations)
+  varnames = varnames(cons2cons, equations)
 
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
@@ -172,7 +172,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
     end
 
     # Read data
-    varnames = varnames_cons(equations)
+    varnames = varnames(cons2cons, equations)
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]

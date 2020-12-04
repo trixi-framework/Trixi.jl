@@ -25,7 +25,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
     for variable in eachvariable(equations)
       summary_line(increment_indent(io),
                    "variable " * string(variable),
-                   varnames_cons(equations)[variable])
+                   varnames(cons2cons, equations)[variable])
     end
     summary_footer(io)
   end
@@ -72,6 +72,10 @@ end
 
 @inline cons2cons(u, ::AbstractEquations) = u
 @inline Base.first(u, ::AbstractEquations) = first(u)
+
+# `varnames_cons` and `varnames_prim` are deprecated
+@deprecate varnames_cons(equations) varnames(::typeof(cons2cons), equations)
+@deprecate varnames_prim(equations) varnames(::typeof(cons2prim), equations)
 
 
 ####################################################################################################
