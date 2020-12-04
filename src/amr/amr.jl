@@ -13,7 +13,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
 
   # Alias for convenience
   tree = mesh.tree
-
+  println("Refine 2")
   # Determine indicator value
   lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
 
@@ -45,7 +45,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   P4est.p4est_iterate( p4est,  C_NULL, C_NULL, CvolumeIterate, C_NULL, C_NULL)
 
   recursive = 0
-  allowed_level = 6 #P4est.P4EST_QMAXLEVEL
+  allowed_level = 8 #P4est.P4EST_QMAXLEVEL
   #  * # 1. Call p4est with coarse and refine 
   p4est.user_pointer = pointer(to_refine_to_coarse)
   refine_fn = @cfunction(refine_function, Cint, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
@@ -76,13 +76,22 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
 
 
   # TODO 2. Need array Changes
+  # if ChangesInfo [1, iElem] < 0 - The element was refined. 
+  #     Then the ChangesInfo [2:4, iElem] := 0
+  #     ChangesInfo [1, iElem] - is the number of the old Element 
+  # if ChangesInfo [1, iElem] > 0:
+  #   if ChangesInfo [2:4, iElem] > 0 
+  #       The element was coarsened from Elements 
+  #       ChangesInfo [1:4, iElem] - 4 coarsened Elements id 
+  #   if ChangesInfo [2:4, iElem] = 0 
+  #     The Element just changes his number => copy data to the new Element
   getchanges_fn = @cfunction(GetChanges, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
   local_num_quads = Int64(p4est.local_num_quadrants)
   ChangesInfo = zeros(Int64, 4,local_num_quads)
   ChangesInfo_ptr = pointer(ChangesInfo)
   P4est.p4est_iterate(p4est,  C_NULL, ChangesInfo_ptr, getchanges_fn, C_NULL, C_NULL)
   # @show ChangesInfo[:,:]
- 
+  # @assert 3 == 5
   # TODO  3. Rebuld mesh structure
   Connection = zeros(Int32, 11,local_num_quads)
   conn_ptr = pointer(Connection)

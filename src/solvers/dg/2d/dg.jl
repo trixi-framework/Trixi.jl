@@ -666,7 +666,7 @@ function p4_init_interface_connectivity!(elements, interfaces, Connections::Arra
   for element_id in 1:nelements(elements)
     # Get cell id
     cell_id = elements.cell_ids[element_id]
-
+   
     # Loop over directions
     for direction in 1:n_directions(mesh.tree)
       # Only create interfaces in positive direction
@@ -679,7 +679,7 @@ function p4_init_interface_connectivity!(elements, interfaces, Connections::Arra
       #   continue
       # end
       if Connections[index + 1, cell_id] > 0
-        continue
+        continue #This is mortar either small or big side
       end
 
 

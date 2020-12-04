@@ -142,22 +142,22 @@ function init_simulation()
     mpi_println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
-    if amr_interval > 0 && adapt_initial_conditions
-      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-          only_refine=adapt_initial_conditions_only_refine)
+    # if amr_interval > 0 && adapt_initial_conditions
+    #   @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+    #       only_refine=adapt_initial_conditions_only_refine)
 
-      # Iterate until mesh does not change anymore
-      # while has_changed
-        set_initial_conditions!(solver, time)
-        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-            only_refine=adapt_initial_conditions_only_refine)
+    #   # Iterate until mesh does not change anymore
+    #   # while has_changed
+    #     # set_initial_conditions!(solver, time)
+    #     # @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+    #     #     only_refine=adapt_initial_conditions_only_refine)
 
-            # end
+    #         # end
 
-      # Save mesh file
-      mesh.current_filename = save_mesh_file(mesh)
-      mesh.unsaved_changes = false
-    end
+    #   # Save mesh file
+    #   mesh.current_filename = save_mesh_file(mesh)
+    #   mesh.unsaved_changes = false
+    # end
   end
   t_end = parameter("t_end")
 
@@ -295,7 +295,7 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
   @timeit timer() "main loop" while !finalstep
     # Calculate time step size
     @timeit timer() "calc_dt" dt = calc_dt(solver, cfl)
-
+    @show dt
     # Abort if time step size is NaN
     if isnan(dt)
       error("time step size `dt` is NaN")
@@ -409,11 +409,12 @@ function run_simulation(mesh, solver, time_parameters, time_integration_function
       end
       output_time += time_ns() - output_start_time
     end
-
+    amr_interval = 1
     # Perform adaptive mesh refinement
     if amr_interval > 0 && (step % amr_interval == 0) && !finalstep
       @timeit timer() "AMR" has_changed = adapt!(mesh, solver, time)
-
+      # amr_interval = 1
+      println("Refine 1")
       # Store if mesh has changed to write changed mesh file before next restart/solution output
       if has_changed
         mesh.unsaved_changes = true

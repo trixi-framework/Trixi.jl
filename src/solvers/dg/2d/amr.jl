@@ -28,7 +28,8 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   skip = 0
   for old_element_id in 1:old_n_elements
     if cells_to_change[1,old_element_id] < 0
-      # @show "Refine"
+      # @show "Refine", old_element_id, element_id
+      # @show cells_to_change
       refine_element!(elements.u, element_id, old_u, old_element_id,
                       dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
       element_id += 2^ndims(dg)
@@ -63,14 +64,14 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
     end
   end
   Connections = p4_get_connections(tree.forest)
-
-  @show elements.u
+ 
+  # @show elements.u
   leaf_cell_ids = leaf_cells(tree)
   # Initialize new interfaces container
   interfaces = p4_init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, Connections)
   n_interfaces = ninterfaces(interfaces)
   # @show n_interfaces
-
+  # @assert 4==6
 
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
@@ -80,10 +81,10 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   l2mortars, ecmortars = p4_init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type, Connections)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
-  @show n_interfaces
+  # @show n_interfaces
   # @show interfaces
-  @show n_boundaries, n_boundaries_per_direction
-  @show n_l2mortars, n_ecmortars
+  # @show n_boundaries, n_boundaries_per_direction
+  # @show n_l2mortars, n_ecmortars
   # Sanity check
   # @assert 1 == 4
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0

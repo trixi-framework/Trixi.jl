@@ -180,7 +180,7 @@ quadinfo_ptr = pointer(QuadInfo)
       t.neighbor_ids[3, id] = Connection[8,id]
       t.neighbor_ids[4, id] = Connection[10,id]
   end
-  @show t.neighbor_ids[:, 7]
+  # @show t.neighbor_ids[:, 7]
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
   if all(periodicity)
     # Also catches case where periodicity = true
