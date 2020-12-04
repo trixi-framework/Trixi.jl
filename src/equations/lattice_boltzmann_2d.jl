@@ -103,7 +103,7 @@ end
 
 
 get_name(::LatticeBoltzmannEquation2D) = "LatticeBoltzmannEquation2D"
-varnames_cons(equations::LatticeBoltzmannEquation2D) = @SVector ["pdf"*string(v) for v in eachvariable(equations)]
+varnames_cons(equations::LatticeBoltzmannEquation2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
 varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
