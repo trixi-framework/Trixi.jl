@@ -9,7 +9,6 @@ function save_restart_file(u, time, dt, timestep,
 
   # Restart files always store conservative variables
   data = u
-  varnames = varnames(cons2cons, equations)
 
   # Open file (clobber existing content)
   h5open(filename, "w") do file
@@ -31,7 +30,7 @@ function save_restart_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames(cons2cons, equations)[v]
     end
   end
 
@@ -61,12 +60,11 @@ function load_restart_file(mesh::SerialTreeMesh, equations, dg::DG, cache, resta
     end
 
     # Read data
-    varnames = varnames(cons2cons, equations)
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]
-      if (name = read(attributes(var)["name"])) != varnames[v]
-        error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
+      if (name = read(attributes(var)["name"])) != varnames(cons2cons, equations)[v]
+        error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
       end
 
       # Read variable
@@ -89,7 +87,6 @@ function save_restart_file(u, time, dt, timestep,
 
   # Restart files always store conservative variables
   data = u
-  varnames = varnames(cons2cons, equations)
 
   # Calculate element and node counts by MPI rank
   element_size = nnodes(dg)^ndims(mesh)
@@ -126,7 +123,7 @@ function save_restart_file(u, time, dt, timestep,
 
       # Add variable name as attribute
       var = file["variables_$v"]
-      attributes(var)["name"] = varnames[v]
+      attributes(var)["name"] = varnames(cons2cons, equations)[v]
     end
   end
 
@@ -172,12 +169,11 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
     end
 
     # Read data
-    varnames = varnames(cons2cons, equations)
     for v in eachvariable(equations)
       # Check if variable name matches
       var = file["variables_$v"]
-      if (name = read(attributes(var)["name"])) != varnames[v]
-        error("mismatch: variables_$v should be '$(varnames[v])', but found '$name'")
+      if (name = read(attributes(var)["name"])) != varnames(cons2cons, equations)[v]
+        error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
       end
 
       # Read variable
