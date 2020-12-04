@@ -258,9 +258,6 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isapprox(Trixi.velocity(u, 1, equation), 2)
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
 
-    # Component-wise equilibrium distribution
-    @test isapprox(Trixi.equilibrium_distribution(1, u, equation), 0.6111111111111088)
-
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)

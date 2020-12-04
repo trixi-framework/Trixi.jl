@@ -415,14 +415,6 @@ given the macroscopic state defined by `rho`, `v1`, `v2`.
 end
 
 
-function equilibrium_distribution(alpha, u, equation::LatticeBoltzmannEquation2D)
-  rho = density(u, equation)
-  v1, v2 = velocity(u, equation)
-
-  return equilibrium_distribution(alpha, rho, v1, v2, equation)
-end
-
-
 @inline function equilibrium_distribution(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
   return SVector(equilibrium_distribution(1, rho, v1, v2, equation),
                  equilibrium_distribution(2, rho, v1, v2, equation),
