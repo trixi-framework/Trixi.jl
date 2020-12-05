@@ -34,7 +34,7 @@ using Tullio: @tullio
 using LoopVectorization
 
 using Plots: plot, plot!, contourf!, savefig
-#using Plots; pyplot()
+
 # ANN
 using Flux
 using BSON: @load
@@ -46,7 +46,7 @@ Core.eval(Main, :(import NNlib, Flux))  #ToDo
 
 #@load "utils/NN/2D/alt/model-0.8680710265097088.bson" model2d
 ##@load "utils/NN/2D/modelcoef-0.8011134692873182.bson" model2d
-@load "utils/NN/2D/modellagmodal3-0.9722979956286746.bson" model2d    
+@load "utils/NN/2D/modellagmodal5-0.9810479078875074.bson" model2d    
 ##@load "utils/NN/2D/modellagmodal-0.6558615325801816.bson" model2d
 
 # Use a central dictionary for global settings

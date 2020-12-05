@@ -2,8 +2,8 @@ using Distributions: Uniform
 
 function trainfunction(func,x,y)
     if func == 1
-        a1 = 0.1 #rand(Uniform(-10,10)) 
-        b1 = 0.2 #rand(Uniform(-10,10))
+        a1 = 6 #rand(Uniform(-10,10)) 
+        b1 = -3 #rand(Uniform(-10,10))
         u = a1*x + b1*y   
     elseif func == 2
         a = [0.9, 0.1, -0.4]#rand(Uniform(-1,1),3)

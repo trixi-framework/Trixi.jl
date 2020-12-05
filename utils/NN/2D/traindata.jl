@@ -37,7 +37,7 @@ n_traindata = zeros(13)
 n_troubledcells = zeros(2)
 
 #loop over meshs
-for i in 1:4
+for i in 1:3
     
     println("Mesh $i")
     file = "utils/NN/2D/mesh/mesh$i.toml"
@@ -173,15 +173,15 @@ for i in 1:4
         for t in 1:500
             if t < 400
                 func = 1
-                a = rand(Uniform(-0.5, 0.5)) 
-                m = rand(Uniform(-2,2)) 
+                a = rand(Uniform(-100, 100)) 
+                m = rand(Uniform(-1,1)) 
                 x0 = rand(Uniform(-0.5, 0.5)) 
                 y0 = rand(Uniform(-0.5, 0.5)) 
                 u1(x,y) = troubledcellfunctionabs(x, y, a, m, x0, y0)
             elseif t >= 400
                 func = 2
                 ui = rand(Uniform(-1,1),4)
-                m = rand(Uniform(0,10))
+                m = rand(Uniform(0,20))
                 x0 = rand(Uniform(-0.5, 0.5))
                 y0 = rand(Uniform(-0.5, 0.5))
                 u2(x,y) = troubledcellfunctionstep(x, y, ui, m, x0, y0)
@@ -297,7 +297,7 @@ for i in 1:size(X)[2]
 end
 
 println("Safe data")
-h5open("utils/NN/2D/traindata2dlagrangemodal4.h5", "w") do file
+h5open("utils/NN/2D/traindata2dlagrangemodal6.h5", "w") do file
     write(file, "X", X)
     write(file, "Y", Y)
 end

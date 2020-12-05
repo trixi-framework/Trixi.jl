@@ -5,7 +5,7 @@ using HDF5: h5open
 using BSON: @save
 
 η = 0.001                # learning rate
-β = 0.001             # regularization parameter
+β = 0.005            # regularization parameter
 ν = 0.001                # leakyrelu parameter
 number_epochs = 100
 Sb = 500                 # batch size
@@ -13,16 +13,16 @@ L = 10                   # early stopping parameter
 R = 1
 
 # Load data
-x_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal3.h5", "r") do file
+x_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal5.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal3.h5", "r") do file
+y_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal5.h5", "r") do file
     read(file, "Y")
 end
-x_valid = h5open("utils/NN/2D/validdata2dlagrangemodal.h5", "r") do file
+x_valid = h5open("utils/NN/2D/validdata/validdata2dlagrangemodal.h5", "r") do file
     read(file, "X")
 end
-y_valid = h5open("utils/NN/2D/validdata2dlagrangemodal.h5", "r") do file
+y_valid = h5open("utils/NN/2D/validdata/validdata2dlagrangemodal.h5", "r") do file
     read(file, "Y")
 end
 
@@ -73,7 +73,7 @@ function trainnetwork(d1,d2,d3,d4,d5)
                 best_acc = acc
                 last_improvement = epoch_idx
                 #save model
-                @save "utils/NN/2D/models/modellagmodal3-$(acc).bson" model2d
+                @save "utils/NN/2D/models/modellagmodal5-$(acc).bson" model2d
             end
 
             if epoch_idx - last_improvement >= L
