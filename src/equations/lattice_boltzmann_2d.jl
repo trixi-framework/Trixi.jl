@@ -119,8 +119,17 @@ end
 
 
 get_name(::LatticeBoltzmannEquations2D) = "LatticeBoltzmannEquations2D"
-varnames_cons(equations::LatticeBoltzmannEquations2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
-varnames_prim(::LatticeBoltzmannEquations2D) = @SVector ["rho", "v1", "v2", "p"]
+varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
+varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D) = varnames(cons2cons, equations)
+
+
+# Convert conservative variables to macroscopic
+@inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
+  return SVector(density(u, equations),
+                 velocity(u, equations)...,
+                 pressure(u, equations))
+end
+varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -458,12 +467,8 @@ end
 end
 
 
-# Convert conservative variables to primitive (macroscopic)
-@inline function cons2prim(u, equations::LatticeBoltzmannEquations2D)
-  return SVector(density(u, equations),
-                 velocity(u, equations)...,
-                 pressure(u, equations))
-end
+# Convert conservative variables to primitive
+@inline cons2prim(u, equations::LatticeBoltzmannEquations2D) = u
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::LatticeBoltzmannEquations2D) = u

@@ -15,6 +15,7 @@ function save_solution_file(u, time, dt, timestep,
   # Convert to different set of variables if requested
   if solution_variables === cons2cons
     data = u
+    n_vars = nvariables(equations)
   else
     # Reinterpret the solution array as an array of conservative variables,
     # compute the solution variables via broadcasting, and reinterpret the
@@ -22,6 +23,9 @@ function save_solution_file(u, time, dt, timestep,
     data = Array(reinterpret(eltype(u),
            solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
+
+    # Find out variable count by looking at output from `solution_variables` function
+    n_vars = size(data, 1)
   end
 
   # Open file (clobber existing content)
@@ -30,95 +34,21 @@ function save_solution_file(u, time, dt, timestep,
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["n_vars"] = length(varnames(solution_variables, equations))
+    attributes(file)["n_vars"] = n_vars
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
 
-    # Store each variable of the solution
-    for v in eachvariable(equations)
+    # Store each variable of the solution data
+    for v in 1:n_vars
       # Convert to 1D array
       file["variables_$v"] = vec(data[v, .., :])
 
       # Add variable name as attribute
       var = file["variables_$v"]
       attributes(var)["name"] = varnames(solution_variables, equations)[v]
-    end
-
-    # Store element variables
-    for (v, (key, element_variable)) in enumerate(element_variables)
-      # Add to file
-      file["element_variables_$v"] = element_variable
-
-      # Add variable name as attribute
-      var = file["element_variables_$v"]
-      attributes(var)["name"] = string(key)
-    end
-  end
-
-  return filename
-end
-
-function save_solution_file(u, time, dt, timestep,
-                            mesh::SerialTreeMesh, equations::LatticeBoltzmannEquations2D, dg::DG,
-                            cache,
-                            solution_callback, element_variables=Dict{Symbol,Any}();
-                            system="")
-  @unpack output_directory, solution_variables = solution_callback
-
-  # Filename without extension based on current time step
-  if isempty(system)
-    filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
-  else
-    filename = joinpath(output_directory, @sprintf("solution_%s_%06d.h5", system, timestep))
-  end
-
-  # Convert to primitive variables if requested
-  if solution_variables === :conservative
-    data = u
-    varnames = varnames_cons(equations)
-    nvars = size(data, 1) # TODO LBM output
-  elseif solution_variables === :primitive
-    nvars = length(varnames_prim(equations))
-    data = Array{eltype(u)}(undef, nvars, nnodes(dg), nnodes(dg), nelements(dg, cache))
-    Threads.@threads for element in eachelement(dg, cache)
-      for j in eachnode(dg), i in eachnode(dg)
-        cons = get_node_vars(u, equations, dg, i, j, element)
-        prim = cons2prim(cons, equations)
-        for v in 1:nvars
-          data[v, i, j, element] = prim[v]
-        end
-      end
-    end
-    varnames = varnames_prim(equations)
-  else
-    error("Unknown solution_variables $solution_variables")
-  end
-
-  # Open file (clobber existing content)
-  h5open(filename, "w") do file
-    # Add context information as attributes
-    attributes(file)["ndims"] = ndims(mesh)
-    attributes(file)["equations"] = get_name(equations)
-    attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["n_vars"] = nvars # nvariables(equations)
-    attributes(file)["n_elements"] = nelements(dg, cache)
-    attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
-    attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
-    attributes(file)["timestep"] = timestep
-
-    # Store each variable of the solution
-    # for v in eachvariable(equations) # TODO LBM output
-    for v in 1:nvars
-      # Convert to 1D array
-      file["variables_$v"] = vec(data[v, .., :])
-
-      # Add variable name as attribute
-      var = file["variables_$v"]
-      attributes(var)["name"] = varnames[v]
     end
 
     # Store element variables
@@ -152,13 +82,17 @@ function save_solution_file(u, time, dt, timestep,
   # Convert to different set of variables if requested
   if solution_variables === cons2cons
     data = u
+    n_vars = nvariables(equations)
   else
     # Reinterpret the solution array as an array of conservative variables,
-    # compute the primitive variables via broadcasting, and reinterpret the
+    # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     data = Array(reinterpret(eltype(u),
            solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
+
+    # Find out variable count by looking at output from `solution_variables` function
+    n_vars = size(data, 1)
   end
 
   # Calculate element and node counts by MPI rank
@@ -169,7 +103,7 @@ function save_solution_file(u, time, dt, timestep,
   # non-root ranks only send data
   if !mpi_isroot()
     # Send nodal data to root
-    for v in eachvariable(equations)
+    for v in 1:n_vars
       MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
     end
 
@@ -187,15 +121,15 @@ function save_solution_file(u, time, dt, timestep,
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
-    attributes(file)["n_vars"] = length(varnames(solution_variables, equations))
+    attributes(file)["n_vars"] = n_vars
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
 
-    # Store each variable of the solution
-    for v in eachvariable(equations)
+    # Store each variable of the solution data
+    for v in 1:n_vars
       # Convert to 1D array
       file["variables_$v"] = MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
 

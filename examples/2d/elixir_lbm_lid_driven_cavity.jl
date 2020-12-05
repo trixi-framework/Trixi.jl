@@ -49,7 +49,7 @@ save_restart = SaveRestartCallback(interval=1000,
 save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2macroscopic)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 

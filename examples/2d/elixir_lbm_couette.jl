@@ -46,10 +46,20 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_restart = SaveRestartCallback(interval=1000,
                                    save_final_restart=true)
 
+# Custom solution variables: normalize velocities by reference speed `u0`
+@inline function macroscopic_normalized(u, equations)
+  macroscopic = cons2macroscopic(u, equations)
+  rho, v1, v2, p = macroscopic
+
+  # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
+  typeof(macroscopic)(rho, v1/equations.u0, v2/equations.u0, p)
+end
+Trixi.varnames(::typeof(macroscopic_normalized), equations) = ("rho", "v1_normalized", "v2_normalized", "p")
+
 save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=macroscopic_normalized)
 
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
