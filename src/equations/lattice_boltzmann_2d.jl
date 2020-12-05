@@ -1,9 +1,9 @@
 
 @doc raw"""
-    LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
+    LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
                                c=1, L=1, rho0=1, u0=nothing, nu=nothing)
 
-The Lattice-Boltzmann equation
+The Lattice-Boltzmann equations
 ```math
 \partial_t u_\alpha + v_{\alpha,1} \partial_1 u_\alpha + v_{\alpha,2} \partial_2 u_\alpha = 0
 ```
@@ -51,7 +51,7 @@ The main sources for the base implementation were
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
    [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
 """
-struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
+struct LatticeBoltzmannEquations2D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{2, 9}
   c::RealT    # mean thermal molecular velocity
   c_s::RealT  # isothermal speed of sound
   rho0::RealT # macroscopic reference density
@@ -70,7 +70,7 @@ struct LatticeBoltzmannEquation2D{RealT<:Real, CollisionOp} <: AbstractLatticeBo
   collision_op::CollisionOp   # collision operator for the collision kernel
 end
 
-function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
+function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
                                     c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
@@ -112,46 +112,46 @@ function LatticeBoltzmannEquation2D(; Ma, Re, collision_op=collision_bgk,
   v_alpha1 = @SVector [ c,   0,  -c,   0,   c,   -c,   -c,    c,    0 ]
   v_alpha2 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
 
-  LatticeBoltzmannEquation2D(c, c_s, rho0, Ma, u0, Re, L, nu,
+  LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
                              weights, v_alpha1, v_alpha2,
                              collision_op)
 end
 
 
-get_name(::LatticeBoltzmannEquation2D) = "LatticeBoltzmannEquation2D"
-varnames_cons(equations::LatticeBoltzmannEquation2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
-varnames_prim(::LatticeBoltzmannEquation2D) = @SVector ["rho", "v1", "v2", "p"]
+get_name(::LatticeBoltzmannEquations2D) = "LatticeBoltzmannEquations2D"
+varnames_cons(equations::LatticeBoltzmannEquations2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
+varnames_prim(::LatticeBoltzmannEquations2D) = @SVector ["rho", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 """
-    initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
+    initial_condition_constant(x, t, equations::LatticeBoltzmannEquations2D)
 
 A constant initial condition to test free-stream preservation.
 """
-function initial_condition_constant(x, t, equation::LatticeBoltzmannEquation2D)
-  @unpack u0 = equation
+function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations2D)
+  @unpack u0 = equations
   rho = pi
   v1 = u0
   v2 = u0
 
-  return equilibrium_distribution(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equations)
 end
 
 
 """
     boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
                                    surface_flux_function,
-                                   equation::LatticeBoltzmannEquation2D)
+                                   equations::LatticeBoltzmannEquations2D)
 
 No-slip wall boundary condition using the bounce-back approach.
 """
 function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
                                         surface_flux_function,
-                                        equation::LatticeBoltzmannEquation2D)
+                                        equations::LatticeBoltzmannEquations2D)
   # For LBM no-slip wall boundary conditions, we set the boundary state to
   # - the inner state for outgoing particle distribution functions
   # - the *opposite* inner state for all other particle distribution functions
-  # See the list of (opposite) directions in the docstring of `LatticeBoltzmannEquation2D`.
+  # See the list of (opposite) directions in the docstring of `LatticeBoltzmannEquations2D`.
   if direction == 1 # boundary in -x direction
     pdf1 = u_inner[3]
     pdf2 = u_inner[4]
@@ -197,9 +197,9 @@ function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
   else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equation)
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -208,10 +208,10 @@ end
 
 function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
                                              surface_flux_function,
-                                             equation::LatticeBoltzmannEquation2D)
+                                             equations::LatticeBoltzmannEquations2D)
   @assert direction == 4 "moving wall assumed in +y direction"
 
-  @unpack rho0, u0, weights, c_s = equation
+  @unpack rho0, u0, weights, c_s = equations
   cs_squared = c_s^2
 
   pdf1 = u_inner[3] + 2 * weights[1] * rho0 * u0 / cs_squared
@@ -227,55 +227,55 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
   u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
 
   # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
-  flux = surface_flux_function(u_inner, u_boundary, orientation, equation)
+  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
 
   return flux
 end
 
 
 """
-    initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEquation2D)
+    initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
 
 Initial state for a lid-driven cavity flow setup. To be used in combination with
 [`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_wall_noslip`](@ref).
 """
-function initial_condition_lid_driven_cavity(x, t, equation::LatticeBoltzmannEquation2D)
-  @unpack L, u0, nu = equation
+function initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations2D)
+  @unpack L, u0, nu = equations
 
   rho = 1
   v1 = 0
   v2 = 0
 
-  return equilibrium_distribution(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equations)
 end
 
 
 """
     boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
                                          surface_flux_function,
-                                         equation::LatticeBoltzmannEquation2D)
+                                         equations::LatticeBoltzmannEquations2D)
     
 Boundary condition for a lid-driven cavity flow setup, where the top lid (+y boundary) is a moving
 no-slip wall. To be used in combination with [`initial_condition_lid_driven_cavity`](@ref).
 """
 function boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
                                               surface_flux_function,
-                                              equation::LatticeBoltzmannEquation2D)
+                                              equations::LatticeBoltzmannEquations2D)
   return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function, equation)
+                                             surface_flux_function, equations)
 end
 
 
 """
-    initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
+    initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
 
 Initial state for an *unsteady* Couette flow setup, which is also the exact solution for the
 incompressible Navier-Stokes equations. To be used in combination with
 [`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref). In the limit,
 this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
 """
-function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
-  @unpack L, u0, rho0, nu = equation
+function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
+  @unpack L, u0, rho0, nu = equations
 
   x1, x2 = x
   v1 = u0*x2/L
@@ -287,31 +287,31 @@ function initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEqua
   rho = 1
   v2 = 0
 
-  return equilibrium_distribution(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equations)
 end
 
 
 """
-    initial_condition_couette_unsteady(x, t, equation::LatticeBoltzmannEquation2D)
+    initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
 
 Initial state for a *steady* Couette flow setup. To be used in combination with
 [`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref).
 """
-function initial_condition_couette_steady(x, t, equation::LatticeBoltzmannEquation2D)
-  @unpack L, u0, rho0 = equation
+function initial_condition_couette_steady(x, t, equations::LatticeBoltzmannEquations2D)
+  @unpack L, u0, rho0 = equations
 
   rho = rho0
   v1 = u0 * x[2] / L
   v2 = 0
 
-  return equilibrium_distribution(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equations)
 end
 
 
 """
     boundary_condition_couette(u_inner, orientation, direction, x, t,
                                surface_flux_function,
-                               equation::LatticeBoltzmannEquation2D)
+                               equations::LatticeBoltzmannEquations2D)
 
 Moving *upper* wall boundary condition for a Couette flow setup. To be used in combination with
 [`boundary_condition_wall_noslip`](@ref) for the lower wall and
@@ -319,91 +319,91 @@ Moving *upper* wall boundary condition for a Couette flow setup. To be used in c
 """
 function boundary_condition_couette(u_inner, orientation, direction, x, t,
                                     surface_flux_function,
-                                    equation::LatticeBoltzmannEquation2D)
+                                    equations::LatticeBoltzmannEquations2D)
   return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function, equation)
+                                             surface_flux_function, equations)
 end
 
 
 # Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equation::LatticeBoltzmannEquation2D)
+# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations2D)
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::LatticeBoltzmannEquation2D)
+@inline function calcflux(u, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
-    v_alpha = equation.v_alpha1
+    v_alpha = equations.v_alpha1
   else
-    v_alpha = equation.v_alpha2
+    v_alpha = equations.v_alpha2
   end
   return v_alpha .* u
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LatticeBoltzmannEquation2D)
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
-    v_alpha = equation.v_alpha1
+    v_alpha = equations.v_alpha1
   else
-    v_alpha = equation.v_alpha2
+    v_alpha = equations.v_alpha2
   end
   return 0.5 * ( v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll) )
 end
 
 
 """
-    density(u, equation::LatticeBoltzmannEquation2D)
+    density(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic density from the particle distribution functions `u`.
 """
-@inline density(u, equation::LatticeBoltzmannEquation2D) = sum(u)
+@inline density(u, equations::LatticeBoltzmannEquations2D) = sum(u)
 
 
 """
-    velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
+    velocity(u, orientation, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic velocity for the given `orientation` (1 -> x, 2 -> y) from the
 particle distribution functions `u`.
 """
-@inline function velocity(u, orientation, equation::LatticeBoltzmannEquation2D)
+@inline function velocity(u, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
-    v_alpha = equation.v_alpha1
+    v_alpha = equations.v_alpha1
   else
-    v_alpha = equation.v_alpha2
+    v_alpha = equations.v_alpha2
   end
   
-  return sum(v_alpha .* u)/density(u, equation)
+  return sum(v_alpha .* u)/density(u, equations)
 end
 
 
 """
-    velocity(u, equation::LatticeBoltzmannEquation2D)
+    velocity(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic velocity vector from the particle distribution functions `u`.
 """
-@inline function velocity(u, equation::LatticeBoltzmannEquation2D)
-  @unpack v_alpha1, v_alpha2 = equation
-  rho = density(u, equation)
+@inline function velocity(u, equations::LatticeBoltzmannEquations2D)
+  @unpack v_alpha1, v_alpha2 = equations
+  rho = density(u, equations)
   
   return SVector(sum(v_alpha1 .* u)/rho, sum(v_alpha2 .* u)/rho)
 end
 
 
 """
-    pressure(u, equation::LatticeBoltzmannEquation2D)
+    pressure(u, equations::LatticeBoltzmannEquations2D)
 
 Calculate the macroscopic pressure from the particle distribution functions `u`.
 """
-pressure(u, equation::LatticeBoltzmannEquation2D) = density(u, equation) * equation.c_s^2
+pressure(u, equations::LatticeBoltzmannEquations2D) = density(u, equations) * equations.c_s^2
 
 
 """
-    equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
+    equilibrium_distribution(alpha, rho, v1, v2, equations::LatticeBoltzmannEquations2D)
 
 Calculate the local equilibrium distribution for the distribution function with index `alpha` and
 given the macroscopic state defined by `rho`, `v1`, `v2`.
 """
-@inline function equilibrium_distribution(alpha, rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  @unpack weights, c_s, v_alpha1, v_alpha2 = equation
+@inline function equilibrium_distribution(alpha, rho, v1, v2, equations::LatticeBoltzmannEquations2D)
+  @unpack weights, c_s, v_alpha1, v_alpha2 = equations
 
   va_v = v_alpha1[alpha]*v1 + v_alpha2[alpha]*v2
   cs_squared = c_s^2
@@ -415,55 +415,55 @@ given the macroscopic state defined by `rho`, `v1`, `v2`.
 end
 
 
-@inline function equilibrium_distribution(rho, v1, v2, equation::LatticeBoltzmannEquation2D)
-  return SVector(equilibrium_distribution(1, rho, v1, v2, equation),
-                 equilibrium_distribution(2, rho, v1, v2, equation),
-                 equilibrium_distribution(3, rho, v1, v2, equation),
-                 equilibrium_distribution(4, rho, v1, v2, equation),
-                 equilibrium_distribution(5, rho, v1, v2, equation),
-                 equilibrium_distribution(6, rho, v1, v2, equation),
-                 equilibrium_distribution(7, rho, v1, v2, equation),
-                 equilibrium_distribution(8, rho, v1, v2, equation),
-                 equilibrium_distribution(9, rho, v1, v2, equation))
+@inline function equilibrium_distribution(rho, v1, v2, equations::LatticeBoltzmannEquations2D)
+  return SVector(equilibrium_distribution(1, rho, v1, v2, equations),
+                 equilibrium_distribution(2, rho, v1, v2, equations),
+                 equilibrium_distribution(3, rho, v1, v2, equations),
+                 equilibrium_distribution(4, rho, v1, v2, equations),
+                 equilibrium_distribution(5, rho, v1, v2, equations),
+                 equilibrium_distribution(6, rho, v1, v2, equations),
+                 equilibrium_distribution(7, rho, v1, v2, equations),
+                 equilibrium_distribution(8, rho, v1, v2, equations),
+                 equilibrium_distribution(9, rho, v1, v2, equations))
 end
 
 
-function equilibrium_distribution(u, equation::LatticeBoltzmannEquation2D)
-  rho = density(u, equation)
-  v1, v2 = velocity(u, equation)
+function equilibrium_distribution(u, equations::LatticeBoltzmannEquations2D)
+  rho = density(u, equations)
+  v1, v2 = velocity(u, equations)
 
-  return equilibrium_distribution(rho, v1, v2, equation)
+  return equilibrium_distribution(rho, v1, v2, equations)
 end
 
 
 """
-    collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
+    collision_bgk(u, dt, equations::LatticeBoltzmannEquations2D)
 
 Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 """
-@inline function collision_bgk(u, dt, equation::LatticeBoltzmannEquation2D)
-  @unpack c_s, nu = equation
+@inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations2D)
+  @unpack c_s, nu = equations
   tau = nu / (c_s^2 * dt)
-  return -(u - equilibrium_distribution(u, equation))/(tau + 1/2)
+  return -(u - equilibrium_distribution(u, equations))/(tau + 1/2)
 end
 
 
 
-@inline have_constant_speed(::LatticeBoltzmannEquation2D) = Val(true)
+@inline have_constant_speed(::LatticeBoltzmannEquations2D) = Val(true)
 
-@inline function max_abs_speeds(equation::LatticeBoltzmannEquation2D)
-  @unpack c = equation
+@inline function max_abs_speeds(equations::LatticeBoltzmannEquations2D)
+  @unpack c = equations
 
   return c, c
 end
 
 
 # Convert conservative variables to primitive (macroscopic)
-@inline function cons2prim(u, equation::LatticeBoltzmannEquation2D)
-  return SVector(density(u, equation),
-                 velocity(u, equation)...,
-                 pressure(u, equation))
+@inline function cons2prim(u, equations::LatticeBoltzmannEquations2D)
+  return SVector(density(u, equations),
+                 velocity(u, equations)...,
+                 pressure(u, equations))
 end
 
 # Convert conservative variables to entropy variables
-@inline cons2entropy(u, equation::LatticeBoltzmannEquation2D) = u
+@inline cons2entropy(u, equations::LatticeBoltzmannEquations2D) = u

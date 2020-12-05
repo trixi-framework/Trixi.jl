@@ -237,21 +237,21 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "LBM constructor" begin
     # Neither Mach number nor velocity set
-    @test_throws ErrorException LatticeBoltzmannEquation2D(Ma=nothing, Re=1000)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquation2D(Ma=0.1, Re=1000, u0=1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=1000, u0=1)
     # Neither Reynolds number nor viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquation2D(Ma=0.1, Re=nothing)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquation2D(Ma=0.1, Re=1000, nu=1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=1000, nu=1)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquation2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquation2D
+    @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
   end
 
   @testset "LBM functions" begin
     # Set up LBM struct and dummy distribution
-    equation = LatticeBoltzmannEquation2D(Ma=0.1, Re=1000)
+    equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
 
     # Component-wise velocity

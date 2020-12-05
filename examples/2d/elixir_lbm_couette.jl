@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
 
-equations = LatticeBoltzmannEquation2D(Ma=0.05, Re=2000)
+equations = LatticeBoltzmannEquations2D(Ma=0.05, Re=2000)
 
 initial_condition = initial_condition_couette_unsteady
 boundary_conditions = (

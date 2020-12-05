@@ -66,7 +66,7 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::SerialTreeMesh, equations::LatticeBoltzmannEquation2D, dg::DG,
+                            mesh::SerialTreeMesh, equations::LatticeBoltzmannEquations2D, dg::DG,
                             cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")

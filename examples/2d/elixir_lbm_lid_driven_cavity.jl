@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
 
-equations = LatticeBoltzmannEquation2D(Ma=0.1, Re=1000)
+equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
 
 initial_condition = initial_condition_lid_driven_cavity
 boundary_conditions = (
