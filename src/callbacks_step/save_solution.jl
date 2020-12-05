@@ -52,6 +52,19 @@ function SaveSolutionCallback(; interval=0,
   condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
                                                      (save_final_solution && isfinished(integrator)))
 
+  # FIXME: Deprecations introduced in v0.3
+  if solution_variables isa Symbol
+    Base.depwarn("Providing the keyword argument `solution_variables` as a `Symbol` is deprecated." *
+                 "Use functions such as `cons2cons` or `cons2prim` instead.", :SaveSolutionCallback)
+    if solution_variables == :conservative
+      solution_variables = cons2cons
+    elseif solution_variables == :primitive
+      solution_variables = cons2prim
+    else
+      error("Unknown `solution_variables` $solution_variables.")
+    end
+  end
+
   solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
 

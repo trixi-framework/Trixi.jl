@@ -74,7 +74,7 @@ end
 function cons2prim(u, ::AbstractEquations) end
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
-# `varnames_cons` and `varnames_prim` are deprecated
+# FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)
 
