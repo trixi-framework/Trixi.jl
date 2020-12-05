@@ -41,7 +41,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:conservative)
+                                     solution_variables=cons2cons)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       base_level=4,

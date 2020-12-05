@@ -106,6 +106,8 @@ export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_c
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 
+export cons2cons, cons2prim
+
 export TreeMesh
 
 export DG,

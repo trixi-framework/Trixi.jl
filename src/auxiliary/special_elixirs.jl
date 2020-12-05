@@ -65,7 +65,7 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   end
 
   # number of variables
-  variablenames = varnames_cons(mod.equations)
+  variablenames = varnames(cons2cons, mod.equations)
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration

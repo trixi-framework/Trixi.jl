@@ -20,8 +20,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations3D) = "HyperbolicDiffusionEquations3D"
-varnames_cons(::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
-varnames_prim(::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
+varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
+varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
 default_analysis_errors(::HyperbolicDiffusionEquations3D)     = (:l2_error, :linf_error, :residual)
 
 """

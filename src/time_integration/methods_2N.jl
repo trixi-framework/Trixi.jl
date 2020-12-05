@@ -158,7 +158,7 @@ function solve!(integrator::SimpleIntegrator2N)
     end
   end
 
-  return (t=prob.tspan,
+  return (t=(first(prob.tspan), integrator.t),
           u=(copy(prob.u0), copy(integrator.u)),
           prob=integrator.sol.prob)
 end

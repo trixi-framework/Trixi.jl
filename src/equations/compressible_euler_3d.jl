@@ -10,8 +10,8 @@ end
 
 
 get_name(::CompressibleEulerEquations3D) = "CompressibleEulerEquations3D"
-varnames_cons(::CompressibleEulerEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e"]
-varnames_prim(::CompressibleEulerEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p"]
+varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e"]
+varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p"]
 
 
 # Set initial conditions at physical location `x` for time `t`

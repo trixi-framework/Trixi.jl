@@ -110,32 +110,32 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u_ode, t, integrat
       @printf(io, "  %-14s", "time")
       @printf(io, "  %-14s", "dt")
       if :l2_error in analysis_errors
-        for v in varnames_cons(equations)
+        for v in varnames(cons2cons, equations)
           @printf(io, "   %-14s", "l2_" * v)
         end
       end
       if :linf_error in analysis_errors
-        for v in varnames_cons(equations)
+        for v in varnames(cons2cons, equations)
           @printf(io, "   %-14s", "linf_" * v)
         end
       end
       if :conservation_error in analysis_errors
-        for v in varnames_cons(equations)
+        for v in varnames(cons2cons, equations)
           @printf(io, "   %-14s", "cons_" * v)
         end
       end
       if :residual in analysis_errors
-        for v in varnames_cons(equations)
+        for v in varnames(cons2cons, equations)
           @printf(io, "   %-14s", "res_" * v)
         end
       end
       if :l2_error_primitive in analysis_errors
-        for v in varnames_prim(equations)
+        for v in varnames(cons2prim, equations)
           @printf(io, "   %-14s", "l2_" * v)
         end
       end
       if :linf_error_primitive in analysis_errors
-        for v in varnames_prim(equations)
+        for v in varnames(cons2prim, equations)
           @printf(io, "   %-14s", "linf_" * v)
         end
       end
@@ -236,7 +236,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
             (:l2_error, :linf_error, :conservation_error, :residual))
         mpi_print(" Variable:    ")
         for v in eachvariable(equations)
-          mpi_isroot() && @printf("   %-14s", varnames_cons(equations)[v])
+          mpi_isroot() && @printf("   %-14s", varnames(cons2cons, equations)[v])
         end
         mpi_println()
       end
@@ -302,7 +302,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
         mpi_print(" Variable:    ")
         for v in eachvariable(equations)
-          mpi_isroot() && @printf("   %-14s", varnames_prim(equations)[v])
+          mpi_isroot() && @printf("   %-14s", varnames(cons2prim, equations)[v])
         end
         mpi_println()
 

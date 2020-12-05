@@ -9,8 +9,8 @@ end
 
 
 get_name(::CompressibleEulerEquations1D) = "CompressibleEulerEquations1D"
-varnames_cons(::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_e"]
-varnames_prim(::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
+varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_e"]
+varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
 
 
 """

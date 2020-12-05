@@ -1,21 +1,22 @@
 
-# TODO: Taal refactor, allow saving arbitrary functions of the conservative variables
-# TODO: Taal refactor, make solution_variables a function instead of a Symbol
 """
     SaveSolutionCallback(; interval=0,
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
-                           solution_variables=:primitive)
+                           solution_variables=cons2prim)
 
-Save the current numerical solution every `interval` time steps.
+Save the current numerical solution every `interval` time steps. `solution_variables` can be any
+callable that converts the conservative variables at a single point to a set of solution variables.
+The first parameter passed to `solution_variables` will be the set of conservative variables and the
+second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback
+mutable struct SaveSolutionCallback{SolutionVariables}
   interval::Int
   save_initial_solution::Bool
   save_final_solution::Bool
   output_directory::String
-  solution_variables::Symbol
+  solution_variables::SolutionVariables
 end
 
 
@@ -46,10 +47,23 @@ function SaveSolutionCallback(; interval=0,
                                 save_initial_solution=true,
                                 save_final_solution=true,
                                 output_directory="out",
-                                solution_variables=:primitive)
+                                solution_variables=cons2prim)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
                                                      (save_final_solution && isfinished(integrator)))
+
+  # FIXME: Deprecations introduced in v0.3
+  if solution_variables isa Symbol
+    Base.depwarn("Providing the keyword argument `solution_variables` as a `Symbol` is deprecated." *
+                 "Use functions such as `cons2cons` or `cons2prim` instead.", :SaveSolutionCallback)
+    if solution_variables == :conservative
+      solution_variables = cons2cons
+    elseif solution_variables == :primitive
+      solution_variables = cons2prim
+    else
+      error("Unknown `solution_variables` $solution_variables.")
+    end
+  end
 
   solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
