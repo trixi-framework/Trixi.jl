@@ -13,10 +13,10 @@ L = 10                   # early stopping parameter
 R = 1
 
 # Load data
-x_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal5.h5", "r") do file
+x_train = h5open("utils/NN/2D/traindata2dlagrangemodal6.h5", "r") do file
     read(file, "X")
 end
-y_train = h5open("utils/NN/2D/traindata/traindata2dlagrangemodal5.h5", "r") do file
+y_train = h5open("utils/NN/2D/traindata2dlagrangemodal6.h5", "r") do file
     read(file, "Y")
 end
 x_valid = h5open("utils/NN/2D/validdata/validdata2dlagrangemodal.h5", "r") do file
@@ -73,7 +73,7 @@ function trainnetwork(d1,d2,d3,d4,d5)
                 best_acc = acc
                 last_improvement = epoch_idx
                 #save model
-                @save "utils/NN/2D/models/modellagmodal5-$(acc).bson" model2d
+                @save "utils/NN/2D/modellagmodal6-$(acc).bson" model2d
             end
 
             if epoch_idx - last_improvement >= L
