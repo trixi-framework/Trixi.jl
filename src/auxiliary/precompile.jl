@@ -55,7 +55,7 @@ inf_timing = @snoopi tmin=0.01 begin
   save_solution = SaveSolutionCallback(interval=100,
                                       save_initial_solution=true,
                                       save_final_solution=true,
-                                      solution_variables=:primitive)
+                                      solution_variables=cons2prim)
 
   save_restart = SaveRestartCallback(interval=100,
                                     save_final_restart=true)
@@ -66,10 +66,10 @@ inf_timing = @snoopi tmin=0.01 begin
                                       interval=analysis_interval,
                                       extra_analysis_integrals=(entropy,))
 
-  # TODO: Taal decide, first AMR or save solution etc.
-  callbacks = CallbackSet(summary_callback, amr_callback, stepsize_callback,
+  callbacks = CallbackSet(summary_callback,
                           save_restart, save_solution,
-                          analysis_callback, alive_callback);
+                          analysis_callback, alive_callback,
+                          amr_callback, stepsize_callback);
 
 
   ###############################################################################
@@ -239,7 +239,8 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:glm_scale, :cfl),Tuple{RealT,RealT}},Type{GlmSpeedCallback}})
   end
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_final_restart),Tuple{Int,Bool}},Type{SaveRestartCallback}})
-  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,Symbol}},Type{SaveSolutionCallback}})
+  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,typeof(cons2cons)}},Type{SaveSolutionCallback}})
+  @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,typeof(cons2prim)}},Type{SaveSolutionCallback}})
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
     nnodes_analysis = 2*polydeg + 1
@@ -257,7 +258,7 @@ function _precompile_manual_()
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
 
-    # 2D, serial
+    # 1D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,1,polydeg}})
 

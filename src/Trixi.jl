@@ -102,6 +102,8 @@ export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, 
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
+export cons2cons, cons2prim
+
 export TreeMesh
 
 export DG,
