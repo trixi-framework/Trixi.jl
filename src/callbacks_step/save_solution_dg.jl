@@ -76,17 +76,15 @@ function save_solution_file(u, time, dt, timestep,
   end
 
   # Convert to different set of variables if requested
-  if solution_variables === :conservative
+  if solution_variables === cons2cons
     data = u
-  elseif solution_variables === :primitive
+  else
     # Reinterpret the solution array as an array of conservative variables,
     # compute the primitive variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     data = Array(reinterpret(eltype(u),
            solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
-  else
-    error("Unknown solution_variables $solution_variables")
   end
 
   # Calculate element and node counts by MPI rank
