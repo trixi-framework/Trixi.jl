@@ -37,6 +37,7 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics equations
   * Hyperbolic diffusion equations for elliptic problems
+  * Lattice-Boltzmann equations (D2Q9 scheme)
   * Scalar advection
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
