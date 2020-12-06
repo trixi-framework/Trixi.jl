@@ -37,6 +37,8 @@ end
 #   the end here)
 # * `StepsizeCallback` must come after AMR to accomodate potential changes in the minimum cell size
 # * `GlmSpeedCallback` must come after computing time step size because it affects the value of c_h
+# * `LBMCollisionCallback` must come after computing time step size because it is already part of
+#    the next time step calculation
 include("summary.jl")
 include("steady_state.jl")
 include("analysis.jl")
@@ -46,6 +48,7 @@ include("save_solution.jl")
 include("amr.jl")
 include("stepsize.jl")
 include("glm_speed.jl")
+include("lbm_collision.jl")
 
 
 # The `TrivialCallback` purposely does nothing: It allows to quickly disable specific callbacks

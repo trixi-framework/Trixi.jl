@@ -3,28 +3,23 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
 
-equations = CompressibleEulerEquations3D(1.4)
+equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=Inf)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_constant
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-coordinates_min = (0, 0, 0)
-coordinates_max = (2, 2, 2)
-refinement_patches = (
-  (type="box", coordinates_min=(0.5, 0.5, 0.5), coordinates_max=(1.5, 1.5, 1.5)),
-)
+coordinates_min = (-1, -1)
+coordinates_max = ( 1,  1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
-                refinement_patches=refinement_patches,
-                n_cells_max=10_000)
+                initial_refinement_level=4,
+                n_cells_max=10_000,)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
@@ -46,14 +41,18 @@ save_restart = SaveRestartCallback(interval=100,
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=cons2prim)
+                                     solution_variables=cons2macroscopic)
 
-stepsize_callback = StepsizeCallback(cfl=0.6)
+stepsize_callback = StepsizeCallback(cfl=1.0)
+
+collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback, 
                         save_restart, save_solution,
-                        stepsize_callback)
+                        stepsize_callback,
+                        collision_callback)
+
 
 ###############################################################################
 # run the simulation

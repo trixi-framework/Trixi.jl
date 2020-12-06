@@ -17,8 +17,8 @@ end
 
 get_name(::IdealGlmMhdEquations3D) = "IdealGlmMhdEquations3D"
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = Val(true)
-varnames_cons(::IdealGlmMhdEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-varnames_prim(::IdealGlmMhdEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2prim), ::IdealGlmMhdEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
 default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 
 

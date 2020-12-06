@@ -22,8 +22,8 @@ end
 
 
 get_name(::LinearScalarAdvectionEquation3D) = "LinearScalarAdvectionEquation3D"
-varnames_cons(::LinearScalarAdvectionEquation3D) = SVector("scalar")
-varnames_prim(::LinearScalarAdvectionEquation3D) = SVector("scalar")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = SVector("scalar")
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = SVector("scalar")
 
 
 # Set initial conditions at physical location `x` for time `t`
