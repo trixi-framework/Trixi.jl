@@ -81,26 +81,21 @@ export initial_condition_constant,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
        initial_condition_orszag_tang,
-       initial_condition_rotor,
-       initial_condition_briowu_shock_tube,
-       initial_condition_torrilhon_shock_tube,
-       initial_condition_ryujones_shock_tube,
-       initial_condition_shu_osher_shock_tube,
-       initial_condition_shu_osher_shock_tube_flipped
+       initial_condition_rotor
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
-       boundary_condition_briowu_shock_tube,
-       boundary_condition_torrilhon_shock_tube,
-       boundary_condition_ryujones_shock_tube,
-       boundary_condition_shu_osher_shock_tube,
-       boundary_condition_shu_osher_shock_tube_flipped,
        boundary_condition_wall_noslip
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
 export initial_condition_poisson_periodic, source_terms_poisson_periodic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic, boundary_condition_poisson_nonperiodic
+export initial_condition_briowu_shock_tube,            boundary_condition_briowu_shock_tube,
+       initial_condition_torrilhon_shock_tube,         boundary_condition_torrilhon_shock_tube,
+       initial_condition_ryujones_shock_tube,          boundary_condition_ryujones_shock_tube,
+       initial_condition_shu_osher_shock_tube,         boundary_condition_shu_osher_shock_tube,
+       initial_condition_shu_osher_shock_tube_flipped, boundary_condition_shu_osher_shock_tube_flipped
 export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravity
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
