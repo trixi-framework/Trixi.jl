@@ -52,7 +52,7 @@ save_restart = SaveRestartCallback(interval=1000,
   rho, v1, v2, p = macroscopic
 
   # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
-  typeof(macroscopic)(rho, v1/equations.u0, v2/equations.u0, p)
+  convert(typeof(macroscopic), (rho, v1/equations.u0, v2/equations.u0, p))
 end
 Trixi.varnames(::typeof(macroscopic_normalized), equations) = ("rho", "v1_normalized", "v2_normalized", "p")
 
@@ -66,7 +66,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback,
                         collision_callback)
