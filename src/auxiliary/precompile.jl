@@ -138,6 +138,7 @@ the core developers of Trixi to get help with that.
 
 
 import StaticArrays
+import DiffEqBase
 
 
 # manually generated precompile statements
@@ -351,6 +352,42 @@ function _precompile_manual_()
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
+
+    # callbacks
+    summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),typeof(Trixi.summary_callback),typeof(Trixi.initialize_summary_callback),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),summary_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},summary_callback_type})
+    @assert Base.precompile(Tuple{summary_callback_type,typeof(stdout)})
+
+    # TODO: SteadyStateCallback, AnalysisCallback
+
+    alive_callback_type = DiscreteCallback{AliveCallback,AliveCallback,typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),alive_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},alive_callback_type})
+
+    restart_callback_type = DiscreteCallback{SaveRestartCallback,SaveRestartCallback,typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),restart_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},restart_callback_type})
+
+    for solution_variables in (cons2cons, cons2prim)
+      save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},SaveSolutionCallback{typeof(solution_variables)},typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),save_solution_callback_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},save_solution_callback_type})
+    end
+
+    # TODO: AMRCallback
+
+    stepsize_callback_type = DiscreteCallback{StepsizeCallback{RealT},StepsizeCallback{RealT},typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),stepsize_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},stepsize_callback_type})
+
+    glm_speed_callback_type = DiscreteCallback{GlmSpeedCallback{RealT},GlmSpeedCallback{RealT},typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),glm_speed_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},glm_speed_callback_type})
+
+    lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),typeof(Trixi.lbm_collision_callback),typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),lbm_collision_callback_type})
+    @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},lbm_collision_callback_type})
   end
 
   return nothing
