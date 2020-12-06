@@ -15,14 +15,10 @@ end
 
 function AliveCallback(; analysis_interval=0,
                          alive_interval=analysis_interval÷10)
-  # when is the callback activated
-  condition = (u, t, integrator) -> alive_interval > 0 && (
-    (integrator.iter % alive_interval == 0 && (analysis_interval == 0 || integrator.iter % analysis_interval != 0)) ||
-    isfinished(integrator))
 
   alive_callback = AliveCallback(0.0, alive_interval, analysis_interval)
 
-  DiscreteCallback(condition, alive_callback,
+  DiscreteCallback(alive_callback, alive_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
 end
@@ -39,7 +35,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     alive_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "interval" => alive_callback.alive_interval,
             ]
     summary_box(io, "AliveCallback", setup)
@@ -56,6 +52,17 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
+# this method is called to determine whether the callback should be activated
+function (alive_callback::AliveCallback)(u, t, integrator)
+  @unpack alive_interval, analysis_interval = alive_callback
+
+  return alive_interval > 0 && (
+    (integrator.iter % alive_interval == 0 && (analysis_interval == 0 || integrator.iter % analysis_interval != 0)) ||
+    isfinished(integrator))
+end
+
+
+# this method is called when the callback is activated
 function (alive_callback::AliveCallback)(integrator)
   @unpack t, dt, iter = integrator
 
