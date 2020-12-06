@@ -125,9 +125,10 @@ varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D) = varnames
 
 # Convert conservative variables to macroscopic
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations2D)
-  return SVector(density(u, equations),
-                 velocity(u, equations)...,
-                 pressure(u, equations))
+  rho    = density(u, equations)
+  v1, v2 = velocity(u, equations)
+  p      = pressure(u, equations)
+  return SVector(rho, v1, v2, p)
 end
 varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D) = @SVector ["rho", "v1", "v2", "p"]
 
@@ -263,7 +264,7 @@ end
     boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
                                          surface_flux_function,
                                          equations::LatticeBoltzmannEquations2D)
-    
+
 Boundary condition for a lid-driven cavity flow setup, where the top lid (+y boundary) is a moving
 no-slip wall. To be used in combination with [`initial_condition_lid_driven_cavity`](@ref).
 """
@@ -379,7 +380,7 @@ particle distribution functions `u`.
   else
     v_alpha = equations.v_alpha2
   end
-  
+
   return sum(v_alpha .* u)/density(u, equations)
 end
 
@@ -392,7 +393,7 @@ Calculate the macroscopic velocity vector from the particle distribution functio
 @inline function velocity(u, equations::LatticeBoltzmannEquations2D)
   @unpack v_alpha1, v_alpha2 = equations
   rho = density(u, equations)
-  
+
   return SVector(sum(v_alpha1 .* u)/rho, sum(v_alpha2 .* u)/rho)
 end
 
@@ -402,7 +403,7 @@ end
 
 Calculate the macroscopic pressure from the particle distribution functions `u`.
 """
-pressure(u, equations::LatticeBoltzmannEquations2D) = density(u, equations) * equations.c_s^2
+@inline pressure(u, equations::LatticeBoltzmannEquations2D) = density(u, equations) * equations.c_s^2
 
 
 """

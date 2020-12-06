@@ -107,6 +107,8 @@ export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 
 export cons2cons, cons2prim, cons2macroscopic
+export density, pressure, density_pressure, velocity
+export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
 export TreeMesh
 
@@ -133,9 +135,6 @@ export load_mesh, load_time
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
        IndicatorLöhner, IndicatorLoehner, IndicatorMax
-export density, pressure, density_pressure
-
-export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
 export PositivityPreservingLimiterZhangShu
 
