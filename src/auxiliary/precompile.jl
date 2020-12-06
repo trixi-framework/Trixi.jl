@@ -311,10 +311,45 @@ function _precompile_manual_()
 
   # various `show` methods
   for RealT in (Float64,)
+    # meshes
+    for NDIMS in (1,2,3)
+      # serial
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},TreeMesh{NDIMS,Trixi.SerialTree{NDIMS}}})
+      # parallel
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},TreeMesh{NDIMS,Trixi.ParallelTree{NDIMS}}})
+    end
+
     # equations
     for eq_type in equations_types(RealT)
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),eq_type})
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},eq_type})
+    end
+
+    # mortars, analyzers, adaptors, DG
+    for polydeg in 1:7
+      nnodes_ = polydeg + 1
+      basis_type    = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
+      adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),basis_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},basis_type})
+
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),mortar_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},mortar_type})
+
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),analyzer_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},analyzer_type})
+
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),adaptor_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},adaptor_type})
+
+      # we could also use more numerical fluxes and volume integral types here
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
   end
 
