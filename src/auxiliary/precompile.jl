@@ -16,21 +16,29 @@ inf_timing = @snoopi tmin=0.01 begin
 
   advectionvelocity = (1.0, 1.0)
   equations = LinearScalarAdvectionEquation2D(advectionvelocity)
+  show(stdout, equations)
+  show(stdout, MIME"text/plain"(), equations)
 
   initial_condition = initial_condition_gauss
 
   surface_flux = flux_lax_friedrichs
   basis = LobattoLegendreBasis(3)
   solver = DGSEM(basis, surface_flux)
+  show(stdout, solver)
+  show(stdout, MIME"text/plain"(), solver)
 
   coordinates_min = (-5, -5)
   coordinates_max = ( 5,  5)
   mesh = TreeMesh(coordinates_min, coordinates_max,
                   initial_refinement_level=4,
                   n_cells_max=30_000)
+  show(stdout, mesh)
+  show(stdout, MIME"text/plain"(), mesh)
 
 
   semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+  show(stdout, semi)
+  show(stdout, MIME"text/plain"(), semi)
 
 
   ###############################################################################
@@ -40,6 +48,8 @@ inf_timing = @snoopi tmin=0.01 begin
   ode = semidiscretize(semi, tspan)
 
   summary_callback = SummaryCallback()
+  show(stdout, summary_callback)
+  show(stdout, MIME"text/plain"(), summary_callback)
 
   amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                         base_level=4,
@@ -49,22 +59,34 @@ inf_timing = @snoopi tmin=0.01 begin
                             interval=5,
                             adapt_initial_condition=true,
                             adapt_initial_condition_only_refine=true)
+  show(stdout, amr_callback)
+  show(stdout, MIME"text/plain"(), amr_callback)
 
   stepsize_callback = StepsizeCallback(cfl=1.6)
+  show(stdout, stepsize_callback)
+  show(stdout, MIME"text/plain"(), stepsize_callback)
 
   save_solution = SaveSolutionCallback(interval=100,
                                       save_initial_solution=true,
                                       save_final_solution=true,
                                       solution_variables=cons2prim)
+  show(stdout, save_solution)
+  show(stdout, MIME"text/plain"(), save_solution)
 
   save_restart = SaveRestartCallback(interval=100,
                                     save_final_restart=true)
+  show(stdout, save_restart)
+  show(stdout, MIME"text/plain"(), save_restart)
 
   analysis_interval = 100
   alive_callback = AliveCallback(analysis_interval=analysis_interval)
+  show(stdout, alive_callback)
+  show(stdout, MIME"text/plain"(), alive_callback)
   analysis_callback = AnalysisCallback(equations, solver,
                                       interval=analysis_interval,
                                       extra_analysis_integrals=(entropy,))
+  show(stdout, analysis_callback)
+  show(stdout, MIME"text/plain"(), analysis_callback)
 
   callbacks = CallbackSet(summary_callback,
                           save_restart, save_solution,
@@ -134,6 +156,7 @@ function _precompile_manual_()
       HyperbolicDiffusionEquations2D{RealT},
       CompressibleEulerEquations2D{RealT},
       IdealGlmMhdEquations2D{RealT},
+      LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
     )
   end
   function equations_types_3d(RealT)
@@ -156,6 +179,7 @@ function _precompile_manual_()
       IdealGlmMhdEquations1D{RealT},
       IdealGlmMhdEquations2D{RealT},
       IdealGlmMhdEquations3D{RealT},
+      LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
     )
   end
 
@@ -195,6 +219,12 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations1D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations2D},RealT})
     @assert Base.precompile(Tuple{Type{IdealGlmMhdEquations3D},RealT})
+  end
+
+  # Constructors: LBM
+  for RealT in (Float64,)
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, RealT}},Type{LatticeBoltzmannEquations2D}})
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, Int}},Type{LatticeBoltzmannEquations2D}})
   end
 
   # Constructors of the basis are inherently type-unstable since we pass integers
@@ -277,6 +307,15 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+  end
+
+  # various `show` methods
+  for RealT in (Float64,)
+    # equations
+    for eq_type in equations_types(RealT)
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),eq_type})
+      @assert Base.precompile(Tuple{typeof(show),typeof(stdout),MIME{Symbol("text/plain")},eq_type})
+    end
   end
 
   return nothing
