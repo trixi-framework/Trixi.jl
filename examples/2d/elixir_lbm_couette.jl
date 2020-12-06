@@ -47,14 +47,14 @@ save_restart = SaveRestartCallback(interval=1000,
                                    save_final_restart=true)
 
 # Custom solution variables: normalize velocities by reference speed `u0`
-@inline function macroscopic_normalized(u, equations)
+@inline function macroscopic_normalized(u, equations::LatticeBoltzmannEquations2D)
   macroscopic = cons2macroscopic(u, equations)
   rho, v1, v2, p = macroscopic
 
   # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
   convert(typeof(macroscopic), (rho, v1/equations.u0, v2/equations.u0, p))
 end
-Trixi.varnames(::typeof(macroscopic_normalized), equations) = ("rho", "v1_normalized", "v2_normalized", "p")
+Trixi.varnames(::typeof(macroscopic_normalized), equations::LatticeBoltzmannEquations2D) = ("rho", "v1_normalized", "v2_normalized", "p")
 
 save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
