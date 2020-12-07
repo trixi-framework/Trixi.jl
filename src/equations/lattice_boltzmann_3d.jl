@@ -178,12 +178,13 @@ varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames
 
 # Convert conservative variables to macroscopic
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
-  rho    = density(u, equations)
-  v1, v2 = velocity(u, equations)
-  p      = pressure(u, equations)
-  return SVector(rho, v1, v2, p)
+  rho        = density(u, equations)
+  v1, v2, v3 = velocity(u, equations)
+  p          = pressure(u, equations)
+  return SVector(rho, v1, v2, v3, p)
 end
-varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D) = @SVector ["rho", "v1", "v2", "p"]
+varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p"]
+
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -196,195 +197,9 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
   rho = pi
   v1 = u0
   v2 = u0
+  v3 = u0
 
-  return equilibrium_distribution(rho, v1, v2, equations)
-end
-
-
-"""
-    boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
-                                   surface_flux_function,
-                                   equations::LatticeBoltzmannEquations3D)
-
-No-slip wall boundary condition using the bounce-back approach.
-"""
-function boundary_condition_wall_noslip(u_inner, orientation, direction, x, t,
-                                        surface_flux_function,
-                                        equations::LatticeBoltzmannEquations3D)
-  # For LBM no-slip wall boundary conditions, we set the boundary state to
-  # - the inner state for outgoing particle distribution functions
-  # - the *opposite* inner state for all other particle distribution functions
-  # See the list of (opposite) directions in the docstring of `LatticeBoltzmannEquations3D`.
-  if direction == 1 # boundary in -x direction
-    pdf1 = u_inner[3]
-    pdf2 = u_inner[4]
-    pdf3 = u_inner[3] # outgoing
-    pdf4 = u_inner[2]
-    pdf5 = u_inner[7]
-    pdf6 = u_inner[6] # outgoing
-    pdf7 = u_inner[7] # outgoing
-    pdf8 = u_inner[6]
-    pdf9 = u_inner[9]
-  elseif direction == 2 # boundary in +x direction
-    pdf1 = u_inner[1] # outgoing
-    pdf2 = u_inner[4]
-    pdf3 = u_inner[1]
-    pdf4 = u_inner[2]
-    pdf5 = u_inner[5] # outgoing
-    pdf6 = u_inner[8]
-    pdf7 = u_inner[5]
-    pdf8 = u_inner[8] # outgoing
-    pdf9 = u_inner[9]
-  elseif direction == 3 # boundary in -y direction
-    pdf1 = u_inner[3]
-    pdf2 = u_inner[4]
-    pdf3 = u_inner[1]
-    pdf4 = u_inner[4] # outgoing
-    pdf5 = u_inner[7]
-    pdf6 = u_inner[8]
-    pdf7 = u_inner[7] # outgoing
-    pdf8 = u_inner[8] # outgoing
-    pdf9 = u_inner[9]
-  else # boundary in +y direction
-    pdf1 = u_inner[3]
-    pdf2 = u_inner[2] # outgoing
-    pdf3 = u_inner[1]
-    pdf4 = u_inner[2]
-    pdf5 = u_inner[5] # outgoing
-    pdf6 = u_inner[6] # outgoing
-    pdf7 = u_inner[5]
-    pdf8 = u_inner[6]
-    pdf9 = u_inner[9]
-  end
-  u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
-
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  end
-
-  return flux
-end
-
-
-function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equations::LatticeBoltzmannEquations3D)
-  @assert direction == 4 "moving wall assumed in +y direction"
-
-  @unpack rho0, u0, weights, c_s = equations
-  cs_squared = c_s^2
-
-  pdf1 = u_inner[3] + 2 * weights[1] * rho0 * u0 / cs_squared
-  pdf2 = u_inner[2] # outgoing
-  pdf3 = u_inner[1] + 2 * weights[3] * rho0 * (-u0) / cs_squared
-  pdf4 = u_inner[2]
-  pdf5 = u_inner[5] # outgoing
-  pdf6 = u_inner[6] # outgoing
-  pdf7 = u_inner[5] + 2 * weights[7] * rho0 * (-u0) / cs_squared
-  pdf8 = u_inner[6] + 2 * weights[8] * rho0 * u0 / cs_squared
-  pdf9 = u_inner[9]
-
-  u_boundary = SVector(pdf1, pdf2, pdf3, pdf4, pdf5, pdf6, pdf7, pdf8, pdf9)
-
-  # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
-  flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-
-  return flux
-end
-
-
-"""
-    initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations3D)
-
-Initial state for a lid-driven cavity flow setup. To be used in combination with
-[`boundary_condition_lid_driven_cavity`](@ref) and [`boundary_condition_wall_noslip`](@ref).
-"""
-function initial_condition_lid_driven_cavity(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack L, u0, nu = equations
-
-  rho = 1
-  v1 = 0
-  v2 = 0
-
-  return equilibrium_distribution(rho, v1, v2, equations)
-end
-
-
-"""
-    boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
-                                         surface_flux_function,
-                                         equations::LatticeBoltzmannEquations3D)
-
-Boundary condition for a lid-driven cavity flow setup, where the top lid (+y boundary) is a moving
-no-slip wall. To be used in combination with [`initial_condition_lid_driven_cavity`](@ref).
-"""
-function boundary_condition_lid_driven_cavity(u_inner, orientation, direction, x, t,
-                                              surface_flux_function,
-                                              equations::LatticeBoltzmannEquations3D)
-  return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function, equations)
-end
-
-
-"""
-    initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations3D)
-
-Initial state for an *unsteady* Couette flow setup, which is also the exact solution for the
-incompressible Navier-Stokes equations. To be used in combination with
-[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref). In the limit,
-this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
-"""
-function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack L, u0, rho0, nu = equations
-
-  x1, x2 = x
-  v1 = u0*x2/L
-  for m in 1:100
-    lambda_m = m * pi / L
-    v1 += 2 * u0 * (-1)^m/(lambda_m * L) * exp(-nu * lambda_m^2 * t) * sin(lambda_m * x2)
-  end
-
-  rho = 1
-  v2 = 0
-
-  return equilibrium_distribution(rho, v1, v2, equations)
-end
-
-
-"""
-    initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations3D)
-
-Initial state for a *steady* Couette flow setup. To be used in combination with
-[`boundary_condition_couette`](@ref) and [`boundary_condition_wall_noslip`](@ref).
-"""
-function initial_condition_couette_steady(x, t, equations::LatticeBoltzmannEquations3D)
-  @unpack L, u0, rho0 = equations
-
-  rho = rho0
-  v1 = u0 * x[2] / L
-  v2 = 0
-
-  return equilibrium_distribution(rho, v1, v2, equations)
-end
-
-
-"""
-    boundary_condition_couette(u_inner, orientation, direction, x, t,
-                               surface_flux_function,
-                               equations::LatticeBoltzmannEquations3D)
-
-Moving *upper* wall boundary condition for a Couette flow setup. To be used in combination with
-[`boundary_condition_wall_noslip`](@ref) for the lower wall and
-[`boundary_condition_periodic`](@ref) for the lateral boundaries.
-"""
-function boundary_condition_couette(u_inner, orientation, direction, x, t,
-                                    surface_flux_function,
-                                    equations::LatticeBoltzmannEquations3D)
-  return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function, equations)
+  return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
 
@@ -394,11 +209,11 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::LatticeBoltzmannEquations3D)
-  if orientation == 1
+  if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
-  elseif orientation == 2
+  elseif orientation == 2 # y-direction
     v_alpha = equations.v_alpha2
-  else
+  else # z-direction
     v_alpha = equations.v_alpha3
   end
   return v_alpha .* u
@@ -406,11 +221,11 @@ end
 
 
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
-  if orientation == 1
+  if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
-  elseif orientation == 2
+  elseif orientation == 2 # y-direction
     v_alpha = equations.v_alpha2
-  else
+  else # z-direction
     v_alpha = equations.v_alpha3
   end
   return 0.5 * ( v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll) )
@@ -432,11 +247,11 @@ Calculate the macroscopic velocity for the given `orientation` (1 -> x, 2 -> y, 
 particle distribution functions `u`.
 """
 @inline function velocity(u, orientation, equations::LatticeBoltzmannEquations3D)
-  if orientation == 1
+  if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
-  elseif orientation == 2
+  elseif orientation == 2 # y-direction
     v_alpha = equations.v_alpha2
-  else
+  else # z-direction
     v_alpha = equations.v_alpha3
   end
 
@@ -453,7 +268,9 @@ Calculate the macroscopic velocity vector from the particle distribution functio
   @unpack v_alpha1, v_alpha2, v_alpha3 = equations
   rho = density(u, equations)
 
-  return SVector(sum(v_alpha1 .* u)/rho, sum(v_alpha2 .* u)/rho, sum(v_alpha3 .* u)/rho)
+  return SVector(sum(v_alpha1 .* u)/rho,
+                 sum(v_alpha2 .* u)/rho,
+                 sum(v_alpha3 .* u)/rho)
 end
 
 
