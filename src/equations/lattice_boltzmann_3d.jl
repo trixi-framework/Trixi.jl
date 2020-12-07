@@ -152,10 +152,18 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
   Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
   # Source for weights and speeds: [4] in docstring above
-  weights  = @SVector [1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9]
-  v_alpha1 = @SVector [ c,   0,  -c,   0,   c,   -c,   -c,    c,    0 ]
-  v_alpha2 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
-  v_alpha3 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
+  weights  = @SVector [2/27,  2/27,  2/27,  2/27,  2/27,  2/27,  1/54,  1/54,  1/54,
+                       1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,
+                       1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 8/27]
+  v_alpha1 = @SVector [ c, -c,  0,  0,  0,  0,  c, -c,  c,
+                       -c,  0,  0,  c, -c,  c, -c,  0,  0,
+                        c, -c,  c, -c,  c, -c, -c,  c,  0]
+  v_alpha2 = @SVector [ 0,  0,  c, -c,  0,  0,  c, -c,  0,
+                        0,  c, -c, -c,  c,  0,  0,  c, -c,
+                        c, -c,  c, -c, -c,  c,  c, -c,  0]
+  v_alpha3 = @SVector [ 0,  0,  0,  0,  c, -c,  0,  0,  c,
+                       -c,  c, -c,  0,  0, -c,  c, -c,  c,
+                        c, -c, -c,  c,  c, -c,  c, -c,  0]
 
   LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
                              weights, v_alpha1, v_alpha2, v_alpha3,
