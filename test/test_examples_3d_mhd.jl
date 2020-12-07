@@ -36,10 +36,19 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       tspan = (0.0, 0.25))
   end
 
-  @testset "elixir_mhd_orszag_tang.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
+  @testset "elixir_mhd_alfven_wave.jl with Orszag-Tang setup + flux_hll" begin
+    # OBS! This setup does not make much sense and is only used to exercise all components of the
+    # flux_hll implementation
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
       l2   = [0.004391160574957181, 0.041447356654791025, 0.0415012997738177, 0.04150353610875128, 0.036931198261162486, 0.021125598921156254, 0.03295606813944825, 0.032962356174273615, 6.036824268879037e-6],
       linf = [0.017893840542084788, 0.08486753617328145, 0.08910603135148028, 0.08491878976510482, 0.10444599411185623, 0.05381959529402853, 0.08847807738420276, 0.07784629959770338, 7.694931670095901e-5],
+      initial_condition = initial_condition_orszag_tang,
+      surface_flux = flux_hll,
+      volume_flux  = flux_central,
+      coordinates_min = (0, 0, 0),
+      coordinates_max = (1, 1, 1),
+      initial_refinement_level=3,
+      cfl = 1.1,
       tspan = (0.0, 0.06))
   end
 end
