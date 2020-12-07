@@ -64,12 +64,13 @@ include("auxiliary/special_elixirs.jl")
 
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+       CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+       flux_chandrashekar, flux_chandrashekar_stable, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -85,7 +86,8 @@ export initial_condition_constant,
        initial_condition_torrilhon_shock_tube,
        initial_condition_ryujones_shock_tube,
        initial_condition_shu_osher_shock_tube,
-       initial_condition_shu_osher_shock_tube_flipped
+       initial_condition_shu_osher_shock_tube_flipped,
+       initial_condition_shock_bubble
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
