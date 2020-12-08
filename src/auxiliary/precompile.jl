@@ -165,6 +165,7 @@ function _precompile_manual_()
       HyperbolicDiffusionEquations3D{RealT},
       CompressibleEulerEquations3D{RealT},
       IdealGlmMhdEquations3D{RealT},
+      LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)},
     )
   end
   function equations_types(RealT)
@@ -181,6 +182,7 @@ function _precompile_manual_()
       IdealGlmMhdEquations2D{RealT},
       IdealGlmMhdEquations3D{RealT},
       LatticeBoltzmannEquations2D{RealT, typeof(Trixi.collision_bgk)},
+      LatticeBoltzmannEquations3D{RealT, typeof(Trixi.collision_bgk)},
     )
   end
 
@@ -226,6 +228,8 @@ function _precompile_manual_()
   for RealT in (Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, RealT}},Type{LatticeBoltzmannEquations2D}})
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, Int}},Type{LatticeBoltzmannEquations2D}})
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, RealT}},Type{LatticeBoltzmannEquations3D}})
+    @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:Ma, :Re), Tuple{RealT, Int}},Type{LatticeBoltzmannEquations3D}})
   end
 
   # Constructors of the basis are inherently type-unstable since we pass integers
