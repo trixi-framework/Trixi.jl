@@ -94,7 +94,7 @@ The main sources for the base implementation were
 4. Dieter Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
    [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
-struct LatticeBoltzmannEquations3D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquation{3, 27}
+struct LatticeBoltzmannEquations3D{RealT<:Real, CollisionOp} <: AbstractLatticeBoltzmannEquations{3, 27}
   c::RealT    # mean thermal molecular velocity
   c_s::RealT  # isothermal speed of sound
   rho0::RealT # macroscopic reference density
