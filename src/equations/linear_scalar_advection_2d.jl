@@ -22,8 +22,8 @@ end
 
 
 get_name(::LinearScalarAdvectionEquation2D) = "LinearScalarAdvectionEquation2D"
-varnames_cons(::LinearScalarAdvectionEquation2D) = SVector("scalar")
-varnames_prim(::LinearScalarAdvectionEquation2D) = SVector("scalar")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = SVector("scalar")
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = SVector("scalar")
 
 # Calculates translated coordinates `x` for a periodic domain
 function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(0, 0))

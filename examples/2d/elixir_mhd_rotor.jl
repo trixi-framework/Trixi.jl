@@ -49,7 +49,7 @@ alive_callback = AliveCallback(analysis_interval=analysis_interval)
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2prim)
 
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=0.5,
@@ -64,14 +64,18 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl=0.35)
+cfl = 0.35
+stepsize_callback = StepsizeCallback(cfl=cfl)
 
-callbacks = CallbackSet(summary_callback, 
-                        analysis_callback, 
+glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
                         alive_callback,
                         save_solution,
-                        amr_callback, 
-                        stepsize_callback)
+                        amr_callback,
+                        stepsize_callback,
+                        glm_speed_callback)
 
 ###############################################################################
 # run the simulation

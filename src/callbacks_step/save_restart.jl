@@ -24,7 +24,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     save_restart_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "interval" => save_restart_callback.interval,
              "save final solution" => save_restart_callback.save_final_restart ? "yes" : "no",
              "output directory" => abspath(normpath(save_restart_callback.output_directory)),
@@ -37,14 +37,11 @@ end
 function SaveRestartCallback(; interval=0,
                                save_final_restart=true,
                                output_directory="out")
-  # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
-                                                     (save_final_restart && isfinished(integrator)))
 
   restart_callback = SaveRestartCallback(interval, save_final_restart,
                                          output_directory)
 
-  DiscreteCallback(condition, restart_callback,
+  DiscreteCallback(restart_callback, restart_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
 end
@@ -68,6 +65,16 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
+# this method is called to determine whether the callback should be activated
+function (restart_callback::SaveRestartCallback)(u, t, integrator)
+  @unpack interval, save_final_restart = restart_callback
+
+  return interval > 0 && (
+    (integrator.iter % interval == 0) || (save_final_restart && isfinished(integrator)))
+end
+
+
+# this method is called when the callback is activated
 function (restart_callback::SaveRestartCallback)(integrator)
   u_ode = integrator.u
   @unpack t, dt, iter = integrator

@@ -94,13 +94,14 @@ jobs:
       # contained therein are considered to be a part of Trixi.
       - run: julia --color=yes -e 'using Pkg; Pkg.activate("coveragetempenv", shared=true); Pkg.add(PackageSpec(name="CoverageTools")); using CoverageTools; pf = process_folder(); append!(pf, process_folder("examples")); LCOV.writefile("lcov.info", pf)'
         shell: bash
-      - uses: codecov/codecov-action@v1
-        with:
-          file: ./lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+        # Codecov is disabled since it does not produce accurate measurements for parallel jobs
+        # - uses: codecov/codecov-action@v1
+        #   with:
+        #     file: ./lcov.info
+        #     flags: unittests
+        #     name: codecov-umbrella
+        #     fail_ci_if_error: false
+        #     token: ${{ secrets.CODECOV_TOKEN }}
       - uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

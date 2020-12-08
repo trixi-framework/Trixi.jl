@@ -9,15 +9,16 @@ mutable struct IdealGlmMhdEquations3D{RealT<:Real} <: AbstractIdealGlmMhdEquatio
   c_h::RealT # GLM cleaning speed
 end
 
-function IdealGlmMhdEquations3D(gamma)
-  IdealGlmMhdEquations3D(gamma, zero(gamma))
+function IdealGlmMhdEquations3D(gamma; initial_c_h=convert(typeof(gamma), NaN))
+  # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
+  IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
 end
 
 
 get_name(::IdealGlmMhdEquations3D) = "IdealGlmMhdEquations3D"
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = Val(true)
-varnames_cons(::IdealGlmMhdEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-varnames_prim(::IdealGlmMhdEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2prim), ::IdealGlmMhdEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
 default_analysis_integrals(::IdealGlmMhdEquations3D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 
 
@@ -498,12 +499,6 @@ end
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
   cf_z_direction = calc_fast_wavespeed(u, 3, equations)
-  cf_max = max(cf_x_direction, cf_y_direction, cf_z_direction)
-
-  # FIXME: This should be implemented properly using another callback
-  #        or something else, cf.
-  #        https://github.com/trixi-framework/Trixi.jl/issues/257
-  equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction, abs(v3) + cf_z_direction
 end

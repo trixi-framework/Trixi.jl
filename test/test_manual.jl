@@ -218,7 +218,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test isnothing(display(c3d))
   end
 
-  @testset "Printing" begin
+  @testset "Printing indicators/controllers" begin
     # OBS! Constructing indicators/controllers using the parameters below doesn't make sense. It's
     # just useful to run basic tests of `show` methods.
 
@@ -233,6 +233,37 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     indicator_max = IndicatorMax("variable", (; cache=nothing))
     @test_nowarn show(stdout, indicator_max)
+  end
+
+  @testset "LBM constructor" begin
+    # Neither Mach number nor velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
+    # Both Mach number and velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=1000, u0=1)
+    # Neither Reynolds number nor viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=nothing)
+    # Both Reynolds number and viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=0.1, Re=1000, nu=1)
+
+    # No non-dimensional values set
+    @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
+  end
+
+  @testset "LBM functions" begin
+    # Set up LBM struct and dummy distribution
+    equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
+    u = Trixi.equilibrium_distribution(1, 2, 3, equation)
+
+    # Component-wise velocity
+    @test isapprox(Trixi.velocity(u, 1, equation), 2)
+    @test isapprox(Trixi.velocity(u, 2, equation), 3)
+
+    # Printing of LBM collision callback
+    callback = LBMCollisionCallback()
+    @test_nowarn show(stdout, callback)
+    println()
+    @test_nowarn show(stdout, "text/plain", callback)
+    println()
   end
 end
 

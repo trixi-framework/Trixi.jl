@@ -41,7 +41,7 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
   if get(io, :compact, false)
     show(io, parameters)
   else
-    setup = [ 
+    setup = [
              "background density (ρ₀)" => parameters.background_density,
              "gravitational constant (G)" => parameters.gravitational_constant,
              "CFL (gravity)" => parameters.cfl,
@@ -181,7 +181,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode)
 
   # add gravitational source source_terms to the Euler part
-  if ndims(semi_euler) == 2
+  if ndims(semi_euler) == 1
+    @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
+    @views @. du_euler[3, .., :] -= u_euler[2, .., :] * u_gravity[2, .., :]
+  elseif ndims(semi_euler) == 2
     @views @. du_euler[2, .., :] -=  u_euler[1, .., :] * u_gravity[2, .., :]
     @views @. du_euler[3, .., :] -=  u_euler[1, .., :] * u_gravity[3, .., :]
     @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +

@@ -25,7 +25,7 @@ function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
     for variable in eachvariable(equations)
       summary_line(increment_indent(io),
                    "variable " * string(variable),
-                   varnames_cons(equations)[variable])
+                   varnames(cons2cons, equations)[variable])
     end
     summary_footer(io)
   end
@@ -71,7 +71,12 @@ end
 
 
 @inline cons2cons(u, ::AbstractEquations) = u
+function cons2prim(u, ::AbstractEquations) end
 @inline Base.first(u, ::AbstractEquations) = first(u)
+
+# FIXME: Deprecations introduced in v0.3
+@deprecate varnames_cons(equations) varnames(cons2cons, equations)
+@deprecate varnames_prim(equations) varnames(cons2prim, equations)
 
 
 ####################################################################################################
@@ -91,10 +96,16 @@ include("compressible_euler_3d.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_1d.jl")
 include("ideal_glm_mhd_2d.jl")
 include("ideal_glm_mhd_3d.jl")
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("hyperbolic_diffusion_1d.jl")
 include("hyperbolic_diffusion_2d.jl")
 include("hyperbolic_diffusion_3d.jl")
+
+# Lattice-Boltzmann equation (advection part only)
+abstract type AbstractLatticeBoltzmannEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("lattice_boltzmann_2d.jl")

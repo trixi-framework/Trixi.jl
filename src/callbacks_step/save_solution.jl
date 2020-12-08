@@ -1,21 +1,22 @@
 
-# TODO: Taal refactor, allow saving arbitrary functions of the conservative variables
-# TODO: Taal refactor, make solution_variables a function instead of a Symbol
 """
     SaveSolutionCallback(; interval=0,
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
-                           solution_variables=:primitive)
+                           solution_variables=cons2prim)
 
-Save the current numerical solution every `interval` time steps.
+Save the current numerical solution every `interval` time steps. `solution_variables` can be any
+callable that converts the conservative variables at a single point to a set of solution variables.
+The first parameter passed to `solution_variables` will be the set of conservative variables and the
+second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback
+mutable struct SaveSolutionCallback{SolutionVariables}
   interval::Int
   save_initial_solution::Bool
   save_final_solution::Bool
   output_directory::String
-  solution_variables::Symbol
+  solution_variables::SolutionVariables
 end
 
 
@@ -30,7 +31,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     save_solution_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "interval" => save_solution_callback.interval,
              "solution variables" => save_solution_callback.solution_variables,
              "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
@@ -46,15 +47,25 @@ function SaveSolutionCallback(; interval=0,
                                 save_initial_solution=true,
                                 save_final_solution=true,
                                 output_directory="out",
-                                solution_variables=:primitive)
-  # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
-                                                     (save_final_solution && isfinished(integrator)))
+                                solution_variables=cons2prim)
+
+  # FIXME: Deprecations introduced in v0.3
+  if solution_variables isa Symbol
+    Base.depwarn("Providing the keyword argument `solution_variables` as a `Symbol` is deprecated." *
+                 "Use functions such as `cons2cons` or `cons2prim` instead.", :SaveSolutionCallback)
+    if solution_variables == :conservative
+      solution_variables = cons2cons
+    elseif solution_variables == :primitive
+      solution_variables = cons2prim
+    else
+      error("Unknown `solution_variables` $solution_variables.")
+    end
+  end
 
   solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
 
-  DiscreteCallback(condition, solution_callback,
+  DiscreteCallback(solution_callback, solution_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
 end
@@ -82,6 +93,16 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
+# this method is called to determine whether the callback should be activated
+function (solution_callback::SaveSolutionCallback)(u, t, integrator)
+  @unpack interval, save_final_solution = solution_callback
+
+  return interval > 0 && (
+    (integrator.iter % interval == 0) || (save_final_solution && isfinished(integrator)))
+end
+
+
+# this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
   @unpack t, dt, iter = integrator

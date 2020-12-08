@@ -9,15 +9,16 @@ mutable struct IdealGlmMhdEquations2D{RealT<:Real} <: AbstractIdealGlmMhdEquatio
   c_h::RealT # GLM cleaning speed
 end
 
-function IdealGlmMhdEquations2D(gamma)
-  IdealGlmMhdEquations2D(gamma, zero(gamma))
+function IdealGlmMhdEquations2D(gamma; initial_c_h=convert(typeof(gamma), NaN))
+  # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
+  IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
 end
 
 
 get_name(::IdealGlmMhdEquations2D) = "IdealGlmMhdEquations2D"
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = Val(true)
-varnames_cons(::IdealGlmMhdEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
-varnames_prim(::IdealGlmMhdEquations2D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi"]
+varnames(::typeof(cons2prim), ::IdealGlmMhdEquations2D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi"]
 default_analysis_integrals(::IdealGlmMhdEquations2D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 
 
@@ -388,9 +389,10 @@ end
 """
     flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-HLL flux for ideal GLM-MHD equations like that by Li (2005)
+HLL flux for ideal GLM-MHD equations like that by
+- Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
-[DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
+  [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
 function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -544,12 +546,6 @@ end
   v3 = rho_v3 / rho
   cf_x_direction = calc_fast_wavespeed(u, 1, equations)
   cf_y_direction = calc_fast_wavespeed(u, 2, equations)
-  cf_max = max(cf_x_direction, cf_y_direction)
-
-  # FIXME: This should be implemented properly using another callback
-  #        or something else, cf.
-  #        https://github.com/trixi-framework/Trixi.jl/issues/257
-  equations.c_h = max(equations.c_h, cf_max) # GLM cleaning speed = c_f
 
   return abs(v1) + cf_x_direction, abs(v2) + cf_y_direction
 end
@@ -656,10 +652,11 @@ end
     calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations2D)
 
 Compute the fast magnetoacoustic wave speed using Roe averages
-as given by Cargo and Gallice (1997)
+as given by
+- Cargo and Gallice (1997)
   Roe Matrices for Ideal MHD and Systematic Construction
   of Roe Matrices for Systems of Conservation Laws
-[DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
+  [DOI: 10.1006/jcph.1997.5773](https://doi.org/10.1006/jcph.1997.5773)
 """
 @inline function calc_fast_wavespeed_roe(u_ll, u_rr, direction, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
