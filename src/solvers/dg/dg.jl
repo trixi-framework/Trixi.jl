@@ -174,15 +174,20 @@ end
 @inline function get_node_vars(u, equations, solver::DG, indices...)
   # There is a cut-off at `n == 10` inside of the method
   # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
-  # in Julia `v1.5`, making leading to type instabilities if
+  # in Julia `v1.5`, leading to type instabilities if
   # more than ten variables are used. That's why we use
   # `Val(...)` below.
   SVector(ntuple(v -> u[v, indices...], Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
-  u_ll = SVector(ntuple(v -> u[1, v, indices...], nvariables(equations)))
-  u_rr = SVector(ntuple(v -> u[2, v, indices...], nvariables(equations)))
+  # There is a cut-off at `n == 10` inside of the method
+  # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+  # in Julia `v1.5`, leading to type instabilities if
+  # more than ten variables are used. That's why we use
+  # `Val(...)` below.
+  u_ll = SVector(ntuple(v -> u[1, v, indices...], Val(nvariables(equations))))
+  u_rr = SVector(ntuple(v -> u[2, v, indices...], Val(nvariables(equations))))
   return u_ll, u_rr
 end
 
