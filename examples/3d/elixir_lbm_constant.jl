@@ -15,7 +15,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-1, -1, -1)
 coordinates_max = ( 1,  1,  1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=1,
+                initial_refinement_level=3,
                 n_cells_max=10_000,)
 
 
@@ -30,7 +30,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 10
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
