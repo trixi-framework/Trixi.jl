@@ -138,6 +138,25 @@ end
   @test_nowarn display(alive_callback)
 
   @test_nowarn println(callbacks)
+
+  # Check whether all output is suppressed if the summary, analysis and alive
+  # callbacks are set to the TrivialCallback(). Modelled using `@test_nowarn`
+  # as basis.
+  let fname = tempname()
+    try
+      open(fname, "w") do f
+        redirect_stderr(f) do
+          trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                        summary_callback=TrivialCallback(),
+                        analysis_callback=TrivialCallback(),
+                        alive_callback=TrivialCallback())
+        end
+      end
+      @test isempty(read(fname, String))
+    finally
+      rm(fname, force=true)
+    end
+  end
 end
 
 
