@@ -109,17 +109,24 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
 end
 
 
-function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+@inline function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
   if t == 0.0
     phi = 1.0
     q1  = 1.0
     q2  = 1.0
   else
-    C   = 1.0/sinh(pi)
-    phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-    q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-    q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    C   = inv(sinh(pi))
+    # TODO: sincospi
+    sinpi_x1, cospi_x1 = sincos(pi*x[1])
+    sinpi_x2, cospi_x2 = sincos(pi*x[2])
+    sinh_pix1 = sinh(pi*x[1])
+    cosh_pix1 = cosh(pi*x[1])
+    sinh_pix2 = sinh(pi*x[2])
+    cosh_pix2 = cosh(pi*x[2])
+    phi = C *      (sinh_pix1 * sinpi_x2 + sinh_pix2 * sinpi_x1)
+    q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
+    q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
   end
   return @SVector [phi, q1, q2]
 end
@@ -135,15 +142,11 @@ end
   return SVector(0, du2, du3)
 end
 
-function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-                                                  surface_flux_function,
-                                                  equations::HyperbolicDiffusionEquations2D)
+@inline function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+                                                         surface_flux_function,
+                                                         equations::HyperbolicDiffusionEquations2D)
   # elliptic equation: -νΔϕ = f
-  C   = 1.0/sinh(pi)
-  phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-  q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-  q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-  u_boundary = @SVector [phi, q1, q2]
+  u_boundary = initial_condition_harmonic_nonperiodic(x, one(t), equations)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
