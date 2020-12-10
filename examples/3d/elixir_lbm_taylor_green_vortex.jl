@@ -16,8 +16,8 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-pi*L, -pi*L, -pi*L)
 coordinates_max = ( pi*L,  pi*L,  pi*L)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=10_000,)
+                initial_refinement_level=6,
+                n_cells_max=300_000,)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -31,8 +31,10 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_interval = 20
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     save_analysis=true,
+                                     extra_analysis_integrals=(Trixi.energy_kinetic_nondimensional,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
