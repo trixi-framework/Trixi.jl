@@ -1,7 +1,11 @@
-# Partition mesh using a static domain decomposition algorithm
-# based on leaf cell count and tree structure.
-# If all children of a cell are leaves, the algorithm will keep them together on one rank
-# to allow for coarsening.
+"""
+    partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
+
+Partition `mesh` using a static domain decomposition algorithm
+based on leaf cell count and tree structure.
+If `allow_coarsening` is `true`, the algorithm will keep leaf cells together
+on one rank when needed for local coarsening (i.e. when all children of a cell are leaves).
+"""
 function partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
