@@ -63,10 +63,9 @@ end
 #  CompressibleEulerMulticomponentEquations2D(N, SVector(gamma), SVector(rs), SVector(cvs), SVector(cps))
 #end
 
-get_name(::CompressibleEulerMulticomponentEquations2D)      = "CompressibleEulerMulticomponentEquations2D"
-varnames_cons(::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho1", "rho2", "rho_v1", "rho_v2", "rho_e"]
-varnames_prim(::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho1", "rho2", "v1", "v2", "p"]
-
+get_name(::CompressibleEulerMulticomponentEquations2D) = "CompressibleEulerMulticomponentEquations2D"
+varnames(::typeof(cons2cons), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho1", "rho2", "rho_v1", "rho_v2", "rho_e"]
+varnames(::typeof(cons2prim), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho1", "rho2", "v1", "v2", "p"]
 
 # Set initial conditions at physical location `x` for time `t`
 
