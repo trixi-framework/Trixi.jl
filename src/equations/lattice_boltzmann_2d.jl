@@ -365,10 +365,12 @@ end
 
 
 """
+    density(p::Real, equations::LatticeBoltzmannEquations2D)
     density(u, equations::LatticeBoltzmannEquations2D)
 
-Calculate the macroscopic density from the particle distribution functions `u`.
+Calculate the macroscopic density from the pressure `p` or the particle distribution functions `u`.
 """
+@inline density(p::Real, equations::LatticeBoltzmannEquations2D) = p / equations.c_s^2
 @inline density(u, equations::LatticeBoltzmannEquations2D) = sum(u)
 
 
@@ -403,11 +405,14 @@ end
 
 
 """
+    pressure(rho::Real, equations::LatticeBoltzmannEquations2D)
     pressure(u, equations::LatticeBoltzmannEquations2D)
 
-Calculate the macroscopic pressure from the particle distribution functions `u`.
+Calculate the macroscopic pressure from the density `rho` or the  particle distribution functions
+`u`.
 """
-@inline pressure(u, equations::LatticeBoltzmannEquations2D) = density(u, equations) * equations.c_s^2
+@inline pressure(rho::Real, equations::LatticeBoltzmannEquations2D) = rho * equations.c_s^2
+@inline pressure(u, equations::LatticeBoltzmannEquations2D) = pressure(density(u, equations), equations)
 
 
 """
