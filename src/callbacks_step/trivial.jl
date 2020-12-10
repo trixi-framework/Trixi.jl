@@ -17,3 +17,10 @@ trivial_callback(integrator) = u_modified!(integrator, false)
 function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(trivial_callback)}
   print(io, "TrivialCallback()")
 end
+
+
+# This allows to set `summary_callback = TrivialCallback()` in elixirs to suppress
+# output, e.g. in `convergence_test`.
+function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Condition, Affect!<:typeof(trivial_callback)}
+  return nothing
+end

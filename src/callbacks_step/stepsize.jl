@@ -22,7 +22,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     stepsize_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "CFL number" => stepsize_callback.cfl_number,
             ]
     summary_box(io, "StepsizeCallback", setup)
@@ -31,12 +31,10 @@ end
 
 
 function StepsizeCallback(; cfl::Real=1.0)
-  # when is the callback activated
-  condition = (u, t, integrator) -> true
 
   stepsize_callback = StepsizeCallback(cfl)
 
-  DiscreteCallback(condition, stepsize_callback,
+  DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
 end
@@ -44,6 +42,12 @@ end
 
 function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) where {Condition, Affect!<:StepsizeCallback}
   cb.affect!(integrator)
+end
+
+
+# this method is called to determine whether the callback should be activated
+function (stepsize_callback::StepsizeCallback)(u, t, integrator)
+  return true
 end
 
 

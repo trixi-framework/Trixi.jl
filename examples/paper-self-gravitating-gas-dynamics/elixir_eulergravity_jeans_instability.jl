@@ -113,7 +113,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 save_solution = SaveSolutionCallback(interval=10,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2prim)
 
 save_restart = SaveRestartCallback(interval=100,
                                    save_final_restart=true)
