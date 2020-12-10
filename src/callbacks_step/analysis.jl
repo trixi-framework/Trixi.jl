@@ -393,6 +393,9 @@ pretty_form_ascii(::typeof(energy_total)) = "e_total"
 pretty_form_utf(::typeof(energy_kinetic)) = "∑e_kinetic"
 pretty_form_ascii(::typeof(energy_kinetic)) = "e_kinetic"
 
+pretty_form_utf(::typeof(energy_kinetic_nondimensional)) = "∑e_kinetic*"
+pretty_form_ascii(::typeof(energy_kinetic_nondimensional)) = "e_kinetic*"
+
 pretty_form_utf(::typeof(energy_internal)) = "∑e_internal"
 pretty_form_ascii(::typeof(energy_internal)) = "e_internal"
 

@@ -391,3 +391,17 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::LatticeBoltzmannEquations3D) = u
+
+
+# Calculate kinetic energy for a conservative state `u`
+@inline function energy_kinetic(u, equations::LatticeBoltzmannEquations3D)
+  rho = density(u, equations)
+  v1, v2, v3 = velocity(u, equations)
+
+  return 0.5 * (v1^2 + v2^2 + v3^2) / rho / equations.rho0
+end
+
+# Calculate nondimensionalized kinetic energy for a conservative state `u`
+@inline function energy_kinetic_nondimensional(u, equations::LatticeBoltzmannEquations3D)
+  return energy_kinetic(u, equations) / equations.u0^2
+end
