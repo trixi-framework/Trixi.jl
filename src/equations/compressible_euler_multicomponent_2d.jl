@@ -15,6 +15,50 @@ struct CompressibleEulerMulticomponentEquations2D{RealT<:Real} <: AbstractCompre
   cps2  ::RealT
 end
 
+function CompressibleEulerMulticomponentEquations2D(gamma)
+  # Placing dummy variables, should be replaced by values from initial condition!!
+
+  # Set ratio of specific heat of the gas per species 
+  # (It holds: gamma = cp/cv) (Can be used for consistency check!)
+  gamma1  = gamma
+  gamma2  = gamma
+  
+  # Set specific gas constant with respect to the molar mass per species 
+  # (It holds: rs = R/M, with R = molar gas constant, M = molar mass) 
+  # (For a calorically and thermally perfect gas Mayer's relation holds: rs = cp - cv) (Can be used for consistency check!)
+  rs1     = 0.4
+  rs2     = 0.4
+
+  # Set specific heat for a constant volume per species
+  cvs1    = 1.0
+  cvs2    = 1.0
+
+  # Set specific heat for a constant pressure per species
+  cps1    = 1.4
+  cps2    = 1.4
+
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, rs1, rs2, cvs1, cvs2, cps1, cps2)
+end
+
+
+function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2, cv1, cv2)
+
+  gamma1  = g1
+  gamma2  = g2
+  
+  rs1     = r1
+  rs2     = r2
+
+  cvs1    = cv1
+  cvs2    = cv2
+
+  cps1    = g1 * cv1
+  cps2    = g2 * cv2
+
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, rs1, rs2, cvs1, cvs2, cps1, cps2)
+end
+
+
 #function CompressibleEulerMulticomponentEquations2D(N::int8, gamma::NTuple{2,<:Real}, rs::NTuple{2,<:Real}, cvs::NTuple{2,<:Real}, cps::NTuple{2,<:Real})
 #  CompressibleEulerMulticomponentEquations2D(N, SVector(gamma), SVector(rs), SVector(cvs), SVector(cps))
 #end
@@ -74,6 +118,7 @@ Source terms used for convergence tests in combination with
   rho     = rho1 + rho2
 
   γ       = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
+  #γ       = gamma(u, equations)
 
   x1, x2  = x
   si, co  = sincos((x1 + x2 - t)*ω)
@@ -130,23 +175,26 @@ function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMultic
   # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
   # typical domain is rectangular, we change it to a square, as Trixi can only do squares
 
+  # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
+  delta   = 0.03
+
   # Region I 
-  rho1_1  = 0.03
-  rho2_1  = 1.225 * equations.rs1/equations.rs2 - 0.03
+  rho1_1  = delta
+  rho2_1  = 1.225 * equations.rs1/equations.rs2 - delta
   v1_1    = 0.0
   v2_1    = 0.0
   p_1     = 101325
 
   # Region II 
-  rho1_2  = 1.225-0.03
-  rho2_2  = 0.03
+  rho1_2  = 1.225-delta
+  rho2_2  = delta
   v1_2    = 0.0
   v2_2    = 0.0
   p_2     = 101325
 
   # Region III 
-  rho1_3  = 1.6861 - 0.03
-  rho2_3  = 0.03
+  rho1_3  = 1.6861 - delta
+  rho2_3  = delta
   v1_3    = -113.5243
   v2_3    = 0.0
   p_3     = 159060
@@ -201,7 +249,7 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
   r                 = sqrt(x_norm^2 + y_norm^2)
   phi               = atan(y_norm, x_norm)
   sin_phi, cos_phi  = sincos(phi)
-* 
+
   # Calculate primitive variables.    !!! NOTE: EC flux does not transfer mass across an interface separating two different species
   rho1              = r > 0.5 ? 0.2*1.0 : 0.2*1.1691
   rho2              = r > 0.5 ? 0.8*1.0 : 0.8*1.1691
@@ -257,7 +305,8 @@ end
   v1    = rho_v1/rho
   v2    = rho_v2/rho
   gamma = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
-  p     = (gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
+  p     = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+  #p     = pressure(u, equations)
 
   if orientation == 1
     f1  = rho1 * v1
@@ -300,8 +349,8 @@ Entropy conserving two-point flux by
   # helpful mean values
   rho1_mean   = ln_mean(rho1_ll,rho1_rr)
   rho2_mean   = ln_mean(rho2_ll,rho2_rr) 
-  rho1_avg    = 0.5*(rho1_ll+rho1_rr)
-  rho2_avg    = 0.5*(rho2_ll+rho2_rr)
+  rho1_avg    = 0.5 * (rho1_ll + rho1_rr)
+  rho2_avg    = 0.5 * (rho2_ll + rho2_rr)
   v1_avg      = 0.5 * (v1_ll + v1_rr)
   v2_avg      = 0.5 * (v2_ll + v2_rr)
   v1_square   = 0.5 * (v1_ll^2 + v1_rr^2)
@@ -314,10 +363,6 @@ Entropy conserving two-point flux by
   T_rr        = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / (rho1_rr * equations.cvs1 + rho2_rr * equations.cvs2)
   T           = 0.5 * (1.0/T_ll + 1.0/T_rr)
   T_log       = ln_mean(1.0/T_ll, 1.0/T_rr)
-
-  gamma       = (rho1_ll/rho_ll*equations.cvs1*equations.gamma1 + rho2_ll/rho_ll*equations.cvs2*equations.gamma2)/(rho1_ll/rho_ll*equations.cvs1 + rho2_ll/rho_ll*equations.cvs2)
-  p_ll        = (gamma - 1) * (rho_e_ll - 0.5 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
-  p_rr        = (gamma - 1) * (rho_e_rr - 0.5 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
 
   # Calculate fluxes depending on orientation
   if orientation == 1
@@ -379,15 +424,11 @@ Entropy-Stable two-point flux by
   T         = 0.5 * (T_ll + T_rr)
   T_log     = ln_mean(1.0/T_ll, 1.0/T_rr)
 
-  gamma = (rho1_avg/rho_avg*equations.cvs1*equations.gamma1 + rho2_avg/rho_avg*equations.cvs2*equations.gamma2)/(rho1_avg/rho_avg*equations.cvs1 + rho2_avg/rho_avg*equations.cvs2)
-
-  p_ll = (gamma - 1) * (rho_e_ll - 0.5 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
-  p_rr = (gamma - 1) * (rho_e_rr - 0.5 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+  gamma     = (rho1_avg/rho_avg*equations.cvs1*equations.gamma1 + rho2_avg/rho_avg*equations.cvs2*equations.gamma2)/(rho1_avg/rho_avg*equations.cvs1 + rho2_avg/rho_avg*equations.cvs2)
 
   # Calculate dissipation operator to be ES 
   R_x       = zeros(Float64, (5, 5))
   R_y       = zeros(Float64, (5, 5))
-  #Lambda    = zeros(Float64, (5, 5))
   Lambda_x  = zeros(Float64, (5, 5))
   Lambda_y  = zeros(Float64, (5, 5))
   Tau       = zeros(Float64, (5, 5))
@@ -396,133 +437,130 @@ Entropy-Stable two-point flux by
   Dv_y      = zeros(Float64, (5))
 
   # Help variables
-  e1    = equations.cvs1 * T # check
-  e2    = equations.cvs2 * T # check
-  r     = (rho1_avg / rho_avg) * equations.rs1 + (rho2_avg / rho_avg) * equations.rs2 # check
-  a     = sqrt(gamma * T * r) # check
-  k_x   = 0.5 * (v_ll_sq + v_rr_sq) # Not Sure 
-  k_y   = 0.5 * (v_ll_sq + v_rr_sq) # Not Sure
-  h1    = e1 + equations.rs1 * T # check
-  h2    = e2 + equations.rs2 * T # check
-  h     = (rho1_avg / rho_avg) * h1 + (rho2_avg / rho_avg) * h2 # weighted sum correct?
-  d1    = h1 - gamma * e1 # check
-  d2    = h2 - gamma * e2 # check
-  ht_x  = h + k_x # check
-  ht_y  = h + k_y # check
-  tauh  = sqrt(rho_avg/(gamma * r)) # check 
+  e1    = equations.cvs1 * T
+  e2    = equations.cvs2 * T
+  r     = (rho1_avg / rho_avg) * equations.rs1 + (rho2_avg / rho_avg) * equations.rs2 
+  a     = sqrt(gamma * T * r) 
+  k     = 0.5 * (v1_square + v2_square) 
+  h1    = e1 + equations.rs1 * T 
+  h2    = e2 + equations.rs2 * T 
+  h     = (rho1_avg / rho_avg) * h1 + (rho2_avg / rho_avg) * h2 
+  d1    = h1 - gamma * e1 
+  d2    = h2 - gamma * e2 
+  ht    = h + k
+  tauh  = sqrt(rho_avg/(gamma * r))
 
-  # Matrices, 3e Spalte eventuell falsch bei R?
   # -------------------------------- #
 
-  R_x[1,1]  = 1.0 # check
-  R_x[1,2]  = 0.0 # check
-  R_x[1,3]  = 0.0 # check
-  R_x[1,4]  = rho1_avg / rho_avg # check
-  R_x[1,5]  = R_x[1,4] # check
+  R_x[1,1]  = 1.0 
+  R_x[1,2]  = 0.0 
+  R_x[1,3]  = 0.0 
+  R_x[1,4]  = rho1_avg / rho_avg 
+  R_x[1,5]  = R_x[1,4]
 
-  R_x[2,1]  = 0.0 # check
-  R_x[2,2]  = 1.0 # check
-  R_x[2,3]  = 0.0 # check
-  R_x[2,4]  = rho2_avg / rho_avg # check
-  R_x[2,5]  = R_x[2,4] # check
+  R_x[2,1]  = 0.0 
+  R_x[2,2]  = 1.0 
+  R_x[2,3]  = 0.0 
+  R_x[2,4]  = rho2_avg / rho_avg 
+  R_x[2,5]  = R_x[2,4]
 
-  R_x[3,1]  = v1_avg # check
-  R_x[3,2]  = v1_avg # check
+  R_x[3,1]  = v1_avg 
+  R_x[3,2]  = v1_avg 
   R_x[3,3]  = 0.0 
-  R_x[3,4]  = v1_avg + a # check
-  R_x[3,5]  = v1_avg - a # check
+  R_x[3,4]  = v1_avg + a 
+  R_x[3,5]  = v1_avg - a 
 
-  R_x[4,1]  = v2_avg # check
-  R_x[4,2]  = v2_avg # check
+  R_x[4,1]  = v2_avg 
+  R_x[4,2]  = v2_avg 
   R_x[4,3]  = a 
-  R_x[4,4]  = v2_avg # check
-  R_x[4,5]  = v2_avg # check
+  R_x[4,4]  = v2_avg 
+  R_x[4,5]  = v2_avg 
 
-  R_x[5,1]  = k_x - (d1/(gamma - 1.0)) # check
-  R_x[5,2]  = k_x - (d2/(gamma - 1.0)) # check
+  R_x[5,1]  = k - (d1/(gamma - 1.0)) 
+  R_x[5,2]  = k - (d2/(gamma - 1.0)) 
   R_x[5,3]  = a * v2_avg 
-  R_x[5,4]  = ht_x + a * v1_avg # check
-  R_x[5,5]  = ht_x - a * v1_avg # check
+  R_x[5,4]  = ht + a * v1_avg 
+  R_x[5,5]  = ht - a * v1_avg 
 
   # -------------------------------- #
 
-  R_y[1,1]  = 1.0 # check
-  R_y[1,2]  = 0.0 # check
-  R_y[1,3]  = 0.0 # check
-  R_y[1,4]  = rho1_avg / rho_avg # check
-  R_y[1,5]  = R_y[1,4] # check
+  R_y[1,1]  = 1.0 
+  R_y[1,2]  = 0.0 
+  R_y[1,3]  = 0.0 
+  R_y[1,4]  = rho1_avg / rho_avg 
+  R_y[1,5]  = R_y[1,4] 
 
-  R_y[2,1]  = 0.0 # check
-  R_y[2,2]  = 1.0 # check
-  R_y[2,3]  = 0.0 # check
-  R_y[2,4]  = rho2_avg / rho_avg # check
-  R_y[2,5]  = R_y[2,4] # check
+  R_y[2,1]  = 0.0 
+  R_y[2,2]  = 1.0 
+  R_y[2,3]  = 0.0 
+  R_y[2,4]  = rho2_avg / rho_avg
+  R_y[2,5]  = R_y[2,4] 
 
-  R_y[3,1]  = v1_avg # check
-  R_y[3,2]  = v1_avg # check
+  R_y[3,1]  = v1_avg 
+  R_y[3,2]  = v1_avg 
   R_y[3,3]  = -1.0 * a 
-  R_y[3,4]  = v1_avg # check
-  R_y[3,5]  = v1_avg # check
+  R_y[3,4]  = v1_avg 
+  R_y[3,5]  = v1_avg 
 
-  R_y[4,1]  = v2_avg # check
-  R_y[4,2]  = v2_avg # check
+  R_y[4,1]  = v2_avg 
+  R_y[4,2]  = v2_avg 
   R_y[4,3]  = 0.0 
-  R_y[4,4]  = v2_avg + a # check
-  R_y[4,5]  = v2_avg - a # check
+  R_y[4,4]  = v2_avg + a 
+  R_y[4,5]  = v2_avg - a 
 
-  R_y[5,1]  = k_y - (d1/(gamma - 1)) # check
-  R_y[5,2]  = k_y - (d2/(gamma - 1)) # check
+  R_y[5,1]  = k - (d1/(gamma - 1)) 
+  R_y[5,2]  = k - (d2/(gamma - 1)) 
   R_y[5,3]  = -1.0 * a * v1_avg 
-  R_y[5,4]  = ht_y + a * v2_avg # check
-  R_y[5,5]  = ht_y - a * v2_avg # check
+  R_y[5,4]  = ht + a * v2_avg 
+  R_y[5,5]  = ht - a * v2_avg 
 
   # -------------------------------- #
 
-  Lambda_x[1,1] = abs(v1_avg) # check
-  Lambda_x[2,2] = abs(v1_avg) # check
-  Lambda_x[3,3] = abs(v1_avg) # check
-  Lambda_x[4,4] = abs(v1_avg + a) # check
-  Lambda_x[5,5] = abs(v1_avg - a) # check
+  Lambda_x[1,1] = abs(v1_avg) 
+  Lambda_x[2,2] = abs(v1_avg) 
+  Lambda_x[3,3] = abs(v1_avg) 
+  Lambda_x[4,4] = abs(v1_avg + a) 
+  Lambda_x[5,5] = abs(v1_avg - a) 
 
   # -------------------------------- #
 
-  Lambda_y[1,1] = abs(v2_avg) # check
-  Lambda_y[2,2] = abs(v2_avg) # check
-  Lambda_y[3,3] = abs(v2_avg) # check
-  Lambda_y[4,4] = abs(v2_avg + a) # check
-  Lambda_y[5,5] = abs(v2_avg - a) # check
+  Lambda_y[1,1] = abs(v2_avg)
+  Lambda_y[2,2] = abs(v2_avg) 
+  Lambda_y[3,3] = abs(v2_avg) 
+  Lambda_y[4,4] = abs(v2_avg + a) 
+  Lambda_y[5,5] = abs(v2_avg - a) 
 
   # -------------------------------- #
 
-  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equations.rs2 / equations.rs1))) # check
-  Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) # check
-  Tau[1,3]  = 0.0 # check
-  Tau[1,4]  = 0.0 # check
-  Tau[1,5]  = 0.0 # check
+  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equations.rs2 / equations.rs1)))
+  Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) 
+  Tau[1,3]  = 0.0 
+  Tau[1,4]  = 0.0 
+  Tau[1,5]  = 0.0 
 
-  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equations.rs1 / equations.rs2))) # check
-  Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) # check
-  Tau[2,3]  = 0.0 # check
-  Tau[2,4]  = 0.0 # check
-  Tau[2,5]  = 0.0 # check
+  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (equations.rs1 / equations.rs2)))
+  Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) 
+  Tau[2,3]  = 0.0 
+  Tau[2,4]  = 0.0 
+  Tau[2,5]  = 0.0 
 
   Tau[3,1]  = 0.0
   Tau[3,2]  = 0.0
-  Tau[3,3]  = tauh / a# latest change
+  Tau[3,3]  = tauh / a
   Tau[3,4]  = 0.0
   Tau[3,5]  = 0.0
 
-  Tau[4,1]  = 0.0 # check
-  Tau[4,2]  = 0.0 # check
-  Tau[4,3]  = 0.0 # check
-  Tau[4,4]  = tauh / sqrt(2) # check
-  Tau[4,5]  = 0.0 # check
+  Tau[4,1]  = 0.0 
+  Tau[4,2]  = 0.0 
+  Tau[4,3]  = 0.0 
+  Tau[4,4]  = tauh / sqrt(2) 
+  Tau[4,5]  = 0.0 
 
-  Tau[5,1]  = 0.0 # check
-  Tau[5,2]  = 0.0 # check
-  Tau[5,3]  = 0.0 # check
-  Tau[5,4]  = 0.0 # check
-  Tau[5,5]  = tauh / sqrt(2) # check
+  Tau[5,1]  = 0.0 
+  Tau[5,2]  = 0.0 
+  Tau[5,3]  = 0.0 
+  Tau[5,4]  = 0.0 
+  Tau[5,5]  = tauh / sqrt(2) 
 
   # -------------------------------- #
 
@@ -565,18 +603,21 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   rho_ll = rho1_ll + rho2_ll
   rho_rr = rho1_rr + rho2_rr
 
-  gamma =  (rho1_ll/rho_ll*equations.cvs1*equations.gamma1 + rho2_ll/rho_ll*equations.cvs2*equations.gamma2)/(rho1_ll/rho_ll*equations.cvs1 + rho2_ll/rho_ll*equations.cvs2)
+  gamma_ll = (rho1_ll/rho_ll*equations.cvs1*equations.gamma1 + rho2_ll/rho_ll*equations.cvs2*equations.gamma2)/(rho1_ll/rho_ll*equations.cvs1 + rho2_ll/rho_ll*equations.cvs2)
+  gamma_rr = (rho1_rr/rho_rr*equations.cvs1*equations.gamma1 + rho2_rr/rho_rr*equations.cvs2*equations.gamma2)/(rho1_rr/rho_rr*equations.cvs1 + rho2_rr/rho_rr*equations.cvs2)
 
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = (gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  c_ll = sqrt(gamma * p_ll / rho_ll)
+  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  #p_ll  = pressure(u_ll, equations)
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = (gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
-  c_rr = sqrt(gamma * p_rr / rho_rr)
+  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  #p_rr  = pressure(u_rr, equations)
+  c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
   # Obtain left and right fluxes
   f_ll = calcflux(u_ll, orientation, equations)
@@ -651,12 +692,36 @@ end
 end
 
 
+#@inline function gamma(u, equations::CompressibleEulerMulticomponentEquations2D)
+#  rho1, rho2, rho_v1, rho_v2, rho_e = u
+#  rho    = rho1 + rho2
+#  gamma  = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
+#
+#  return gamma
+# end
+
+
+#@inline function gamma(u_ll, u_rr, equations::CompressibleEulerMulticomponentEquations2D)
+#  rho1_ll, rho2_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+#  rho1_rr, rho2_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+# 
+#  rho1    = 0.5 * (rho1_ll + rho1_rr)
+#  rho2    = 0.5 * (rho2_ll + rho2_rr)
+#  rho     = rho1 + rho2
+#
+#  gamma   = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
+#
+#  return gamma
+# end
+
+
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleEulerMulticomponentEquations2D)
   rho1, rho2, v1, v2, p = prim
   rho     = rho1 + rho2
 
   gamma  = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
+  #gamma   = gamma(prim, equations)
   rho_v1  = rho * v1
   rho_v2  = rho * v2
   rho_e   = p/(gamma-1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
@@ -671,47 +736,42 @@ end
 end
 
 
-@inline function pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
- rho1, rho2, rho_v1, rho_v2, rho_e = u
- rho    = rho1 + rho2
- gamma  = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
- p      = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
- return p
-end
+#@inline function pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
+# rho1, rho2, rho_v1, rho_v2, rho_e = u
+# rho    = rho1 + rho2
+# gamma  = gamma(u, equations)
+# p      = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+#
+# return p
+#end
+
+#@inline function pressure(u_ll, u_rr, equations::CompressibleEulerMulticomponentEquations2D)
+#  rho1_ll, rho2_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+#  rho1_rr, rho2_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_r
+#
+#  rho1    = 0.5 * (rho1_ll + rho1_rr)
+#  rho2    = 0.5 * (rho2_ll + rho2_rr)
+#  rho     = rho1 + rho2
+#  rho_e   = 0.5 * (rho_e_ll + rho_e_rr)
+#  rho_v1  = 0.5 * (rho_v1_ll + rho_v1_rr)
+#  rho_v2  = 0.5 * (rho_v2_ll + rho_v2_rr)
+#
+#  gamma  = gamma(u_ll, u_rr, equations)
+#  p      = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+# 
+#  return p
+# end
 
 
 @inline function density_pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
  rho1, rho2, rho_v1, rho_v2, rho_e = u
  
  rho          = rho1 + rho2
+ #gamma        = gamma(u, equations)
  gamma        = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
  rho_times_p  = (gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
  return rho_times_p
 end
-
-
-# Calculates the entropy flux in direction "orientation" and the entropy variables for a state cons
-# NOTE: This method seems to work currently (b82534e) but is never used anywhere. Thus it is
-# commented here until someone uses it or writes a test for it.
-# @inline function cons2entropyvars_and_flux(gamma::Float64, cons, orientation::Int)
-#   entropy = MVector{4, Float64}(undef)
-#   v = (cons[2] / cons[1] , cons[3] / cons[1])
-#   v_square= v[1]*v[1]+v[2]*v[2]
-#   p = (gamma - 1) * (cons[4] - 1/2 * (cons[2] * v[1] + cons[3] * v[2]))
-#   rho_p = cons[1] / p
-#   # thermodynamic entropy
-#   s = log(p) - gamma*log(cons[1])
-#   # mathematical entropy
-#   S = - s*cons[1]/(gamma-1)
-#   # entropy variables
-#   entropy[1] = (gamma - s)/(gamma-1) - 0.5*rho_p*v_square
-#   entropy[2] = rho_p*v[1]
-#   entropy[3] = rho_p*v[2]
-#   entropy[4] = -rho_p
-#   # entropy flux
-#   entropy_flux = S*v[orientation]
-#   return entropy, entropy_flux
-# end
 
 
 # Calculate thermodynamic entropy for a conservative state `cons`
