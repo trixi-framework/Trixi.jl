@@ -39,7 +39,7 @@ end
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::GradientEquations2D)
   if orientation == equations.orientation
-    return u
+    return -u
   else
     return SVector(ntuple(v -> zero(eltype(u)), nvariables(equations)))
   end
