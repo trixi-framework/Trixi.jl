@@ -36,12 +36,22 @@ function create_cache(mesh::TreeMesh{2}, equations, dg::DG, parabolic_terms::Val
 end
 
 function create_cache(mesh::TreeMesh{2}, equations, dg::DG, parabolic_terms::Val{true}, cache)
-  gradients_x_ode = allocate_coefficients(mesh, equations, dg, cache)
-  gradients_y_ode = allocate_coefficients(mesh, equations, dg, cache)
-  gradients_x = wrap_array(gradients_x_ode, mesh, equations, dg, cache)
-  gradients_y = wrap_array(gradients_y_ode, mesh, equations, dg, cache)
+  solver_grad_n = DGSEM(polydeg(dg), flux_central)
 
-  return (; gradients_x_ode, gradients_y_ode, gradients_x, gradients_y)
+  equations_grad_x = GradientEquations2D(nvariables(equations), 1)
+  semi_grad_x = SemidiscretizationHyperbolic(mesh, equations_grad_x,
+                                             initial_condition_constant, solver_grad_x)
+
+  equations_grad_y = GradientEquations2D(nvariables(equations), 2)
+  semi_grad_y = SemidiscretizationHyperbolic(mesh, equations_grad_y,
+                                             initial_condition_constant, solver_grad_y)
+
+  u_ode_grad_x = compute_coefficients(nothing, semi_grad_x)
+  u_ode_grad_y = compute_coefficients(nothing, semi_grad_y)
+  u_ode_grad_xx = compute_coefficients(nothing, semi_grad_x)
+  u_ode_grad_yy = compute_coefficients(nothing, semi_grad_y)
+
+  return (; semi_grad_x, u_ode_grad_x, semi_grad_y, u_ode_grad_y, u_ode_grad_xx, u_ode_grad_yy)
 end
 
 function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
@@ -177,6 +187,27 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Apply Jacobian from mapping to reference element
   @timeit_debug timer() "Jacobian" apply_jacobian!(du, equations, dg, cache)
+
+  # Add Laplacian
+  if have_parabolic_terms(equations) == Val(true)
+    # Compute gradients
+    @unpack semi_grad_x, u_ode_grad_x, semi_grad_y, u_ode_grad_y, u_ode_grad_xx, u_ode_grad_yy = cache
+    rhs!(u_ode_grad_x, vec(u), semi_grad_x, t)
+    rhs!(u_ode_grad_y, vec(u), semi_grad_y, t)
+
+    rhs!(u_ode_grad_xx, u_ode_grad_x, semi_grad_x, t)
+    rhs!(u_ode_grad_yy, u_ode_grad_y, semi_grad_y, t)
+
+    grad_xx = wrap_array(u_ode_grad_xx, semi_grad_x)
+    grad_yy = wrap_array(u_ode_grad_yy, semi_grad_y)
+
+    laplacian = grad_xx
+    laplacian .+= grad_yy
+
+    # Add Laplacian to rhs
+    nu = 1.2
+    du .+= nu .* laplacian
+  end
 
   # Calculate source terms
   @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
