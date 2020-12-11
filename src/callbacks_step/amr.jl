@@ -173,7 +173,11 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
   if mpi_isparallel()
     # Collect lambda for all elements
-    lambda = MPI.Allgatherv(lambda, convert(Vector{Cint}, parent(cache.mpi_cache.n_elements_by_rank)), mpi_comm())
+    lambda_global = Vector{eltype(lambda)}(undef, cache.mpi_cache.n_elements_global)
+    # Use parent because n_elements_by_rank is an OffsetArray
+    recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
+    MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
+    lambda = lambda_global
   end
 
   leaf_cell_ids = leaf_cells(mesh.tree)
