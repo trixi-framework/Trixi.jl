@@ -31,13 +31,13 @@ executing
 julia> using Pkg; Pkg.test("Trixi")
 ```
 in the REPL. Since there already exist many tests, we have split them up into
-multiple files in the `test/` directory to allow for faster testing of individual parts of the code.
+multiple files in the `test` directory to allow for faster testing of individual parts of the code.
 Thus in addition to performing all tests, you can also just `include` one of the
 files named `test_xxx.jl` to run only a specific subset, e.g.,
 ```julia
-julia> include("test/test_examples_2d.jl") # Run all 2D tests
+julia> include(joinpath("test", "test_examples_2d.jl")) # Run all 2D tests
 
-julia> include("test/test_examples_2d_euler.jl") # Run only 2D tests for the Euler equations
+julia> include(joinpath("test", "test_examples_2d_euler.jl")) # Run only 2D tests for the Euler equations
 ```
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to
 reduce the waiting time until all tests are finished. You can see the different
