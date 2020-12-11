@@ -119,7 +119,12 @@ function save_restart_file(u, time, dt, timestep,
     # Store each variable of the solution
     for v in eachvariable(equations)
       # Convert to 1D array
-      file["variables_$v"] = MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      if mpi_isroot()
+        recvbuf = MPI.VBuffer(file["variables_$v"], node_counts)
+      else
+        recvbuf = nothing
+      end
+      MPI.Gatherv!(view(sendbuf, node_counts), recvbuf, mpi_root(), mpi_comm())
 
       # Add variable name as attribute
       var = file["variables_$v"]
