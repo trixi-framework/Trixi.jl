@@ -160,7 +160,7 @@ function init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvars, nnode
   # Determine local and total number of elements
   n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
   n_elements_by_rank[mpi_rank() + 1] = nelements(elements)
-  MPI.Allgather!(n_elements_by_rank, 1, mpi_comm())
+  MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
   n_elements_by_rank = OffsetArray(n_elements_by_rank, 0:(mpi_nranks() - 1))
   n_elements_global = MPI.Allreduce(nelements(elements), +, mpi_comm())
   @assert n_elements_global == sum(n_elements_by_rank) "error in total number of elements"
