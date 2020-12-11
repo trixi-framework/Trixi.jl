@@ -114,3 +114,7 @@ include("lattice_boltzmann_2d.jl")
 # Gradient equations
 abstract type AbstractGradientEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("gradient_equations_2d.jl")
+
+# Heat equation
+abstract type AbstractHeatEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("heat_equation_2d.jl")
