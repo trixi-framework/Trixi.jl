@@ -23,6 +23,7 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # Add specialized parts of the cache required to compute the volume integral etc.
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache(mesh, equations, dg, have_parabolic_terms(equations), cache)...)
 
   return cache
 end
@@ -30,6 +31,19 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
+function create_cache(mesh::TreeMesh{2}, equations, dg::DG, parabolic_terms::Val{false}, cache)
+  NamedTuple()
+end
+
+function create_cache(mesh::TreeMesh{2}, equations, dg::DG, parabolic_terms::Val{true}, cache)
+  gradients_x_ode = allocate_coefficients(mesh, equations, dg, cache)
+  gradients_y_ode = allocate_coefficients(mesh, equations, dg, cache)
+  gradients_x = wrap_array(gradients_x_ode, mesh, equations, dg, cache)
+  gradients_y = wrap_array(gradients_y_ode, mesh, equations, dg, cache)
+
+  return (; gradients_x_ode, gradients_y_ode, gradients_x, gradients_y)
+end
+
 function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
   create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
 end

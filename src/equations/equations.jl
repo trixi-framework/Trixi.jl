@@ -48,6 +48,7 @@ function calcflux(u, orientation, equations) end
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)
+have_parabolic_terms(::AbstractEquations) = Val(false)
 
 default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
 default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
@@ -108,4 +109,8 @@ include("hyperbolic_diffusion_3d.jl")
 
 # Lattice-Boltzmann equation (advection part only)
 abstract type AbstractLatticeBoltzmannEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("lattice_boltzmann_2d.jl")
+
+# Gradient equations
+abstract type AbstractGradientEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("lattice_boltzmann_2d.jl")
