@@ -28,7 +28,7 @@ varnames(::typeof(cons2prim), equations::GradientEquations2D) = varnames(cons2co
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::GradientEquations2D)
-  return @SVector SVector(ntuple(v -> zero(real(equations)), nvariables(equations)))
+  return SVector(ntuple(v -> zero(eltype(x)), nvariables(equations)))
 end
 
 
@@ -41,6 +41,6 @@ end
   if orientation == equations.orientation
     return u
   else
-    return @SVector SVector(ntuple(v -> zero(real(equations)), nvariables(equations)))
+    return SVector(ntuple(v -> zero(eltype(u)), nvariables(equations)))
   end
 end

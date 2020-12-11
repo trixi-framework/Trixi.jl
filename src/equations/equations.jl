@@ -113,4 +113,4 @@ include("lattice_boltzmann_2d.jl")
 
 # Gradient equations
 abstract type AbstractGradientEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
-include("lattice_boltzmann_2d.jl")
+include("gradient_equations_2d.jl")
