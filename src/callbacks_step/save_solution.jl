@@ -31,7 +31,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
   else
     save_solution_callback = cb.affect!
 
-    setup = [ 
+    setup = [
              "interval" => save_solution_callback.interval,
              "solution variables" => save_solution_callback.solution_variables,
              "save initial solution" => save_solution_callback.save_initial_solution ? "yes" : "no",
@@ -48,9 +48,6 @@ function SaveSolutionCallback(; interval=0,
                                 save_final_solution=true,
                                 output_directory="out",
                                 solution_variables=cons2prim)
-  # when is the callback activated
-  condition = (u, t, integrator) -> interval > 0 && ((integrator.iter % interval == 0) ||
-                                                     (save_final_solution && isfinished(integrator)))
 
   # FIXME: Deprecations introduced in v0.3
   if solution_variables isa Symbol
@@ -68,7 +65,7 @@ function SaveSolutionCallback(; interval=0,
   solution_callback = SaveSolutionCallback(interval, save_initial_solution, save_final_solution,
                                            output_directory, solution_variables)
 
-  DiscreteCallback(condition, solution_callback,
+  DiscreteCallback(solution_callback, solution_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
 end
@@ -96,6 +93,16 @@ function initialize!(cb::DiscreteCallback{Condition,Affect!}, u, t, integrator) 
 end
 
 
+# this method is called to determine whether the callback should be activated
+function (solution_callback::SaveSolutionCallback)(u, t, integrator)
+  @unpack interval, save_final_solution = solution_callback
+
+  return interval > 0 && (
+    (integrator.iter % interval == 0) || (save_final_solution && isfinished(integrator)))
+end
+
+
+# this method is called when the callback is activated
 function (solution_callback::SaveSolutionCallback)(integrator)
   u_ode = integrator.u
   @unpack t, dt, iter = integrator

@@ -1,6 +1,7 @@
 module TestManual
 
 using Test
+using Documenter
 using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
@@ -265,6 +266,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn show(stdout, "text/plain", callback)
     println()
   end
+
+  DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
+  doctest(Trixi, manual=false)
 end
 
 end #module
