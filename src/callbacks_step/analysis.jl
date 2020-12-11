@@ -20,7 +20,7 @@ solution and integrated over the computational domain.
 See `Trixi.analyze`, `Trixi.pretty_form_utf`, `Trixi.pretty_form_ascii` for further
 information on how to create custom analysis quantities.
 """
-mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals}
+mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, InitialStateIntegrals, Cache}
   start_time::Float64
   interval::Int
   save_analysis::Bool
@@ -30,6 +30,7 @@ mutable struct AnalysisCallback{Analyzer<:SolutionAnalyzer, AnalysisIntegrals, I
   analysis_errors::Vector{Symbol}
   analysis_integrals::AnalysisIntegrals
   initial_state_integrals::InitialStateIntegrals
+  cache::Cache
 end
 
 
@@ -63,11 +64,11 @@ end
 
 
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
-  _, equations, solver, _ = mesh_equations_solver_cache(semi)
-  AnalysisCallback(equations, solver; kwargs...)
+  _, equations, solver, cache = mesh_equations_solver_cache(semi)
+  AnalysisCallback(equations, solver, cache; kwargs...)
 end
 
-function AnalysisCallback(equations::AbstractEquations, solver;
+function AnalysisCallback(equations::AbstractEquations, solver, cache;
                           interval=0,
                           save_analysis=false,
                           output_directory="out",
@@ -81,10 +82,14 @@ function AnalysisCallback(equations::AbstractEquations, solver;
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
                                                      isfinished(integrator))
 
+  analyzer = SolutionAnalyzer(solver; kwargs...)
+  cache_analysis = create_cache(AnalysisCallback, analyzer, equations, solver, cache)
+
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
-                                       SolutionAnalyzer(solver; kwargs...),
+                                       analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
-                                       SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))))
+                                       SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))),
+                                       cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
                    save_positions=(false,false),
@@ -160,6 +165,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
   semi = integrator.p
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
+  cache_analysis = analysis_callback.cache
   @unpack dt, t, iter = integrator
   u = wrap_array(integrator.u, mesh, equations, solver, cache)
 
@@ -186,6 +192,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Level information (only show for AMR)
     uses_amr = false
     callbacks = integrator.opts.callback
+    # TODO: Debugging, here is a type instability
     if callbacks isa CallbackSet
       for cb in callbacks.discrete_callbacks
         if cb.affect! isa AMRCallback
@@ -218,6 +225,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
       mpi_isroot() && @printf(io, "% 9d", iter)
       mpi_isroot() && @printf(io, "  %10.8e", t)
       mpi_isroot() && @printf(io, "  %10.8e", dt)
+    else
+      io = devnull
     end
 
     # the time derivative can be unassigned before the first step is made
@@ -242,14 +251,14 @@ function (analysis_callback::AnalysisCallback)(integrator)
       end
 
       # Calculate L2/Linf errors, which are also returned by analyze_solution
-      l2_error, linf_error = calc_error_norms(u, t, analyzer, semi)
+      l2_error, linf_error = calc_error_norms(u, t, analyzer, semi, cache_analysis)
 
       # L2 error
       if :l2_error in analysis_errors
         mpi_print(" L2 error:    ")
         for v in eachvariable(equations)
           mpi_isroot() && @printf("  % 10.8e", l2_error[v])
-          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", l2_error[v])
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", l2_error[v])
         end
         mpi_println()
       end
@@ -259,7 +268,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
         mpi_print(" Linf error:  ")
         for v in eachvariable(equations)
           mpi_isroot() && @printf("  % 10.8e", linf_error[v])
-          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", linf_error[v])
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", linf_error[v])
         end
         mpi_println()
       end
@@ -273,7 +282,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
         for v in eachvariable(equations)
           err = abs(state_integrals[v] - initial_state_integrals[v])
           mpi_isroot() && @printf("  % 10.8e", err)
-          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", err)
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", err)
         end
         mpi_println()
       end
@@ -285,20 +294,21 @@ function (analysis_callback::AnalysisCallback)(integrator)
           # Calculate maximum absolute value of Uₜ
           res = maximum(abs, view(du, v, ..))
           if mpi_isparallel()
+            # TODO: Debugging, here is a type instability
             global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
             if mpi_isroot()
               res = global_res[]
             end
           end
           mpi_isroot() && @printf("  % 10.8e", res)
-          analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
+          analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", res)
         end
         mpi_println()
       end
 
       # L2/L∞ errors of the primitive variables
       if :l2_error_primitive in analysis_errors || :linf_error_primitive in analysis_errors
-        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u, t, analyzer, semi)
+        l2_error_prim, linf_error_prim = calc_error_norms(cons2prim, u, t, analyzer, semi, cache_analysis)
 
         mpi_print(" Variable:    ")
         for v in eachvariable(equations)
@@ -311,7 +321,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
           mpi_print(" L2 error prim.: ")
           for v in eachvariable(equations)
             mpi_isroot() && @printf("%10.8e   ", l2_error_prim[v])
-            analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", l2_error_prim[v])
+            analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", l2_error_prim[v])
           end
           mpi_println()
         end
@@ -321,7 +331,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
           mpi_print(" Linf error pri.:")
           for v in eachvariable(equations)
             mpi_isroot() && @printf("%10.8e   ", linf_error_prim[v])
-            analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", linf_error_prim[v])
+            analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", linf_error_prim[v])
           end
           mpi_println()
         end
@@ -329,13 +339,16 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
 
       # additional
-      for quantity in analysis_integrals
-        res = analyze(quantity, du, u, t, semi)
-        mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
-        mpi_isroot() && @printf("  % 10.8e", res)
-        analysis_callback.save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
-        mpi_println()
-      end
+      # TODO: Debugging, here is a type instability
+      # for quantity in analysis_integrals
+      #   res = analyze(quantity, du, u, t, semi)
+      #   mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
+      #   mpi_isroot() && @printf("  % 10.8e", res)
+      #   analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", res)
+      #   mpi_println()
+      # end
+      analyze_integrals(analysis_integrals, analysis_callback.save_analysis, io,
+                        du, u, t, semi)
     end # GC.@preserve du_ode
 
     mpi_println("─"^100)
@@ -343,8 +356,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # Add line break and close analysis file if it was opened
     if mpi_isroot() && analysis_callback.save_analysis
-      println(io)
-      close(io)
+      println(io::IOStream)
+      close(io::IOStream)
     end
   end
 
@@ -356,13 +369,37 @@ function (analysis_callback::AnalysisCallback)(integrator)
 end
 
 
+# Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
+@inline function analyze_integrals(analysis_integrals::NTuple{N,Any},
+                                   save_analysis, io, du, u, t, semi) where {N}
+  quantity = first(analysis_integrals)
+  remaining_quantities = Base.tail(analysis_integrals)
+
+  res = analyze(quantity, du, u, t, semi)
+  mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
+  mpi_isroot() && @printf("  % 10.8e", res)
+  save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
+  mpi_println()
+
+  analyze_integrals(remaining_quantities, save_analysis, io,
+                    du, u, t, semi)
+  return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function analyze_integrals(analysis_integrals::Tuple{},
+                           save_analysis, io, du, u, t, semi)
+  nothing
+end
+
+
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = sol.prob.p
-  @unpack analyzer = analysis_callback
+  @unpack analyzer, cache_analysis = analysis_callback
 
-  l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi)
+  l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi, cache_analysis)
   (; l2=l2_error, linf=linf_error)
 end
 

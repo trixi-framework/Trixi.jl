@@ -51,7 +51,7 @@ stepsize_callback = StepsizeCallback(cfl=0.3)
 collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback,
                         collision_callback)
@@ -62,5 +62,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks, maxiters=1e5,
+            save_start=false, alias_u0=true);
 summary_callback() # print the timer summary

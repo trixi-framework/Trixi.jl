@@ -46,13 +46,13 @@ end
 
 
 """
-    calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization)
+    calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)
 
 Calculate discrete L2 and L∞ error norms of `func` applied to each nodal variable `u_node` in `u_ode`.
 If no exact solution is available, "errors" are calculated using some reference state and can be useful
 for regression tests.
 """
-calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization) = calc_error_norms(cons2cons, u_ode, t, analyzer, semi)
+calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis) = calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
 
 
 """
@@ -264,7 +264,7 @@ end
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, u, mesh, equations, solver, cache; normalize=true)
 # - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)
-# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache)
+# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
