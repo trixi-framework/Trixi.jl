@@ -40,11 +40,11 @@ function create_cache(mesh::TreeMesh{2}, equations, dg::DG, parabolic_terms::Val
 
   equations_grad_x = GradientEquations2D(nvariables(equations), 1)
   semi_grad_x = SemidiscretizationHyperbolic(mesh, equations_grad_x,
-                                             initial_condition_constant, solver_grad_x)
+                                             initial_condition_constant, solver_grad_n)
 
   equations_grad_y = GradientEquations2D(nvariables(equations), 2)
   semi_grad_y = SemidiscretizationHyperbolic(mesh, equations_grad_y,
-                                             initial_condition_constant, solver_grad_y)
+                                             initial_condition_constant, solver_grad_n)
 
   u_ode_grad_x = compute_coefficients(nothing, semi_grad_x)
   u_ode_grad_y = compute_coefficients(nothing, semi_grad_y)
@@ -205,7 +205,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
     laplacian .+= grad_yy
 
     # Add Laplacian to rhs
-    nu = 1.2
+    @unpack nu = equations
     du .+= nu .* laplacian
   end
 

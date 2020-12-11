@@ -16,7 +16,7 @@ get_name(::HeatEquation2D) = "HeatEquation2D"
 varnames(::typeof(cons2cons), ::HeatEquation2D) = SVector("scalar")
 varnames(::typeof(cons2prim), ::HeatEquation2D) = SVector("scalar")
 
-have_parabolic_terms(::HeatEquations2D) = Val(true)
+have_parabolic_terms(::HeatEquation2D) = Val(true)
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -36,12 +36,13 @@ end
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equation::HeatEquation2D)
+  @unpack nu = equation
   c = 1.0
   A = 0.5
   L = 2
   f = 1/L
   omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x))
+  scalar = c + A * sin(omega * sum(x)) * exp(-2 * nu * omega^2 * t)
   return @SVector [scalar]
 end
 
@@ -57,7 +58,7 @@ end
 
 
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::HeatEquation2D)
-  return zero(u)
+  return zero(u_ll)
 end
 
 
