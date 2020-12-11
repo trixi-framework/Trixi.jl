@@ -11,7 +11,6 @@ Trixi.mpi_isroot() && isdir(outdir) && rm(outdir, recursive=true)
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
-const TEST_EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "test", "examples", "2d")
 
 @testset "Parallel 2D" begin
 
@@ -31,14 +30,15 @@ const TEST_EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "test", 
   end
 
   # Linear scalar advection with AMR
+  # These example files are only for testing purposes and have no practical use
   @testset "elixir_advection_amr_refine_twice.jl" begin
-    @test_trixi_include(joinpath(TEST_EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
       l2   = [0.017528584408928124],
       linf = [0.06806352260167653])
   end
 
   @testset "elixir_advection_amr_coarsen_once.jl" begin
-    @test_trixi_include(joinpath(TEST_EXAMPLES_DIR, "elixir_advection_amr_coarsen_once.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_once.jl"),
       l2   = [0.15508361792066527],
       linf = [0.598846070046205])
   end

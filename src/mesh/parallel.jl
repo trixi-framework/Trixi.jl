@@ -32,7 +32,7 @@ function partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
 
     # Check if all children of the last parent are leaves
     if allow_coarsening &&
-        all(id -> is_leaf(mesh.tree, id), mesh.tree.child_ids[:, parent_id]) && 
+        all(id -> is_leaf(mesh.tree, id), @view mesh.tree.child_ids[:, parent_id]) && 
         d < length(n_leaves_per_rank) - 1
 
       # To keep children of parent together if they are all leaves, 

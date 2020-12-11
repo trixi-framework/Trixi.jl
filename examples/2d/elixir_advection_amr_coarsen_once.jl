@@ -1,3 +1,5 @@
+# This elixir and indicator is only for testing purposes and does not have any practical use
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -7,26 +9,26 @@ module TrixiExtension
 
 using Trixi
 
-struct IndicatorAlwaysRefine{Cache<:NamedTuple} <: Trixi.AbstractIndicator
+struct IndicatorAlwaysCoarsen{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
 
-function IndicatorAlwaysRefine(semi)
+function IndicatorAlwaysCoarsen(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
 
-  return IndicatorAlwaysRefine{typeof(cache)}(cache)
+  return IndicatorAlwaysCoarsen{typeof(cache)}(cache)
 end
 
-function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any,4},
+function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
                                              equations, dg, cache;
                                              t, kwargs...)
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
 
   for element in 1:length(alpha)
-    alpha[element] = 1.0
+    alpha[element] = -1.0
   end
 
   return alpha
@@ -51,7 +53,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=3,
                 n_cells_max=30_000)
 
 
@@ -81,8 +83,8 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=:primitive)
 
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysRefine(semi),
-                                      base_level=4, max_level=4,
+amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysCoarsen(semi),
+                                      base_level=2, max_level=2,
                                       med_threshold=0.1, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
