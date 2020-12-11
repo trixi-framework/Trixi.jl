@@ -16,10 +16,13 @@ providing examples with sensible default values for users.
 # Examples
 
 ```jldoctest
-julia> trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"), tspan=(0.0, 0.1))
-[...]
-
-julia> sol.t[end]
+julia> open(tempname(), "w") do io
+         redirect_stdout(io) do
+           trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
+                         tspan=(0.0, 0.1))
+           sol.t[end]
+         end
+       end
 0.1
 ```
 """
