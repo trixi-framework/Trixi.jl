@@ -41,22 +41,22 @@ function CompressibleEulerMulticomponentEquations2D(gamma)
 end
 
 
-function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2, cv1, cv2)
-
-  gamma1  = g1
-  gamma2  = g2
-  
-  rs1     = r1
-  rs2     = r2
-
-  cvs1    = cv1
-  cvs2    = cv2
-
-  cps1    = g1 * cv1
-  cps2    = g2 * cv2
-
-  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, rs1, rs2, cvs1, cvs2, cps1, cps2)
-end
+#function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2, cv1, cv2)
+#
+#  gamma1  = g1
+#  gamma2  = g2
+#  
+#  rs1     = r1
+#  rs2     = r2
+#
+#  cvs1    = cv1
+#  cvs2    = cv2
+#
+#  cps1    = g1 * cv1
+#  cps2    = g2 * cv2
+#
+#  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, rs1, rs2, cvs1, cvs2, cps1, cps2)
+#end
 
 
 #function CompressibleEulerMulticomponentEquations2D(N::int8, gamma::NTuple{2,<:Real}, rs::NTuple{2,<:Real}, cvs::NTuple{2,<:Real}, cps::NTuple{2,<:Real})
@@ -268,32 +268,32 @@ end
 The classical Kelvin-Helmholtz instability based on
 - https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
 """
-function initial_condition_khi(x, t, equations::CompressibleEulerMulticomponentEquations2D)
-  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
-  # change discontinuity to tanh
-  # typical resolution 128^2, 256^2
-  # domain size is [-0.5,0.5]^2
-  dens0 = 1.0 # outside density
-  dens1 = 2.0 # inside density
-  velx0 = -0.5 # outside velocity
-  velx1 = 0.5 # inside velocity
-  slope = 50 # used for tanh instead of discontinuous initial condition
-  # pressure equilibrium
-  p     = 2.5
-  # density
-  rho1  = 0.8 * (dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1))))
-  rho2  = 0.2 * (dens1 + (dens0-dens1) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1))))
-  if iszero(t) # initial condition
-    #  y velocity v2 is only white noise
-    v2  = 0.01*(rand(Float64,1)[1]-0.5)
-    #  x velocity is also augmented with noise
-    v1  = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
-  else # background values to compute reference values for CI
-    v2  = 0.0
-    v1  = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
-  end
-  return prim2cons(SVector(rho1, rho2, v1, v2, p), equations)
-end
+#function initial_condition_khi(x, t, equations::CompressibleEulerMulticomponentEquations2D)
+#  # https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-kelvin-helmholtz-test
+#  # change discontinuity to tanh
+#  # typical resolution 128^2, 256^2
+#  # domain size is [-0.5,0.5]^2
+#  dens0 = 1.0 # outside density
+#  dens1 = 2.0 # inside density
+#  velx0 = -0.5 # outside velocity
+#  velx1 = 0.5 # inside velocity
+#  slope = 50 # used for tanh instead of discontinuous initial condition
+#  # pressure equilibrium
+#  p     = 2.5
+#  # density
+#  rho1  = 0.8 * (dens0 + (dens1-dens0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1))))
+#  rho2  = 0.2 * (dens1 + (dens0-dens1) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1))))
+#  if iszero(t) # initial condition
+#    #  y velocity v2 is only white noise
+#    v2  = 0.01*(rand(Float64,1)[1]-0.5)
+#    #  x velocity is also augmented with noise
+#    v1  = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))+0.01*(rand(Float64,1)[1]-0.5)
+#  else # background values to compute reference values for CI
+#    v2  = 0.0
+#    v1  = velx0 + (velx1-velx0) * 0.5*(1+(tanh(slope*(x[2]+0.25)) - (tanh(slope*(x[2]-0.25)) + 1)))
+#  end
+#  return prim2cons(SVector(rho1, rho2, v1, v2, p), equations)
+#end
 
 
 # Calculate 1D flux for a single point
@@ -609,13 +609,11 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   v2_ll = rho_v2_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
   p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  #p_ll  = pressure(u_ll, equations)
   c_ll = sqrt(gamma_ll * p_ll / rho_ll)
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
   p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
-  #p_rr  = pressure(u_rr, equations)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
   # Obtain left and right fluxes
@@ -729,10 +727,10 @@ end
 end
 
 
-@inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
- rho = u[1] + u[2]
- return rho
-end
+#@inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
+# rho = u[1] + u[2]
+# return rho
+#end
 
 
 #@inline function pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
@@ -773,53 +771,53 @@ end
 end
 
 
-# Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equations::CompressibleEulerMulticomponentEquations2D)
-  rho1, rho2, rho_v1, rho_v2, rho_e = cons
-  rho = rho1 + rho2
-
-  # Pressure
-  gamma = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
-  p = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
-
-  # Thermodynamic entropy
-  T   = (rho_e - 0.5 * rho * v_sq) / (rho1 * equations.cvs1 + rho2 * equations.cvs2)
-  s1  = equations.cvs1 * log(T) - equations.rs1 * log(rho1)
-  s2  = equations.cvs2 * log(T) - equations.rs2 * log(rho2) 
-
-  s = rho1 * s1 + rho2 * s2
-
-  return s
-end
-
-
-
-# Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equations::CompressibleEulerMulticomponentEquations2D)
-  # Mathematical entropy
-  S = -entropy_thermodynamic(cons, equations)
-
-  return S
-end
+## Calculate thermodynamic entropy for a conservative state `cons`
+#@inline function entropy_thermodynamic(cons, equations::CompressibleEulerMulticomponentEquations2D)
+#  rho1, rho2, rho_v1, rho_v2, rho_e = cons
+#  rho = rho1 + rho2
+#
+#  # Pressure
+#  gamma = (rho1/rho*equations.cvs1*equations.gamma1 + rho2/rho*equations.cvs2*equations.gamma2)/(rho1/rho*equations.cvs1 + rho2/rho*equations.cvs2)
+#  p = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+#
+#  # Thermodynamic entropy
+#  T   = (rho_e - 0.5 * rho * v_sq) / (rho1 * equations.cvs1 + rho2 * equations.cvs2)
+#  s1  = equations.cvs1 * log(T) - equations.rs1 * log(rho1)
+#  s2  = equations.cvs2 * log(T) - equations.rs2 * log(rho2) 
+#
+#  s = rho1 * s1 + rho2 * s2
+#
+#  return s
+#end
 
 
-# Default entropy is the mathematical entropy
-@inline entropy(cons, equations::CompressibleEulerMulticomponentEquations2D) = entropy_math(cons, equations)
+
+## Calculate mathematical entropy for a conservative state `cons`
+#@inline function entropy_math(cons, equations::CompressibleEulerMulticomponentEquations2D)
+#  # Mathematical entropy
+#  S = -entropy_thermodynamic(cons, equations)
+#
+#  return S
+#end
 
 
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::CompressibleEulerMulticomponentEquations2D) = cons[5]
+## Default entropy is the mathematical entropy
+#@inline entropy(cons, equations::CompressibleEulerMulticomponentEquations2D) = entropy_math(cons, equations)
 
 
-# Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(u, equations::CompressibleEulerMulticomponentEquations2D)
-  rho1, rho2, rho_v1, rho_v2, rho_e = u
-  rho = rho1 + rho2
-  return (rho_v1^2 + rho_v2^2) / (2 * rho)
-end
+## Calculate total energy for a conservative state `cons`
+#@inline energy_total(cons, ::CompressibleEulerMulticomponentEquations2D) = cons[5]
 
 
-# Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equations::CompressibleEulerMulticomponentEquations2D)
-  return energy_total(cons, equations) - energy_kinetic(cons, equations)
-end
+## Calculate kinetic energy for a conservative state `cons`
+#@inline function energy_kinetic(u, equations::CompressibleEulerMulticomponentEquations2D)
+#  rho1, rho2, rho_v1, rho_v2, rho_e = u
+#  rho = rho1 + rho2
+#  return (rho_v1^2 + rho_v2^2) / (2 * rho)
+#end
+
+
+## Calculate internal energy for a conservative state `cons`
+#@inline function energy_internal(cons, equations::CompressibleEulerMulticomponentEquations2D)
+#  return energy_total(cons, equations) - energy_kinetic(cons, equations)
+#end
