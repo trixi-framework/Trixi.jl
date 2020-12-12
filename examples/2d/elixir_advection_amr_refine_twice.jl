@@ -80,7 +80,7 @@ save_restart = SaveRestartCallback(interval=100,
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2prim)
 
 
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysRefine(semi),
