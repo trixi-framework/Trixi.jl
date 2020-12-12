@@ -104,12 +104,12 @@ function save_solution_file(u, time, dt, timestep,
   if !mpi_isroot()
     # Send nodal data to root
     for v in 1:n_vars
-      MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
     end
 
     # Send element data to root
     for (key, element_variable) in element_variables
-      MPI.Gatherv(element_variable, element_counts, mpi_root(), mpi_comm())
+      MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
     end
 
     return filename
@@ -131,7 +131,9 @@ function save_solution_file(u, time, dt, timestep,
     # Store each variable of the solution data
     for v in 1:n_vars
       # Convert to 1D array
-      file["variables_$v"] = MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      recv = Vector{eltype(data)}(undef, sum(node_counts))
+      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
+      file["variables_$v"] = recv
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -141,7 +143,9 @@ function save_solution_file(u, time, dt, timestep,
     # Store element variables
     for (v, (key, element_variable)) in enumerate(element_variables)
       # Add to file
-      file["element_variables_$v"] = MPI.Gatherv(element_variable, element_counts, mpi_root(), mpi_comm())
+      recv = Vector{eltype(data)}(undef, sum(element_counts))
+      MPI.Gatherv!(element_variable, MPI.VBuffer(recv, element_counts), mpi_root(), mpi_comm())
+      file["element_variables_$v"] = recv
 
       # Add variable name as attribute
       var = file["element_variables_$v"]
