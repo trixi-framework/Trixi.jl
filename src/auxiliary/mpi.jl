@@ -58,5 +58,15 @@ const MPI_IS_ROOT = Ref(true)
 
 @inline mpi_root() = 0
 
-@inline mpi_println(args...) = mpi_isroot() && println(args...)
-@inline mpi_print(args...) = mpi_isroot() && print(args...)
+@inline function mpi_println(args...)
+  if mpi_isroot()
+    println(args...)
+  end
+  return nothing
+end
+@inline function mpi_print(args...)
+  if mpi_isroot()
+    print(args...)
+  end
+  return nothing
+end

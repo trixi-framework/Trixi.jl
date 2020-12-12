@@ -308,17 +308,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
       end
 
 
-      # additional
-      # TODO: Debugging, here is a type instability
-      # for quantity in analysis_integrals
-      #   res = analyze(quantity, du, u, t, semi)
-      #   mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
-      #   mpi_isroot() && @printf("  % 10.8e", res)
-      #   analysis_callback.save_analysis && mpi_isroot() && @printf(io::IOStream, "  % 10.8e", res)
-      #   mpi_println()
-      # end
-      analyze_integrals(analysis_integrals, analysis_callback.save_analysis, io,
-                        du, u, t, semi)
+      # additional integrals
+      analyze_integrals(analysis_integrals, io, du, u, t, semi)
     end # GC.@preserve du_ode
 
     mpi_println("─"^100)
@@ -368,25 +359,24 @@ uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_cal
 
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
-@inline function analyze_integrals(analysis_integrals::NTuple{N,Any},
-                                   save_analysis, io, du, u, t, semi) where {N}
+function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
   quantity = first(analysis_integrals)
   remaining_quantities = Base.tail(analysis_integrals)
 
   res = analyze(quantity, du, u, t, semi)
-  mpi_isroot() && @printf(" %-12s:", pretty_form_utf(quantity))
-  mpi_isroot() && @printf("  % 10.8e", res)
-  save_analysis && mpi_isroot() && @printf(io, "  % 10.8e", res)
+  if mpi_isroot()
+    @printf(" %-12s:", pretty_form_utf(quantity))
+    @printf("  % 10.8e", res)
+    @printf(io, "  % 10.8e", res)
+  end
   mpi_println()
 
-  analyze_integrals(remaining_quantities, save_analysis, io,
-                    du, u, t, semi)
+  analyze_integrals(remaining_quantities, io, du, u, t, semi)
   return nothing
 end
 
 # terminate the type-stable iteration over tuples
-function analyze_integrals(analysis_integrals::Tuple{},
-                           save_analysis, io, du, u, t, semi)
+function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
   nothing
 end
 
@@ -405,7 +395,7 @@ end
 # some common analysis_integrals
 # to support another analysis integral, you can overload
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
-@inline function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
+function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
