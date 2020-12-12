@@ -97,7 +97,7 @@ function save_restart_file(u, time, dt, timestep,
   if !mpi_isroot()
     # Send nodal data to root
     for v in eachvariable(equations)
-      MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
     end
 
     return filename
@@ -119,12 +119,9 @@ function save_restart_file(u, time, dt, timestep,
     # Store each variable of the solution
     for v in eachvariable(equations)
       # Convert to 1D array
-      if mpi_isroot()
-        recvbuf = MPI.VBuffer(file["variables_$v"], node_counts)
-      else
-        recvbuf = nothing
-      end
-      MPI.Gatherv!(view(sendbuf, node_counts), recvbuf, mpi_root(), mpi_comm())
+      recv = Vector{eltype(data)}(undef, sum(node_counts))
+      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
+      file["variables_$v"] = recv
 
       # Add variable name as attribute
       var = file["variables_$v"]
