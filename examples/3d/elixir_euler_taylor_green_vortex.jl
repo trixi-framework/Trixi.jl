@@ -7,7 +7,7 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = Trixi.initial_condition_taylor_green_vortex
+initial_condition = initial_condition_taylor_green_vortex
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
