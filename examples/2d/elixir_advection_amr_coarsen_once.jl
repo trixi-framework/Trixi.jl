@@ -4,8 +4,10 @@ using OrdinaryDiffEq
 using Trixi
 
 
-# define new structs inside a module to allow re-evaluating the file
-module TrixiExtension
+# Define new structs inside a module to allow re-evaluating the file.
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# if multiple test cases using the same module name are run in the same session.
+module TrixiExtensionCoarsen
 
 using Trixi
 
@@ -34,9 +36,9 @@ function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
   return alpha
 end
 
-end # module TrixiExtension
+end # module TrixiExtensionCoarsen
 
-import .TrixiExtension
+import .TrixiExtensionCoarsen
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -83,7 +85,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysCoarsen(semi),
+amr_controller = ControllerThreeLevel(semi, TrixiExtensionCoarsen.IndicatorAlwaysCoarsen(semi),
                                       base_level=2, max_level=2,
                                       med_threshold=0.1, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
