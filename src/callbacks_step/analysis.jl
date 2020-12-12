@@ -206,7 +206,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
     GC.@preserve du_ode begin
       du = wrap_array(du_ode, mesh, equations, solver, cache)
-      l2_error, linf_error = analysis_callback(io, du, u, t, semi)
+      l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
     end # GC.@preserve du_ode
 
     mpi_println("─"^100)
@@ -227,7 +227,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
 end
 
 
-function (analysis_callback::AnalysisCallback)(io, du, u, t, semi)
+function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   cache_analysis = analysis_callback.cache
   _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -272,7 +272,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, t, semi)
   # Conservation errror
   if :conservation_error in analysis_errors
     @unpack initial_state_integrals = analysis_callback
-    state_integrals = integrate(u, semi)
+    state_integrals = integrate(u_ode, semi)
 
     if mpi_isroot()
       print(" |∑U - ∑U₀|:  ")
