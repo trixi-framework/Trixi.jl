@@ -190,33 +190,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
 
     # Level information (only show for AMR)
-    uses_amr = false
-    callbacks = integrator.opts.callback
-    # TODO: Debugging, here is a type instability
-    if callbacks isa CallbackSet
-      for cb in callbacks.discrete_callbacks
-        if cb.affect! isa AMRCallback
-          uses_amr = true
-          break
-        end
-      end
-    end
-    if uses_amr
-      levels = Vector{Int}(undef, nelements(solver, cache))
-      min_level = typemax(Int)
-      max_level = typemin(Int)
-      for element in eachelement(solver, cache)
-        current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
-        levels[element] = current_level
-        min_level = min(min_level, current_level)
-        max_level = max(max_level, current_level)
-      end
-
-      for level = max_level:-1:min_level+1
-        mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
-      end
-      mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
-    end
+    print_amr_information(integrator.opts.callback, solver, cache)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -363,6 +337,34 @@ function (analysis_callback::AnalysisCallback)(integrator)
   # Return errors for EOC analysis
   return l2_error, linf_error
 end
+
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, solver, cache)
+
+  if uses_amr(callbacks)
+    levels = Vector{Int}(undef, nelements(solver, cache))
+    min_level = typemax(Int)
+    max_level = typemin(Int)
+    for element in eachelement(solver, cache)
+      current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
+      levels[element] = current_level
+      min_level = min(min_level, current_level)
+      max_level = max(max_level, current_level)
+    end
+
+    for level = max_level:-1:min_level+1
+      mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+    end
+    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  end
+
+  return nothing
+end
+
+uses_amr(cb) = false
+uses_amr(cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback} = true
+uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
 
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
