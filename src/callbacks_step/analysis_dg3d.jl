@@ -57,9 +57,9 @@ function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
 end
 
 
-function integrate_via_indices(func, u::AbstractArray{<:Any,5},
+function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
-                               args...; normalize=true)
+                               args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
   # Initialize integral with zeros of the right shape
@@ -82,8 +82,8 @@ function integrate_via_indices(func, u::AbstractArray{<:Any,5},
   return integral
 end
 
-function integrate(func, u::AbstractArray{<:Any,5},
-                   mesh::TreeMesh{3}, equations, dg::DGSEM, cache; normalize=true)
+function integrate(func::Func, u::AbstractArray{<:Any,5},
+                   mesh::TreeMesh{3}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)

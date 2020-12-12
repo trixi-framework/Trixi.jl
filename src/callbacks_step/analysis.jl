@@ -353,10 +353,6 @@ function print_amr_information(callbacks, solver, cache)
   return nothing
 end
 
-uses_amr(cb) = false
-uses_amr(cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback} = true
-uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
-
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
 function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
