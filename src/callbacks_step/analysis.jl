@@ -229,12 +229,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
       io = devnull
     end
 
-    # the time derivative can be unassigned before the first step is made
-    if t == integrator.sol.prob.tspan[1]
-      du_ode = similar(integrator.u)
-    else
-      du_ode = get_du(integrator)
-    end
+    # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
+    du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
     GC.@preserve du_ode begin
       du = wrap_array(du_ode, mesh, equations, solver, cache)
