@@ -18,7 +18,7 @@ and integrate the result using a quadrature associated with the semidiscretizati
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
+function integrate_via_indices(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -33,7 +33,7 @@ and integrate the result using a quadrature associated with the semidiscretizati
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
+function integrate(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)

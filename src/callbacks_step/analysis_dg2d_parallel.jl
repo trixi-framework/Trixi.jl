@@ -31,9 +31,9 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
 end
 
 
-function integrate_via_indices(func, u::AbstractArray{<:Any,4},
+function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
                                mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
-                               args...; normalize=true)
+                               args...; normalize=true) where {Func}
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
