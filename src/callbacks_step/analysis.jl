@@ -188,7 +188,7 @@ function (analysis_callback::AnalysisCallback)(integrator)
     mpi_println(" #elements:      " * @sprintf("% 14d", nelements(solver, cache)))
 
     # Level information (only show for AMR)
-    print_amr_information(integrator.opts.callback, solver, cache)
+    print_amr_information(integrator.opts.callback, mesh, solver, cache)
     mpi_println()
 
     # Open file for appending and store time step and time information
@@ -347,7 +347,7 @@ end
 
 
 # Print level information only if AMR is enabled
-function print_amr_information(callbacks, solver, cache)
+function print_amr_information(callbacks, mesh, solver, cache)
 
   if uses_amr(callbacks)
     levels = Vector{Int}(undef, nelements(solver, cache))
@@ -397,7 +397,8 @@ end
 function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect!<:AnalysisCallback}
   analysis_callback = cb.affect!
   semi = sol.prob.p
-  @unpack analyzer, cache_analysis = analysis_callback
+  @unpack analyzer = analysis_callback
+  cache_analysis = analysis_callback.cache
 
   l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi, cache_analysis)
   (; l2=l2_error, linf=linf_error)
