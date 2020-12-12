@@ -148,7 +148,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
   if !mpi_isroot()
     # Receive nodal data from root
     for v in eachvariable(equations)
-      u[v, .., :] = MPI.Scatterv(eltype(u)[], node_counts, mpi_root(), mpi_comm())
+      MPI.Scatterv!(nothing, u[v, .., :], mpi_root(), mpi_comm())
     end
 
     return u_ode
@@ -180,7 +180,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      u[v, .., :] = MPI.Scatterv(read(file["variables_$v"]), node_counts, mpi_root(), mpi_comm())
+      MPI.Scatterv!(MPI.VBuffer(read(file["variables_$v"]), node_counts), u[v, .., :], mpi_root(), mpi_comm())
     end
   end
 
