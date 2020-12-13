@@ -228,6 +228,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
 end
 
 
+# This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
+# and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
 function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
   @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
   cache_analysis = analysis_callback.cache
