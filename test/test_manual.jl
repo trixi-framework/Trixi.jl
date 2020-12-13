@@ -1,6 +1,7 @@
 module TestManual
 
 using Test
+using SimpleMock
 using Documenter
 using Trixi
 
@@ -56,6 +57,116 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "TreeMesh" begin
     @testset "constructors" begin
       @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+    end
+  end
+
+  @testset "ParallelTreeMesh" begin
+    @testset "partition!" begin
+      @testset "mpi_nranks() = 2" begin
+        mock((Trixi.mpi_nranks) => () -> 2) do mpi_ranks
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [11, 10]
+          @test mesh.tree.mpi_ranks[1:21] == 
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+          @test parent(mesh.first_cell_by_rank) == [1, 12]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [11, 10]
+          @test mesh.tree.mpi_ranks[1:21] == 
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+          @test parent(mesh.first_cell_by_rank) == [1, 12]
+        end
+      end
+
+      @testset "mpi_nranks() = 3" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [11, 5, 5]
+          @test mesh.tree.mpi_ranks[1:21] == 
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 12, 17]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [9, 6, 6]
+          @test mesh.tree.mpi_ranks[1:21] == 
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
+        end
+      end
+
+      @testset "mpi_nranks() = 9" begin
+        mock((Trixi.mpi_nranks) => () -> 9) do mpi_ranks
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [44, 37, 38, 37, 37, 37, 38, 37, 36]
+          @test parent(mesh.first_cell_by_rank) == [1, 45, 82, 120, 157, 194, 231, 269, 306]
+        end
+      end
+
+      @testset "mpi_nranks() = 3 non-uniform" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+          # Refine whole tree
+          Trixi.refine!(mesh.tree)
+          # Refine left leaf
+          Trixi.refine!(mesh.tree, [2])
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [6, 1, 2]
+          @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 0, 1, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 7, 8]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [5, 2, 2]
+          @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 1, 1, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 6, 8]
+        end
+      end
+
+      @testset "not enough ranks" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+
+          # Only one leaf
+          @test_throws AssertionError(
+            "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
+
+          # Refine to 4 leaves
+          Trixi.refine!(mesh.tree)
+
+          # All four leaves will need to be on one rank to allow coarsening
+          @test_throws AssertionError(
+            "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
+          @test_nowarn Trixi.partition!(allow_coarsening=false)
+        end
+      end
     end
   end
 
