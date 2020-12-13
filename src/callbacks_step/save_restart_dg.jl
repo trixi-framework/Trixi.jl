@@ -180,7 +180,8 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      MPI.Scatterv!(MPI.VBuffer(read(file["variables_$v"]), node_counts), @view(u[v, .., :]), mpi_root(), mpi_comm())
+      sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
+      MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
     end
   end
 
