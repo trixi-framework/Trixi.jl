@@ -376,6 +376,8 @@ end
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
 function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi) where {N}
+
+  # Extract the first analysis integral and process it; keep the remaining to be processed later
   quantity = first(analysis_integrals)
   remaining_quantities = Base.tail(analysis_integrals)
 
@@ -387,6 +389,7 @@ function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi
   end
   mpi_println()
 
+  # Recursively call this method with the unprocessed integrals
   analyze_integrals(remaining_quantities, io, du, u, t, semi)
   return nothing
 end
