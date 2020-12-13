@@ -204,10 +204,8 @@ function (analysis_callback::AnalysisCallback)(integrator)
     # Calculate current time derivative (needed for semidiscrete entropy time derivative, residual, etc.)
     du_ode = first(get_tmp_cache(integrator))
     @notimeit timer() rhs!(du_ode, integrator.u, semi, t)
-    GC.@preserve du_ode begin
-      du = wrap_array(du_ode, mesh, equations, solver, cache)
-      l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
-    end # GC.@preserve du_ode
+    du = wrap_array(du_ode, mesh, equations, solver, cache)
+    l2_error, linf_error = analysis_callback(io, du, u, integrator.u, t, semi)
 
     mpi_println("─"^100)
     mpi_println()
