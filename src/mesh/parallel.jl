@@ -9,7 +9,7 @@ on one rank when needed for local coarsening (i.e. when all children of a cell a
 function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
-  @assert length(leaves) > mpi_nranks()
+  @assert length(leaves) > mpi_nranks() "Too many ranks to properly partition the mesh!"
   n_leaves_per_rank = OffsetArray(fill(div(length(leaves), mpi_nranks()), mpi_nranks()),
                                   0:(mpi_nranks() - 1))
   for d in 0:(rem(length(leaves), mpi_nranks()) - 1)
@@ -48,6 +48,8 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
         n_leaves_per_rank[d+1] -= additional_leaves
       end
     end
+
+    @assert 0 ∉ (n_leaves_per_rank .> 0) "Too many ranks to properly partition the mesh!"
 
     mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
     mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
