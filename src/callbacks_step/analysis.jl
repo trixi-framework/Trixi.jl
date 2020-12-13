@@ -212,6 +212,9 @@ function (analysis_callback::AnalysisCallback)(integrator)
 
     # Add line break and close analysis file if it was opened
     if mpi_isroot() && analysis_callback.save_analysis
+      # This resolves a possible type instability introduced above, since `io`
+      # can either be an `IOStream` or `devnull`, but we know that it must be
+      # an `IOStream here`.
       println(io::IOStream)
       close(io::IOStream)
     end
