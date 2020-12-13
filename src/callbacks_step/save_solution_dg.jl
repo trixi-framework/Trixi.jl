@@ -122,7 +122,7 @@ function save_solution_file(u, time, dt, timestep,
     attributes(file)["equations"] = get_name(equations)
     attributes(file)["polydeg"] = polydeg(dg)
     attributes(file)["n_vars"] = n_vars
-    attributes(file)["n_elements"] = cache.mpi_cache.n_elements_global
+    attributes(file)["n_elements"] = nelementsglobal(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
