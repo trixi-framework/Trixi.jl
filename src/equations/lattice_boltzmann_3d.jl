@@ -26,8 +26,8 @@ The twenty-seven discrete velocity directions of the D3Q27 scheme are sorted as 
        │       │          │
     10 ┼   6   ┼ 15        ──── x
        │       │         ╱
-       └───┼───┘        ╱ 
-    20    12     26    z           
+       └───┼───┘        ╱
+    20    12     26    z
   ```
 * plane at `z = 0`:
   ```
@@ -36,7 +36,7 @@ The twenty-seven discrete velocity directions of the D3Q27 scheme are sorted as 
        │       │          │
      2 ┼  27   ┼ 1         ──── x
        │       │         ╱
-       └───┼───┘        ╱ 
+       └───┼───┘        ╱
      8     4     13    z
   ```
 * plane at `z = +1`:
@@ -46,7 +46,7 @@ The twenty-seven discrete velocity directions of the D3Q27 scheme are sorted as 
        │       │          │
     16 ┼   5   ┼ 9         ──── x
        │       │         ╱
-       └───┼───┘        ╱ 
+       └───┼───┘        ╱
     22    18     23    z
   ```
 Note that usually the velocities are numbered from `0` to `26`, where `0` corresponds to the zero
@@ -172,7 +172,7 @@ end
 
 
 get_name(::LatticeBoltzmannEquations3D) = "LatticeBoltzmannEquations3D"
-varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
+varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D) = ntuple(v -> "pdf"*string(v), Val(nvariables(equations)))
 varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames(cons2cons, equations)
 
 

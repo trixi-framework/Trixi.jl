@@ -276,16 +276,17 @@ function _precompile_manual_()
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_final_restart),Tuple{Int,Bool}},Type{SaveRestartCallback}})
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,typeof(cons2cons)}},Type{SaveSolutionCallback}})
   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :save_initial_solution, :save_final_solution, :solution_variables),Tuple{Int,Bool,Bool,typeof(cons2prim)}},Type{SaveSolutionCallback}})
-  for RealT in (Float64,), polydeg in 1:7
-    nnodes_ = polydeg + 1
-    nnodes_analysis = 2*polydeg + 1
-    @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(Trixi.entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
+  # TODO: AnalysisCallback?
+  # for RealT in (Float64,), polydeg in 1:7
+  #   nnodes_ = polydeg + 1
+  #   nnodes_analysis = 2*polydeg + 1
+    # @assert Base.precompile(Tuple{Type{AnalysisCallback},RealT,Int,Bool,String,String,Trixi.LobattoLegendreAnalyzer{RealT,nnodes_analysis,Array{RealT,2}},Array{Symbol,1},Tuple{typeof(Trixi.entropy_timederivative),typeof(entropy)},StaticArrays.SArray{Tuple{1},RealT,1,1}})
     # We would need to use all special cases instead of
     # Function,Trixi.AbstractVolumeIntegral
     # for equations_type in equations_types(RealT)
     #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
     # end
-  end
+  # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
   # TODO: AMRCallback, ControllerThreeLevel, indicators
 

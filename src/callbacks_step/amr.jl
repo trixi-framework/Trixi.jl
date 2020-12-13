@@ -82,6 +82,18 @@ function Base.show(io::IO, mime::MIME"text/plain", cb::DiscreteCallback{Conditio
 end
 
 
+# The function below is used to control the output depending on whether or not AMR is enabled.
+"""
+    uses_amr(callback)
+
+Checks whether the provided callback or `CallbackSet` is an [`AMRCallback`](@ref)
+or contains one.
+"""
+uses_amr(cb) = false
+uses_amr(cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback} = true
+uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
+
+
 function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
                                 amr_callback::AMRCallback; kwargs...)
   get_element_variables!(element_variables, u, mesh, equations, solver, cache,

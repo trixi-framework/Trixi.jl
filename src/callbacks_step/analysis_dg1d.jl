@@ -1,15 +1,24 @@
 
-function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-                          mesh::TreeMesh{1}, equations, initial_condition,
-                          dg::DGSEM, cache)
-  @unpack vandermonde, weights = analyzer
-  @unpack node_coordinates = cache.elements
+function create_cache(::Type{AnalysisCallback}, analyzer,
+                      equations::AbstractEquations{1}, dg::DG, cache)
+  eltype_u = eltype_x = eltype(cache.elements.node_coordinates) # TODO: AD, needs to be adapted
 
   # pre-allocate buffers
-  u_local = zeros(eltype(u),
+  u_local = zeros(eltype_u,
                   nvariables(equations), nnodes(analyzer))
-  x_local = zeros(eltype(node_coordinates),
+  x_local = zeros(eltype_x,
                   ndims(equations), nnodes(analyzer))
+
+  return (; u_local, x_local)
+end
+
+
+function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
+                          mesh::TreeMesh{1}, equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
+  @unpack vandermonde, weights = analyzer
+  @unpack node_coordinates = cache.elements
+  @unpack u_local, x_local = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
@@ -40,9 +49,9 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
 end
 
 
-function integrate_via_indices(func, u::AbstractArray{<:Any,3},
+function integrate_via_indices(func::Func, u::AbstractArray{<:Any,3},
                                mesh::TreeMesh{1}, equations, dg::DGSEM, cache,
-                               args...; normalize=true)
+                               args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
   # Initialize integral with zeros of the right shape
@@ -65,8 +74,8 @@ function integrate_via_indices(func, u::AbstractArray{<:Any,3},
   return integral
 end
 
-function integrate(func, u::AbstractArray{<:Any,3},
-                   mesh::TreeMesh{1}, equations, dg::DGSEM, cache; normalize=true)
+function integrate(func::Func, u::AbstractArray{<:Any,3},
+                   mesh::TreeMesh{1}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, element)
     return func(u_local, equations)
