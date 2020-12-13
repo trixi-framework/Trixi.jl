@@ -352,22 +352,23 @@ end
 # Print level information only if AMR is enabled
 function print_amr_information(callbacks, mesh, solver, cache)
 
-  if uses_amr(callbacks)
-    levels = Vector{Int}(undef, nelements(solver, cache))
-    min_level = typemax(Int)
-    max_level = typemin(Int)
-    for element in eachelement(solver, cache)
-      current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
-      levels[element] = current_level
-      min_level = min(min_level, current_level)
-      max_level = max(max_level, current_level)
-    end
+  # Return early if there is nothing to print
+  uses_amr(callbacks) || return nothing
 
-    for level = max_level:-1:min_level+1
-      mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
-    end
-    mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
+  levels = Vector{Int}(undef, nelements(solver, cache))
+  min_level = typemax(Int)
+  max_level = typemin(Int)
+  for element in eachelement(solver, cache)
+    current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
+    levels[element] = current_level
+    min_level = min(min_level, current_level)
+    max_level = max(max_level, current_level)
   end
+
+  for level = max_level:-1:min_level+1
+    mpi_println(" ├── level $level:    " * @sprintf("% 14d", count(isequal(level), levels)))
+  end
+  mpi_println(" └── level $min_level:    " * @sprintf("% 14d", count(isequal(min_level), levels)))
 
   return nothing
 end
