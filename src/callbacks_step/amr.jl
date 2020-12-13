@@ -270,14 +270,92 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     coarsened_original_cells = Int[]
   end
 
- # Return true if there were any cells coarsened or refined, otherwise false
- has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
- if has_changed # TODO: Taal decide, where shall we set this?
-  # don't set it to has_changed since there can be changes from earlier calls
-  mesh.unsaved_changes = true
- end
+  # Return true if there were any cells coarsened or refined, otherwise false
+  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+  if has_changed # TODO: Taal decide, where shall we set this?
+    # don't set it to has_changed since there can be changes from earlier calls
+    mesh.unsaved_changes = true
+  end
 
- return has_changed
+  if has_changed && mpi_isparallel()
+    old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
+    # Load balancing
+    partition!(mesh)
+
+    # Retain current solution data
+    old_n_elements = nelements(dg, cache)
+    old_cell_ids = copy(cache.elements.cell_ids)
+    old_u_ode = copy(u_ode)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+      old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+      # Get new list of leaf cells
+      leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+      # re-initialize elements container
+      @unpack elements = cache
+      resize!(elements, length(leaf_cell_ids))
+      init_elements!(elements, leaf_cell_ids, mesh, dg.basis.nodes)
+
+      resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+      u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+      # Find elements that will change their rank and send their data to the new rank
+      for old_element_id in 1:old_n_elements
+        cell_id = old_cell_ids[old_element_id]
+        if cell_id ∉ leaf_cell_ids
+          # Send element data to new rank, use cell_id as tag (non-blocking)
+          dest = mesh.tree.mpi_ranks[cell_id]
+          MPI.Isend(vec(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
+        end
+      end
+
+      # Loop over all elements in new container and either copy them from old container 
+      # or receive them with MPI
+      for element_id in 1:nelements(dg, cache)
+        cell_id = elements.cell_ids[element_id]
+        if cell_id in old_cell_ids
+          old_element_id = searchsortedfirst(old_cell_ids, cell_id)
+          # Copy old element data to new element container
+          @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+        else
+          # Receive old element data
+          src = old_mpi_ranks_per_cell[cell_id]
+          MPI.Recv!(@view(u[:, .., element_id]), src, cell_id, mpi_comm())
+        end
+      end
+    end # GC.@preserve old_u_ode
+
+    # re-initialize interfaces container
+    @unpack interfaces = cache
+    resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
+    init_interfaces!(interfaces, elements, mesh)
+
+    if mpi_isparallel()
+      # re-initialize mpi_interfaces container
+      @unpack mpi_interfaces = cache
+      resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+      init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+    end
+
+    # re-initialize boundaries container
+    @unpack boundaries = cache
+    resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
+    init_boundaries!(boundaries, elements, mesh)
+
+    # re-initialize mortars container
+    @unpack mortars = cache
+    resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
+    init_mortars!(mortars, elements, mesh)
+
+    if mpi_isparallel()
+      # re-initialize mpi cache
+      @unpack mpi_cache = cache
+      init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+    end
+  end
+
+  return has_changed
 end
 
 
