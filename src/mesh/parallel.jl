@@ -6,7 +6,7 @@ based on leaf cell count and tree structure.
 If `allow_coarsening` is `true`, the algorithm will keep leaf cells together
 on one rank when needed for local coarsening (i.e. when all children of a cell are leaves).
 """
-function partition!(mesh::ParallelTreeMesh, allow_coarsening=true)
+function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
   # Determine number of leaf cells per rank
   leaves = leaf_cells(mesh.tree)
   @assert length(leaves) > mpi_nranks()
