@@ -164,7 +164,7 @@ isdir(outdir) && rm(outdir, recursive=true)
           # All four leaves will need to be on one rank to allow coarsening
           @test_throws AssertionError(
             "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
-          @test_nowarn Trixi.partition!(allow_coarsening=false)
+          @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
         end
       end
     end
