@@ -26,7 +26,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20*equations.u0/equations.L)
+tspan = (0.0, 20*equations.L/equations.u0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
