@@ -119,11 +119,11 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysRefine(semi),
-                                      base_level=6,
-                                      med_level=7, med_threshold=0.1,
-                                      max_level=8, max_threshold=0.6)
+                                      base_level=4,
+                                      med_level=5, med_threshold=0.1,
+                                      max_level=6, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=20,
+                           interval=5,
                            adapt_initial_condition=true,
                            adapt_initial_condition_only_refine=true)
 
