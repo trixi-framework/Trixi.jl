@@ -63,7 +63,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "ParallelTreeMesh" begin
     @testset "partition!" begin
       @testset "mpi_nranks() = 2" begin
-        mock((Trixi.mpi_nranks) => () -> 2) do mpi_ranks
+        mock((Trixi.mpi_nranks) => () -> 2) do _
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -87,7 +87,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
 
       @testset "mpi_nranks() = 3" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+        mock((Trixi.mpi_nranks) => () -> 3) do _
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -111,7 +111,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
 
       @testset "mpi_nranks() = 9" begin
-        mock((Trixi.mpi_nranks) => () -> 9) do mpi_ranks
+        mock((Trixi.mpi_nranks) => () -> 9) do _
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -128,7 +128,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
 
       @testset "mpi_nranks() = 3 non-uniform" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+        mock((Trixi.mpi_nranks) => () -> 3) do _
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine whole tree
           Trixi.refine!(mesh.tree)
@@ -151,7 +151,7 @@ isdir(outdir) && rm(outdir, recursive=true)
       end
 
       @testset "not enough ranks" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do mpi_ranks
+        mock((Trixi.mpi_nranks) => () -> 3) do _
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
 
           # Only one leaf

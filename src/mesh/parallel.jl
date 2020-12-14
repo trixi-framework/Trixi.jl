@@ -49,7 +49,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening=true)
       end
     end
 
-    @assert 0 ∉ (n_leaves_per_rank .> 0) "Too many ranks to properly partition the mesh!"
+    @assert all(n_leaves_per_rank .> 0) "Too many ranks to properly partition the mesh!"
 
     mesh.n_cells_by_rank[d] = last_id - mesh.first_cell_by_rank[d] + 1
     mesh.tree.mpi_ranks[mesh.first_cell_by_rank[d]:last_id] .= d
