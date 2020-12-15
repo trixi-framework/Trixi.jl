@@ -19,6 +19,9 @@ function CompressibleEulerMulticomponentEquations2D(gamma)
 
   # Set ratio of specific heat of the gas per species 
   # (It holds: gamma = cp/cv) (Can be used for consistency check!)
+  if gamma != 1.4
+    error("Gamma is not equal to 1.4, in this case add a gas constant value")
+  end
   gamma1  = gamma
   gamma2  = gamma
   
@@ -35,6 +38,66 @@ function CompressibleEulerMulticomponentEquations2D(gamma)
   # Set specific heat for a constant pressure per species
   cp1    = 1.4
   cp2    = 1.4
+
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+end
+
+
+function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2)
+
+  # Set ratio of specific heat of the gas per species 
+  # (It holds: gamma = cp/cv) (Can be used for consistency check!)
+  gamma1          = g1
+  gamma2          = g1
+
+  gas_constant_1  = r1
+  gas_constant_2  = r2
+  
+  # Set specific heat for a constant volume per species
+  cv1    = r1 / (gamma1 - 1.0)
+  cv2    = r2 / (gamma2 - 1.0)
+
+  # Set specific heat for a constant pressure per species
+  cp1    = r1 + cv1 
+  cp2    = r2 + cv2
+
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+end
+
+
+function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2, v1, v2, p1, p2)
+
+  # Set ratio of specific heat of the gas per species 
+  # (It holds: gamma = cp/cv) (Can be used for consistency check!)
+  gamma1          = g1
+  gamma2          = g1
+
+  if gamma1 != p1/v1 
+    error("Your values for gamma1, cp1, cv1 are not consistent!")
+  end 
+
+  if gamma2 != p2/v2 
+    error("Your values for gamma2, cp2, cv2 are not consistent!")
+  end 
+
+  if r1 != p1 - v1
+    error("Your values for gas_contant_1, cp1, cv1 are not consistent!")
+  end
+
+  if r2 != p2 - v2
+    error("Your values for gas_contant_2, cp2, cv2 are not consistent!")
+  end
+
+  gas_constant_1  = r1
+  gas_constant_2  = r2
+  
+  # Set specific heat for a constant volume per species
+  cv1             = v1
+  cv2             = v2
+
+  # Set specific heat for a constant pressure per species
+  cp1             = p1 
+  cp2             = p2
 
   CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
 end

@@ -7,11 +7,12 @@ gamma1              = 1.4
 gamma2              = 1.648
 gas_constant_1      = 0.287
 gas_constant_2      = 1.578
-cv1                 = 0.72
-cv2                 = 2.44
-cp1                 = 1.007 # rs1 + cvs1, Check: gamma1 = cps1/cvs1 = 1.4
-cp2                 = 4.018 # rs2 + cvs2, Check: gamma2 = cps2/cvs2 = 1.648
-equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+#cv1                 = 0.72
+#cv2                 = 2.44
+#cp1                 = 1.007 # rs1 + cvs1, Check: gamma1 = cps1/cvs1 = 1.4
+#cp2                 = 4.018 # rs2 + cvs2, Check: gamma2 = cps2/cvs2 = 1.648
+#equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2)
 
 initial_condition   = initial_condition_shock_bubble
 
