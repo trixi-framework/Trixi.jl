@@ -28,6 +28,7 @@ using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
+using RecipesBase: @recipe, @series
 using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
@@ -60,6 +61,9 @@ include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
+
+# Plot recipes and conversion functions to visualize results with Plots.jl
+include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
@@ -136,6 +140,9 @@ export PositivityPreservingLimiterZhangShu
 export trixi_include, examples_dir, get_examples, default_example
 
 export convergence_test, jacobian_fd, linear_structure
+
+# Visualization-related exports
+export ContourPlot
 
 
 function __init__()
