@@ -2,7 +2,7 @@
 @doc raw"""
     CompressibleEulerMulticomponentEquations2D
 
-  !!! warning "Experimental code"
+!!! warning "Experimental code"
     This system of equations is experimental and can change any time.
 
 Multicomponent version of the compressible Euler equations for an ideal gas in two space dimensions.
@@ -57,26 +57,25 @@ function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant
 end
 
 
-function CompressibleEulerMulticomponentEquations2D(check, gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
-  # check variable is just a dummy to prevent recursion
+function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 
-  if isapprox(gamma1, cp1/cv1; atol = 0.01) 
+  if !isapprox(gamma1, cp1/cv1) 
     error("Your values for gamma1, cp1, cv1 are not consistent!")
   end 
 
-  if isapprox(gamma2, cp2/cv2; atol = 0.01)  
+  if !isapprox(gamma2, cp2/cv2)  
     error("Your values for gamma2, cp2, cv2 are not consistent!")
   end 
 
-  if isapprox(gas_constant1, cp1 - cv1; atol = 0.01)
+  if !isapprox(gas_constant1, cp1 - cv1)
     error("Your values for gas_contant1, cp1, cv1 are not consistent!")
   end
 
-  if isapprox(gas_constant2, cp2 - cv2; atol = 0.01)
+  if !isapprox(gas_constant2, cp2 - cv2)
     error("Your values for gas_contant2, cp2, cv2 are not consistent!")
   end
 
-  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2) = new(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 end
 
 

@@ -4,7 +4,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D()
+equations = CompressibleEulerMulticomponentEquations2D(1.4, 1.4, 0.4, 0.4, 1.0, 1.0, 1.4, 1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
