@@ -57,7 +57,8 @@ function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant
 end
 
 
-function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
+function CompressibleEulerMulticomponentEquations2D(check, gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
+  # check variable is just a dummy to prevent recursion
 
   if isapprox(gamma1, cp1/cv1; atol = 0.01) 
     error("Your values for gamma1, cp1, cv1 are not consistent!")
@@ -188,7 +189,7 @@ end
 """
     initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D)
 
-A for multicomponent adapted shock-bubble testcase
+A shock-bubble testcase for multicomponent Euler equations
 - Ayoub Gouasmi, Karthik Duraisamy, Scott Murman
   Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
