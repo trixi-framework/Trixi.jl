@@ -3,8 +3,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
-equations = CompressibleEulerMulticomponentEquations2D(1.4)
+# semidiscretization of the compressible Euler multicomponent equations
+equations = CompressibleEulerMulticomponentEquations2D()
 
 initial_condition = initial_condition_convergence_test
 

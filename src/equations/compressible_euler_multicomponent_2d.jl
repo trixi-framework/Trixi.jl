@@ -2,36 +2,34 @@
 @doc raw"""
     CompressibleEulerMulticomponentEquations2D
 
-Attention: This feature is experimental and can change any time
+  !!! warning "Experimental code"
+    This system of equations is experimental and can change any time.
 
 Multicomponent version of the compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerMulticomponentEquations2D{RealT<:Real} <: AbstractCompressibleEulerMulticomponentEquations{2, 5}
   gamma1          ::RealT 
   gamma2          ::RealT
-  gas_constant_1  ::RealT
-  gas_constant_2  ::RealT
+  gas_constant1   ::RealT
+  gas_constant2   ::RealT
   cv1             ::RealT
   cv2             ::RealT
   cp1             ::RealT
   cp2             ::RealT
 end
 
-function CompressibleEulerMulticomponentEquations2D(gamma)
+function CompressibleEulerMulticomponentEquations2D()
 
   # Set ratio of specific heat of the gas per species 
   # (It holds: gamma = cp/cv) (Can be used for consistency check!)
-  if gamma != 1.4
-    error("Gamma is not equal to 1.4, in this case add a gas constant value")
-  end
-  gamma1  = gamma
-  gamma2  = gamma
+  gamma1  = 1.4
+  gamma2  = 1.4
   
   # Set specific gas constant with respect to the molar mass per species 
-  # (It holds: gas_constant_ = R/M, with R = molar gas constant, M = molar mass) 
-  # (For a calorically and thermally perfect gas Mayer's relation holds: gas_constant_ = cp - cv) (Can be used for consistency check!)
-  gas_constant_1     = 0.4
-  gas_constant_2     = 0.4
+  # (It holds: gas_constant = R/M, with R = molar gas constant, M = molar mass) 
+  # (For a calorically and thermally perfect gas Mayer's relation holds: gas_constant = cp - cv) (Can be used for consistency check!)
+  gas_constant1     = 0.4
+  gas_constant2     = 0.4
 
   # Set specific heat for a constant volume per species
   cv1    = 1.0
@@ -41,67 +39,43 @@ function CompressibleEulerMulticomponentEquations2D(gamma)
   cp1    = 1.4
   cp2    = 1.4
 
-  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 end
 
 
-function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2)
-
-  # Set ratio of specific heat of the gas per species 
-  # (It holds: gamma = cp/cv) (Can be used for consistency check!)
-  gamma1          = g1
-  gamma2          = g1
-
-  gas_constant_1  = r1
-  gas_constant_2  = r2
+function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2)
   
   # Set specific heat for a constant volume per species
-  cv1    = r1 / (gamma1 - 1.0)
-  cv2    = r2 / (gamma2 - 1.0)
+  cv1    = gas_constant1 / (gamma1 - 1.0)
+  cv2    = gas_constant2 / (gamma2 - 1.0)
 
   # Set specific heat for a constant pressure per species
-  cp1    = r1 + cv1 
-  cp2    = r2 + cv2
+  cp1    = gas_constant1 + cv1 
+  cp2    = gas_constant2 + cv2
 
-  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 end
 
 
-function CompressibleEulerMulticomponentEquations2D(g1, g2, r1, r2, v1, v2, p1, p2)
+function CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 
-  # Set ratio of specific heat of the gas per species 
-  # (It holds: gamma = cp/cv) (Can be used for consistency check!)
-  gamma1          = g1
-  gamma2          = g1
-
-  if gamma1 != p1/v1 
+  if isapprox(gamma1, cp1/cv1; atol = 0.01) 
     error("Your values for gamma1, cp1, cv1 are not consistent!")
   end 
 
-  if gamma2 != p2/v2 
+  if isapprox(gamma2, cp2/cv2; atol = 0.01)  
     error("Your values for gamma2, cp2, cv2 are not consistent!")
   end 
 
-  if r1 != p1 - v1
-    error("Your values for gas_contant_1, cp1, cv1 are not consistent!")
+  if isapprox(gas_constant1, cp1 - cv1; atol = 0.01)
+    error("Your values for gas_contant1, cp1, cv1 are not consistent!")
   end
 
-  if r2 != p2 - v2
-    error("Your values for gas_contant_2, cp2, cv2 are not consistent!")
+  if isapprox(gas_constant2, cp2 - cv2; atol = 0.01)
+    error("Your values for gas_contant2, cp2, cv2 are not consistent!")
   end
 
-  gas_constant_1  = r1
-  gas_constant_2  = r2
-  
-  # Set specific heat for a constant volume per species
-  cv1             = v1
-  cv2             = v2
-
-  # Set specific heat for a constant pressure per species
-  cp1             = p1 
-  cp2             = p2
-
-  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
+  CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2, cv1, cv2, cp1, cp2)
 end
 
 
@@ -123,8 +97,8 @@ function initial_condition_convergence_test(x, t, equations::CompressibleEulerMu
   A       = 0.1
   L       = 2
   f       = 1/L
-  ω       = 2 * pi * f
-  ini     = c + A * sin(ω * (x[1] + x[2] - t))
+  omega   = 2 * pi * f
+  ini     = c + A * sin(omega * (x[1] + x[2] - t))
 
   v1      = 1.0
   v2      = 1.0
@@ -153,17 +127,16 @@ Source terms used for convergence tests in combination with
   A       = 0.1
   L       = 2
   f       = 1/L
-  ω       = 2 * pi * f
+  omega   = 2 * pi * f
 
   rho1    = u[1]
   rho2    = u[2]
-  rho     = rho1 + rho2
 
   gamma   = (rho1*cv1*gamma1 + rho2*cv2*gamma2) / (rho1*cv1 + rho2*cv2)
 
   x1, x2  = x
-  si, co  = sincos((x1 + x2 - t)*ω)
-  tmp1    = co * A * ω
+  si, co  = sincos((x1 + x2 - t)*omega)
+  tmp1    = co * A * omega
   tmp2    = si * A
   tmp3    = gamma - 1
   tmp4    = (2*c - 1)*tmp3
@@ -224,14 +197,14 @@ function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMultic
   # bubble test case, see Agertz et al. https://arxiv.org/pdf/1904.00972
   # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
   # typical domain is rectangular, we change it to a square, as Trixi can only do squares
-  @unpack gas_constant_1, gas_constant_2 = equations
+  @unpack gas_constant1, gas_constant2 = equations
 
   # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
   delta   = 0.03
 
   # Region I 
   rho1_1  = delta
-  rho2_1  = 1.225 * gas_constant_1/gas_constant_2 - delta
+  rho2_1  = 1.225 * gas_constant1/gas_constant2 - delta
   v1_1    = 0.0
   v2_1    = 0.0
   p_1     = 101325
@@ -352,7 +325,7 @@ Entropy conserving two-point flux by
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   # Unpack left and right state
-  @unpack gas_constant_1, gas_constant_2, cv1, cv2 = equations
+  @unpack gas_constant1, gas_constant2, cv1, cv2 = equations
   rho1_ll, rho2_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho1_rr, rho2_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -376,7 +349,7 @@ Entropy conserving two-point flux by
   v_sum       = v1_avg + v2_avg
 
   # multicomponent specific values
-  enth        = rho1_avg * gas_constant_1 + rho2_avg * gas_constant_2
+  enth        = rho1_avg * gas_constant1 + rho2_avg * gas_constant2
   T_ll        = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / (rho1_ll * cv1 + rho2_ll * cv2)
   T_rr        = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / (rho1_rr * cv1 + rho2_rr * cv2)
   T           = 0.5 * (1.0/T_ll + 1.0/T_rr)
@@ -410,7 +383,7 @@ Entropy-Stable two-point flux by
 """
 @inline function flux_chandrashekar_stable(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   # Unpack left and right state
-  @unpack gas_constant_1, gas_constant_2, cv1, cv2, gamma1, gamma2 = equations
+  @unpack gas_constant1, gas_constant2, cv1, cv2, gamma1, gamma2 = equations
   rho1_ll, rho2_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho1_rr, rho2_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
@@ -437,7 +410,7 @@ Entropy-Stable two-point flux by
   v_sum     = v1_avg + v2_avg
 
   # multicomponent specific values
-  enth      = rho1_avg * gas_constant_1 + rho2_avg * gas_constant_2
+  enth      = rho1_avg * gas_constant1 + rho2_avg * gas_constant2
   T_ll      = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / (rho1_ll * cv1 + rho2_ll * cv2)
   T_rr      = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / (rho1_rr * cv1 + rho2_rr * cv2)
   T         = 0.5 * (T_ll + T_rr)
@@ -458,11 +431,11 @@ Entropy-Stable two-point flux by
   # Help variables
   e1    = equations.cv1 * T
   e2    = equations.cv2 * T
-  r     = (rho1_avg / rho_avg) * gas_constant_1 + (rho2_avg / rho_avg) * gas_constant_2 
+  r     = (rho1_avg / rho_avg) * gas_constant1 + (rho2_avg / rho_avg) * gas_constant2 
   a     = sqrt(gamma * T * r) 
   k     = 0.5 * (v1_square + v2_square) 
-  h1    = e1 + gas_constant_1 * T 
-  h2    = e2 + gas_constant_2 * T 
+  h1    = e1 + gas_constant1 * T 
+  h2    = e2 + gas_constant2 * T 
   h     = (rho1_avg / rho_avg) * h1 + (rho2_avg / rho_avg) * h2 
   d1    = h1 - gamma * e1 
   d2    = h2 - gamma * e2 
@@ -551,13 +524,13 @@ Entropy-Stable two-point flux by
 
   # -------------------------------- #
 
-  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant_2 / gas_constant_1)))
+  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant2 / gas_constant1)))
   Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) 
   Tau[1,3]  = 0.0 
   Tau[1,4]  = 0.0 
   Tau[1,5]  = 0.0 
 
-  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant_1 / gas_constant_2)))
+  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant1 / gas_constant2)))
   Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) 
   Tau[2,3]  = 0.0 
   Tau[2,4]  = 0.0 
@@ -685,7 +658,7 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack cv1, cv2, gamma1, gamma2, gas_constant_1, gas_constant_2 = equations
+  @unpack cv1, cv2, gamma1, gamma2, gas_constant1, gas_constant2 = equations
   rho1, rho2, rho_v1, rho_v2, rho_e = u
 
   rho       = rho1 + rho2
@@ -699,12 +672,12 @@ end
 
   # Multicomponent stuff
   T         = (rho_e - 0.5 * rho * v_square) / (rho1 * cv1 + rho2 * cv2)
-  s1        = cv1 * log(T) - gas_constant_1 * log(rho1)
-  s2        = cv2 * log(T) - gas_constant_2 * log(rho2)
+  s1        = cv1 * log(T) - gas_constant1 * log(rho1)
+  s2        = cv2 * log(T) - gas_constant2 * log(rho2)
 
   # Entropy variables
-  w1        = -s1 + gas_constant_1 + cv1 - (v_square / (2*T)) # + e01/T (bec. e01 = 0 for compressible euler) (DONT confuse it with e1 which is e1 = cv * T)
-  w2        = -s2 + gas_constant_2 + cv2 - (v_square / (2*T)) # + e02/T (bec. e02 = 0 for compressible euler)
+  w1        = -s1 + gas_constant1 + cv1 - (v_square / (2*T)) # + e01/T (bec. e01 = 0 for compressible euler) (DONT confuse it with e1 which is e1 = cv * T)
+  w2        = -s2 + gas_constant2 + cv2 - (v_square / (2*T)) # + e02/T (bec. e02 = 0 for compressible euler)
   w3        = (v1)/T
   w4        = (v2)/T
   w5        = (-1.0)/T 
