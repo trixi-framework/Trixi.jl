@@ -145,7 +145,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
         # Interpolate in the third dimension
         data = unstructured_data[i, ii, :, element_id, :]
     
-        value = interpolate_nodes(permutedims(data), vandermonde, n_variables)
+        value = multiply_dimensionwise(vandermonde, permutedims(data))
         new_unstructured_data[i, ii, new_id, :] = value[:, 1]
       end
     end
@@ -189,7 +189,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
   # For each variable, interpolate element data and store to global data structure
   for v in 1:n_variables
-    # Reshape data array for use in interpolate_nodes function
+    # Reshape data array for use in multiply_dimensionwise function
     reshaped_data = reshape(unstructured_data[:, :, :, v], 1, n_nodes_in, n_nodes_in, n_elements)
 
     for element_id in 1:n_elements
@@ -204,7 +204,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
       structured[first[1]:last[1], first[2]:last[2], v] .= (
-          reshape(interpolate_nodes(reshaped_data[:, :, :, element_id], vandermonde, 1),
+          reshape(multiply_dimensionwise(vandermonde, reshaped_data[:, :, :, element_id]),
                   n_nodes_out, n_nodes_out))
     end
   end
@@ -317,8 +317,7 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
 
     # Interpolate data for each cell
     for element_id = 1:1#n_elements
-      data_out[:, :, element_id, v] = interpolate_nodes(reshaped[:, :, :, element_id],
-                                                        vandermonde, 1)
+      data_out[:, :, element_id, v] = multiply_dimensionwise(vandermonde, reshaped[:, :, :, element_id])
     end
   end
   end
