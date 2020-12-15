@@ -7,16 +7,16 @@ module TrixiExtension
 
 using Trixi
 
-struct IndicatorAlwaysRefine{Cache<:NamedTuple} <: Trixi.AbstractIndicator
+struct IndicatorSolutionIndependent{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
-function IndicatorAlwaysRefine(semi)
+function IndicatorSolutionIndependent(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
-  return IndicatorAlwaysRefine{typeof(cache)}(cache)
+  return IndicatorSolutionIndependent{typeof(cache)}(cache)
 end
-function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any,4},
+function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
                                              equations, dg, cache;
                                              t, kwargs...)
 
@@ -118,7 +118,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorAlwaysRefine(semi),
+amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorSolutionIndependent(semi),
                                       base_level=4,
                                       med_level=5, med_threshold=0.1,
                                       max_level=6, max_threshold=0.6)
