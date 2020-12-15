@@ -2,6 +2,8 @@
 @doc raw"""
     CompressibleEulerMulticomponentEquations2D
 
+Attention: This feature is experimental and can change any time
+
 Multicomponent version of the compressible Euler equations for an ideal gas in two space dimensions.
 """
 struct CompressibleEulerMulticomponentEquations2D{RealT<:Real} <: AbstractCompressibleEulerMulticomponentEquations{2, 5}
