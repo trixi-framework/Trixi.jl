@@ -26,7 +26,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_2d_euler.jl")
 
   # Compressible Euler Multicomponent
-  include("test_examples_2d_euler_multicomponent.jl")
+  include("test_examples_2d_eulermulti.jl")
 
   # MHD
   include("test_examples_2d_mhd.jl")
@@ -181,6 +181,7 @@ end
       tspan = (0, 0.1))
   end
 end
+
 
 @testset "Displaying components 2D" begin
   @test_nowarn include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"))

@@ -5,13 +5,13 @@ using Trixi
 # semidiscretization of the compressible Euler multicomponent equations
 gamma1              = 1.4
 gamma2              = 1.648
-rs1                 = 0.287
-rs2                 = 1.578
-cvs1                = 0.72
-cvs2                = 2.44
-cps1                = 1.007 # rs1 + cvs1, Check: gamma1 = cps1/cvs1 = 1.4
-cps2                = 4.018 # rs2 + cvs2, Check: gamma2 = cps2/cvs2 = 1.648
-equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, rs1, rs2, cvs1, cvs2, cps1, cps2)
+gas_constant_1      = 0.287
+gas_constant_2      = 1.578
+cv1                 = 0.72
+cv2                 = 2.44
+cp1                 = 1.007 # rs1 + cvs1, Check: gamma1 = cps1/cvs1 = 1.4
+cp2                 = 4.018 # rs2 + cvs2, Check: gamma2 = cps2/cvs2 = 1.648
+equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -40,17 +40,17 @@ semi                = SemidiscretizationHyperbolic(mesh, equations, initial_cond
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.0021) # 0.0021... or until 0.015 for whole calc.
+tspan               = (0.0, 0.012) # 0.0021..
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 80 # change to 200+ for whole calc.
+analysis_interval   = 300 # change to 200+ for whole calc.
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=80,     # 40 or change to 200+ for whole calc.  
+save_solution       = SaveSolutionCallback(interval=300,     # 40 or change to 200+ for whole calc.  
                                            save_initial_solution=true,
                                            save_final_solution=true,
                                            solution_variables=:primitive)
