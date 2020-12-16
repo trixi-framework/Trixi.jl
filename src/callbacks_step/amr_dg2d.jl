@@ -10,9 +10,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   # Determine for each existing element whether it needs to be refined
   needs_refinement = falses(nelements(dg, cache))
 
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_refine = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          cells_to_refine)
+  # Find all indices of elements whose cell ids are in cells_to_refine
+  elements_to_refine = findall(cell_id -> cell_id in cells_to_refine, cache.elements.cell_ids)
   needs_refinement[elements_to_refine] .= true
 
   # Retain current solution data
@@ -58,6 +57,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
+  if mpi_isparallel()
+    # re-initialize mpi_interfaces container
+    @unpack mpi_interfaces = cache
+    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+  end
+
   # re-initialize boundaries container
   @unpack boundaries = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
@@ -68,8 +74,14 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
   init_mortars!(mortars, elements, mesh)
 
+  if mpi_isparallel()
+    # re-initialize mpi cache
+    @unpack mpi_cache = cache
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+  end
+
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
+  if isperiodic(mesh.tree) && nmortars(mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 
@@ -154,9 +166,9 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
 
   # Determine for each old element whether it needs to be removed
   to_be_removed = falses(nelements(dg, cache))
-  # The "Ref(...)" is such that we can vectorize the search but not the array that is searched
-  elements_to_remove = searchsortedfirst.(Ref(cache.elements.cell_ids[1:nelements(dg, cache)]),
-                                          child_cells_to_coarsen)
+
+  # Find all indices of elements whose cell ids are in child_cells_to_coarsen
+  elements_to_remove = findall(cell_id -> cell_id in child_cells_to_coarsen, cache.elements.cell_ids)
   to_be_removed[elements_to_remove] .= true
 
   # Retain current solution data
@@ -213,6 +225,13 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
+  if mpi_isparallel()
+    # re-initialize mpi_interfaces container
+    @unpack mpi_interfaces = cache
+    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+  end
+
   # re-initialize boundaries container
   @unpack boundaries = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
@@ -223,8 +242,14 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
   resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
   init_mortars!(mortars, elements, mesh)
 
+  if mpi_isparallel()
+    # re-initialize mpi cache
+    @unpack mpi_cache = cache
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
+  end
+
   # Sanity check
-  if isperiodic(mesh.tree) && nmortars(mortars) == 0
+  if isperiodic(mesh.tree) && nmortars(mortars) == 0 && !mpi_isparallel()
     @assert ninterfaces(interfaces) == ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
   end
 

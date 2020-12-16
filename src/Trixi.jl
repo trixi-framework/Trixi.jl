@@ -30,7 +30,7 @@ import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
-using UnPack: @unpack
+using UnPack: @unpack, @pack!
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
 # Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.

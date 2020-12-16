@@ -97,7 +97,7 @@ function save_restart_file(u, time, dt, timestep,
   if !mpi_isroot()
     # Send nodal data to root
     for v in eachvariable(equations)
-      MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      MPI.Gatherv!(vec(data[v, .., :]), nothing, mpi_root(), mpi_comm())
     end
 
     return filename
@@ -119,7 +119,9 @@ function save_restart_file(u, time, dt, timestep,
     # Store each variable of the solution
     for v in eachvariable(equations)
       # Convert to 1D array
-      file["variables_$v"] = MPI.Gatherv(vec(data[v, .., :]), node_counts, mpi_root(), mpi_comm())
+      recv = Vector{eltype(data)}(undef, sum(node_counts))
+      MPI.Gatherv!(vec(data[v, .., :]), MPI.VBuffer(recv, node_counts), mpi_root(), mpi_comm())
+      file["variables_$v"] = recv
 
       # Add variable name as attribute
       var = file["variables_$v"]
@@ -146,7 +148,7 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
   if !mpi_isroot()
     # Receive nodal data from root
     for v in eachvariable(equations)
-      u[v, .., :] = MPI.Scatterv(eltype(u)[], node_counts, mpi_root(), mpi_comm())
+      MPI.Scatterv!(nothing, @view(u[v, .., :]), mpi_root(), mpi_comm())
     end
 
     return u_ode
@@ -178,7 +180,8 @@ function load_restart_file(mesh::ParallelTreeMesh, equations, dg::DG, cache, res
 
       # Read variable
       println("Reading variables_$v ($name)...")
-      u[v, .., :] = MPI.Scatterv(read(file["variables_$v"]), node_counts, mpi_root(), mpi_comm())
+      sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
+      MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
     end
   end
 
