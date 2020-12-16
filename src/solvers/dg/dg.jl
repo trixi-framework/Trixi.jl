@@ -161,6 +161,7 @@ end
 
 @inline nnodes(dg::DG)             = nnodes(dg.basis)
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
+@inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
 @inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
