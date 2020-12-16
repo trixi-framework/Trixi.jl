@@ -1,109 +1,116 @@
-struct ContourPlot{Coordinates, Data, Variables, Limits, Vertices}
+struct PlotData2D{Coordinates, Data, VariableNames, Vertices}
   x::Coordinates
   y::Coordinates
   data::Data
-  variables::Variables
-  xlims::Limits
-  ylims::Limits
-  vertices_x::Vertices
-  vertices_y::Vertices
+  variable_names::VariableNames
+  mesh_vertices_x::Vertices
+  mesh_vertices_y::Vertices
 end
 
-function ContourPlot(sol::ODESolution;
-                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                     slice_axis=:z, slice_axis_intercept=0,
-                     solution_variables=Trixi.cons2cons)
-  # Extract basic information about Trixi's solution
-  semi = sol.prob.p
-  u = Trixi.wrap_array(sol.u[end], semi)
-  mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
-  ndims = Trixi.ndims(mesh)
-  @assert ndims in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
+# Convenience type to allow dispatch on ODESolution objects that were created by Trixi
+const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where 
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_} where 
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization}}
+
+function PlotData2D(u, semi;
+                    grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+                    slice_axis=:z, slice_axis_intercept=0,
+                    solution_variables=cons2cons)
+  mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+  @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
 
   # Extract mesh info
   center_level_0 = mesh.tree.center_level_0
   length_level_0 = mesh.tree.length_level_0
-  leaf_cells = Trixi.leaf_cells(mesh.tree)
-  coordinates = mesh.tree.coordinates[:, leaf_cells]
-  levels = mesh.tree.levels[leaf_cells]
+  leaf_cell_ids = leaf_cells(mesh.tree)
+  coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
+  levels = mesh.tree.levels[leaf_cell_ids]
 
   unstructured_data = get_unstructured_data(u, semi, solution_variables)
-  x, y, data, vertices_x, vertices_y = get_contour_data(center_level_0, length_level_0, leaf_cells,
-                                                        coordinates, levels, ndims,
-                                                        unstructured_data, Trixi.nnodes(solver),
-                                                        grid_lines, max_supported_level, nvisnodes,
-                                                        slice_axis, slice_axis_intercept)
-  variables = SVector(Trixi.varnames(solution_variables, equations))
-  xlims = (-1, 1) .* (length_level_0/2 + center_level_0[1])
-  ylims = (-1, 1) .* (length_level_0/2 + center_level_0[2])
+  x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0, length_level_0,
+                                                             leaf_cell_ids, coordinates, levels,
+                                                             ndims(mesh), unstructured_data,
+                                                             nnodes(solver), grid_lines,
+                                                             max_supported_level, nvisnodes,
+                                                             slice_axis, slice_axis_intercept)
+  variable_names = SVector(varnames(solution_variables, equations))
 
-  return ContourPlot(x, y, data, variables, xlims, ylims, vertices_x, vertices_y)
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
 end
 
+PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
+PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
-struct ContourPlotSeries{CP<:ContourPlot}
-  contour_plot::CP
+
+struct PlotDataSeries2D{PD<:PlotData2D}
+  plot_data::PD
   variable::String
 end
 
-Base.getindex(cp::ContourPlot, variable) = ContourPlotSeries(cp, variable)
+Base.getindex(pd::PlotData2D, variable) = PlotDataSeries2D(pd, variable)
 
-@recipe function f(cps::ContourPlotSeries)
-  cp = cps.contour_plot
-  variable = cps.variable
+@recipe function f(pds::PlotDataSeries2D)
+  pd = pds.plot_data
+  variable = pds.variable
 
   if variable != "mesh"
-    variable_id = findfirst(isequal(variable), cp.variables)
+    variable_id = findfirst(isequal(variable), pd.variable_names)
     if isnothing(variable_id)
-      error("variable '$variable' was not found in data set (existing: $(join(cp.variables, ", ")))")
+      error("variable '$variable' was not found in data set (existing: $(join(pd.variable_names, ", ")))")
     end
   end
   
-  xlims --> cp.xlims
-  ylims --> cp.ylims
+  xlims --> (pd.x[begin], pd.x[end])
+  ylims --> (pd.y[begin], pd.y[end])
   aspect_ratio --> :equal
   legend -->  :none
 
   # Add data series
-  if cps.variable == "mesh"
+  if pds.variable == "mesh"
     @series begin
       seriestype := :path
       linecolor := :black
       linewidth := 1
-      cp.vertices_x, cp.vertices_y
+      pd.mesh_vertices_x, pd.mesh_vertices_y
     end
   else
-    title --> cps.variable
+    title --> pds.variable
     colorbar --> :true
 
     @series begin
       seriestype := :heatmap
       fill --> true
       linewidth --> 0
-      cp.x, cp.y, transpose(view(cp.data, :, :, variable_id))
+      pd.x, pd.y, transpose(view(pd.data, :, :, variable_id))
     end
   end
 
   ()
 end
 
-@recipe function f(cp::ContourPlot)
-  cols = ceil(Int, sqrt(length(cp.variables)))
-  rows = ceil(Int, length(cp.variables)/cols)
+# Plot all available variables in a grid
+@recipe function f(pd::PlotData2D)
+  # Create layout that is as square as possible, with a preference for more columns than rows if not
+  cols = ceil(Int, sqrt(length(pd.variable_names)))
+  rows = ceil(Int, length(pd.variable_names)/cols)
   layout := (rows, cols)
-  for (i, variable) in enumerate(cp.variables)
+
+  for (i, variable) in enumerate(pd.variable_names)
     @series begin
       subplot := i
-      cp[variable]
+      pd[variable]
     end
   end
 end
 
+# Create a PlotData2D plot from a solution for convenience
+@recipe f(::Type{TrixiODESolution}, sol::TrixiODESolution) = PlotData2D(sol)
 
-function get_contour_data(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
-                          unstructured_data, n_nodes,
-                          grid_lines=false, max_supported_level=11, nvisnodes=nothing,
-                          slice_axis=:z, slice_axis_intercept=0)
+
+function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
+                     unstructured_data, n_nodes,
+                     grid_lines=false, max_supported_level=11, nvisnodes=nothing,
+                     slice_axis=:z, slice_axis_intercept=0)
   # Determine resolution for data interpolation
   max_level = maximum(levels)
   if max_level > max_supported_level
@@ -154,18 +161,18 @@ function get_contour_data(center_level_0, length_level_0, leaf_cells, coordinate
 
   # Determine element vertices to plot grid lines
   if grid_lines
-    vertices_x, vertices_y = calc_vertices(coordinates, levels, length_level_0)
+    mesh_vertices_x, mesh_vertices_y = calc_vertices(coordinates, levels, length_level_0)
   else
-    vertices_x = vertices_y = nothing
+    mesh_vertices_x = mesh_vertices_y = nothing
   end
 
-  return xs, ys, node_centered_data, vertices_x, vertices_y
+  return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
 end
 
 function get_unstructured_data(u, semi, solution_variables)
-  mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
-  if solution_variables === Trixi.cons2cons
+  if solution_variables === cons2cons
     raw_data = u
     n_vars = size(raw_data, 1)
   else
@@ -173,14 +180,14 @@ function get_unstructured_data(u, semi, solution_variables)
     # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     raw_data = Array(reinterpret(eltype(u),
-           solution_variables.(reinterpret(SVector{Trixi.nvariables(equations),eltype(u)}, u),
+           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
                       Ref(equations))))
     n_vars = size(raw_data, 1)
   end
 
   unstructured_data = Array{Float64}(undef,
-                                     ntuple((d) -> Trixi.nnodes(solver), ndims(equations))...,
-                                     Trixi.nelements(solver, cache), n_vars)
+                                     ntuple((d) -> nnodes(solver), ndims(equations))...,
+                                     nelements(solver, cache), n_vars)
   for variable in 1:n_vars
     @views unstructured_data[.., :, variable] .= raw_data[variable, .., :]
   end

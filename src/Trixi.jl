@@ -28,7 +28,7 @@ using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
-using RecipesBase: @recipe, @series
+using RecipesBase
 using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack
@@ -142,7 +142,7 @@ export trixi_include, examples_dir, get_examples, default_example
 export convergence_test, jacobian_fd, linear_structure
 
 # Visualization-related exports
-export ContourPlot
+export PlotData2D
 
 
 function __init__()

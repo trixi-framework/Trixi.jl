@@ -250,47 +250,6 @@ function coordinate2index(coordinate, resolution::Integer)
   return transpose(hcat(id_x, id_y))
 end
 
-#=function coordinate2index(coordinate, resolution::Integer)=#
-#=  # Calculate 1D normalized coordinates=#
-#=  dx = 2/resolution=#
-#=  mesh_coordinates = collect(range(-1 + dx/2, 1 - dx/2, length=resolution))=#
-#==#
-#=  # Prepare output storage=#
-#=  n_elements = size(coordinate)[2]=#
-#=  indices = Array{Int}(undef, ndim, n_elements)=#
-#==#
-#=  # Find indicex=#
-#=  for element_id in 1:n_elements=#
-#=    indices[1] = searchsortedfirst(mesh_coordinates, coordinate[1, element_id], lt=(x,y)->x .< y .- dx/2)=#
-#=    indices[2] = searchsortedfirst(mesh_coordinates, coordinate[2, element_id], lt=(x,y)->x .< y .- dx/2)=#
-#=  end=#
-#==#
-#=  return hcat(id_x, id_y)=#
-#=end=#
-
-
-# Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
-#=function coordinate2index(coordinate, resolution::Integer)=#
-#=  # Calculate 1D normalized coordinates=#
-#=  dx = 2/resolution=#
-#=  mesh_coordinates = collect(range(-1 + dx/2, 1 - dx/2, length=resolution))=#
-#==#
-#=  # Build mesh for nearest neighbor search=#
-#=  mesh = Array{Float64}(undef, ndim, resolution, resolution)=#
-#=  for j in 1:resolution=#
-#=    for i in 1:resolution=#
-#=      mesh[1, i, j] = mesh_coordinates[i]=#
-#=      mesh[2, i, j] = mesh_coordinates[j]=#
-#=    end=#
-#=  end=#
-#==#
-#=  # Create tree=#
-#=  tree = KDTree(mesh, leafsize=10)=#
-#==#
-#=  # Find index in a nearest-neighbor search=#
-#=  index, _ = knn(tree, coordinate, 1)=#
-#=end=#
-
 
 function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
   # Get node coordinates for input and output locations on reference element
@@ -308,7 +267,6 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
   n_variables = size(data_in, 2)
   data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_nodes_out, n_elements, n_variables)
 
-  for n in 1:1
   # Interpolate each variable separately
   for v = 1:n_variables
     # Reshape data to fit expected format for interpolation function
@@ -320,14 +278,12 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
       data_out[:, :, element_id, v] = multiply_dimensionwise(vandermonde, reshaped[:, :, :, element_id])
     end
   end
-  end
 
   return reshape(data_out, n_nodes_out^ndim * n_elements, n_variables)
 end
 
 
-function calc_vertices(coordinates::AbstractArray{Float64, 2},
-                       levels::AbstractArray{Int}, length_level_0::Float64)
+function calc_vertices(coordinates, levels, length_level_0)
   ndim = 2 # FIXME
   @assert ndim == 2 "Algorithm currently only works in 2D"
 
