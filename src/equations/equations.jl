@@ -94,6 +94,10 @@ include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
+# CompressibleEulerMulticomponentEquations
+abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_euler_multicomponent_2d.jl")
+
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_1d.jl")
