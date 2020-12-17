@@ -387,7 +387,7 @@ particle distribution functions `u`.
     v_alpha = equations.v_alpha2
   end
 
-  return sum(v_alpha .* u)/density(u, equations)
+  return dot(v_alpha, u)/density(u, equations)
 end
 
 
@@ -400,7 +400,8 @@ Calculate the macroscopic velocity vector from the particle distribution functio
   @unpack v_alpha1, v_alpha2 = equations
   rho = density(u, equations)
 
-  return SVector(sum(v_alpha1 .* u)/rho, sum(v_alpha2 .* u)/rho)
+  return SVector(dot(v_alpha1, u)/rho,
+                 dot(v_alpha2, u)/rho)
 end
 
 
