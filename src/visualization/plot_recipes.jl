@@ -8,8 +8,8 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices}
 end
 
 # Convenience type to allow dispatch on ODESolution objects that were created by Trixi
-const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where 
-    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_} where 
+const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_} where
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization}}
 
 function PlotData2D(u, semi;
@@ -59,7 +59,7 @@ Base.getindex(pd::PlotData2D, variable_name) = PlotDataSeries2D(pd, variable_nam
       error("variable '$variable' was not found in data set (existing: $(join(pd.variable_names, ", ")))")
     end
   end
-  
+
   xlims --> (pd.x[begin], pd.x[end])
   ylims --> (pd.y[begin], pd.y[end])
   aspect_ratio --> :equal
@@ -104,8 +104,6 @@ end
 end
 
 # Create a PlotData2D plot from a solution for convenience
-# FIXME: Currently this is never used since apparently there already exists a recipe for
-# ODESolutions...
-@recipe f(::Type{TrixiODESolution}, sol::TrixiODESolution) = PlotData2D(sol)
+@recipe f(sol::TrixiODESolution) = PlotData2D(sol)
 
 
