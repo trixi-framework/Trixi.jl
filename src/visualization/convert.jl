@@ -5,7 +5,7 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
   # Determine resolution for data interpolation
   max_level = maximum(levels)
   if max_level > max_supported_level
-    error("Maximum refinement level in data file $max_level is higher than " *
+    error("Maximum refinement level $max_level is higher than " *
           "maximum supported level $max_supported_level")
   end
   max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
@@ -86,5 +86,4 @@ function get_unstructured_data(u, semi, solution_variables)
 
   return unstructured_data
 end
-
 
