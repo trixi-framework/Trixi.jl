@@ -16,7 +16,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-pi*L, -pi*L, -pi*L)
 coordinates_max = ( pi*L,  pi*L,  pi*L)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=5,
                 n_cells_max=300_000,)
 
 
@@ -26,7 +26,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20*equations.L/equations.u0)
+tspan = (0.0, 20*equations.L/equations.u0) # Final time is `20` in non-dimensional time
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
