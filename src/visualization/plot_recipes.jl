@@ -104,6 +104,13 @@ end
 end
 
 # Create a PlotData2D plot from a solution for convenience
-@recipe f(sol::TrixiODESolution) = PlotData2D(sol)
-
+@recipe function f(sol::TrixiODESolution;
+                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
+                   slice_axis_intercept=0, solution_variables=cons2cons)
+  return PlotData2D(sol;
+                    grid_lines=grid_lines, max_supported_level=max_supported_level,
+                    nvisnodes=nvisnodes, slice_axis=slice_axis,
+                    slice_axis_intercept=slice_axis_intercept,
+                    solution_variables=solution_variables)
+end
 
