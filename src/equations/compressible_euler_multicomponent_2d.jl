@@ -7,15 +7,23 @@
 
 Multicomponent version of the compressible Euler equations for an ideal gas in two space dimensions.
 """
+#struct NumberOfComponents{NumberComponents<:Int}
+#  number_components ::NumberComponents
+#end
+
+#struct NumberOfEquations{NumberEquations<:Int}
+#  number_equations ::NumberEquations
+#end
+
 struct CompressibleEulerMulticomponentEquations2D{RealT<:Real} <: AbstractCompressibleEulerMulticomponentEquations{2, 5}
-  gamma1          ::RealT 
-  gamma2          ::RealT
-  gas_constant1   ::RealT
-  gas_constant2   ::RealT
-  cv1             ::RealT
-  cv2             ::RealT
-  cp1             ::RealT
-  cp2             ::RealT
+  gamma1            ::RealT 
+  gamma2            ::RealT
+  gas_constant1     ::RealT
+  gas_constant2     ::RealT
+  cv1               ::RealT
+  cv2               ::RealT
+  cp1               ::RealT
+  cp2               ::RealT
 end
 
 function CompressibleEulerMulticomponentEquations2D()
@@ -270,6 +278,7 @@ end
   rho1, rho2, rho_v1, rho_v2, rho_e = u
 
   rho   = rho1 + rho2
+
   v1    = rho_v1/rho
   v2    = rho_v2/rho
   gamma = (rho1*cv1*gamma1 + rho2*cv2*gamma2) / (rho1*cv1 + rho2*cv2)
@@ -397,14 +406,15 @@ Entropy-Stable two-point flux by
   gamma     = (rho1_avg*cv1*gamma1 + rho2_avg*cv2*gamma2) / (rho1_avg*cv1 + rho2_avg*cv2)
 
   # Calculate dissipation operator to be ES 
-  R_x       = zeros(Float64, (5, 5))
-  R_y       = zeros(Float64, (5, 5))
-  Lambda_x  = zeros(Float64, (5, 5))
-  Lambda_y  = zeros(Float64, (5, 5))
-  Tau       = zeros(Float64, (5, 5))
-  W         = zeros(Float64, (5))
-  Dv_x      = zeros(Float64, (5))
-  Dv_y      = zeros(Float64, (5))
+  #R_x       = zeros(Float64, (5, 5))
+  #R_y       = zeros(Float64, (5, 5))
+  #Lambda_x  = zeros(Float64, (5, 5))
+  #Lambda_y  = zeros(Float64, (5, 5))
+  #Tau       = zeros(Float64, (5, 5))
+  #W         = zeros(Float64, (5))
+  #Dv_x      = zeros(Float64, (5))
+  #Dv_y      = zeros(Float64, (5))
+
 
   # Help variables
   e1    = equations.cv1 * T
@@ -422,115 +432,126 @@ Entropy-Stable two-point flux by
 
   # -------------------------------- #
 
-  R_x[1,1]  = 1.0 
-  R_x[1,2]  = 0.0 
-  R_x[1,3]  = 0.0 
-  R_x[1,4]  = rho1_avg / rho_avg 
-  R_x[1,5]  = R_x[1,4]
+  R_x11  = 1.0 
+  R_x12  = 0.0 
+  R_x13  = 0.0 
+  R_x14  = rho1_avg / rho_avg 
+  R_x15  = R_x14
 
-  R_x[2,1]  = 0.0 
-  R_x[2,2]  = 1.0 
-  R_x[2,3]  = 0.0 
-  R_x[2,4]  = rho2_avg / rho_avg 
-  R_x[2,5]  = R_x[2,4]
+  R_x21  = 0.0 
+  R_x22  = 1.0 
+  R_x23  = 0.0 
+  R_x24  = rho2_avg / rho_avg 
+  R_x25  = R_x24
 
-  R_x[3,1]  = v1_avg 
-  R_x[3,2]  = v1_avg 
-  R_x[3,3]  = 0.0 
-  R_x[3,4]  = v1_avg + a 
-  R_x[3,5]  = v1_avg - a 
+  R_x31  = v1_avg 
+  R_x32  = v1_avg 
+  R_x33  = 0.0 
+  R_x34  = v1_avg + a 
+  R_x35  = v1_avg - a 
 
-  R_x[4,1]  = v2_avg 
-  R_x[4,2]  = v2_avg 
-  R_x[4,3]  = a 
-  R_x[4,4]  = v2_avg 
-  R_x[4,5]  = v2_avg 
+  R_x41  = v2_avg 
+  R_x42  = v2_avg 
+  R_x43  = a 
+  R_x44  = v2_avg 
+  R_x45  = v2_avg 
 
-  R_x[5,1]  = k - (d1/(gamma - 1.0)) 
-  R_x[5,2]  = k - (d2/(gamma - 1.0)) 
-  R_x[5,3]  = a * v2_avg 
-  R_x[5,4]  = ht + a * v1_avg 
-  R_x[5,5]  = ht - a * v1_avg 
-
-  # -------------------------------- #
-
-  R_y[1,1]  = 1.0 
-  R_y[1,2]  = 0.0 
-  R_y[1,3]  = 0.0 
-  R_y[1,4]  = rho1_avg / rho_avg 
-  R_y[1,5]  = R_y[1,4] 
-
-  R_y[2,1]  = 0.0 
-  R_y[2,2]  = 1.0 
-  R_y[2,3]  = 0.0 
-  R_y[2,4]  = rho2_avg / rho_avg
-  R_y[2,5]  = R_y[2,4] 
-
-  R_y[3,1]  = v1_avg 
-  R_y[3,2]  = v1_avg 
-  R_y[3,3]  = -1.0 * a 
-  R_y[3,4]  = v1_avg 
-  R_y[3,5]  = v1_avg 
-
-  R_y[4,1]  = v2_avg 
-  R_y[4,2]  = v2_avg 
-  R_y[4,3]  = 0.0 
-  R_y[4,4]  = v2_avg + a 
-  R_y[4,5]  = v2_avg - a 
-
-  R_y[5,1]  = k - (d1/(gamma - 1)) 
-  R_y[5,2]  = k - (d2/(gamma - 1)) 
-  R_y[5,3]  = -1.0 * a * v1_avg 
-  R_y[5,4]  = ht + a * v2_avg 
-  R_y[5,5]  = ht - a * v2_avg 
+  R_x51  = k - (d1/(gamma - 1.0)) 
+  R_x52  = k - (d2/(gamma - 1.0)) 
+  R_x53  = a * v2_avg 
+  R_x54  = ht + a * v1_avg 
+  R_x55  = ht - a * v1_avg 
 
   # -------------------------------- #
 
-  Lambda_x[1,1] = abs(v1_avg) 
-  Lambda_x[2,2] = abs(v1_avg) 
-  Lambda_x[3,3] = abs(v1_avg) 
-  Lambda_x[4,4] = abs(v1_avg + a) 
-  Lambda_x[5,5] = abs(v1_avg - a) 
+  R_y11  = 1.0 
+  R_y12  = 0.0 
+  R_y13  = 0.0 
+  R_y14  = rho1_avg / rho_avg 
+  R_y15  = R_y14 
+
+  R_y21  = 0.0 
+  R_y22  = 1.0 
+  R_y23  = 0.0 
+  R_y24  = rho2_avg / rho_avg
+  R_y25  = R_y24 
+
+  R_y31  = v1_avg 
+  R_y32  = v1_avg 
+  R_y33  = -1.0 * a 
+  R_y34  = v1_avg 
+  R_y35  = v1_avg 
+
+  R_y41  = v2_avg 
+  R_y42  = v2_avg 
+  R_y43  = 0.0 
+  R_y44  = v2_avg + a 
+  R_y45  = v2_avg - a 
+
+  R_y51  = k - (d1/(gamma - 1)) 
+  R_y52  = k - (d2/(gamma - 1)) 
+  R_y53  = -1.0 * a * v1_avg 
+  R_y54  = ht + a * v2_avg 
+  R_y55  = ht - a * v2_avg 
 
   # -------------------------------- #
 
-  Lambda_y[1,1] = abs(v2_avg)
-  Lambda_y[2,2] = abs(v2_avg) 
-  Lambda_y[3,3] = abs(v2_avg) 
-  Lambda_y[4,4] = abs(v2_avg + a) 
-  Lambda_y[5,5] = abs(v2_avg - a) 
+  Lambda_x11 = abs(v1_avg) 
+  Lambda_x22 = abs(v1_avg) 
+  Lambda_x33 = abs(v1_avg) 
+  Lambda_x44 = abs(v1_avg + a) 
+  Lambda_x55 = abs(v1_avg - a) 
 
   # -------------------------------- #
 
-  Tau[1,1]  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant2 / gas_constant1)))
-  Tau[1,2]  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) 
-  Tau[1,3]  = 0.0 
-  Tau[1,4]  = 0.0 
-  Tau[1,5]  = 0.0 
+  Lambda_y11 = abs(v2_avg)
+  Lambda_y22 = abs(v2_avg) 
+  Lambda_y33 = abs(v2_avg) 
+  Lambda_y44 = abs(v2_avg + a) 
+  Lambda_y55 = abs(v2_avg - a) 
 
-  Tau[2,1]  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant1 / gas_constant2)))
-  Tau[2,2]  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) 
-  Tau[2,3]  = 0.0 
-  Tau[2,4]  = 0.0 
-  Tau[2,5]  = 0.0 
+  # -------------------------------- #
 
-  Tau[3,1]  = 0.0
-  Tau[3,2]  = 0.0
-  Tau[3,3]  = tauh / a
-  Tau[3,4]  = 0.0
-  Tau[3,5]  = 0.0
+  Tau11  = tauh * (-1.0 * sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant2 / gas_constant1)))
+  Tau12  = tauh * ((rho1_avg / rho_avg) * sqrt(gamma - 1.0)) 
+  Tau13  = 0.0 
+  Tau14  = 0.0 
+  Tau15  = 0.0 
 
-  Tau[4,1]  = 0.0 
-  Tau[4,2]  = 0.0 
-  Tau[4,3]  = 0.0 
-  Tau[4,4]  = tauh / sqrt(2) 
-  Tau[4,5]  = 0.0 
+  Tau21  = tauh * (sqrt((rho1_avg/rho_avg) * (rho2_avg/rho_avg)) * sqrt(gamma * (gas_constant1 / gas_constant2)))
+  Tau22  = tauh * ((rho2_avg / rho_avg) * sqrt(gamma - 1.0)) 
+  Tau23  = 0.0 
+  Tau24  = 0.0 
+  Tau25  = 0.0 
 
-  Tau[5,1]  = 0.0 
-  Tau[5,2]  = 0.0 
-  Tau[5,3]  = 0.0 
-  Tau[5,4]  = 0.0 
-  Tau[5,5]  = tauh / sqrt(2) 
+  Tau31  = 0.0
+  Tau32  = 0.0
+  Tau33  = tauh / a
+  Tau34  = 0.0
+  Tau35  = 0.0
+
+  Tau41  = 0.0 
+  Tau42  = 0.0 
+  Tau43  = 0.0 
+  Tau44  = tauh / sqrt(2) 
+  Tau45  = 0.0 
+
+  Tau51  = 0.0 
+  Tau52  = 0.0 
+  Tau53  = 0.0 
+  Tau54  = 0.0 
+  Tau55  = tauh / sqrt(2) 
+
+  # -------------------------------- #
+
+  R_x       = SMatrix{5,5}([R_x11 R_x12 R_x13 R_x14 R_x15 ; R_x21 R_x22 R_x23 R_x24 R_x25 ; R_x31 R_x32 R_x33 R_x34 R_x35 ; R_x41 R_x42 R_x43 R_x44 R_x45 ; R_x51 R_x52 R_x53 R_x54 R_x55])
+  R_y       = SMatrix{5,5}([R_y11 R_y12 R_y13 R_y14 R_y15 ; R_y21 R_y22 R_y23 R_y24 R_y25 ; R_y31 R_y32 R_y33 R_y34 R_y35 ; R_y41 R_y42 R_y43 R_y44 R_y45 ; R_y51 R_y52 R_y53 R_y54 R_y55])
+  Lambda_x  = SMatrix{5,5}([Lambda_x11 0.0 0.0 0.0 0.0    ; 0.0 Lambda_x22 0.0 0.0 0.0    ; 0.0 0.0 Lambda_x33 0.0 0.0    ; 0.0 0.0 0.0 Lambda_x44 0.0    ; 0.0 0.0 0.0 0.0 Lambda_x55])
+  Lambda_y  = SMatrix{5,5}([Lambda_y11 0.0 0.0 0.0 0.0    ; 0.0 Lambda_y22 0.0 0.0 0.0    ; 0.0 0.0 Lambda_y33 0.0 0.0    ; 0.0 0.0 0.0 Lambda_y44 0.0    ; 0.0 0.0 0.0 0.0 Lambda_y55])
+  Tau       = SMatrix{5,5}([Tau11 Tau12 Tau13 Tau14 Tau15 ; Tau21 Tau22 Tau23 Tau24 Tau25 ; Tau31 Tau32 Tau33 Tau34 Tau35 ; Tau41 Tau42 Tau43 Tau44 Tau45 ; Tau51 Tau52 Tau53 Tau54 Tau55])
+  W         = SVector{5, Float64}
+  Dv_x      = SVector{5, Float64}
+  Dv_y      = SVector{5, Float64}
 
   # -------------------------------- #
 
@@ -689,3 +710,8 @@ end
  return rho_times_p
 end
 
+
+@inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
+  rho = u[1] + u[2]
+  return rho
+ end
