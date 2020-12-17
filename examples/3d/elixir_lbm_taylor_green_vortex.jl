@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the Lattice-Boltzmann equations for the D3Q27 scheme
 
-L = 1
+L = 1 # reference length
 equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=1600; L=L)
 
 initial_condition = initial_condition_taylor_green_vortex

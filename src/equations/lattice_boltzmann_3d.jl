@@ -54,33 +54,33 @@ velocity. Due to Julia using 1-based indexing, here we use indices from `1` to `
 through `26` correspond to the velocity directions in [4] and `27` is the zero velocity.
 
 The corresponding opposite directions are:
-*  1 ←→   2
-*  2 ←→   1
-*  3 ←→   4
-*  4 ←→   3
-*  5 ←→   6
-*  6 ←→   5
-*  7 ←→   8
-*  8 ←→   7
-*  9 ←→  10
-* 10 ←→   9
-* 11 ←→  12
-* 12 ←→  11
-* 13 ←→  14
-* 14 ←→  13
-* 15 ←→  16
-* 16 ←→  15
-* 17 ←→  18
-* 18 ←→  17
-* 19 ←→  20
-* 20 ←→  19
-* 21 ←→  22
-* 22 ←→  21
-* 23 ←→  24
-* 24 ←→  23
-* 25 ←→  26
-* 26 ←→  25
-* 27 ←→  27
+*  1 ←→  2
+*  2 ←→  1
+*  3 ←→  4
+*  4 ←→  3
+*  5 ←→  6
+*  6 ←→  5
+*  7 ←→  8
+*  8 ←→  7
+*  9 ←→ 10
+* 10 ←→  9
+* 11 ←→ 12
+* 12 ←→ 11
+* 13 ←→ 14
+* 14 ←→ 13
+* 15 ←→ 16
+* 16 ←→ 15
+* 17 ←→ 18
+* 18 ←→ 17
+* 19 ←→ 20
+* 20 ←→ 19
+* 21 ←→ 22
+* 22 ←→ 21
+* 23 ←→ 24
+* 24 ←→ 23
+* 25 ←→ 26
+* 26 ←→ 25
+* 27 ←→ 27
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
@@ -115,7 +115,7 @@ struct LatticeBoltzmannEquations3D{RealT<:Real, CollisionOp} <: AbstractLatticeB
 end
 
 function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
-                                    c=1, L=1, rho0=1, u0=nothing, nu=nothing)
+                                     c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
     error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
@@ -276,7 +276,7 @@ particle distribution functions `u`.
     v_alpha = equations.v_alpha3
   end
 
-  return sum(v_alpha .* u)/density(u, equations)
+  return dot(v_alpha, u) / density(u, equations)
 end
 
 
@@ -289,9 +289,9 @@ Calculate the macroscopic velocity vector from the particle distribution functio
   @unpack v_alpha1, v_alpha2, v_alpha3 = equations
   rho = density(u, equations)
 
-  return SVector(sum(v_alpha1 .* u)/rho,
-                 sum(v_alpha2 .* u)/rho,
-                 sum(v_alpha3 .* u)/rho)
+  return SVector(dot(v_alpha1, u)/rho,
+                 dot(v_alpha2, u)/rho,
+                 dot(v_alpha3, u)/rho)
 end
 
 

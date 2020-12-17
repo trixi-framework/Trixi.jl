@@ -391,9 +391,9 @@ isdir(outdir) && rm(outdir, recursive=true)
     u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
 
     # Component-wise velocity
-    @test isapprox(Trixi.velocity(u, 1, equation), 2)
-    @test isapprox(Trixi.velocity(u, 2, equation), 3)
-    @test isapprox(Trixi.velocity(u, 3, equation), 4)
+    @test isapprox(velocity(u, 1, equation), 2)
+    @test isapprox(velocity(u, 2, equation), 3)
+    @test isapprox(velocity(u, 3, equation), 4)
   end
 
   @testset "LBMCollisionCallback" begin

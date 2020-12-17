@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the Lattice-Boltzmann equations for the D2Q9 scheme
+# semidiscretization of the Lattice-Boltzmann equations for the D3Q27 scheme
 
 equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=Inf)
 
