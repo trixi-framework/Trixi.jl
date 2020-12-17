@@ -3,54 +3,53 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible ideal GLM-MHD equations
+# semidiscretization of the compressible Euler multicomponent equations
+equations = CompressibleEulerMulticomponentEquations2D()
 
-equations = IdealGlmMhdEquations3D(5/3)
+initial_condition = initial_condition_convergence_test
 
-initial_condition = initial_condition_orszag_tang
-
-surface_flux = flux_hll
-volume_flux  = flux_central
+surface_flux = flux_chandrashekar
+volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (0, 0, 0)
-coordinates_max = (1, 1, 1)
+coordinates_min = (-1, -1)
+coordinates_max = ( 1,  1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=10_000)
+                initial_refinement_level=4,
+                n_cells_max=30_000)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_convergence_test)
+
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=10,
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
+
+save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=cons2prim)
+                                     solution_variables=:primitive)
 
-cfl = 1.1
-stepsize_callback = StepsizeCallback(cfl=cfl)
-
-glm_speed_callback = GlmSpeedCallback(glm_scale=0.5, cfl=cfl)
-
-analysis_interval = 100
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        save_solution,
-                        stepsize_callback,
-                        glm_speed_callback)
+                        analysis_callback, alive_callback, 
+                        save_restart, save_solution,
+                        stepsize_callback)
 
 
 ###############################################################################
