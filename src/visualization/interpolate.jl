@@ -1,39 +1,48 @@
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
-function cell2node(cell_centered_data::AbstractArray{Float64})
+function cell2node(cell_centered_data)
   # Create temporary data structure to make the averaging algorithm as simple
   # as possible (by using a ghost layer)
-  tmp = similar(cell_centered_data, size(cell_centered_data) .+ (2, 2, 0))
-
-  # Fill center with original data
-  tmp[2:end-1, 2:end-1, :] .= cell_centered_data
-
-  # Fill sides with opposite data (periodic domain)
-  # x-direction
-  tmp[1,   2:end-1, :] .= cell_centered_data[end, :, :]
-  tmp[end, 2:end-1, :] .= cell_centered_data[1,   :, :]
-  # y-direction
-  tmp[2:end-1, 1,   :] .= cell_centered_data[:, end, :]
-  tmp[2:end-1, end, :] .= cell_centered_data[:, 1,   :]
-  # Corners
-  tmp[1,   1,   :] = cell_centered_data[end, end, :]
-  tmp[end, 1,   :] = cell_centered_data[1,   end, :]
-  tmp[1,   end, :] = cell_centered_data[end, 1,   :]
-  tmp[end, end, :] = cell_centered_data[1,   1,   :]
+  tmp = similar(first(cell_centered_data), size(first(cell_centered_data)) .+ (2, 2))
 
   # Create output data structure
-  resolution_in, _, n_variables = size(cell_centered_data)
+  resolution_in, _ = size(first(cell_centered_data))
   resolution_out = resolution_in + 1
-  node_centered_data = Array{Float64}(undef, resolution_out, resolution_out, n_variables)
+  node_centered_data = [Matrix{Float64}(undef, resolution_out, resolution_out)
+                        for _ in 1:length(cell_centered_data)]
 
-  # Obtain node-centered value by averaging over neighboring cell-centered values
-  for j in 1:resolution_out
-    for i in 1:resolution_out
-      node_centered_data[i, j, :] = (tmp[i,   j,   :] +
-                                     tmp[i+1, j,   :] +
-                                     tmp[i,   j+1, :] +
-                                     tmp[i+1, j+1, :]) / 4
+
+  for (cell_data, node_data) in zip(cell_centered_data, node_centered_data)
+    # Fill center with original data
+    tmp[2:end-1, 2:end-1] .= cell_data
+
+    # Fill sides with opposite data (periodic domain)
+    # x-direction
+    tmp[1,   2:end-1] .= cell_data[end, :]
+    tmp[end, 2:end-1] .= cell_data[1,   :]
+    # y-direction
+    tmp[2:end-1, 1, ] .= cell_data[:, end]
+    tmp[2:end-1, end] .= cell_data[:, 1, ]
+    # Corners
+    tmp[1,   1, ] = cell_data[end, end]
+    tmp[end, 1, ] = cell_data[1,   end]
+    tmp[1,   end] = cell_data[end, 1, ]
+    tmp[end, end] = cell_data[1,   1, ]
+
+    # Obtain node-centered value by averaging over neighboring cell-centered values
+    for j in 1:resolution_out
+      for i in 1:resolution_out
+        node_data[i, j] = (tmp[i,   j, ] +
+                           tmp[i+1, j, ] +
+                           tmp[i,   j+1] +
+                           tmp[i+1, j+1]) / 4
+      end
     end
+  end
+
+  # Transpose
+  for (index, data) in enumerate(node_centered_data)
+    node_centered_data[index] = permutedims(data)
   end
 
   return node_centered_data
@@ -185,7 +194,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
   lower_left_index = element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
 
   # Create output data structure
-  structured = Array{Float64}(undef, resolution, resolution, n_variables)
+  structured = [Matrix{Float64}(undef, resolution, resolution) for _ in 1:n_variables]
 
   # For each variable, interpolate element data and store to global data structure
   for v in 1:n_variables
@@ -203,7 +212,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
-      structured[first[1]:last[1], first[2]:last[2], v] .= (
+      structured[v][first[1]:last[1], first[2]:last[2]] .= (
           reshape(multiply_dimensionwise(vandermonde, reshaped_data[:, :, :, element_id]),
                   n_nodes_out, n_nodes_out))
     end
@@ -289,8 +298,8 @@ function calc_vertices(coordinates, levels, length_level_0)
 
   # Initialize output arrays
   n_elements = length(levels)
-  x = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
-  y = Array{Float64, 2}(undef, 2^ndim+1, n_elements)
+  x = Matrix{Float64}(undef, 2^ndim+1, n_elements)
+  y = Matrix{Float64}(undef, 2^ndim+1, n_elements)
 
   # Calculate vertices for all coordinates at once
   for element_id in 1:n_elements

@@ -47,7 +47,7 @@ struct PlotDataSeries2D{PD<:PlotData2D}
   variable::String
 end
 
-Base.getindex(pd::PlotData2D, variable) = PlotDataSeries2D(pd, variable)
+Base.getindex(pd::PlotData2D, variable_name) = PlotDataSeries2D(pd, variable_name)
 
 @recipe function f(pds::PlotDataSeries2D)
   pd = pds.plot_data
@@ -81,7 +81,7 @@ Base.getindex(pd::PlotData2D, variable) = PlotDataSeries2D(pd, variable)
       seriestype := :heatmap
       fill --> true
       linewidth --> 0
-      pd.x, pd.y, transpose(view(pd.data, :, :, variable_id))
+      pd.x, pd.y, pd.data[variable_id]
     end
   end
 
@@ -104,6 +104,8 @@ end
 end
 
 # Create a PlotData2D plot from a solution for convenience
+# FIXME: Currently this is never used since apparently there already exists a recipe for
+# ODESolutions...
 @recipe f(::Type{TrixiODESolution}, sol::TrixiODESolution) = PlotData2D(sol)
 
 
