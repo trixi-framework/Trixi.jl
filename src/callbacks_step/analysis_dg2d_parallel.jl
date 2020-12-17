@@ -1,15 +1,16 @@
 
 function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
                           mesh::ParallelTreeMesh{2}, equations, initial_condition,
-                          dg::DGSEM, cache)
+                          dg::DGSEM, cache, cache_analysis)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
   l2_error, linf_error = invoke(calc_error_norms,
     Tuple{typeof(func), typeof(u), typeof(t), typeof(analyzer), TreeMesh{2},
-          typeof(equations), typeof(initial_condition), typeof(dg), typeof(cache)},
-    func, u, t, analyzer, mesh, equations, initial_condition, dg, cache)
+          typeof(equations), typeof(initial_condition), typeof(dg), typeof(cache),
+          typeof(cache_analysis)},
+    func, u, t, analyzer, mesh, equations, initial_condition, dg, cache, cache_analysis)
 
   # Since the local L2 norm is already normalized and square-rooted, we need to undo this first
   total_volume = mesh.tree.length_level_0^ndims(mesh)
@@ -31,9 +32,9 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
 end
 
 
-function integrate_via_indices(func, u::AbstractArray{<:Any,4},
+function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
                                mesh::ParallelTreeMesh{2}, equations, dg::DGSEM, cache,
-                               args...; normalize=true)
+                               args...; normalize=true) where {Func}
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.

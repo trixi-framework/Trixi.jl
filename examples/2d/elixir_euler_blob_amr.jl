@@ -57,7 +57,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,
                                           alpha_min=0.0001,
                                           alpha_smooth=false,
-                                          variable=density)
+                                          variable=Trixi.density)
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
                                               base_level=4,
                                               med_level =0, med_threshold=0.0003, # med_level = current level

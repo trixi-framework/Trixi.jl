@@ -41,6 +41,7 @@ makedocs(
         "Development" => "development.md",
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
+        "Testing" => "testing.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
         "Reference" => [
