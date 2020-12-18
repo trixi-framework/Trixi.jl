@@ -79,9 +79,7 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   n_interfaces = ninterfaces(interfaces)
   # @show n_interfaces
   # @show length(mesh.tree), nelements(elements)
-  @show  elements.cell_ids[:]
-  @show  interfaces.neighbor_ids[2,20:32]
-  @show  interfaces.neighbor_ids[1,20:32]
+
   # @show interfaces.orientations[:]
   # @assert 4==7
 

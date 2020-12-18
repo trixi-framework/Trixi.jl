@@ -72,8 +72,6 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   p4est.user_pointer = C_NULL
   # @show coarse_fn
 
-# 
-
 
   # TODO 2. Need array Changes
   # if ChangesInfo [1, iElem] < 0 - The element was refined. 
@@ -227,7 +225,12 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
                                "coarsened: $(length(coarsened_original_cells)), " *
                                "new number of cells/elements: " *
                                "$(length(tree))/$(solver.n_elements))")
-
+  
+  check = P4est.p4est_checksum(p4est)
+  @show check
+  @show mesh.tree.forestchecksum
+  mesh_changed = check != mesh.tree.forestchecksum
+  @show mesh_changed
   return false
   # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)

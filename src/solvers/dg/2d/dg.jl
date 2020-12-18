@@ -656,7 +656,6 @@ function p4_init_interface_connectivity!(elements, interfaces, Connections, mesh
   for element_id in 1:nelements(elements)
     c2e[elements.cell_ids[element_id]] = element_id
   end
-  @show c2e
   # Reset interface count
   count = 0
 

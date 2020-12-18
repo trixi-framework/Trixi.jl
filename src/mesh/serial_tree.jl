@@ -38,7 +38,7 @@ mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
   periodicity::NTuple{NDIMS, Bool}
   conn::Ptr{p4est_connectivity_t}
   forest::Ptr{p4est_t}
-
+  forestchecksum::UInt32
   function SerialTree{NDIMS}(capacity::Integer) where NDIMS
     # Verify that NDIMS is an integer
     @assert NDIMS isa Integer
@@ -112,11 +112,13 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   t.forest = P4est.p4est_new_ext(0, t.conn,0,min_level,uniform,sizeof(quad_inner_data_t), C_NULL, C_NULL)
   # @show sizeof(quad_inner_data_t)
   local_num_quads = Int64(t.forest.local_num_quadrants)
-  Connection = zeros(Int32, 11,local_num_quads)
-  QuadInfo = zeros(Int32, 4,local_num_quads)
+  t.forestchecksum = P4est.p4est_checksum(t.forest)
+  @show t.forestchecksum
+#   Connection = zeros(Int32, 11,local_num_quads)
+#   QuadInfo = zeros(Int32, 4,local_num_quads)
   
-  conn_ptr = pointer(Connection)
-# 1 - level
+#   conn_ptr = pointer(Connection)
+# # 1 - level
 # 2 - coord x
 # 3 Coord y
 # 4.-5. Nbleft x2 
@@ -129,20 +131,20 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
 # 2 - -y
 # 3 - +y
 ##
-quadinfo_ptr = pointer(QuadInfo)
-# 1. - quadid 1..local_num_quads
-# 2. - quad.level
-# 3. - quad.x
-# 4. - quad.y
+# quadinfo_ptr = pointer(QuadInfo)
+# # 1. - quadid 1..local_num_quads
+# # 2. - quad.level
+# # 3. - quad.x
+# # 4. - quad.y
 
 
-  CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+#   CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
 
-  P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
-  CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
+#   P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
+#   CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
 
-  P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
-  # @show Connection[4:11,1]
+#   P4est.p4est_iterate(t.forest,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
+#   # @show Connection[4:11,1]
   # @show Connection[4:11,2]
   # @show Connection[4:11,3]
   # @show Connection[4:11,4]
@@ -152,7 +154,8 @@ quadinfo_ptr = pointer(QuadInfo)
   # @show Connection[4:11,8]
   # @show Connection[4:11,9]
   # @show Connection[4:11,10]
-
+  Connection = p4_get_connections(t.forest)
+  QuadInfo = p4_get_quadinfo(t.forest)
   # @assert 15 == 11
   # Create root cells
   t.length += local_num_quads
