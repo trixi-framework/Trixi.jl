@@ -1004,8 +1004,14 @@ end
   end
 
   for v in eachvariable(equations)
-    @views surface_flux_values[v, :, direction, large_element] .=
-      (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
+    # The code below is semantically equivalent to
+    # surface_flux_values[v, :, direction, large_element] .=
+    #   (mortar_l2.reverse_upper * fstar_upper[v, :] + mortar_l2.reverse_lower * fstar_lower[v, :])
+    # but faster and does not allocate.
+    @views mul!(surface_flux_values[v, :, direction, large_element],
+                mortar_l2.reverse_upper, fstar_upper[v, :])
+    @views mul!(surface_flux_values[v, :, direction, large_element],
+                mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
   end
   # TODO: Taal performance
   # The code above could be replaced by the following code. However, the relative efficiency

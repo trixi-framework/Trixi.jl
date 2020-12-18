@@ -17,7 +17,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot
+using LinearAlgebra: dot, mul!
 using Printf: @printf, @sprintf, println
 
 import DiffEqBase: ODEProblem, ODESolution, get_du, get_tmp_cache, u_modified!,
