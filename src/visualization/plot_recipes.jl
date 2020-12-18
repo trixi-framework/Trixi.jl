@@ -101,6 +101,16 @@ end
       pd[variable]
     end
   end
+
+  for i in (length(pd.variable_names)+1):(rows*cols)
+    @series begin
+      subplot := i
+      axis := false
+      ticks := false
+      legend := false
+      [], []
+    end
+  end
 end
 
 # Create a PlotData2D plot from a solution for convenience
