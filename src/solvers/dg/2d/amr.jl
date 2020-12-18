@@ -16,7 +16,9 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   # @show old_n_elements
   old_u = dg.elements.u
   # @show old_u
+
   
+
   # # Get new list of leaf cells
   # leaf_cell_ids = leaf_cells(tree)
   leaf_cell_ids = collect(1:p4est.local_num_quadrants)
@@ -63,15 +65,25 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
        element_id += 1
     end
   end
+
+  
+
   Connections = p4_get_connections(tree.forest)
  
   # @show elements.u
   leaf_cell_ids = leaf_cells(tree)
+  
+ 
   # Initialize new interfaces container
   interfaces = p4_init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, Connections)
   n_interfaces = ninterfaces(interfaces)
   # @show n_interfaces
-  # @assert 4==6
+  # @show length(mesh.tree), nelements(elements)
+  @show  elements.cell_ids[:]
+  @show  interfaces.neighbor_ids[2,20:32]
+  @show  interfaces.neighbor_ids[1,20:32]
+  # @show interfaces.orientations[:]
+  # @assert 4==7
 
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
@@ -83,7 +95,7 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   n_ecmortars = nmortars(ecmortars)
   # @show n_interfaces
   # @show interfaces
-  # @show n_boundaries, n_boundaries_per_direction
+  # @show n_boundaries
   # @show n_l2mortars, n_ecmortars
   # Sanity check
   # @assert 1 == 4

@@ -13,7 +13,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
 
   # Alias for convenience
   tree = mesh.tree
-  println("Refine 2")
+  # println("Refine 2")
   # Determine indicator value
   lambda = @timeit timer() "indicator" calc_amr_indicator(solver, mesh, time)
 
@@ -93,25 +93,20 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   # @show ChangesInfo[:,:]
   # @assert 3 == 5
   # TODO  3. Rebuld mesh structure
-  Connection = zeros(Int32, 11,local_num_quads)
-  conn_ptr = pointer(Connection)
-  CfaceIterate = @cfunction(faceIterate, Cvoid, (Ptr{P4est.p4est_iter_face_info_t}, Ptr{Cvoid}))
-  P4est.p4est_iterate(p4est,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
-  t = mesh.tree
-  QuadInfo = zeros(Int32, 4,local_num_quads)
-  quadinfo_ptr = pointer(QuadInfo)
-  CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+  Connection = p4_get_connections(p4est)
 
+  t = mesh.tree
+  QuadInfo = p4_get_quadinfo(p4est)
+  
   t.length = local_num_quads
   t.parent_ids[1:local_num_quads] .= 0
   t.child_ids[:, 1:local_num_quads] .= 0
   t.levels[1:local_num_quads] .= QuadInfo[2,1:local_num_quads]
   
- 
-  P4est.p4est_iterate(t.forest,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
    # Get domain boundaries
   coordinates_min = parameter("coordinates_min")
   coordinates_max = parameter("coordinates_max")
+
    # t.coordinates[:, 1] .= t.center_level_0
   for id = 1:local_num_quads
     t.coordinates[1, id] = coordinates_min[1] + (coordinates_max[1] - coordinates_min[1]) / 512 *
@@ -119,8 +114,11 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
     t.coordinates[2, id] = coordinates_min[2] +  (coordinates_max[2] - coordinates_min[2]) / 512 *
         (QuadInfo[4, id] + 512/(2^(QuadInfo[2,id] + 1)))
   end
+
+
   # dg = solver
   t.original_cell_ids[1:local_num_quads] .= QuadInfo[1,1:local_num_quads]
+
   for id = 1:local_num_quads
       t.neighbor_ids[1, id] = Connection[4,id]
       t.neighbor_ids[2, id] = Connection[6,id]

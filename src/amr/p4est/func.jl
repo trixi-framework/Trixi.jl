@@ -283,3 +283,13 @@ function p4_get_connections(p4est::Ptr{p4est_t})
     P4est.p4est_iterate(p4est,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
     return Connection
 end
+
+
+function p4_get_quadinfo(p4est::Ptr{p4est_t})
+    local_num_quads = Int64(p4est.local_num_quadrants)
+    QuadInfo = zeros(Int32, 4,local_num_quads)
+    quadinfo_ptr = pointer(QuadInfo)
+    CvolumeIterate = @cfunction(volumeIterate, Cvoid, (Ptr{P4est.p4est_iter_volume_info_t}, Ptr{Cvoid}))
+    P4est.p4est_iterate(p4est,  C_NULL, quadinfo_ptr, CvolumeIterate, C_NULL, C_NULL)
+    return QuadInfo
+end

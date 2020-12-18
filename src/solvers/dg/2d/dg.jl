@@ -369,9 +369,7 @@ function p4_count_required_interfaces(mesh::TreeMesh2D, cell_ids, Connections)
         end
       end
     end
-        # if  Connection[4,id], 5
-    #   Connection[8,id], 9
-    #   Connection[10,id], 11
+  
     # Connection[4,id], 5
     # Connection[6,id], 7
     # Connection[8,id], 9
@@ -651,14 +649,14 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function p4_init_interface_connectivity!(elements, interfaces, Connections::Array{Int32,2}, mesh::TreeMesh2D)
+function p4_init_interface_connectivity!(elements, interfaces, Connections, mesh::TreeMesh2D)
   # Construct cell -> element mapping for easier algorithm implementation
   tree = mesh.tree
   c2e = zeros(Int, length(tree))
   for element_id in 1:nelements(elements)
     c2e[elements.cell_ids[element_id]] = element_id
   end
-
+  @show c2e
   # Reset interface count
   count = 0
 
