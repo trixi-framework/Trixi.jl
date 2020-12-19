@@ -1,4 +1,4 @@
-module TestManual
+module TestUnit
 
 using Test
 using SimpleMock
@@ -9,8 +9,8 @@ using Trixi
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# Run various manual (= non-elixir-triggered tests)
-@testset "Manual tests" begin
+# Run various unit (= non-elixir-triggered) tests
+@testset "Unit tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
