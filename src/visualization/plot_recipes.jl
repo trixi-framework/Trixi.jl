@@ -216,20 +216,20 @@ end
 # Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pd::PlotData2D)
   # Create layout that is as square as possible, with a preference for more columns than rows if not
-  cols = ceil(Int, sqrt(length(pd.variable_names)))
-  rows = ceil(Int, length(pd.variable_names)/cols)
+  cols = ceil(Int, sqrt(length(pd)))
+  rows = ceil(Int, length(pd)/cols)
   layout := (rows, cols)
 
   # Plot all existing variables
-  for (i, variable_name) in enumerate(pd.variable_names)
+  for (i, (variable_name, series)) in enumerate(pd)
     @series begin
       subplot := i
-      pd[variable_name]
+      series
     end
   end
 
   # Fill remaining subplots with empty plot
-  for i in (length(pd.variable_names)+1):(rows*cols)
+  for i in (length(pd)+1):(rows*cols)
     @series begin
       subplot := i
       axis := false
@@ -250,7 +250,8 @@ end
                    slice_axis_intercept=0)
   return PlotData2D(sol;
                     solution_variables=solution_variables,
-                    grid_lines=grid_lines, max_supported_level=max_supported_level, nvisnodes=nvisnodes, slice_axis=slice_axis,
+                    grid_lines=grid_lines, max_supported_level=max_supported_level,
+                    nvisnodes=nvisnodes, slice_axis=slice_axis,
                     slice_axis_intercept=slice_axis_intercept)
 end
 
