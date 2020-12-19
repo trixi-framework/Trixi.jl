@@ -11,6 +11,9 @@ const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
 mesh.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 struct PlotData2D{Coordinates, Data, VariableNames, Vertices}
   x::Coordinates
@@ -111,6 +114,18 @@ Create a `PlotData2D` object from an `ODESolution` created by Trixi.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
+# Auxiliary data structure for visualizing a single variable
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+struct PlotDataSeries2D{PD<:PlotData2D}
+  plot_data::PD
+  variable_name::String
+  variable_id::Int
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+Base.show(io::IO, ::PlotDataSeries2D) = print(io, "PlotDataSeries2D(...)")
+
 """
     Base.getindex(pd::PlotData2D, variable_name)
 
@@ -129,10 +144,23 @@ function Base.getindex(pd::PlotData2D, variable_name)
   return PlotDataSeries2D(pd, variable_name, variable_id)
 end
 
-# Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, pd::PlotData2D)
-  print(io, "PlotData2D(...)")
+# Define additional methods for convenience
+Base.firstindex(pd::PlotData2D) = first(pd.variable_names)
+Base.lastindex(pd::PlotData2D) = last(pd.variable_names)
+Base.length(pd::PlotData2D) = length(pd.variable_names)
+Base.size(pd::PlotData2D) = (length(pd),)
+Base.keys(pd::PlotData2D) = tuple(pd.variable_names...)
+Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
+function Base.iterate(pd::PlotData2D, state=1)
+  if state > length(pd)
+    return nothing
+  else
+    return (pd.variable_names[state] => pd[pd.variable_names[state]], state + 1)
+  end
 end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+Base.show(io::IO, pd::PlotData2D) = print(io, "PlotData2D(...)")
 
 """
     getmesh(pd::PlotData2D)
@@ -143,16 +171,6 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
     This is an experimental feature and may change in future releases.
 """
 getmesh(pd::PlotData2D) = PlotDataSeries2D(pd, "mesh", 0)
- 
-
-# Auxiliary data structure for visualizing a single variable
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-struct PlotDataSeries2D{PD<:PlotData2D}
-  plot_data::PD
-  variable_name::String
-  variable_id::Int
-end
 
 
 # Visualize a single variable in a 2D plot (default: heatmap)
