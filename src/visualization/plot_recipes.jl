@@ -7,15 +7,14 @@ struct PlotData2D{Coordinates, Data, VariableNames, Vertices}
   mesh_vertices_y::Vertices
 end
 
-# Convenience type to allow dispatch on ODESolution objects that were created by Trixi
-const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
-    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_} where
-     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization}}
-
+"""
+    PlotData2D(u, semi;
+               grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+               slice_axis=:z, slice_axis_intercept=0, solution_variables=cons2cons)
+"""
 function PlotData2D(u, semi;
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0,
-                    solution_variables=cons2cons)
+                    slice_axis=:z, slice_axis_intercept=0, solution_variables=cons2cons)
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
 
@@ -41,14 +40,17 @@ end
 PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
+Base.getindex(pd::PlotData2D, variable_name) = PlotDataSeries2D(pd, variable_name)
 
+
+# Auxiliary data structure for visualizing a single variable
 struct PlotDataSeries2D{PD<:PlotData2D}
   plot_data::PD
   variable::String
 end
 
-Base.getindex(pd::PlotData2D, variable_name) = PlotDataSeries2D(pd, variable_name)
 
+# Visualize a single variable in a 2D plot
 @recipe function f(pds::PlotDataSeries2D)
   pd = pds.plot_data
   variable = pds.variable
@@ -88,13 +90,15 @@ Base.getindex(pd::PlotData2D, variable_name) = PlotDataSeries2D(pd, variable_nam
   ()
 end
 
-# Plot all available variables in a grid
+
+# Plot all available variables at once for convenience
 @recipe function f(pd::PlotData2D)
   # Create layout that is as square as possible, with a preference for more columns than rows if not
   cols = ceil(Int, sqrt(length(pd.variable_names)))
   rows = ceil(Int, length(pd.variable_names)/cols)
   layout := (rows, cols)
 
+  # Plot all existing variables
   for (i, variable) in enumerate(pd.variable_names)
     @series begin
       subplot := i
@@ -102,6 +106,7 @@ end
     end
   end
 
+  # Fill remaining subplots with empty plot
   for i in (length(pd.variable_names)+1):(rows*cols)
     @series begin
       subplot := i
@@ -113,7 +118,8 @@ end
   end
 end
 
-# Create a PlotData2D plot from a solution for convenience
+
+# Create a PlotData2D plot directly from an ODESolution for convenience
 @recipe function f(sol::TrixiODESolution;
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0, solution_variables=cons2cons)

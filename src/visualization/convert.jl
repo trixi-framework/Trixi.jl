@@ -1,3 +1,14 @@
+# Extract data from a 2D/3D DG solution and prepare it for visualization as a heatmap/contour plot.
+#
+# Returns a tuple with
+# - x coordinates
+# - y coordinates
+# - nodal 2D data
+# - x vertices for mesh visualization
+# - y vertices for mesh visualization
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, levels, ndims,
                      unstructured_data, n_nodes,
                      grid_lines=false, max_supported_level=11, nvisnodes=nothing,
@@ -61,6 +72,11 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
   return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
 end
 
+
+# Change order of dimensions (variables are now last) and convert data to `solution_variables`
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function get_unstructured_data(u, semi, solution_variables)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 

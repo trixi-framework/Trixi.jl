@@ -1,5 +1,8 @@
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function cell2node(cell_centered_data)
   # Create temporary data structure to make the averaging algorithm as simple
   # as possible (by using a ghost layer)
@@ -52,6 +55,9 @@ end
 # Convert 3d unstructured data to 2d slice.
 # Additional to the new unstructured data updated coordinates, levels and
 # center coordinates are returned.
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
                                length_level_0, center_level_0, slice_axis,
                                slice_axis_intercept)
@@ -172,6 +178,12 @@ end
 
 
 # Interpolate unstructured DG data to structured data (cell-centered)
+#
+# This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformely
+# distributed 2D layout.
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function unstructured2structured(unstructured_data, normalized_coordinates,
                                  levels, resolution, nvisnodes_per_level)
   # Extract data shape information
@@ -224,6 +236,9 @@ end
 
 # For a given normalized element coordinate, return the index of its lower left
 # contribution to the global data structure
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function element2index(normalized_coordinates::AbstractArray{Float64}, levels::AbstractArray{Int},
                        resolution::Int, nvisnodes_per_level::AbstractArray{Int})
   n_elements = length(levels)
@@ -248,6 +263,9 @@ end
 
 
 # Find 2D array index for a 2-tuple of normalized, cell-centered coordinates (i.e., in [-1,1])
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function coordinate2index(coordinate, resolution::Integer)
   # Calculate 1D normalized coordinates
   dx = 2/resolution
@@ -260,6 +278,10 @@ function coordinate2index(coordinate, resolution::Integer)
 end
 
 
+# Interpolate data for plotting
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
   # Get node coordinates for input and output locations on reference element
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
@@ -292,6 +314,10 @@ function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_o
 end
 
 
+# Calculate the vertices for each mesh cell such that it can be visualized as a closed box
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
   ndim = 2 # FIXME
   @assert ndim == 2 "Algorithm currently only works in 2D"
