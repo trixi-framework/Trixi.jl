@@ -62,7 +62,8 @@ function periodic_distance_2d(coordinates, center, domain_length)
   return sqrt(sum(dx_periodic.^2))
 end
 
-#Calculates original coordinates for a cell, so that it fits in a grid where the base_level is 4.
+#This takes a cells coordinates and transforms them into the coordinates of a parent-cell it originally refined from.
+#It does it so that the parent-cell has given cell_length.
 function original_coordinates(coordinates, cell_length)
   offset = coordinates .% cell_length
   offset_sign = sign.(offset)
@@ -122,6 +123,7 @@ amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorSolutionInde
                                       base_level=4,
                                       med_level=5, med_threshold=0.1,
                                       max_level=6, max_threshold=0.6)
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
