@@ -37,8 +37,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.06806352260167653])
   end
 
-  @testset "elixir_advection_amr_coarsen_once.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_once.jl"),
+  @testset "elixir_advection_amr_coarsen_twice.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
       l2   = [0.15508361792066527],
       linf = [0.598846070046205])
   end
@@ -77,6 +77,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       l2   = [8.517783186497567e-7, 1.2350199409361865e-6, 1.2350199409828616e-6, 4.277884398786315e-6],
       linf = [8.357934254688004e-6, 1.0326389653148027e-5, 1.0326389654924384e-5, 4.4961900057316484e-5],
       rtol = 2000*sqrt(eps()))
+  end
+
+  # This example file is only for testing purposes and has no practical use
+  @testset "elixir_euler_source_terms_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr.jl"),
+      l2   = [5.054610689084266e-5, 4.1292984615076345e-5, 4.129298461525107e-5, 0.00012166584022297836],
+      linf = [0.00036520888680691144, 0.00029957662372082083, 0.0002995766237181563, 0.0011499261044116693])
   end
 
   @testset "elixir_euler_density_wave.jl" begin
