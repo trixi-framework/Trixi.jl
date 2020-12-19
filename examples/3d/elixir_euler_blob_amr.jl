@@ -49,7 +49,7 @@ save_solution = SaveSolutionCallback(interval=200,
                                      solution_variables=cons2prim)
 
 amr_indicator = IndicatorLöhner(semi,
-                                variable=density)
+                                variable=Trixi.density)
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level=1,
                                       med_level =0, med_threshold=0.1, # med_level = current level
@@ -68,7 +68,7 @@ callbacks = CallbackSet(summary_callback,
 
 
 limiter! = PositivityPreservingLimiterZhangShu(thresholds=(1.0e-4, 1.0e-4),
-                                               variables=(density, pressure))
+                                               variables=(Trixi.density, pressure))
 stage_limiter! = limiter!
 step_limiter!  = limiter!
 

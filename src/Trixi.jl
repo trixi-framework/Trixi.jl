@@ -17,11 +17,11 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot
+using LinearAlgebra: dot, mul!
 using Printf: @printf, @sprintf, println
 
-import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!,
-                   get_proposed_dt
+import DiffEqBase: ODEProblem, ODESolution, get_du, get_tmp_cache, u_modified!,
+                   set_proposed_dt!, terminate!, get_proposed_dt
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes
@@ -68,7 +68,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
-       LatticeBoltzmannEquations2D
+       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
        flux_chandrashekar, flux_chandrashekar_stable, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
@@ -83,8 +83,8 @@ export initial_condition_constant,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble
-
+       initial_condition_shock_bubble,
+       initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
