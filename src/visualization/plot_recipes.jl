@@ -45,6 +45,9 @@ When visualizing data from a three-dimensional simulation, a 2D slice is extract
 point on the slice axis where it intersects with the slice plane is given in `slice_axis_intercept`.
 Both of these values are ignored when visualizing 2D data.
 
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
 # Examples
 ```julia
 julia> using Trixi, Plots
@@ -59,7 +62,7 @@ julia> plot(pd) # To plot all available variables
 
 julia> plot(pd["scalar"]) # To plot only a single variable
 
-julia> plot!(pd["mesh"]) # To add mesh lines to the plot
+julia> plot!(getmesh(pd)) # To add grid lines to the plot
 """
 function PlotData2D(u, semi;
                     solution_variables=cons2cons,
@@ -92,6 +95,9 @@ end
 
 Create a `PlotData2D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
 `semi`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
 
@@ -99,25 +105,44 @@ PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode
     PlotData2D(sol::TrixiODESolution; kwargs...)
 
 Create a `PlotData2D` object from an `ODESolution` created by Trixi.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
+"""
+    Base.getindex(pd::PlotData2D, variable_name)
+
+Extract a single variable `variable_name` from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function Base.getindex(pd::PlotData2D, variable_name)
-  if variable_name == "mesh"
-    variable_id = 0
-  else
-    variable_id = findfirst(isequal(variable_name), pd.variable_names)
-    if isnothing(variable_id)
-      throw(KeyError(variable_name))
-    end
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
   end
 
-  PlotDataSeries2D(pd, variable_name, variable_id)
+  return PlotDataSeries2D(pd, variable_name, variable_id)
 end
 
+# Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2D)
   print(io, "PlotData2D(...)")
 end
+
+"""
+    getmesh(pd::PlotData2D)
+
+Extract grid lines from `pd` for plotting with `Plots.plot`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+getmesh(pd::PlotData2D) = PlotDataSeries2D(pd, "mesh", 0)
  
 
 # Auxiliary data structure for visualizing a single variable
@@ -207,8 +232,7 @@ end
                    slice_axis_intercept=0)
   return PlotData2D(sol;
                     solution_variables=solution_variables,
-                    grid_lines=grid_lines, max_supported_level=max_supported_level,
-                    nvisnodes=nvisnodes, slice_axis=slice_axis,
+                    grid_lines=grid_lines, max_supported_level=max_supported_level, nvisnodes=nvisnodes, slice_axis=slice_axis,
                     slice_axis_intercept=slice_axis_intercept)
 end
 
