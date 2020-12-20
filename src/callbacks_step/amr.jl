@@ -350,12 +350,10 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
     init_interfaces!(interfaces, elements, mesh)
 
-    if mpi_isparallel()
-      # re-initialize mpi_interfaces container
-      @unpack mpi_interfaces = cache
-      resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
-      init_mpi_interfaces!(mpi_interfaces, elements, mesh)
-    end
+    # re-initialize mpi_interfaces container
+    @unpack mpi_interfaces = cache
+    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
 
     # re-initialize boundaries container
     @unpack boundaries = cache
@@ -367,11 +365,9 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     resize!(mortars, count_required_mortars(mesh, leaf_cell_ids))
     init_mortars!(mortars, elements, mesh)
 
-    if mpi_isparallel()
-      # re-initialize mpi cache
-      @unpack mpi_cache = cache
-      init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
-    end
+    # re-initialize mpi cache
+    @unpack mpi_cache = cache
+    init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
   end
 
   # Return true if there were any cells coarsened or refined, otherwise false
