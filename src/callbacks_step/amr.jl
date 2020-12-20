@@ -82,6 +82,18 @@ function Base.show(io::IO, mime::MIME"text/plain", cb::DiscreteCallback{Conditio
 end
 
 
+# The function below is used to control the output depending on whether or not AMR is enabled.
+"""
+    uses_amr(callback)
+
+Checks whether the provided callback or `CallbackSet` is an [`AMRCallback`](@ref)
+or contains one.
+"""
+uses_amr(cb) = false
+uses_amr(cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AMRCallback} = true
+uses_amr(callbacks::CallbackSet) = mapreduce(uses_amr, |, callbacks.discrete_callbacks)
+
+
 function get_element_variables!(element_variables, u, mesh, equations, solver, cache,
                                 amr_callback::AMRCallback; kwargs...)
   get_element_variables!(element_variables, u, mesh, equations, solver, cache,
@@ -171,7 +183,16 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   lambda = @timeit_debug timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                         t=t, iter=iter)
 
-  leaf_cell_ids = local_leaf_cells(mesh.tree)
+  if mpi_isparallel()
+    # Collect lambda for all elements
+    lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+    # Use parent because n_elements_by_rank is an OffsetArray
+    recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
+    MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
+    lambda = lambda_global
+  end
+
+  leaf_cell_ids = leaf_cells(mesh.tree)
   @boundscheck begin
    @assert axes(lambda) == axes(leaf_cell_ids) ("Indicator (axes = $(axes(lambda))) and leaf cell (axes = $(axes(leaf_cell_ids))) arrays have different axes")
   end
@@ -179,7 +200,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
   @unpack to_refine, to_coarsen = amr_callback.amr_cache
   empty!(to_refine)
   empty!(to_coarsen)
-  for element in eachelement(dg, cache)
+  for element in 1:length(lambda)
     controller_value = lambda[element]
     if controller_value > 0
       push!(to_refine, leaf_cell_ids[element])

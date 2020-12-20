@@ -160,8 +160,8 @@ end
 end
 
 
-@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity)
-  calc_error_norms(func, u, t, analyzer, semi.semi_euler)
+@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity, cache_analysis)
+  calc_error_norms(func, u, t, analyzer, semi.semi_euler, cache_analysis)
 end
 
 

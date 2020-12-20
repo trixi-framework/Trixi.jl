@@ -3,21 +3,20 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the compressible Euler multicomponent equations
+equations = CompressibleEulerMulticomponentEquations2D()
 
-equations = CompressibleEulerEquations3D(1.4)
+initial_condition = initial_condition_weak_blast_wave
 
-initial_condition = initial_condition_taylor_green_vortex
-
-surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
+surface_flux = flux_chandrashekar
+volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
-coordinates_min = (-pi, -pi, -pi)
-coordinates_max = ( pi,  pi,  pi)
+coordinates_min = (-2, -2)
+coordinates_max = ( 2,  2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=100_000)
+                initial_refinement_level=5,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -26,7 +25,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10.0)
+tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -42,9 +41,9 @@ save_restart = SaveRestartCallback(interval=100,
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=cons2prim)
+                                     solution_variables=:primitive)
 
-stepsize_callback = StepsizeCallback(cfl=1.4)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback, 
