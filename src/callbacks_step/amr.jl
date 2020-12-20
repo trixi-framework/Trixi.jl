@@ -211,6 +211,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
 
   @timeit_debug timer() "refine" if !only_coarsen && !isempty(to_refine)
+    @info "Refine from" mesh.tree.levels[to_refine[1]]
     # refine mesh
     refined_original_cells = @timeit_debug timer() "mesh" refine!(mesh.tree, to_refine)
 
@@ -226,6 +227,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
 
   @timeit_debug timer() "coarsen" if !only_refine && !isempty(to_coarsen)
+    @info "Coarsen from" mesh.tree.levels[to_coarsen[1]]
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -282,16 +284,17 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     coarsened_original_cells = Int[]
   end
 
-  # Return true if there were any cells coarsened or refined, otherwise false
+  # Store whether there were any cells coarsened or refined
   has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
   if has_changed # TODO: Taal decide, where shall we set this?
     # don't set it to has_changed since there can be changes from earlier calls
     mesh.unsaved_changes = true
   end
 
-  if has_changed && mpi_isparallel()
+  # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
+  @timeit_debug timer() "dynamic load balancing" if has_changed && mpi_isparallel()
     old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
-    # Load balancing
+
     partition!(mesh)
 
     # Retain current solution data
@@ -315,7 +318,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
       # Find elements that will change their rank and send their data to the new rank
       for old_element_id in 1:old_n_elements
         cell_id = old_cell_ids[old_element_id]
-        if cell_id ∉ leaf_cell_ids
+        if !(cell_id in leaf_cell_ids)
           # Send element data to new rank, use cell_id as tag (non-blocking)
           dest = mesh.tree.mpi_ranks[cell_id]
           MPI.Isend(vec(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
@@ -324,16 +327,16 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
       # Loop over all elements in new container and either copy them from old container 
       # or receive them with MPI
-      for element_id in 1:nelements(dg, cache)
-        cell_id = elements.cell_ids[element_id]
+      for element in eachelement(dg, cache)
+        cell_id = elements.cell_ids[element]
         if cell_id in old_cell_ids
           old_element_id = searchsortedfirst(old_cell_ids, cell_id)
           # Copy old element data to new element container
-          @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+          @views u[:, .., element] .= old_u[:, .., old_element_id]
         else
           # Receive old element data
           src = old_mpi_ranks_per_cell[cell_id]
-          MPI.Recv!(@view(u[:, .., element_id]), src, cell_id, mpi_comm())
+          MPI.Recv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
         end
       end
     end # GC.@preserve old_u_ode
@@ -367,6 +370,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     end
   end
 
+  # Return true if there were any cells coarsened or refined, otherwise false
   return has_changed
 end
 
