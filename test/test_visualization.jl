@@ -12,7 +12,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 # Run various visualization tests
 @testset "Visualization tests" begin
   # Run Trixi
-  @test_nowarn trixi_include(joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
+  @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
                              tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
@@ -25,20 +25,23 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
 
     # getindex
-    @test pd["rho"] == PlotDataSeries2D(pd, 1)
-    @test pd["v1"] == PlotDataSeries2D(pd, 2)
-    @test pd["v2"] == PlotDataSeries2D(pd, 3)
-    @test pd["p"] == PlotDataSeries2D(pd, 4)
+    @test pd["rho"] == Trixi.PlotDataSeries2D(pd, 1)
+    @test pd["v1"] == Trixi.PlotDataSeries2D(pd, 2)
+    @test pd["v2"] == Trixi.PlotDataSeries2D(pd, 3)
+    @test pd["p"] == Trixi.PlotDataSeries2D(pd, 4)
     @test_throws KeyError pd["does not exist"]
 
     # convenience methods for mimicking a dictionary
-    @test pd[begin] == "rho"
-    @test pd[end] == "p"
+    @test pd[begin] == Trixi.PlotDataSeries2D(pd, 1)
+    @test pd[end] == Trixi.PlotDataSeries2D(pd, 4)
     @test length(pd) == 4
     @test size(pd) == (4,)
     @test keys(pd) == ("rho", "v1", "v2", "p")
-    @test eltype(pd) == Pair{String, PlotDataSeries2D}
-    @test [v for v in pd] == ["rho", "v1", "v2", "p"]
+    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries2D}
+    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries2D(pd, 1),
+                              "v1" => Trixi.PlotDataSeries2D(pd, 2),
+                              "v2" => Trixi.PlotDataSeries2D(pd, 3),
+                              "p" => Trixi.PlotDataSeries2D(pd, 4)]
 
     # PlotDataSeries2D
     pds = pd["p"]
@@ -48,7 +51,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
 
     # getmesh/PlotMesh2D
-    @test getmesh(pd) == PlotMesh2D(pd)
+    @test getmesh(pd) == Trixi.PlotMesh2D(pd)
     @test getmesh(pd).plot_data == pd
     @test_nowarn show(stdout, getmesh(pd))
     println(stdout)
@@ -57,15 +60,15 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), sol) isa Vector{RecipesBase.Recipedata}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd) isa Vector{RecipesBase.Recipedata}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd["p"]) isa Vector{RecipesBase.Recipedata}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), getmesh(pd)) isa Vector{RecipesBase.Recipedata}
+    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), sol) isa Vector{RecipesBase.RecipeData}
+    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd) isa Vector{RecipesBase.RecipeData}
+    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd["p"]) isa Vector{RecipesBase.RecipeData}
+    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), getmesh(pd)) isa Vector{RecipesBase.RecipeData}
   end
 
   @testset "plot 3D" begin
-    @test_nowarn trixi_include(joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
-                              tspan=(0,0.1))
+    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
+                               tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 end
