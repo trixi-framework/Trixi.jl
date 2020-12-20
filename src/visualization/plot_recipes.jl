@@ -124,7 +124,10 @@ struct PlotDataSeries2D{PD<:PlotData2D}
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-Base.show(io::IO, ::PlotDataSeries2D) = print(io, "PlotDataSeries2D(...)")
+function Base.show(io::IO, pds::PlotDataSeries2D)
+  print(io, "PlotDataSeries2D{" * string(typeof(pds.plot_data)) *
+            "}(<plot_data::PlotData2D>, " * string(pds.variable_id) * ")")
+end
 
 """
     Base.getindex(pd::PlotData2D, variable_name)
@@ -160,7 +163,14 @@ function Base.iterate(pd::PlotData2D, state=1)
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-Base.show(io::IO, pd::PlotData2D) = print(io, "PlotData2D(...)")
+function Base.show(io::IO, pd::PlotData2D)
+  params = (string(typeof(pd.x)) * "," *
+            string(typeof(pd.data)) * "," *
+            string(typeof(pd.variable_names)) * "," *
+            string(typeof(pd.mesh_vertices_x)))
+  print(io, "PlotData2D{" * params *
+            "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
+end
 
 # Auxiliary data structure for visualizing the mesh
 #
@@ -170,7 +180,9 @@ struct PlotMesh2D{PD<:PlotData2D}
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-Base.show(io::IO, ::PlotMesh2D) = print(io, "PlotMesh2D(...)")
+function Base.show(io::IO, pm::PlotMesh2D)
+  print(io, "PlotMesh2D{" * string(typeof(pm.plot_data)) * "}(<plot_data::PlotData2D>)")
+end
 
 """
     getmesh(pd::PlotData2D)
