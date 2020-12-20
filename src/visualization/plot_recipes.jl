@@ -27,7 +27,7 @@ end
 
 """
     PlotData2D(u, semi;
-               solution_variables=cons2cons,
+               solution_variables=cons2prim,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                slice_axis=:z, slice_axis_intercept=0)
 
@@ -68,7 +68,7 @@ julia> plot(pd["scalar"]) # To plot only a single variable
 julia> plot!(getmesh(pd)) # To add grid lines to the plot
 """
 function PlotData2D(u, semi;
-                    solution_variables=cons2cons,
+                    solution_variables=cons2prim,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice_axis=:z, slice_axis_intercept=0)
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
@@ -200,7 +200,7 @@ getmesh(pd::PlotData2D) = PlotMesh2D(pd)
   colorbar --> :true
 
   # Set series properties
-  seriestype := :heatmap
+  seriestype --> :heatmap
 
   # Return data for plotting
   x, y, data[variable_id]
@@ -263,8 +263,11 @@ end
 # Create a PlotData2D plot directly from an ODESolution for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
+#
+# Note: If you change the defaults values here, you need to also change them in the PlotData2D
+#       constructor.
 @recipe function f(sol::TrixiODESolution;
-                   solution_variables=cons2cons,
+                   solution_variables=cons2prim,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
   return PlotData2D(sol;
