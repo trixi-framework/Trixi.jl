@@ -66,6 +66,7 @@ julia> plot(pd) # To plot all available variables
 julia> plot(pd["scalar"]) # To plot only a single variable
 
 julia> plot!(getmesh(pd)) # To add grid lines to the plot
+```
 """
 function PlotData2D(u, semi;
                     solution_variables=cons2prim,
