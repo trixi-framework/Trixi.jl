@@ -119,7 +119,6 @@ PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p
 # Note: This is an experimental feature and may be changed in future releases without notice.
 struct PlotDataSeries2D{PD<:PlotData2D}
   plot_data::PD
-  variable_name::String
   variable_id::Int
 end
 
@@ -141,7 +140,7 @@ function Base.getindex(pd::PlotData2D, variable_name)
     throw(KeyError(variable_name))
   end
 
-  return PlotDataSeries2D(pd, variable_name, variable_id)
+  return PlotDataSeries2D(pd, variable_id)
 end
 
 # Define additional methods for convenience
@@ -162,6 +161,16 @@ end
 # Show only a truncated output for convenience (the full data does not make sense)
 Base.show(io::IO, pd::PlotData2D) = print(io, "PlotData2D(...)")
 
+# Auxiliary data structure for visualizing the mesh
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+struct PlotMesh2D{PD<:PlotData2D}
+  plot_data::PD
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+Base.show(io::IO, ::PlotMesh2D) = print(io, "PlotMesh2D(...)")
+
 """
     getmesh(pd::PlotData2D)
 
@@ -170,44 +179,54 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-getmesh(pd::PlotData2D) = PlotDataSeries2D(pd, "mesh", 0)
+getmesh(pd::PlotData2D) = PlotMesh2D(pd)
 
 
 # Visualize a single variable in a 2D plot (default: heatmap)
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pds::PlotDataSeries2D)
-  pd = pds.plot_data
-  variable_name = pds.variable_name
-  variable_id = pds.variable_id
+  @unpack plot_data, variable_id = pds
+  @unpack x, y, data, variable_names = plot_data
+
+  # Set geometric properties
+  xlims --> (x[begin], x[end])
+  ylims --> (y[begin], y[end])
+  aspect_ratio --> :equal
+
+  # Set annotation properties
+  legend -->  :none
+  title --> variable_names[variable_id]
+  colorbar --> :true
+
+  # Set series properties
+  seriestype := :heatmap
+
+  # Return data for plotting
+  x, y, data[variable_id]
+end
 
 
-  xlims --> (pd.x[begin], pd.x[end])
-  ylims --> (pd.y[begin], pd.y[end])
+# Visualize the mesh in a 2D plot
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+@recipe function f(pm::PlotMesh2D)
+  @unpack plot_data = pm
+  @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
+
+  # Set geometric and annotation properties
+  xlims --> (x[begin], x[end])
+  ylims --> (y[begin], y[end])
   aspect_ratio --> :equal
   legend -->  :none
 
-  # Add data series
-  if pds.variable_name == "mesh"
-    @series begin
-      seriestype := :path
-      linecolor := :black
-      linewidth := 1
-      pd.mesh_vertices_x, pd.mesh_vertices_y
-    end
-  else
-    title --> pds.variable_name
-    colorbar --> :true
+  # Set series properties
+  seriestype := :path
+  linecolor := :black
+  linewidth := 1
 
-    @series begin
-      seriestype := :heatmap
-      fill --> true
-      linewidth --> 0
-      pd.x, pd.y, pd.data[variable_id]
-    end
-  end
-
-  ()
+  # Return data for plotting
+  mesh_vertices_x, mesh_vertices_y
 end
 
 
