@@ -137,9 +137,8 @@ and generate a heatmap plot of the results with
 julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
-**FIXME: Update image**
 <p align="center">
-  <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
+  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102710450-aed8fc80-42b2-11eb-9266-46544babeefd.png">
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
