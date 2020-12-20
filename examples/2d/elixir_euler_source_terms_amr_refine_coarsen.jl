@@ -10,22 +10,21 @@ module TrixiExtensionEulerAMR
 
 using Trixi
 
-struct IndicatorAlwaysCoarsen{Cache<:NamedTuple} <: Trixi.AbstractIndicator
+struct IndicatorRefineCoarsen{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
 
-function IndicatorAlwaysCoarsen(semi)
+function IndicatorRefineCoarsen(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
 
-  return IndicatorAlwaysCoarsen{typeof(cache)}(cache)
+  return IndicatorRefineCoarsen{typeof(cache)}(cache)
 end
 
-function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
+function (indicator::IndicatorRefineCoarsen)(u::AbstractArray{<:Any,4},
                                              equations, dg, cache;
                                              t, kwargs...)
-  println(t)
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
 
@@ -86,7 +85,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtensionEulerAMR.IndicatorAlwaysCoarsen(semi),
+amr_controller = ControllerThreeLevel(semi, TrixiExtensionEulerAMR.IndicatorRefineCoarsen(semi),
                                       base_level=3, max_level=6,
                                       med_threshold=0.1, max_threshold=0.6)
 
