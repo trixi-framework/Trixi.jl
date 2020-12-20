@@ -211,7 +211,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
 
   @timeit_debug timer() "refine" if !only_coarsen && !isempty(to_refine)
-    @info "Refine from" mesh.tree.levels[to_refine[1]]
     # refine mesh
     refined_original_cells = @timeit_debug timer() "mesh" refine!(mesh.tree, to_refine)
 
@@ -227,7 +226,6 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
 
   @timeit_debug timer() "coarsen" if !only_refine && !isempty(to_coarsen)
-    @info "Coarsen from" mesh.tree.levels[to_coarsen[1]]
     # Since the cells may have been shifted due to refinement, first we need to
     # translate the old cell ids to the new cell ids
     if !isempty(to_coarsen)
@@ -315,13 +313,16 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
       resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
       u = wrap_array(u_ode, mesh, equations, dg, cache)
 
+      reqs = Vector{MPI.Request}()
+
       # Find elements that will change their rank and send their data to the new rank
       for old_element_id in 1:old_n_elements
         cell_id = old_cell_ids[old_element_id]
         if !(cell_id in leaf_cell_ids)
           # Send element data to new rank, use cell_id as tag (non-blocking)
           dest = mesh.tree.mpi_ranks[cell_id]
-          MPI.Isend(vec(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
+          req = MPI.Isend(vec(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
+          push!(reqs, req)
         end
       end
 
@@ -336,9 +337,12 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         else
           # Receive old element data
           src = old_mpi_ranks_per_cell[cell_id]
-          MPI.Recv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
+          req = MPI.Irecv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
+          push!(reqs, req)
         end
       end
+
+      MPI.Waitall!(reqs)
     end # GC.@preserve old_u_ode
 
     # re-initialize interfaces container
