@@ -55,11 +55,11 @@ The default plot type and style can be overridden by passing any additional
 arguments that are understood by the Plots package. For example, to change the
 color scheme and add names to the axes, modify the previous command to
 ```julia
-julia> plot(pd["rho"], seriescolor = :rainbow, xguide="x", yguide="y")
+julia> plot(pd["rho"], seriescolor = :heat, xguide="x", yguide="y")
 ```
 to yield
 
-![plot-rho-modified](https://user-images.githubusercontent.com/3637659/102711628-9a4d3200-42bb-11eb-8b63-bc3b22b92b2e.png)
+![plot-rho-modified](https://user-images.githubusercontent.com/3637659/102724842-d8c20b80-4312-11eb-87db-b3ab22e74568.png)
 
 For more details on the various format options for `plot`, please consult the
 [Plots documentation](https://docs.juliaplots.org/latest/).
@@ -71,7 +71,7 @@ julia> plot!(getmesh(pd)) # here we use `plot!` with an `!` to add to the previo
 ```
 which modifies the previous plot to
 
-![plot-rho-modified-mesh](https://user-images.githubusercontent.com/3637659/102711636-9e794f80-42bb-11eb-9ded-d35d46e1eb52.png)
+![plot-rho-modified-mesh](https://user-images.githubusercontent.com/3637659/102724856-e1b2dd00-4312-11eb-83ae-e470c32f9008.png)
 
 By default, `PlotData2D` will convert the conserved variables to primitive
 variables, but this can changed by passing an appropriate conversion function in
