@@ -54,10 +54,10 @@ with Julia v1.5.
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
 can install Trixi, the visualization tool
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl), and the
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
-packages by executing the following commands in the Julia REPL:
+by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
