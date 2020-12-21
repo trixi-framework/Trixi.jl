@@ -45,7 +45,7 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   P4est.p4est_iterate( p4est,  C_NULL, C_NULL, CvolumeIterate, C_NULL, C_NULL)
 
   recursive = 0
-  allowed_level = 8 #P4est.P4EST_QMAXLEVEL
+  allowed_level = parameter("max_refinement_level") #P4est.P4EST_QMAXLEVEL
   #  * # 1. Call p4est with coarse and refine 
   p4est.user_pointer = pointer(to_refine_to_coarse)
   refine_fn = @cfunction(refine_function, Cint, (Ptr{P4est.p4est_t}, P4est.p4est_topidx_t,  
@@ -230,8 +230,10 @@ function adapt!(mesh::TreeMesh, solver::AbstractSolver, time;
   @show check
   @show mesh.tree.forestchecksum
   mesh_changed = check != mesh.tree.forestchecksum
+  mesh.tree.forestchecksum = check
   @show mesh_changed
-  return false
+  # return false
+  return mesh_changed
   # Return true if there were any cells coarsened or refined, otherwise false
   return !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
 end

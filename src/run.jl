@@ -142,23 +142,23 @@ function init_simulation()
     mpi_println("done")
 
     # If AMR is enabled, adapt mesh and re-apply ICs
-    # if amr_interval > 0 && adapt_initial_conditions
-    #   @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-    #       only_refine=adapt_initial_conditions_only_refine)
+    if amr_interval > 0 && adapt_initial_conditions
+      @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+          only_refine=adapt_initial_conditions_only_refine)
 
-    #   # Iterate until mesh does not change anymore
-    #   # while has_changed
-    #     # set_initial_conditions!(solver, time)
-    #     # @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
-    #     #     only_refine=adapt_initial_conditions_only_refine)
+      # Iterate until mesh does not change anymore
+      while has_changed
+        set_initial_conditions!(solver, time)
+        @timeit timer() "initial condition AMR" has_changed = adapt!(mesh, solver, time,
+            only_refine=adapt_initial_conditions_only_refine)
+      end
 
-    #         # end
-
-    #   # Save mesh file
-    #   mesh.current_filename = save_mesh_file(mesh)
-    #   mesh.unsaved_changes = false
-    # end
+      # Save mesh file
+      mesh.current_filename = save_mesh_file(mesh)
+      mesh.unsaved_changes = false
+    end
   end
+
   t_end = parameter("t_end")
 
   # Init time integration
