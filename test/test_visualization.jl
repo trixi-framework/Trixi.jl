@@ -60,6 +60,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
+    # Add dummy method implementation to avoid errors when Plots.jl is not loaded
+    RecipesBase.is_key_supported(k::Symbol) = true
     @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), sol) isa Vector{RecipesBase.RecipeData}
     @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd) isa Vector{RecipesBase.RecipeData}
     @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd["p"]) isa Vector{RecipesBase.RecipeData}
