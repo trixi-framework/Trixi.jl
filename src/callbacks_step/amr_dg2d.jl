@@ -1,6 +1,12 @@
 # Redistribute data for load balancing after partitioning the mesh
-function redistribute_data!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, 
+function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, 
                             dg::DGSEM, cache, old_mpi_ranks_per_cell)
+  if cache.elements.cell_ids == local_leaf_cells
+    # Cell ids of the current elements are the same as the local leaf cells of the
+    # newly partitioned mesh, so the solver doesn't need to be rebalanced on this rank.
+    return
+  end
+  
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_cell_ids = copy(cache.elements.cell_ids)
@@ -9,7 +15,6 @@ function redistribute_data!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
-    @unpack elements = cache
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -17,37 +22,40 @@ function redistribute_data!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     # Get new list of leaf cells
     leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-    # Collect MPI requests for MPI_Waitall
-    reqs = Vector{MPI.Request}()
+    @timeit_debug timer() "exchange data" begin
+      # Collect MPI requests for MPI_Waitall
+      requests = Vector{MPI.Request}()
 
-    # Find elements that will change their rank and send their data to the new rank
-    for old_element_id in 1:old_n_elements
-      cell_id = old_cell_ids[old_element_id]
-      if !(cell_id in leaf_cell_ids)
-        # Send element data to new rank, use cell_id as tag (non-blocking)
-        dest = mesh.tree.mpi_ranks[cell_id]
-        req = MPI.Isend(vec(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
-        push!(reqs, req)
+      # Find elements that will change their rank and send their data to the new rank
+      for old_element_id in 1:old_n_elements
+        cell_id = old_cell_ids[old_element_id]
+        if !(cell_id in leaf_cell_ids)
+          # Send element data to new rank, use cell_id as tag (non-blocking)
+          dest = mesh.tree.mpi_ranks[cell_id]
+          request = MPI.Isend(@view(old_u[:, .., old_element_id]), dest, cell_id, mpi_comm())
+          push!(requests, request)
+        end
       end
-    end
 
-    # Loop over all elements in new container and either copy them from old container 
-    # or receive them with MPI
-    for element in eachelement(dg, cache)
-      cell_id = elements.cell_ids[element]
-      if cell_id in old_cell_ids
-        old_element_id = searchsortedfirst(old_cell_ids, cell_id)
-        # Copy old element data to new element container
-        @views u[:, .., element] .= old_u[:, .., old_element_id]
-      else
-        # Receive old element data
-        src = old_mpi_ranks_per_cell[cell_id]
-        req = MPI.Irecv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
-        push!(reqs, req)
+      # Loop over all elements in new container and either copy them from old container 
+      # or receive them with MPI
+      for element in eachelement(dg, cache)
+        cell_id = cache.elements.cell_ids[element]
+        if cell_id in old_cell_ids
+          old_element_id = searchsortedfirst(old_cell_ids, cell_id)
+          # Copy old element data to new element container
+          @views u[:, .., element] .= old_u[:, .., old_element_id]
+        else
+          # Receive old element data
+          src = old_mpi_ranks_per_cell[cell_id]
+          request = MPI.Irecv!(@view(u[:, .., element]), src, cell_id, mpi_comm())
+          push!(requests, request)
+        end
       end
-    end
 
-    MPI.Waitall!(reqs)
+      # Wait for all non-blocking MPI send/receive operations to finish
+      MPI.Waitall!(requests)
+    end
   end # GC.@preserve old_u_ode
 end
 
@@ -66,13 +74,6 @@ function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache
   resize!(interfaces, count_required_interfaces(mesh, leaf_cell_ids))
   init_interfaces!(interfaces, elements, mesh)
 
-  if mpi_isparallel()
-    # re-initialize mpi_interfaces container
-    @unpack mpi_interfaces = cache
-    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
-    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
-  end
-
   # re-initialize boundaries container
   @unpack boundaries = cache
   resize!(boundaries, count_required_boundaries(mesh, leaf_cell_ids))
@@ -84,6 +85,11 @@ function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache
   init_mortars!(mortars, elements, mesh)
 
   if mpi_isparallel()
+    # re-initialize mpi_interfaces container
+    @unpack mpi_interfaces = cache
+    resize!(mpi_interfaces, count_required_mpi_interfaces(mesh, leaf_cell_ids))
+    init_mpi_interfaces!(mpi_interfaces, elements, mesh)
+
     # re-initialize mpi cache
     @unpack mpi_cache = cache
     init_mpi_cache!(mpi_cache, mesh, elements, mpi_interfaces, nvariables(equations), nnodes(dg))
@@ -113,7 +119,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
-    @unpack elements = cache
     
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
@@ -236,7 +241,6 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
     reinitialize_containers!(mesh, equations, dg, cache)
-    @unpack elements = cache
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
