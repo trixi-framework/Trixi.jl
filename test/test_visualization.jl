@@ -61,10 +61,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
-    @test_nowarn plot(sol);
-    @test_nowarn plot(pd);
-    @test_nowarn plot(pd["p"]);
-    @test_nowarn plot(getmesh(pd));
+    @test_nowarn plot(sol)
+    @test_nowarn plot(pd)
+    @test_nowarn plot(pd["p"])
+    @test_nowarn plot(getmesh(pd))
   end
 
   @testset "plot 3D" begin
@@ -75,7 +75,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "plotting TimeIntegratorSolution" begin
     @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
-    @test_nowarn plot(sol);
+    @test_nowarn plot(sol)
   end
 end
 
