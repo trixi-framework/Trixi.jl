@@ -25,6 +25,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Compressible Euler
   include("test_examples_2d_euler.jl")
 
+  # Compressible Euler Multicomponent
+  include("test_examples_2d_eulermulti.jl")
+
   # MHD
   include("test_examples_2d_mhd.jl")
 

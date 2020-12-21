@@ -4,6 +4,6 @@ Trixi2Img = "821991e7-028e-4e54-884c-f74f8833bc95"
 Trixi2Vtk = "bc1476a1-1ca6-4cc3-950b-c312b255ff95"
 
 [compat]
-Documenter = "0.25"
+Documenter = "0.26"
 Trixi2Img = "0.2"
 Trixi2Vtk = "0.2"

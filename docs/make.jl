@@ -1,5 +1,6 @@
 using Documenter
 import Pkg
+using Trixi
 using Trixi2Vtk
 using Trixi2Img
 
@@ -11,17 +12,8 @@ authors_text = read(joinpath(trixi_root_dir, "AUTHORS.md"), String)
 authors_text = replace(authors_text, "in the [LICENSE.md](LICENSE.md) file" => "under [License](@ref)")
 write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 
-# Install dependencies and import modules...
-# ...Trixi
-Pkg.activate(trixi_root_dir)
-Pkg.instantiate()
-import Trixi
-
 # Define module-wide setups such that the respective modules are available in doctests
-DocMeta.setdocmeta!(Trixi,
-                    :DocTestSetup,
-                    :(push!(LOAD_PATH, ".."); using Trixi);
-                    recursive=true)
+DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
 DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
 DocMeta.setdocmeta!(Trixi2Img, :DocTestSetup, :(using Trixi2Img); recursive=true)
 
@@ -49,6 +41,7 @@ makedocs(
         "Development" => "development.md",
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
+        "Testing" => "testing.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
         "Reference" => [

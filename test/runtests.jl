@@ -33,7 +33,7 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"
-    include("test_manual.jl")
+    include("test_unit.jl")
     include("test_special_elixirs.jl")
   end
 

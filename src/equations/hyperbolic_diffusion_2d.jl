@@ -62,25 +62,30 @@ end
 end
 
 
-function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  if t == 0.0
-    phi = 1.0
-    q1  = 1.0
-    q2  = 1.0
+@inline function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
+  if iszero(t)
+    T = eltype(x)
+    phi = one(T)
+    q1  = one(T)
+    q2  = one(T)
   else
-    phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-    q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-    q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
+    # TODO: sincospi
+    sinpi_x1,  cospi_x1  = sincos(pi*x[1])
+    sinpi_2x2, cospi_2x2 = sincos(pi*2*x[2])
+    phi =  2 *      cospi_x1 * sinpi_2x2 + 2 # ϕ
+    q1  = -2 * pi * sinpi_x1 * sinpi_2x2     # ϕ_x
+    q2  =  4 * pi * cospi_x1 * cospi_2x2     # ϕ_y
   end
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
+  # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
   # analytical solution: ϕ = 2cos(πx)sin(2πy) + 2 and f = 10π^2cos(πx)sin(2πy)
   @unpack inv_Tr = equations
 
+  # TODO: sincospi
   x1, x2 = x
   du1 = 10 * pi^2 * cospi(x1) * sinpi(2 * x2)
   du2 = -inv_Tr * u[2]
@@ -89,14 +94,11 @@ end
   return SVector(du1, du2, du3)
 end
 
-function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction, x, t,
-                                                 surface_flux_function,
-                                                 equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  phi = 2.0*cos(pi*x[1])*sin(2.0*pi*x[2]) + 2.0 # ϕ
-  q1  = -2.0*pi*sin(pi*x[1])*sin(2.0*pi*x[2])   # ϕ_x
-  q2  = 4.0*pi*cos(pi*x[1])*cos(2.0*pi*x[2])    # ϕ_y
-  u_boundary = @SVector [phi, q1, q2]
+@inline function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction, x, t,
+                                                        surface_flux_function,
+                                                        equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = f in Ω, u = g on ∂Ω
+  u_boundary = initial_condition_poisson_nonperiodic(x, one(t), equations)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -109,17 +111,24 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
 end
 
 
-function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
+@inline function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = 0 in Ω, u = g on ∂Ω
   if t == 0.0
     phi = 1.0
     q1  = 1.0
     q2  = 1.0
   else
-    C   = 1.0/sinh(pi)
-    phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-    q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-    q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
+    C   = inv(sinh(pi))
+    # TODO: sincospi
+    sinpi_x1, cospi_x1 = sincos(pi*x[1])
+    sinpi_x2, cospi_x2 = sincos(pi*x[2])
+    sinh_pix1 = sinh(pi*x[1])
+    cosh_pix1 = cosh(pi*x[1])
+    sinh_pix2 = sinh(pi*x[2])
+    cosh_pix2 = cosh(pi*x[2])
+    phi = C *      (sinh_pix1 * sinpi_x2 + sinh_pix2 * sinpi_x1)
+    q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
+    q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
   end
   return @SVector [phi, q1, q2]
 end
@@ -135,15 +144,11 @@ end
   return SVector(0, du2, du3)
 end
 
-function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
-                                                  surface_flux_function,
-                                                  equations::HyperbolicDiffusionEquations2D)
-  # elliptic equation: -νΔϕ = f
-  C   = 1.0/sinh(pi)
-  phi = C*(sinh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*sin(pi*x[1]))
-  q1  = C*pi*(cosh(pi*x[1])*sin(pi*x[2]) + sinh(pi*x[2])*cos(pi*x[1]))
-  q2  = C*pi*(sinh(pi*x[1])*cos(pi*x[2]) + cosh(pi*x[2])*sin(pi*x[1]))
-  u_boundary = @SVector [phi, q1, q2]
+@inline function boundary_condition_harmonic_nonperiodic(u_inner, orientation, direction, x, t,
+                                                         surface_flux_function,
+                                                         equations::HyperbolicDiffusionEquations2D)
+  # elliptic equation: -ν Δϕ = 0 in Ω, u = g on ∂Ω
+  u_boundary = initial_condition_harmonic_nonperiodic(x, one(t), equations)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
