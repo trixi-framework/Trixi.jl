@@ -43,12 +43,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [0.17326485913649792])
   end
 
-  @testset "elixir_advection_amr_solution_independant.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independant.jl"),
-      l2   = [7.94484676e-05],
-      linf = [7.45428790e-04])
-  end
-
   # Hyperbolic diffusion
   @testset "elixir_hypdiff_lax_friedrichs.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
