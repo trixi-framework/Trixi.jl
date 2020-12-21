@@ -35,6 +35,7 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"
     include("test_unit.jl")
     include("test_special_elixirs.jl")
+    include("test_visualization.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "paper-self-gravitating-gas-dynamics"
