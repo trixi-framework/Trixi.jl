@@ -197,7 +197,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                (copy(prob.u0), copy(integrator.u)),
+                                (prob.u0, integrator.u),
                                 integrator.sol.prob)
 end
 
