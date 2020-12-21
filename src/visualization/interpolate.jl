@@ -239,13 +239,14 @@ end
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function element2index(normalized_coordinates::AbstractArray{Float64}, levels::AbstractArray{Int},
-                       resolution::Int, nvisnodes_per_level::AbstractArray{Int})
+function element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
+  @assert size(normalized_coordinates, 1) == 2 "only works in 2D"
+
   n_elements = length(levels)
-  ndim = 2 # FIXME
 
   # First, determine lower left coordinate for all cells
   dx = 2 / resolution
+  ndim = 2
   lower_left_coordinate = Array{Float64}(undef, ndim, n_elements)
   for element_id in 1:n_elements
     nvisnodes = nvisnodes_per_level[levels[element_id] + 1]
@@ -278,52 +279,16 @@ function coordinate2index(coordinate, resolution::Integer)
 end
 
 
-# Interpolate data for plotting
-#
-# Note: This is a low-level function that is not considered as part of Trixi's interface and may
-#       thus be changed in future releases.
-function interpolate_data(data_in::AbstractArray, n_nodes_in::Integer, n_nodes_out::Integer)
-  # Get node coordinates for input and output locations on reference element
-  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
-  dx = 2/n_nodes_out
-  #=nodes_out = collect(range(-1 + dx/2, 1 - dx/2, length=n_nodes_out))=#
-  nodes_out = collect(range(-1, 1, length=n_nodes_out))
-
-  # Get interpolation matrix
-  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
-
-  # Create output data structure
-  ndim = 2 # FIXME
-  n_elements = div(size(data_in, 1), n_nodes_in^ndim)
-  n_variables = size(data_in, 2)
-  data_out = Array{eltype(data_in)}(undef, n_nodes_out, n_nodes_out, n_elements, n_variables)
-
-  # Interpolate each variable separately
-  for v = 1:n_variables
-    # Reshape data to fit expected format for interpolation function
-    # FIXME: this "reshape here, reshape later" funny business should be implemented properly
-    reshaped = reshape(data_in[:, v], 1, n_nodes_in, n_nodes_in, n_elements)
-
-    # Interpolate data for each cell
-    for element_id = 1:1#n_elements
-      data_out[:, :, element_id, v] = multiply_dimensionwise(vandermonde, reshaped[:, :, :, element_id])
-    end
-  end
-
-  return reshape(data_out, n_nodes_out^ndim * n_elements, n_variables)
-end
-
-
 # Calculate the vertices for each mesh cell such that it can be visualized as a closed box
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
 function calc_vertices(coordinates, levels, length_level_0)
-  ndim = 2 # FIXME
-  @assert ndim == 2 "Algorithm currently only works in 2D"
+  @assert size(coordinates, 1) == 2 "only works in 2D"
 
   # Initialize output arrays
   n_elements = length(levels)
+  ndim = 2
   x = Matrix{Float64}(undef, 2^ndim+1, n_elements)
   y = Matrix{Float64}(undef, 2^ndim+1, n_elements)
 
