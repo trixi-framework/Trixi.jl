@@ -18,6 +18,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
     # Constructor
     @test PlotData2D(sol) isa PlotData2D
+    @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
     pd = PlotData2D(sol)
 
     # show
@@ -70,6 +71,11 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
+  end
+
+  @testset "plotting TimeIntegratorSolution" begin
+    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn plot(sol);
   end
 end
 
