@@ -20,8 +20,9 @@ module Trixi
 using LinearAlgebra: dot, mul!
 using Printf: @printf, @sprintf, println
 
-import DiffEqBase: ODEProblem, ODESolution, get_du, get_tmp_cache, u_modified!,
-                   set_proposed_dt!, terminate!, get_proposed_dt
+import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
+                   get_du, get_tmp_cache, u_modified!,
+                   get_proposed_dt, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes

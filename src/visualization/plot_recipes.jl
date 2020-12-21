@@ -2,8 +2,8 @@
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
-    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_} where
-     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization}}
+    {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
+      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}
 
 
 """
