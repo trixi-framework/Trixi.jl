@@ -1,7 +1,7 @@
 # Redistribute data for load balancing after partitioning the mesh
 function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, 
                             dg::DGSEM, cache, old_mpi_ranks_per_cell)
-  if cache.elements.cell_ids == local_leaf_cells
+  if cache.elements.cell_ids == local_leaf_cells(mesh.tree)
     # Cell ids of the current elements are the same as the local leaf cells of the
     # newly partitioned mesh, so the solver doesn't need to be rebalanced on this rank.
     return
@@ -14,7 +14,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
   GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
     old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-    reinitialize_containers!(mesh, equations, dg, cache)
+    @timeit_debug timer() "reinitialize data structures" reinitialize_containers!(mesh, equations, dg, cache)
 
     resize!(u_ode, nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
     u = wrap_array(u_ode, mesh, equations, dg, cache)
