@@ -125,8 +125,8 @@ end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pds::PlotDataSeries2D)
-  print(io, "PlotDataSeries2D{" * string(typeof(pds.plot_data)) *
-            "}(<plot_data::PlotData2D>, " * string(pds.variable_id) * ")")
+  print(io, "PlotDataSeries2D{", typeof(pds.plot_data), "}(<plot_data::PlotData2D>, ",
+        pds.variable_id, ")")
 end
 
 """
@@ -164,11 +164,11 @@ end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2D)
-  params = (string(typeof(pd.x)) * "," *
-            string(typeof(pd.data)) * "," *
-            string(typeof(pd.variable_names)) * "," *
-            string(typeof(pd.mesh_vertices_x)))
-  print(io, "PlotData2D{" * params *
+  print(io, "PlotData2D{",
+            typeof(pd.x), ",",
+            typeof(pd.data), ",",
+            typeof(pd.variable_names), ",",
+            typeof(pd.mesh_vertices_x),
             "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
 end
 
@@ -181,7 +181,7 @@ end
 
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pm::PlotMesh2D)
-  print(io, "PlotMesh2D{" * string(typeof(pm.plot_data)) * "}(<plot_data::PlotData2D>)")
+  print(io, "PlotMesh2D{", typeof(pm.plot_data), "}(<plot_data::PlotData2D>)")
 end
 
 """
