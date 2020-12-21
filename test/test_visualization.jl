@@ -3,7 +3,7 @@ module TestVisualization
 using Test
 using Documenter
 using Trixi
-using RecipesBase
+using Plots
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
@@ -60,12 +60,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
-    # Add dummy method implementation to avoid errors when Plots.jl is not loaded
-    RecipesBase.is_key_supported(k::Symbol) = true
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), sol) isa Vector{RecipesBase.RecipeData}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd) isa Vector{RecipesBase.RecipeData}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), pd["p"]) isa Vector{RecipesBase.RecipeData}
-    @test RecipesBase.apply_recipe(Dict{Symbol,Any}(), getmesh(pd)) isa Vector{RecipesBase.RecipeData}
+    @test_nowarn plot(sol);
+    @test_nowarn plot(pd);
+    @test_nowarn plot(pd["p"]);
+    @test_nowarn plot(getmesh(pd));
   end
 
   @testset "plot 3D" begin
