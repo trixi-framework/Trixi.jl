@@ -158,9 +158,9 @@ function solve!(integrator::SimpleIntegrator2N)
     end
   end
 
-  return (t=(first(prob.tspan), integrator.t),
-          u=(copy(prob.u0), copy(integrator.u)),
-          prob=integrator.sol.prob)
+  return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                (prob.u0, integrator.u),
+                                integrator.sol.prob)
 end
 
 # get a cache where the RHS can be stored
