@@ -1,5 +1,6 @@
 # Redistribute data for load balancing after partitioning the mesh
-function redistribute_data!(u_ode, mesh, equations, dg, cache, old_mpi_ranks_per_cell)
+function redistribute_data!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, 
+                            dg::DGSEM, cache, old_mpi_ranks_per_cell)
   # Retain current solution data
   old_n_elements = nelements(dg, cache)
   old_cell_ids = copy(cache.elements.cell_ids)
@@ -51,7 +52,7 @@ function redistribute_data!(u_ode, mesh, equations, dg, cache, old_mpi_ranks_per
 end
 
 
-function reinitialize_containers!(mesh, equations, dg, cache)
+function reinitialize_containers!(mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
   # Get new list of leaf cells
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
