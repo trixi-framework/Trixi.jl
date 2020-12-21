@@ -1,14 +1,15 @@
 # Visualization
 There are two possible approaches to visualize results from Trixi: either
-directly from the REPL using the [Plots](@ref) package or with ParaView/VisIt by
+directly from the REPL using [Plots.jl](@ref) or with ParaView/VisIt by
 postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 
-*Note: There is also a package [Trixi2Img](@ref) that allows to create images
-from the HDF5 files. However, it is deprecated in favor of plotting with
-[Plots](@ref).*
+!!! note
+    There is also a package [Trixi2Img](@ref) that allows to create images
+    from Trixi's HDF5 output files. However, it is deprecated in favor of plotting 
+    directly from the REPL with [Plots.jl](@ref).
 
 
-## Plots
+## Plots.jl
 By far the easiest and most convenient plotting approach is to use the powerful
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
 Trixi's 2D/3D results from the REPL.
@@ -47,7 +48,7 @@ dictionary-like syntax, e.g.,
 ```julia
 julia> plot(pd["rho"])
 ```
-This will create a single 2D heatmap plot of variable `rho`:
+This will create a single 2D heatmap plot of the variable `rho`:
 
 ![plot-rho](https://user-images.githubusercontent.com/3637659/102711621-93beba80-42bb-11eb-8f65-d03e083dc3bc.png)
 
@@ -82,7 +83,7 @@ julia> pd = PlotData2D(sol; solution_variables=cons2cons) # Plot conservative va
 ```
 There are several other keyword arguments that influence how the solution data
 is processed for visualization with the Plots package. A detailed explanation
-can be found in the docstring for the [`PlotData2D`](@ref) constructor.
+can be found in the docstring of the [`PlotData2D`](@ref) constructor.
 
 
 ## Trixi2Vtk
