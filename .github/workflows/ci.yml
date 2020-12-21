@@ -108,7 +108,6 @@ jobs:
           parallel: true
           path-to-lcov: ./lcov.info
           flag-name: ${{ github.run_id }}
-
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
         with:
