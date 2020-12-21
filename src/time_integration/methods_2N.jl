@@ -158,6 +158,9 @@ function solve!(integrator::SimpleIntegrator2N)
     end
   end
 
+  return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                (copy(prob.u0), copy(integrator.u)),
+                                integrator.sol.prob)
   return (t=(first(prob.tspan), integrator.t),
           u=(copy(prob.u0), copy(integrator.u)),
           prob=integrator.sol.prob)
