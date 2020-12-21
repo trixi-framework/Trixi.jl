@@ -111,7 +111,7 @@ jobs:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.run_id }}
           parallel-finished: true
         env:
           CI: true
