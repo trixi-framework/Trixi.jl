@@ -107,11 +107,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel: true
           path-to-lcov: ./lcov.info
-          flag-name: ${{ GITHUB_RUN_ID }}
+          flag-name: ${{ github.run_id }}
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master
         with:
-          github-token: ${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
         env:
           CI: true
