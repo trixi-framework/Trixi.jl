@@ -1,9 +1,12 @@
-# Convenience type to allow dispatch on ODESolution objects that were created by Trixi
+# Convenience type to allow dispatch on solution objects that were created by Trixi
+#
+# This is a union of a Trixi-specific DiffEqBase.ODESolution and of Trixi's own
+# TimeIntegratorSolution.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-const TrixiODESolution = ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
+const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, rateType, P} where
     {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
-      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}
+     {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
 
 """
@@ -106,17 +109,16 @@ Create a `PlotData2D` object from a one-dimensional ODE solution `u_ode` and the
 PlotData2D(u_ode::AbstractVector, semi; kwargs...) = PlotData2D(wrap_array(u_ode, semi), semi; kwargs...)
 
 """
-    PlotData2D(sol::TrixiODESolution; kwargs...)
-    PlotData2D(sol::TimeIntegratorSolution; kwargs...)
+    PlotData2D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}; kwargs...)
 
-Create a `PlotData2D` object from an `DiffEqBase.ODESolution` or `TimeIntegratorSolution` created by
-Trixi.
+Create a `PlotData2D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
+returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+`TimeIntegratorSolution`).
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
 PlotData2D(sol::TrixiODESolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
-PlotData2D(sol::TimeIntegratorSolution; kwargs...) = PlotData2D(sol.u[end], sol.prob.p; kwargs...)
 
 # Auxiliary data structure for visualizing a single variable
 #
@@ -276,31 +278,13 @@ end
 end
 
 
-# Create a PlotData2D plot directly from a DiffEqBase.ODESolution for convenience
+# Create a PlotData2D plot directly from a TrixiODESolution for convenience
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 #
 # Note: If you change the defaults values here, you need to also change them in the PlotData2D
 #       constructor.
 @recipe function f(sol::TrixiODESolution;
-                   solution_variables=cons2prim,
-                   grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
-                   slice_axis_intercept=0)
-  return PlotData2D(sol;
-                    solution_variables=solution_variables,
-                    grid_lines=grid_lines, max_supported_level=max_supported_level,
-                    nvisnodes=nvisnodes, slice_axis=slice_axis,
-                    slice_axis_intercept=slice_axis_intercept)
-end
-
-
-# Create a PlotData2D plot directly from a TimeIntegratorSolution for convenience
-#
-# Note: This is an experimental feature and may be changed in future releases without notice.
-#
-# Note: If you change the defaults values here, you need to also change them in the PlotData2D
-#       constructor.
-@recipe function f(sol::TimeIntegratorSolution;
                    solution_variables=cons2prim,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
