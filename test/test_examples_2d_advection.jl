@@ -46,12 +46,6 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.0005514506116066943])
   end
 
-  @testset "elixir_advection_amr_solution_independant.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independant.jl"),
-      l2   = [7.94484676e-05],
-      linf = [7.45428790e-04])
-  end
-
   @testset "elixir_advection_timeintegration.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [2.8777424975439807e-5],
