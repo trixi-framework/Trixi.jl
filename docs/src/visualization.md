@@ -13,6 +13,9 @@ postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 By far the easiest and most convenient plotting approach is to use the powerful
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
 Trixi's 2D/3D results from the REPL.
+!!! note
+    Plotting via Plots.jl is still considered an experimental feature and might
+    change in future releases.
 
 After running a simulation with Trixi in the REPL, load the Plots package with
 ```julia
