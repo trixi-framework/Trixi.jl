@@ -48,7 +48,8 @@ include("analysis.jl")
 include("alive.jl")
 include("save_restart.jl")
 include("save_solution.jl")
-include("visualization.jl")
+# include("visualization.jl") --> loaded dynamically upon availability of the Plots package
+
 include("amr.jl")
 include("stepsize.jl")
 include("glm_speed.jl")
