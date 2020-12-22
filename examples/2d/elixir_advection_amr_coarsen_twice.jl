@@ -29,9 +29,7 @@ function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any,4},
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
 
-  for element in 1:length(alpha)
-    alpha[element] = -1.0
-  end
+  alpha .= -1.0
 
   return alpha
 end
@@ -55,7 +53,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=4,
                 n_cells_max=30_000)
 
 
@@ -84,10 +82,10 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-
 amr_controller = ControllerThreeLevel(semi, TrixiExtensionCoarsen.IndicatorAlwaysCoarsen(semi),
                                       base_level=2, max_level=2,
                                       med_threshold=0.1, max_threshold=0.6)
+
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,

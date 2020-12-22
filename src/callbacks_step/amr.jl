@@ -13,6 +13,7 @@ struct AMRCallback{Controller, Adaptor, Cache}
   interval::Int
   adapt_initial_condition::Bool
   adapt_initial_condition_only_refine::Bool
+  dynamic_load_balancing::Bool
   adaptor::Adaptor
   amr_cache::Cache
 end
@@ -21,7 +22,8 @@ end
 function AMRCallback(semi, controller, adaptor;
                      interval,
                      adapt_initial_condition=true,
-                     adapt_initial_condition_only_refine=true)
+                     adapt_initial_condition_only_refine=true,
+                     dynamic_load_balancing=true)
   # check arguments
   if !(interval isa Integer && interval >= 0)
     throw(ArgumentError("`interval` must be a non-negative integer (provided `interval = $interval`)"))
@@ -39,8 +41,8 @@ function AMRCallback(semi, controller, adaptor;
   amr_cache = (; to_refine, to_coarsen)
 
   amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
-    controller, interval, adapt_initial_condition,
-    adapt_initial_condition_only_refine, adaptor, amr_cache)
+    controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine, 
+    dynamic_load_balancing, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
                    save_positions=(false,false),
@@ -282,14 +284,26 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     coarsened_original_cells = Int[]
   end
 
- # Return true if there were any cells coarsened or refined, otherwise false
- has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
- if has_changed # TODO: Taal decide, where shall we set this?
-  # don't set it to has_changed since there can be changes from earlier calls
-  mesh.unsaved_changes = true
- end
+  # Store whether there were any cells coarsened or refined
+  has_changed = !isempty(refined_original_cells) || !isempty(coarsened_original_cells)
+  if has_changed # TODO: Taal decide, where shall we set this?
+    # don't set it to has_changed since there can be changes from earlier calls
+    mesh.unsaved_changes = true
+  end
 
- return has_changed
+  # Dynamically balance computational load by first repartitioning the mesh and then redistributing the cells/elements
+  if has_changed && mpi_isparallel() && amr_callback.dynamic_load_balancing
+    @timeit_debug timer() "dynamic load balancing" begin
+      old_mpi_ranks_per_cell = copy(mesh.tree.mpi_ranks)
+
+      partition!(mesh)
+
+      rebalance_solver!(u_ode, mesh, equations, dg, cache, old_mpi_ranks_per_cell)
+    end
+  end
+
+  # Return true if there were any cells coarsened or refined, otherwise false
+  return has_changed
 end
 
 
