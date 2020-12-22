@@ -3,7 +3,7 @@ using CBinding
 
 @cstruct quad_inner_data_t {
     id::Int64;
-    oldids::Int64[4];
+    oldids::Int64[4]; # For 3D it is 6
     # oldid2::Int64;
     # oldid3::Int64;
     # oldid4::Int64;
@@ -94,8 +94,7 @@ function setOldIdtoZero(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::P
  p4est = info.p4est
  quad = info.quad
  quadid = info.quadid
-#  @show quad.p.user_data
-#  dataptr = Ptr{quad_inner_data_t}(quad.p.user_data)
+
  dataptr = unsafe_wrap(quad_inner_data_t, quad.p.user_data)
  dataptr.id = quadid + 1
  dataptr.oldids = zeros(4) #2 * Ndims
@@ -103,22 +102,6 @@ function setOldIdtoZero(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::P
  return nothing
 end
 
-
-# static int
-# refine_fn(p4est_t *p4est, p4est_topidx_t which_tree,
-#           p4est_quadrant_t *q) {
-#     int *ToRefine = (int *) p4est->user_pointer;
-
-#     p4est_inner_data_t *dataquad = (p4est_inner_data_t *) q->p.user_data;
-#    
-#     if ((ToRefine[dataquad->ElementID - 1] > 0 && ToRefine[dataquad->ElementID - 1] > q->level)
-#         || (-ToRefine[dataquad->ElementID - 1] - 1 > q->level)) {
-#         // printf("REFINE!!!!!!!!!!!!!!! \n");
-#         return 1;
-#     } else {
-#         return 0;
-#     }
-# }
 
 function refine_function(p4est::Ptr{P4est.p4est_t},
                         which_tree::P4est.p4est_topidx_t,
@@ -202,14 +185,7 @@ function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
                 childquaddata = unsafe_wrap(quad_inner_data_t, outgoing[i].p.user_data);
                 parentquaddata.oldids[i] = childquaddata[i].id
             end
-            # for (i = 0; i < P8EST_CHILDREN; i++) {
-            #     childquaddata = (p4est_inner_data_t *) outgoing[i]->p.user_data;
-              
-            #     parentquaddata->OldElementID[i] = childquaddata->OldElementID[0];
-    
-            # }
         # * 
-
         else # * NOTE: Refine
             @assert num_outgoing == 1
             @assert num_incoming > 1
@@ -224,16 +200,7 @@ function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
                         childquaddata.oldids[j] = 0
                     end
                 end
-                
-                #     for (i = 0; i < P8EST_CHILDREN; i++) {
-            #         childquaddata = (p4est_inner_data_t *) incoming[i]->p.user_data;
-            #         childquaddata->OldElementID[0] = parentquaddata->OldElementID[i];
-            
-            #         int i1;
-            #         for (i1 = 1; i1 < P8EST_CHILDREN; i1++) {
-                #             childquaddata->OldElementID[i1] = 0;
-                #         }
-                # }
+                 
             else
                 for i = 1:4
                     childquaddata = unsafe_wrap(quad_inner_data_t, incoming[i].p.user_data);
@@ -242,24 +209,15 @@ function replace_quads(p4est::Ptr{P4est.p4est_t}, #p4est_t * p4est
                         childquaddata.oldids[j] = 0
                     end
                     childquaddata.id = 0
-            # } else {
-            #     for (i = 0; i < P8EST_CHILDREN; i++) {
-            #         childquaddata = (p4est_inner_data_t *) incoming[i]->p.user_data;
-            #         childquaddata->OldElementID[0] = -parentquaddata->OldElementID[0];
-            #         int j;
-            #         for (j = 1; j < P8EST_CHILDREN; j++) {
-            #             childquaddata->OldElementID[j] = 0;
-            #         }
-            #         childquaddata->ElementID = 0;
-            #     }
-            # }
-
                 end
             end
         end
         return nothing
 end #function
 
+##
+# * Function calculate changes in forest and stores the info in array Changes 
+##
 function GetChanges(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{Cvoid})
     p4est = info.p4est
     local_num_quads = Int64(p4est.local_num_quadrants)
@@ -274,7 +232,9 @@ function GetChanges(info::Ptr{P4est.p4est_iter_volume_info_t} , user_data::Ptr{C
     return nothing
 end
 
-
+##
+# * Function calculates connections with the help of p4est face iterate
+##
 function p4_get_connections(p4est::Ptr{p4est_t})
     local_num_quads = Int64(p4est.local_num_quadrants)
     Connection = zeros(Int32, 11,local_num_quads)
@@ -283,7 +243,9 @@ function p4_get_connections(p4est::Ptr{p4est_t})
     P4est.p4est_iterate(p4est,  C_NULL, conn_ptr, C_NULL, CfaceIterate, C_NULL)
     return Connection
 end
-
+##
+# * Function calculates quad info: id, Level and 2 integer coordinates as in p4est
+##
 
 function p4_get_quadinfo(p4est::Ptr{p4est_t})
     local_num_quads = Int64(p4est.local_num_quadrants)

@@ -9,35 +9,29 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   end
   tree = mesh.tree
   p4est = tree.forest
-  # @show p4est.local_num_quadrants
-
-  # @show cells_to_change[:,1]
+ 
   old_n_elements = nelements(dg.elements)
-  # @show old_n_elements
   old_u = dg.elements.u
-  # @show old_u
 
   
 
   # # Get new list of leaf cells
   # leaf_cell_ids = leaf_cells(tree)
   leaf_cell_ids = collect(1:p4est.local_num_quadrants)
-  # @show leaf_cell_ids
-  # leaf_cell_ids = range(1:p4est.local_num_quadrants)
+
   elements = init_elements(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG))
   n_elements = nelements(elements)
   element_id = 1
   skip = 0
   for old_element_id in 1:old_n_elements
     if cells_to_change[1,old_element_id] < 0
-      # @show "Refine", old_element_id, element_id
-      # @show cells_to_change
+      # @show "Refine"
+  
       refine_element!(elements.u, element_id, old_u, old_element_id,
                       dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
       element_id += 2^ndims(dg)
       
     elseif cells_to_change[1,old_element_id] > 0 &&  cells_to_change[2,old_element_id] > 0
-
       @show "Coarse"
       @assert 3 == 4
       if skip > 0
@@ -53,12 +47,8 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
       
       element_id += 1
       skip = 2^ndims(dg) - 1
-      @assert 3 == 2
-    # if cells_to_change[1,old_element_id]
-    #   # Refine element and store solution directly in new data structure
-    #   refine_element!(elements.u, element_id, old_u, old_element_id,
-    #                   dg.mortar_forward_upper, dg.mortar_forward_lower, dg)
-    #   element_id += 2^ndims(dg)
+     # @assert 3 == 2
+   
     else
        # Copy old element data to new element container
        @views elements.u[:, :, :, element_id] .= old_u[:, :, :, old_element_id]
@@ -70,19 +60,13 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
 
   Connections = p4_get_connections(tree.forest)
  
-  # @show elements.u
   leaf_cell_ids = leaf_cells(tree)
   
  
   # Initialize new interfaces container
   interfaces = p4_init_interfaces(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, Connections)
   n_interfaces = ninterfaces(interfaces)
-  # @show n_interfaces
-  # @show length(mesh.tree), nelements(elements)
-
-  # @show interfaces.orientations[:]
-  # @assert 4==7
-
+  
   # Initialize boundaries
   boundaries, n_boundaries_per_direction = init_boundaries(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements)
   n_boundaries = nboundaries(boundaries)
@@ -91,12 +75,7 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   l2mortars, ecmortars = p4_init_mortars(leaf_cell_ids, mesh, Val(NVARS), Val(POLYDEG), elements, dg.mortar_type, Connections)
   n_l2mortars = nmortars(l2mortars)
   n_ecmortars = nmortars(ecmortars)
-  # @show n_interfaces
-  # @show interfaces
-  # @show n_boundaries
-  # @show n_l2mortars, n_ecmortars
-  # Sanity check
-  # @assert 1 == 4
+  
   if isperiodic(mesh.tree) && n_l2mortars == 0 && n_ecmortars == 0
     @assert n_interfaces == 2*n_elements ("For 2D and periodic domains and conforming elements, "
                                         * "n_surf must be the same as 2*n_elem")
@@ -114,9 +93,10 @@ function p4_adapt!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
   dg.n_l2mortars = n_l2mortars
   dg.ecmortars = ecmortars
   dg.n_ecmortars = n_ecmortars
-  # @assert 1 == 2
+
 end
 
+# Old refinement function
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
 function refine!(dg::Dg2D{Eqn, MeshType, NVARS, POLYDEG}, mesh::TreeMesh,
                  cells_to_refine::AbstractArray{Int}) where {Eqn, MeshType, NVARS, POLYDEG}
