@@ -154,8 +154,10 @@ export PlotData2D, getmesh
 function __init__()
   init_mpi()
 
-  # Load file with features that depend on the availability of the Plots package
-  @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" include("visualization/require_plots.jl")
+  # Enable features that depend on the availability of the Plots package
+  @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
+    using .Plots
+  end
 end
 
 

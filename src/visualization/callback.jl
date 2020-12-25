@@ -52,6 +52,11 @@ function VisualizationCallback(; interval=0,
                                                  solution_variables, variable_names,
                                                  plot_data_creator, show_mesh)
 
+  # Warn users if they create a visualization callback without having loaded the Plots package
+  if !(:Plots in names(@__MODULE__, all=true))
+    @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize data"
+  end
+
   DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
                    save_positions=(false,false),
                    initialize=initialize!)
