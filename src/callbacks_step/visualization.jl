@@ -40,6 +40,22 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Af
 end
 
 
+"""
+    VisualizationCallback(; interval=0,
+                            solution_variables=cons2prim,
+                            variable_names=[],
+                            plot_data_creator=PlotData2D,
+                            show_mesh=false,
+                            plot_arguments...)
+
+Create a callback that visualizes results during a simulation, also known as *in-situ
+visualization*. The `interval` specifies the number of time step iterations after which a new plot
+is generated. The available variables to plot are configured with the `solution_variables`
+parameter, which acts the same way as for the [`SaveSolutionCallback`](@ref). The variables to be
+actually plotted can be selected by providing a list of strings to `variable_names`, and if
+`show_mesh` is true, an additional plot with the mesh will be generated.  `plot_data_creater` allows
+to use different plot data types. All remaining keyword arguments are collected and passed as additional plot arguments to the plotting command.
+"""
 function VisualizationCallback(; interval=0,
                                  solution_variables=cons2prim,
                                  variable_names=[],
