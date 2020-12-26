@@ -46,6 +46,8 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
+visualization = VisualizationCallback(interval=50)
+
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
                                       base_level=4,
                                       med_level=5, med_threshold=0.1,
@@ -59,7 +61,7 @@ stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_restart, save_solution, visualization,
                         amr_callback, stepsize_callback);
 
 
