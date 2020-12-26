@@ -1,12 +1,12 @@
 
 using OrdinaryDiffEq
 using Trixi
+using Plots
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
+advectionvelocity = (1.0, -0.5)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
@@ -17,7 +17,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 n_cells_max=30_000)
 
 
@@ -27,7 +27,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10.0)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -46,12 +46,12 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-visualization = VisualizationCallback(interval=50)
+visualization = VisualizationCallback(interval=20; clims=(0,1))
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=4,
-                                      med_level=5, med_threshold=0.1,
-                                      max_level=6, max_threshold=0.6)
+                                      base_level=3,
+                                      med_level=4, med_threshold=0.1,
+                                      max_level=5, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
