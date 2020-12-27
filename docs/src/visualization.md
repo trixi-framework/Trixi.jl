@@ -10,6 +10,8 @@ postprocessing Trixi's output files with [Trixi2Vtk](@ref).
 
 
 ## Plots.jl
+
+### Getting started
 By far the easiest and most convenient plotting approach is to use the powerful
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package to directly visualize
 Trixi's 2D/3D results from the REPL.
@@ -39,6 +41,8 @@ with an output file name that ends in `.png`, e.g.,
 julia> savefig("solution-overview.png")
 ```
 
+
+### Customizing plot results via plot data objects
 For more fine-grained control over what to plot, first create a
 [`PlotData2D`](@ref) object by executing
 ```julia
@@ -87,6 +91,74 @@ julia> pd = PlotData2D(sol; solution_variables=cons2cons) # Plot conservative va
 There are several other keyword arguments that influence how the solution data
 is processed for visualization with the Plots package. A detailed explanation
 can be found in the docstring of the [`PlotData2D`](@ref) constructor.
+
+
+### Plotting 3D solutions
+It is possible to plot 2D slices from 3D simulation data with the same commands
+as above. By default, plotting `sol` or creating a `PlotData2D` object from
+a 3D simulation will create a 2D slice of the solution in the xy-plane. You can
+customize this behavior by creating a `PlotData2D` object and passing
+appropriate keyword arguments to `PlotData2D`:
+* `slice_axis` specifies the axis orthogonal to the slice and can be `:x`, `:y`,
+  or `:z` (default: `:z`)
+* `slice_axis_intercept` specifies the axis coordinate of the `slice_axis` at
+  which the slice is created (default: `0.0`)
+
+For example, to plot the velocity field orthogonal to the yz-plane at different
+x-axis locations, you can execute
+```julia
+julia> trixi_include(joinpath(examples_dir(), "3d", "elixir_euler_taylor_green_vortex.jl"), tspan=(0, 1))
+[...]
+
+julia> plots = []
+Any[]
+
+julia> for x in range(0, stop=pi/2, length=6)
+         pd = PlotData2D(sol, slice_axis=:x, slice_axis_intercept=x)
+         push!(plots, plot(pd["v1"], clims=(-1,1), title="x = "*string(round(x, digits=2))))
+       end
+
+julia> plot(plots..., layout=(2, 3), size=(750,350))
+```
+which results in a 2x3 grid of slices orthogonal to the x-axis:
+
+![plot-v1-0.0-to-0.5pi](https://user-images.githubusercontent.com/3637659/102917883-417dc500-4486-11eb-9bd3-d18efd9c8337.png)
+
+
+### Visualizing results during a simulation
+To visualize solutions while a simulation is still running (also known as *in-situ visualization*),
+you can use the [`VisualizationCallback`](@ref). It is created as a regular
+callback and accepts upon creation a number of keyword arguments that allow,
+e.g., to control the visualization interval, to specify the variables
+to plot, or to customize the plotting style.
+
+During the simulation, the visualization callback creates and displays
+visualizations of the current solution in regular intervals. This can be useful
+to, e.g., monitor the validity of a long-running simulation or for illustrative
+purposes. An example for how to create a `VisualizationCallback` can be found in
+[examples/2d/elixir\_advection\_amr\_visualization.jl](https://trixi-framework.github.com/Trixi.jl/examples/2d/elixir_advection_amr_visualization.jl):
+```julia
+[...]
+
+# Enable in-situ visualization with a new plot generated every 20 time steps
+# and additional plotting options passed as keyword arguments
+visualization = VisualizationCallback(interval=20; clims=(0,1))
+
+[...]
+```
+
+The resulting output of the referenced elixir can be seen in the embedded video
+below:
+```@raw html
+  <!--
+  Video creation details
+  * Set up terminal size and position appropriately
+  * Record video as MP4 with SimpleScreenRecorder (https://en.wikipedia.org/wiki/SimpleScreenRecorder)
+  * Upload to YouTube
+  * Obtain responsive code by inserting link on https://embedresponsively.com
+  -->
+  <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/UZtrqeDY1Fs' frameborder='0' allowfullscreen></iframe></div>
+```
 
 
 ## Trixi2Vtk
