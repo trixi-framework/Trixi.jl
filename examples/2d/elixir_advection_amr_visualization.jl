@@ -46,38 +46,6 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-# Optional: Instead of plotting the results, save results to file (e.g., to create GIFs or for
-# running on headless servers)
-function save_insitu_visualization(plot_data, variable_names;
-                                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-                                   time=nothing, timestep=nothing)
-  # Gather subplots
-  plots = []
-  for v in variable_names
-    push!(plots, plot(plot_data[v]; plot_arguments...))
-  end
-  if show_mesh
-    push!(plots, plot(getmesh(plot_data); plot_arguments...))
-  end
-
-  # Determine layout
-  cols = ceil(Int, sqrt(length(plots)))
-  rows = ceil(Int, length(plots)/cols)
-  layout = (rows, cols)
-
-  # Create plot
-  plot(plots..., layout=layout)
-
-  # Determine filename
-  # We avoid the following "proper" implementation to not have to add a Printf dependency
-  # filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
-  filler = timestep == 0 ? "000000" : "0"^(6 - (floor(Int, log10(timestep)) + 1))
-  filename = joinpath("out", "solution_$(filler)$(timestep).png")
-
-  # Save plot
-  savefig(filename)
-end
-
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
 visualization = VisualizationCallback(interval=20, clims=(0,1))
