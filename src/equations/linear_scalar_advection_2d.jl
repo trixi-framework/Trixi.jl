@@ -26,7 +26,7 @@ varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = SVector("scal
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = SVector("scalar")
 
 # Calculates translated coordinates `x` for a periodic domain
-function x_trans_periodic_2d(x, domain_length = SVector(10, 10), center = SVector(0, 0))
+function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(0, 0))
   x_normalized = x .- center
   x_shifted = x_normalized .% domain_length
   x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
