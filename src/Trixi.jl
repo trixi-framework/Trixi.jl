@@ -156,7 +156,7 @@ function __init__()
 
   # Enable features that depend on the availability of the Plots package
   @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-    using .Plots: plot, plot!
+    using .Plots: plot, plot!, savefig
   end
 end
 
