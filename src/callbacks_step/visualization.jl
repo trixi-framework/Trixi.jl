@@ -49,7 +49,7 @@ end
                             variable_names=[],
                             show_mesh=false,
                             plot_data_creator=PlotData2D,
-                            plot_creator=create_insitu_plot,
+                            plot_creator=show_insitu_visualization,
                             plot_arguments...)
 
 Create a callback that visualizes results during a simulation, also known as *in-situ
@@ -63,17 +63,21 @@ is true, an additional plot with the mesh will be generated.
 
 To customize the generated figure, `plot_data_creator` allows to use different plot data types. With
 `plot_creator` you can further specify an own function to visualize results, which must support the
-same interface as the defaul [`create_insitu_plot`](@ref). All remaining keyword arguments are
-collected and passed as additional arguments to the plotting command.
+same interface as the default implementation [`show_insitu_visualization`](@ref). All remaining
+keyword arguments are collected and passed as additional arguments to the plotting command.
 """
 function VisualizationCallback(; interval=0,
                                  solution_variables=cons2prim,
                                  variable_names=[],
                                  show_mesh=false,
                                  plot_data_creator=PlotData2D,
-                                 plot_creator=create_insitu_plot,
+                                 plot_creator=show_insitu_visualization,
                                  plot_arguments...)
   mpi_isparallel() && error("this callback does not work in parallel yet")
+
+  if variable_names isa String
+    variable_names = String[variable_names]
+  end
 
   visualization_callback = VisualizationCallback(interval,
                                                  solution_variables, variable_names, show_mesh,
@@ -123,7 +127,9 @@ function (visualization_callback::VisualizationCallback)(integrator)
   end
 
   # Create plot
-  plot_creator(plot_data, variable_names, show_mesh, plot_arguments)
+  plot_creator(plot_data, variable_names;
+               show_mesh=show_mesh, plot_arguments=plot_arguments,
+               time=integrator.t, timestep=integrator.iter)
 
   # avoid re-evaluating possible FSAL stages
   u_modified!(integrator, false)
@@ -132,13 +138,21 @@ end
 
 
 """
-    create_insitu_plot(plot_data, variable_names::Vector{String}, show_mesh, plot_arguments)
+    show_insitu_visualization(plot_data, variable_names;
+                              show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+                              time=nothing, timestep=nothing)
 
 Create in-situ visualization of the plot data object provided in `plot_data`, showing only the
 variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true`).  Additionally,
 `plot_arguments` will be unpacked and passed as keyword arguments to the `Plots.plot` command.
+
+This function is the default `plot_creator` argument for the [`VisualizationCallback`](@ref).
+`time` and `timestep` are currently ignored but may be used by other implementations that are passed
+to `VisualizationCallback`.
 """
-function create_insitu_plot(plot_data, variable_names::Vector{String}, show_mesh, plot_arguments)
+function show_insitu_visualization(plot_data, variable_names;
+                                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+                                   time=nothing, timestep=nothing)
   # Gather subplots
   plots = []
   for v in variable_names
@@ -156,4 +170,3 @@ function create_insitu_plot(plot_data, variable_names::Vector{String}, show_mesh
   # Show plot
   display(plot(plots..., layout=layout))
 end
-create_insitu_plot(plot_data, variable_name::String, args...) = create_insitu_plot(plot_data, [variable_name], args...)

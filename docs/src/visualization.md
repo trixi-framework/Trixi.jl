@@ -9,7 +9,7 @@ postprocessing Trixi's output files with [Trixi2Vtk](@ref).
     directly from the REPL with [Plots.jl](@ref).
 
 
-## Plots.jl
+## [Plots.jl [experimental]](@id Plots.jl)
 
 ### Getting started
 By far the easiest and most convenient plotting approach is to use the powerful
