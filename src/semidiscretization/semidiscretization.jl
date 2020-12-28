@@ -104,6 +104,7 @@ to use the given initial condition at time `t`.
 """
 function compute_coefficients(func, t, semi::AbstractSemidiscretization)
   u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+  # Call `compute_coefficients` defined below
   compute_coefficients!(u_ode, func, t, semi)
   return u_ode
 end
@@ -115,6 +116,7 @@ Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
+  # Call `compute_coefficients` defined by the solver
   compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
