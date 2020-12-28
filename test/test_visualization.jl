@@ -84,18 +84,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @testset "VisualizationCallback" begin
-    @testset "elixir_advection_amr_visualization.jl" begin
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_visualization.jl"),
-        l2   = [0.0010300631535183275],
-        linf = [0.009109608720471729])
-    end
-
     @test_nowarn trixi_include(@__MODULE__,
                                joinpath(examples_dir(), "2d", "elixir_advection_amr_visualization.jl"),
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
                                                plot_creator=Trixi.save_plot),
                                tspan=(0.0, 2.0))
+
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
       @test isfile(joinpath(outdir, "solution_000000.png"))
       @test isfile(joinpath(outdir, "solution_000020.png"))

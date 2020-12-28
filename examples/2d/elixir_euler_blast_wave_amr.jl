@@ -1,6 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
+using Plots
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations

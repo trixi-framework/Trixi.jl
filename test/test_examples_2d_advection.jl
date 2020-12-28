@@ -40,13 +40,16 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.04335954152178878])
   end
 
-  # Note: `elixir_advection_amr_visualization.jl` requires the Plots package and is tested in
-  #       `test_visualization.jl`
-
   @testset "elixir_advection_amr_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_nonperiodic.jl"),
       l2   = [0.007013561257721758],
       linf = [0.039176916074623536])
+  end
+
+  @testset "elixir_advection_amr_visualization.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_visualization.jl"),
+      l2   = [0.0010300631535183275],
+      linf = [0.009109608720471729])
   end
 
   @testset "elixir_advection_timeintegration.jl" begin
