@@ -49,11 +49,14 @@ end
                             variable_names=[],
                             show_mesh=false,
                             plot_data_creator=PlotData2D,
-                            plot_creator=show_insitu_visualization,
+                            plot_creator=show_plot,
                             plot_arguments...)
 
 Create a callback that visualizes results during a simulation, also known as *in-situ
 visualization*.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 
 The `interval` specifies the number of time step iterations after which a new plot is generated. The
 available variables to plot are configured with the `solution_variables` parameter, which acts the
@@ -63,7 +66,7 @@ is true, an additional plot with the mesh will be generated.
 
 To customize the generated figure, `plot_data_creator` allows to use different plot data types. With
 `plot_creator` you can further specify an own function to visualize results, which must support the
-same interface as the default implementation [`show_insitu_visualization`](@ref). All remaining
+same interface as the default implementation [`show_plot`](@ref). All remaining
 keyword arguments are collected and passed as additional arguments to the plotting command.
 """
 function VisualizationCallback(; interval=0,
@@ -71,7 +74,7 @@ function VisualizationCallback(; interval=0,
                                  variable_names=[],
                                  show_mesh=false,
                                  plot_data_creator=PlotData2D,
-                                 plot_creator=show_insitu_visualization,
+                                 plot_creator=show_plot,
                                  plot_arguments...)
   mpi_isparallel() && error("this callback does not work in parallel yet")
 
@@ -138,21 +141,25 @@ end
 
 
 """
-    show_insitu_visualization(plot_data, variable_names;
-                              show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-                              time=nothing, timestep=nothing)
+    show_plot(plot_data, variable_names;
+              show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+              time=nothing, timestep=nothing)
 
-Create in-situ visualization of the plot data object provided in `plot_data`, showing only the
+Visualize the plot data object provided in `plot_data` and display result, plotting only the
 variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true`).  Additionally,
 `plot_arguments` will be unpacked and passed as keyword arguments to the `Plots.plot` command.
 
 This function is the default `plot_creator` argument for the [`VisualizationCallback`](@ref).
-`time` and `timestep` are currently ignored but may be used by other implementations that are passed
-to `VisualizationCallback`.
+`time` and `timestep` are currently unused by this function.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
-function show_insitu_visualization(plot_data, variable_names;
-                                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-                                   time=nothing, timestep=nothing)
+function show_plot(plot_data, variable_names;
+                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+                   time=nothing, timestep=nothing)
   # Gather subplots
   plots = []
   for v in variable_names
@@ -170,3 +177,47 @@ function show_insitu_visualization(plot_data, variable_names;
   # Show plot
   display(plot(plots..., layout=layout))
 end
+
+
+"""
+    save_plot(plot_data, variable_names;
+              show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+              time=nothing, timestep=nothing)
+
+Visualize the plot data object provided in `plot_data` and save result as a PNG file in the `out`
+directory, plotting only the variables in `variable_names` and, optionally, the mesh (if `show_mesh`
+is `true`).  Additionally, `plot_arguments` will be unpacked and passed as keyword arguments to the
+`Plots.plot` command.
+
+The `timestep` is used in the filename. `time` is currently unused by this function.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
+"""
+function save_plot(plot_data, variable_names;
+                   show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+                   time=nothing, timestep=nothing)
+  # Gather subplots
+  plots = []
+  for v in variable_names
+    push!(plots, plot(plot_data[v]; plot_arguments...))
+  end
+  if show_mesh
+    push!(plots, plot(getmesh(plot_data); plot_arguments...))
+  end
+
+  # Determine layout
+  cols = ceil(Int, sqrt(length(plots)))
+  rows = ceil(Int, length(plots)/cols)
+  layout = (rows, cols)
+
+  # Create plot
+  plot(plots..., layout=layout)
+
+  # Determine filename and save plot
+  filename = joinpath("out", @sprintf("solution_%06d.png", timestep))
+  savefig(filename)
+end
+
