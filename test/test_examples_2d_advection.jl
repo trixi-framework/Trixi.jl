@@ -47,12 +47,26 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   end
 
   @testset "elixir_advection_amr_visualization.jl" begin
+    # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
+    # Xref: https://github.com/jheinen/GR.jl/issues/278
+    # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
+    if !isinteractive()
+      restore = get(ENV, "GKSwstype", nothing)
+      ENV["GKSwstype"] = "100"
+    end
+
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_visualization.jl"),
       l2   = [0.0010300631535183275],
-      linf = [0.009109608720471729],
-      visualization = VisualizationCallback(interval=20,
-                      clims=(0,1),
-                      plot_creator=Trixi.save_plot))
+      linf = [0.009109608720471729])
+
+    # Restore GKSwstype to previous value (if it was set)
+    if !isinteractive()
+      if isnothing(restore)
+        delete!(ENV, "GKSwstype")
+      else
+        ENV["GKSwstype"] = restore
+      end
+    end
   end
 
   @testset "elixir_advection_timeintegration.jl" begin
