@@ -115,7 +115,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 end
 
 # Clean up afterwards: delete Trixi output directory
-Trixi.mpi_isroot() && @test_nowarn rm(outdir, recursive=true)
+Trixi.mpi_isroot() && @test_nowarn_debug rm(outdir, recursive=true)
 
 end # Parallel 2D
 

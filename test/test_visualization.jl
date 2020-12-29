@@ -17,7 +17,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 # Run various visualization tests
 @testset "Visualization tests" begin
   # Run Trixi
-  @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
+  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
                              tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
@@ -27,7 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     pd = PlotData2D(sol)
 
     # show
-    @test_nowarn show(stdout, pd)
+    @test_nowarn_debug show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -53,38 +53,38 @@ isdir(outdir) && rm(outdir, recursive=true)
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 4
-    @test_nowarn show(stdout, pds)
+    @test_nowarn_debug show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh2D
     @test getmesh(pd) == Trixi.PlotMesh2D(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn show(stdout, getmesh(pd))
+    @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
   end
 
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
-    @test_nowarn plot(sol)
-    @test_nowarn plot(pd)
-    @test_nowarn plot(pd["p"])
-    @test_nowarn plot(getmesh(pd))
+    @test_nowarn_debug plot(sol)
+    @test_nowarn_debug plot(pd)
+    @test_nowarn_debug plot(pd["p"])
+    @test_nowarn_debug plot(getmesh(pd))
   end
 
   @testset "plot 3D" begin
-    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 
   @testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
-    @test_nowarn plot(sol)
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn_debug plot(sol)
   end
 
   @testset "VisualizationCallback" begin
-    @test_nowarn trixi_include(@__MODULE__,
+    @test_nowarn_debug trixi_include(@__MODULE__,
                                joinpath(examples_dir(), "2d", "elixir_advection_amr_visualization.jl"),
                                visualization = VisualizationCallback(interval=20,
                                                clims=(0,1),
@@ -98,10 +98,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     @testset "show" begin
-      @test_nowarn show(stdout, visualization)
+      @test_nowarn_debug show(stdout, visualization)
       println(stdout)
 
-      @test_nowarn show(stdout, "text/plain", visualization)
+      @test_nowarn_debug show(stdout, "text/plain", visualization)
       println(stdout)
     end
   end
