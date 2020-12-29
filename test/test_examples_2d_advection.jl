@@ -49,7 +49,10 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   @testset "elixir_advection_amr_visualization.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_visualization.jl"),
       l2   = [0.0010300631535183275],
-      linf = [0.009109608720471729])
+      linf = [0.009109608720471729],
+      visualization = VisualizationCallback(interval=20,
+                      clims=(0,1),
+                      plot_creator=Trixi.save_plot))
   end
 
   @testset "elixir_advection_timeintegration.jl" begin
