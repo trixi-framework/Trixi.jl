@@ -51,8 +51,6 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-visualization = VisualizationCallback(interval=100,  variable_names="rho", show_mesh=true)
-
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=0.5,
                                           alpha_min=0.001,
@@ -70,7 +68,7 @@ stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback, 
-                        save_solution, visualization,
+                        save_solution,
                         amr_callback, stepsize_callback)
 
 
