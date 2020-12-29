@@ -1,4 +1,4 @@
-using Test: @test_nowarn_debug, @test
+using Test: @test_nowarn, @test
 import Trixi
 
 
@@ -33,7 +33,7 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println($elixir)
 
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn_debug trixi_include(@__MODULE__, $elixir; $kwargs...)
+    @test_nowarn trixi_include(@__MODULE__, $elixir; $kwargs...)
 
     # if present, compare l2 and linf errors against reference values
     if !isnothing($l2) || !isnothing($linf)

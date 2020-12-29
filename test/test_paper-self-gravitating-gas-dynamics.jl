@@ -117,6 +117,6 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
 end
 
 # Clean up afterwards: delete Trixi output directory
-@test_nowarn_debug rm(outdir, recursive=true)
+@test_nowarn rm(outdir, recursive=true)
 
 end #module

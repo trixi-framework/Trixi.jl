@@ -13,12 +13,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "Unit tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin
-      @test_nowarn_debug Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+      @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
       t = Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
-      @test_nowarn_debug display(t)
+      @test_nowarn display(t)
       @test Trixi.ndims(t) == 1
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
@@ -44,7 +44,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "ParallelTree" begin
     @testset "constructors" begin
-      @test_nowarn_debug Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+      @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
@@ -164,7 +164,7 @@ isdir(outdir) && rm(outdir, recursive=true)
           # All four leaves will need to be on one rank to allow coarsening
           @test_throws AssertionError(
             "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
-          @test_nowarn_debug Trixi.partition!(mesh; allow_coarsening=false)
+          @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
         end
       end
     end
@@ -335,16 +335,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     # just useful to run basic tests of `show` methods.
 
     c = ControllerThreeLevelCombined(1, 2, 3, 10.0, 11.0, 12.0, "primary", "secondary", "cache")
-    @test_nowarn_debug show(stdout, c)
+    @test_nowarn show(stdout, c)
 
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
-    @test_nowarn_debug show(stdout, indicator_hg)
+    @test_nowarn show(stdout, indicator_hg)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache=nothing))
-    @test_nowarn_debug show(stdout, indicator_loehner)
+    @test_nowarn show(stdout, indicator_loehner)
 
     indicator_max = IndicatorMax("variable", (; cache=nothing))
-    @test_nowarn_debug show(stdout, indicator_max)
+    @test_nowarn show(stdout, indicator_max)
   end
 
   @testset "LBM 2D constructor" begin
@@ -399,9 +399,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "LBMCollisionCallback" begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
-    @test_nowarn_debug show(stdout, callback)
+    @test_nowarn show(stdout, callback)
     println()
-    @test_nowarn_debug show(stdout, "text/plain", callback)
+    @test_nowarn show(stdout, "text/plain", callback)
     println()
   end
 
