@@ -17,7 +17,7 @@ By far the easiest and most convenient plotting approach is to use the powerful
 Trixi's 2D/3D results from the REPL.
 !!! note
     Plotting via Plots.jl is still considered an experimental feature and might
-    change in future releases.
+    change in any future releases.
 
 After running a simulation with Trixi in the REPL, load the Plots package with
 ```julia
