@@ -11,10 +11,10 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 function initial_condition_gauss_largedomain(x, t, equation::LinearScalarAdvectionEquation2D)
   # Store translated coordinate for easy use of exact solution
-  domain_length = convert(typeof(x), (10, 10))
+  domain_length = Trixi.SVector(10, 10)
   x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t, domain_length)
 
-  return [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+  return Trixi.SVector(exp(-(x_trans[1]^2 + x_trans[2]^2)))
 end
 initial_condition = initial_condition_gauss_largedomain
 
