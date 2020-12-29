@@ -179,7 +179,7 @@ function show_plot(plot_data, variable_names;
 
   # Determine layout
   cols = ceil(Int, sqrt(length(plots)))
-  rows = ceil(Int, length(plots)/cols)
+  rows = div(length(plots), cols, RoundUp)
   layout = (rows, cols)
 
   # Show plot
@@ -218,7 +218,7 @@ function save_plot(plot_data, variable_names;
 
   # Determine layout
   cols = ceil(Int, sqrt(length(plots)))
-  rows = ceil(Int, length(plots)/cols)
+  rows = div(length(plots), cols, RoundUp)
   layout = (rows, cols)
 
   # Create plot
