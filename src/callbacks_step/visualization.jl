@@ -88,6 +88,14 @@ function VisualizationCallback(; interval=0,
                                                  Dict{Symbol,Any}(plot_arguments))
 
   # Warn users if they create a visualization callback without having loaded the Plots package
+  #
+  # Note: This warning is added for convenience, as Plots is the only "officially" supported
+  #       visualization package right now. However, in general nothing prevents anyone from using
+  #       other packages such as Makie, Gadfly etc., given that appropriate `plot_creator`s are
+  #       passed. This is also the reason why the visualization callback is not included via
+  #       Requires.jl only when Plots is present.
+  #       In the future, we should update/remove this warning if other plotting packages are
+  #       starting to be used.
   if !(:Plots in names(@__MODULE__, all=true))
     @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
   end
