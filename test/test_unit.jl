@@ -73,14 +73,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           Trixi.partition!(mesh)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [11, 10]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
 
           # allow_coarsening = false
           Trixi.partition!(mesh; allow_coarsening=false)
           @test parent(mesh.n_cells_by_rank) == [11, 10]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
         end
@@ -97,14 +97,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           Trixi.partition!(mesh)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [11, 5, 5]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 12, 17]
 
           # allow_coarsening = false
           Trixi.partition!(mesh; allow_coarsening=false)
           @test parent(mesh.n_cells_by_rank) == [9, 6, 6]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
         end

@@ -30,6 +30,7 @@ using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
+using Requires
 using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
@@ -130,7 +131,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
-       SaveRestartCallback, SaveSolutionCallback, AMRCallback, StepsizeCallback,
+       SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
+       AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback
 
@@ -151,6 +153,11 @@ export PlotData2D, getmesh
 
 function __init__()
   init_mpi()
+
+  # Enable features that depend on the availability of the Plots package
+  @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
+    using .Plots: plot, plot!, savefig
+  end
 end
 
 

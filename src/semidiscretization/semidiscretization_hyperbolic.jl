@@ -155,6 +155,7 @@ end
 
 
 function compute_coefficients(t, semi::SemidiscretizationHyperbolic)
+  # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
   compute_coefficients(semi.initial_condition, t, semi)
 end
 

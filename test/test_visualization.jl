@@ -5,6 +5,11 @@ using Documenter
 using Trixi
 using Plots
 
+include("test_trixi.jl")
+
+# pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
+EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -12,7 +17,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 # Run various visualization tests
 @testset "Visualization tests" begin
   # Run Trixi
-  @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
+  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
                              tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
@@ -22,7 +27,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     pd = PlotData2D(sol)
 
     # show
-    @test_nowarn show(stdout, pd)
+    @test_nowarn_debug show(stdout, pd)
     println(stdout)
 
     # getindex
@@ -48,34 +53,74 @@ isdir(outdir) && rm(outdir, recursive=true)
     pds = pd["p"]
     @test pds.plot_data == pd
     @test pds.variable_id == 4
-    @test_nowarn show(stdout, pds)
+    @test_nowarn_debug show(stdout, pds)
     println(stdout)
 
     # getmesh/PlotMesh2D
     @test getmesh(pd) == Trixi.PlotMesh2D(pd)
     @test getmesh(pd).plot_data == pd
-    @test_nowarn show(stdout, getmesh(pd))
+    @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
   end
 
   @testset "plot recipes" begin
     pd = PlotData2D(sol)
 
-    @test_nowarn plot(sol)
-    @test_nowarn plot(pd)
-    @test_nowarn plot(pd["p"])
-    @test_nowarn plot(getmesh(pd))
+    @test_nowarn_debug plot(sol)
+    @test_nowarn_debug plot(pd)
+    @test_nowarn_debug plot(pd["p"])
+    @test_nowarn_debug plot(getmesh(pd))
   end
 
   @testset "plot 3D" begin
-    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 
   @testset "plotting TimeIntegratorSolution" begin
-    @test_nowarn trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
-    @test_nowarn plot(sol)
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_hypdiff_lax_friedrichs.jl"))
+    @test_nowarn_debug plot(sol)
+  end
+
+  @testset "VisualizationCallback" begin
+    # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
+    # Xref: https://github.com/jheinen/GR.jl/issues/278
+    # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
+    if !isinteractive()
+      restore = get(ENV, "GKSwstype", nothing)
+      ENV["GKSwstype"] = "100"
+    end
+
+    @test_nowarn_debug trixi_include(@__MODULE__,
+                               joinpath(examples_dir(), "2d", "elixir_advection_amr_visualization.jl"),
+                               visualization = VisualizationCallback(interval=20,
+                                               clims=(0,1),
+                                               plot_creator=Trixi.save_plot),
+                               tspan=(0.0, 2.0))
+
+    @testset "elixir_advection_amr_visualization.jl with save_plot" begin
+      @test isfile(joinpath(outdir, "solution_000000.png"))
+      @test isfile(joinpath(outdir, "solution_000020.png"))
+      @test isfile(joinpath(outdir, "solution_000024.png"))
+    end
+
+    @testset "show" begin
+      @test_nowarn_debug show(stdout, visualization)
+      println(stdout)
+
+      @test_nowarn_debug show(stdout, "text/plain", visualization)
+      println(stdout)
+    end
+
+    # Restore GKSwstype to previous value (if it was set)
+    if !isinteractive()
+      if isnothing(restore)
+        delete!(ENV, "GKSwstype")
+      else
+        ENV["GKSwstype"] = restore
+      end
+    end
   end
 end
 
