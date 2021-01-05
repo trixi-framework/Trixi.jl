@@ -64,12 +64,22 @@ julia> import Pkg
 
 julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
 ```
-Note that you can copy and paste all commands to the REPL *including* the leading
+You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 provides time integration schemes used by Trixi, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi's results from the REPL.
+
+*Note on package versions:* If some of the examples for how to use Trixi do not
+work, verify that you are using a recent Trixi release by comparing the
+installed Trixi version from
+```julia
+julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+```
+to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
+If the installed version does not match the current release, please check the
+*Troubleshooting* section in the [documentation](#documentation).
 
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
