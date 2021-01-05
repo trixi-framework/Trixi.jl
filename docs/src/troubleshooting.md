@@ -21,16 +21,16 @@ version that at the same time is restricted to a lower maximum version by
 another installed package.
 
 You can check whether an outdated version of Trixi is installed by executing
-```bash
-julia -e 'using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")'
+```julia
+julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
-and comparing the reported Trixi version with the version of the 
+in the REPL and comparing the reported Trixi version with the version of the 
 [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the versions differ, you can confirm that it is due to a version conflict by
 forcing `Pkg` to install the latest Trixi release, where `version` is the
 current release:
-```bash
-julia -e 'using Pkg; Pkg.add(name="Trixi", version="0.3.6")'
+```julia
+julia> Pkg.add(name="Trixi", version="0.3.6")
 ```
 In case of a conflict, the command above will produce an error that informs you
 about the offending packages, similar to the following:
@@ -71,11 +71,12 @@ there are a number of things you can try to fix such errors:
   version of the problematic package may exist that has updated version
   requirements.
 * Remove the offending package. Running
-  ```bash
-  julia -e 'using Pkg; Pkg.rm("BinaryBuilder"); Pkg.update(); Pkg.status()'
+  ```julia
+  julia> import Pkg; Pkg.rm("BinaryBuilder"); Pkg.update(); Pkg.status()
   ```
-  will remove `BinaryBuilder` and (hopefully) update Trixi to the latest version.
-* Report the versioning issue to us and/or the development repository of the
-  conflicting package.  Maybe it is possible to lift the version restrictions such
-  that both packages can live side by side.
+  in the REPL will remove `BinaryBuilder` and (hopefully) update Trixi to the latest version.
+* Report the versioning issue to [us](https://github.com/trixi-framework/Trixi.jl/issues/new)
+  and/or the development repository of the conflicting package.  Maybe it is
+  possible to lift the version restrictions such that both packages can live
+  side by side.
 
