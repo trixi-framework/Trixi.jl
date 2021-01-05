@@ -60,8 +60,8 @@ visualize Trixi's results from the REPL.
 *Note on package versions:* If some of the examples for how to use Trixi do not
 work, verify that you are using a recent Trixi release by comparing the
 installed Trixi version from
-```bash
-julia -e 'using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")'
+```julia
+julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
