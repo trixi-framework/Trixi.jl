@@ -1,0 +1,81 @@
+# Troubleshooting
+
+## [Installing Trixi as a package only provides an older release](@id old-release)
+Trixi requires fairly recent versions of several of its dependencies, which
+sometimes causes issues when other installed packages have conflicting version
+requirements.  In this case, Julia's package manager `Pkg` will try to handle
+this gracefully by going back in history until it finds a Trixi release whose
+version requirements can be met, resulting in an older - and usually outdated -
+version of Trixi being installed.
+
+The following example illustrates this issue:
+* The current Trixi release `v0.3.6` requires package `Foo` with a *minimum* version of `v0.2`.
+* An older Trixi release `v0.2.1` requires package `Foo` only with a *minimum*
+  version of `v0.1`.
+* A user has already installed package `Bar`, which itself requires `Foo` with a
+  *maximum* version of `v0.1`.
+In this case, installing Trixi via `Pkg` will result in version `v0.2.1` to be
+installed instead of the current release `v0.3.6`. That is, a specific release
+of Trixi may not be installable if it has a dependency with a higher minimum
+version that at the same time is restricted to a lower maximum version by
+another installed package.
+
+You can check whether an outdated version of Trixi is installed by executing
+```bash
+julia -e 'using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")'
+```
+and comparing the reported Trixi version with the version of the 
+[latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
+If the versions differ, you can confirm that it is due to a version conflict by
+forcing `Pkg` to install the latest Trixi release, where `version` is the
+current release:
+```bash
+julia -e 'using Pkg; Pkg.add(name="Trixi", version="0.3.6")'
+```
+In case of a conflict, the command above will produce an error that informs you
+about the offending packages, similar to the following:
+```
+   Updating registry at `~/.julia/registries/General`
+  Resolving package versions...
+ERROR: Unsatisfiable requirements detected for package DataStructures [864edb3b]:
+ DataStructures [864edb3b] log:
+ ├─possible versions are: [0.9.0, 0.10.0, 0.11.0-0.11.1, 0.12.0, 0.13.0, 0.14.0-0.14.1, 0.15.0, 0.16.1, 0.17.0-0.17.20, 0.18.0-0.18.8] or uninstalled
+ ├─restricted by compatibility requirements with DiffEqCallbacks [459566f4] to versions: 0.18.0-0.18.8
+ │ └─DiffEqCallbacks [459566f4] log:
+ │   ├─possible versions are: [2.0.0, 2.1.0, 2.2.0, 2.3.0, 2.4.0, 2.5.0-2.5.2, 2.6.0, 2.7.0, 2.8.0, 2.9.0, 2.10.0, 2.11.0, 2.12.0-2.12.1, 2.13.0-2.13.5, 2.14.0-2.14.1, 2.15.0] or uninstalled
+ │   ├─restricted by compatibility requirements with Trixi [a7f1ee26] to versions: [2.14.0-2.14.1, 2.15.0]
+ │   │ └─Trixi [a7f1ee26] log:
+ │   │   ├─possible versions are: [0.1.0-0.1.2, 0.2.0-0.2.6, 0.3.0-0.3.6] or uninstalled
+ │   │   └─restricted to versions 0.3.6 by an explicit requirement, leaving only versions 0.3.6
+ │   └─restricted by compatibility requirements with StaticArrays [90137ffa] to versions: 2.15.0 or uninstalled, leaving only versions: 2.15.0
+ │     └─StaticArrays [90137ffa] log:
+ │       ├─possible versions are: [0.8.0-0.8.3, 0.9.0-0.9.2, 0.10.0, 0.10.2-0.10.3, 0.11.0-0.11.1, 0.12.0-0.12.5, 1.0.0-1.0.1] or uninstalled
+ │       └─restricted by compatibility requirements with Trixi [a7f1ee26] to versions: 1.0.0-1.0.1
+ │         └─Trixi [a7f1ee26] log: see above
+ └─restricted by compatibility requirements with JLD2 [033835bb] to versions: [0.9.0, 0.10.0, 0.11.0-0.11.1, 0.12.0, 0.13.0, 0.14.0-0.14.1, 0.15.0, 0.16.1, 0.17.0-0.17.20] — no versions left
+   └─JLD2 [033835bb] log:
+     ├─possible versions are: [0.1.0-0.1.14, 0.2.0-0.2.4, 0.3.0-0.3.1] or uninstalled
+     └─restricted by compatibility requirements with BinaryBuilder [12aac903] to versions: 0.1.0-0.1.14
+       └─BinaryBuilder [12aac903] log:
+         ├─possible versions are: [0.1.0-0.1.2, 0.1.4, 0.2.0-0.2.6] or uninstalled
+         └─restricted to versions * by an explicit requirement, leaving only versions [0.1.0-0.1.2, 0.1.4, 0.2.0-0.2.6]
+```
+From the error message, we can see that ultimately `BinaryBuilder` is the
+problem here: It restricts the package `DataStructures` to version `v0.17` (via
+its dependency `JLD2`), while Trixi requires at least `v0.18` (via its
+dependency `DiffEqCallbacks`).
+Following the
+[official `Pkg` documentation](https://julialang.github.io/Pkg.jl/v1/managing-packages/#conflicts),
+there are a number of things you can try to fix such errors:
+* Try updating all packages with `julia -e 'using Pkg; Pkg.update()'`. A newer
+  version of the problematic package may exist that has updated version
+  requirements.
+* Remove the offending package. Running
+  ```bash
+  julia -e 'using Pkg; Pkg.rm("BinaryBuilder"); Pkg.update(); Pkg.status()'
+  ```
+  will remove `BinaryBuilder` and (hopefully) update Trixi to the latest version.
+* Report the versioning issue to us and/or the development repository of the
+  conflicting package.  Maybe it is possible to lift the version restrictions such
+  that both packages can live side by side.
+
