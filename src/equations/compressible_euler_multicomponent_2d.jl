@@ -30,19 +30,33 @@ end
 
 get_name(::CompressibleEulerMulticomponentEquations2D) = "CompressibleEulerMulticomponentEquations2D"
 
-#cons  = SVector{3, String}
-#prim  = SVector{3, String}
+# Append Idea would just work inside a function, not here bec. gamma is not known during compilation.
+#cons  = ["rho_v1", "rho_v2", "rho_e"]
+#prim  = ["v1", "v2", "p"]
 
-#for i in 1:3
-# 
-#  
-# 
+#add   = ["rho1", "rho2", "rho3", "rho4", "rho5"]
+
+#for i in 1:length(gamma)
+ 
+#  append!(cons, add)
+#  append!(prim, add)  
+ 
+#  println("cons_add:",cons)
 #end
 
-# Option1: somehow append this vector, Option2: make a giant vector and let it be as it is (not efficient)
+# Option1: somehow append this vector, Option2(right now): make a giant vector and let it be as it is (not efficient)
 
- varnames(::typeof(cons2cons), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho_v1", "rho_v2", "rho_e", "rho1", "rho2", "rho3"]
- varnames(::typeof(cons2prim), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["v1", "v2", "p", "rho1", "rho2", "rho3"]
+varnames(::typeof(cons2cons), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["rho_v1", "rho_v2", "rho_e", 
+                                                                                        "rho1", "rho2", "rho3", "rho4", "rho5",
+                                                                                        "rho6", "rho7", "rho8", "rho9", "rho10",
+                                                                                        "rho11", "rho12", "rho13", "rho14", "rho15",
+                                                                                        "rho16", "rho17", "rho17", "rho18", "rho19", "rho20"]
+varnames(::typeof(cons2prim), ::CompressibleEulerMulticomponentEquations2D) = @SVector ["v1", "v2", "p", 
+                                                                                        "rho1", "rho2", "rho3", "rho4", "rho5",
+                                                                                        "rho6", "rho7", "rho8", "rho9", "rho10",
+                                                                                        "rho11", "rho12", "rho13", "rho14", "rho15",
+                                                                                        "rho16", "rho17", "rho17", "rho18", "rho19", "rho20"]
+
 
  # Set initial conditions at physical location `x` for time `t`
 
@@ -243,14 +257,16 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
   #rho               = rho1 + rho2
 
   #Three Components
-  rho1              = r > 0.5 ? 0.2*1.0 : 0.2*1.1691
-  rho2              = r > 0.5 ? 0.4*1.0 : 0.4*1.1691
-  rho3              = r > 0.5 ? 0.3*1.0 : 0.3*1.1691
+  for i in 1:length(gamma)
+    factor      = 2^(i-1) * (1-2)/(1-2^length(gamma)) # divides 1 by NCOMP, each fraction is double the previous fraction.
+    prim[i+3]   = r > 0.5 ? factor*1.0 : factor*1.1691
+  end
+
   v1                = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2                = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   p                 = r > 0.5 ? 1.0 : 1.245
 
-  prim              = [v1, v2, p, rho1, rho2, rho3]
+  prim[1:3]              = [v1, v2, p]
 
   result            = SVector{length(gamma)+3}(prim)
 
@@ -332,18 +348,11 @@ Entropy conserving two-point flux by
     rhok_mean[i]  = ln_mean(u_ll[i+3], u_rr[i+3])
     rhok_avg[i]   = 0.5 * (u_ll[i+3] + u_rr[i+3])
   end 
-  #rho_ll      = rho1_ll + rho2_ll
-  #rho_rr      = rho1_rr + rho2_rr
   v1_ll       = rho_v1_ll/rho_ll
   v2_ll       = rho_v2_ll/rho_ll
   v1_rr       = rho_v1_rr/rho_rr
   v2_rr       = rho_v2_rr/rho_rr
 
-  # helpful mean values
-  #rho1_mean   = ln_mean(rho1_ll,rho1_rr)
-  #rho2_mean   = ln_mean(rho2_ll,rho2_rr) 
-  #rho1_avg    = 0.5 * (rho1_ll + rho1_rr)
-  #rho2_avg    = 0.5 * (rho2_ll + rho2_rr)
   v1_avg      = 0.5 * (v1_ll + v1_rr)
   v2_avg      = 0.5 * (v2_ll + v2_rr)
   v1_square   = 0.5 * (v1_ll^2 + v1_rr^2)
@@ -354,12 +363,13 @@ Entropy conserving two-point flux by
   enth      = 0
   help1_ll  = 0
   help1_rr  = 0
+
   for i = 1:length(gamma)
     enth      += rhok_avg[i] * gas_constant[i] 
     help1_ll  += u_ll[i+3] * cv[i] 
     help1_rr  += u_rr[i+3] * cv[i]
   end
-  #enth        = rho1_avg * gas_constant[1] + rho2_avg * gas_constant[2]
+
   T_ll        = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll #(rho1_ll * cv[1] + rho2_ll * cv[2])
   T_rr        = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr #(rho1_rr * cv[1] + rho2_rr * cv[2])
   T           = 0.5 * (1.0/T_ll + 1.0/T_rr)
@@ -369,8 +379,6 @@ Entropy conserving two-point flux by
   help1       = 0
   help2       = 0
   if orientation == 1
-    #f4 = rho1_mean * v1_avg
-    #f5 = rho2_mean * v1_avg
     for i = 1:length(gamma)
       f[i+3]    = rhok_mean[i] * v1_avg
       help1     += f[i+3] * cv[i] 
@@ -380,8 +388,6 @@ Entropy conserving two-point flux by
     f2 = (help2) * v2_avg
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
   else
-    #f4 = rho1_mean * v2_avg
-    #f5 = rho2_mean * v2_avg
     for i = 1:length(gamma)
       f[i+3]    = rhok_mean[i] * v2_avg
       help1     += f[i+3] * cv[i] 
@@ -718,7 +724,7 @@ end
 
   for i = 1:length(gamma)
     rho += u[i+3]
-    prim[i+3] = u[i+3]
+    prim[i+3] = copy(u[i+3])
   end 
 
   v1    = rho_v1 / rho
@@ -764,14 +770,8 @@ end
   T         = (rho_e - 0.5 * rho * v_square) / (help1)
 
   for i = 1:length(gamma)
-    entrop[i+3] = cv[i] * log(T) - gas_constant[i] * log(u[i+3]) + gas_constant[i] + cv[i] - (v_square / (2*T))
+    entrop[i+3] = -1.0 * (cv[i] * log(T) - gas_constant[i] * log(u[i+3])) + gas_constant[i] + cv[i] - (v_square / (2*T))
   end
-  #s1        = cv[1] * log(T) - gas_constant[1] * log(rho1)
-  #s2        = cv[2] * log(T) - gas_constant[2] * log(rho2)
-
-  # Entropy variables
-  #w4        = -s1 + gas_constant[1] + cv[1] - (v_square / (2*T)) # + e01/T (bec. e01 = 0 for compressible euler) (DONT confuse it with e1 which is e1 = cv * T)
-  #w5        = -s2 + gas_constant[2] + cv[2] - (v_square / (2*T)) # + e02/T (bec. e02 = 0 for compressible euler)
   w1        = (v1)/T
   w2        = (v2)/T
   w3        = (-1.0)/T 
