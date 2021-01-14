@@ -228,7 +228,7 @@ A for multicomponent adapted weak blast wave taken from
 function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMulticomponentEquations2D)
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
   @unpack gamma, cv, gas_constant, cp = equations
-  prim              = SVector{length(gamma)+3, Float64}
+  prim              = zeros(length(gamma)+3)
   # Set up polar coordinates
   inicenter         = SVector(0.0, 0.0)
   x_norm            = x[1] - inicenter[1]
@@ -244,15 +244,17 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
 
   #Three Components
   rho1              = r > 0.5 ? 0.2*1.0 : 0.2*1.1691
-  rho2              = r > 0.5 ? 0.8*1.0 : 0.8*1.1691
-  #rho3              = r > 0.5 ? 0.3*1.0 : 0.3*1.1691
+  rho2              = r > 0.5 ? 0.4*1.0 : 0.4*1.1691
+  rho3              = r > 0.5 ? 0.3*1.0 : 0.3*1.1691
   v1                = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2                = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   p                 = r > 0.5 ? 1.0 : 1.245
 
-  prim              = [v1, v2, p, rho1, rho2]#, rho3]
+  prim              = [v1, v2, p, rho1, rho2, rho3]
 
-  return prim2cons(prim, equations)
+  result            = SVector{length(gamma)+3}(prim)
+
+  return prim2cons(result, equations)
 end
 
 
@@ -261,7 +263,6 @@ end
   @unpack gamma, cv = equations
   rho_v1, rho_v2, rho_e  = u
   f         = zeros(length(gamma)+3)
-  #f         = SVector{length(gamma)+3, Float64}
   rho       = 0
 
   for i = 1:length(gamma)
@@ -278,20 +279,20 @@ end
 
 
   if orientation == 1
-    #f1  = rho1 * v1
-    #f2  = rho2 * v1
+
     for i = 1:length(gamma)
       f[i+3] = u[i+3] * v1
     end
+
     f1  = rho_v1 * v1 + p
     f2  = rho_v2 * v1
     f3  = (rho_e + p) * v1
   else
-    #f1  = rho1 * v2
-    #f2  = rho2 * v2
+
     for i = 1:length(gamma)
       f[i+3] = u[i+3] * v2
     end
+
     f1  = rho_v1 * v2
     f2  = rho_v2 * v2 + p
     f3  = (rho_e + p) * v2
@@ -299,8 +300,9 @@ end
 
   f[1:3]  = [f1, f2, f3]
 
-  #println("calcflux:",f)
-  return f
+  result  = SVector{length(gamma)+3}(f)
+
+  return result
 end
 
 
@@ -322,9 +324,6 @@ Entropy conserving two-point flux by
   rhok_mean   = zeros(length(gamma))
   rhok_avg    = zeros(length(gamma))
   f           = zeros(length(gamma)+3)
-  #rhok_mean = SVector{length(gamma), Float64}
-  #rhok_avg  = SVector[length(gamma), Float64]
-  #f         = SVector{length(gamma)+3, Float64}
 
   # helpful primitive variables
   for i = 1:length(gamma)
@@ -395,8 +394,9 @@ Entropy conserving two-point flux by
 
   f[1:3]  = [f1, f2, f3]
 
-  #println("EC:",f)
-  return f
+  result  = SVector{length(gamma)+3}(f)
+
+  return result
 end
 
 """
@@ -636,7 +636,6 @@ end
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   @unpack cv, gamma = equations
   f   = zeros(length(gamma)+3)
-  #f = SVector{length(gamma)+3, Float64}
   # Calculate primitive variables and speed of sound
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -683,7 +682,9 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
     f[i+3]  = 1/2 * (f_ll[i+3] + f_rr[i+3]) - 1/2 * λ_max * (u_rr[i+3] - u_ll[i+3])
   end
 
-  return f
+  result  = SVector{length(gamma)+3}(f)
+
+  return result
 end
 
 
@@ -713,7 +714,6 @@ end
   @unpack cv, gamma = equations
   rho_v1, rho_v2, rho_e = u
   prim  = zeros(length(gamma)+3)
-  #prim  = SVector{length(gamma)+3, Float64}
   rho   = 0
 
   for i = 1:length(gamma)
@@ -728,10 +728,9 @@ end
   p     = (gammas - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
   prim[1:3] = [v1, v2, p]
 
-  #println("cons:",u)
-  ##println("2prim:",prim)
+  result    = SVector{length(gamma)+3}(prim)
 
-  return prim
+  return result
 end
 
 
@@ -742,7 +741,6 @@ end
   rho       = 0
 
   entrop  = zeros(length(gamma)+3)
-  #entrop = SVector{length(gamma)+3, Float64}
 
   for i = 1:length(gamma)
     rho += u[i+3]
@@ -780,7 +778,9 @@ end
 
   entrop[1:3] = [w1, w2, w3]
 
-  return entrop
+  result      = SVector{length(gamma)+3}(entrop)
+
+  return result
 end
 
 
@@ -790,11 +790,10 @@ end
   v1, v2, p = prim
   rho = 0
   cons = zeros(length(gamma)+3)
-  #cons = SVector{length(gamma)+3, Float64}
-
+  
   for i = 1:length(gamma)
     rho       += prim[i+3]
-    cons[i+3] = prim[i+3]
+    cons[i+3]   = prim[i+3]
   end
 
   gammas  = getgamma(prim, equations)
@@ -805,10 +804,9 @@ end
 
   cons[1:3] = [rho_v1, rho_v2, rho_e] 
 
-  #println("prim:",prim)
-  #println("2cons:",cons)
+  result    = SVector{length(gamma)+3}(cons)
 
-  return cons
+  return result
 end
 
 @inline function getgamma(u, equations::CompressibleEulerMulticomponentEquations2D)
