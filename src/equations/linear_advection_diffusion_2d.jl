@@ -28,14 +28,6 @@ varnames(::typeof(cons2prim), ::LinearAdvectionDiffusionEquation2D) = SVector("s
 
 have_parabolic_terms(::LinearAdvectionDiffusionEquation2D) = Val(true)
 
-# Calculates translated coordinates `x` for a periodic domain
-function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(0, 0))
-  x_normalized = x .- center
-  x_shifted = x_normalized .% domain_length
-  x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
-  return center + x_shifted + x_offset
-end
-
 
 # Set initial conditions at physical location `x` for time `t`
 """
