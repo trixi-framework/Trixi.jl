@@ -275,9 +275,9 @@ end
 
 
 function create_solver_auxvars(dg::DGSEM)
-  @unpack basis = dg
+  @unpack basis, mortar = dg
 
-  return DGSEM(basis, flux_central, VolumeIntegralWeakForm(), MortarL2(basis))
+  return DGSEM(basis, flux_central, VolumeIntegralWeakForm(), mortar)
 end
 
 
