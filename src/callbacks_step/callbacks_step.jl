@@ -25,13 +25,16 @@ end
 
 # `include` callback definitions in the order that we currently prefer
 # when combining them into a `CallbackSet` which is called *after* a complete step
-# The motivation is as follows:
+# The motivation is as follows: The first callbacks belong to the current time step iteration:
 # * `SummaryCallback` controls, among other things, timers and should thus be first
 # * `SteadyStateCallback` may mark a time step as the last step, which is needed by other callbacks
 # * `AnalysisCallback` may also do some checks that mark a step as the last one
 # * `AliveCallback` belongs to `AnalysisCallback` and should thus be nearby
 # * `SaveRestartCallback`/`SaveSolutionCallback` should save the current solution state before it is
 #   potentially degraded by AMR
+# * `VisualizationCallback` similarly should be called before the mesh is adapted
+#
+# From here on, the remaining callbacks essentially already belong to the next time step iteration:
 # * `AMRCallback` really belongs to the next time step already, as it should be the "first" callback
 #   in a time step loop (however, callbacks are always executed *after* a step, thus it comes near
 #   the end here)
@@ -45,6 +48,8 @@ include("analysis.jl")
 include("alive.jl")
 include("save_restart.jl")
 include("save_solution.jl")
+include("visualization.jl")
+
 include("amr.jl")
 include("stepsize.jl")
 include("glm_speed.jl")

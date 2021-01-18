@@ -71,7 +71,7 @@ callbacks = CallbackSet(summary_callback,
 
 
 limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-                                               variables=(density, pressure))
+                                               variables=(Trixi.density, pressure))
 stage_limiter! = limiter!
 step_limiter!  = limiter!
 

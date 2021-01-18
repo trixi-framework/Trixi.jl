@@ -19,7 +19,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
-                                         variable=density)
+                                         variable=Trixi.density)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -62,7 +62,7 @@ save_solution = SaveSolutionCallback(interval=100,
 #                                           alpha_max=0.5,
 #                                           alpha_min=0.001,
 #                                           alpha_smooth=true,
-#                                           variable=density)
+#                                           variable=Trixi.density)
 # amr_controller = ControllerThreeLevel(semi, amr_indicator,
 #                                       base_level=5,
 #                                       max_level=8, max_threshold=0.01)

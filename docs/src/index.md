@@ -23,12 +23,14 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics equations
   * Hyperbolic diffusion equations for elliptic problems
+  * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Scalar advection
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl))
-  or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
+* Visualization and postprocessing of the results
+  * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 
 ## Installation
@@ -37,21 +39,33 @@ operating system](https://julialang.org/downloads/platform/). Trixi works
 with Julia v1.5.
 
 ### For users
-Trixi and related postprocessing tools are registered Julia packages. Hence, you
-can install Trixi, the visualization tools
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
-and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl), and the
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package by
-executing the following commands in the Julia REPL:
+Trixi and its related tools are registered Julia packages. Hence, you
+can install Trixi, the visualization tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img"); Pkg.add("OrdinaryDiffEq")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
 ```
-Note that you can copy and paste all commands to the REPL *including* the leading
+You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.
+provides time integration schemes used by Trixi, while
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
+visualize Trixi's results from the REPL.
+
+*Note on package versions:* If some of the examples for how to use Trixi do not
+work, verify that you are using a recent Trixi release by comparing the
+installed Trixi version from
+```julia
+julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+```
+to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
+If the installed version does not match the current release, please check the
+[Troubleshooting](@ref old-release) section.
 
 ### [For developers](@id for-developers)
 If you plan on editing Trixi itself, you have two options: installing it as a
@@ -84,20 +98,21 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    julia --project=@.
    ```
 
-Either way, since the postprocessing tools typically do not need to be modified,
-it is recommended to install them as normal packages by executing
+Either way, since the postprocessing tool Trixi2Vtk typically does not need to be modified,
+it is recommended to install it as a normal package by executing
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")
+julia> Pkg.add("Trixi2Vtk")
 ```
 in the Julia REPL. Likewise, you can install
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-as an ordinary package with the following REPL commands:
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as ordinary packages with the following REPL commands:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("OrdinaryDiffEq")
+julia> Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
 ```
 
 
@@ -125,21 +140,21 @@ Then start a simulation by executing
 ```julia
 julia> trixi_include(default_example())
 ```
-To visualize the results, load the package Trixi2Img
+To visualize the results, load the package Plots
 ```julia
-julia> using Trixi2Img
+julia> using Plots
 ```
-and generate a contour plot of the results with
+and generate a heatmap plot of the results with
 ```julia
-julia> trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
+julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
-This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
-that can be opened with any image viewer:
-
-!["solution_000040_scalar_resized"](assets/solution_000040_scalar_resized.png)
+This will open a new window with a 2D visualization of the final solution:
+<p align="center">
+  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
+</p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a
-Trixi elixir, i.e.. a text file containing Julia code necessary to set up and run a
+Trixi elixir, i.e., a text file containing Julia code necessary to set up and run a
 simulation. To quickly see Trixi in action, `default_example()`
 returns the path to an example elixir with a short, two-dimensional
 problem setup. A list of all example elixirs packaged with Trixi can be
@@ -231,7 +246,7 @@ mean      3.90      mean      3.93      mean      3.93      mean      3.94
 ## Referencing
 If you use Trixi in your own research or write a paper using results obtained
 with the help of Trixi, please cite the following
-[reference](https://arxiv.org/abs/2008.10593):
+[paper](https://arxiv.org/abs/2008.10593):
 ```bibtex
 @online{schlottkelakemper2020purely,
   title={A purely hyperbolic discontinuous {G}alerkin approach for

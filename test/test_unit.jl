@@ -1,14 +1,16 @@
-module TestManual
+module TestUnit
 
 using Test
+using SimpleMock
+using Documenter
 using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# Run various manual (= non-elixir-triggered tests)
-@testset "Manual tests" begin
+# Run various unit (= non-elixir-triggered) tests
+@testset "Unit tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
@@ -55,6 +57,116 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "TreeMesh" begin
     @testset "constructors" begin
       @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+    end
+  end
+
+  @testset "ParallelTreeMesh" begin
+    @testset "partition!" begin
+      @testset "mpi_nranks() = 2" begin
+        mock((Trixi.mpi_nranks) => () -> 2) do _
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [11, 10]
+          @test mesh.tree.mpi_ranks[1:21] ==
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+          @test parent(mesh.first_cell_by_rank) == [1, 12]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [11, 10]
+          @test mesh.tree.mpi_ranks[1:21] ==
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+          @test parent(mesh.first_cell_by_rank) == [1, 12]
+        end
+      end
+
+      @testset "mpi_nranks() = 3" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do _
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [11, 5, 5]
+          @test mesh.tree.mpi_ranks[1:21] ==
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 12, 17]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [9, 6, 6]
+          @test mesh.tree.mpi_ranks[1:21] ==
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
+        end
+      end
+
+      @testset "mpi_nranks() = 9" begin
+        mock((Trixi.mpi_nranks) => () -> 9) do _
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
+          # Refine twice
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+          Trixi.refine!(mesh.tree)
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [44, 37, 38, 37, 37, 37, 38, 37, 36]
+          @test parent(mesh.first_cell_by_rank) == [1, 45, 82, 120, 157, 194, 231, 269, 306]
+        end
+      end
+
+      @testset "mpi_nranks() = 3 non-uniform" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do _
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+          # Refine whole tree
+          Trixi.refine!(mesh.tree)
+          # Refine left leaf
+          Trixi.refine!(mesh.tree, [2])
+
+          # allow_coarsening = true
+          Trixi.partition!(mesh)
+          # Use parent for OffsetArray
+          @test parent(mesh.n_cells_by_rank) == [6, 1, 2]
+          @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 0, 1, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 7, 8]
+
+          # allow_coarsening = false
+          Trixi.partition!(mesh; allow_coarsening=false)
+          @test parent(mesh.n_cells_by_rank) == [5, 2, 2]
+          @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 1, 1, 2, 2]
+          @test parent(mesh.first_cell_by_rank) == [1, 6, 8]
+        end
+      end
+
+      @testset "not enough ranks" begin
+        mock((Trixi.mpi_nranks) => () -> 3) do _
+          mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+
+          # Only one leaf
+          @test_throws AssertionError(
+            "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
+
+          # Refine to 4 leaves
+          Trixi.refine!(mesh.tree)
+
+          # All four leaves will need to be on one rank to allow coarsening
+          @test_throws AssertionError(
+            "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
+          @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
+        end
+      end
     end
   end
 
@@ -235,7 +347,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn show(stdout, indicator_max)
   end
 
-  @testset "LBM constructor" begin
+  @testset "LBM 2D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -249,7 +361,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
   end
 
-  @testset "LBM functions" begin
+  @testset "LBM 3D constructor" begin
+    # Neither Mach number nor velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=nothing, Re=1000)
+    # Both Mach number and velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=1000, u0=1)
+    # Neither Reynolds number nor viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=nothing)
+    # Both Reynolds number and viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=1000, nu=1)
+
+    # No non-dimensional values set
+    @test LatticeBoltzmannEquations3D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations3D
+  end
+
+  @testset "LBM 2D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
@@ -257,7 +383,20 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Component-wise velocity
     @test isapprox(Trixi.velocity(u, 1, equation), 2)
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
+  end
 
+  @testset "LBM 3D functions" begin
+    # Set up LBM struct and dummy distribution
+    equation = LatticeBoltzmannEquations3D(Ma=0.1, Re=1000)
+    u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
+
+    # Component-wise velocity
+    @test isapprox(velocity(u, 1, equation), 2)
+    @test isapprox(velocity(u, 2, equation), 3)
+    @test isapprox(velocity(u, 3, equation), 4)
+  end
+
+  @testset "LBMCollisionCallback" begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
@@ -265,6 +404,10 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn show(stdout, "text/plain", callback)
     println()
   end
+
+  # Test docstrings
+  DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
+  doctest(Trixi, manual=false)
 end
 
 end #module

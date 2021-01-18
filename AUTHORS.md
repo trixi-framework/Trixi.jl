@@ -20,6 +20,7 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
+* Christof Czernik
 * Erik Faulhaber
 * Gregor Gassner
 * Julia Odenthal

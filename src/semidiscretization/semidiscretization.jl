@@ -18,7 +18,7 @@ and integrate the result using a quadrature associated with the semidiscretizati
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate_via_indices(func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true)
+function integrate_via_indices(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization, args...; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -33,7 +33,7 @@ and integrate the result using a quadrature associated with the semidiscretizati
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true)
+function integrate(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -46,13 +46,13 @@ end
 
 
 """
-    calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization)
+    calc_error_norms([func=(u_node,equations)->u_node,] u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis)
 
 Calculate discrete L2 and L∞ error norms of `func` applied to each nodal variable `u_node` in `u_ode`.
 If no exact solution is available, "errors" are calculated using some reference state and can be useful
 for regression tests.
 """
-calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization) = calc_error_norms(cons2cons, u_ode, t, analyzer, semi)
+calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization, cache_analysis) = calc_error_norms(cons2cons, u_ode, t, analyzer, semi, cache_analysis)
 
 
 """
@@ -104,6 +104,7 @@ to use the given initial condition at time `t`.
 """
 function compute_coefficients(func, t, semi::AbstractSemidiscretization)
   u_ode = allocate_coefficients(mesh_equations_solver_cache(semi)...)
+  # Call `compute_coefficients` defined below
   compute_coefficients!(u_ode, func, t, semi)
   return u_ode
 end
@@ -115,6 +116,7 @@ Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
 function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
+  # Call `compute_coefficients` defined by the solver
   compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
 end
 
@@ -264,7 +266,7 @@ end
 # - wrap_array(u_ode::AbstractVector, mesh, equations, solver, cache)
 # - integrate(func, u, mesh, equations, solver, cache; normalize=true)
 # - integrate_via_indices(func, u, mesh, equations, solver, cache, args...; normalize=true)
-# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache)
+# - calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 # - allocate_coefficients(mesh, equations, solver, cache)
 # - compute_coefficients!(u, func, mesh, equations, solver, cache)
 # - rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)

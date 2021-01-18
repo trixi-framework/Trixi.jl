@@ -6,7 +6,7 @@
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=master)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.3.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.8.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 <!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
 
@@ -37,13 +37,14 @@ installation and postprocessing procedures. Its features include:
   * Compressible Euler equations
   * Magnetohydrodynamics equations
   * Hyperbolic diffusion equations for elliptic problems
-  * Lattice-Boltzmann equations (D2Q9 scheme)
+  * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Scalar advection
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
-* Visualization of results with Julia-only tools ([Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl))
-  or ParaView/VisIt ([Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl))
+* Visualization and postprocessing of the results
+  * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+  * Postprocessing with ParaView/VisIt via [Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
 
 
 ## Installation
@@ -52,21 +53,33 @@ operating system](https://julialang.org/downloads/platform/). Trixi works
 with Julia v1.5.
 
 ### For users
-Trixi and related postprocessing tools are registered Julia packages. Hence, you
-can install Trixi, the visualization tools
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl)
-and [Trixi2Img](https://github.com/trixi-framework/Trixi2Img.jl), and the
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package by
-executing the following commands in the Julia REPL:
+Trixi and its related tools are registered Julia packages. Hence, you
+can install Trixi, the visualization tool
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+by executing the following commands in the Julia REPL:
 ```julia
 julia> import Pkg
 
-julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img"); Pkg.add("OrdinaryDiffEq")
+julia> Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("OrdinaryDiffEq"); Pkg.add("Plots")
 ```
-Note that you can copy and paste all commands to the REPL *including* the leading
+You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.
+provides time integration schemes used by Trixi, while
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
+visualize Trixi's results from the REPL.
+
+*Note on package versions:* If some of the examples for how to use Trixi do not
+work, verify that you are using a recent Trixi release by comparing the
+installed Trixi version from
+```julia
+julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
+```
+to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
+If the installed version does not match the current release, please check the
+*Troubleshooting* section in the [documentation](#documentation).
 
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
@@ -75,7 +88,7 @@ within the cloned directory:
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 julia --project=@. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies
-julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")' # Install postprocessing tools
+julia -e 'import Pkg; Pkg.add("Trixi2Vtk"); Pkg.add("Plots")' # Install postprocessing tools
 julia -e 'import Pkg; Pkg.add("OrdinaryDiffEq")' # Install time integration schemes
 ```
 If you installed Trixi this way, you always have to start Julia with the `--project`
@@ -95,18 +108,17 @@ Then start a simulation by executing
 ```julia
 julia> trixi_include(default_example())
 ```
-To visualize the results, load the package Trixi2Img
+To visualize the results, load the package Plots
 ```julia
-julia> using Trixi2Img
+julia> using Plots
 ```
-and generate a contour plot of the results with
+and generate a heatmap plot of the results with
 ```julia
-julia> trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)
+julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
-This will create a file `solution_000040_scalar.png` in the `out/` subdirectory
-that can be opened with any image viewer:
+This will open a new window with a 2D visualization of the final solution:
 <p align="center">
-  <img width="300px" src="docs/src/assets/solution_000040_scalar_resized.png">
+  <img width="300px" src="https://user-images.githubusercontent.com/3637659/102711616-873a6200-42bb-11eb-8722-d10599f72aa1.png">
 </p>
 
 The method `trixi_include(...)` expects a single string argument with the path to a

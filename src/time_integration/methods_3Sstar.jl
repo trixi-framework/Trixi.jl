@@ -196,13 +196,14 @@ function solve!(integrator::SimpleIntegrator3Sstar)
     end
   end
 
-  return (t=(first(prob.tspan), integrator.t),
-          u=(copy(prob.u0), copy(integrator.u)),
-          prob=integrator.sol.prob)
+  return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                (prob.u0, integrator.u),
+                                integrator.sol.prob)
 end
 
 # get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegrator3Sstar) = integrator.du
+get_tmp_cache(integrator::SimpleIntegrator3Sstar) = (integrator.u_tmp1, integrator.u_tmp2)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleIntegrator3Sstar, ::Bool) = false

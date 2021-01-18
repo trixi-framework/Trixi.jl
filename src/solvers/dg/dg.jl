@@ -161,6 +161,7 @@ end
 
 @inline nnodes(dg::DG)             = nnodes(dg.basis)
 @inline nelements(dg::DG, cache)   = nelements(cache.elements)
+@inline nelementsglobal(dg::DG, cache) = mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(dg::DG, cache) = nboundaries(cache.boundaries)
 @inline nmortars(dg::DG, cache)    = nmortars(cache.mortars)
@@ -172,12 +173,22 @@ end
 end
 
 @inline function get_node_vars(u, equations, solver::DG, indices...)
-  SVector(ntuple(v -> u[v, indices...], nvariables(equations)))
+  # There is a cut-off at `n == 10` inside of the method
+  # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+  # in Julia `v1.5`, leading to type instabilities if
+  # more than ten variables are used. That's why we use
+  # `Val(...)` below.
+  SVector(ntuple(v -> u[v, indices...], Val(nvariables(equations))))
 end
 
 @inline function get_surface_node_vars(u, equations, solver::DG, indices...)
-  u_ll = SVector(ntuple(v -> u[1, v, indices...], nvariables(equations)))
-  u_rr = SVector(ntuple(v -> u[2, v, indices...], nvariables(equations)))
+  # There is a cut-off at `n == 10` inside of the method
+  # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+  # in Julia `v1.5`, leading to type instabilities if
+  # more than ten variables are used. That's why we use
+  # `Val(...)` below.
+  u_ll = SVector(ntuple(v -> u[1, v, indices...], Val(nvariables(equations))))
+  u_rr = SVector(ntuple(v -> u[2, v, indices...], Val(nvariables(equations))))
   return u_ll, u_rr
 end
 
