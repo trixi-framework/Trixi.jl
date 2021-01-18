@@ -54,6 +54,7 @@ include("solvers/dg/dg.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_parabolic_auxvars.jl")
+include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
@@ -120,6 +121,7 @@ export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
 export SemidiscretizationHyperbolic, SemidiscretizationParabolicAuxVars,
+       SemidiscretizationHyperbolicParabolic,
        semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
