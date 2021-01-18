@@ -79,6 +79,13 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       rtol = 2000*sqrt(eps()))
   end
 
+  # This example file is only for testing purposes and has no practical use
+  @testset "elixir_euler_source_terms_amr_refine_coarsen.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_amr_refine_coarsen.jl"),
+      l2   = [5.054610689084266e-5, 4.1292984615076345e-5, 4.129298461525107e-5, 0.00012166584022297836],
+      linf = [0.00036520888680691144, 0.00029957662372082083, 0.0002995766237181563, 0.0011499261044116693])
+  end
+
   @testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.0010600778457965205, 0.00010600778457646603, 0.0002120155691588112, 2.6501946142012653e-5],
