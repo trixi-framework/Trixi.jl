@@ -16,8 +16,6 @@ get_name(::HeatEquation2D) = "HeatEquation2D"
 varnames(::typeof(cons2cons), ::HeatEquation2D) = SVector("scalar")
 varnames(::typeof(cons2prim), ::HeatEquation2D) = SVector("scalar")
 
-have_parabolic_terms(::HeatEquation2D) = Val(true)
-
 
 # Set initial conditions at physical location `x` for time `t`
 """

@@ -29,7 +29,6 @@ struct SemidiscretizationParabolicAuxVars{Mesh, Equations, InitialCondition, Bou
       source_terms::SourceTerms,
       solver::Solver, cache::Cache) where {Mesh, Equations, InitialCondition, BoundaryConditions, SourceTerms, Solver, Cache}
     @assert ndims(mesh) == ndims(equations)
-    @assert have_parabolic_terms(equations) == Val(true) "Cannot create parabolic semidiscretization for purely hyperbolic system"
 
     performance_counter = PerformanceCounter()
 

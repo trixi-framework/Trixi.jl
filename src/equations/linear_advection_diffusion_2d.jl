@@ -26,8 +26,6 @@ get_name(::LinearAdvectionDiffusionEquation2D) = "LinearAdvectionDiffusionEquati
 varnames(::typeof(cons2cons), ::LinearAdvectionDiffusionEquation2D) = SVector("scalar")
 varnames(::typeof(cons2prim), ::LinearAdvectionDiffusionEquation2D) = SVector("scalar")
 
-have_parabolic_terms(::LinearAdvectionDiffusionEquation2D) = Val(true)
-
 
 # Set initial conditions at physical location `x` for time `t`
 """
