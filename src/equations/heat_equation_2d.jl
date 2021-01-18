@@ -57,7 +57,7 @@ end
 
 # Calculate parabolic 1D flux in axis `orientation` for a single point
 @inline function calcflux(u, gradients, orientation, equation::HeatEquation2D)
-  return equation.nu*gradients[orientation]
+  return -equation.nu*gradients[orientation]
 end
 
 
