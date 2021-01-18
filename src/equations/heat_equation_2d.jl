@@ -51,9 +51,15 @@ end
 # function source_terms_WHATEVER(u, x, t, equations::HeatEquation2D)
 
 
-# Calculate 1D flux in for a single point
+# Calculate hyperbolic 1D flux in axis `orientation` for a single point
 @inline function calcflux(u, orientation, equation::HeatEquation2D)
   return zero(u)
+end
+
+
+# Calculate parabolic 1D flux in axis `orientation` for a single point
+@inline function calcflux(u, gradients, orientation, equation::HeatEquation2D)
+  return gradients[orientation]
 end
 
 
