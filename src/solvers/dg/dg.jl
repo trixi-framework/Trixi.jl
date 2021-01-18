@@ -274,6 +274,13 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 end
 
 
+function create_solver_auxvars(dg::DGSEM)
+  @unpack basis = dg
+
+  return DGSEM(basis, flux_central, VolumeIntegralWeakForm(), MortarL2(basis))
+end
+
+
 
 # indicators used for shock-capturing and AMR
 include("indicators.jl")
