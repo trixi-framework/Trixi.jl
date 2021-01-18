@@ -22,6 +22,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Linear advection-diffusion
   include("test_examples_2d_advdiff.jl")
 
+  # Heat equation
+  include("test_examples_2d_heat.jl")
+
   # Hyperbolic diffusion
   include("test_examples_2d_hypdiff.jl")
 
