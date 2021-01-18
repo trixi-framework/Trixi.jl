@@ -121,3 +121,34 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 
   return nothing
 end
+
+
+"""
+    SemidiscretizationHyperbolicParabolicBR1(mesh, equations, initial_condition, solver::DGSEM;
+                                             source_terms=nothing,
+                                             boundary_conditions=boundary_condition_periodic)
+
+Convenience function to construct a semidiscretization of a hyperbolic-parabolic PDE with the BR1
+scheme for a DGSEM solver. The passed arguments must correspond to the hyperbolic setup, including
+the `solver`. Internally, a matching solver for the parabolic system is created and both a
+hyperbolic and a parabolic semidiscretization are created and passed to a
+`SemidiscretizationHyperbolicParabolic`.
+"""
+function SemidiscretizationHyperbolicParabolicBR1(mesh, equations, initial_condition, solver::DGSEM;
+                                                  source_terms=nothing,
+                                                  boundary_conditions=boundary_condition_periodic,
+                                                  RealT=real(solver))
+  semi_hyperbolic = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                                 source_terms=source_terms,
+                                                 boundary_conditions=boundary_conditions,
+                                                 RealT=RealT)
+
+  solver_parabolic = DGSEM(solver.basis, flux_central, solver.volume_integral, solver.mortar)
+  semi_parabolic = SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition,
+                                                      solver_parabolic,
+                                                      source_terms=source_terms,
+                                                      boundary_conditions=boundary_conditions,
+                                                      RealT=RealT)
+
+  return SemidiscretizationHyperbolicParabolic(semi_hyperbolic, semi_parabolic)
+end

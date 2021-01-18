@@ -121,7 +121,7 @@ export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
 export SemidiscretizationHyperbolic, SemidiscretizationParabolicAuxVars,
-       SemidiscretizationHyperbolicParabolic,
+       SemidiscretizationHyperbolicParabolic, SemidiscretizationHyperbolicParabolicBR1,
        semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
