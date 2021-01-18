@@ -64,10 +64,15 @@ end
 # function source_terms_WHATEVER(u, x, t, equations::LinearAdvectionDiffusionEquation2D)
 
 
-# Calculate 1D flux in for a single point
+# Calculate hyperbolic 1D flux in axis `orientation` for a single point
 @inline function calcflux(u, orientation, equation::LinearAdvectionDiffusionEquation2D)
   a = equation.advectionvelocity[orientation]
   return a * u
+end
+
+# Calculate parabolic 1D flux in axis `orientation` for a single point
+@inline function calcflux(u, gradients, orientation, equation::LinearAdvectionDiffusionEquation2D)
+  return -equation.nu*gradients[orientation]
 end
 
 
