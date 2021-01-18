@@ -10,7 +10,8 @@ nu = 1.2e-2
 equations = LinearAdvectionDiffusionEquation2D(advectionvelocity, nu)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(4, flux_lax_friedrichs)
+polydeg = 3 # 4
+solver_hyperbolic = DGSEM(polydeg, flux_lax_friedrichs)
 
 coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
@@ -21,12 +22,17 @@ refinement_patches = (
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
-                refinement_patches=refinement_patches,
+                # refinement_patches=refinement_patches,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 initial_condition = initial_condition_convergence_test
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi_hyperbolic = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_hyperbolic)
+
+solver_parabolic = DGSEM(polydeg, flux_central)
+semi_parabolic = SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, solver_parabolic)
+
+semi = SemidiscretizationHyperbolicParabolic(semi_hyperbolic, semi_parabolic)
 
 
 ###############################################################################
