@@ -27,10 +27,6 @@ function initial_condition_constant(x, t, equation::HeatEquation2D)
   return @SVector [2.0]
 end
 
-function initial_condition_linear_xy(x, t, equation::HeatEquation2D)
-  return @SVector [2*x[1] + 3*x[2]]
-end
-
 
 """
     initial_condition_convergence_test(x, t, equations::HeatEquation2D)
@@ -46,6 +42,17 @@ function initial_condition_convergence_test(x, t, equation::HeatEquation2D)
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x)) * exp(-2 * nu * omega^2 * t)
   return @SVector [scalar]
+end
+
+
+"""
+    initial_condition_gauss(x, t, equation::HeatEquation2D)
+
+A Gaussian pulse used together with
+[`boundary_condition_gauss`](@ref).
+"""
+function initial_condition_gauss(x, t, equation::HeatEquation2D)
+  return @SVector [exp(-(x[1]^2 + x[2]^2))]
 end
 
 

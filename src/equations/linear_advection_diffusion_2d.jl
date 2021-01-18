@@ -58,6 +58,17 @@ function initial_condition_convergence_test(x, t, equation::LinearAdvectionDiffu
 end
 
 
+"""
+    initial_condition_gauss(x, t, equation::LinearAdvectionDiffusionEquation2D)
+
+A Gaussian pulse used together with
+[`boundary_condition_gauss`](@ref).
+"""
+function initial_condition_gauss(x, t, equation::LinearAdvectionDiffusionEquation2D)
+  return @SVector [exp(-(x[1]^2 + x[2]^2))]
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LinearAdvectionDiffusionEquation2D)
 
