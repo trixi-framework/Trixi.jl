@@ -173,10 +173,11 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolicAuxVars, t)
   rhs!(u_ode_grad_y, u_ode, semi_grad_y, t)
   gradients = (wrap_array(u_ode_grad_x, mesh, equations, solver, cache),
                wrap_array(u_ode_grad_y, mesh, equations, solver, cache))
+  cache_gradients = (semi_grad_x.cache, semi_grad_y.cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
-  @timeit_debug timer() "rhs!" rhs!(du, u, gradients, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache)
+  @timeit_debug timer() "rhs!" rhs!(du, u, gradients, t, mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache, cache_gradients)
   runtime = time_ns() - time_start
   put!(semi.performance_counter, runtime)
 
