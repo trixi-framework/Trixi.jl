@@ -56,15 +56,25 @@ default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 """
     flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
+    flux_central(u_ll, u_rr, gradients_ll, gradients_rr, orientation, equations::AbstractEquations)
 
 The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
 used as volume flux, the discretization is equivalent to the classical weak form
-DG method (except floating point errors).
+DG method (except floating point errors). The second version call the parabolic flux, which requires
+the gradients as additional arguments.
 """
 @inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
   # Calculate regular 1D fluxes
   f_ll = calcflux(u_ll, orientation, equations)
   f_rr = calcflux(u_rr, orientation, equations)
+
+  # Average regular fluxes
+  return 0.5 * (f_ll + f_rr)
+end
+@inline function flux_central(u_ll, u_rr, gradients_ll, gradients_rr, orientation, equations::AbstractEquations)
+  # Calculate regular 1D fluxes
+  f_ll = calcflux(u_ll, gradients_ll, orientation, equations)
+  f_rr = calcflux(u_rr, gradients_rr, orientation, equations)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)

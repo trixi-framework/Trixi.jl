@@ -29,6 +29,10 @@ function initial_condition_constant(x, t, equation::HeatEquation2D)
   return @SVector [2.0]
 end
 
+function initial_condition_linear_xy(x, t, equation::HeatEquation2D)
+  return @SVector [2*x[1] + 3*x[2]]
+end
+
 
 """
     initial_condition_convergence_test(x, t, equations::HeatEquation2D)
@@ -51,22 +55,10 @@ end
 # function source_terms_WHATEVER(u, x, t, equations::HeatEquation2D)
 
 
-# Calculate hyperbolic 1D flux in axis `orientation` for a single point
-@inline function calcflux(u, orientation, equation::HeatEquation2D)
-  return zero(u)
-end
-
-
 # Calculate parabolic 1D flux in axis `orientation` for a single point
 @inline function calcflux(u, gradients, orientation, equation::HeatEquation2D)
-  return gradients[orientation]
+  return equation.nu*gradients[orientation]
 end
-
-
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::HeatEquation2D)
-  return zero(u_ll)
-end
-
 
 
 @inline have_constant_speed(::HeatEquation2D) = Val(true)
