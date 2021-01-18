@@ -8,8 +8,8 @@ using Trixi
 nu = 1.2e-2
 equations = HeatEquation2D(nu)
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(3, flux_lax_friedrichs)
+# Create DG solver with polynomial degree = 3 and the central flux as surface flux
+solver = DGSEM(3, flux_central)
 
 coordinates_min = (-1, -1) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1,  1) # maximum coordinates (max(x), max(y))
@@ -56,7 +56,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+            save_everystep=false, callback=callbacks, maxiters=1e5);
 
 # Print the timer summary
 summary_callback()
