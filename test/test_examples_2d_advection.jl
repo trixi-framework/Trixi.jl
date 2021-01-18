@@ -46,6 +46,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.039176916074623536])
   end
 
+  @testset "elixir_advection_amr_solution_independent.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_solution_independent.jl"),
+      l2   = [0.007013561257721758],
+      linf = [0.039176916074623536])
+  end
+
   @testset "elixir_advection_amr_visualization.jl" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
