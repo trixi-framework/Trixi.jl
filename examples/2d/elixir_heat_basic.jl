@@ -21,7 +21,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 initial_condition = initial_condition_convergence_test
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
