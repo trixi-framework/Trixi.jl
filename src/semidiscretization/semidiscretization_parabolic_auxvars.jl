@@ -53,20 +53,18 @@ function SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, 
 
   solver_auxvars = create_solver_auxvars(solver)
 
-  equations_grad_x = GradientEquations2D(nvariables(equations), 1)
-  semi_grad_x = SemidiscretizationHyperbolic(mesh, equations_grad_x,
-                                             initial_condition_constant, solver_auxvars)
+  equations_gradients_x = GradientEquations2D(nvariables(equations), 1)
+  semi_gradients_x = SemidiscretizationHyperbolic(mesh, equations_gradients_x,
+                                                  initial_condition_constant, solver_auxvars)
 
-  equations_grad_y = GradientEquations2D(nvariables(equations), 2)
-  semi_grad_y = SemidiscretizationHyperbolic(mesh, equations_grad_y,
-                                             initial_condition_constant, solver_auxvars)
+  equations_gradients_y = GradientEquations2D(nvariables(equations), 2)
+  semi_gradients_y = SemidiscretizationHyperbolic(mesh, equations_gradients_y,
+                                                  initial_condition_constant, solver_auxvars)
 
-  u_ode_grad_x = compute_coefficients(nothing, semi_grad_x)
-  u_ode_grad_y = compute_coefficients(nothing, semi_grad_y)
-  u_ode_grad_xx = compute_coefficients(nothing, semi_grad_x)
-  u_ode_grad_yy = compute_coefficients(nothing, semi_grad_y)
+  u_ode_gradients_x = compute_coefficients(nothing, semi_gradients_x)
+  u_ode_gradients_y = compute_coefficients(nothing, semi_gradients_y)
 
-  cache = (; cache..., semi_grad_x, u_ode_grad_x, semi_grad_y, u_ode_grad_y, u_ode_grad_xx, u_ode_grad_yy)
+  cache = (; cache..., semi_gradients_x, u_ode_gradients_x, semi_gradients_y, u_ode_gradients_y)
 
   SemidiscretizationParabolicAuxVars{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
@@ -167,12 +165,12 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolicAuxVars, t)
   du = wrap_array(du_ode, mesh, equations, solver, cache)
 
   # Compute gradients
-  @unpack semi_grad_x, u_ode_grad_x, semi_grad_y, u_ode_grad_y = cache
-  rhs!(u_ode_grad_x, u_ode, semi_grad_x, t)
-  rhs!(u_ode_grad_y, u_ode, semi_grad_y, t)
-  gradients = (wrap_array(u_ode_grad_x, mesh, equations, solver, cache),
-               wrap_array(u_ode_grad_y, mesh, equations, solver, cache))
-  cache_gradients = (semi_grad_x.cache, semi_grad_y.cache)
+  @unpack semi_gradients_x, u_ode_gradients_x, semi_gradients_y, u_ode_gradients_y = cache
+  rhs!(u_ode_gradients_x, u_ode, semi_gradients_x, t)
+  rhs!(u_ode_gradients_y, u_ode, semi_gradients_y, t)
+  gradients = (wrap_array(u_ode_gradients_x, mesh, equations, solver, cache),
+               wrap_array(u_ode_gradients_y, mesh, equations, solver, cache))
+  cache_gradients = (semi_gradients_x.cache, semi_gradients_y.cache)
 
   # TODO: Taal decide, do we need to pass the mesh?
   time_start = time_ns()
