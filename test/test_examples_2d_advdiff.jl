@@ -17,8 +17,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
   @testset "elixir_advdiff_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advdiff_amr.jl"),
-      l2   = [0.1282304080765362],
-      linf = [0.8335673252435933])
+      l2   = [0.16503675954115254],
+      linf = [0.9236968722827653])
   end
 end
 

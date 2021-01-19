@@ -5,20 +5,20 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.1, 0.6)
-nu = 1.2e-2
+advectionvelocity = (1.8, 0.6)
+nu = 2.4e-1
 equations = LinearAdvectionDiffusionEquation2D(advectionvelocity, nu)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 polydeg = 3
 solver_hyperbolic = DGSEM(polydeg, flux_lax_friedrichs)
 
-coordinates_min = (-5, -5)
-coordinates_max = ( 5,  5)
+coordinates_min = (-4, -4)
+coordinates_max = ( 4,  4)
 
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -45,9 +45,9 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
-                                      base_level=4,
-                                      med_level=5, med_threshold=0.1,
-                                      max_level=6, max_threshold=0.6)
+                                      base_level=3,
+                                      med_level=4, med_threshold=0.1,
+                                      max_level=5, max_threshold=0.5)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
