@@ -2,11 +2,11 @@
 @doc raw"""
     LinearAdvectionDiffusionEquation2D
 
-The linear scalar advection equation
+The linear advection-diffusion equation
 ```math
-\partial_t u + a_1 \partial_1 u + a_2 \partial_2 u = 0
+\partial_t u + a_1 \partial_1 u + a_2 \partial_2 u - \nu (\partial^2_1 u + \partial^2_2 u)= 0
 ```
-in two space dimensions with constant velocity `a`.
+in two space dimensions with constant velocity `a` and constant viscosity ``\nu``.
 """
 struct LinearAdvectionDiffusionEquation2D{RealT<:Real} <: AbstractLinearAdvectionDiffusionEquation{2, 1}
   advectionvelocity::SVector{2, RealT}
