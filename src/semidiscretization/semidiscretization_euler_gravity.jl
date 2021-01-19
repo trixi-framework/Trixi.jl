@@ -215,54 +215,25 @@ end
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
-  G    = parameters.gravitational_constant
-  rho0 = parameters.background_density
-  grav_scale = -4.0*pi*G
 
   x = cache.u_ode
   A, b = linear_structure(semi_gravity)
-  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
-    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  end
 
-  if resid_tol_type === :l2_full
-    abstol = resid_tol * length(x)
-    reltol = 0.0
-    time_start = time_ns()
-    bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
-    runtime = time_ns() - time_start
-    put!(gravity_counter, runtime)
-  else
-    error("resid_tol_type $resid_tol_type not supported")
-  end
-
-  return nothing
-end
-
-
-function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
-  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  _b = wrap_array(b, semi_gravity)
+  u_euler = wrap_array(u_ode, semi_euler)
   G    = parameters.gravitational_constant
   rho0 = parameters.background_density
   grav_scale = -4.0*pi*G
+  @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
 
-  x = cache.u_ode
-  A, b = linear_structure(semi_gravity)
-  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
-    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  end
+  @assert resid_tol_type === :l2_full
 
-  if resid_tol_type === :l2_full
-    abstol = resid_tol * length(x)
-    reltol = 0.0
-    time_start = time_ns()
-    bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
-    runtime = time_ns() - time_start
-    put!(gravity_counter, runtime)
-  else
-    error("resid_tol_type $resid_tol_type not supported")
-  end
+  abstol = resid_tol * length(x)
+  reltol = 0.0
+  time_start = time_ns()
+  @timeit_debug timer() "linear solver" bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
+  runtime = time_ns() - time_start
+  put!(gravity_counter, runtime)
 
   return nothing
 end
@@ -270,26 +241,25 @@ end
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(gmres!))
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
-  G    = parameters.gravitational_constant
-  rho0 = parameters.background_density
-  grav_scale = -4.0*pi*G
 
   x = cache.u_ode
   A, b = linear_structure(semi_gravity)
-  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
-    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  end
 
-  if resid_tol_type === :l2_full
-    abstol = resid_tol * length(x)
-    reltol = 0.0
-    time_start = time_ns()
-    gmres!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
-    runtime = time_ns() - time_start
-    put!(gravity_counter, runtime)
-  else
-    error("resid_tol_type $resid_tol_type not supported")
-  end
+  _b = wrap_array(b, semi_gravity)
+  u_euler = wrap_array(u_ode, semi_euler)
+  G    = parameters.gravitational_constant
+  rho0 = parameters.background_density
+  grav_scale = -4.0*pi*G
+  @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
+
+  @assert resid_tol_type === :l2_full
+
+  abstol = resid_tol * length(x)
+  reltol = 0.0
+  time_start = time_ns()
+  @timeit_debug timer() "linear solver" gmres!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
+  runtime = time_ns() - time_start
+  put!(gravity_counter, runtime)
 
   return nothing
 end
@@ -345,6 +315,72 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
       finalstep = true
     end
   end
+
+  # TODO: Clean-up
+  # x = cache.u_ode
+  # A, b = linear_structure(semi_gravity)
+  # # _A, b = linear_structure(semi_gravity); A = Matrix(_A)
+  # @show norm(b)
+  # begin
+  #   G    = parameters.gravitational_constant
+  #   rho0 = parameters.background_density
+  #   grav_scale = -4.0*pi*G
+  #   update = zero(b)
+  #   reshape(update, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] = grav_scale * (u_euler[1, .., :] .- rho0)
+  #   @show norm(update)
+  #   # _b = wrap_array(b, semi_gravity)
+  #   # @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
+  #   # @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
+  #   # @. _b[1, .., :] -= update
+
+  #   x0 = copy(x)
+  #   rhs!(cache.du_ode, x, semi_gravity, NaN)
+  #   @assert x == x0
+  #   @show norm(cache.du_ode)
+  #   # @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  #   # @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  #   # @. du_gravity[1, .., :] += update
+  #   # @show norm(cache.du_ode)
+
+  #   tmp0 = A * x; @show norm(tmp0 - b - cache.du_ode)
+  #   @show norm((A * x - b) - cache.du_ode)
+  #   @show norm(A * x - (b + cache.du_ode))
+  #   @assert x == x0
+  #   rhs1 = A * x - b
+  #   rhs2 = copy(cache.du_ode)
+  #   @show norm(rhs1 - rhs2)
+  #   # reshape(rhs1, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] .+= update
+  #   # reshape(rhs2, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] .+= update
+  #   @. rhs1 += update
+  #   @. rhs2 += update
+  #   @show norm(rhs1 - rhs2)
+  #   @show norm(b + cache.du_ode)
+  #   b[:]            = b            - update
+  #   cache.du_ode[:] = cache.du_ode + update
+  #   @show norm(b + cache.du_ode)
+  #   @show norm(b)
+  #   @show norm(rhs1 - rhs2)
+  #   tmp1 = A * x; @show norm(tmp1 - b - cache.du_ode)
+  #   @show norm(tmp0 - tmp1)
+  #   @show norm(A * x - b - cache.du_ode)
+  #   @show norm((A * x - b) - cache.du_ode)
+  #   @show norm(A * x - (b + cache.du_ode))
+  # end
+  # @show norm(A * x - b)
+  # @show norm(x)
+  # @show norm(b)
+  # @show norm(cache.du_ode)
+  # let # du_gravity
+  #   # rhs!(cache.du_ode, cache.u_ode, semi_gravity, 0.0)
+  #   # G    = parameters.gravitational_constant
+  #   # rho0 = parameters.background_density
+  #   # grav_scale = -4.0*pi*G
+  #   # @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  #   # @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  # end
+  # @show norm(cache.du_ode)
+  # @show norm(A * x - b - cache.du_ode)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
 
   return nothing
 end

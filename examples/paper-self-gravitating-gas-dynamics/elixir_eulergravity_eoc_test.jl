@@ -41,7 +41,8 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
                                     cfl=1.1,
-                                    resid_tol=1.0e-10,
+                                    resid_tol=1.0e-11,       # TODO: Clean-up, 1.0e-10,   1.0e-11
+                                    resid_tol_type=:l2_full, # TODO: Clean-up, :linf_phi, :l2_full
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
