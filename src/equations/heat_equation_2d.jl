@@ -2,11 +2,11 @@
 @doc raw"""
     HeatEquation2D
 
-The linear scalar advection equation
+The heat equation
 ```math
-\partial_t u + a_1 \partial_1 u + a_2 \partial_2 u = 0
+\partial_t u - \nu (\partial^2_1 u + \partial^2_2 u) = 0
 ```
-in two space dimensions with constant velocity `a`.
+in two space dimensions with constant viscosity ``\nu``.
 """
 struct HeatEquation2D{RealT<:Real} <: AbstractHeatEquation{2, 1}
   nu::RealT
