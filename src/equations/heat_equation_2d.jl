@@ -68,10 +68,6 @@ end
 
 @inline have_constant_speed(::HeatEquation2D) = Val(true)
 
-@inline function max_abs_speeds(equation::HeatEquation2D)
-  return NaN
-end
-
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::HeatEquation2D) = u
