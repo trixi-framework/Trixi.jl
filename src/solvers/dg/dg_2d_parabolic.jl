@@ -11,7 +11,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, gradients, t,
   @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, gradients, have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
-  # Prolong solution to interfaces
+  # Prolong solution and gradients to interfaces
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, cache_gradients, u, gradients, equations, dg)
 
   # Calculate interface fluxes
@@ -19,13 +19,13 @@ function rhs!(du::AbstractArray{<:Any,4}, u, gradients, t,
                                                               have_nonconservative_terms(equations), equations,
                                                               dg, cache, cache_gradients)
 
-  # Prolong solution to boundaries
+  # Prolong solution and gradients to boundaries
   @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
 
   # Calculate boundary fluxes
   @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
 
-  # Prolong solution to mortars
+  # Prolong solution and gradients to mortars
   @timeit_debug timer() "prolong2mortars" prolong2mortars!(cache, cache_gradients, u, gradients,
                                                            equations, dg.mortar, dg)
 
