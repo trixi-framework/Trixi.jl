@@ -68,20 +68,19 @@ end
 
 
 @inline function mesh_equations_solver_cache(semi::SemidiscretizationHyperbolicParabolic)
-  @unpack mesh, equations, solver, cache = semi.semi_hyperbolic
-  return mesh, equations, solver, cache
+  return mesh_equations_solver_cache(semi.semi_hyperbolic)
 end
 
 
 function calc_error_norms(func, u_ode::AbstractVector, t, analyzer, semi::SemidiscretizationHyperbolicParabolic, cache_analysis)
-  @unpack mesh, equations, initial_condition, solver, cache = semi.semi_hyperbolic
+  mesh, equations, initial_condition, solver, cache = mesh_equations_solver_cache(semi.semi_hyperbolic)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 end
 
 function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationHyperbolicParabolic, cache_analysis)
-  @unpack mesh, equations, initial_condition, solver, cache = semi.semi_hyperbolic
+  mesh, equations, initial_condition, solver, cache = mesh_equations_solver_cache(semi.semi_hyperbolic)
 
   calc_error_norms(func, u, t, analyzer, mesh, equations, initial_condition, solver, cache, cache_analysis)
 end
