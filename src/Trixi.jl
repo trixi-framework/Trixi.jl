@@ -56,11 +56,11 @@ include("mesh/mesh.jl")
 include("solvers/dg/dg.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
-include("semidiscretization/semidiscretization_parabolic_auxvars.jl")
-include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
+include("semidiscretization/semidiscretization_parabolic_auxvars.jl")
+include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
