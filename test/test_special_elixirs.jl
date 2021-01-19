@@ -31,6 +31,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+    # check whether the user can modify `b` without changing `A`
+    x = vec(ode.u0)
+    Ax = A * x
+    @. b = 2 * b + x
+    @test A * x ≈ Ax
   end
 
 
