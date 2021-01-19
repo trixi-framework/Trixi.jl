@@ -17,7 +17,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot, mul!
+using LinearAlgebra: dot, mul!, norm
 using Printf: @printf, @sprintf, println
 
 import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
@@ -26,6 +26,7 @@ import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes
+using IterativeSolvers: bicgstabl!, gmres!
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector

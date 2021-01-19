@@ -14,6 +14,7 @@ struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
   gravitational_constant::RealT # aka G
   cfl                   ::RealT
   resid_tol             ::RealT
+  resid_tol_type        ::Symbol
   n_iterations_max      ::Int
   timestep_gravity::TimestepGravity
 end
@@ -22,10 +23,14 @@ function ParametersEulerGravity(; background_density=0.0,
                                   gravitational_constant=1.0,
                                   cfl=1.0,
                                   resid_tol=1.0e-4,
+                                  resid_tol_type=:linf_phi, #  :linf_phi, :l2_full
                                   n_iterations_max=10^4,
                                   timestep_gravity=timestep_gravity_erk52_3Sstar!)
-  background_density, gravitational_constant, cfl, resid_tol = promote(background_density, gravitational_constant, cfl, resid_tol)
-  ParametersEulerGravity(background_density, gravitational_constant, cfl, resid_tol, n_iterations_max, timestep_gravity)
+  background_density, gravitational_constant, cfl, resid_tol = promote(
+    background_density, gravitational_constant, cfl, resid_tol)
+
+  return ParametersEulerGravity(background_density, gravitational_constant, cfl,
+    resid_tol, resid_tol_type, n_iterations_max, timestep_gravity)
 end
 
 function Base.show(io::IO, parameters::ParametersEulerGravity)
@@ -178,7 +183,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   @timeit_debug timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
 
   # compute gravitational potential and forces
-  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode)
+  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode, semi.parameters.timestep_gravity)
 
   # add gravitational source source_terms to the Euler part
   if ndims(semi_euler) == 1
@@ -207,8 +212,92 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
 end
 
 
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
+  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  G    = parameters.gravitational_constant
+  rho0 = parameters.background_density
+  grav_scale = -4.0*pi*G
+
+  x = cache.u_ode
+  A, b = linear_structure(semi_gravity)
+  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
+    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  end
+
+  if resid_tol_type === :l2_full
+    abstol = resid_tol * length(x)
+    reltol = 0.0
+    time_start = time_ns()
+    bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
+    runtime = time_ns() - time_start
+    put!(gravity_counter, runtime)
+  else
+    error("resid_tol_type $resid_tol_type not supported")
+  end
+
+  return nothing
+end
+
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
+  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  G    = parameters.gravitational_constant
+  rho0 = parameters.background_density
+  grav_scale = -4.0*pi*G
+
+  x = cache.u_ode
+  A, b = linear_structure(semi_gravity)
+  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
+    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  end
+
+  if resid_tol_type === :l2_full
+    abstol = resid_tol * length(x)
+    reltol = 0.0
+    time_start = time_ns()
+    bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
+    runtime = time_ns() - time_start
+    put!(gravity_counter, runtime)
+  else
+    error("resid_tol_type $resid_tol_type not supported")
+  end
+
+  return nothing
+end
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(gmres!))
+  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  G    = parameters.gravitational_constant
+  rho0 = parameters.background_density
+  grav_scale = -4.0*pi*G
+
+  x = cache.u_ode
+  A, b = linear_structure(semi_gravity)
+  let _b = wrap_array(b, semi_gravity), u_euler = wrap_array(u_ode, semi_euler)
+    @views @. _b[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+  end
+
+  if resid_tol_type === :l2_full
+    abstol = resid_tol * length(x)
+    reltol = 0.0
+    time_start = time_ns()
+    gmres!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
+    runtime = time_ns() - time_start
+    put!(gravity_counter, runtime)
+  else
+    error("resid_tol_type $resid_tol_type not supported")
+  end
+
+  return nothing
+end
+
+
+
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
-function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, timestep_gravity)
   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
   # Can be changed by AMR
@@ -222,7 +311,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   # set up main loop
   finalstep = false
-  @unpack n_iterations_max, cfl, resid_tol, timestep_gravity = parameters
+  @unpack n_iterations_max, cfl, resid_tol, resid_tol_type = parameters
   iter = 0
   t = zero(real(semi_gravity.solver))
 
@@ -250,7 +339,9 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
     end
 
     # this is an absolute tolerance check
-    if maximum(abs, @views du_gravity[1, .., :]) <= resid_tol
+    if resid_tol_type === :linf_phi && maximum(abs, @views du_gravity[1, .., :]) <= resid_tol
+      finalstep = true
+    elseif resid_tol_type === :l2_full && norm(du_gravity) / length(du_gravity) <= resid_tol
       finalstep = true
     end
   end
