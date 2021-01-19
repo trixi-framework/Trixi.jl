@@ -239,9 +239,9 @@ end
   legend -->  :none
 
   # Set series properties
-  seriestype := :path
-  linecolor := :black
-  linewidth := 1
+  seriestype --> :path
+  linecolor --> :black
+  linewidth --> 1
 
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y
