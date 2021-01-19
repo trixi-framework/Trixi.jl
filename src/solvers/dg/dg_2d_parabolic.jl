@@ -179,7 +179,7 @@ end
     gradients_y_ll, gradients_y_rr = get_surface_node_vars(gradients_interfaces[2], equations, dg, i, interface)
     gradients_ll = (gradients_x_ll, gradients_y_ll)
     gradients_rr = (gradients_x_rr, gradients_y_rr)
-    flux = surface_flux(u_ll, u_rr, gradients_x_ll, gradients_y_ll, orientation, equations)
+    flux = surface_flux(u_ll, u_rr, gradients_ll, gradients_rr, orientation, equations)
 
     # Copy flux to left and right element storage
     set_node_vars!(destination, flux, equations, dg, i)
