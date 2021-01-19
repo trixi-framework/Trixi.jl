@@ -180,3 +180,26 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolicAuxVars, t)
 
   return nothing
 end
+
+
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationParabolicAuxVars,
+                                             t, iter;
+                                             kwargs...)
+  # Perform AMR based on main solver
+  has_changed = amr_callback(u_ode, mesh_equations_solver_cache(semi)..., t, iter; kwargs...)
+
+  if has_changed
+    # Reinitialize data structures for all secondary solvers (no solution data conversion needed)
+    @unpack semi_gradients_x, semi_gradients_y = semi.cache
+    reinitialize_containers!(mesh_equations_solver_cache(semi_gradients_x)...)
+    reinitialize_containers!(mesh_equations_solver_cache(semi_gradients_y)...)
+
+    # Resize storage for auxiliary variables (= gradients)
+    @unpack u_ode_gradients_x, u_ode_gradients_y = semi.cache
+    resize!(u_ode_gradients_x, length(u_ode))
+    resize!(u_ode_gradients_y, length(u_ode))
+  end
+
+  return has_changed
+end

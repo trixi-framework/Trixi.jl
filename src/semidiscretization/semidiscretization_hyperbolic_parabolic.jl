@@ -152,3 +152,30 @@ function SemidiscretizationHyperbolicParabolicBR1(mesh, equations, initial_condi
 
   return SemidiscretizationHyperbolicParabolic(semi_hyperbolic, semi_parabolic)
 end
+
+
+@inline function (amr_callback::AMRCallback)(u_ode::AbstractVector,
+                                             semi::SemidiscretizationHyperbolicParabolic,
+                                             t, iter; kwargs...)
+  # Get semidiscretizations
+  @unpack semi_hyperbolic, semi_parabolic = semi
+  @unpack semi_gradients_x, semi_gradients_y = semi_parabolic.cache
+
+  # Perform AMR based on hyperbolic solver
+  has_changed = amr_callback(u_ode, mesh_equations_solver_cache(semi_hyperbolic)..., t, iter;
+                             kwargs...)
+
+  if has_changed
+    # Reinitialize data structures for all secondary solvers (no solution data conversion needed)
+    reinitialize_containers!(mesh_equations_solver_cache(semi_parabolic)...)
+    reinitialize_containers!(mesh_equations_solver_cache(semi_gradients_x)...)
+    reinitialize_containers!(mesh_equations_solver_cache(semi_gradients_y)...)
+
+    # Resize storage for auxiliary variables (= gradients)
+    @unpack u_ode_gradients_x, u_ode_gradients_y = semi_parabolic.cache
+    resize!(u_ode_gradients_x, length(u_ode))
+    resize!(u_ode_gradients_y, length(u_ode))
+  end
+
+  return has_changed
+end
