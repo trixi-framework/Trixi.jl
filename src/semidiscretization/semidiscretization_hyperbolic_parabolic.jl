@@ -139,13 +139,14 @@ hyperbolic and a parabolic semidiscretization are created and passed to a
 function SemidiscretizationHyperbolicParabolicBR1(mesh, equations, initial_condition, solver::DGSEM;
                                                   source_terms=nothing,
                                                   boundary_conditions=boundary_condition_periodic,
-                                                  RealT=real(solver))
+                                                  RealT=real(solver),
+                                                  volume_integral_parabolic=VolumeIntegralWeakForm())
   semi_hyperbolic = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                                  source_terms=source_terms,
                                                  boundary_conditions=boundary_conditions,
                                                  RealT=RealT)
 
-  solver_parabolic = DGSEM(solver.basis, flux_central, solver.volume_integral, solver.mortar)
+  solver_parabolic = DGSEM(solver.basis, flux_central, volume_integral_parabolic, solver.mortar)
   semi_parabolic = SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition,
                                                       solver_parabolic,
                                                       source_terms=source_terms,
