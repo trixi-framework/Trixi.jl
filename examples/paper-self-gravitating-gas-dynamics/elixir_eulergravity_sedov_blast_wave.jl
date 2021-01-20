@@ -53,7 +53,8 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 parameters = ParametersEulerGravity(background_density=0.0, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
                                     cfl=2.4,
-                                    resid_tol=1.0e-4,
+                                    resid_tol=1.0e-9,        # 1.0e-4,    1.0e-4~1.0e-9
+                                    resid_tol_type=:l2_full, # :linf_phi, :l2_full
                                     n_iterations_max=100,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 

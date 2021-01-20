@@ -212,20 +212,20 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
 end
 
 
-function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
-  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+function get_x_A_b(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
+  @unpack semi_euler, semi_gravity, parameters, cache = semi
 
   # We can also use a more direct approach like
   #   A, b = linear_structure(semi_gravity)
-  # for the following task. However, we know that the hyperbolic diffusion system
+  # for the following task. However, if we know that the hyperbolic diffusion system
   # we want to solve to steady state has a vanishing `b` at first. Hence, we can
   # use the more efficient variant below.
   x = cache.u_ode
-  A = LinearMap(length(x), ismutating=true) do dest,src
-    rhs!(dest, src, semi_gravity, 0)
-  end
-  b = zero(x)
+  A, b = linear_structure(semi_gravity)
+  # A = LinearMap(length(x), ismutating=true) do dest,src
+  #   rhs!(dest, src, semi_gravity, 0)
+  # end
+  # b = zero(x)
 
   _b = wrap_array(b, semi_gravity)
   u_euler = wrap_array(u_ode, semi_euler)
@@ -234,10 +234,17 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   grav_scale = -4.0*pi*G
   @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
 
+  return x, A, b
+end
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
+  @unpack parameters, gravity_counter = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
 
   @assert resid_tol_type === :l2_full
+  x, A, b = get_x_A_b(semi, u_ode)
 
-  abstol = resid_tol * length(x)
+  @show abstol = resid_tol * length(x)
   reltol = 0.0
   time_start = time_ns()
   # TODO: We can also use bicgstabl!(x, A, b, l; kwargs...) instead of the default `l=2`.
@@ -246,6 +253,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   put!(gravity_counter, runtime)
 
   # TODO: Clean-up
+  # @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
   # @show norm(A * x - b)
   # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
 
@@ -253,28 +261,11 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(gmres!))
-  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack parameters, gravity_counter = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
 
-  # We can also use a more direct approach like
-  #   A, b = linear_structure(semi_gravity)
-  # for the following task. However, we know that the hyperbolic diffusion system
-  # we want to solve to steady state has a vanishing `b` at first. Hence, we can
-  # use the more efficient variant below.
-  x = cache.u_ode
-  A = LinearMap(length(x), ismutating=true) do dest,src
-    rhs!(dest, src, semi_gravity, 0)
-  end
-  b = zero(x)
-
-  _b = wrap_array(b, semi_gravity)
-  u_euler = wrap_array(u_ode, semi_euler)
-  G    = parameters.gravitational_constant
-  rho0 = parameters.background_density
-  grav_scale = -4.0*pi*G
-  @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
-
   @assert resid_tol_type === :l2_full
+  x, A, b = get_x_A_b(semi, u_ode)
 
   abstol = resid_tol * length(x)
   reltol = 0.0
@@ -283,32 +274,20 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
+  # TODO: Clean-up
+  # @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
+
   return nothing
 end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(idrs!))
-  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack parameters, gravity_counter = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
 
-  # We can also use a more direct approach like
-  #   A, b = linear_structure(semi_gravity)
-  # for the following task. However, we know that the hyperbolic diffusion system
-  # we want to solve to steady state has a vanishing `b` at first. Hence, we can
-  # use the more efficient variant below.
-  x = cache.u_ode
-  A = LinearMap(length(x), ismutating=true) do dest,src
-    rhs!(dest, src, semi_gravity, 0)
-  end
-  b = zero(x)
-
-  _b = wrap_array(b, semi_gravity)
-  u_euler = wrap_array(u_ode, semi_euler)
-  G    = parameters.gravitational_constant
-  rho0 = parameters.background_density
-  grav_scale = -4.0*pi*G
-  @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
-
   @assert resid_tol_type === :l2_full
+  x, A, b = get_x_A_b(semi, u_ode)
 
   abstol = resid_tol * length(x)
   reltol = 0.0
@@ -316,6 +295,11 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   @timeit_debug timer() "linear solver" idrs!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
+
+  # TODO: Clean-up
+  # @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
 
   return nothing
 end
@@ -358,98 +342,28 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
     iter += 1
     t += dt
 
-    # check if we reached the maximum number of iterations
-    if n_iterations_max > 0 && iter >= n_iterations_max
-      @warn "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs, @views du_gravity[1, .., :]) t=t dt=dt
+    # use an absolute residual tolerance check
+    if resid_tol_type === :linf_phi
+      residual = maximum(abs, @views du_gravity[1, .., :])
+    elseif resid_tol_type === :l2_full
+      residual = norm(du_gravity) / length(du_gravity)
+    end
+
+    if residual <= resid_tol
       finalstep = true
     end
 
-    # this is an absolute tolerance check
-    if resid_tol_type === :linf_phi && maximum(abs, @views du_gravity[1, .., :]) <= resid_tol
-      finalstep = true
-    elseif resid_tol_type === :l2_full && norm(du_gravity) / length(du_gravity) <= resid_tol
+    # check if we reached the maximum number of iterations
+    if n_iterations_max > 0 && iter >= n_iterations_max
+      @warn "Max iterations reached: Gravity solver failed to converge!" residual=residual t=t dt=dt
       finalstep = true
     end
   end
 
   # TODO: Clean-up
-  # x = cache.u_ode
-  # A = LinearMap(length(x), ismutating=true) do dest,src
-  #   rhs!(dest, src, semi_gravity, 0)
-  # end
-  # b = zero(x)
-
-  # _b = wrap_array(b, semi_gravity)
-  # G    = parameters.gravitational_constant
-  # rho0 = parameters.background_density
-  # grav_scale = -4.0*pi*G
-  # @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
-
+  # x, A, b = get_x_A_b(semi, u_ode)
   # @show norm(A * x - b)
   # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
-
-  # A, b = linear_structure(semi_gravity)
-  # # _A, b = linear_structure(semi_gravity); A = Matrix(_A)
-  # @show norm(b)
-  # begin
-  #   G    = parameters.gravitational_constant
-  #   rho0 = parameters.background_density
-  #   grav_scale = -4.0*pi*G
-  #   update = zero(b)
-  #   reshape(update, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] = grav_scale * (u_euler[1, .., :] .- rho0)
-  #   @show norm(update)
-  #   # _b = wrap_array(b, semi_gravity)
-  #   # @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
-  #   # @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
-  #   # @. _b[1, .., :] -= update
-
-  #   x0 = copy(x)
-  #   rhs!(cache.du_ode, x, semi_gravity, NaN)
-  #   @assert x == x0
-  #   @show norm(cache.du_ode)
-  #   # @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  #   # @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  #   # @. du_gravity[1, .., :] += update
-  #   # @show norm(cache.du_ode)
-
-  #   tmp0 = A * x; @show norm(tmp0 - b - cache.du_ode)
-  #   @show norm((A * x - b) - cache.du_ode)
-  #   @show norm(A * x - (b + cache.du_ode))
-  #   @assert x == x0
-  #   rhs1 = A * x - b
-  #   rhs2 = copy(cache.du_ode)
-  #   @show norm(rhs1 - rhs2)
-  #   # reshape(rhs1, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] .+= update
-  #   # reshape(rhs2, 3, nnodes(semi_gravity.solver), nnodes(semi_gravity.solver), nelements(semi_gravity.solver, semi_gravity.cache))[1, :, :, :] .+= update
-  #   @. rhs1 += update
-  #   @. rhs2 += update
-  #   @show norm(rhs1 - rhs2)
-  #   @show norm(b + cache.du_ode)
-  #   b[:]            = b            - update
-  #   cache.du_ode[:] = cache.du_ode + update
-  #   @show norm(b + cache.du_ode)
-  #   @show norm(b)
-  #   @show norm(rhs1 - rhs2)
-  #   tmp1 = A * x; @show norm(tmp1 - b - cache.du_ode)
-  #   @show norm(tmp0 - tmp1)
-  #   @show norm(A * x - b - cache.du_ode)
-  #   @show norm((A * x - b) - cache.du_ode)
-  #   @show norm(A * x - (b + cache.du_ode))
-  # end
-  # @show norm(A * x - b)
-  # @show norm(x)
-  # @show norm(b)
-  # @show norm(cache.du_ode)
-  # let # du_gravity
-  #   # rhs!(cache.du_ode, cache.u_ode, semi_gravity, 0.0)
-  #   # G    = parameters.gravitational_constant
-  #   # rho0 = parameters.background_density
-  #   # grav_scale = -4.0*pi*G
-  #   # @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  #   # @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-  # end
-  # @show norm(cache.du_ode)
-  # @show norm(A * x - b - cache.du_ode)
 
   return nothing
 end
