@@ -240,9 +240,14 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   abstol = resid_tol * length(x)
   reltol = 0.0
   time_start = time_ns()
+  # TODO: We can also use bicgstabl!(x, A, b, l; kwargs...) instead of the default `l=2`.
   @timeit_debug timer() "linear solver" bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
+
+  # TODO: Clean-up
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
 
   return nothing
 end
@@ -275,6 +280,40 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   reltol = 0.0
   time_start = time_ns()
   @timeit_debug timer() "linear solver" gmres!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
+  runtime = time_ns() - time_start
+  put!(gravity_counter, runtime)
+
+  return nothing
+end
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(idrs!))
+  @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+
+  # We can also use a more direct approach like
+  #   A, b = linear_structure(semi_gravity)
+  # for the following task. However, we know that the hyperbolic diffusion system
+  # we want to solve to steady state has a vanishing `b` at first. Hence, we can
+  # use the more efficient variant below.
+  x = cache.u_ode
+  A = LinearMap(length(x), ismutating=true) do dest,src
+    rhs!(dest, src, semi_gravity, 0)
+  end
+  b = zero(x)
+
+  _b = wrap_array(b, semi_gravity)
+  u_euler = wrap_array(u_ode, semi_euler)
+  G    = parameters.gravitational_constant
+  rho0 = parameters.background_density
+  grav_scale = -4.0*pi*G
+  @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
+
+  @assert resid_tol_type === :l2_full
+
+  abstol = resid_tol * length(x)
+  reltol = 0.0
+  time_start = time_ns()
+  @timeit_debug timer() "linear solver" idrs!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
@@ -335,6 +374,20 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   # TODO: Clean-up
   # x = cache.u_ode
+  # A = LinearMap(length(x), ismutating=true) do dest,src
+  #   rhs!(dest, src, semi_gravity, 0)
+  # end
+  # b = zero(x)
+
+  # _b = wrap_array(b, semi_gravity)
+  # G    = parameters.gravitational_constant
+  # rho0 = parameters.background_density
+  # grav_scale = -4.0*pi*G
+  # @views @. _b[1, .., :] -= grav_scale * (u_euler[1, .., :] - rho0)
+
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
+
   # A, b = linear_structure(semi_gravity)
   # # _A, b = linear_structure(semi_gravity); A = Matrix(_A)
   # @show norm(b)
@@ -397,7 +450,6 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   # end
   # @show norm(cache.du_ode)
   # @show norm(A * x - b - cache.du_ode)
-  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
 
   return nothing
 end

@@ -26,7 +26,7 @@ import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes
-using IterativeSolvers: bicgstabl!, gmres!
+using IterativeSolvers: bicgstabl!, gmres!, idrs!
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
