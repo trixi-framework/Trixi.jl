@@ -244,7 +244,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
 
-  @show abstol = resid_tol * length(x)
+  abstol = resid_tol * length(x)
   reltol = 0.0
   time_start = time_ns()
   # TODO: We can also use bicgstabl!(x, A, b, l; kwargs...) instead of the default `l=2`.
