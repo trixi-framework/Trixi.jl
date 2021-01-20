@@ -16,6 +16,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
   @testset "Convergence test" begin
     mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
     @test isapprox(mean_values[:l2], [4.0], rtol=0.01)
+
+    mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
+    @test isapprox(mean_values[:l2], 4 * ones(4), atol=0.4)
   end
 
 
@@ -31,6 +34,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     A, b = linear_structure(semi)
     λ = eigvals(Matrix(A))
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+    # check whether the user can modify `b` without changing `A`
+    x = vec(ode.u0)
+    Ax = A * x
+    @. b = 2 * b + x
+    @test A * x ≈ Ax
   end
 
 
