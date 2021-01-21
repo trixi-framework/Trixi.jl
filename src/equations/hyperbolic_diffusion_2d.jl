@@ -176,11 +176,11 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   G = 1.0 # gravitational constant
   C = -2.0*G/pi
   A = 0.1 # perturbation coefficient must match Euler setup
-  rho1 = A * sin(pi * (x[1] + x[2] - t))
+  rho1 = A * sinpi(x[1] + x[2] - t)
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q2  = q1                                     # = gravity acceleration in y-direction
+  q1  = C * A * pi * cospi(x[1] + x[2] - t) # = gravity acceleration in x-direction
+  q2  = q1                                  # = gravity acceleration in y-direction
 
   return @SVector [phi, q1, q2]
 end
