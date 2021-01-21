@@ -325,13 +325,15 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   iter = 0
   t = zero(real(semi_gravity.solver))
 
-  # iterate gravity solver until convergence or maximum number of iterations are reached
+  # calculate time step size sing a CFL condition once before integrating in time
+  # since the mesh will not change and the linear equations have constant speeds
   @unpack equations = semi_gravity
-  while !finalstep
-    dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
-                                                           have_constant_speed(equations), equations,
-                                                           semi_gravity.solver, semi_gravity.cache)
+  dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+                                                          have_constant_speed(equations), equations,
+                                                          semi_gravity.solver, semi_gravity.cache)
 
+  # iterate gravity solver until convergence or maximum number of iterations are reached
+  while !finalstep
     # evolve solution by one pseudo-time step
     time_start = time_ns()
     timestep_gravity(cache, u_euler, t, dt, parameters, semi_gravity)
