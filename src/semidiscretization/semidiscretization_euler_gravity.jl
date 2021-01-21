@@ -241,6 +241,31 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   @unpack parameters, gravity_counter = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
 
+  # TODO: Clean-up
+  # let
+  #   @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+
+  #   # Can be changed by AMR
+  #   resize!(cache.du_ode,     length(cache.u_ode))
+  #   resize!(cache.u_tmp1_ode, length(cache.u_ode))
+  #   resize!(cache.u_tmp2_ode, length(cache.u_ode))
+
+  #   u_euler    = wrap_array(u_ode,        semi_euler)
+  #   u_gravity  = wrap_array(cache.u_ode,  semi_gravity)
+  #   du_gravity = wrap_array(cache.du_ode, semi_gravity)
+
+  #   # set up main loop
+  #   finalstep = false
+  #   @unpack n_iterations_max, cfl, resid_tol, resid_tol_type = parameters
+  #   iter = 0
+  #   t = zero(real(semi_gravity.solver))
+  #   dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+  #                                                           have_constant_speed(semi_gravity.equations),
+  #                                                           semi_gravity.equations,
+  #                                                           semi_gravity.solver, semi_gravity.cache)
+  #   timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, parameters, semi_gravity)
+  # end
+
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
 
