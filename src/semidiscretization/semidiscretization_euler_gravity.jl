@@ -327,9 +327,9 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   # calculate time step size sing a CFL condition once before integrating in time
   # since the mesh will not change and the linear equations have constant speeds
-  @unpack equations = semi_gravity
   dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
-                                                          have_constant_speed(equations), equations,
+                                                          have_constant_speed(semi_gravity.equations),
+                                                          semi_gravity.equations,
                                                           semi_gravity.solver, semi_gravity.cache)
 
   # iterate gravity solver until convergence or maximum number of iterations are reached
@@ -349,6 +349,8 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
       residual = maximum(abs, @views du_gravity[1, .., :])
     elseif resid_tol_type === :l2_full
       residual = norm(du_gravity) / length(du_gravity)
+    else # general fallback
+      residual = convert(real(eltype(du_gravity)), NaN)
     end
 
     if residual <= resid_tol
@@ -385,7 +387,9 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi_gravity, t_stage)
+    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
+    # included in the `rhs!` call.
+    rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
@@ -434,7 +438,9 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi_gravity, t_stage)
+    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
+    # included in the `rhs!` call.
+    rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
