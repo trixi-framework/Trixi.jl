@@ -67,10 +67,9 @@ end
 
 
 #A smooth cosine initial condition similarly shaped like the Gaussian one.
-function initial_condition_cos(x, t, equation::LinearScalarAdvectionEquation2D)
+function initial_condition_cos(x, t, equation::LinearScalarAdvectionEquation2D, radius = 2)
   # Store translated coordinate for easy use of exact solution
   x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
-  radius = 1.85
   x_norm = sqrt((x_trans[1])^2+(x_trans[2])^2)
   if x_norm < radius
     scalar = 0.5+cos(pi/radius*x_norm)/2
