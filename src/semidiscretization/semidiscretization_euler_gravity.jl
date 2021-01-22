@@ -215,6 +215,7 @@ end
 function get_x_A_b(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector)
   @unpack semi_euler, semi_gravity, parameters, cache = semi
 
+  # TODO: Clean-up
   # We can also use a more direct approach like
   #   A, b = linear_structure(semi_gravity)
   # for the following task. However, if we know that the hyperbolic diffusion system
@@ -357,18 +358,13 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
                                                           semi_gravity.equations,
                                                           semi_gravity.solver, semi_gravity.cache)
 
+  # Evaluate the RHS after computing a stage to check the termination criterion
+  # correctly. Thus, we need to pre-start the RHS evaluations at the beginning
+  # in some kind of FSAL-approach.
+  rhs_gravity!(du_gravity, cache.du_ode, cache.u_ode, semi_gravity, t, u_euler, parameters)
+
   # iterate gravity solver until convergence or maximum number of iterations are reached
-  while !finalstep
-    # evolve solution by one pseudo-time step
-    time_start = time_ns()
-    timestep_gravity(cache, u_euler, t, dt, parameters, semi_gravity)
-    runtime = time_ns() - time_start
-    put!(gravity_counter, runtime)
-
-    # update iteration counter
-    iter += 1
-    t += dt
-
+  while true
     # use an absolute residual tolerance check
     if resid_tol_type === :linf_phi
       residual = maximum(abs, @views du_gravity[1, .., :])
@@ -379,14 +375,24 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
     end
 
     if residual <= resid_tol
-      finalstep = true
+      break
     end
 
     # check if we reached the maximum number of iterations
     if n_iterations_max > 0 && iter >= n_iterations_max
       @warn "Max iterations reached: Gravity solver failed to converge!" residual=residual t=t dt=dt
-      finalstep = true
+      break
     end
+
+    # evolve solution by one pseudo-time step
+    time_start = time_ns()
+    timestep_gravity(cache, u_euler, t, dt, parameters, semi_gravity)
+    runtime = time_ns() - time_start
+    put!(gravity_counter, runtime)
+
+    # update iteration counter
+    iter += 1
+    t += dt
   end
 
   # TODO: Clean-up
@@ -398,29 +404,33 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 end
 
 
+@inline function rhs_gravity!(du_gravity, du_ode, u_ode, semi_gravity, t, u_euler, gravity_parameters)
+  G    = gravity_parameters.gravitational_constant
+  rho0 = gravity_parameters.background_density
+  grav_scale = -4 * G * pi
+
+  # rhs! has the source term for the harmonic problem
+  # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
+  # included in the `rhs!` call.
+  rhs!(du_ode, u_ode, semi_gravity, t)
+
+  # Source term: Jeans instability OR coupling convergence test OR blast wave
+  # put in gravity source term proportional to Euler density
+  # OBS! subtract off the background density ρ_0 (spatial mean value)
+  @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+
+  return nothing
+end
+
+
 # Integrate gravity solver for 2N-type low-storage schemes
 function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
                               a, b, c)
-  G    = gravity_parameters.gravitational_constant
-  rho0 = gravity_parameters.background_density
-  grav_scale = -4.0*pi*G
-
   @unpack u_ode, du_ode, u_tmp1_ode = cache
   u_tmp1_ode .= zero(eltype(u_tmp1_ode))
   du_gravity = wrap_array(du_ode, semi_gravity)
+
   for stage in eachindex(c)
-    t_stage = t + dt * c[stage]
-
-    # rhs! has the source term for the harmonic problem
-    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
-    # included in the `rhs!` call.
-    rhs!(du_ode, u_ode, semi_gravity, t_stage)
-
-    # Source term: Jeans instability OR coupling convergence test OR blast wave
-    # put in gravity source term proportional to Euler density
-    # OBS! subtract off the background density ρ_0 (spatial mean value)
-    @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-
     a_stage = a[stage]
     b_stage_dt = b[stage] * dt
     @timeit_debug timer() "Runge-Kutta step" begin
@@ -429,6 +439,13 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
         u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
       end
     end
+
+    # Evaluate the RHS after computing a stage to check the termination criterion
+    # correctly. Thus, we need to pre-start the RHS evaluations at the beginning
+    # in some kind of FSAL-approach.
+    # We do not need to set the time to the correct stage time since the gravity
+    # system is autonomous.
+    rhs_gravity!(du_gravity, du_ode, u_ode, semi_gravity, t, u_euler, gravity_parameters)
   end
 
   return nothing
@@ -451,27 +468,12 @@ end
 # Integrate gravity solver for 3S*-type low-storage schemes
 function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
                                   gamma1, gamma2, gamma3, beta, delta, c)
-  G    = gravity_parameters.gravitational_constant
-  rho0 = gravity_parameters.background_density
-  grav_scale = -4 * G * pi
-
   @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
   u_tmp1_ode .= zero(eltype(u_tmp1_ode))
   u_tmp2_ode .= u_ode
   du_gravity = wrap_array(du_ode, semi_gravity)
+
   for stage in eachindex(c)
-    t_stage = t + dt * c[stage]
-
-    # rhs! has the source term for the harmonic problem
-    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
-    # included in the `rhs!` call.
-    rhs!(du_ode, u_ode, semi_gravity, t_stage)
-
-    # Source term: Jeans instability OR coupling convergence test OR blast wave
-    # put in gravity source term proportional to Euler density
-    # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-    @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
-
     delta_stage   = delta[stage]
     gamma1_stage  = gamma1[stage]
     gamma2_stage  = gamma2[stage]
@@ -486,6 +488,13 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
                             beta_stage_dt * du_ode[idx])
       end
     end
+
+    # Evaluate the RHS after computing a stage to check the termination criterion
+    # correctly. Thus, we need to pre-start the RHS evaluations at the beginning
+    # in some kind of FSAL-approach.
+    # We do not need to set the time to the correct stage time since the gravity
+    # system is autonomous.
+    rhs_gravity!(du_gravity, du_ode, u_ode, semi_gravity, t, u_euler, gravity_parameters)
   end
 
   return nothing
