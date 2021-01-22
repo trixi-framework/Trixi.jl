@@ -4,7 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D()
+equations = CompressibleEulerMulticomponentEquations2D(gamma        = [1.4, 1.4], 
+                                                       gas_constant = [0.4, 0.4])
 
 initial_condition = initial_condition_convergence_test
 
@@ -15,7 +16,7 @@ solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 coordinates_min = (-1, -1)
 coordinates_max = ( 1,  1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 n_cells_max=30_000)
 
 
