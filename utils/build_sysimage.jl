@@ -43,28 +43,34 @@ using Pkg, Libdl
 @info "Creating sysimage for Trixi..."
 start_time = time()
 
-# Get project directory (= repository root)
-project_dir = dirname(@__DIR__)
+# Create a temporary environment to install all necessary packages without modifying
+# the users environment
+Pkg.activate(temp=true)
 
-# Add package compiler
+# Add package compiler, Trixi, and additional packages that shall be built into the sysimage
 Pkg.add("PackageCompiler")
+Pkg.add("Trixi")
 
-# Activate project and install dependencies
-Pkg.activate(project_dir)
-Pkg.instantiate(verbose=true)
-Pkg.precompile()
-
-# Collect arguments
-sysimage_path = get(ENV, "TRIXI_SYSIMAGE_PATH", joinpath(@__DIR__, "TrixiSysimage." * Libdl.dlext))
+# Note that all packages built into a sysimage need to be in the current project as
+# direct dependencies. Hence, we add direct dependencies of Trixi as direct dependencies
+# of the current temporary project if we do not want to bundle Trixi into the sysimage.
 packages = Symbol[:OrdinaryDiffEq, :Plots, :Trixi2Vtk]
 if lowercase(get(ENV, "TRIXI_SYSIMAGE_INCLUDE_TRIXI", "no")) in ("yes", "1", "true")
   # If Trixi is to be included, just add it to the list
   push!(packages, :Trixi)
 else
   # Otherwise, figure out all direct dependencies and add them instead
-  # Source: https://github.com/CliMA/ClimateMachine.jl/blob/8c57fb55acc20ee824ea37478395a7cb07c5a93c/.dev/systemimage/climate_machine_image.jl
-  append!(packages, Symbol[Symbol(v.name) for v in values(Pkg.dependencies()) if v.is_direct_dep])
+  # Inspired by: https://github.com/CliMA/ClimateMachine.jl/blob/8c57fb55acc20ee824ea37478395a7cb07c5a93c/.dev/systemimage/climate_machine_image.jl
+  trixi_uuid = Base.UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
+  append!(packages, Symbol[Symbol(v) for v in keys(Pkg.dependencies()[trixi_uuid].dependencies)])
 end
+
+map(Pkg.add ∘ string, packages)
+Pkg.precompile()
+
+
+# Collect remaining arguments
+sysimage_path = get(ENV, "TRIXI_SYSIMAGE_PATH", joinpath(@__DIR__, "TrixiSysimage." * Libdl.dlext))
 precompile_execution_file = joinpath(@__DIR__, "precompile_execution_file.jl")
 
 # Create system image
@@ -74,10 +80,10 @@ precompile_execution_file = joinpath(@__DIR__, "precompile_execution_file.jl")
 
 using PackageCompiler
 PackageCompiler.create_sysimage(
-    packages,
-    sysimage_path=sysimage_path,
-    precompile_execution_file=precompile_execution_file,
-    cpu_target=PackageCompiler.default_app_cpu_target()
+  packages,
+  sysimage_path=sysimage_path,
+  precompile_execution_file=precompile_execution_file,
+  cpu_target=PackageCompiler.default_app_cpu_target()
 )
 
 duration = time() - start_time
