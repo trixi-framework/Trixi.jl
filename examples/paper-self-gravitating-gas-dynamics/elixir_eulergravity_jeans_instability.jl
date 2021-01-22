@@ -83,7 +83,7 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+solver_gravity = DGSEM(polydeg, flux_upwind)
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition, solver_gravity,
                                             source_terms=source_terms_harmonic)

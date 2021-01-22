@@ -28,7 +28,7 @@ semi_euler = SemidiscretizationHyperbolic(mesh, equations_euler, initial_conditi
 # semidiscretization of the hyperbolic diffusion equations
 equations_gravity = HyperbolicDiffusionEquations2D()
 
-solver_gravity = DGSEM(polydeg, flux_lax_friedrichs)
+solver_gravity = DGSEM(polydeg, flux_upwind)
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition, solver_gravity,
                                             source_terms=source_terms_harmonic)
@@ -40,7 +40,7 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # rho0 is (ab)used to add a "+8π" term to the source terms
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
-                                    cfl=1.1,
+                                    cfl=2.4,                 # 2.4; 1.1 is safe for polydeg=4
                                     resid_tol=1.0e-11,       # TODO: Clean-up, 1.0e-10,   1.0e-11
                                     resid_tol_type=:l2_full, # TODO: Clean-up, :linf_phi, :l2_full
                                     n_iterations_max=1000,
