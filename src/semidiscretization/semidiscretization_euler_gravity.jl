@@ -569,7 +569,7 @@ function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameter
                            gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-function `timestep_gravity_erk52_3Sstar!`(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
+function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity)
   # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
   # and examples/parameters_hypdiff_lax_friedrichs.toml
   # 5 stages, order 2
