@@ -363,6 +363,22 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   # in some kind of FSAL-approach.
   rhs_gravity!(du_gravity, cache.du_ode, cache.u_ode, semi_gravity, t, u_euler, parameters)
 
+  # TODO: Clean-up; this is one possible way of speeding-up the process by using
+  # at first an RK method with few stages and another one with more stages later.
+  # For Sedov, it can reduce the number of gravity RHS calls by ca. 20% compared
+  # to using only `timestep_gravity_erk52_3Sstar!` if the first-order, three-stage
+  # method is used to start here, depending on the chosen tolerances. For the
+  # ≈ grid-converged resid_tol = 3.0e-11, the number of RHS evaluations is the
+  # same as with using only the five-stage method. For tighter tolerances, using
+  # only the five-stage method is better. For less tight tolerances, this approach
+  # is better.
+  # For Jeans, just using the five-stage method is better for the standard tolerance
+  # and some tighter tolerances...
+  # time_start = time_ns()
+  # timestep_gravity_erk_test_3Sstar!(cache, u_euler, t, 0.5*dt, parameters, semi_gravity)
+  # runtime = time_ns() - time_start
+  # put!(gravity_counter, runtime)
+
   # iterate gravity solver until convergence or maximum number of iterations are reached
   while true
     # use an absolute residual tolerance check
