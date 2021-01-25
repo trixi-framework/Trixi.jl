@@ -137,7 +137,7 @@ function linear_structure(semi::AbstractSemidiscretization;
 
   # get the right hand side from possible source terms
   u_ode .= zero(eltype(u_ode))
-  @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi, t0)
+  rhs!(du_ode, u_ode, semi, t0)
   # Create a copy of `b` used internally to extract the linear part of `semi`.
   # This is necessary to get everything correct when the users updates the
   # returned vector `b`.
