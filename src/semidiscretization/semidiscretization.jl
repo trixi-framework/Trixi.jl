@@ -141,7 +141,8 @@ function linear_structure(semi::AbstractSemidiscretization;
   # Create a copy of `b` used internally to extract the linear part of `semi`.
   # This is necessary to get everything correct when the users updates the
   # returned vector `b`.
-  b = -du_ode
+  @. du_ode = -du_ode
+  b = du_ode
   b_tmp = copy(b)
 
   # wrap the linear operator
