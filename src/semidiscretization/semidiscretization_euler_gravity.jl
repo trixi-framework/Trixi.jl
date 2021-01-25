@@ -522,7 +522,8 @@ function timestep_gravity_erk_test_3Sstar!(cache, u_euler, t, dt, gravity_parame
   # c      = @SVector [0.0000000000000000E+00, 2.5570794725413060E-01]
   # 3 stages, order 1
   # This scheme can be between ca. 5% and 20% better than `timestep_gravity_erk52_3Sstar!`
-  # for EOC and Jeans, depending on the tolerances...
+  # for EOC and Jeans, depending on the tolerances... However, it does not seem to be better
+  # for Sedov...
   gamma1 = @SVector [0.0000000000000000E+00, 5.3542666596047617E-01, 9.1410889739925583E-01]
   gamma2 = @SVector [1.0000000000000000E+00, 4.3591819397582626E-01, 8.0593291910989059E-02]
   gamma3 = @SVector [0.0000000000000000E+00, 0.0000000000000000E+00, 0.0000000000000000E+00]
