@@ -23,7 +23,7 @@ function CompressibleEulerMulticomponentEquations2D(; gamma, gas_constant)
   NVARS = length(gamma) + 3
   NCOMP = length(gamma)
 
-  return CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, Real}(gamma, gas_constant)
+  return CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, Float64}(gamma, gas_constant)
 end
 
 
@@ -430,16 +430,14 @@ Entropy conserving two-point flux by
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
   rho_ll      = 0
   rho_rr      = 0
-  rhok_mean   = zeros(length(gamma))
-  rhok_avg    = zeros(length(gamma))
-  f           = zeros(length(gamma)+3)
+  rhok_mean   = SVector{length(gamma),Float64}(ln_mean(u_ll[i+3], u_rr[i+3]) for i = 1:length(gamma))
+  rhok_avg    = SVector{length(gamma),Float64}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:length(gamma))
+  f           = Array{Float64}(undef, length(gamma)+3)#zeros(length(gamma)+3)#SVector{length(gamma)+3,Float64}#zeros(length(gamma)+3)#SVector{length(gamma),Float64}#zeros(length(gamma)+3)
 
   # Iterating over all partial densities
   for i = 1:length(gamma)
     rho_ll        += u_ll[i+3]
     rho_rr        += u_rr[i+3]
-    rhok_mean[i]  = ln_mean(u_ll[i+3], u_rr[i+3])
-    rhok_avg[i]   = 0.5 * (u_ll[i+3] + u_rr[i+3])
   end 
 
   # extract velocities
@@ -480,6 +478,9 @@ Entropy conserving two-point flux by
     f1 = (help2) * v1_avg + enth/T 
     f2 = (help2) * v2_avg
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
+
+   # f    = SVector{length(gamma)+3,Float64}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:length(gamma))
+
   else
     for i = 1:length(gamma)
       f[i+3]    = rhok_mean[i] * v2_avg
@@ -491,9 +492,11 @@ Entropy conserving two-point flux by
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
   end
 
+  @timeit_debug timer() "insert" begin 
   f[1:3]  = [f1, f2, f3]
+  end
 
-  result  = SVector{length(gamma)+3}(f)
+  result  = SVector{length(gamma)+3,Float64}(f)
 
   return result
 end
