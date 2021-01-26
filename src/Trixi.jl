@@ -17,17 +17,20 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot
+using LinearAlgebra: dot, mul!
 using Printf: @printf, @sprintf, println
 
-import DiffEqBase: ODEProblem, ODESolution, get_du, u_modified!, set_proposed_dt!, terminate!,
-                   get_proposed_dt
+import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
+                   get_du, get_tmp_cache, u_modified!,
+                   get_proposed_dt, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
+using RecipesBase
+using Requires
 using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
@@ -61,6 +64,9 @@ include("time_integration/time_integration.jl")
 # `trixi_include` and special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
+# Plot recipes and conversion functions to visualize results with Plots.jl
+include("visualization/visualization.jl")
+
 
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
@@ -68,7 +74,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
-       LatticeBoltzmannEquations2D
+       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
@@ -83,8 +89,8 @@ export initial_condition_constant,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp
-
+       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp,
+       initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
@@ -125,7 +131,8 @@ export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
-       SaveRestartCallback, SaveSolutionCallback, AMRCallback, StepsizeCallback,
+       SaveRestartCallback, SaveSolutionCallback, VisualizationCallback,
+       AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback,
        TrivialCallback
 
@@ -140,9 +147,17 @@ export trixi_include, examples_dir, get_examples, default_example
 
 export convergence_test, jacobian_fd, linear_structure
 
+# Visualization-related exports
+export PlotData2D, getmesh
+
 
 function __init__()
   init_mpi()
+
+  # Enable features that depend on the availability of the Plots package
+  @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
+    using .Plots: plot, plot!, savefig
+  end
 end
 
 

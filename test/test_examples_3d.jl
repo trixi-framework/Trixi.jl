@@ -19,21 +19,20 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Linear scalar advection
   include("test_examples_3d_advection.jl")
 
-
   # Hyperbolic diffusion
   include("test_examples_3d_hypdiff.jl")
-
 
   # Compressible Euler
   include("test_examples_3d_euler.jl")
 
-
   # MHD
   include("test_examples_3d_mhd.jl")
 
-
   # Compressible Euler with self-gravity
   include("test_examples_3d_eulergravity.jl")
+
+  # Lattice-Boltzmann
+  include("test_examples_3d_lbm.jl")
 end
 
 

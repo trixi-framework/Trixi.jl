@@ -1,43 +1,80 @@
-# This elixir and indicator is only for testing purposes and does not have any practical use
 
 using OrdinaryDiffEq
 using Trixi
 
-
-# Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
-# if multiple test cases using the same module name are run in the same session.
-module TrixiExtensionRefine
+# define new structs inside a module to allow re-evaluating the file
+module TrixiExtension
 
 using Trixi
 
-struct IndicatorAlwaysRefine{Cache<:NamedTuple} <: Trixi.AbstractIndicator
+struct IndicatorSolutionIndependent{Cache<:NamedTuple} <: Trixi.AbstractIndicator
   cache::Cache
 end
-
-function IndicatorAlwaysRefine(semi)
+function IndicatorSolutionIndependent(semi)
   basis = semi.solver.basis
   alpha = Vector{real(basis)}()
   cache = (; semi.mesh, alpha)
-
-  return IndicatorAlwaysRefine{typeof(cache)}(cache)
+  return IndicatorSolutionIndependent{typeof(cache)}(cache)
 end
-
-function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any,4},
+function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any,4},
                                              equations, dg, cache;
                                              t, kwargs...)
+
+  mesh = indicator.cache.mesh
   alpha = indicator.cache.alpha
   resize!(alpha, nelements(dg, cache))
 
-  alpha .= 1.0
+  #Predict the theoretical center.
+  advectionvelocity = (1.0, 1.0)
+  center = t.*advectionvelocity
 
+  inner_distance = 1
+  outer_distance = 1.85
+
+  #Iterate over all elements
+  for element in 1:length(alpha)
+    #Calculate periodic distance between cell and center.
+    cell_id = cache.elements.cell_ids[element]
+    coordinates = mesh.tree.coordinates[1:2, cell_id]
+
+    #The geometric shape of the amr should be preserved when the base_level is increased.
+    #This is done by looking at the original coordinates of each cell.
+    cell_coordinates = original_coordinates(coordinates, 5/8)
+    cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
+    if cell_distance < (inner_distance+outer_distance)/2
+      cell_coordinates = original_coordinates(coordinates, 5/16)
+      cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
+    end
+
+    #Set alpha according to cells position inside the circles.
+    target_level = (cell_distance < inner_distance) + (cell_distance < outer_distance)
+    alpha[element] = target_level/2
+  end
   return alpha
 end
 
-end # module TrixiExtensionRefine
+# For periodic domains, distance between two points must take into account
+# periodic extensions of the domain
+function periodic_distance_2d(coordinates, center, domain_length)
+  dx = coordinates .- center
+  dx_shifted = abs.(dx .% domain_length)
+  dx_periodic = min.(dx_shifted, domain_length .- dx_shifted)
+  return sqrt(sum(dx_periodic.^2))
+end
 
-import .TrixiExtensionRefine
+#This takes a cells coordinates and transforms them into the coordinates of a parent-cell it originally refined from.
+#It does it so that the parent-cell has given cell_length.
+function original_coordinates(coordinates, cell_length)
+  offset = coordinates .% cell_length
+  offset_sign = sign.(offset)
+  border = coordinates - offset
+  center = border + (offset_sign .* cell_length/2)
+  return center
+end
 
+end # module TrixiExtension
+
+import .TrixiExtension
 ###############################################################################
 # semidiscretization of the linear advection equation
 
@@ -53,7 +90,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=4,
                 n_cells_max=30_000)
 
 
@@ -63,7 +100,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -82,9 +119,10 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtensionRefine.IndicatorAlwaysRefine(semi),
-                                      base_level=4, max_level=4,
-                                      med_threshold=0.1, max_threshold=0.6)
+amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorSolutionIndependent(semi),
+                                      base_level=4,
+                                      med_level=5, med_threshold=0.1,
+                                      max_level=6, max_threshold=0.6)
 
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,

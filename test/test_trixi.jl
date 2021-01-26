@@ -72,3 +72,29 @@ function get_kwarg(args, keyword, default_value)
   end
   return val
 end
+
+
+
+# Modified version of `@test_nowarn` that prints the content of `stderr` when
+# it is not empty. This is useful for debugging failing tests.
+macro test_nowarn_debug(expr)
+  quote
+    let fname = tempname()
+      try
+        ret = open(fname, "w") do f
+          redirect_stderr(f) do
+            $(esc(expr))
+          end
+        end
+        stderr_content = read(fname, String)
+        if !isempty(stderr_content)
+          println("Content of `stderr`:\n", stderr_content)
+        end
+        @test isempty(stderr_content)
+        ret
+      finally
+        rm(fname, force=true)
+      end
+    end
+  end
+end

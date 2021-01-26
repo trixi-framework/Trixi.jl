@@ -1,4 +1,4 @@
-module TestManual
+module TestUnit
 
 using Test
 using SimpleMock
@@ -9,8 +9,8 @@ using Trixi
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
 
-# Run various manual (= non-elixir-triggered tests)
-@testset "Manual tests" begin
+# Run various unit (= non-elixir-triggered) tests
+@testset "Unit tests" begin
   @testset "SerialTree" begin
     @testset "constructors" begin
       @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
@@ -73,14 +73,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           Trixi.partition!(mesh)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [11, 10]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
 
           # allow_coarsening = false
           Trixi.partition!(mesh; allow_coarsening=false)
           @test parent(mesh.n_cells_by_rank) == [11, 10]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
         end
@@ -97,14 +97,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           Trixi.partition!(mesh)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [11, 5, 5]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 12, 17]
 
           # allow_coarsening = false
           Trixi.partition!(mesh; allow_coarsening=false)
           @test parent(mesh.n_cells_by_rank) == [9, 6, 6]
-          @test mesh.tree.mpi_ranks[1:21] == 
+          @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
         end
@@ -347,7 +347,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn show(stdout, indicator_max)
   end
 
-  @testset "LBM constructor" begin
+  @testset "LBM 2D constructor" begin
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma=nothing, Re=1000)
     # Both Mach number and velocity set
@@ -361,7 +361,21 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test LatticeBoltzmannEquations2D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations2D
   end
 
-  @testset "LBM functions" begin
+  @testset "LBM 3D constructor" begin
+    # Neither Mach number nor velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=nothing, Re=1000)
+    # Both Mach number and velocity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=1000, u0=1)
+    # Neither Reynolds number nor viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=nothing)
+    # Both Reynolds number and viscosity set
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma=0.1, Re=1000, nu=1)
+
+    # No non-dimensional values set
+    @test LatticeBoltzmannEquations3D(Ma=nothing, Re=nothing, u0=1, nu=1) isa LatticeBoltzmannEquations3D
+  end
+
+  @testset "LBM 2D functions" begin
     # Set up LBM struct and dummy distribution
     equation = LatticeBoltzmannEquations2D(Ma=0.1, Re=1000)
     u = Trixi.equilibrium_distribution(1, 2, 3, equation)
@@ -369,7 +383,20 @@ isdir(outdir) && rm(outdir, recursive=true)
     # Component-wise velocity
     @test isapprox(Trixi.velocity(u, 1, equation), 2)
     @test isapprox(Trixi.velocity(u, 2, equation), 3)
+  end
 
+  @testset "LBM 3D functions" begin
+    # Set up LBM struct and dummy distribution
+    equation = LatticeBoltzmannEquations3D(Ma=0.1, Re=1000)
+    u = Trixi.equilibrium_distribution(1, 2, 3, 4, equation)
+
+    # Component-wise velocity
+    @test isapprox(velocity(u, 1, equation), 2)
+    @test isapprox(velocity(u, 2, equation), 3)
+    @test isapprox(velocity(u, 3, equation), 4)
+  end
+
+  @testset "LBMCollisionCallback" begin
     # Printing of LBM collision callback
     callback = LBMCollisionCallback()
     @test_nowarn show(stdout, callback)
@@ -378,6 +405,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     println()
   end
 
+  # Test docstrings
   DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
   doctest(Trixi, manual=false)
 end

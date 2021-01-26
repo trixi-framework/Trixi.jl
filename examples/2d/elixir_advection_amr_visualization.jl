@@ -1,51 +1,22 @@
-# This elixir and indicator is only for testing purposes and does not have any practical use
 
 using OrdinaryDiffEq
 using Trixi
-
-
-# Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
-# if multiple test cases using the same module name are run in the same session.
-module TrixiExtensionRefine
-
-using Trixi
-
-struct IndicatorAlwaysRefine{Cache<:NamedTuple} <: Trixi.AbstractIndicator
-  cache::Cache
-end
-
-function IndicatorAlwaysRefine(semi)
-  basis = semi.solver.basis
-  alpha = Vector{real(basis)}()
-  cache = (; semi.mesh, alpha)
-
-  return IndicatorAlwaysRefine{typeof(cache)}(cache)
-end
-
-function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any,4},
-                                             equations, dg, cache;
-                                             t, kwargs...)
-  alpha = indicator.cache.alpha
-  resize!(alpha, nelements(dg, cache))
-
-  alpha .= 1.0
-
-  return alpha
-end
-
-end # module TrixiExtensionRefine
-
-import .TrixiExtensionRefine
+using Plots
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
-# advectionvelocity = (0.2, -0.3)
+advectionvelocity = (1.0, -0.5)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
-initial_condition = initial_condition_gauss
+function initial_condition_gauss_largedomain(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Store translated coordinate for easy use of exact solution
+  domain_length = Trixi.SVector(10, 10)
+  x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t, domain_length)
+
+  return Trixi.SVector(exp(-(x_trans[1]^2 + x_trans[2]^2)))
+end
+initial_condition = initial_condition_gauss_largedomain
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
@@ -53,7 +24,7 @@ solver = DGSEM(3, surface_flux)
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=2,
+                initial_refinement_level=3,
                 n_cells_max=30_000)
 
 
@@ -63,7 +34,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -82,10 +53,14 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtensionRefine.IndicatorAlwaysRefine(semi),
-                                      base_level=4, max_level=4,
-                                      med_threshold=0.1, max_threshold=0.6)
+# Enable in-situ visualization with a new plot generated every 20 time steps
+# and additional plotting options passed as keyword arguments
+visualization = VisualizationCallback(interval=20, clims=(0,1))
 
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first),
+                                      base_level=3,
+                                      med_level=4, med_threshold=0.1,
+                                      max_level=5, max_threshold=0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval=5,
                            adapt_initial_condition=true,
@@ -95,7 +70,7 @@ stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        save_restart, save_solution, visualization,
                         amr_callback, stepsize_callback);
 
 

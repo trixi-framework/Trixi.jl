@@ -68,7 +68,8 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   end
 
   # number of variables
-  variablenames = varnames(cons2cons, mod.equations)
+  _, equations, _, _ = mesh_equations_solver_cache(mod.semi)
+  variablenames = varnames(cons2cons, equations)
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration

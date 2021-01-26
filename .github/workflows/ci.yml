@@ -105,7 +105,7 @@ jobs:
       - uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.version }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.trixi_test }}
+          flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           parallel: true
           path-to-lcov: ./lcov.info
 

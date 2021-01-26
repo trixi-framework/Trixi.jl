@@ -160,8 +160,8 @@ end
 end
 
 
-@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity)
-  calc_error_norms(func, u, t, analyzer, semi.semi_euler)
+@inline function calc_error_norms(func, u, t, analyzer, semi::SemidiscretizationEulerGravity, cache_analysis)
+  calc_error_norms(func, u, t, analyzer, semi.semi_euler, cache_analysis)
 end
 
 
@@ -273,7 +273,9 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi_gravity, t_stage)
+    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
+    # included in the `rhs!` call.
+    rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
@@ -322,7 +324,9 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     t_stage = t + dt * c[stage]
 
     # rhs! has the source term for the harmonic problem
-    @timeit_debug timer() "rhs!" rhs!(du_ode, u_ode, semi_gravity, t_stage)
+    # We don't need a `@timeit_debug timer() "rhs!"` here since that's already
+    # included in the `rhs!` call.
+    rhs!(du_ode, u_ode, semi_gravity, t_stage)
 
     # Source term: Jeans instability OR coupling convergence test OR blast wave
     # put in gravity source term proportional to Euler density
