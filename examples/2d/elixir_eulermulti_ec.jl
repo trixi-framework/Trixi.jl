@@ -4,10 +4,9 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D(gamma        = [1.4, 1.4],
-                                                       gas_constant = [0.4, 0.4])
+equations = CompressibleEulerMulticomponentEquations2D(gamma        = (1.4, 1.4),
+                                                       gas_constant = (0.4, 0.4))
 
-#equations = CompressibleEulerMulticomponentEquations2D()
 initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_chandrashekar
@@ -33,10 +32,9 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-#analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(density,))
+                                     extra_analysis_integrals=(Trixi.density,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

@@ -3,8 +3,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations           = CompressibleEulerMulticomponentEquations2D(gamma          = [1.4, 1.648], 
-                                                                 gas_constant   = [0.287, 1.578])
+equations           = CompressibleEulerMulticomponentEquations2D(gamma        = (1.4, 1.648), 
+                                                                 gas_constant = (0.287, 1.578))
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -33,18 +33,18 @@ semi                = SemidiscretizationHyperbolic(mesh, equations, initial_cond
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.01) # 0.0021..
+tspan               = (0.0, 0.01)
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 300 # change to 200+ for whole calc.
+analysis_interval   = 300 
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval,
                                        extra_analysis_integrals=(density,))
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=300,     # 40 or change to 200+ for whole calc.  
+save_solution       = SaveSolutionCallback(interval=300,     
                                            save_initial_solution=true,
                                            save_final_solution=true,
                                            solution_variables=cons2prim)
