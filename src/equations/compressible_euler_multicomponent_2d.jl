@@ -432,7 +432,6 @@ Entropy conserving two-point flux by
   rho_rr      = 0
   rhok_mean   = SVector{length(gamma),Float64}(ln_mean(u_ll[i+3], u_rr[i+3]) for i = 1:length(gamma))
   rhok_avg    = SVector{length(gamma),Float64}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:length(gamma))
-  f           = Array{Float64}(undef, length(gamma)+3)#zeros(length(gamma)+3)#SVector{length(gamma)+3,Float64}#zeros(length(gamma)+3)#SVector{length(gamma),Float64}#zeros(length(gamma)+3)
 
   # Iterating over all partial densities
   for i = 1:length(gamma)
@@ -470,41 +469,33 @@ Entropy conserving two-point flux by
   help1       = 0
   help2       = 0
   if orientation == 1
+    f_rho       = SVector{length(gamma),Float64}(rhok_mean[i]*v1_avg for i = 1:length(gamma))
     for i = 1:length(gamma)
-      f[i+3]    = rhok_mean[i] * v1_avg
-      help1     += f[i+3] * cv[i] 
-      help2     += f[i+3]
+      help1     += f_rho[i] * cv[i] 
+      help2     += f_rho[i]
     end
     f1 = (help2) * v1_avg + enth/T 
     f2 = (help2) * v2_avg
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
-
-   # f    = SVector{length(gamma)+3,Float64}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:length(gamma))
-
   else
+    f_rho       = SVector{length(gamma),Float64}(rhok_mean[i]*v2_avg for i = 1:length(gamma))
     for i = 1:length(gamma)
-      f[i+3]    = rhok_mean[i] * v2_avg
-      help1     += f[i+3] * cv[i] 
-      help2     += f[i+3]
+      help1     += f_rho[i] * cv[i] 
+      help2     += f_rho[i]
     end
     f1 = (help2) * v1_avg 
     f2 = (help2) * v2_avg + enth/T
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
   end
+  f_else  = SVector{3, Float64}(f1, f2, f3)
 
-  @timeit_debug timer() "insert" begin 
-  f[1:3]  = [f1, f2, f3]
-  end
-
-  result  = SVector{length(gamma)+3,Float64}(f)
-
+  result  = vcat(f_else, f_rho)
   return result
 end
 
 
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   @unpack cv, gamma = equations
-  f   = zeros(length(gamma)+3)
   # Calculate primitive variables and speed of sound
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
@@ -536,19 +527,10 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   f_rr = calcflux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-
-  f[1:3]  = [f1, f2, f3]
   
-  for i = 1:length(gamma)
-    f[i+3]  = 1/2 * (f_ll[i+3] + f_rr[i+3]) - 1/2 * λ_max * (u_rr[i+3] - u_ll[i+3])
-  end
+  f  = SVector{length(gamma)+3,Float64}(1/2 * (f_ll[i] + f_rr[i]) - 1/2 * λ_max * (u_rr[i] - u_ll[i]) for i = 1:length(gamma)+3)
 
-  result  = SVector{length(gamma)+3}(f)
-
-  return result
+  return f
 end
 
 
@@ -706,3 +688,4 @@ end
 
   return rho
  end
+
