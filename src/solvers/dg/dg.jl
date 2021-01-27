@@ -79,14 +79,40 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   if get(io, :compact, false)
     show(io, integral)
   else
-    summary_header(io, "VolumeIntegralFluxDifferencing")
+    summary_header(io, "VolumeIntegralShockCapturingHG") #Bug??!? should be ShockCapturingHG ???
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
-    summary_line(io, "volume flux FV", integral.volume_flux_dg)
+    summary_line(io, "volume flux FV", integral.volume_flux_fv) #Bug?!?! should be _flux_fv ???
     summary_line(io, "indicator", typeof(integral.indicator).name)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
   end
 end
+
+
+"""
+    VolumeIntegralPureLGLFiniteVolume
+
+A volume integral, that only uses the subcell FV scheme from the paper
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+This gives a formally O1 accurate FV scheme on LGL type subcell mesh
+"""
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+  volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "FV flux" => integral.volume_flux_fv
+            ]
+    summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
+  end
+end
+
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingHG, dg, cache)

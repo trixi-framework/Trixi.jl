@@ -80,6 +80,26 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 
+function create_cache(mesh::TreeMesh{2}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG)
+
+  #cache = create_cache(mesh, equations,
+  #                     VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
+  #                     dg)
+
+  A3dp1_x = Array{real(dg), 3}
+  A3dp1_y = Array{real(dg), 3}
+
+  fstar1_L_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstar1_R_threaded = A3dp1_x[A3dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+  fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+
+  #return (; cache..., element_ids_dg, element_ids_dgfv,
+  #        fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
+  return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
+end
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2)
@@ -343,6 +363,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   alpha = @timeit_debug timer() "blending factors" indicator(u, equations, dg, cache)
+  alpha .= 1.0
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
@@ -365,6 +386,22 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
 
   return nothing
 end
+
+# TODO: Taal dimension agnostic
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_fv = volume_integral
+
+  # Loop over blended DG-FV elements
+  @timeit_debug timer() "pure FV" Threads.@threads for element in eachelement(dg, cache)
+    # Calculate LGL FV volume integral
+    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
+  end
+
+  return nothing
+end
+
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,4}, u::AbstractArray{<:Any,4}, nonconservative_terms,
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
