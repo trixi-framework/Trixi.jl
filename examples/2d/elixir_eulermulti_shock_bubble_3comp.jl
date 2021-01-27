@@ -35,18 +35,18 @@ semi                = SemidiscretizationHyperbolic(mesh, equations, initial_cond
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.001) 
+tspan               = (0.0, 0.01) 
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 100 # change to 200+ for whole calc.
+analysis_interval   = 200 # change to 200+ for whole calc.
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval,
-                                       extra_analysis_integrals=(density,))
+                                       extra_analysis_integrals=(Trixi.density,))
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=100,     # 40 or change to 200+ for whole calc.  
+save_solution       = SaveSolutionCallback(interval=200,     # 40 or change to 200+ for whole calc.  
                                            save_initial_solution=true,
                                            save_final_solution=true,
                                            solution_variables=cons2prim)

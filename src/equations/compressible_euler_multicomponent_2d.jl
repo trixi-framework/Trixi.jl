@@ -61,7 +61,7 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
 """
-function initial_condition_convergence_test(x, t, equations::CompressibleEulerMulticomponentEquations2D)
+function initial_condition_convergence_test(x, t, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   @unpack cv, gamma = equations
   c       = 2
   A       = 0.1
@@ -75,7 +75,7 @@ function initial_condition_convergence_test(x, t, equations::CompressibleEulerMu
 
   rho     = ini
   # Multiple Components
-  prim_rho  = SVector{length(gamma), eltype(gamma)}(2^(i-1) * (1-2)/(1-2^length(gamma)) * rho for i = 1:length(gamma))
+  prim_rho  = SVector{NCOMP, eltype(gamma)}(2^(i-1) * (1-2)/(1-2^NCOMP) * rho for i = 1:NCOMP)
 
   prim1 = rho * v1
   prim2 = rho * v2
@@ -93,8 +93,8 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref)
 (and [`boundary_condition_convergence_test`](@ref) in non-periodic domains).
 """
-@inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack cv, gamma = equations
+@inline function source_terms_convergence_test(u, x, t, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
+  @unpack gamma = equations
   # Same settings as in `initial_condition`
   c       = 2
   A       = 0.1
@@ -102,7 +102,7 @@ Source terms used for convergence tests in combination with
   f       = 1/L
   omega   = 2 * pi * f
 
-  gammas  = gamma(u, equations)
+  gammas  = totalgamma(u, equations)
 
   x1, x2  = x
   si, co  = sincos((x1 + x2 - t)*omega)
@@ -113,7 +113,7 @@ Source terms used for convergence tests in combination with
   tmp5    = (2*tmp2*gammas - 2*tmp2 + tmp4 + 1)*tmp1
   tmp6    = tmp2 + c
 
-  du_rho  = SVector{length(gamma), eltype(gamma)}(2^(i-1) * (1-2)/(1-2^length(gamma)) * tmp1 for i = 1:length(gamma))
+  du_rho  = SVector{NCOMP, eltype(gamma)}(2^(i-1) * (1-2)/(1-2^NCOMP) * tmp1 for i = 1:NCOMP)
 
   du1 = tmp5
   du2 = tmp5
@@ -326,9 +326,9 @@ A for multicomponent adapted weak blast wave taken from
   A provably entropy stable subcell shock capturing approach for high order split form DG
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
 """
-function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMulticomponentEquations2D)
+function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
-  @unpack gamma, cv, gas_constant, cp = equations
+  @unpack gamma = equations
   # Set up polar coordinates
   inicenter         = SVector(0.0, 0.0)
   x_norm            = x[1] - inicenter[1]
@@ -337,7 +337,7 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
   phi               = atan(y_norm, x_norm)
   sin_phi, cos_phi  = sincos(phi)
 
-  prim_rho          = SVector{length(gamma), eltype(gamma)}(r > 0.5 ? 2^(i-1) * (1-2)/(1-2^length(gamma))*1.0 : 2^(i-1) * (1-2)/(1-2^length(gamma))*1.1691 for i = 1:length(gamma))
+  prim_rho          = SVector{NCOMP, eltype(gamma)}(r > 0.5 ? 2^(i-1) * (1-2)/(1-2^NCOMP)*1.0 : 2^(i-1) * (1-2)/(1-2^NCOMP)*1.1691 for i = 1:NCOMP)
 
   v1                = r > 0.5 ? 0.0 : 0.1882 * cos_phi
   v2                = r > 0.5 ? 0.0 : 0.1882 * sin_phi
@@ -345,29 +345,29 @@ function initial_condition_weak_blast_wave(x, t, equations::CompressibleEulerMul
 
   prim_else         = SVector{3, eltype(gamma)}(v1, v2, p)
   
-  return vcat(prim_else, prim_rho)
+  return prim2cons(vcat(prim_else, prim_rho),equations)
 end
 
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack gamma, cv = equations
+@inline function calcflux(u, orientation, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
+  @unpack gamma = equations
   rho_v1, rho_v2, rho_e  = u
 
   rho = density(u, equations)
 
   v1    = rho_v1/rho
   v2    = rho_v2/rho
-  gammas= gamma(u, equations)
+  gammas= totalgamma(u, equations)
   p     = (gammas - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
 
   if orientation == 1
-    f_rho       = SVector{length(gamma), eltype(gamma)}(u[i+3]*v1 for i = 1:length(gamma))
+    f_rho       = SVector{NCOMP, eltype(gamma)}(u[i+3]*v1 for i = 1:NCOMP)
     f1  = rho_v1 * v1 + p
     f2  = rho_v2 * v1
     f3  = (rho_e + p) * v1
   else
-    f_rho       = SVector{length(gamma), eltype(gamma)}(u[i+3]*v2 for i = 1:length(gamma))
+    f_rho       = SVector{NCOMP, eltype(gamma)}(u[i+3]*v2 for i = 1:NCOMP)
     f1  = rho_v1 * v2
     f2  = rho_v2 * v2 + p
     f3  = (rho_e + p) * v2
@@ -387,13 +387,13 @@ Entropy conserving two-point flux by
   "Formulation of Entropy-Stable schemes for the multicomponent compressible Euler equations""
   arXiv:1904.00972v3 [math.NA] 4 Feb 2020
 """
-@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   # Unpack left and right state
   @unpack gamma, gas_constant, cv = equations
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-  rhok_mean   = SVector{length(gamma), eltype(gamma)}(ln_mean(u_ll[i+3], u_rr[i+3]) for i = 1:length(gamma))
-  rhok_avg    = SVector{length(gamma), eltype(gamma)}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:length(gamma))
+  rhok_mean   = SVector{NCOMP, eltype(gamma)}(ln_mean(u_ll[i+3], u_rr[i+3]) for i = 1:NCOMP)
+  rhok_avg    = SVector{NCOMP, eltype(gamma)}(0.5 * (u_ll[i+3] + u_rr[i+3]) for i = 1:NCOMP)
 
   # Iterating over all partial densities
   rho_ll      = density(u_ll, equations)
@@ -414,7 +414,7 @@ Entropy conserving two-point flux by
   help1_ll  = zero(v1_ll)
   help1_rr  = zero(v1_rr)
 
-  for i = 1:length(gamma)
+  for i = 1:NCOMP
     enth      += rhok_avg[i] * gas_constant[i] 
     help1_ll  += u_ll[i+3] * cv[i] 
     help1_rr  += u_rr[i+3] * cv[i]
@@ -429,8 +429,8 @@ Entropy conserving two-point flux by
   help1       = zero(T_ll)
   help2       = zero(T_rr)
   if orientation == 1
-    f_rho       = SVector{length(gamma), eltype(gamma)}(rhok_mean[i]*v1_avg for i = 1:length(gamma))
-    for i = 1:length(gamma)
+    f_rho       = SVector{NCOMP, eltype(gamma)}(rhok_mean[i]*v1_avg for i = 1:NCOMP)
+    for i = 1:NCOMP
       help1     += f_rho[i] * cv[i] 
       help2     += f_rho[i]
     end
@@ -438,8 +438,8 @@ Entropy conserving two-point flux by
     f2 = (help2) * v2_avg
     f3 = (help1)/T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 + v2_avg * f2
   else
-    f_rho       = SVector{length(gamma), eltype(gamma)}(rhok_mean[i]*v2_avg for i = 1:length(gamma))
-    for i = 1:length(gamma)
+    f_rho       = SVector{NCOMP, eltype(gamma)}(rhok_mean[i]*v2_avg for i = 1:NCOMP)
+    for i = 1:NCOMP
       help1     += f_rho[i] * cv[i] 
       help2     += f_rho[i]
     end
@@ -453,16 +453,16 @@ Entropy conserving two-point flux by
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack cv, gamma = equations
+function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
+  @unpack gamma = equations
   # Calculate primitive variables and speed of sound
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
-  gamma_ll = gamma(u_ll, equations)
-  gamma_rr = gamma(u_rr, equations)
+  gamma_ll = totalgamma(u_ll, equations)
+  gamma_rr = totalgamma(u_rr, equations)
 
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
@@ -482,21 +482,20 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
   
-  f  = SVector{length(gamma)+3, eltype(gamma)}(1/2 * (f_ll[i] + f_rr[i]) - 1/2 * λ_max * (u_rr[i] - u_ll[i]) for i = 1:length(gamma)+3)
+  f  = SVector{NVARS, eltype(gamma)}(1/2 * (f_ll[i] + f_rr[i]) - 1/2 * λ_max * (u_rr[i] - u_ll[i]) for i = 1:NVARS)
 
   return f
 end
 
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack cv, gamma = equations
   rho_v1, rho_v2, rho_e = u
 
   rho   = density(u, equations)
   v1    = rho_v1 / rho
   v2    = rho_v2 / rho
 
-  gammas= gamma(u, equations)
+  gammas= totalgamma(u, equations)
   p     = (gammas - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
   c     = sqrt(gammas * p / rho)
 
@@ -505,16 +504,16 @@ end
 
 
 # Convert conservative variables to primitive
-@inline function cons2prim(u, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function cons2prim(u, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   @unpack cv, gamma = equations
   rho_v1, rho_v2, rho_e = u
 
-  prim_rho = SVector{length(gamma), eltype(gamma)}(u[i+3] for i = 1:length(gamma))
+  prim_rho = SVector{NCOMP, eltype(gamma)}(u[i+3] for i = 1:NCOMP)
 
   rho   = density(u, equations)
   v1    = rho_v1 / rho
   v2    = rho_v2 / rho
-  gammas= gamma(u, equations)
+  gammas= totalgamma(u, equations)
   p     = (gammas - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
   prim_else =  SVector{3, eltype(gamma)}(v1, v2, p)
 
@@ -523,7 +522,7 @@ end
 
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   @unpack cv, gamma, gas_constant = equations
   rho_v1, rho_v2, rho_e = u
 
@@ -532,7 +531,7 @@ end
   v1        = rho_v1 / rho
   v2        = rho_v2 / rho
   v_square  = v1^2 + v2^2
-  gammas    = gamma(u, equations)
+  gammas    = totalgamma(u, equations)
   p         = (gammas - 1) * (rho_e - 0.5 * rho * v_square)
   s         = log(p) - gammas*log(rho)
   rho_p     = rho / p
@@ -540,13 +539,13 @@ end
   # Multicomponent stuff
   help1 = zero(v1)
 
-  for i = 1:length(gamma)
+  for i = 1:NCOMP
     help1 += u[i+3] * cv[i]
   end
 
   T         = (rho_e - 0.5 * rho * v_square) / (help1)
 
-  entrop_rho  = SVector{length(gamma), eltype(gamma)}( -1.0 * (cv[i] * log(T) - gas_constant[i] * log(u[i+3])) + gas_constant[i] + cv[i] - (v_square / (2*T)) for i = 1:length(gamma))
+  entrop_rho  = SVector{NCOMP, eltype(gamma)}( -1.0 * (cv[i] * log(T) - gas_constant[i] * log(u[i+3])) + gas_constant[i] + cv[i] - (v_square / (2*T)) for i = 1:NCOMP)
 
   w1        = (v1)/T
   w2        = (v2)/T
@@ -559,14 +558,14 @@ end
 
 
 # Convert primitive to conservative variables
-@inline function prim2cons(prim, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function prim2cons(prim, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   @unpack cv, gamma = equations
   v1, v2, p = prim
   
-  cons_rho  = SVector{length(gamma), eltype(gamma)}(prim[i+3] for i = 1:length(gamma))
+  cons_rho  = SVector{NCOMP, eltype(gamma)}(prim[i+3] for i = 1:NCOMP)
 
   rho     = density(prim, equations)
-  gammas  = gamma(prim, equations)
+  gammas  = totalgamma(prim, equations)
 
   rho_v1  = rho * v1
   rho_v2  = rho * v2
@@ -577,13 +576,13 @@ end
   return vcat(cons_else, cons_rho)
 end
 
-@inline function gamma(u, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function totalgamma(u, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   @unpack cv, gamma = equations
 
   help1 = zero(u[1])
   help2 = zero(u[1])
 
-  for i in 1:length(gamma)
+  for i in 1:NCOMP
     help1 += u[i+3] * cv[i] * gamma[i]
     help2 += u[i+3] * cv[i]
   end
@@ -593,22 +592,20 @@ end
 
 
 @inline function density_pressure(u, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack cv, gamma = equations
   rho_v1, rho_v2, rho_e = u
   
   rho          = density(u, equations)
-  gammas       = gamma(u, equations)
+  gammas       = totalgamma(u, equations)
   rho_times_p  = (gammas - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
 
   return rho_times_p
 end
 
 
-@inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
-  @unpack gamma = equations
+@inline function density(u, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
   rho = zero(u[1])
 
-  for i = 1:length(gamma)
+  for i = 1:NCOMP
     rho += u[i+3]
   end
 

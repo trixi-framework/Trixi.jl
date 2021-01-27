@@ -25,14 +25,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
   @testset "elixir_eulermulti_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
-      l2   = [3.48269990e-02, 3.48343748e-02, 9.25283610e-02, 2.10775811e-02, 4.21551623e-02],
-      linf = [2.41913824e-01, 2.37051239e-01, 5.64790458e-01, 1.33967766e-01, 2.67935533e-01])
+      l2   = [5.01948074e-02, 5.02023248e-02, 2.25886833e-01, 6.17286464e-02],
+      linf = [3.06937711e-01, 3.06807092e-01, 1.06295287e+00, 2.98135725e-01])
   end
 
   @testset "elixir_eulermulti_es.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_es.jl"),
-      l2   = [3.45819661e-02, 3.45835287e-02, 9.20021458e-02, 2.09685214e-02, 4.19370428e-02],
-      linf = [2.11393171e-01, 2.11289025e-01, 4.89366507e-01, 1.14494265e-01, 2.28988531e-01])
+      l2   = [4.96608585e-02, 4.96617550e-02, 2.24265059e-01, 4.08685600e-03, 8.17371200e-03, 1.63474240e-02, 3.26948480e-02],
+      linf = [2.48820395e-01, 2.48311640e-01, 9.35790843e-01, 1.72574990e-02, 3.45149980e-02, 6.90299959e-02, 1.38059992e-01])
   end
 
   @testset "elixir_eulermulti_eoc_ec.jl" begin

@@ -40,7 +40,7 @@ summary_callback    = SummaryCallback()
 
 analysis_interval   = 300 
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval,
-                                       extra_analysis_integrals=(density,))
+                                       extra_analysis_integrals=(Trixi.density,))
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
