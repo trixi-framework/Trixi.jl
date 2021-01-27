@@ -268,12 +268,12 @@ function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMultic
   p_3       = 159060
 
   # Set up Region I & II:
-  inicenter_a = SVector(zero(delta), zero(delta))
+  inicenter_a = SVector(zero(delta), 1.8)
   x_norm_a    = x[1] - inicenter_a[1]
   y_norm_a    = x[2] - inicenter_a[2]
   r_a         = sqrt(x_norm_a^2 + y_norm_a^2)  
 
-  inicenter_b = SVector(-0.55, -0.1)
+  inicenter_b = SVector(zero(delta), -1.8)
   x_norm_b    = x[1] - inicenter_b[1]
   y_norm_b    = x[2] - inicenter_b[2]
   r_b         = sqrt(x_norm_b^2 + y_norm_b^2)  
