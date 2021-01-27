@@ -2,18 +2,8 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler multicomponent equations
-#gamma1              = 1.4
-#gamma2              = 1.648
-#gas_constant_1      = 0.287
-#gas_constant_2      = 1.578
-#cv1                 = 0.72
-#cv2                 = 2.44
-#cp1                 = 1.007 # rs1 + cvs1, Check: gamma1 = cps1/cvs1 = 1.4
-#cp2                 = 4.018 # rs2 + cvs2, Check: gamma2 = cps2/cvs2 = 1.648
-#equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant_1, gas_constant_2, cv1, cv2, cp1, cp2)
-equations           = CompressibleEulerMulticomponentEquations2D(gamma          = [1.4, 1.648],
-                                                                 gas_constant   = [0.287, 1.578])   # Erst im neuen Release
+equations           = CompressibleEulerMulticomponentEquations2D(gamma        = (1.4, 1.648),
+                                                                 gas_constant = (0.287, 1.578)) 
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -42,17 +32,17 @@ semi                = SemidiscretizationHyperbolic(mesh, eulermulti, equations, 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.0012) # 0.0021... or until 0.015 for whole calc.
+tspan               = (0.0, 0.0012) 
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 100 # change to 200+ for whole calc.
+analysis_interval   = 100 
 analysis_callback   = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=100,     # 40 or change to 200+ for whole calc.  
+save_solution       = SaveSolutionCallback(interval=100,   
                                            save_initial_solution=true,
                                            save_final_solution=true,
                                            solution_variables=:primitive)
@@ -65,10 +55,10 @@ amr_indicator = IndicatorHennemannGassner(semi,
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                           base_level=5,
-                                          max_level =9, max_threshold=0.01) # Wenn Indikator > max_threshold: Setze Aktuelles Level auf max_level, ansonsten auf base_level
+                                          max_level =9, max_threshold=0.01) 
 
 amr_callback = AMRCallback(semi, amr_controller,
-                               interval=5,  # AMR wird alle 5 Zeitschritte ausgeführt
+                               interval=5,  
                                adapt_initial_condition=true,
                                adapt_initial_condition_only_refine=true)
 
