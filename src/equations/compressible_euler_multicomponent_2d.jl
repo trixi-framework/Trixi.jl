@@ -22,14 +22,12 @@ function CompressibleEulerMulticomponentEquations2D(; gamma, gas_constant)
   _gamma        = promote(gamma...)
   _gas_constant = promote(gas_constant...)
   T             = promote_type(eltype(_gamma), eltype(_gas_constant))
-  map(T, _gamma), map(T, _gas_constant)
 
   length(_gamma) == length(_gas_constant) || throw(DimensionMismatch("gamma and gas_constant should have the same length"))
   NVARS = length(_gamma) + 3
   NCOMP = length(_gamma)
 
-
-  return CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, T}(_gamma, _gas_constant)
+  return CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, T}(map(T, _gamma), map(T, _gas_constant))
 end
 
 
@@ -157,7 +155,7 @@ A shock-bubble testcase for multicomponent Euler equations
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
 """
 function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{2})
-  # bubble test case, see Agertz et al. https://arxiv.org/pdf/1904.00972
+  # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
   # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
   # typical domain is rectangular, we change it to a square, as Trixi can only do squares
   @unpack gas_constant = equations
@@ -227,7 +225,7 @@ Adaption of the shock-bubble testcase for multicomponent Euler equations to 3 co
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
 """
 function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMulticomponentEquations2D{3})
-  # bubble test case, see Agertz et al. https://arxiv.org/pdf/1904.00972
+  # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
   # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
   # adapted to 3 component testcase
   # typical domain is rectangular, we change it to a square, as Trixi can only do squares
@@ -270,12 +268,12 @@ function initial_condition_shock_bubble(x, t, equations::CompressibleEulerMultic
   p_3       = 159060
 
   # Set up Region I & II:
-  inicenter_a = SVector(zero(delta), 1.8)
+  inicenter_a = SVector(zero(delta), zero(delta))
   x_norm_a    = x[1] - inicenter_a[1]
   y_norm_a    = x[2] - inicenter_a[2]
   r_a         = sqrt(x_norm_a^2 + y_norm_a^2)  
 
-  inicenter_b = SVector(zero(delta), -1.8)
+  inicenter_b = SVector(-0.55, -0.1)
   x_norm_b    = x[1] - inicenter_b[1]
   y_norm_b    = x[2] - inicenter_b[2]
   r_b         = sqrt(x_norm_b^2 + y_norm_b^2)  
