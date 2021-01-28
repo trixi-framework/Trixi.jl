@@ -40,7 +40,7 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any,4},
     center = (t-domain_length, t-domain_length)
   end
 
-  @threaded for element in eachelement(dg, cache)
+  Threads.@threads for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     coordinates = (mesh.tree.coordinates[1, cell_id], mesh.tree.coordinates[2, cell_id])
     # use the negative radius as indicator since the AMR controller increases
