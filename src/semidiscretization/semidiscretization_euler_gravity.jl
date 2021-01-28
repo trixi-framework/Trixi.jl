@@ -285,7 +285,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     a_stage = a[stage]
     b_stage_dt = b[stage] * dt
     @timeit_debug timer() "Runge-Kutta step" begin
-      Threads.@threads for idx in eachindex(u_ode)
+      @threaded for idx in eachindex(u_ode)
         u_tmp1_ode[idx] = du_ode[idx] - u_tmp1_ode[idx] * a_stage
         u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
       end
@@ -339,7 +339,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, sem
     gamma3_stage  = gamma3[stage]
     beta_stage_dt = beta[stage] * dt
     @timeit_debug timer() "Runge-Kutta step" begin
-      Threads.@threads for idx in eachindex(u_ode)
+      @threaded for idx in eachindex(u_ode)
         u_tmp1_ode[idx] += delta_stage * u_ode[idx]
         u_ode[idx]       = (gamma1_stage * u_ode[idx] +
                             gamma2_stage * u_tmp1_ode[idx] +
