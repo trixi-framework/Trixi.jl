@@ -41,7 +41,7 @@ function AMRCallback(semi, controller, adaptor;
   amr_cache = (; to_refine, to_coarsen)
 
   amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
-    controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine, 
+    controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine,
     dynamic_load_balancing, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
@@ -422,7 +422,7 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
 
   alpha = controller.indicator(u, equations, dg, cache; kwargs...)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     current_level = mesh.tree.levels[cell_id]
 
@@ -548,7 +548,7 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
   alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     current_level = mesh.tree.levels[cell_id]
 

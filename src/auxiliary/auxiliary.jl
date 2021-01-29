@@ -126,3 +126,25 @@ julia> Trixi.get_name(Val(:test))
 """
 get_name(x) = string(x)
 get_name(::Val{x}) where x = string(x)
+
+
+
+"""
+    @threaded for ... end
+
+Basically the same as `Threads.@threads` with an additional check whether only
+one thread is used to reduce the overhead of serial execution.
+
+Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
+"""
+macro threaded(expr)
+  # esc(quote ... end) as suggested in https://github.com/JuliaLang/julia/issues/23221
+  return esc(quote
+    if Threads.nthreads() == 1
+      $(expr)
+    else
+      Threads.@threads $(expr)
+    end
+  end)
+end
+

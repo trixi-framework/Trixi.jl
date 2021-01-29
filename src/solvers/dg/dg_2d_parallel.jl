@@ -345,7 +345,7 @@ function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
                                 equations, dg::DG)
   @unpack mpi_interfaces = cache
 
-  Threads.@threads for interface in eachmpiinterface(dg, cache)
+  @threaded for interface in eachmpiinterface(dg, cache)
     local_element = mpi_interfaces.local_element_ids[interface]
 
     if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
@@ -381,7 +381,7 @@ function calc_mpi_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
   @unpack surface_flux = dg
   @unpack u, local_element_ids, orientations, remote_sides = cache.mpi_interfaces
 
-  Threads.@threads for interface in eachmpiinterface(dg, cache)
+  @threaded for interface in eachmpiinterface(dg, cache)
     # Get local neighboring element
     element = local_element_ids[interface]
 
