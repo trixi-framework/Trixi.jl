@@ -5,8 +5,8 @@ using Trixi
 # semidiscretization of the compressible Euler multicomponent equations
 
 # 1) Dry Air  2) Helium + 28% Air  3) Carbon Dioxide
-equations           = CompressibleEulerMulticomponentEquations2D(gamma        = (1.4, 1.648, 1.28), 
-                                                                 gas_constant = (0.287, 1.578, 0.1889))
+equations           = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.648, 1.28), 
+                                                                 gas_constants = (0.287, 1.578, 0.1889))
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -35,7 +35,7 @@ semi                = SemidiscretizationHyperbolic(mesh, equations, initial_cond
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.01) 
+tspan               = (0.0, 0.015) 
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()

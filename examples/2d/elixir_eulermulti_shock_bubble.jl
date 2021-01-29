@@ -3,8 +3,10 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations           = CompressibleEulerMulticomponentEquations2D(gamma        = (1.4, 1.648), 
-                                                                 gas_constant = (0.287, 1.578))
+
+# 1) Dry Air  2) Helium + 28% Air
+equations           = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.648), 
+                                                                 gas_constants = (0.287, 1.578))
 
 initial_condition   = initial_condition_shock_bubble
 

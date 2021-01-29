@@ -16,11 +16,18 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       tspan = (0.0, 0.001))
   end
 
-  @testset "elixir_eulermulti_shock_bubble_3comp.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_3comp.jl"),
+  @testset "elixir_eulermulti_shock_bubble_3components.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_3components.jl"),
       l2   = [6.69469420e+01, 1.24137635e+00, 5.19736818e+04, 1.67537081e-01, 6.94144768e-03, 7.33198795e-02],
       linf = [2.14068118e+02, 1.82870581e+01, 1.93352191e+05, 1.02911816e+00, 7.00111358e-02, 9.34275213e-01],
       tspan = (0.0, 0.001))
+  end
+
+  @testset "elixir_eulermulti_shock_bubble_7components.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble_7components.jl"),
+    l2   = [6.70895845e+01, 1.50857110e+00, 5.35958153e+04, 1.88695032e-01, 5.30253136e-03, 3.89776034e-02, 7.99227155e-02, 3.50734339e-03, 3.06391963e-02, 1.17354254e-01],
+    linf = [2.27410552e+02, 1.95446320e+01, 2.96650723e+05, 1.09905431e+00, 4.40228926e-02, 5.08315400e-01, 1.06801398e+00, 1.76102931e-02, 4.01158590e-01, 1.47984635e+00],
+    tspan = (0.0, 0.001))
   end
 
   @testset "elixir_eulermulti_ec.jl" begin
@@ -47,6 +54,5 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [1.51966473e-05, 1.51966473e-05, 5.51065526e-05, 5.58096521e-06, 1.11619304e-05])
   end
 end
-
 
 end # module
