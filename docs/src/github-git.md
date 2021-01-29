@@ -17,7 +17,7 @@ the reasons for a particular choice of implementation or feature.
 
 ### Create a branch and *immediately* create a pull request
 All feature development, bug fixes etc. should be developed in a branch and not
-directly on `master`. If you do not have write access to the main repository on
+directly on `main`. If you do not have write access to the main repository on
 GitHub, first create a fork of the Trixi.jl repository and clone the fork to
 your machine. Then, create a branch locally by executing `git checkout -b
 yourbranch`, push it to the repository, and create a pull request (PR).
@@ -27,8 +27,8 @@ you can also work in that clone. You just need to add your fork as additional
 remote repository and push your new branch there.
 ```bash
 git remote add myfork git@github.com:YOUR_NAME/Trixi.jl.git
-# get latest master from the main repo
-git checkout master
+# get latest main from the main repo
+git checkout main
 git pull
 # create a new branch for a cool new feature, bug fix, ...
 git checkout -b YOUR_BRANCH_NAME
@@ -42,7 +42,7 @@ git push -u myfork
     Immediately creating a PR for your branch has the benefit that all
     code discussions can now be held directly next to the corresponding code. Also,
     the PR allows to easily compare your branch to the upstream branch
-    (usually `master`) to see what you have changed. Moreover, tests will run
+    (usually `main`) to see what you have changed. Moreover, tests will run
     automatically.
 
 ### Make changes
@@ -60,32 +60,32 @@ changes or dive in and change something themselves.
     pushed your changes**. If you *did* push your changes, please talk to one of
     the core developers on how to proceed.
 
-### Keep your branch in sync with `master`
+### Keep your branch in sync with `main`
 For larger features with longer-living branches, it may make sense to
-synchronize your branch with the current `master`, e.g., if there was a bug fix
-in `master` that is relevant for you. In this case, perform the following steps to
-merge the current `master` to your branch:
+synchronize your branch with the current `main`, e.g., if there was a bug fix
+in `main` that is relevant for you. In this case, perform the following steps to
+merge the current `main` to your branch:
 
   1. Commit all your local changes to your branch and push it. This allows you to
      delete your clone in case you make a mistake and need to abort the merge.
   2. Execute `git fetch` to get the latest changes from the repository.
   3. Make sure you are in the correct branch by checking the output of `git
      status` or by running `git checkout yourbranch`.
-  4. Merge master using `git merge master`. If there were no conflicts, hooray!,
+  4. Merge main using `git merge main`. If there were no conflicts, hooray!,
      you are done. Otherwise you need to resolve your merge conflicts and commit
      the changes afterwards. A good guide for resolving merge conflicts can be
      found
      [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/resolving-a-merge-conflict-using-the-command-line).
 
 In general, always use `git merge` and not `git rebase` to get the latest
-changes from `master`. It is less error-prone and does not create problems on
+changes from `main`. It is less error-prone and does not create problems on
 branches that are worked on collaboratively.
 
 ### Prepare for review
-If you feel like your branch is ready to be merged to master, prepare it for
+If you feel like your branch is ready to be merged to main, prepare it for
 review. That is, you should
 
-  * merge the current `master` to your branch
+  * merge the current `main` to your branch
   * run tests if available, but at least ensure that you did not accidentally
     change the results for one of the existing example elixirs
   * properly comment your code
@@ -110,7 +110,7 @@ branch, and the corresponding pull request will be updated automatically.
 
 Please note that a review has nothing to do with the lack of experience of the
 person developing changes: We try to review all code before it gets added to
-`master`, even from the most experienced developers. This is good practice and
+`main`, even from the most experienced developers. This is good practice and
 helps to keep the error rate low while ensuring the the code is developed in a
 consistent fashion. Furthermore, do not take criticism of your code personally -
 we just try to keep Trixi as accessible and easy to use for everyone.
@@ -121,7 +121,7 @@ make sure that all the latest changes have been pushed. Then, one of the
 developers will merge your PR. If you are one of the developers, you can also go
 to the pull request page on GitHub and and click on **Merge pull request**.
 Voilá, you are done! Your branch will have been merged to
-`master` and the source branch will have been deleted in the GitHub repository
+`main` and the source branch will have been deleted in the GitHub repository
 (if you are not working in your own fork).
 
 ### Update your working copy
@@ -130,7 +130,7 @@ should clean up your local working copy of the repository by performing the
 following steps:
 
   1. Update your clone by running `git fetch`.
-  2. Check out `master` using `git checkout master`.
+  2. Check out `main` using `git checkout main`.
   3. Delete merged branch locally with `git branch -d yourbranch`.
   4. Remove local references to deleted remote branch by executing `git remote
      prune origin`.
@@ -179,7 +179,7 @@ the following steps need to be taken (as documented for GitLab in issue
 
   1. Tell everyone to commit and push their changes to the repository.
   2. Fix the branch in which the file was committed by removing it and committing
-     the removal. This is especially important on `master`.
+     the removal. This is especially important on `main`.
   3. Perform the following steps to clean up the Git repository:
      ```bash
      cd /tmp

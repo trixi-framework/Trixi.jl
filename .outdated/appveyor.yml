@@ -17,7 +17,7 @@ platform:
 
 branches:
   only:
-    - master
+    - main
     - /release-.*/
 
 # Do not build on tags (GitHub, Bitbucket, GitLab, Gitea)
