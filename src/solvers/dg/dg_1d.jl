@@ -97,8 +97,9 @@ end
 
 function rhs!(du::AbstractArray{<:Any,3}, u, t,
               mesh::TreeMesh{1}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
+              initial_condition, boundary_conditions::BoundaryConditions,
+              source_terms::SourceTerms,
+              dg::DG, cache) where {BoundaryConditions, SourceTerms}
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
