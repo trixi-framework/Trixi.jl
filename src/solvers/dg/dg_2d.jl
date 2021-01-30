@@ -1056,7 +1056,7 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
   @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
-    for j in eachnode(dg), i in eachnode(dg)
+    @avx for j in eachnode(dg), i in eachnode(dg)
       for v in eachvariable(equations)
         du[v, i, j, element] *= factor
       end
