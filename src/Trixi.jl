@@ -25,13 +25,14 @@ import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
                    get_proposed_dt, set_proposed_dt!, terminate!
 using DiffEqCallbacks: CallbackSet, DiscreteCallback
 using EllipsisNotation # ..
+using HybridArrays: HybridArray
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
-using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix
+using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix, Dynamic
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 
