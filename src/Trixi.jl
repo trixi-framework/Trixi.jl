@@ -68,6 +68,9 @@ include("auxiliary/special_elixirs.jl")
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
 
+# Performance enhancements specific to some combinations of solvers, equations etc.
+include("performance_hacks/performance_hacks.jl")
+
 
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
