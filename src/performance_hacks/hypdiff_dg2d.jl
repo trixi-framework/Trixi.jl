@@ -85,7 +85,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       end
       du[1, i, j, element] -= nu * dphi_ij
       du[2, i, j, element] -= inv_Tr * dq1_ij
-      du[3, i, j, element] -= inv_Tr * dq1_ij
+      du[3, i, j, element] -= inv_Tr * dq2_ij
     end
 
     # @avx for j in eachnode(dg), i in eachnode(dg)
