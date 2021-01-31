@@ -73,6 +73,9 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
     #   du[3, i, j, element] = dq2_ij
     # end
 
+    # `trixi_include("examples/2d/elixir_hypdiff_harmonic_nonperiodic.jl")`
+    # 9.353 μs
+    # 8.145 μs with du,u as HybridArray
     @avx for j in eachnode(dg), i in eachnode(dg)
       dphi_ij = zero(eltype(du))
       dq1_ij  = zero(eltype(du))
@@ -114,4 +117,98 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 
   return nothing
 end
+
+
+function calc_volume_integral_reordered!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms::Val{false},
+                               equations::HyperbolicDiffusionEquations2D,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache)
+  @unpack derivative_dhat = dg.basis
+  @unpack nu, inv_Tr = equations
+
+  @threaded for element in eachelement(dg, cache)
+    # @avx for j in eachnode(dg), i in eachnode(dg)
+    #   dphi_ij = du[i, j, 1, element]
+    #   for sum_idx in eachnode(dg)
+    #     dphi_ij += -nu * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 2, element] +
+    #                       derivative_dhat[j, sum_idx] * u[i, sum_idx, 3, element])
+    #   end
+    #   du[i, j, 1, element] = dphi_ij
+
+    #   dq1_ij = du[i, j, 2, element]
+    #   for sum_idx in eachnode(dg)
+    #     dq1_ij += -inv_Tr * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 1, element])
+    #   end
+    #   du[i, j, 2, element] = dq1_ij
+
+    #   dq2_ij = du[i, j, 3, element]
+    #   for sum_idx in eachnode(dg)
+    #     dq2_ij += -inv_Tr * (derivative_dhat[j, sum_idx] * u[i, sum_idx, 1, element])
+    #   end
+    #   du[i, j, 3, element] = dq2_ij
+    # end
+
+    # @avx for j in eachnode(dg), i in eachnode(dg)
+    #   dphi_ij = du[i, j, 1, element]
+    #   dq1_ij  = du[i, j, 2, element]
+    #   dq2_ij  = du[i, j, 3, element]
+    #   for sum_idx in eachnode(dg)
+    #     dphi_ij += -nu    * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 2, element] +
+    #                          derivative_dhat[j, sum_idx] * u[i, sum_idx, 3, element])
+    #     dq1_ij += -inv_Tr * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 1, element])
+    #     dq2_ij += -inv_Tr * (derivative_dhat[j, sum_idx] * u[i, sum_idx, 1, element])
+    #   end
+    #   du[i, j, 1, element] = dphi_ij
+    #   du[i, j, 2, element] = dq1_ij
+    #   du[i, j, 3, element] = dq2_ij
+    # end
+
+    # `trixi_include("examples/2d/elixir_hypdiff_harmonic_nonperiodic.jl")`
+    # This is more than 2x faster than the best version from above using the
+    # current memory layout of Trixi.
+    # 3.798 μs
+    # 3.444 μs with du,u as HybridArray
+    @avx for j in eachnode(dg), i in eachnode(dg)
+      dphi_ij = zero(eltype(du))
+      dq1_ij  = zero(eltype(du))
+      dq2_ij  = zero(eltype(du))
+      for sum_idx in eachnode(dg)
+        dphi_ij += (derivative_dhat[i, sum_idx] * u[sum_idx, j, 2, element] +
+                    derivative_dhat[j, sum_idx] * u[i, sum_idx, 3, element])
+        dq1_ij  += (derivative_dhat[i, sum_idx] * u[sum_idx, j, 1, element])
+        dq2_ij  += (derivative_dhat[j, sum_idx] * u[i, sum_idx, 1, element])
+      end
+      du[i, j, 1, element] -= nu * dphi_ij
+      du[i, j, 2, element] -= inv_Tr * dq1_ij
+      du[i, j, 3, element] -= inv_Tr * dq2_ij
+    end
+
+    # @avx for j in eachnode(dg), i in eachnode(dg)
+    #   dphi_ij = du[i, j, 1, element]
+    #   for sum_idx in eachnode(dg)
+    #     dphi_ij += -nu * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 2, element] +
+    #                       derivative_dhat[j, sum_idx] * u[i, sum_idx, 3, element])
+    #   end
+    #   du[i, j, 1, element] = dphi_ij
+    # end
+    # @avx for j in eachnode(dg), i in eachnode(dg)
+    #   dq1_ij = du[i, j, 2, element]
+    #   for sum_idx in eachnode(dg)
+    #     dq1_ij += -inv_Tr * (derivative_dhat[i, sum_idx] * u[sum_idx, j, 1, element])
+    #   end
+    #   du[i, j, 2, element] = dq1_ij
+    # end
+    # @avx for j in eachnode(dg), i in eachnode(dg)
+    #   dq2_ij = du[i, j, 3, element]
+    #   for sum_idx in eachnode(dg)
+    #     dq2_ij += -inv_Tr * (derivative_dhat[j, sum_idx] * u[i, sum_idx, 1, element])
+    #   end
+    #   du[i, j, 3, element] = dq2_ij
+    # end
+  end
+
+  return nothing
+end
+
 

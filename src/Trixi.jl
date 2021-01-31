@@ -32,7 +32,7 @@ import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
-using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix, Dynamic
+using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix, Dynamic, SOneTo
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 
