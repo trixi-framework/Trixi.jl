@@ -83,10 +83,6 @@ end
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG)
 
-  #cache = create_cache(mesh, equations,
-  #                     VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-  #                     dg)
-
   A3dp1_x = Array{real(dg), 3}
   A3dp1_y = Array{real(dg), 3}
 
@@ -95,8 +91,6 @@ function create_cache(mesh::TreeMesh{2}, equations,
   fstar2_L_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
   fstar2_R_threaded = A3dp1_y[A3dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
-  #return (; cache..., element_ids_dg, element_ids_dgfv,
-  #        fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
   return (; fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded)
 end
 

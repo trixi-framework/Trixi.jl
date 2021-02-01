@@ -9,9 +9,9 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_lax_friedrichs)
-solver = DGSEM(4, surface_flux)
+surface_flux = flux_hllc
+volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+solver = DGSEM(3, surface_flux, volume_integral)
 
 coordinates_min = 0
 coordinates_max = 2

@@ -510,7 +510,6 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   rho_rr, rho_v1_rr, rho_e_rr = u_rr                                                     
                                                                                                     
   v1_ll = rho_v1_ll / rho_ll                                                                        
-  v2_ll = rho_v2_ll / rho_ll                                                                        
   e_ll  = rho_e_ll / rho_ll                                                                         
   p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)                    
   c_ll = sqrt(equations.gamma*p_ll/rho_ll)                                                          
