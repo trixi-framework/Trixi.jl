@@ -357,7 +357,6 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
 
   # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
   alpha = @timeit_debug timer() "blending factors" indicator(u, equations, dg, cache)
-  alpha .= 1.0
 
   # Determine element ids for DG-only and blended DG-FV volume integral
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
