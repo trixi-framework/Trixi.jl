@@ -10,12 +10,7 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-#surface_flux = flux_central
-                                                 
-#solver = DGSEM(3, surface_flux)
-basis = LobattoLegendreBasis(3)
-volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(3, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (2, 2)
@@ -46,7 +41,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback, 
