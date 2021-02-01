@@ -1,6 +1,6 @@
 
 @doc raw"""
-    CompressibleEulerMulticomponentEquations2D(gammas, gas_constants)
+    CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
 
 !!! warning "Experimental code"
     This system of equations is experimental and can change any time.
@@ -31,7 +31,7 @@ Multicomponent version of the compressible Euler equations
 for calorically perfect gas in two space dimensions.
 
 The specific heat ratios 'gammas' and the gas constants 'gas_constants' in [kJ/(kg*K)]
-should be passed as tuples e.g. gammas=(1.4, 1.667) or gas_constants=(0.4,) in the one component case.
+should be passed as tuples e.g. gammas=(1.4, 1.667).
 
 The remaining variables like the specific heats at constant volume 'cv' or the specific heats at 
 constant pressure 'cp' are then calculated considering a calorically perfect gas.
@@ -45,10 +45,17 @@ struct CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, RealT<:Real} <: 
 
   function CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, RealT}(gammas, gas_constants) where {NCOMP, NVARS, RealT<:Real} 
   
-    new(gammas, # input
-        gas_constants, # input
-        gas_constants./(gammas.-1), # compute 'cv'
-        gas_constants .+ gas_constants./(gammas .-1) # compute 'cp'
+    _gammas        = promote(gammas...)
+    _gas_constants = promote(gas_constants...)
+    T              = promote_type(eltype(_gammas), eltype(_gas_constants))
+
+    length(_gammas) == length(_gas_constants) || throw(DimensionMismatch("gammas and gas_constants should have the same length"))
+    length(_gammas) != 0 || throw(DimensionMismatch("gammas and gas_constants have to be filled with at least one value")) 
+
+    new(map(T, _gammas), # input
+        map(T, _gas_constants), # input
+        map(T, _gas_constants./(_gammas.-1)), # compute 'cv'
+        map(T, _gas_constants .+ _gas_constants./(_gammas .-1)) # compute 'cp'
        )
   end
 
@@ -61,13 +68,12 @@ function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
   _gas_constants = promote(gas_constants...)
   T              = promote_type(eltype(_gammas), eltype(_gas_constants))
 
-  length(_gammas) == length(_gas_constants) || throw(DimensionMismatch("gammas and gas_constants should have the same length"))
-  length(_gammas) != 0 || throw(DimensionMismatch("gammas and gas_constants have to be filled with at least one value")) 
   NVARS = length(_gammas) + 3
   NCOMP = length(_gammas)
 
   return CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, T}(map(T, _gammas), map(T, _gas_constants))
 end
+
 
 @inline Base.real(::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS, RealT}) where {NCOMP, NVARS, RealT} = RealT
 
@@ -617,12 +623,12 @@ end
   p     = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
 
   if orientation == 1
-    f_rho       = SVector{NCOMP, real(equations)}(u[i+3]*v1 for i = 1:NCOMP)
+    f_rho = densities(u, v1, equations)
     f1  = rho_v1 * v1 + p
     f2  = rho_v2 * v1
     f3  = (rho_e + p) * v1
   else
-    f_rho       = SVector{NCOMP, real(equations)}(u[i+3]*v2 for i = 1:NCOMP)
+    f_rho = densities(u, v2, equations)
     f1  = rho_v1 * v2
     f2  = rho_v2 * v2 + p
     f3  = (rho_e + p) * v2
@@ -869,5 +875,10 @@ end
   end
 
   return rho
+ end
+
+ @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D{NCOMP, NVARS}) where {NCOMP, NVARS}
+
+  return SVector{NCOMP, real(equations)}(u[i+3]*v for i = 1:NCOMP)
  end
 
