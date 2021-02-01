@@ -156,6 +156,7 @@ Source terms used for convergence tests in combination with
   tmp5    = (2*tmp2*gamma - 2*tmp2 + tmp4 + 1)*tmp1
   tmp6    = tmp2 + c
 
+  # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1
   du_rho  = SVector{NCOMP, real(equations)}(2^(i-1) * (1-2)/(1-2^NCOMP) * tmp1 for i = 1:NCOMP)
 
   du1 = tmp5
