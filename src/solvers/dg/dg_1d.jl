@@ -226,6 +226,23 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_te
   return nothing
 end
 
+# TODO: Taal dimension agnostic                                                                     
+function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_terms, equations,     
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,                  
+                               dg::DGSEM, cache)                                                    
+  @unpack volume_flux_fv = volume_integral                                                          
+                                                                                                    
+  # Loop over blended DG-FV elements                                                                
+  @timeit_debug timer() "pure FV" Threads.@threads for element in eachelement(dg, cache)            
+    # Calculate LGL FV volume integral                                                              
+    fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)   
+  end                                                                                               
+                                                                                                    
+  return nothing                                                                                    
+end
+
+
+
 @inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
   @unpack fstar1_threaded = cache
