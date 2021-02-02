@@ -15,8 +15,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       linf = [0.034894790428615874, 0.033835365548322116, 0.033835365548322116, 0.03383536554832034, 0.06785765131417065])
   end
 
-  @testset "elixir_euler_pure_fv.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_pure_fv.jl"),
+  @testset "elixir_euler_convergence_test_pure_fv.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_test_pure_fv.jl"),
       l2   = [0.037182410351406,  0.032062252638283974, 0.032062252638283974, 0.03206225263828395,  0.12228177813586687],
       linf = [0.0693648413632646, 0.0622101894740843,   0.06221018947408474,  0.062210189474084965, 0.24196451799555962])
   end
