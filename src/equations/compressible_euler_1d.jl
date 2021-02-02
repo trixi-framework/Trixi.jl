@@ -554,10 +554,9 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
       densStar = rho_ll*sMu_L / (Ssl-SStar)                                                         
       enerStar = e_ll + (SStar - vel_L) * (SStar + p_ll / (rho_ll * sMu_L))                         
       UStar1 = densStar                                                                             
-      UStar3 = densStar*enerStar                                                                    
-      #if orientation == 1 # x-direction                                                             
-      UStar2 = densStar*SStar                                                                     
-      #end                                                                                           
+      UStar2 = densStar*SStar
+      UStar3 = densStar*enerStar
+
       f1 = f_ll[1]+Ssl*(UStar1 - rho_ll)                                                            
       f2 = f_ll[2]+Ssl*(UStar2 - rho_v1_ll)                                                         
       f3 = f_ll[3]+Ssl*(UStar3 - rho_e_ll)                                                          
