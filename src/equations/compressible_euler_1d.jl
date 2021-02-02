@@ -535,6 +535,7 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   H_rr = (rho_e_rr + p_rr) / rho_rr
   H_roe = (sqrt_rho_ll * H_ll + sqrt_rho_rr * H_rr) / sum_sqrt_rho
   c_roe = sqrt((equations.gamma - 1) * (H_roe - ekin_roe))
+
   Ssl = min(vel_L - c_ll, vel_roe - c_roe)
   Ssr = max(vel_R + c_rr, vel_roe + c_roe)
   sMu_L = Ssl - vel_L
