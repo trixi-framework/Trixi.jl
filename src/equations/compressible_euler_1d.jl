@@ -529,7 +529,6 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
   vel_L = v1_ll
   vel_R = v1_rr
-  #end
   vel_roe = (sqrt_rho_ll * vel_L + sqrt_rho_rr * vel_R) / sum_sqrt_rho
   ekin_roe = 0.5 * vel_roe^2 
   H_ll = (rho_e_ll + p_ll) / rho_ll
