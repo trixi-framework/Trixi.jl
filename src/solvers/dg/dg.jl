@@ -81,7 +81,7 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   else
     summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
-    summary_line(io, "volume flux FV", integral.volume_flux_fv) #Bug?!?! should be _flux_fv ???
+    summary_line(io, "volume flux FV", integral.volume_flux_fv)
     summary_line(io, "indicator", typeof(integral.indicator).name)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
