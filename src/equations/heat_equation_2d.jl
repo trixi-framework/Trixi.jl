@@ -74,8 +74,28 @@ function boundary_condition_sin_x(u_inner, gradients_inner, orientation, directi
 end
 
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::HeatEquation2D)
+function initial_condition_poisson_periodic(x, t, equation::HeatEquation2D)
+  # elliptic equation: -νΔϕ = f
+  # depending on initial constant state, c, for phi this converges to the solution ϕ + c
+  @unpack nu = equation
+
+  phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])*(1 - exp(-8*nu*pi^2*t))
+  return @SVector [phi]
+end
+
+
+@inline function source_terms_poisson_periodic(u, x, t, equation::HeatEquation2D)
+  # elliptic equation: -νΔϕ = f
+  # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+  C = -8 * equation.nu * pi^2
+
+  x1, x2 = x
+  tmp1 = sinpi(2 * x1)
+  tmp2 = sinpi(2 * x2)
+  du1 = -C*tmp1*tmp2
+
+  return SVector(du1)
+end
 
 
 # Calculate parabolic 1D flux in axis `orientation` for a single point

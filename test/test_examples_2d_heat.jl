@@ -26,6 +26,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       l2   = [0.0012846393772784545],
       linf = [0.005583936479563221])
   end
+
+  @testset "elixir_heat_source_terms.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_heat_source_terms.jl"),
+      l2   = [0.014470380266085592],
+      linf = [0.04433923071172761])
+  end
 end
 
 end # module
