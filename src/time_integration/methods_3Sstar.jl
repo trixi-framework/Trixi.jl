@@ -174,7 +174,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
       gamma3_stage  = alg.gamma3[stage]
       beta_stage_dt = alg.beta[stage] * integrator.dt
       @timeit_debug timer() "Runge-Kutta step" begin
-        Threads.@threads for i in eachindex(integrator.u)
+        @threaded for i in eachindex(integrator.u)
           integrator.u_tmp1[i] += delta_stage * integrator.u[i]
           integrator.u[i]       = (gamma1_stage * integrator.u[i] +
                                    gamma2_stage * integrator.u_tmp1[i] +

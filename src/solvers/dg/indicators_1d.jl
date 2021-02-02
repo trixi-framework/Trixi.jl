@@ -35,7 +35,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator  = indicator_threaded[Threads.threadid()]
     modal      = modal_threaded[Threads.threadid()]
 
@@ -128,7 +128,7 @@ function (löhner::IndicatorLöhner)(u::AbstractArray{<:Any,3},
   @unpack alpha, indicator_threaded = löhner.cache
   resize!(alpha, nelements(dg, cache))
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator = indicator_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
@@ -178,7 +178,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any,3},
   @unpack alpha, indicator_threaded = indicator_max.cache
   resize!(alpha, nelements(dg, cache))
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     indicator = indicator_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes

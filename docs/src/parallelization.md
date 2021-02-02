@@ -4,9 +4,9 @@
 Many compute-intensive loops in Trixi.jl are parallelized using the
 [multi-threading](https://docs.julialang.org/en/v1/manual/multi-threading/)
 support provided by Julia. You can recognize those loops by the
-`Threads.@threads` macro prefixed to them, e.g.,
+`@threaded` macro prefixed to them, e.g.,
 ```julia
-Threads.@threads for element in eachelement(dg, cache)
+@threaded for element in eachelement(dg, cache)
   ...
 end
 ```
