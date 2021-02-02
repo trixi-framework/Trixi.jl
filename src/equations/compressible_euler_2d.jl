@@ -929,7 +929,7 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   if orientation == 1 # x-direction
     vel_L = v1_ll
     vel_R = v1_rr
-    ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2 
+    ekin_roe = (sqrt_rho_ll * v2_ll + sqrt_rho_rr * v2_rr)^2
   elseif orientation == 2 # y-direction
     vel_L = v2_ll
     vel_R = v2_rr

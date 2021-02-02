@@ -18,7 +18,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
   @testset "elixir_euler_convergence_test_pure_fv.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_test_pure_fv.jl"),
       l2   = [0.019355699748523896, 0.022326984561234497, 0.02523665947241734],
-      linf = [0.02895961127645519,  0.03293442484199227,  0.04246098278632804]) 
+      linf = [0.02895961127645519,  0.03293442484199227,  0.04246098278632804])
   end
 
   @testset "elixir_euler_density_wave.jl" begin
