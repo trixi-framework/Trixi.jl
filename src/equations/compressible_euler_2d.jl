@@ -922,7 +922,6 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   f_ll = calcflux(u_ll, orientation, equations)
   f_rr = calcflux(u_rr, orientation, equations)
 
-
   # Compute Roe averages
   sqrt_rho_ll = sqrt(rho_ll)
   sqrt_rho_rr = sqrt(rho_rr)
