@@ -96,7 +96,7 @@ A volume integral that only uses the subcell finite volume scheme from the paper
 - Hennemann, Gassner (2020)
   "A provably entropy stable subcell shock capturing approach for high order split form DG"
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-This gives a formally O1 accurate FV scheme on LGL type subcell mesh
+This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell mesh (LGL = Legendre-Gauss-Lobatto).
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
