@@ -79,7 +79,7 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   if get(io, :compact, false)
     show(io, integral)
   else
-    summary_header(io, "VolumeIntegralShockCapturingHG") #Bug??!? should be ShockCapturingHG ???
+    summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
     summary_line(io, "volume flux FV", integral.volume_flux_fv) #Bug?!?! should be _flux_fv ???
     summary_line(io, "indicator", typeof(integral.indicator).name)
