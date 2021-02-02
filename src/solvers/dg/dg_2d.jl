@@ -386,9 +386,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
                                dg::DGSEM, cache)
   @unpack volume_flux_fv = volume_integral
 
-  # Loop over blended DG-FV elements
-  @timeit_debug timer() "pure FV" Threads.@threads for element in eachelement(dg, cache)
-    # Calculate LGL FV volume integral
+  # Calculate LGL FV volume integral
+  @threaded for element in eachelement(dg, cache)
     fv_kernel!(du, u, nonconservative_terms, equations, volume_flux_fv, dg, cache, element, true)
   end
 
