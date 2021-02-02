@@ -522,7 +522,8 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   # Obtain left and right fluxes                                                                    
   f_ll = calcflux(u_ll, orientation, equations)                                                     
   f_rr = calcflux(u_rr, orientation, equations) 
-   # Compute Roe averages
+
+  # Compute Roe averages
   sqrt_rho_ll = sqrt(rho_ll)
   sqrt_rho_rr = sqrt(rho_rr)
   sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
