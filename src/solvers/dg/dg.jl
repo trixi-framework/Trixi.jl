@@ -103,6 +103,7 @@ This gives a formally O1 accurate FV scheme on LGL type subcell mesh
 struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
   volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
 end
+# TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
   if get(io, :compact, false)
