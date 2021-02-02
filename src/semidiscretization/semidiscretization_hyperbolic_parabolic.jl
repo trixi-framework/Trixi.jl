@@ -98,6 +98,16 @@ function compute_coefficients!(u_ode::AbstractVector, t, semi::Semidiscretizatio
 end
 
 
+function max_dt(u_ode::AbstractVector, t, cfl_number,
+                semi::SemidiscretizationHyperbolicParabolic)
+  @unpack semi_hyperbolic, semi_parabolic = semi
+  dt = min(max_dt(u_ode, t, cfl_number[1], semi_hyperbolic),
+           max_dt(u_ode, t, cfl_number[2], semi_parabolic))
+
+  return dt
+end
+
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
   @unpack du_ode_parabolic = semi.cache
 

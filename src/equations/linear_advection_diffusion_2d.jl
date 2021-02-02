@@ -98,6 +98,13 @@ end
   return abs.(equation.advectionvelocity)
 end
 
+@inline have_constant_diffusion(::LinearAdvectionDiffusionEquation2D) = Val(true)
+
+@inline function max_abs_diffusions(equation::LinearAdvectionDiffusionEquation2D)
+  @unpack nu = equation
+  return (nu, nu)
+end
+
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::LinearAdvectionDiffusionEquation2D) = u

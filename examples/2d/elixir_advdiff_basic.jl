@@ -49,11 +49,11 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-# stepsize_callback = StepsizeCallback(cfl=1.6)
+# The first CFL number is for the hyperbolic system, the second for the parabolic system
+stepsize_callback = StepsizeCallback(cfl=(1.0, 0.1))
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-# callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################
@@ -61,7 +61,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 
 # Print the timer summary
