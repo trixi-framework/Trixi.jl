@@ -527,7 +527,6 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   sqrt_rho_ll = sqrt(rho_ll)
   sqrt_rho_rr = sqrt(rho_rr)
   sum_sqrt_rho = sqrt_rho_ll + sqrt_rho_rr
-  #if orientation == 1 # x-direction
   vel_L = v1_ll
   vel_R = v1_rr
   #end
