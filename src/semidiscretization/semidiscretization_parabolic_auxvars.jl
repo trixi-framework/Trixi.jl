@@ -160,6 +160,17 @@ function compute_coefficients!(u_ode::AbstractVector, t, semi::Semidiscretizatio
 end
 
 
+function max_dt(u_ode::AbstractVector, t, cfl_number::Real, semi::SemidiscretizationParabolicAuxVars)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+  dt = cfl_number * max_dt_parabolic(u, t, mesh, have_constant_diffusion(equations), equations,
+                                     solver, cache)
+
+  return dt
+end
+
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationParabolicAuxVars, t)
   @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
 

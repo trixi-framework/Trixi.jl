@@ -1,6 +1,6 @@
 
-function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
+                           constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -20,8 +20,8 @@ function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
+                           constant_speed::Val{true}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))

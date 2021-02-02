@@ -1,6 +1,6 @@
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+                           constant_speed::Val{false}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -21,8 +21,8 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+                           constant_speed::Val{true}, equations, dg::DG, cache)
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
@@ -37,13 +37,13 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
-                constant_speed::Val{false}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+                           constant_speed::Val{false}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
-  dt = invoke(max_dt,
+  dt = invoke(max_dt_hyperbolic,
     Tuple{typeof(u), typeof(t), TreeMesh{2},
           typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
     u, t, mesh, constant_speed, equations, dg, cache)
@@ -53,17 +53,33 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
 end
 
 
-function max_dt(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
-                constant_speed::Val{true}, equations, dg::DG, cache)
+function max_dt_hyperbolic(u::AbstractArray{<:Any,4}, t, mesh::ParallelTreeMesh{2},
+                           constant_speed::Val{true}, equations, dg::DG, cache)
   # call the method accepting a general `mesh::TreeMesh{2}`
   # TODO: MPI, we should improve this; maybe we should dispatch on `u`
   #       and create some MPI array type, overloading broadcasting and mapreduce etc.
   #       Then, this specific array type should also work well with DiffEq etc.
-  dt = invoke(max_dt,
+  dt = invoke(max_dt_hyperbolic,
     Tuple{typeof(u), typeof(t), TreeMesh{2},
           typeof(constant_speed), typeof(equations), typeof(dg), typeof(cache)},
     u, t, mesh, constant_speed, equations, dg, cache)
   dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
 
   return dt
+end
+
+
+function max_dt_parabolic(u::AbstractArray{<:Any,4}, t, mesh::TreeMesh{2},
+                          constant_speed::Val{true}, equations, dg::DG, cache)
+  # to avoid a division by zero if the diffusion vanishes everywhere,
+  # e.g. for steady-state linear advection
+  max_scaled_diffusion = nextfloat(zero(t))
+
+  for element in eachelement(dg, cache)
+    max_λ1, max_λ2 = max_abs_diffusions(equations)
+    inv_jacobian = cache.elements.inverse_jacobian[element]
+    max_scaled_diffusion = max(max_scaled_diffusion, inv_jacobian^2 * (max_λ1 + max_λ2))
+  end
+
+  return 2^2 / (nnodes(dg)^2 * max_scaled_diffusion)
 end

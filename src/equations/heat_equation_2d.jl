@@ -104,8 +104,13 @@ end
 end
 
 
-@inline have_constant_speed(::HeatEquation2D) = Val(true)
+@inline have_constant_diffusion(::HeatEquation2D) = Val(true)
 
+# FIXME: Find a better name than `max_abs_diffusions` or `max_abs_speeds_viscous`
+@inline function max_abs_diffusions(equation::HeatEquation2D)
+  @unpack nu = equation
+  return (nu, nu)
+end
 
 # Convert conservative variables to primitive
 @inline cons2prim(u, equation::HeatEquation2D) = u

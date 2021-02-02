@@ -165,6 +165,17 @@ end
 end
 
 
+function max_dt(u_ode::AbstractVector, t, cfl_number::Real, semi::SemidiscretizationEulerGravity)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+  dt = cfl_number * max_dt_hyperbolic(u, t, mesh, have_constant_speed(equations), equations, solver,
+                                      cache)
+
+  return dt
+end
+
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   @unpack semi_euler, semi_gravity, cache = semi
 
@@ -229,9 +240,12 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   # iterate gravity solver until convergence or maximum number of iterations are reached
   @unpack equations = semi_gravity
   while !finalstep
-    dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
-                                                           have_constant_speed(equations), equations,
-                                                           semi_gravity.solver, semi_gravity.cache)
+    dt = @timeit_debug timer() "calculate dt" cfl * max_dt_hyperbolic(u_gravity, t,
+                                                                      semi_gravity.mesh,
+                                                                      have_constant_speed(equations),
+                                                                      equations,
+                                                                      semi_gravity.solver,
+                                                                      semi_gravity.cache)
 
     # evolve solution by one pseudo-time step
     time_start = time_ns()
