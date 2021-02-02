@@ -497,7 +497,7 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
   return SVector(f1, f2, f3)
 end
 
- """                                                                                                
+"""
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)                     
                                                                                                     
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro   
