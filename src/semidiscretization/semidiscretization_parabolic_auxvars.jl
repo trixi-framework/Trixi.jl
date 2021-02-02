@@ -55,11 +55,13 @@ function SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, 
 
   equations_gradients_x = GradientEquations2D(nvariables(equations), 1)
   semi_gradients_x = SemidiscretizationHyperbolic(mesh, equations_gradients_x,
-                                                  initial_condition_constant, solver_auxvars)
+                                                  initial_condition_constant, solver_auxvars,
+                                                  boundary_conditions=boundary_conditions)
 
   equations_gradients_y = GradientEquations2D(nvariables(equations), 2)
   semi_gradients_y = SemidiscretizationHyperbolic(mesh, equations_gradients_y,
-                                                  initial_condition_constant, solver_auxvars)
+                                                  initial_condition_constant, solver_auxvars,
+                                                  boundary_conditions=boundary_conditions)
 
   u_ode_gradients_x = compute_coefficients(nothing, semi_gradients_x)
   u_ode_gradients_y = compute_coefficients(nothing, semi_gradients_y)

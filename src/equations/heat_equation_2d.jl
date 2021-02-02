@@ -56,6 +56,24 @@ function initial_condition_gauss(x, t, equation::HeatEquation2D)
 end
 
 
+function initial_condition_sin_x(x, t, equation::HeatEquation2D)
+  @unpack nu = equation
+
+  omega = pi
+  scalar = sin(omega * x[1]) * exp(-nu * omega^2 * t)
+
+  return @SVector [scalar]
+end
+
+
+function boundary_condition_sin_x(u_inner, gradients_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equation::HeatEquation2D)
+  # OBS! This is specifically implemented for BR1
+  return calcflux(u_inner, gradients_inner, orientation, equation)
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::HeatEquation2D)
 

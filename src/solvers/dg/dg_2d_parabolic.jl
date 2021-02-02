@@ -20,10 +20,10 @@ function rhs!(du::AbstractArray{<:Any,4}, u, gradients, t,
                                                               dg, cache, cache_gradients)
 
   # Prolong solution and gradients to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, cache_gradients, u, gradients, equations, dg)
 
   # Calculate boundary fluxes
-  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg)
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, cache_gradients, t, boundary_conditions, equations, dg)
 
   # Prolong solution and gradients to mortars
   @timeit_debug timer() "prolong2mortars" prolong2mortars!(cache, cache_gradients, u, gradients,
@@ -120,6 +120,104 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
       for v in eachvariable(equations)
         surface_flux_values[v, i, left_direction,  left_id]  = flux[v]
         surface_flux_values[v, i, right_direction, right_id] = flux[v]
+      end
+    end
+  end
+
+  return nothing
+end
+
+
+function prolong2boundaries!(cache, cache_gradients, u::AbstractArray{<:Any,4}, gradients,
+                             equations, dg::DG)
+  prolong2boundaries!(cache, u, equations, dg)
+  prolong2boundaries!(cache_gradients[1], gradients[1], equations, dg)
+  prolong2boundaries!(cache_gradients[2], gradients[2], equations, dg)
+
+  return nothing
+end
+
+
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, cache_gradients, t,
+                             boundary_condition::BoundaryConditionPeriodic,
+                             equations::AbstractEquations{2}, dg::DG)
+  @assert isempty(eachboundary(dg, cache))
+end
+
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, cache_gradients, t, boundary_condition,
+                             equations::AbstractEquations{2}, dg::DG)
+  @unpack surface_flux_values = cache.elements
+  @unpack n_boundaries_per_direction = cache.boundaries
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  for direction in eachindex(firsts)
+    calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
+                                     equations, dg, cache, cache_gradients,
+                                     direction, firsts[direction], lasts[direction])
+  end
+end
+
+function calc_boundary_flux!(cache, cache_gradients, t,
+                             boundary_conditions::Union{NamedTuple,Tuple},
+                             equations::AbstractEquations{2}, dg::DG)
+  @unpack surface_flux_values = cache.elements
+  @unpack n_boundaries_per_direction = cache.boundaries
+
+  # Calculate indices
+  lasts = accumulate(+, n_boundaries_per_direction)
+  firsts = lasts - n_boundaries_per_direction .+ 1
+
+  # Calc boundary fluxes in each direction
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
+                                   equations, dg, cache, cache_gradients, 1, firsts[1], lasts[1])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
+                                   equations, dg, cache, cache_gradients, 2, firsts[2], lasts[2])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[3],
+                                   equations, dg, cache, cache_gradients, 3, firsts[3], lasts[3])
+  calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[4],
+                                   equations, dg, cache, cache_gradients, 4, firsts[4], lasts[4])
+end
+
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
+                                          boundary_condition, equations, dg::DG,
+                                          cache, cache_gradients,
+                                          direction, first_boundary, last_boundary)
+  @unpack surface_flux = dg
+  @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
+  gradients_x = cache_gradients[1].boundaries.u
+  gradients_y = cache_gradients[2].boundaries.u
+
+  Threads.@threads for boundary in first_boundary:last_boundary
+    # Get neighboring element
+    neighbor = neighbor_ids[boundary]
+
+    for i in eachnode(dg)
+      # Get boundary flux
+      u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
+      gradients_x_ll, gradients_x_rr = get_surface_node_vars(gradients_x, equations, dg, i, boundary)
+      gradients_y_ll, gradients_y_rr = get_surface_node_vars(gradients_y, equations, dg, i, boundary)
+      gradients_ll = (gradients_x_ll, gradients_y_ll)
+      gradients_rr = (gradients_x_rr, gradients_y_rr)
+      if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
+        u_inner = u_ll
+        gradients_inner = gradients_ll
+      else # Element is on the right, boundary on the left
+        u_inner = u_rr
+        gradients_inner = gradients_rr
+      end
+      x = get_node_coords(node_coordinates, equations, dg, i, boundary)
+      flux = boundary_condition(u_inner, gradients_inner, orientations[boundary], direction, x, t,
+                                surface_flux, equations)
+
+      # Copy flux to left and right element storage
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, direction, neighbor] = flux[v]
       end
     end
   end

@@ -32,6 +32,25 @@ function initial_condition_constant(x, t, equations::GradientEquations2D)
 end
 
 
+function boundary_condition_sin_x(u_inner, orientation, direction, x, t,
+                                  surface_flux_function,
+                                  equations::GradientEquations2D)
+  if orientation == equations.orientation
+    # u_boundary = initial_condition_sin_x(x, t, equation)
+    nu = 1.2e-2
+    omega = pi
+    scalar = sin(omega * x[1]) * exp(-nu * omega^2 * t)
+    u_boundary = SVector(scalar)
+
+    return -u_boundary
+  else
+    return SVector(ntuple(v -> zero(eltype(u_inner)), nvariables(equations)))
+  end
+
+  return flux
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::GradientEquations2D)
 
