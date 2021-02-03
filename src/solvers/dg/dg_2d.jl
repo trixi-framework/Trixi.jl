@@ -444,42 +444,46 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
                               dg::DGSEM, element)
 
   @unpack nodes,weights = dg.basis
-  nvar = nvariables(equations)
 
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
   fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
   fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
+  # maybe store this in dg.basis
+  x_interface = cumsum(weights).-1
+  x_mid = x_interface - 0.5*weights
+  #x_mid = nodes
+
+  limiter = central_recon
+
   for j in eachnode(dg), i in 2:nnodes(dg)
     u_mm = cons2prim(get_node_vars(u, equations, dg, max(1,i-2), j, element),equations)
     u_ll = cons2prim(get_node_vars(u, equations, dg, i-1, j, element),equations)
     u_rr = cons2prim(get_node_vars(u, equations, dg, i,   j, element),equations)
     u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg),i+1),   j, element),equations)
-    x_mm = nodes[max(1,i-2)]
-    x_ll = nodes[i-1]
-    x_rr = nodes[i]
-    x_pp = nodes[min(nnodes(dg),i+1)]
-    if (i!=2)
-      ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm)
-    else
-      ux_ll1  = zero(u_ll)  
-    end
-    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll)
-    ux_ll = minmod.(ux_ll1,ux_ll2)
+    x_mm = x_mid[max(1,i-2)]
+    x_ll = x_mid[i-1]
+    x_rr = x_mid[i]
+    x_pp = x_mid[min(nnodes(dg),i+1)]
 
-    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll)
-    if (i!=nnodes(dg))
-      ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr)
-    else
-      ux_rr2 = zero(u_rr)  
-    end
-    ux_rr = minmod.(ux_rr1,ux_rr2)
+    ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm + eps(x_ll))
+    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+    ux_ll = limiter.(ux_ll1,ux_ll2)
 
-    u_ll = check_positivity(u_ll + ux_ll*(weights[i-1]-x_ll),u_ll,equations)
-    u_rr = check_positivity(u_rr + ux_rr*(weights[i-1]-x_rr),u_rr,equations)
+    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+    ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr + eps(x_rr))
+    ux_rr = limiter.(ux_rr1,ux_rr2)
+
+    #flux_cent_O1 = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
+
+    u_ll = check_positivity(u_ll + ux_ll*(x_interface[i-1]-x_ll),u_ll,equations)
+    u_rr = check_positivity(u_rr + ux_rr*(x_interface[i-1]-x_rr),u_rr,equations)
+
+    #flux_cent_recon = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
 
     flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
+    #flux = flux - flux_cent_recon + flux_cent_O1
     set_node_vars!(fstar1_L, flux, equations, dg, i, j)
     set_node_vars!(fstar1_R, flux, equations, dg, i, j)
   end
@@ -494,31 +498,28 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
     u_ll = cons2prim(get_node_vars(u, equations, dg, i, j-1, element),equations)
     u_rr = cons2prim(get_node_vars(u, equations, dg, i, j,   element),equations)
     u_pp = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg),j+1),   element),equations)
-    x_mm = nodes[max(1,j-2)]
-    x_ll = nodes[j-1]
-    x_rr = nodes[j]
-    x_pp = nodes[min(nnodes(dg),j+1)]
+    x_mm = x_mid[max(1,j-2)]
+    x_ll = x_mid[j-1]
+    x_rr = x_mid[j]
+    x_pp = x_mid[min(nnodes(dg),j+1)]
 
-    if (j!=2)
-      ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm)
-    else
-      ux_ll1  = zero(u_ll)
-    end
-    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll)
-    ux_ll = minmod.(ux_ll1,ux_ll2)
+    ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm + eps(x_ll))
+    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+    ux_ll = limiter.(ux_ll1,ux_ll2)
 
-    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll)
-    if (j!=nnodes(dg))
-      ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr)
-    else
-      ux_rr2 = zero(u_rr)
-    end
-    ux_rr = minmod.(ux_rr1,ux_rr2)
+    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+    ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr + eps(x_rr))
+    ux_rr = limiter.(ux_rr1,ux_rr2)
 
-    u_ll = check_positivity(u_ll + ux_ll*(weights[j-1]-x_ll),u_ll,equations)
-    u_rr = check_positivity(u_rr + ux_rr*(weights[j-1]-x_rr),u_rr,equations)
+    #flux_cent_O1 = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 1: x direction
+
+    u_ll = check_positivity(u_ll + ux_ll*(x_interface[j-1]-x_ll),u_ll,equations)
+    u_rr = check_positivity(u_rr + ux_rr*(x_interface[j-1]-x_rr),u_rr,equations)
+
+    #flux_cent_recon = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 1: x direction
 
     flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 2: y direction
+    #flux = flux - flux_cent_recon + flux_cent_O1
     set_node_vars!(fstar2_L, flux, equations, dg, i, j)
     set_node_vars!(fstar2_R, flux, equations, dg, i, j)
   end
@@ -540,12 +541,29 @@ end
    s = 0.0
    if sign(sl)==sign(sr)
      s = sign(sl)*min(abs(sl),abs(sr))
-     #s = 0.5*(sl + sr)
    end
-  s = 0.0
+  #s = 0.0
+  #s = 0.5*(sl+sr)
   return s
 end
 
+@inline function central_recon(sl,sr)
+    s = 0.5*(sl+sr)
+  return s
+end
+
+@inline function no_recon(sl,sr)
+    s = false*sl
+  return s
+end
+
+@inline function monotonized_central(sl,sr)
+   s = 0.0
+   if sign(sl)==sign(sr)
+     s = sign(sl)*min(2*abs(sl),2*abs(sr),0.5*abs(sl+sr))
+   end
+  return s
+end
 
 """
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
