@@ -9,7 +9,7 @@ equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_poisson_periodic
 
-surface_flux = flux_upwind
+surface_flux = flux_godunov
 volume_flux  = flux_central
 solver = DGSEM(4, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -48,7 +48,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

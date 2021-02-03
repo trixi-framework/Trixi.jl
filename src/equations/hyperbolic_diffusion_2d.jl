@@ -264,7 +264,7 @@ end
 end
 
 
-@inline function flux_upwind(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr
