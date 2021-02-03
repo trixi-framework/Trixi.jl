@@ -20,8 +20,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations2D) = "HyperbolicDiffusionEquations2D"
-varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
-varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
+varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
+varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :linf_error, :residual)
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations2D)
@@ -42,7 +42,7 @@ function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusion
     q1  = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
     q2  = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
   end
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 @inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
@@ -130,7 +130,7 @@ end
     q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
     q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
   end
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
@@ -182,7 +182,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
   q2  = q1                                     # = gravity acceleration in y-direction
 
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 
@@ -202,7 +202,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusi
   phi = 0.0
   q1  = 0.0
   q2  = 0.0
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 """

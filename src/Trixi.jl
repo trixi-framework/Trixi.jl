@@ -35,7 +35,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
-using StaticArrays: @SVector, MVector, MArray, SMatrix
+using StaticArrays: MVector, MArray, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 

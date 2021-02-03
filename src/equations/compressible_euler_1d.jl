@@ -9,8 +9,8 @@ end
 
 
 get_name(::CompressibleEulerEquations1D) = "CompressibleEulerEquations1D"
-varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D) = @SVector ["rho", "rho_v1", "rho_e"]
-varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = @SVector ["rho", "v1", "p"]
+varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D) = ("rho", "rho_v1", "rho_e")
+varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = ("rho", "v1", "p")
 
 
 """
@@ -22,7 +22,7 @@ function initial_condition_constant(x, t, equations::CompressibleEulerEquations1
   rho = 1.0
   rho_v1 = 0.1
   rho_e = 10.0
-  return @SVector [rho, rho_v1, rho_e]
+  return SVector(rho, rho_v1, rho_e)
 end
 
 
@@ -45,7 +45,7 @@ function initial_condition_convergence_test(x, t, equations::CompressibleEulerEq
   rho_v1 = ini
   rho_e = ini^2
 
-  return @SVector [rho, rho_v1, rho_e]
+  return SVector(rho, rho_v1, rho_e)
 end
 
 """
@@ -119,7 +119,7 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
   rho_v1 = rho * v1
   p = 1
   rho_e = p/(equations.gamma - 1) + 1/2 * rho * v1^2
-  return @SVector [rho, rho_v1, rho_e]
+  return SVector(rho, rho_v1, rho_e)
 end
 
 
@@ -143,7 +143,7 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
   rho_v1 = rho * v1
   p = 20
   rho_e = p / (equations.gamma - 1) + 1/2 * rho * v1^2
-  return @SVector [rho, rho_v1, rho_e]
+  return SVector(rho, rho_v1, rho_e)
 end
 
 

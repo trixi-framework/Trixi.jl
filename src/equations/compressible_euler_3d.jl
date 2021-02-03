@@ -10,8 +10,8 @@ end
 
 
 get_name(::CompressibleEulerEquations3D) = "CompressibleEulerEquations3D"
-varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e"]
-varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p"]
+varnames(::typeof(cons2cons), ::CompressibleEulerEquations3D) = ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
+varnames(::typeof(cons2prim), ::CompressibleEulerEquations3D) = ("rho", "v1", "v2", "v3", "p")
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -26,7 +26,7 @@ function initial_condition_constant(x, t, equations::CompressibleEulerEquations3
   rho_v2 = -0.2
   rho_v3 = 0.7
   rho_e = 10.0
-  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 
@@ -50,7 +50,7 @@ function initial_condition_convergence_test(x, t, equations::CompressibleEulerEq
   rho_v3 = ini
   rho_e = ini^2
 
-  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 """
@@ -108,7 +108,7 @@ function initial_condition_density_pulse(x, t, equations::CompressibleEulerEquat
   rho_v3 = rho * v3
   p = 1
   rho_e = p/(equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2 + v3^2)
-  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e]
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 
