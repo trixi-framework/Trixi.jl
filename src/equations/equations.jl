@@ -95,7 +95,7 @@ include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
 # CompressibleEulerMulticomponentEquations
-abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMPS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_2d.jl")
 
 # Ideal MHD
@@ -117,3 +117,4 @@ include("lattice_boltzmann_3d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+
