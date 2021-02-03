@@ -100,6 +100,24 @@ function create_cache(mesh::TreeMesh{3}, equations,
 end
 
 
+function create_cache(mesh::TreeMesh{3}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG)
+
+  A4dp1_x = Array{real(dg), 4}
+  A4dp1_y = Array{real(dg), 4}
+  A4dp1_z = Array{real(dg), 4}
+  fstar1_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar2_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
+                             for _ in 1:Threads.nthreads()]
+  fstar3_threaded  = A4dp1_z[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg)+1)
+                             for _ in 1:Threads.nthreads()]
+
+  return (; fstar1_threaded, fstar2_threaded, fstar3_threaded)
+end
+
+
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2)
@@ -428,6 +446,21 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, nonconservative_te
 
   return nothing
 end
+
+# TODO: Taal dimension agnostic
+function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_fv = volume_integral
+
+  # Calculate LGL FV volume integral
+  @threaded for element in eachelement(dg, cache)
+    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+  end
+
+  return nothing
+end
+
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,5}, u::AbstractArray{<:Any,5},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)

@@ -15,6 +15,7 @@ function init_mpi()
   else
     # MPI.THREAD_FUNNELED: Only main thread makes MPI calls
     provided = MPI.Init_thread(MPI.THREAD_FUNNELED)
+    atexit(finalize_mpi) # register atexit hook
     @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
   end
 
@@ -35,6 +36,13 @@ function init_mpi()
   MPI_INITIALIZED[] = true
 
   return nothing
+end
+
+
+function finalize_mpi()
+  if MPI.Initialized()
+    MPI.Finalize()
+  end
 end
 
 
