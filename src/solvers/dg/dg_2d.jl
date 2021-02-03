@@ -443,14 +443,42 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
                               nonconservative_terms::Val{false}, equations, volume_flux_fv,
                               dg::DGSEM, element)
 
+  @unpack nodes,weights = dg.basis
+  nvar = nvariables(equations)
+
   fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
   fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
   fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
   fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
   for j in eachnode(dg), i in 2:nnodes(dg)
+    u_mm = get_node_vars(u, equations, dg, max(1,i-2), j, element)
     u_ll = get_node_vars(u, equations, dg, i-1, j, element)
     u_rr = get_node_vars(u, equations, dg, i,   j, element)
+    u_pp = get_node_vars(u, equations, dg, min(nnodes(dg),i+1),   j, element)
+    x_mm = nodes[max(1,i-2)]
+    x_ll = nodes[i-1]
+    x_rr = nodes[i]
+    x_pp = nodes[min(nnodes(dg),i+1)]
+    if (i!=2)
+      ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm)
+    else
+      ux_ll1  = zero(u_ll)  
+    end
+    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll)
+    ux_ll = minmod.(ux_ll1,ux_ll2)
+
+    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll)
+    if (i!=nnodes(dg))
+      ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr)
+    else
+      ux_rr2 = zero(u_rr)  
+    end
+    ux_rr = minmod.(ux_rr1,ux_rr2)
+
+    u_ll = u_ll + ux_ll*(weights[i-1]-x_ll)
+    u_rr = u_rr + ux_rr*(weights[i-1]-x_rr)
+
     flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
     set_node_vars!(fstar1_L, flux, equations, dg, i, j)
     set_node_vars!(fstar1_R, flux, equations, dg, i, j)
@@ -462,8 +490,34 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
 
   for j in 2:nnodes(dg), i in eachnode(dg)
+    u_mm = get_node_vars(u, equations, dg, i, max(1,j-1), element)
     u_ll = get_node_vars(u, equations, dg, i, j-1, element)
     u_rr = get_node_vars(u, equations, dg, i, j,   element)
+    u_pp = get_node_vars(u, equations, dg, i, min(nnodes(dg),j+1),   element)
+    x_mm = nodes[max(1,j-2)]
+    x_ll = nodes[j-1]
+    x_rr = nodes[j]
+    x_pp = nodes[min(nnodes(dg),j+1)]
+
+    if (j!=2)
+      ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm)
+    else
+      ux_ll1  = zero(u_ll)
+    end
+    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll)
+    ux_ll = minmod.(ux_ll1,ux_ll2)
+
+    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll)
+    if (j!=nnodes(dg))
+      ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr)
+    else
+      ux_rr2 = zero(u_rr)
+    end
+    ux_rr = minmod.(ux_rr1,ux_rr2)
+
+    u_ll = u_ll + ux_ll*(weights[j-1]-x_ll)
+    u_rr = u_rr + ux_rr*(weights[j-1]-x_rr)
+
     flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
     set_node_vars!(fstar2_L, flux, equations, dg, i, j)
     set_node_vars!(fstar2_R, flux, equations, dg, i, j)
@@ -471,6 +525,17 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
 
   return nothing
 end
+
+@inline function minmod(sl,sr)
+   s = 0.0
+   if sign(sl)==sign(sr)
+     s = sign(sl)*min(abs(sl),abs(sr))
+     #s = 0.5*(sl + sr)
+   end
+  #s = 0.0
+  return s
+end
+
 
 """
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
