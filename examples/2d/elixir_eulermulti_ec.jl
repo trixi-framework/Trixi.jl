@@ -4,8 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4,),
-                                                       gas_constants = (0.4,))
+equations = CompressibleEulerMulticomponentEquations2D(gammas        = 1.4,
+                                                       gas_constants = 0.4)
 
 
 initial_condition = initial_condition_weak_blast_wave
