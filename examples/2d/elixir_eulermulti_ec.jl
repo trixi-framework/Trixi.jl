@@ -4,7 +4,9 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D()
+equations = CompressibleEulerMulticomponentEquations2D(gammas        = 1.4,
+                                                       gas_constants = 0.4)
+
 
 initial_condition = initial_condition_weak_blast_wave
 
@@ -31,7 +33,9 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     extra_analysis_integrals=(Trixi.density,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 

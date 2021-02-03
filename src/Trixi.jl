@@ -77,7 +77,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
-       flux_chandrashekar, flux_chandrashekar_stable, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -89,7 +89,7 @@ export initial_condition_constant,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble,
+       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp,
        initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
