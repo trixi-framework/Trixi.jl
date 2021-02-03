@@ -57,6 +57,17 @@ function create_cache(mesh::TreeMesh{1}, equations,
 end
 
 
+function create_cache(mesh::TreeMesh{1}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG)
+
+  A2dp1_x = Array{real(dg), 2}
+  fstar1_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+
+  return (; fstar1_threaded)
+end
+
+
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{1}, equations, mortar_l2::LobattoLegendreMortarL2)
@@ -225,6 +236,22 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_te
 
   return nothing
 end
+
+# TODO: Taal dimension agnostic
+function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_fv = volume_integral
+
+  # Calculate LGL FV volume integral
+  @threaded for element in eachelement(dg, cache)
+    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+  end
+
+  return nothing
+end
+
+
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)

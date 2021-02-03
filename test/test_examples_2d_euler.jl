@@ -15,6 +15,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5])
   end
 
+  @testset "elixir_euler_convergence_test_pure_fv.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_test_pure_fv.jl"),
+      l2   = [0.026440292358506527, 0.013245905852168414, 0.013245905852168479, 0.03912520302609374],
+      linf = [0.042130817806361964, 0.022685499230187034, 0.022685499230187922, 0.06999771202145322])
+  end
+
   @testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
       l2   = [0.0010600778457964775, 0.00010600778457634275, 0.00021201556915872665, 2.650194614399671e-5],
@@ -45,6 +51,13 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       l2   = [0.13938437665766198, 0.11552277347912725, 0.11552281282617058, 0.3391365873985103],
       linf = [1.4554615795909327, 1.3256380647458283, 1.3256380647457329, 1.8161954000082436],
       maxiters = 30)
+  end
+
+  @testset "elixir_euler_blast_wave_pure_fv.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_pure_fv.jl"),
+      l2   = [0.39957047631960346, 0.21006912294983154, 0.21006903549932, 0.6280328163981136],
+      linf = [2.20417889887697, 1.5487238480003327, 1.5486788679247812, 2.4656795949035857],
+      tspan = (0.0, 0.5))
   end
 
   @testset "elixir_euler_blast_wave_amr.jl" begin
