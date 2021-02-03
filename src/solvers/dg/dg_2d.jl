@@ -452,10 +452,10 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
 
   for j in eachnode(dg), i in 2:nnodes(dg)
-    u_mm = get_node_vars(u, equations, dg, max(1,i-2), j, element)
-    u_ll = get_node_vars(u, equations, dg, i-1, j, element)
-    u_rr = get_node_vars(u, equations, dg, i,   j, element)
-    u_pp = get_node_vars(u, equations, dg, min(nnodes(dg),i+1),   j, element)
+    u_mm = cons2prim(get_node_vars(u, equations, dg, max(1,i-2), j, element),equations)
+    u_ll = cons2prim(get_node_vars(u, equations, dg, i-1, j, element),equations)
+    u_rr = cons2prim(get_node_vars(u, equations, dg, i,   j, element),equations)
+    u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg),i+1),   j, element),equations)
     x_mm = nodes[max(1,i-2)]
     x_ll = nodes[i-1]
     x_rr = nodes[i]
@@ -476,10 +476,10 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
     end
     ux_rr = minmod.(ux_rr1,ux_rr2)
 
-    u_ll = u_ll + ux_ll*(weights[i-1]-x_ll)
-    u_rr = u_rr + ux_rr*(weights[i-1]-x_rr)
+    u_ll = check_positivity(u_ll + ux_ll*(weights[i-1]-x_ll),u_ll,equations)
+    u_rr = check_positivity(u_rr + ux_rr*(weights[i-1]-x_rr),u_rr,equations)
 
-    flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
+    flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
     set_node_vars!(fstar1_L, flux, equations, dg, i, j)
     set_node_vars!(fstar1_R, flux, equations, dg, i, j)
   end
@@ -490,10 +490,10 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
 
   for j in 2:nnodes(dg), i in eachnode(dg)
-    u_mm = get_node_vars(u, equations, dg, i, max(1,j-1), element)
-    u_ll = get_node_vars(u, equations, dg, i, j-1, element)
-    u_rr = get_node_vars(u, equations, dg, i, j,   element)
-    u_pp = get_node_vars(u, equations, dg, i, min(nnodes(dg),j+1),   element)
+    u_mm = cons2prim(get_node_vars(u, equations, dg, i, max(1,j-1), element),equations)
+    u_ll = cons2prim(get_node_vars(u, equations, dg, i, j-1, element),equations)
+    u_rr = cons2prim(get_node_vars(u, equations, dg, i, j,   element),equations)
+    u_pp = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg),j+1),   element),equations)
     x_mm = nodes[max(1,j-2)]
     x_ll = nodes[j-1]
     x_rr = nodes[j]
@@ -515,15 +515,25 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
     end
     ux_rr = minmod.(ux_rr1,ux_rr2)
 
-    u_ll = u_ll + ux_ll*(weights[j-1]-x_ll)
-    u_rr = u_rr + ux_rr*(weights[j-1]-x_rr)
+    u_ll = check_positivity(u_ll + ux_ll*(weights[j-1]-x_ll),u_ll,equations)
+    u_rr = check_positivity(u_rr + ux_rr*(weights[j-1]-x_rr),u_rr,equations)
 
-    flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
+    flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 2: y direction
     set_node_vars!(fstar2_L, flux, equations, dg, i, j)
     set_node_vars!(fstar2_R, flux, equations, dg, i, j)
   end
 
   return nothing
+end
+
+
+@inline function check_positivity(u,u_safe,equations::CompressibleEulerEquations2D)
+  if (u[1]<0.0)||(u[4]<0.0)
+    u_positive = u_safe
+  else
+    u_positive = u
+  end
+  return u_positive
 end
 
 @inline function minmod(sl,sr)
@@ -532,7 +542,7 @@ end
      s = sign(sl)*min(abs(sl),abs(sr))
      #s = 0.5*(sl + sr)
    end
-  #s = 0.0
+  s = 0.0
   return s
 end
 
