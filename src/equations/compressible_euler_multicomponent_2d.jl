@@ -40,20 +40,15 @@ struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT<:Real} <: 
   cv                ::SVector{NCOMP, RealT}
   cp                ::SVector{NCOMP, RealT}
 
-  function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas, gas_constants) where {NVARS, NCOMP, RealT<:Real}
+  function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas       ::SVector{NCOMP, RealT},
+                                                                           gas_constants::SVector{NCOMP, RealT}) where {NVARS, NCOMP, RealT<:Real}
 
-    _gammas        = promote(gammas...)
-    _gas_constants = promote(gas_constants...)
-    T              = promote_type(eltype(_gammas), eltype(_gas_constants))
+    NCOMP >= 1 || throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
-    length(_gammas) == length(_gas_constants) || throw(DimensionMismatch("gammas and gas_constants should have the same length"))
-    length(_gammas) != 0 || throw(DimensionMismatch("gammas and gas_constants have to be filled with at least one value"))
+    cv = gas_constants ./ (gammas .- 1)
+    cp = gas_constants + gas_constants ./ (gammas .- 1)
 
-    new(map(T, _gammas), # input
-        map(T, _gas_constants), # input
-        map(T, _gas_constants./(_gammas.-1)), # compute 'cv'
-        map(T, _gas_constants .+ _gas_constants./(_gammas .-1)) # compute 'cp'
-       )
+    new(gammas, gas_constants,cv, cp)
   end
 end
 
@@ -62,12 +57,15 @@ function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
 
   _gammas        = promote(gammas...)
   _gas_constants = promote(gas_constants...)
-  T              = promote_type(eltype(_gammas), eltype(_gas_constants))
+  RealT          = promote_type(eltype(_gammas), eltype(_gas_constants))
 
   NVARS = length(_gammas) + 3
   NCOMP = length(_gammas)
 
-  return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, T}(map(T, _gammas), map(T, _gas_constants))
+  __gammas        = SVector(map(RealT, _gammas))
+  __gas_constants = SVector(map(RealT, _gas_constants))
+
+  return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas, __gas_constants)
 end
 
 
