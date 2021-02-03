@@ -9,6 +9,10 @@ include("test_trixi.jl")
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
 @testset "Compressible Euler Multicomponent" begin
+  # NOTE: Some of the L2/Linf errors are comparably large. This is due to the fact that some of the
+  #       simulations are set up with dimensional states. For example, the reference pressure in SI
+  #       units is 101325 Pa, i.e., pressure has values of O(10^5)
+
   @testset "elixir_eulermulti_shock_bubble.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_shock_bubble.jl"),
       l2   = [7.38219722e+01, 8.80169627e-01, 5.79496021e+04, 1.83101743e-01, 1.11794879e-02],
