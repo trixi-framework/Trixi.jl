@@ -98,6 +98,10 @@ include("compressible_euler_3d.jl")
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_2d.jl")
 
+# Retrieve number of components from equation instance for the multicomponent case
+@inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
+
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_1d.jl")
@@ -114,7 +118,4 @@ include("hyperbolic_diffusion_3d.jl")
 abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("lattice_boltzmann_2d.jl")
 include("lattice_boltzmann_3d.jl")
-
-# Retrieve number of components from equation instance for the multicomponent case
-@inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
 
