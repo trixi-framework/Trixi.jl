@@ -455,7 +455,7 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   x_mid = x_interface - 0.5*weights
   #x_mid = nodes
 
-  limiter = central_recon
+  limiter = monotonized_central
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     u_mm = cons2prim(get_node_vars(u, equations, dg, max(1,i-2), j, element),equations)
@@ -494,7 +494,7 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
 
   for j in 2:nnodes(dg), i in eachnode(dg)
-    u_mm = cons2prim(get_node_vars(u, equations, dg, i, max(1,j-1), element),equations)
+    u_mm = cons2prim(get_node_vars(u, equations, dg, i, max(1,j-2), element),equations)
     u_ll = cons2prim(get_node_vars(u, equations, dg, i, j-1, element),equations)
     u_rr = cons2prim(get_node_vars(u, equations, dg, i, j,   element),equations)
     u_pp = cons2prim(get_node_vars(u, equations, dg, i, min(nnodes(dg),j+1),   element),equations)
