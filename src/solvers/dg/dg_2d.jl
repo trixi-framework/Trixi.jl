@@ -455,7 +455,14 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   x_mid = x_interface - 0.5*weights
   #x_mid = nodes
 
-  limiter = monotonized_central
+  #limiter = monotonized_central
+  limiter = minmod
+  #limiter = central_recon
+
+  reconstruction = reconstruction_large_stencil
+  #reconstruction = reconstruction_large_irregular
+  #reconstruction = reconstruction_small_stencil
+  #reconstruction = reconstruction_O1
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     u_mm = cons2prim(get_node_vars(u, equations, dg, max(1,i-2), j, element),equations)
@@ -466,24 +473,10 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
     x_ll = x_mid[i-1]
     x_rr = x_mid[i]
     x_pp = x_mid[min(nnodes(dg),i+1)]
-
-    ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm + eps(x_ll))
-    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
-    ux_ll = limiter.(ux_ll1,ux_ll2)
-
-    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
-    ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr + eps(x_rr))
-    ux_rr = limiter.(ux_rr1,ux_rr2)
-
-    #flux_cent_O1 = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
-
-    u_ll = check_positivity(u_ll + ux_ll*(x_interface[i-1]-x_ll),u_ll,equations)
-    u_rr = check_positivity(u_rr + ux_rr*(x_interface[i-1]-x_rr),u_rr,equations)
-
-    #flux_cent_recon = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
+    
+    u_ll,u_rr = reconstruction(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,i,limiter,dg,equations)
 
     flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 1, equations) # orientation 1: x direction
-    #flux = flux - flux_cent_recon + flux_cent_O1
     set_node_vars!(fstar1_L, flux, equations, dg, i, j)
     set_node_vars!(fstar1_R, flux, equations, dg, i, j)
   end
@@ -503,23 +496,9 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
     x_rr = x_mid[j]
     x_pp = x_mid[min(nnodes(dg),j+1)]
 
-    ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm + eps(x_ll))
-    ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
-    ux_ll = limiter.(ux_ll1,ux_ll2)
-
-    ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
-    ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr + eps(x_rr))
-    ux_rr = limiter.(ux_rr1,ux_rr2)
-
-    #flux_cent_O1 = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 1: x direction
-
-    u_ll = check_positivity(u_ll + ux_ll*(x_interface[j-1]-x_ll),u_ll,equations)
-    u_rr = check_positivity(u_rr + ux_rr*(x_interface[j-1]-x_rr),u_rr,equations)
-
-    #flux_cent_recon = flux_central(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 1: x direction
+    u_ll,u_rr = reconstruction(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,j,limiter,dg,equations)
 
     flux = volume_flux_fv(prim2cons(u_ll,equations), prim2cons(u_rr,equations), 2, equations) # orientation 2: y direction
-    #flux = flux - flux_cent_recon + flux_cent_O1
     set_node_vars!(fstar2_L, flux, equations, dg, i, j)
     set_node_vars!(fstar2_R, flux, equations, dg, i, j)
   end
@@ -527,8 +506,69 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   return nothing
 end
 
+@inline function reconstruction_large_stencil(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,index,limiter,dg,equations)
+  if (index==2)
+    ux_ll1 = 1.0*(u_rr - u_mm) / (x_rr - x_mm + eps(x_rr))
+  else
+    ux_ll1 = (u_ll - u_mm) / (x_ll - x_mm + eps(x_ll))
+  end
+  ux_ll2 = (u_rr - u_ll) / (x_rr-x_ll + eps(x_rr))
+  ux_ll = limiter.(ux_ll1,ux_ll2)
 
-@inline function check_positivity(u,u_safe,equations::CompressibleEulerEquations2D)
+  ux_rr1 = (u_rr - u_ll) / (x_rr-x_ll + eps(x_rr))
+  if (index==nnodes(dg))
+    ux_rr2 = 1.0*(u_pp - u_ll) / (x_pp - x_ll + eps(x_rr))
+  else
+    ux_rr2 = (u_pp - u_rr) / (x_pp - x_rr + eps(x_rr))
+  end
+  ux_rr = limiter.(ux_rr1,ux_rr2)
+
+  u_ll = choose_positive_value(u_ll + ux_ll * (x_interface[index-1] - x_ll),u_ll,equations)
+  u_rr = choose_positive_value(u_rr + ux_rr * (x_interface[index-1] - x_rr),u_rr,equations)
+  return u_ll,u_rr
+end
+
+@inline function reconstruction_large_irregular(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,index,limiter,dg,equations)
+  if (index==2)
+    ux_ll1 = (u_rr - u_mm) / (x_rr - x_mm + eps(x_rr))
+  else
+    ux_ll1 = 2 * (u_ll - u_mm) / (x_rr - x_mm + eps(x_ll))
+  end
+  ux_ll2 =   2 * (u_rr - u_ll) / (x_rr-x_mm + eps(x_rr))
+  ux_ll = limiter.(ux_ll1,ux_ll2)
+
+  ux_rr1 = 2 * (u_rr - u_ll) / (x_pp - x_ll + eps(x_rr))
+  if (index==nnodes(dg))
+    ux_rr2 = (u_pp - u_ll) / (x_pp - x_ll + eps(x_rr))
+  else
+    ux_rr2 = 2*(u_pp - u_rr) / (x_pp - x_ll + eps(x_rr))
+  end
+  ux_rr = limiter.(ux_rr1,ux_rr2)
+
+  u_ll = choose_positive_value(u_ll + ux_ll*(x_interface[index-1]-x_ll),u_ll,equations)
+  u_rr = choose_positive_value(u_rr + ux_rr*(x_interface[index-1]-x_rr),u_rr,equations)
+  return u_ll,u_rr
+end
+
+@inline function reconstruction_small_stencil(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,index,limiter,dg,equations)
+  ux_ll1 = (u_ll - u_mm)/(x_ll - x_mm + eps(x_ll))
+  ux_ll2 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+  ux_ll = limiter.(ux_ll1,ux_ll2)
+
+  ux_rr1 = (u_rr - u_ll)/(x_rr-x_ll + eps(x_rr))
+  ux_rr2 = (u_pp - u_rr)/(x_pp - x_rr + eps(x_rr))
+  ux_rr = limiter.(ux_rr1,ux_rr2)
+
+  u_ll = choose_positive_value(u_ll + ux_ll*(x_interface[index-1]-x_ll),u_ll,equations)
+  u_rr = choose_positive_value(u_rr + ux_rr*(x_interface[index-1]-x_rr),u_rr,equations)
+  return u_ll,u_rr
+end
+
+@inline function reconstruction_O1(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,index,limiter,dg,equations)
+  return u_ll,u_rr
+end
+
+@inline function choose_positive_value(u,u_safe,equations::CompressibleEulerEquations2D)
   if (u[1]<0.0)||(u[4]<0.0)
     u_positive = u_safe
   else
@@ -542,8 +582,6 @@ end
    if sign(sl)==sign(sr)
      s = sign(sl)*min(abs(sl),abs(sr))
    end
-  #s = 0.0
-  #s = 0.5*(sl+sr)
   return s
 end
 
