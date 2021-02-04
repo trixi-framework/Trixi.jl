@@ -62,8 +62,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
   end
 
-  @testset "elixir_hypdiff_upwind.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_upwind.jl"),
+  @testset "elixir_hypdiff_godunov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
       l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
       linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
   end

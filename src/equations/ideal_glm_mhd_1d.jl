@@ -12,8 +12,8 @@ end
 
 get_name(::IdealGlmMhdEquations1D) = "IdealGlmMhdEquations1D"
 have_nonconservative_terms(::IdealGlmMhdEquations1D) = Val(false)
-varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D) = @SVector ["rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3"]
-varnames(::typeof(cons2prim), ::IdealGlmMhdEquations1D) = @SVector ["rho", "v1", "v2", "v3", "p", "B1", "B2", "B3"]
+varnames(::typeof(cons2cons), ::IdealGlmMhdEquations1D) = ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3")
+varnames(::typeof(cons2prim), ::IdealGlmMhdEquations1D) = ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3")
 default_analysis_integrals(::IdealGlmMhdEquations1D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 
 
@@ -31,7 +31,7 @@ function initial_condition_constant(x, t, equations::IdealGlmMhdEquations1D)
   B1 = 3.0
   B2 = -1.2
   B3 = 0.5
-  return @SVector [rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3]
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 end
 
 

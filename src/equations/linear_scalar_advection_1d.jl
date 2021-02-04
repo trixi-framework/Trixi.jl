@@ -18,8 +18,8 @@ end
 
 
 get_name(::LinearScalarAdvectionEquation1D) = "LinearScalarAdvectionEquation1D"
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = SVector("scalar")
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = SVector("scalar")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar", )
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar", )
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -32,7 +32,7 @@ function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [2.0]
+  return SVector(2.0)
 end
 
 
@@ -53,7 +53,7 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 """
@@ -90,7 +90,8 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation1D
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [exp(-(x_trans[1]^2 ))]
+  scalar = exp(-(x_trans[1]^2))
+  return SVector(scalar)
 end
 
 """
@@ -127,7 +128,7 @@ function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation1D)
   x_trans = x - equation.advectionvelocity * t
 
   scalar = sinpi(2 * x_trans[1])
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -141,7 +142,7 @@ function initial_condition_linear_x(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [x_trans[1]]
+  return SVector(x_trans[1])
 end
 
 """

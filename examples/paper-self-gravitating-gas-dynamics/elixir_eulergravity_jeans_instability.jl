@@ -42,7 +42,7 @@ function initial_condition_jeans_instability(x, t,
   # flow starts as stationary
   velx = 0.0 # cm/s
   vely = 0.0 # cm/s
-  return Trixi.prim2cons((dens, velx, vely, pres), equations)
+  return prim2cons((dens, velx, vely, pres), equations)
 end
 
 function initial_condition_jeans_instability(x, t,

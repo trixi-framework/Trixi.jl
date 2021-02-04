@@ -78,7 +78,7 @@ function varnames(::typeof(cons2cons), equations::CompressibleEulerMulticomponen
 
   cons  = ("rho_v1", "rho_v2", "rho_e")
   rhos  = ntuple(n -> "rho" * string(n), Val(ncomponents(equations)))
-  return SVector{nvariables(equations)}(cons..., rhos...)
+  return (cons..., rhos...)
 end
 
 
@@ -86,7 +86,7 @@ function varnames(::typeof(cons2prim), equations::CompressibleEulerMulticomponen
 
   prim  = ("v1", "v2", "p")
   rhos  = ntuple(n -> "rho" * string(n), Val(ncomponents(equations)))
-  return SVector{nvariables(equations)}(prim..., rhos...)
+  return (prim..., rhos...)
 end
 
 
