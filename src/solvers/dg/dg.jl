@@ -82,7 +82,7 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
     summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
     summary_line(io, "volume flux FV", integral.volume_flux_fv)
-    summary_line(io, "indicator", typeof(integral.indicator).name)
+    summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
   end
@@ -158,7 +158,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG{RealT}) where {RealT}
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
     summary_line(io, "surface flux", dg.surface_flux)
-    summary_line(io, "volume integral", typeof(dg.volume_integral).name)
+    summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     if !(dg.volume_integral isa VolumeIntegralWeakForm)
       show(increment_indent(io), mime, dg.volume_integral)
     end
