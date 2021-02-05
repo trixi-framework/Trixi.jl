@@ -126,11 +126,11 @@ function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEuler
     show(io, semi)
   else
     summary_header(io, "SemidiscretizationEulerGravity")
-    summary_line(io, "semidiscretization Euler", typeof(semi.semi_euler).name)
+    summary_line(io, "semidiscretization Euler", semi.semi_euler |> typeof |> nameof)
     show(increment_indent(io), mime, semi.semi_euler)
-    summary_line(io, "semidiscretization gravity", typeof(semi.semi_gravity).name)
+    summary_line(io, "semidiscretization gravity", semi.semi_gravity |> typeof |> nameof)
     show(increment_indent(io), mime, semi.semi_gravity)
-    summary_line(io, "parameters", typeof(semi.parameters).name)
+    summary_line(io, "parameters", semi.parameters |> typeof |> nameof)
     show(increment_indent(io), mime, semi.parameters)
     summary_footer(io)
   end
