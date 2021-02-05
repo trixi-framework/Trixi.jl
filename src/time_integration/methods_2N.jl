@@ -156,6 +156,12 @@ function solve!(integrator::SimpleIntegrator2N)
         end
       end
     end
+
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters
+      @warn "Interrupted. Larger maxiters is needed."
+      terminate!(integrator)
+    end
   end
 
   return TimeIntegratorSolution((first(prob.tspan), integrator.t),
