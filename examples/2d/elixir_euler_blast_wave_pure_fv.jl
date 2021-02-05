@@ -11,7 +11,9 @@ initial_condition = initial_condition_blast_wave
 
 surface_flux  = flux_hllc
 basis = LobattoLegendreBasis(3)
-volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_hllc,
+                                                    reconstruction_mode = reconstruction_small_stencil,
+                                                    slope_limiter = minmod)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2, -2)
@@ -27,7 +29,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.25)
+tspan = (0.0, 9.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -42,7 +44,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -54,6 +56,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+#sol = solve(ode,SSPRK54(),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
 summary_callback() # print the timer summary
