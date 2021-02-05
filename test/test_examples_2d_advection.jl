@@ -89,6 +89,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       cfl = 1.0)
   end
 
+  @testset "elixir_advection_timeintegration.jl with carpenter_kennedy_erk43 with maxiters=1" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [1.2046995151616365e-5],
+      linf = [9.814863096402338e-5],
+      ode_algorithm=Trixi.CarpenterKennedy2N43(),
+      cfl = 1.0,
+      maxiters = 1)
+  end
+
   @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk94" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
       l2   = [2.8778180933565268e-5],
@@ -102,6 +111,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.0005480422381496791],
       ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
       cfl = 1.0)
+  end
+
+  @testset "elixir_advection_timeintegration.jl with parsani_ketcheson_deconinck_erk32 with maxiters=1" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration.jl"),
+      l2   = [1.2074110061802306e-5],
+      linf = [9.826959330024553e-5],
+      ode_algorithm=Trixi.ParsaniKetchesonDeconinck3Sstar32(),
+      cfl = 1.0,
+      maxiters = 1)
   end
 
   @testset "elixir_advection_callbacks.jl" begin
