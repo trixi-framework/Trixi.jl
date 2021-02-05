@@ -196,7 +196,7 @@ function solve!(integrator::SimpleIntegrator3Sstar)
     end
 
     # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
       @warn "Interrupted. Larger maxiters is needed."
       terminate!(integrator)
     end
@@ -232,4 +232,3 @@ function Base.resize!(integrator::SimpleIntegrator3Sstar, new_size)
   resize!(integrator.u_tmp1, new_size)
   resize!(integrator.u_tmp2, new_size)
 end
-
