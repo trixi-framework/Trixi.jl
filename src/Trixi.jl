@@ -23,10 +23,10 @@ using Printf: @printf, @sprintf, println
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
 
-import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
+import DiffEqBase: CallbackSet, DiscreteCallback,
+                   ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!
-using DiffEqCallbacks: CallbackSet, DiscreteCallback
 @reexport using EllipsisNotation # ..
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
