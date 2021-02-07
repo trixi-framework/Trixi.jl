@@ -294,7 +294,7 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
       @views structured[first:last, v] .= (
-           reshape(multiply_dimensionwise(reshaped_data[:, :, element_id], vandermonde),
+           reshape(multiply_dimensionwise_naive(reshaped_data[:, :, element_id], vandermonde),
                    n_nodes_out))
 
       # Update first index for next iteration

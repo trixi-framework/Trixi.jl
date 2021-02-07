@@ -7,7 +7,7 @@ using Trixi
 module TrixiExtensionExample
 
 using Trixi
-using DiffEqCallbacks: DiscreteCallback, u_modified!
+using OrdinaryDiffEq: DiscreteCallback, u_modified!
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
@@ -143,7 +143,7 @@ example_callback = TrixiExtensionExample.ExampleStepCallback(message="안녕하�
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         example_callback,
                         stepsize_callback)

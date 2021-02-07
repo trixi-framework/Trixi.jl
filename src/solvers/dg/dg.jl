@@ -79,14 +79,43 @@ function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShock
   if get(io, :compact, false)
     show(io, integral)
   else
-    summary_header(io, "VolumeIntegralFluxDifferencing")
+    summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
-    summary_line(io, "volume flux FV", integral.volume_flux_dg)
-    summary_line(io, "indicator", typeof(integral.indicator).name)
+    summary_line(io, "volume flux FV", integral.volume_flux_fv)
+    summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
   end
 end
+
+
+"""
+    VolumeIntegralPureLGLFiniteVolume
+
+A volume integral that only uses the subcell finite volume scheme from the paper
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell mesh (LGL = Legendre-Gauss-Lobatto).
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+  volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+end
+# TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "FV flux" => integral.volume_flux_fv
+            ]
+    summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
+  end
+end
+
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
@@ -129,7 +158,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG{RealT}) where {RealT}
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
     summary_line(io, "surface flux", dg.surface_flux)
-    summary_line(io, "volume integral", typeof(dg.volume_integral).name)
+    summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     if !(dg.volume_integral isa VolumeIntegralWeakForm)
       show(increment_indent(io), mime, dg.volume_integral)
     end

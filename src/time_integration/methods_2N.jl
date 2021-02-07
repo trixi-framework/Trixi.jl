@@ -19,13 +19,13 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
   c::SVector{5, Float64}
 
   function CarpenterKennedy2N54()
-    a = @SVector [0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
-       3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0]
-    b = @SVector [1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
-        1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
-        2277821191437.0 / 14882151754819.0]
-    c = @SVector [0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
-        2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0]
+    a = SVector(0.0, 567301805773.0 / 1357537059087.0,2404267990393.0 / 2016746695238.0,
+                3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0)
+    b = SVector(1432997174477.0 / 9575080441755.0, 5161836677717.0 / 13612068292357.0,
+                1720146321549.0 / 2090206949498.0, 3134564353537.0 / 4481467310338.0,
+                2277821191437.0 / 14882151754819.0)
+    c = SVector(0.0, 1432997174477.0 / 9575080441755.0, 2526269341429.0 / 6820363962896.0,
+                2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0)
 
     new(a, b, c)
   end
@@ -43,9 +43,9 @@ struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
   c::SVector{4, Float64}
 
   function CarpenterKennedy2N43()
-    a = @SVector [0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297]
-    b = @SVector [8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383]
-    c = @SVector [0, 8 / 141, 86 / 125, 1]
+    a = SVector(0, 756391 / 934407, 36441873 / 15625000, 1953125 / 1085297)
+    b = SVector(8 / 141, 6627 / 2000, 609375 / 1085297, 198961 / 526383)
+    c = SVector(0, 8 / 141, 86 / 125, 1)
 
     new(a, b, c)
   end
@@ -139,7 +139,7 @@ function solve!(integrator::SimpleIntegrator2N)
       a_stage    = alg.a[stage]
       b_stage_dt = alg.b[stage] * integrator.dt
       @timeit_debug timer() "Runge-Kutta step" begin
-        Threads.@threads for i in eachindex(integrator.u)
+        @threaded for i in eachindex(integrator.u)
           integrator.u_tmp[i] = integrator.du[i] - integrator.u_tmp[i] * a_stage
           integrator.u[i] += integrator.u_tmp[i] * b_stage_dt
         end
@@ -155,6 +155,12 @@ function solve!(integrator::SimpleIntegrator2N)
           cb.affect!(integrator)
         end
       end
+    end
+
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+      @warn "Interrupted. Larger maxiters is needed."
+      terminate!(integrator)
     end
   end
 

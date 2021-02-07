@@ -16,11 +16,11 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
       initial_refinement_level=2)
   end
 
-  @testset "elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_upwind)" begin
+  @testset "elixir_hypdiff_lax_friedrichs.jl with surface_flux=flux_godunov)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_lax_friedrichs.jl"),
       l2   = [0.0015377731806850128, 0.01137685274151801, 0.011376852741518175, 0.011376852741518494],
       linf = [0.022715420630041172, 0.10183745338964201, 0.10183745338964201, 0.1018374533896429],
-      initial_refinement_level=2, surface_flux=flux_upwind)
+      initial_refinement_level=2, surface_flux=flux_godunov)
   end
 
   @testset "elixir_hypdiff_nonperiodic.jl" begin

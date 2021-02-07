@@ -3,39 +3,37 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D(gammas        = 1.4,
-                                                       gas_constants = 0.4)
+# semidiscretization of the compressible Euler equations
 
+equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = initial_condition_weak_blast_wave
+initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_chandrashekar
-volume_flux  = flux_chandrashekar
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+surface_flux = flux_hllc
+volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+solver = DGSEM(3, surface_flux, volume_integral)
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+coordinates_min = (0, 0, 0)
+coordinates_max = (2, 2, 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=2,
                 n_cells_max=10_000)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_convergence_test)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_integrals=(Trixi.density,))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -45,12 +43,12 @@ save_restart = SaveRestartCallback(interval=100,
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
-                                     solution_variables=:primitive)
+                                     solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 

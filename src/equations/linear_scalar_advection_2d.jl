@@ -22,11 +22,11 @@ end
 
 
 get_name(::LinearScalarAdvectionEquation2D) = "LinearScalarAdvectionEquation2D"
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = SVector("scalar")
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = SVector("scalar")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation2D) = ("scalar", )
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar", )
 
 # Calculates translated coordinates `x` for a periodic domain
-function x_trans_periodic_2d(x, domain_length = SVector(2, 2), center = SVector(0, 0))
+function x_trans_periodic_2d(x, domain_length = SVector(10, 10), center = SVector(0, 0))
   x_normalized = x .- center
   x_shifted = x_normalized .% domain_length
   x_offset = ((x_shifted .< -0.5*domain_length) - (x_shifted .> 0.5*domain_length)) .* domain_length
@@ -43,7 +43,7 @@ function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
 
-  return @SVector [2.0]
+  return SVector(2.0)
 end
 
 
@@ -62,7 +62,7 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -76,7 +76,8 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation2D
   # Store translated coordinate for easy use of exact solution
   x_trans = x_trans_periodic_2d(x - equation.advectionvelocity * t)
 
-  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2))]
+  scalar = exp(-(x_trans[1]^2 + x_trans[2]^2))
+  return SVector(scalar)
 end
 
 """
@@ -113,7 +114,7 @@ function initial_condition_sin_sin(x, t, equation::LinearScalarAdvectionEquation
   x_trans = x - equation.advectionvelocity * t
 
   scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2])
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -127,7 +128,7 @@ function initial_condition_linear_x_y(x, t, equation::LinearScalarAdvectionEquat
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [sum(x_trans)]
+  return SVector(sum(x_trans))
 end
 
 """
@@ -164,7 +165,7 @@ function initial_condition_linear_x(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [x_trans[1]]
+  return SVector(x_trans[1])
 end
 
 """
@@ -201,7 +202,7 @@ function initial_condition_linear_y(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [x_trans[2]]
+  return SVector(x_trans[2])
 end
 
 """

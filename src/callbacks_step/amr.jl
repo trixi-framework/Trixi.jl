@@ -41,7 +41,7 @@ function AMRCallback(semi, controller, adaptor;
   amr_cache = (; to_refine, to_coarsen)
 
   amr_callback = AMRCallback{typeof(controller), typeof(adaptor), typeof(amr_cache)}(
-    controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine, 
+    controller, interval, adapt_initial_condition, adapt_initial_condition_only_refine,
     dynamic_load_balancing, adaptor, amr_cache)
 
   DiscreteCallback(condition, amr_callback,
@@ -72,7 +72,7 @@ function Base.show(io::IO, mime::MIME"text/plain", cb::DiscreteCallback{Conditio
     amr_callback = cb.affect!
 
     summary_header(io, "AMRCallback")
-    summary_line(io, "controller", typeof(amr_callback.controller).name)
+    summary_line(io, "controller", amr_callback.controller |> typeof |> nameof)
     show(increment_indent(io), mime, amr_callback.controller)
     summary_line(io, "interval", amr_callback.interval)
     summary_line(io, "adapt IC", amr_callback.adapt_initial_condition ? "yes" : "no",)
@@ -384,7 +384,7 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     show(io, controller)
   else
     summary_header(io, "ControllerThreeLevel")
-    summary_line(io, "indicator", typeof(controller.indicator).name)
+    summary_line(io, "indicator", controller.indicator |> typeof |> nameof)
     show(increment_indent(io), mime, controller.indicator)
     summary_line(io, "base_level", controller.base_level)
     summary_line(io, "med_level", controller.med_level)
@@ -422,7 +422,7 @@ function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
 
   alpha = controller.indicator(u, equations, dg, cache; kwargs...)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     current_level = mesh.tree.levels[cell_id]
 
@@ -514,9 +514,9 @@ function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLe
     show(io, controller)
   else
     summary_header(io, "ControllerThreeLevelCombined")
-    summary_line(io, "primary indicator", typeof(controller.indicator_primary).name)
+    summary_line(io, "primary indicator", controller.indicator_primary |> typeof |> nameof)
     show(increment_indent(io), mime, controller.indicator_primary)
-    summary_line(io, "secondary indicator", typeof(controller.indicator_secondary).name)
+    summary_line(io, "secondary indicator", controller.indicator_secondary |> typeof |> nameof)
     show(increment_indent(io), mime, controller.indicator_secondary)
     summary_line(io, "base_level", controller.base_level)
     summary_line(io, "med_level", controller.med_level)
@@ -548,7 +548,7 @@ function (controller::ControllerThreeLevelCombined)(u::AbstractArray{<:Any},
   alpha = controller.indicator_primary(u, equations, dg, cache; kwargs...)
   alpha_secondary = controller.indicator_secondary(u, equations, dg, cache)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     cell_id = cache.elements.cell_ids[element]
     current_level = mesh.tree.levels[cell_id]
 

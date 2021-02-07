@@ -3,37 +3,36 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the hyperbolic diffusion equations
+# semidiscretization of the compressible Euler equations
 
-equations = HyperbolicDiffusionEquations2D()
+equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_poisson_periodic
+initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_upwind
-volume_flux  = flux_central
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux)) # 4
+surface_flux = flux_hllc
+
+basis = LobattoLegendreBasis(3)
+volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0, 0)
-coordinates_max = (1, 1)
+coordinates_max = (2, 2)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
-                n_cells_max=30_000)
+                initial_refinement_level=4,
+                n_cells_max=10_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_poisson_periodic)
+                                    source_terms=source_terms_convergence_test)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 2.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
-
-resid_tol = 5.0e-12
-steady_state_callback = SteadyStateCallback(abstol=resid_tol, reltol=0.0)
 
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
@@ -45,20 +44,17 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
-callbacks = CallbackSet(summary_callback, steady_state_callback,
+callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 
-
 ###############################################################################
 # run the simulation
 
-# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-alg = Trixi.HypDiffN3Erk3Sstar52()
-sol = Trixi.solve(ode, alg,
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

@@ -57,7 +57,7 @@ mutable struct ParallelTree{NDIMS} <: AbstractTree{NDIMS}
     t.length = 0
     t.dummy = capacity + 1
 
-    t.center_level_0 = @SVector fill(NaN, NDIMS)
+    t.center_level_0 = SVector(ntuple(_ -> NaN, NDIMS))
     t.length_level_0 = NaN
 
     return t

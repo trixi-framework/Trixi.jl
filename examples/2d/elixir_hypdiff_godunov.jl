@@ -7,29 +7,27 @@ using Trixi
 
 equations = HyperbolicDiffusionEquations2D()
 
-initial_condition = initial_condition_harmonic_nonperiodic
-boundary_conditions = boundary_condition_harmonic_nonperiodic
+initial_condition = initial_condition_poisson_periodic
 
 surface_flux = flux_godunov
-solver = DGSEM(3, surface_flux) # FIXME: originally 4
+volume_flux  = flux_central
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux)) # 4
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=3,
-                n_cells_max=30_000,
-                periodicity=false)
+                n_cells_max=30_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_conditions,
-                                    source_terms=source_terms_harmonic)
+                                    source_terms=source_terms_poisson_periodic)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()

@@ -77,6 +77,7 @@ function cons2prim(u, ::AbstractEquations) end
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)
+@deprecate flux_upwind(u_ll, u_rr, orientation, equations) flux_godunov(u_ll, u_rr, orientation, equations)
 
 
 ####################################################################################################
@@ -95,8 +96,12 @@ include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 
 # CompressibleEulerMulticomponentEquations
-abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_2d.jl")
+
+# Retrieve number of components from equation instance for the multicomponent case
+@inline ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
@@ -114,3 +119,4 @@ include("hyperbolic_diffusion_3d.jl")
 abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("lattice_boltzmann_2d.jl")
 include("lattice_boltzmann_3d.jl")
+
