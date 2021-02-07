@@ -6,14 +6,8 @@ const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
 const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "1d"
-    include("test_examples_1d.jl")
-  end
-
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d"
-    include("test_examples_2d.jl")
-  end
-
+  # This is placed first since tests error out if `TRIXI_TEST == "all"`,
+  # at least on some systems.
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_parallel"
     # Do a dummy `@test true`:
     # If the process errors out the testset would error out as well,
@@ -28,6 +22,14 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
     mpiexec() do cmd
       run(`$cmd -n $TRIXI_MPI_NPROCS $(Base.julia_cmd()) --threads=1 --check-bounds=yes test_examples_2d_parallel.jl`)
     end
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "1d"
+    include("test_examples_1d.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d"
+    include("test_examples_2d.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d"
