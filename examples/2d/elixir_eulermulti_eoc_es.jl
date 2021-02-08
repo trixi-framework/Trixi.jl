@@ -4,11 +4,12 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-equations = CompressibleEulerMulticomponentEquations2D()
+equations = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.4),
+                                                       gas_constants = (0.4, 0.4))
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_chandrashekar_stable
+surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 

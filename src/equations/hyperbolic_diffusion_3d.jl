@@ -20,8 +20,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations3D) = "HyperbolicDiffusionEquations3D"
-varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
-varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations3D) = @SVector ["phi", "q1", "q2", "q3"]
+varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations3D) = ("phi", "q1", "q2", "q3")
+varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations3D) = ("phi", "q1", "q2", "q3")
 default_analysis_errors(::HyperbolicDiffusionEquations3D)     = (:l2_error, :linf_error, :residual)
 
 """
@@ -50,7 +50,7 @@ function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusion
     q2  = 2 * pi * sin(2 * pi * x[1]) * cos(2 * pi * x[2]) * sin(2 * pi * x[3])
     q3  = 2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * x[3])
   end
-  return @SVector [phi, q1, q2, q3]
+  return SVector(phi, q1, q2, q3)
 end
 
 @inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
@@ -85,7 +85,7 @@ function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffus
     q2  =  4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
     q3  =  4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
   end
-  return @SVector [phi, q1, q2, q3]
+  return SVector(phi, q1, q2, q3)
 end
 
 @inline function source_terms_poisson_nonperiodic(u, x, t, equations::HyperbolicDiffusionEquations3D)
@@ -110,7 +110,7 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   q1  = -2.0 * pi * sin(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_x
   q2  =  4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
   q3  =  4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
-  u_boundary = @SVector [phi, q1, q2, q3]
+  u_boundary = SVector(phi, q1, q2, q3)
 
   # Calculate boundary flux
   if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -158,7 +158,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   q2  = q1                                                 # = gravity acceleration in y-direction
   q3  = q1                                                 # = gravity acceleration in z-direction
 
-  return @SVector [phi, q1, q2, q3]
+  return SVector(phi, q1, q2, q3)
 end
 
 
@@ -180,7 +180,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusi
   q1  = 0.0
   q2  = 0.0
   q3  = 0.0
-  return @SVector [phi, q1, q2, q3]
+  return SVector(phi, q1, q2, q3)
 end
 
 """
@@ -248,7 +248,7 @@ end
 end
 
 
-@inline function flux_upwind(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations3D)
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations3D)
   # Obtain left and right fluxes
   phi_ll, q1_ll, q2_ll, q3_ll = u_ll
   phi_rr, q1_rr, q2_rr, q3_rr = u_rr

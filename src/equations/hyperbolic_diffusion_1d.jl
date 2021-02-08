@@ -26,8 +26,8 @@ end
 
 
 get_name(::HyperbolicDiffusionEquations1D) = "HyperbolicDiffusionEquations1D"
-varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = @SVector ["phi", "q1"]
-varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = @SVector ["phi", "q1"]
+varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
+varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations1D) = ("phi", "q1")
 default_analysis_errors(::HyperbolicDiffusionEquations1D) = (:l2_error, :linf_error, :residual)
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations1D)
@@ -53,7 +53,7 @@ function initial_condition_poisson_nonperiodic(x, t, equations::HyperbolicDiffus
     phi = sinpi(x[1])      # ϕ
     q1  = pi * cospi(x[1]) # ϕ_x
   end
-  return @SVector [phi, q1]
+  return SVector(phi, q1)
 end
 
 """
@@ -70,10 +70,10 @@ diffusion system that is used with [`initial_condition_poisson_nonperiodic`](@re
   # analytical solution: ϕ = sin(πx) and f = π^2sin(πx)
   @unpack inv_Tr = equations
 
-  du1 = pi^2 * sinpi(x[1])
-  du2 = -inv_Tr * u[2]
+  dphi = pi^2 * sinpi(x[1])
+  dq1  = -inv_Tr * u[2]
 
-  return @SVector [du1, du2]
+  return SVector(dphi, dq1)
 end
 
 """
@@ -90,7 +90,7 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
   # elliptic equation: -νΔϕ = f
   phi = sinpi(x[1])      # ϕ
   q1  = pi * cospi(x[1]) # ϕ_x
-  u_boundary = @SVector [phi, q1]
+  u_boundary = SVector(phi, q1)
 
   # Calculate boundary flux
   if direction == 2 # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -121,7 +121,7 @@ function initial_condition_harmonic_nonperiodic(x, t, equations::HyperbolicDiffu
     phi = A + B * x[1]
     q1  = B
   end
-  return @SVector [phi, q1]
+  return SVector(phi, q1)
 end
 
 """
@@ -135,9 +135,9 @@ used with [`initial_condition_harmonic_nonperiodic`](@ref) and
   # harmonic solution of the form ϕ = A + B * x, so f = 0
   @unpack inv_Tr = equations
 
-  du2 = -inv_Tr * u[2]
+  dq1 = -inv_Tr * u[2]
 
-  return @SVector [0, du2]
+  return SVector(zero(dq1), dq1)
 end
 
 """
@@ -184,7 +184,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   phi = C * rho1
   q1  = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
 
-  return @SVector [phi, q1]
+  return SVector(phi, q1)
 end
 
 

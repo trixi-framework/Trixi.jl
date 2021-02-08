@@ -169,7 +169,7 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator)
   setup = Pair{String,Any}[
            "Start time" => first(integrator.sol.prob.tspan),
            "Final time" => last(integrator.sol.prob.tspan),
-           "time integrator" => typeof(integrator.alg).name,
+           "time integrator" => integrator.alg |> typeof |> nameof,
           ]
   summary_box(io, "Time integration", setup)
   println()

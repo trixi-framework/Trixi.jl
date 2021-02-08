@@ -20,19 +20,23 @@ module Trixi
 using LinearAlgebra: dot, mul!
 using Printf: @printf, @sprintf, println
 
-import DiffEqBase: ODEProblem, ODESolution, ODEFunction,
+# import @reexport now to make it available for further imports/exports
+using Reexport: @reexport
+
+import DiffEqBase: CallbackSet, DiscreteCallback,
+                   ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!
-using DiffEqCallbacks: CallbackSet, DiscreteCallback
-using EllipsisNotation # ..
-using HybridArrays: HybridArray
+@reexport using EllipsisNotation # ..
+using HybridArrays: HybridArray, Dynamic
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
 using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
-using StaticArrays: @SVector, MVector, MArray, SVector, SMatrix, Dynamic, SOneTo
+@reexport using StaticArrays: SVector
+using StaticArrays: MVector, MArray, SMatrix
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 
@@ -80,8 +84,8 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
-export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
-       flux_chandrashekar, flux_chandrashekar_stable, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -93,7 +97,7 @@ export initial_condition_constant,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble,
+       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp,
        initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
@@ -114,7 +118,7 @@ export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_c
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 
-export cons2cons, cons2prim, cons2macroscopic
+export cons2cons, cons2prim, cons2macroscopic, prim2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
