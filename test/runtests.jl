@@ -6,7 +6,7 @@ const TRIXI_TEST = get(ENV, "TRIXI_TEST", "all")
 const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
 
 @time @testset "Trixi.jl tests" begin
-  # This is placed first since tests error out if `TRIXI_TEST == "all"`,
+  # This is placed first since tests error out otherwise if `TRIXI_TEST == "all"`,
   # at least on some systems.
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_parallel"
     # Do a dummy `@test true`:
@@ -28,8 +28,12 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
     include("test_examples_1d.jl")
   end
 
-  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d"
-    include("test_examples_2d.jl")
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_part1"
+    include("test_examples_2d_part1.jl")
+  end
+
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "2d_part2"
+    include("test_examples_2d_part2.jl")
   end
 
   @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d"
