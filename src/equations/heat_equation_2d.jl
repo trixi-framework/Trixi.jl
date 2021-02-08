@@ -7,6 +7,9 @@ The heat equation
 \partial_t u - \nu (\partial^2_1 u + \partial^2_2 u) = 0
 ```
 in two space dimensions with constant viscosity ``\nu``.
+
+!!! warning "Experimental code"
+    This system of equations is experimental and can change any time.
 """
 struct HeatEquation2D{RealT<:Real} <: AbstractHeatEquation{2, 1}
   nu::RealT

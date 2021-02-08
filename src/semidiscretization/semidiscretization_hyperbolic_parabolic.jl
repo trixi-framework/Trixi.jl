@@ -5,6 +5,9 @@
 
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic-parabolic conservation law.
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and can change any time.
 """
 struct SemidiscretizationHyperbolicParabolic{SemiHyperbolic, SemiParabolic, Cache} <: AbstractSemidiscretization
   semi_hyperbolic::SemiHyperbolic
@@ -27,6 +30,9 @@ end
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE by combining the purely hyperbolic and
 purely parabolic semidiscretizations.
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and can change any time.
 """
 function SemidiscretizationHyperbolicParabolic(semi_hyperbolic, semi_parabolic)
   cache = (; du_ode_parabolic=Vector{real(semi_parabolic)}())
@@ -145,6 +151,9 @@ scheme for a DGSEM solver. The passed arguments must correspond to the hyperboli
 the `solver`. Internally, a matching solver for the parabolic system is created and both a
 hyperbolic and a parabolic semidiscretization are created and passed to a
 `SemidiscretizationHyperbolicParabolic`.
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and can change any time.
 """
 function SemidiscretizationHyperbolicParabolicBR1(mesh, equations, initial_condition, solver::DGSEM;
                                                   source_terms=nothing,

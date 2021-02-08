@@ -7,6 +7,9 @@ The linear advection-diffusion equation
 \partial_t u + a_1 \partial_1 u + a_2 \partial_2 u - \nu (\partial^2_1 u + \partial^2_2 u)= 0
 ```
 in two space dimensions with constant velocity `a` and constant viscosity ``\nu``.
+
+!!! warning "Experimental code"
+    This system of equations is experimental and can change any time.
 """
 struct LinearAdvectionDiffusionEquation2D{RealT<:Real} <: AbstractLinearAdvectionDiffusionEquation{2, 1}
   advectionvelocity::SVector{2, RealT}

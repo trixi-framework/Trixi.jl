@@ -5,6 +5,9 @@
 
 A struct containing everything needed to describe a spatial semidiscretization
 of a parabolic conservation law.
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and can change any time.
 """
 struct SemidiscretizationParabolicAuxVars{Mesh, Equations, InitialCondition, BoundaryConditions,
                                           SourceTerms, Solver, Cache} <: AbstractSemidiscretization
@@ -38,10 +41,13 @@ end
 
 """
     SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, solver;
-                                 source_terms=nothing,
-                                 boundary_conditions=boundary_condition_periodic)
+                                       source_terms=nothing,
+                                       boundary_conditions=boundary_condition_periodic)
 
 Construct a semidiscretization of a parabolic PDE.
+
+!!! warning "Experimental code"
+    This semidiscretization is experimental and can change any time.
 """
 function SemidiscretizationParabolicAuxVars(mesh, equations, initial_condition, solver;
                                             source_terms=nothing,
