@@ -1,5 +1,5 @@
-#include("fv_dg_2d.jl")
 
+#include("fv_dg_2d.jl")
 @inline function reconstruction_large_stencil(u_mm,u_ll,u_rr,u_pp,x_mm,x_ll,x_rr,x_pp,x_interface,index,limiter,dg,equations)
   if (index==2)
     ux_ll1 = 1.0*(u_rr - u_mm) / (x_rr - x_mm + eps(x_rr))
@@ -62,15 +62,6 @@ end
   return u_ll,u_rr
 end
 
-@inline function choose_positive_value(u,u_safe,equations::CompressibleEulerEquations2D)
-  if (u[1]<0.0)||(u[4]<0.0)
-    u_positive = u_safe
-  else
-    u_positive = u
-  end
-  return u_positive
-end
-
 @inline function minmod(sl,sr)
    s = 0.0
    if sign(sl)==sign(sr)
@@ -96,3 +87,9 @@ end
    end
   return s
 end
+
+@inline function choose_positive_value(u,u_safe,equations)
+  u_positive = u
+  return u_positive
+end
+
