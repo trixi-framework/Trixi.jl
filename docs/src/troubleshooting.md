@@ -91,7 +91,7 @@ there are a number of things you can try to fix such errors:
   comments for others who do not know what you are trying to do, including your future self 😉).
 
 
-## [I see lots of questions marks and weird symbols in the output of Trixi](@id font-issues)
+## [There are many questions marks and weird symbols in the output of Trixi](@id font-issues)
 
 This probably means that the default font used by your operating system is not
 ready for the 21st century and does not support enough Unicode symbols.

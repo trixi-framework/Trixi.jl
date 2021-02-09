@@ -174,7 +174,7 @@ download it to your machine, edit the configuration, and pass the file path to
 ```
 If this produces weird symbols or question marks in the terminal on your system,
 you are probably using Mac OS with problematic fonts. In that case, please check
-the [Troubleshooting](@ref old-release) section.
+the [Troubleshooting](@ref font-issues) section.
 
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
