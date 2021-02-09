@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '^1.6.0-0'
+          - '^1.6.0-rc1'
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -50,27 +50,27 @@ jobs:
           - paper-self-gravitating-gas-dynamics
           - misc
         include:
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: macOS-latest
             arch: x64
             trixi_test: 2d_part1
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: macOS-latest
             arch: x64
             trixi_test: 2d_part2
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: macOS-latest
             arch: x64
             trixi_test: 2d_parallel
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: windows-latest
             arch: x64
             trixi_test: 2d_part1
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: windows-latest
             arch: x64
             trixi_test: 2d_part2
-          - version: '^1.6.0-0'
+          - version: '^1.6.0-rc1'
             os: windows-latest
             arch: x64
             trixi_test: 2d_parallel
