@@ -41,7 +41,7 @@ equations_gravity = HyperbolicDiffusionEquations2D()
 
 # TODO: Taal, define initial/boundary conditions here for gravity?
 
-solver_gravity = DGSEM(polydeg, flux_upwind)
+solver_gravity = DGSEM(polydeg, flux_godunov)
 
 semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_condition, solver_gravity,
                                             boundary_conditions=boundary_conditions,

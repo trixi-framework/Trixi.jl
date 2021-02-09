@@ -229,9 +229,9 @@ end
 @inline function dirichlet_boundary_flux(u_inner, u_boundary, direction, equations::HyperbolicDiffusionEquations2D)
   # # Calculate boundary flux
   # if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-  #   flux = flux_upwind(u_inner, u_boundary, orientation, equations)
+  #   flux = flux_godunov(u_inner, u_boundary, orientation, equations)
   # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-  #   flux = flux_upwind(u_boundary, u_inner, orientation, equations)
+  #   flux = flux_godunov(u_boundary, u_inner, orientation, equations)
   # end
 
   # Calculate boundary flux by setting the value of the incoming characteristic
