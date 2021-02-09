@@ -55,7 +55,7 @@ const MPI_IS_ROOT = Ref(true)
 @inline mpi_isparallel() = MPI_IS_PARALLEL[]
 
 # This is not type-stable but that's okay since we want to get rid of it anyway
-# and it's not used in performance-critical parts. The alternativ we used before,
+# and it's not used in performance-critical parts. The alternative we used before,
 # calling something like `eval(:(mpi_parallel() = Val(true)))` in `init_mpi()`,
 # causes invalidations and slows down the first call to Trixi.
 mpi_parallel()::Union{Val{true}, Val{false}} = Val(mpi_isparallel())
