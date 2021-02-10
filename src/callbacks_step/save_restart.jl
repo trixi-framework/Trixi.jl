@@ -13,12 +13,12 @@ mutable struct SaveRestartCallback
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveRestartCallback}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
   restart_callback = cb.affect!
   print(io, "SaveRestartCallback(interval=", restart_callback.interval, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveRestartCallback}
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
   if get(io, :compact, false)
     show(io, cb)
   else

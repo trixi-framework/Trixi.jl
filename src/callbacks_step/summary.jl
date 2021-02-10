@@ -17,7 +17,7 @@ function SummaryCallback()
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(summary_callback)}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
   print(io, "SummaryCallback")
 end
 

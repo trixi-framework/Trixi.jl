@@ -14,7 +14,7 @@ trivial_callback(u, t, integrator) = false
 trivial_callback(integrator) = u_modified!(integrator, false)
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(trivial_callback)}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:typeof(trivial_callback)})
   print(io, "TrivialCallback()")
 end
 

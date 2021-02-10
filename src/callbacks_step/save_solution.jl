@@ -20,12 +20,12 @@ mutable struct SaveSolutionCallback{SolutionVariables}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
   save_solution_callback = cb.affect!
   print(io, "SaveSolutionCallback(interval=", save_solution_callback.interval, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SaveSolutionCallback}
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
   if get(io, :compact, false)
     show(io, cb)
   else

@@ -19,13 +19,13 @@ function SteadyStateCallback(; abstol=1.0e-8, reltol=1.0e-6)
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SteadyStateCallback}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
   steady_state_callback = cb.affect!
   print(io, "SteadyStateCallback(abstol=", steady_state_callback.abstol, ", ",
                                 "reltol=", steady_state_callback.reltol, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:SteadyStateCallback}
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:SteadyStateCallback})
   if get(io, :compact, false)
     show(io, cb)
   else

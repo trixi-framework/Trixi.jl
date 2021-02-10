@@ -24,12 +24,12 @@ function AliveCallback(; analysis_interval=0,
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
+function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:AliveCallback})
   alive_callback = cb.affect!
   print(io, "AliveCallback(alive_interval=", alive_callback.alive_interval, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AliveCallback}
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:AliveCallback})
   if get(io, :compact, false)
     show(io, cb)
   else
