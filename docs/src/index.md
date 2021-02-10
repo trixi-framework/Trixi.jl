@@ -172,6 +172,10 @@ download it to your machine, edit the configuration, and pass the file path to
           data-cols=100
           data-rows=48></script>
 ```
+If this produces weird symbols or question marks in the terminal on your system,
+you are probably using Mac OS with problematic fonts. In that case, please check
+the [Troubleshooting](@ref font-issues) section.
+
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
