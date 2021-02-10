@@ -25,14 +25,6 @@ function init_mpi()
   MPI_IS_PARALLEL[] = MPI_SIZE[] > 1
   MPI_IS_SERIAL[] = !MPI_IS_PARALLEL[]
   MPI_IS_ROOT[] = MPI_IS_SERIAL[] || MPI_RANK[] == 0
-
-  # Initialize methods for dispatching on parallel execution
-  if MPI_IS_PARALLEL[]
-    eval(:(mpi_parallel() = Val(true)))
-  else
-    eval(:(mpi_parallel() = Val(false)))
-  end
-
   MPI_INITIALIZED[] = true
 
   return nothing
@@ -61,6 +53,12 @@ const MPI_IS_ROOT = Ref(true)
 @inline mpi_nranks() = MPI_SIZE[]
 
 @inline mpi_isparallel() = MPI_IS_PARALLEL[]
+
+# This is not type-stable but that's okay since we want to get rid of it anyway
+# and it's not used in performance-critical parts. The alternative we used before,
+# calling something like `eval(:(mpi_parallel() = Val(true)))` in `init_mpi()`,
+# causes invalidations and slows down the first call to Trixi.
+mpi_parallel()::Union{Val{true}, Val{false}} = Val(mpi_isparallel())
 
 @inline mpi_isroot() = MPI_IS_ROOT[]
 
