@@ -1,7 +1,7 @@
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep=0)
-  save_mesh_file(mesh, output_directory, timestep, mpi_parallel())
+  save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,

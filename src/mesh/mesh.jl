@@ -94,7 +94,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   domain_length = maximum(coordinates_max .- coordinates_min)
 
   # TODO: MPI, create nice interface for a parallel tree/mesh
-  if mpi_parallel() === Val(true)
+  if mpi_isparallel()
     TreeType = ParallelTree{NDIMS}
   else
     TreeType = SerialTree{NDIMS}
@@ -103,6 +103,14 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   # Create mesh
   mesh = @timeit_debug timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
 
+  # Initialize mesh
+  initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
+
+  return mesh
+end
+
+function initialize!(mesh::TreeMesh, initial_refinement_level,
+                     refinement_patches, coarsening_patches)
   # Create initial refinement
   @timeit_debug timer() "initial refinement" for _ in 1:initial_refinement_level
     refine!(mesh.tree)
@@ -133,7 +141,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
   partition!(mesh)
 
-  return mesh
+  return nothing
 end
 
 function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
@@ -149,7 +157,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) 
   if get(io, :compact, false)
     show(io, mesh)
   else
-    setup = [ 
+    setup = [
              "center" => mesh.tree.center_level_0,
              "length" => mesh.tree.length_level_0,
              "periodicity" => mesh.tree.periodicity,
