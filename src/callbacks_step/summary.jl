@@ -185,7 +185,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Conditi
   mpi_isroot() || return nothing
 
   print_timer(io, timer(), title="Trixi.jl",
-              allocations=true, linechars=:ascii, compact=false)
+              allocations=true, linechars=:unicode, compact=false)
   println(io)
   return nothing
 end
