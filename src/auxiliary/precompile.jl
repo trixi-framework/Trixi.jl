@@ -193,6 +193,9 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},Tuple{RealT,RealT},Tuple{RealT,RealT}})
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},Tuple{RealT,RealT,RealT},Tuple{RealT,RealT,RealT}})
   end
+  for RealT in (Float64,), TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
+    Base.precompile(Tuple{typeof(Trixi.initialize!),TreeMesh{NDIMS, TreeType{NDIMS}},Int,Tuple{},Tuple{}})
+  end
 
   # Constructors: linear advection
   for RealT in (Float64,)
@@ -288,6 +291,7 @@ function _precompile_manual_()
     # end
   # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
+  @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback), typeof(Trixi.summary_callback), typeof(Trixi.initialize_summary_callback), typeof(DiffEqBase.FINALIZE_DEFAULT)}})
   # TODO: AMRCallback, ControllerThreeLevel, indicators
 
   # init_elements, interfaces, etc.
