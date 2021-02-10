@@ -293,6 +293,7 @@ function _precompile_manual_()
   # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
   @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback), typeof(Trixi.summary_callback), typeof(Trixi.initialize_summary_callback), typeof(DiffEqBase.FINALIZE_DEFAULT)}})
+  @assert Base.precompile(Tuple{typeof(summary_box),typeof(stdout),String,Vector{Pair{String, Any}}})
   # TODO: AMRCallback, ControllerThreeLevel, indicators
 
   # init_elements, interfaces, etc.
@@ -339,7 +340,7 @@ function _precompile_manual_()
     end
 
     # mortars, analyzers, adaptors, DG
-    for polydeg in 1:7
+    for polydeg in 1:1
       nnodes_ = polydeg + 1
       basis_type    = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
       mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
@@ -362,6 +363,9 @@ function _precompile_manual_()
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
       @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",DG{RealT,basis_type,mortar_type,typeof(flux_lax_friedrichs),VolumeIntegralWeakForm}})
     end
+
+    # semidiscretizations
+    @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",SemidiscretizationHyperbolic})
 
     # callbacks
     summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),typeof(Trixi.summary_callback),typeof(Trixi.initialize_summary_callback),typeof(DiffEqBase.FINALIZE_DEFAULT)}
@@ -398,6 +402,9 @@ function _precompile_manual_()
     lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),typeof(Trixi.lbm_collision_callback),typeof(Trixi.initialize!),typeof(DiffEqBase.FINALIZE_DEFAULT)}
     @assert Base.precompile(Tuple{typeof(show),typeof(stdout),lbm_collision_callback_type})
     @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",lbm_collision_callback_type})
+
+    # infrastructure, special elixirs
+    @assert Base.precompile(Tuple{typeof(trixi_include),String})
   end
 
   return nothing
