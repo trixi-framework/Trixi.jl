@@ -6,8 +6,9 @@
 @inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
 
-# Add method to show some information on system of equations
-function Base.show(io::IO, equations::AbstractEquations)
+# Add methods to show some information on systems of equations.
+# Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
+function Base.show(io::IO, @nospecialize equations::AbstractEquations)
   print(io, get_name(equations), " with ")
   if nvariables(equations) == 1
     print(io, "one variable")
@@ -16,7 +17,7 @@ function Base.show(io::IO, equations::AbstractEquations)
   end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", equations::AbstractEquations)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize equations::AbstractEquations)
   if get(io, :compact, false)
     show(io, equations)
   else

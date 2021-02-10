@@ -28,7 +28,7 @@ function ParametersEulerGravity(; background_density=0.0,
   ParametersEulerGravity(background_density, gravitational_constant, cfl, resid_tol, n_iterations_max, timestep_gravity)
 end
 
-function Base.show(io::IO, parameters::ParametersEulerGravity)
+function Base.show(io::IO, @nospecialize parameters::ParametersEulerGravity)
   print(io, "ParametersEulerGravity(")
   print(io,   "background_density=", parameters.background_density)
   print(io, ", gravitational_constant=", parameters.gravitational_constant)
@@ -37,7 +37,7 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
   print(io, ", timestep_gravity=", parameters.timestep_gravity)
   print(io, ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize parameters::ParametersEulerGravity)
   if get(io, :compact, false)
     show(io, parameters)
   else
@@ -108,7 +108,7 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     semi_euler, semi_gravity, parameters, cache)
 end
 
-function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
+function Base.show(io::IO, @nospecialize semi::SemidiscretizationEulerGravity)
   print(io, "SemidiscretizationEulerGravity using")
   print(io,       semi.semi_euler)
   print(io, ", ", semi.semi_gravity)
@@ -121,7 +121,7 @@ function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
   print(io, "))")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
+function Base.show(io::IO, mime::MIME"text/plain", @nospecialize semi::SemidiscretizationEulerGravity)
   if get(io, :compact, false)
     show(io, semi)
   else

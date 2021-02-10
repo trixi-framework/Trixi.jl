@@ -128,7 +128,7 @@ end
 
 
 # Convenience output for debugging
-function Base.show(io::IO, ::MIME"text/plain", t::ParallelTree{NDIMS}) where NDIMS
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize t::ParallelTree)
   l = t.length
   println(io, '*'^20)
   println(io, "t.parent_ids[1:l] = $(t.parent_ids[1:l])")

@@ -53,7 +53,7 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
 end
 
 
-function Base.show(io::IO, indicator::IndicatorHennemannGassner)
+function Base.show(io::IO, @nospecialize indicator::IndicatorHennemannGassner)
   print(io, "IndicatorHennemannGassner(")
   print(io, indicator.variable)
   print(io, ", alpha_max=", indicator.alpha_max)
@@ -62,7 +62,7 @@ function Base.show(io::IO, indicator::IndicatorHennemannGassner)
   print(io, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize indicator::IndicatorHennemannGassner)
   if get(io, :compact, false)
     show(io, indicator)
   else
@@ -110,12 +110,12 @@ function IndicatorLöhner(semi::AbstractSemidiscretization;
 end
 
 
-function Base.show(io::IO, indicator::IndicatorLöhner)
+function Base.show(io::IO, @nospecialize indicator::IndicatorLöhner)
   print(io, "IndicatorLöhner(")
   print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize indicator::IndicatorLöhner)
   if get(io, :compact, false)
     show(io, indicator)
   else
@@ -158,12 +158,12 @@ function IndicatorMax(semi::AbstractSemidiscretization;
 end
 
 
-function Base.show(io::IO, indicator::IndicatorMax)
+function Base.show(io::IO, @nospecialize indicator::IndicatorMax)
   print(io, "IndicatorMax(")
   print(io, "variable=", indicator.variable, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
+function Base.show(io::IO, ::MIME"text/plain", @nospecialize indicator::IndicatorMax)
   if get(io, :compact, false)
     show(io, indicator)
   else
