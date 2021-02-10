@@ -388,6 +388,25 @@ function initial_condition_khi(x, t, equations::CompressibleEulerEquations2D)
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
+"""
+    initial_condition_khi2(x, t, equations::CompressibleEulerEquations2D)
+
+The Kelvin-Helmholtz instability based on
+- positivity preserving ECCOMAS proceeding Rueda and Gassner
+- also used in FLUXO
+"""
+function initial_condition_khi2(x, t, equations::CompressibleEulerEquations2D)
+  # change discontinuity to tanh
+  # typical resolution 128^2, 256^2
+  # domain size is [-1,+1]^2
+  slope = 15
+  B = tanh(slope * x[2] + 7.5) - tanh(slope * x[2] - 7.5)
+  rho = 0.5 + 0.75 * B
+  v1 = 0.5 * (B - 1)
+  v2 = 0.1 * sin(2 * pi * x[1])
+  p = 1.0
+  return prim2cons(SVector(rho, v1, v2, p), equations)
+end
 
 """
     initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
@@ -1134,3 +1153,14 @@ end
 @inline function energy_internal(cons, equations::CompressibleEulerEquations2D)
   return energy_total(cons, equations) - energy_kinetic(cons, equations)
 end
+
+@inline function choose_positive_value(u,u_safe,equations::CompressibleEulerEquations2D)
+  if (u[1]<0.0)||(u[4]<0.0)
+    u_positive = u_safe
+  else
+    u_positive = u
+  end
+  return u_positive
+end
+
+

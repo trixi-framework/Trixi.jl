@@ -100,19 +100,28 @@ This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV,Reconstruction,Limiter} <: AbstractVolumeIntegral
   volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+  reconstruction_mode::Reconstruction # which type of FV reconstruction to use
+  slope_limiter::Limiter # which type of slope limiter function
 end
+
+function VolumeIntegralPureLGLFiniteVolume(; volume_flux_fv = flux_lax_friedrichs, reconstruction_mode = reconstruction_O1, slope_limiter = no_recon)
+  VolumeIntegralPureLGLFiniteVolume{typeof(volume_flux_fv), typeof(reconstruction_mode), typeof(slope_limiter)}(
+    volume_flux_fv, reconstruction_mode, slope_limiter)
+end
+
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
   if get(io, :compact, false)
     show(io, integral)
   else
-    setup = [
-            "FV flux" => integral.volume_flux_fv
-            ]
-    summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
+    summary_header(io, "VolumeIntegralPureLGLFiniteVolume")
+    summary_line(io, "volume flux FV", integral.volume_flux_fv)
+    summary_line(io, "reconstruction mode", integral.reconstruction_mode)
+    summary_line(io, "slope limiter", integral.slope_limiter)
+    summary_footer(io)
   end
 end
 
@@ -329,6 +338,7 @@ include("dg_1d.jl")
 include("containers_2d.jl")
 include("dg_2d.jl")
 include("dg_2d_parallel.jl")
+include("fv_dg.jl")
 
 # 3D DG implementation
 include("containers_3d.jl")

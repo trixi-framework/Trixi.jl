@@ -83,11 +83,14 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
 export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
+export reconstruction_O1, reconstruction_small_stencil, reconstruction_large_stencil, reconstruction_large_irregular,
+       minmod, monotonized_central, central_recon, no_recon
+
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave, initial_condition_density_pulse,
        initial_condition_isentropic_vortex,
-       initial_condition_khi,
+       initial_condition_khi, initial_condition_khi2,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_blob,
