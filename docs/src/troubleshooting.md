@@ -93,9 +93,8 @@ there are a number of things you can try to fix such errors:
 
 ## [There are many questions marks and weird symbols in the output of Trixi](@id font-issues)
 
-This probably means that the default font used by your operating system is not
-ready for the 21st century and does not support enough Unicode symbols.
-Try installing a modern font with decent unicode support, e.g.
+This probably means that the default font used by your operating system does not support enough
+Unicode symbols. Try installing a modern font with decent unicode support, e.g.
 [JuliaMono](https://github.com/cormullion/juliamono). Detailed
 [installation instructions](https://cormullion.github.io/pages/2020-07-26-JuliaMono/#installation)
 are available there.
