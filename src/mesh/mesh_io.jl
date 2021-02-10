@@ -90,9 +90,9 @@ Load the mesh from the `restart_file`.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max)
   if mpi_isparallel()
-    load_mesh_serial(restart_file; n_cells_max=n_cells_max)
-  else
     load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
+  else
+    load_mesh_serial(restart_file; n_cells_max=n_cells_max)
   end
 end
 
