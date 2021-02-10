@@ -25,6 +25,7 @@ on:
       - '.github/workflows/TagBot.yml'
       - 'docs/**'
       - 'utils/**'
+  workflow_dispatch:
 
 jobs:
   test:
