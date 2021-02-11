@@ -331,6 +331,135 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 end
 
 
+struct GMRES
+  restart::Int
+  maxiters::Int
+
+  function GMRES(; restart=5, maxiters=1000)
+    new(restart, maxiters)
+  end
+end
+
+struct CacheGMRES{RealT, RestartP1, VecType}
+  alg::GMRES
+  krylov_basis::NTuple{RestartP1, VecType}
+  H::Matrix{RealT}
+  ls_rhs::Vector{RealT}
+end
+
+function initialize(alg::GMRES, x::AbstractVector)
+  RealT = real(eltype(x))
+  RestartP1 = alg.restart + 1
+  VecType = typeof(x)
+
+  krylov_basis = ntuple(_ -> similar(x), alg.restart + 1)
+  H = Matrix{RealT}(undef, alg.restart + 1, alg.restart)
+  ls_rhs = Vector{RealT}(undef, alg.restart + 1)
+  return CacheGMRES{RealT, RestartP1, VecType}(alg, krylov_basis, H, ls_rhs)
+end
+
+function mesh_might_have_changed!(cache::CacheGMRES, x::AbstractVector)
+  @unpack krylov_basis = cache
+
+  # Can be changed by AMR
+  for v in krylov_basis
+    resize!(v, length(x))
+  end
+
+  return nothing
+end
+
+function initialize!(cache::CacheGMRES, A, x::AbstractVector, b::AbstractVector)
+  @unpack krylov_basis, H, ls_rhs = cache
+
+  # initial residual
+  mul!(krylov_basis[1], A, x)
+  @. krylov_basis[1] = b - krylov_basis[1]
+  residual_norm = norm(krylov_basis[1])
+
+  H .= zero(eltype(H))
+  ls_rhs .= zero(eltype(ls_rhs))
+  ls_rhs[1] = residual_norm
+  krylov_basis[1] ./= residual_norm
+
+  return nothing
+end
+
+function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheGMRES, abstol)
+  @unpack alg, krylov_basis, H, ls_rhs = cache
+
+  mesh_might_have_changed!(cache, x)
+
+  converged = false
+  iter = 0
+
+  # iterate gravity solver until convergence or maximum number of iterations are reached
+  while true
+    # re-initialize after each restart (aka "Runge-Kutta step")
+    initialize!(cache, A, x, b)
+    residual = cache.ls_rhs[1]
+
+    if residual <= abstol
+      break
+    end
+
+    # check if we reached the maximum number of iterations
+    if alg.maxiters > 0 && iter >= alg.maxiters
+      @warn "Max iterations reached: Gravity solver failed to converge!" residual=residual
+      break
+    end
+
+    # begin a new Krylov cycle given by the number of iterations per restart
+    for j in 1:alg.restart
+      mul!(krylov_basis[j+1], A, krylov_basis[j])
+
+      # Arnoldi, modified Gram-Schmidt orthonormalization
+      for i in 1:j
+        H[i, j] = dot(krylov_basis[i], krylov_basis[j+1])
+        @. krylov_basis[j+1] -= H[i, j] * krylov_basis[i]
+      end
+      H[j+1, j] = norm(krylov_basis[j+1])
+      krylov_basis[j+1] ./= H[j+1, j]
+    end
+
+    # solve least squares problem
+    y = qr!(H) \ ls_rhs
+
+    # update current solution iterate
+    for j in 1:alg.restart
+      @. x = x + y[j] * krylov_basis[j]
+    end
+
+    # update iteration counter
+    iter += 1
+  end
+
+  return nothing
+end
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheGMRES)
+  @unpack parameters, gravity_counter = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+
+  @assert resid_tol_type === :l2_full
+  x, A, b = get_x_A_b(semi, u_ode)
+
+  abstol = resid_tol * length(x)
+  time_start = time_ns()
+  @timeit_debug timer() "linear solver" solve!(x, A, b, cache, abstol)
+  runtime = time_ns() - time_start
+  put!(gravity_counter, runtime)
+
+  # TODO: Clean-up
+  # @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
+
+  return nothing
+end
+
+
+
 
 # TODO: Taal refactor, add some callbacks or so within the gravity update to allow investigating/optimizing it
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, timestep_gravity)

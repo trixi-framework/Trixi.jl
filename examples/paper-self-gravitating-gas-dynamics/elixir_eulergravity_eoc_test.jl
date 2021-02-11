@@ -41,9 +41,9 @@ parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     # for the manufactured solution
                                     gravitational_constant=1.0, # aka G
                                     cfl=2.4,                 # 2.4; 1.1 is safe for polydeg=4
-                                    resid_tol=1.0e-11,       # TODO: Clean-up, 1.0e-10,   1.0e-11
+                                    resid_tol=1.0e-11,       # TODO: Clean-up, 1.0e-10,   1.0e-11; should become abstol/reltol
                                     resid_tol_type=:l2_full, # TODO: Clean-up, :linf_phi, :l2_full
-                                    n_iterations_max=1000,
+                                    n_iterations_max=1000,   # TODO: Should become maxiters
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
 semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
