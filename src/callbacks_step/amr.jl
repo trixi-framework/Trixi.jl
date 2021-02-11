@@ -65,7 +65,7 @@ end
 #   amr_callback = cb.affect!
 #   print(io, "AMRCallback")
 # end
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, AMRCallback})
+function Base.show(io::IO, mime::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:AMRCallback})
   if get(io, :compact, false)
     show(io, cb)
   else
