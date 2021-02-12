@@ -1,60 +1,102 @@
 # Callbacks
+Many of the advanced features of Trixi, such as adaptive mesh refinement, are implemented as
+callbacks. A callback is an algorithmic entity that gets passed to the ODE solver and
+is called at specific points during execution to perform certain tasks. Callbacks in Trixi are
+either called after each time step (*step callbacks*) or after each stage of the ODE
+solver (*stage callbacks*).
 
-Many of the advanced features of Trixi such as adaptive mesh refinement are implemented as 
-callbacks. A callback is an algorithmic entity that gets passed to the ODE solver and 
-is called at specific points during execution to perform certain tasks. Callbacks in Trixi are 
-either called after each time step or after each stage of the ODE 
-solver. 
+![callbacks_illustration](https://user-images.githubusercontent.com/65298011/107779585-dc3ba700-6d45-11eb-8087-15afc1cd5080.png)
 
-## Overview
+The advantage of callbacks over hard-coding all features is that it allows to extend Trixi without
+modyfing the internal source code. Trixi provides callbacks for time step
+control, adaptive mesh refinement, I/O and more.
 
-### CFL-based time step control
-Time step control can be performed with a [`StepsizeCallback`](@ref). 
+## Step Callbacks
+
+### CFL-based Time Step Control
+Time step control can be performed with a [`StepsizeCallback`](@ref). An example making use
+of this can be found at [examples/2d/elixir\_advection\_basic.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_basic.jl)
 
 ### Adaptive Mesh Refinement
-Trixi uses a hierarchical Cartesian mesh which can be locally refined in a solution-adaptive way. 
-This can be used to speed up simulations with minimal loss in overall accuracy. AMR can be used by 
-passing an [`AMRCallback`](@ref) to the ODE solver. The `AMRCallback` requires a controller such as 
-the [`ControllerThreeLevel`](@ref) or [`ControllerThreeLevelCombined`](@ref) to tell the AMR 
-algorithm which cells to refine/coarsen. 
+Trixi uses a hierarchical Cartesian mesh which can be locally refined in a solution-adaptive way.
+This can be used to speed up simulations with minimal loss in overall accuracy. AMR can be used by
+passing an [`AMRCallback`](@ref) to the ODE solver. The `AMRCallback` requires a controller such as
+[`ControllerThreeLevel`](@ref) or [`ControllerThreeLevelCombined`](@ref) to tell the AMR
+algorithm which cells to refine/coarsen.
 
-### Analyzing the numerical solution
-The [`AnalysisCallback`](@ref) can be used to analyze the numerical solution, e.g. calculate 
-errors or user-specified integrals, and print the results to the screen. The results can also be 
-saved in a file.
+An example elixir using AMR can be found at [examples/2d/elixir\_advection\_amr.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_amr.jl).
+
+### Analyzing the Numerical Solution
+The [`AnalysisCallback`](@ref) can be used to analyze the numerical solution, e.g. calculate
+errors or user-specified integrals, and print the results to the screen. The results can also be
+saved in a file. An example can be found at [examples/2d/elixir\_euler\_vortex.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_vortex.jl).
 
 ### I/O
-To save the solution in regular intervals you can use a [`SaveSolutionCallback`](@ref). It is also 
-possible to create restart files using the [`SaveRestartCallback`](@ref). 
+To save the solution in regular intervals you can use a [`SaveSolutionCallback`](@ref). It is also
+possible to create restart files using the [`SaveRestartCallback`](@ref). An example making use
+of these can be found at [examples/2d/elixir\_advection\_extended.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_extended.jl).
+An example showing how to restart a simulation from a restart file can be found at
+[examples/2d/elixir\_advection\_restart.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_restart.jl).
 
 ### Misc
-* The [`AliveCallback`](@ref) prints some information to the screen to show that a simulation is 
+* The [`AliveCallback`](@ref) prints some information to the screen to show that a simulation is
   still running.
-* [`SummaryCallback`](@ref): Prints a human-readable summary of the simulation setup and controls 
+* The [`SummaryCallback`](@ref) prints a human-readable summary of the simulation setup and controls
   the timer.
-* [`VisualizationCallback`](@ref): Used for in-situ visualization. See 
+* The [`VisualizationCallback`](@ref) can be used for in-situ visualization. See
   [Visualizing results during a simulation](@ref).
+* The [`TrivialCallback`](@ref) does nothing and can be used to to easily disable some callbacks
+  via [`trixi_include`](@ref).
 
-## Usage
-Callbacks that are called after each time step are passed to the `solve` method from the ODE solver 
-via the keyword argument `callback`.
-If you want to use a single callback `cb`, it is sufficient to pass it as `callback=cb`. 
-When using two or more callbacks, you need to turn them into a `CallbackSet` first by calling 
+### Equation-specific Callbacks
+Some callbacks provided by Trixi implement specific features for certain equations:
+* The [`LBMCollisionCallback`](@ref) implements the Lattice-Boltzmann method (LBM) collision
+  operator and should only be used when solving the Lattice-Boltzmann equations. See e.g.
+  [examples/2d/elixir\_lbm\_constant.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_lbm_constant.jl)
+* The [`SteadyStateCallback`](@ref) terminates the time integration when the residual steady state
+  falls below a certain threshold. This checks the convergence of the potential ``\phi`` for
+  hyperbolic diffusion. See e.g. [examples/2d/elixir\_hypdiff\_nonperiodic.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_hypdiff_nonperiodic.jl).
+* The [`GlmSpeedCallback`](@ref) updates the divergence cleaning wave speed `c_h` for the ideal
+  GLM-MHD equations. See e.g. [examples/2d/elixir\_mhd\_alfven\_wave.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_mhd_alfven_wave.jl).
+
+## Usage of Step Callbacks
+Step callbacks are passed to the `solve` method from the ODE solver via the keyword argument
+`callback`. If you want to use a single callback `cb`, pass it as `callback=cb`. When using two or
+more callbacks, you need to turn them into a `CallbackSet` first by calling
 `callbacks = CallbackSet(cb1, cb2)` and passing it as `callback=callbacks`.
 
 !!! note
     There are some restrictions regarding the order of callbacks in a `CallbackSet`.
-   
-    The callbacks are called *after* each time step but some callbacks actually belong to the next 
+
+    The callbacks are called *after* each time step but some callbacks actually belong to the next
     time step. Therefore, the callbacks should be ordered in the following way:
     * Callbacks that belong to the current time step:
         * `SummaryCallback` controls, among other things, timers and should thus be first
+        * `SteadyStateCallback` may mark a time step as the last one
         * `AnalysisCallback` may do some checks that mark a time step as the last one
         * `AliveCallback` should be nearby `AnalysisCallback`
-        * `SaveSolutionCallback`/`SaveRestartCallback` should save the current solution before it is 
+        * `SaveSolutionCallback`/`SaveRestartCallback` should save the current solution before it is
           degraded by AMR
         * `VisualizationCallback` should be called before the mesh is adapted
     * Callbacks that belong to the next time step:
         * `AMRCallback`
-        * `StepsizeCallback` must be called after `AMRCallback` to accomodate potential changes to 
+        * `StepsizeCallback` must be called after `AMRCallback` to accomodate potential changes to
           the mesh
+        * `GlmSpeedCallback` must be called after `StepsizeCallback` because the step size affects
+          the value of `c_h`
+        * `LBMCollisionCallback` is already part of the calculations of the next time step and
+          should therefore be called after `StepsizeCallback`
+
+## Stage Callbacks
+[`PositivityPreservingLimiterZhangShu`](@ref) is a positivity-preserving limiter, used to enforce
+physical constraints. An example elixir using this feature can be found at
+[examples/2d/elixir\_euler\_positivity.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_euler_positivity.jl).
+
+## Implementing New Callbacks
+Since Trixi is compatible with [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
+both packages share the same callback interface. A detailed description of it can be found in the
+OrdinaryDiffEq.jl documentation.
+
+An example elixir showing how to implement a new simple stage callback and a new simple step
+callback can be found at [examples/2d/elixir\_advection\_callbacks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_callbacks.jl).
+
