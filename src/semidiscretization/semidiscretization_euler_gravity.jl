@@ -4,19 +4,20 @@
                              gravitational_constant=1.0,
                              cfl=1.0,
                              resid_tol=1.0e-4,
-                             n_iterations_max=10^4,
+                             maxiters=10^4,
                              timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
 Set up parameters for the gravitational part of a [`SemidiscretizationEulerGravity`](@ref).
 """
-struct ParametersEulerGravity{RealT<:Real, TimestepGravity}
+struct ParametersEulerGravity{RealT<:Real, GravitySolver, InitialGravitySolver}
   background_density    ::RealT # aka rho0
   gravitational_constant::RealT # aka G
   cfl                   ::RealT
   resid_tol             ::RealT
   resid_tol_type        ::Symbol
-  n_iterations_max      ::Int
-  timestep_gravity::TimestepGravity
+  maxiters              ::Int
+  gravity_solver        ::GravitySolver
+  initial_gravity_solver::InitialGravitySolver
 end
 
 function ParametersEulerGravity(; background_density=0.0,
@@ -25,12 +26,16 @@ function ParametersEulerGravity(; background_density=0.0,
                                   resid_tol=1.0e-4,
                                   resid_tol_type=:linf_phi, #  :linf_phi, :l2_full
                                   n_iterations_max=10^4,
-                                  timestep_gravity=timestep_gravity_erk52_3Sstar!)
+                                  maxiters=n_iterations_max,
+                                  timestep_gravity=timestep_gravity_erk52_3Sstar!,
+                                  gravity_solver=timestep_gravity,
+                                  initial_gravity_solver=nothing)
   background_density, gravitational_constant, cfl, resid_tol = promote(
     background_density, gravitational_constant, cfl, resid_tol)
 
-  return ParametersEulerGravity(background_density, gravitational_constant, cfl,
-    resid_tol, resid_tol_type, n_iterations_max, timestep_gravity)
+  return ParametersEulerGravity{typeof(cfl), typeof(gravity_solver), typeof(initial_gravity_solver)}(
+    background_density, gravitational_constant, cfl,
+    resid_tol, resid_tol_type, maxiters, gravity_solver, initial_gravity_solver)
 end
 
 function Base.show(io::IO, parameters::ParametersEulerGravity)
@@ -38,8 +43,9 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
   print(io,   "background_density=", parameters.background_density)
   print(io, ", gravitational_constant=", parameters.gravitational_constant)
   print(io, ", cfl=", parameters.cfl)
-  print(io, ", n_iterations_max=", parameters.n_iterations_max)
-  print(io, ", timestep_gravity=", parameters.timestep_gravity)
+  print(io, ", maxiters=", parameters.maxiters)
+  print(io, ", gravity_solver=", parameters.gravity_solver)
+  print(io, ", initial_gravity_solver=", parameters.initial_gravity_solver)
   print(io, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
@@ -50,8 +56,9 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
              "background density (ρ₀)" => parameters.background_density,
              "gravitational constant (G)" => parameters.gravitational_constant,
              "CFL (gravity)" => parameters.cfl,
-             "max. #iterations" => parameters.n_iterations_max,
-             "time integrator" => parameters.timestep_gravity,
+             "max. #iterations" => parameters.maxiters,
+             "gravity solver" => parameters.gravity_solver,
+             "init. grav. solver" => parameters.initial_gravity_solver,
             ]
     summary_box(io, "ParametersEulerGravity", setup)
   end
@@ -153,15 +160,22 @@ end
 
 
 # computes the coefficients of the initial condition
-@inline function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
-  compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
-  compute_coefficients(t, semi.semi_euler)
+function compute_coefficients(t, semi::SemidiscretizationEulerGravity)
+  u_ode = allocate_coefficients(mesh_equations_solver_cache(semi.semi_euler)...)
+  compute_coefficients!(u_ode, t, semi)
+  return u_ode
 end
 
 # computes the coefficients of the initial condition and stores the Euler part in `u_ode`
-@inline function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)
+function compute_coefficients!(u_ode, t, semi::SemidiscretizationEulerGravity)
   compute_coefficients!(semi.cache.u_ode, t, semi.semi_gravity)
   compute_coefficients!(u_ode, t, semi.semi_euler)
+
+  if semi.parameters.initial_gravity_solver !== nothing
+    update_gravity!(semi, u_ode, semi.parameters.initial_gravity_solver)
+  end
+
+  return nothing
 end
 
 
@@ -183,7 +197,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
   @timeit_debug timer() "Euler solver" rhs!(du_ode, u_ode, semi_euler, t)
 
   # compute gravitational potential and forces
-  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode, semi.parameters.timestep_gravity)
+  @timeit_debug timer() "gravity solver" update_gravity!(semi, u_ode, semi.parameters.gravity_solver)
 
   # add gravitational source source_terms to the Euler part
   if ndims(semi_euler) == 1
@@ -240,7 +254,7 @@ end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(bicgstabl!))
   @unpack parameters, gravity_counter = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  @unpack resid_tol, resid_tol_type, maxiters = parameters
 
   # TODO: Clean-up
   # let
@@ -257,7 +271,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   #   # set up main loop
   #   finalstep = false
-  #   @unpack n_iterations_max, cfl, resid_tol, resid_tol_type = parameters
+  #   @unpack maxiters, cfl, resid_tol, resid_tol_type = parameters
   #   iter = 0
   #   t = zero(real(semi_gravity.solver))
   #   dt = @timeit_debug timer() "calculate dt" cfl * max_dt(u_gravity, t, semi_gravity.mesh,
@@ -274,7 +288,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   reltol = 0.0
   time_start = time_ns()
   # TODO: We can also use bicgstabl!(x, A, b, l; kwargs...) instead of the default `l=2`.
-  @timeit_debug timer() "linear solver" bicgstabl!(x, A, b; abstol, reltol, max_mv_products=n_iterations_max)
+  @timeit_debug timer() "linear solver" bicgstabl!(x, A, b; abstol, reltol, max_mv_products=maxiters)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
@@ -288,7 +302,7 @@ end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(gmres!))
   @unpack parameters, gravity_counter = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  @unpack resid_tol, resid_tol_type, maxiters = parameters
 
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
@@ -296,7 +310,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   abstol = resid_tol * length(x)
   reltol = 0.0
   time_start = time_ns()
-  @timeit_debug timer() "linear solver" gmres!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
+  @timeit_debug timer() "linear solver" gmres!(x, A, b; abstol, reltol, maxiter=maxiters)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
@@ -310,7 +324,7 @@ end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, ::typeof(idrs!))
   @unpack parameters, gravity_counter = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  @unpack resid_tol, resid_tol_type, maxiters = parameters
 
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
@@ -318,7 +332,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
   abstol = resid_tol * length(x)
   reltol = 0.0
   time_start = time_ns()
-  @timeit_debug timer() "linear solver" idrs!(x, A, b; abstol, reltol, maxiter=n_iterations_max)
+  @timeit_debug timer() "linear solver" idrs!(x, A, b; abstol, reltol, maxiter=maxiters)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
@@ -463,7 +477,7 @@ end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheGMRES)
   @unpack parameters, gravity_counter = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  @unpack resid_tol, resid_tol_type, maxiters = parameters
 
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
@@ -622,7 +636,7 @@ end
 
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheRKGMRES)
   @unpack parameters, gravity_counter = semi
-  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+  @unpack resid_tol, resid_tol_type, maxiters = parameters
 
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
@@ -663,7 +677,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   # set up main loop
   finalstep = false
-  @unpack n_iterations_max, cfl, resid_tol, resid_tol_type = parameters
+  @unpack maxiters, cfl, resid_tol, resid_tol_type = parameters
   iter = 0
   t = zero(real(semi_gravity.solver))
 
@@ -711,7 +725,7 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
     end
 
     # check if we reached the maximum number of iterations
-    if n_iterations_max > 0 && iter >= n_iterations_max
+    if maxiters > 0 && iter >= maxiters
       @warn "Max iterations reached: Gravity solver failed to converge!" residual=residual t=t dt=dt
       break
     end
