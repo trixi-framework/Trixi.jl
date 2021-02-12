@@ -498,6 +498,7 @@ struct CacheRKGMRES{RealT, RestartP1, VecType}
   krylov_basis::NTuple{RestartP1, VecType}
   H::Matrix{RealT}
   ls_rhs::Vector{RealT}
+  c::Vector{RealT}
 end
 
 function initialize(alg::RKGMRES, x::AbstractVector=Vector{Float64}())
@@ -508,7 +509,8 @@ function initialize(alg::RKGMRES, x::AbstractVector=Vector{Float64}())
   krylov_basis = ntuple(_ -> similar(x), alg.restart + 1)
   H = Matrix{RealT}(undef, alg.restart + 1, alg.restart)
   ls_rhs = Vector{RealT}(undef, alg.restart + 1)
-  return CacheRKGMRES{RealT, RestartP1, VecType}(alg, krylov_basis, H, ls_rhs)
+  c = Vector{RealT}(undef, alg.restart + 1)
+  return CacheRKGMRES{RealT, RestartP1, VecType}(alg, krylov_basis, H, ls_rhs, c)
 end
 
 function mesh_might_have_changed!(cache::CacheRKGMRES, x::AbstractVector)
@@ -523,7 +525,7 @@ function mesh_might_have_changed!(cache::CacheRKGMRES, x::AbstractVector)
 end
 
 function initialize!(cache::CacheRKGMRES, A, x::AbstractVector, b::AbstractVector)
-  @unpack krylov_basis, H, ls_rhs = cache
+  @unpack krylov_basis, H, ls_rhs, c = cache
 
   # initial residual
   mul!(krylov_basis[1], A, x)
@@ -533,15 +535,18 @@ function initialize!(cache::CacheRKGMRES, A, x::AbstractVector, b::AbstractVecto
   H .= zero(eltype(H))
   ls_rhs .= zero(eltype(ls_rhs))
   ls_rhs[1] = residual_norm
-  krylov_basis[1] ./= residual_norm
+  c .= zero(eltype(c))
+  c[1] = inv(residual_norm)
+  krylov_basis[1] .*= c[1]
 
   return nothing
 end
 
-function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheRKGMRES, abstol)
-  @unpack alg, krylov_basis, H, ls_rhs = cache
+function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheRKGMRES, abstol, dt_max)
+  @unpack alg, krylov_basis, H, ls_rhs, c = cache
 
   mesh_might_have_changed!(cache, x)
+  dt = alg.cfl * dt_max
 
   converged = false
   iter = 0
@@ -563,7 +568,8 @@ function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheRKGMRES, ab
     end
 
     # begin a new Krylov cycle given by the number of iterations per restart
-    for j in 1:alg.restart
+    j = 0
+    for outer j in 1:alg.restart
       mul!(krylov_basis[j+1], A, krylov_basis[j])
 
       # Arnoldi, modified Gram-Schmidt orthonormalization
@@ -573,14 +579,38 @@ function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheRKGMRES, ab
       end
       H[j+1, j] = norm(krylov_basis[j+1])
       krylov_basis[j+1] ./= H[j+1, j]
+
+      # update coefficients needed to compute the corresponding RK coefficients
+      for i in 1:j
+        c[j+1] += c[i] * H[i,j]
+      end
+      c[j+1] = - c[j+1] / H[j+1, j]
     end
 
-    # solve least squares problem
-    y = qr!(H) \ ls_rhs
+    # # solve least squares problem
+    # y = qr!(H) \ ls_rhs
+
+    # FIXME: Clean-up
+    # solve linearly constrained least squares problem
+    # @show size(H)
+    # @show size(ls_rhs)
+    # @show size(c)
+    y_kkt = qr!([2*H'*H c[1:j]; c[1:j]' 0]) \ vcat(2*H'*ls_rhs, -dt)
+    y = y_kkt[1:j]
+    # any(isnan, y) && error("NaN...")
+
+    # FIXME: Clean-up
+    # first RK stability polynomial coefficients
+    # consistency_coefficient = zero(eltype(c))
+    # for i in 1:j
+    #   consistency_coefficient += c[i] * y[i]
+    # end
+    # @show consistency_coefficient / dt
+    # @show extrema(abs, view(c, 1:j))
 
     # update current solution iterate
-    for j in 1:alg.restart
-      @. x = x + y[j] * krylov_basis[j]
+    for i in 1:alg.restart
+      @. x = x + y[i] * krylov_basis[i]
     end
 
     # update iteration counter
@@ -596,10 +626,14 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVe
 
   @assert resid_tol_type === :l2_full
   x, A, b = get_x_A_b(semi, u_ode)
+  dt_max = let (mesh, equations, solver, cache) = mesh_equations_solver_cache(semi.semi_gravity)
+    u = wrap_array(x, mesh, equations, solver, cache)
+    @timeit_debug timer() "calculate dt" max_dt(u, zero(parameters.cfl), mesh, have_constant_speed(equations), equations, solver, cache)
+  end
 
   abstol = resid_tol * length(x)
   time_start = time_ns()
-  @timeit_debug timer() "linear solver" solve!(x, A, b, cache, abstol)
+  @timeit_debug timer() "linear solver" solve!(x, A, b, cache, abstol, dt_max)
   runtime = time_ns() - time_start
   put!(gravity_counter, runtime)
 
