@@ -347,7 +347,7 @@ struct CacheGMRES{RealT, RestartP1, VecType}
   ls_rhs::Vector{RealT}
 end
 
-function initialize(alg::GMRES, x::AbstractVector)
+function initialize(alg::GMRES, x::AbstractVector=Vector{Float64}())
   RealT = real(eltype(x))
   RestartP1 = alg.restart + 1
   VecType = typeof(x)
@@ -409,6 +409,159 @@ function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheGMRES, abst
       break
     end
 
+    # setup the rotations used to make H triangular
+    rotation = LinearAlgebra.Rotation{eltype(x)}([])
+
+    # begin a new Krylov cycle given by the number of iterations per restart
+    j = 0
+    for outer j in 1:alg.restart
+      mul!(krylov_basis[j+1], A, krylov_basis[j])
+
+      # Arnoldi, modified Gram-Schmidt orthonormalization
+      for i in 1:j
+        H[i, j] = dot(krylov_basis[i], krylov_basis[j+1])
+        @. krylov_basis[j+1] -= H[i, j] * krylov_basis[i]
+      end
+      H[j+1, j] = norm(krylov_basis[j+1])
+      krylov_basis[j+1] ./= H[j+1, j]
+
+      # apply the previous Givens rotations to the new column of H
+      @views lmul!(rotation, H[1:j, j:j])
+
+      # compute a new Givens rotation to zero out H[j + 1, j]
+      G, _ = givens(H, j, j+1, j)
+
+      # apply the new rotation to H and the least squares rhs
+      lmul!(G, H)
+      lmul!(G, ls_rhs)
+
+      # compose the new rotation with the others
+      lmul!(G, rotation)
+
+      residual = abs(ls_rhs[j+1])
+
+      if residual < abstol
+        break
+      end
+    end
+
+    # solve least squares problem
+    @views ldiv!(UpperTriangular(H[1:j, 1:j]), ls_rhs[1:j])
+    y = ls_rhs;
+
+    # update current solution iterate
+    for i in 1:j
+      @. x = x + y[i] * krylov_basis[i]
+    end
+
+    # update iteration counter
+    iter += 1
+  end
+
+  return nothing
+end
+
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheGMRES)
+  @unpack parameters, gravity_counter = semi
+  @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
+
+  @assert resid_tol_type === :l2_full
+  x, A, b = get_x_A_b(semi, u_ode)
+
+  abstol = resid_tol * length(x)
+  time_start = time_ns()
+  @timeit_debug timer() "linear solver" solve!(x, A, b, cache, abstol)
+  runtime = time_ns() - time_start
+  put!(gravity_counter, runtime)
+
+  # TODO: Clean-up
+  # @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
+  # @show norm(A * x - b)
+  # @show mean_phi = integrate(first, cache.u_ode, semi_gravity)
+
+  return nothing
+end
+
+
+struct RKGMRES{RealT<:Real}
+  cfl::RealT
+  restart::Int
+  maxiters::Int
+end
+
+function RKGMRES(; cfl::Real, restart=5, maxiters=1000)
+  RKGMRES{typeof(cfl)}(cfl, restart, maxiters)
+end
+
+struct CacheRKGMRES{RealT, RestartP1, VecType}
+  alg::RKGMRES{RealT}
+  krylov_basis::NTuple{RestartP1, VecType}
+  H::Matrix{RealT}
+  ls_rhs::Vector{RealT}
+end
+
+function initialize(alg::RKGMRES, x::AbstractVector=Vector{Float64}())
+  RealT = real(eltype(x))
+  RestartP1 = alg.restart + 1
+  VecType = typeof(x)
+
+  krylov_basis = ntuple(_ -> similar(x), alg.restart + 1)
+  H = Matrix{RealT}(undef, alg.restart + 1, alg.restart)
+  ls_rhs = Vector{RealT}(undef, alg.restart + 1)
+  return CacheRKGMRES{RealT, RestartP1, VecType}(alg, krylov_basis, H, ls_rhs)
+end
+
+function mesh_might_have_changed!(cache::CacheRKGMRES, x::AbstractVector)
+  @unpack krylov_basis = cache
+
+  # Can be changed by AMR
+  for v in krylov_basis
+    resize!(v, length(x))
+  end
+
+  return nothing
+end
+
+function initialize!(cache::CacheRKGMRES, A, x::AbstractVector, b::AbstractVector)
+  @unpack krylov_basis, H, ls_rhs = cache
+
+  # initial residual
+  mul!(krylov_basis[1], A, x)
+  @. krylov_basis[1] = b - krylov_basis[1]
+  residual_norm = norm(krylov_basis[1])
+
+  H .= zero(eltype(H))
+  ls_rhs .= zero(eltype(ls_rhs))
+  ls_rhs[1] = residual_norm
+  krylov_basis[1] ./= residual_norm
+
+  return nothing
+end
+
+function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheRKGMRES, abstol)
+  @unpack alg, krylov_basis, H, ls_rhs = cache
+
+  mesh_might_have_changed!(cache, x)
+
+  converged = false
+  iter = 0
+
+  # iterate gravity solver until convergence or maximum number of iterations are reached
+  while true
+    # re-initialize after each restart (aka "Runge-Kutta step")
+    initialize!(cache, A, x, b)
+    residual = cache.ls_rhs[1]
+
+    if residual <= abstol
+      break
+    end
+
+    # check if we reached the maximum number of iterations
+    if alg.maxiters > 0 && iter >= alg.maxiters
+      @warn "Max iterations reached: Gravity solver failed to converge!" residual=residual
+      break
+    end
+
     # begin a new Krylov cycle given by the number of iterations per restart
     for j in 1:alg.restart
       mul!(krylov_basis[j+1], A, krylov_basis[j])
@@ -437,7 +590,7 @@ function solve!(x::AbstractVector, A, b::AbstractVector, cache::CacheGMRES, abst
   return nothing
 end
 
-function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheGMRES)
+function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode::AbstractVector, cache::CacheRKGMRES)
   @unpack parameters, gravity_counter = semi
   @unpack resid_tol, resid_tol_type, n_iterations_max = parameters
 
