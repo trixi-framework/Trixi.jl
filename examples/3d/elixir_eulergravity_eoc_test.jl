@@ -37,7 +37,8 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 parameters = ParametersEulerGravity(background_density=2.0, # aka rho0
                                     gravitational_constant=1.0, # aka G
                                     cfl=1.5,
-                                    resid_tol=1.0e-10,
+                                    resid_tol=5.0e-12,       # TODO: Clean-up, 1.0e-10,   5.0e-12
+                                    resid_tol_type=:l2_full, # TODO: Clean-up, :linf_phi, :l2_full
                                     n_iterations_max=1000,
                                     timestep_gravity=timestep_gravity_erk52_3Sstar!)
 
@@ -67,10 +68,10 @@ save_solution = SaveSolutionCallback(interval=10,
 
 stepsize_callback = StepsizeCallback(cfl=1.1)
 
-callbacks = CallbackSet(summary_callback, 
-                        analysis_callback, 
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
                         alive_callback,
-                        save_restart, 
+                        save_restart,
                         save_solution,
                         stepsize_callback)
 

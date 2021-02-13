@@ -450,7 +450,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Compr
   end
   c = 2.0
   A = 0.1
-  ini = c + A * sin(pi * (x[1] + x[2] - t))
+  ini = c + A * sinpi(x[1] + x[2] - t)
   G = 1.0 # gravitational constant
 
   rho = ini

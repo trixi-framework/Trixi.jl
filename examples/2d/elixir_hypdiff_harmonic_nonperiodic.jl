@@ -11,7 +11,7 @@ initial_condition = initial_condition_harmonic_nonperiodic
 boundary_conditions = boundary_condition_harmonic_nonperiodic
 
 surface_flux = flux_godunov
-solver = DGSEM(4, surface_flux)
+solver = DGSEM(3, surface_flux) # FIXME: originally 4
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -58,7 +58,9 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+alg = Trixi.HypDiffN3Erk3Sstar52()
+sol = Trixi.solve(ode, alg,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

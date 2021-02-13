@@ -170,17 +170,19 @@ Setup used for convergence tests of the Euler equations with self-gravity used i
   [arXiv: 2008.10593](https://arxiv.org/abs/2008.10593)
 in combination with [`source_terms_harmonic`](@ref).
 """
-function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+@inline function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
 
   # Determine phi_x, phi_y
   G = 1.0 # gravitational constant
   C = -2.0*G/pi
   A = 0.1 # perturbation coefficient must match Euler setup
-  rho1 = A * sin(pi * (x[1] + x[2] - t))
+  # TODO: sincospi
+  si, co = sincos(pi * (x[1] + x[2] - t))
+  rho1 = A * si
   # intialize with ansatz of gravity potential
   phi = C * rho1
-  q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
-  q2  = q1                                     # = gravity acceleration in y-direction
+  q1  = C * A * pi * co # = gravity acceleration in x-direction
+  q2  = q1              # = gravity acceleration in y-direction
 
   return SVector(phi, q1, q2)
 end
@@ -197,11 +199,9 @@ based on
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
 Should be used together with [`boundary_condition_sedov_self_gravity`](@ref).
 """
-function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
+@inline function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusionEquations2D)
   # for now just use constant initial condition for sedov blast wave (can likely be improved)
-  phi = 0.0
-  q1  = 0.0
-  q2  = 0.0
+  phi = q1 = q2 = zero(eltype(x))
   return SVector(phi, q1, q2)
 end
 
@@ -218,16 +218,47 @@ based on
 - http://flash.uchicago.edu/site/flashcode/user_support/flash4_ug_4p62/node184.html#SECTION010114000000000000000
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                                surface_flux_function,
-                                                equations::HyperbolicDiffusionEquations2D)
-  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
+@inline function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
+                                                       surface_flux_function,
+                                                       equations::HyperbolicDiffusionEquations2D)
 
-  # Calculate boundary flux
-  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  u_boundary = initial_condition_sedov_self_gravity(x, t, equations)
+  return dirichlet_boundary_flux(u_inner, u_boundary, direction, equations)
+end
+
+@inline function dirichlet_boundary_flux(u_inner, u_boundary, direction, equations::HyperbolicDiffusionEquations2D)
+  # # Calculate boundary flux
+  # if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+  #   flux = flux_godunov(u_inner, u_boundary, orientation, equations)
+  # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+  #   flux = flux_godunov(u_boundary, u_inner, orientation, equations)
+  # end
+
+  # Calculate boundary flux by setting the value of the incoming characteristic
+  # variables to the outgoing characteristic variables plus the boundary value.
+  # This version is made to impose a BC on phi only, in contrast to the BC above
+  # which imposes a BC for the incoming characteristic variable, a combination
+  # of phi and q.
+  phi_bc, q1_bc, q2_bc = u_boundary
+  phi, q1, q2 = u_inner
+  inv_Tr = equations.inv_Tr
+  sqrt_inv_Tr = sqrt(inv_Tr)
+  if direction == 1 # -x
+    flux = SVector(-q1 - sqrt_inv_Tr * (phi - phi_bc),
+                   -inv_Tr * phi_bc,
+                   zero(phi_bc))
+  elseif direction == 2 # +x
+    flux = SVector(-q1 + sqrt_inv_Tr * (phi - phi_bc),
+                   -inv_Tr * phi_bc,
+                   zero(phi_bc))
+  elseif direction == 3 # -y
+    flux = SVector(-q2 - sqrt_inv_Tr * (phi - phi_bc),
+                   zero(phi_bc),
+                   -inv_Tr * phi_bc)
+  else #if direction == 4 # +y
+    flux = SVector(-q2 + sqrt_inv_Tr * (phi - phi_bc),
+                   zero(phi_bc),
+                   -inv_Tr * phi_bc)
   end
 
   return flux

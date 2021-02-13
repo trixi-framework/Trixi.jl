@@ -11,7 +11,7 @@ initial_condition = initial_condition_poisson_periodic
 
 surface_flux = flux_godunov
 volume_flux  = flux_central
-solver = DGSEM(4, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux)) # 4
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -27,7 +27,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
@@ -56,7 +56,9 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+alg = Trixi.HypDiffN3Erk3Sstar52()
+sol = Trixi.solve(ode, alg,
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
