@@ -54,7 +54,7 @@ parameters = ParametersEulerGravity(background_density=0.0, # aka rho0
                                     gravitational_constant=6.674e-8, # aka G
                                     resid_tol=3.0e-10,       # 1.0e-4,    3.0e-10, 3e-11 ≈ grid-converged
                                     resid_tol_type=:l2_full, # :linf_phi, :l2_full
-                                    cfl=2.4,                 # 2.4
+                                    cfl=2.4,                 # 1.2, 2.4
                                     maxiters=10_000,
                                     gravity_solver=timestep_gravity_erk52_3Sstar!,
                                     initial_gravity_solver=Trixi.bicgstabl!)
