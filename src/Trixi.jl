@@ -28,6 +28,7 @@ import DiffEqBase: CallbackSet, DiscreteCallback,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!
 @reexport using EllipsisNotation # ..
+using HybridArrays: HybridArray, Dynamic
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
@@ -70,6 +71,9 @@ include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
 include("visualization/visualization.jl")
+
+# Performance enhancements specific to some combinations of solvers, equations etc.
+include("performance_hacks/performance_hacks.jl")
 
 
 # export types/functions that define the public API of Trixi

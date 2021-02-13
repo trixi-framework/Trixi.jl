@@ -262,8 +262,9 @@ end
 
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
               mesh::ParallelTreeMesh{2}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
+              initial_condition, boundary_conditions::BoundaryConditions,
+              source_terms::SourceTerms,
+              dg::DG, cache) where {BoundaryConditions, SourceTerms}
   # Start to receive MPI data
   @timeit_debug timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
 

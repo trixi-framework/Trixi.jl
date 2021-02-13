@@ -45,10 +45,12 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre)
   boundary_interpolation       = SMatrix{nnodes_, 2}(convert.(RealT, boundary_interpolation))
 
-  derivative_matrix          = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_matrix))
-  derivative_split           = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split))
-  derivative_split_transpose = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split_transpose))
-  derivative_dhat            = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_dhat))
+  # We could use `SMatrix{nnodes_, nnodes_}` alternatively. However, `SMatrix`
+  # cannot be optimized by LoopVectorization.jl (`@avx`), at least currently.
+  derivative_matrix          = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_matrix))
+  derivative_split           = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split))
+  derivative_split_transpose = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split_transpose))
+  derivative_dhat            = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_dhat))
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,

@@ -173,8 +173,9 @@ end
 
 function rhs!(du::AbstractArray{<:Any,5}, u, t,
               mesh::TreeMesh{3}, equations,
-              initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache)
+              initial_condition, boundary_conditions::BoundaryConditions,
+              source_terms::SourceTerms,
+              dg::DG, cache) where {BoundaryConditions, SourceTerms}
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
@@ -1175,7 +1176,7 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, equations, dg::DG, cache)
   @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    @avx for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       for v in eachvariable(equations)
         du[v, i, j, k, element] *= factor
       end

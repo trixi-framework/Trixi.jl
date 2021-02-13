@@ -186,6 +186,16 @@ function _precompile_manual_()
     )
   end
 
+  function basis_type_dgsem(RealT, nnodes_)
+    # If the derivative matrices were used as `SMatrix` by default
+    # LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},
+    #                      StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+    #                      StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+    LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},
+                         StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                         HybridArray{Tuple{nnodes_,nnodes_},RealT,2,2,Array{RealT,2}}}
+  end
+
   # Constructors: mesh
   for RealT in (Int, Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},RealT,RealT})
@@ -261,7 +271,7 @@ function _precompile_manual_()
   # Constructors: mortars, analyzers, adaptors
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
-    basis_type = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+    basis_type = basis_type_dgsem(RealT, nnodes_)
     @assert Base.precompile(Tuple{typeof(Trixi.MortarL2),basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer},basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2},basis_type})
@@ -293,6 +303,7 @@ function _precompile_manual_()
   # init_elements, interfaces, etc.
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
+    mortar_type = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
 
     # 1D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,1,polydeg}})
@@ -301,18 +312,18 @@ function _precompile_manual_()
     # 2D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg},mortar_type})
 
     # 2D, parallel
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg},mortar_type})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,1,polydeg}})
 
     # 3D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,1,polydeg},mortar_type})
   end
 
   # various `show` methods
@@ -336,7 +347,7 @@ function _precompile_manual_()
     # mortars, analyzers, adaptors, DG
     for polydeg in 1:7
       nnodes_ = polydeg + 1
-      basis_type    = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      basis_type    = basis_type_dgsem(RealT, nnodes_)
       mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
       analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
       adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
