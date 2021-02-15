@@ -306,13 +306,14 @@ end
 end
 
 
-struct PlotData1D{xAxis, yAxis, VariableNames}
-  x::xAxis
-  y::yAxis
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices}
+  x::Coordinates
+  data::Data
   variable_names::VariableNames
+  mesh_vertices_x::Vertices
 end
 
-function PlotData1D(u::AbstractVector, semi;
+function PlotData1D(u, semi;
                     solution_variables=cons2prim,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice_axis=:z, slice_axis_intercept=0)
@@ -322,17 +323,14 @@ function PlotData1D(u::AbstractVector, semi;
 
   center = mesh.tree.center_level_0[1]
   domain_length = mesh.tree.length_level_0
-  size = length(u)
-
-  x_unshaped = 0:(size-1)
-  x = domain_length/(size-1)*x_unshaped.+(center-domain_length/2)
+  x = cache.elements.node_coordinates
 
   variable_names = SVector(varnames(solution_variables, equations))
 
-  return PlotData1D(x, u, variable_names)
+  return PlotData1D(vec(x), vec(u), variable_names, vcat(x[1, 1, :], x[1, end, end]))
 end
 
-#PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
+PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
