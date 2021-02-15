@@ -288,10 +288,55 @@ end
                    solution_variables=cons2prim,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
-  return PlotData2D(sol;
-                    solution_variables=solution_variables,
-                    grid_lines=grid_lines, max_supported_level=max_supported_level,
-                    nvisnodes=nvisnodes, slice_axis=slice_axis,
-                    slice_axis_intercept=slice_axis_intercept)
+
+  mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
+  if ndims(mesh) == 1
+    return PlotData1D(sol;
+                      solution_variables=solution_variables,
+                      grid_lines=grid_lines, max_supported_level=max_supported_level,
+                      nvisnodes=nvisnodes, slice_axis=slice_axis,
+                      slice_axis_intercept=slice_axis_intercept)
+  else
+    return PlotData2D(sol;
+                      solution_variables=solution_variables,
+                      grid_lines=grid_lines, max_supported_level=max_supported_level,
+                      nvisnodes=nvisnodes, slice_axis=slice_axis,
+                      slice_axis_intercept=slice_axis_intercept)
+    end
 end
 
+
+struct PlotData1D{xAxis, yAxis, VariableNames}
+  x::xAxis
+  y::yAxis
+  variable_names::VariableNames
+end
+
+function PlotData1D(u::AbstractVector, semi;
+                    solution_variables=cons2prim,
+                    grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+                    slice_axis=:z, slice_axis_intercept=0)
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+
+  center = mesh.tree.center_level_0[1]
+  domain_length = mesh.tree.length_level_0
+  size = length(u)
+
+  x_unshaped = 0:(size-1)
+  x = domain_length/(size-1)*x_unshaped.+(center-domain_length/2)
+
+  variable_names = SVector(varnames(solution_variables, equations))
+
+  return PlotData1D(x, u, variable_names)
+end
+
+#PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
+
+PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+
+@recipe function f(pd::PlotData1D)
+  label --> pd.variable_names[1]
+  pd.x, pd.y
+end
