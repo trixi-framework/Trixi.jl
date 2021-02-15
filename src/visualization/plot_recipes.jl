@@ -334,7 +334,29 @@ PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode
 
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
+struct PlotMesh1D{PD<:PlotData1D}
+  plot_data::PD
+end
+getmesh(pd::PlotData1D) = PlotMesh1D(pd)
+
 @recipe function f(pd::PlotData1D)
   label --> pd.variable_names[1]
-  pd.x, pd.y
+  pd.x, pd.data
+end
+
+@recipe function f(pm::PlotMesh1D)
+  @unpack plot_data = pm
+  @unpack x, mesh_vertices_x = plot_data
+
+  # Set geometric and annotation properties
+  xlims --> (x[begin], x[end])
+  legend -->  :none
+
+  # Set series properties
+  seriestype --> :vline
+  linecolor --> :grey
+  linewidth --> 1
+
+  # Return data for plotting
+  mesh_vertices_x
 end
