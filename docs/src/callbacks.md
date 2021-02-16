@@ -9,7 +9,7 @@ solver (*stage callbacks*).
 
 The advantage of callbacks over hard-coding all features is that it allows to extend Trixi without
 modyfing the internal source code. Trixi provides callbacks for time step
-control, adaptive mesh refinement, I/O and more.
+control, adaptive mesh refinement, I/O, and more.
 
 ## Step callbacks
 
@@ -99,4 +99,3 @@ OrdinaryDiffEq.jl [documentation](https://diffeq.sciml.ai/latest/features/callba
 
 An example elixir showing how to implement a new simple stage callback and a new simple step
 callback can be found at [examples/2d/elixir\_advection\_callbacks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/2d/elixir_advection_callbacks.jl).
-
