@@ -38,6 +38,7 @@ makedocs(
         "Visualization" => "visualization.md",
         "Conventions" => "conventions.md",
         "Time integration" => "time_integration.md",
+        "Callbacks" => "callbacks.md",
         "Development" => "development.md",
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
