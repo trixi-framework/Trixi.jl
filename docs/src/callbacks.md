@@ -5,7 +5,7 @@ is called at specific points during execution to perform certain tasks. Callback
 either called after each time step (*step callbacks*) or after each stage of the ODE
 solver (*stage callbacks*).
 
-![callbacks_illustration](https://user-images.githubusercontent.com/65298011/107779585-dc3ba700-6d45-11eb-8087-15afc1cd5080.png)
+![callbacks_illustration](https://user-images.githubusercontent.com/65298011/108088616-f690c000-7078-11eb-9dd1-b673eac6cecf.png)
 
 The advantage of callbacks over hard-coding all features is that it allows to extend Trixi without
 modyfing the internal source code. Trixi provides callbacks for time step
