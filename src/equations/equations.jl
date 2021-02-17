@@ -109,6 +109,14 @@ include("ideal_glm_mhd_1d.jl")
 include("ideal_glm_mhd_2d.jl")
 include("ideal_glm_mhd_3d.jl")
 
+# IdealGlmMhdMulticomponentEquations
+abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_multicomponent_2d.jl")
+
+# Retrieve number of components from equation instance for the multicomponent case
+@inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
+
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("hyperbolic_diffusion_1d.jl")
