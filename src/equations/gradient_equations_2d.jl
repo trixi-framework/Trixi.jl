@@ -8,6 +8,9 @@ q^d - \partial_d u = 0
 ```
 in direction `d` in two space dimensions as required for, e.g., the Bassi & Rebay 1 (BR1) or the
 local discontinuous Galerkin (LDG) schemes.
+
+!!! warning "Experimental code"
+    This system of equations is experimental and can change any time.
 """
 struct GradientEquations2D{RealT<:Real, NVARS} <: AbstractGradientEquations{2, NVARS}
   orientation::Int
@@ -25,7 +28,7 @@ varnames(::typeof(cons2prim), equations::GradientEquations2D) = varnames(cons2co
 """
     initial_condition_constant(x, t, equations::GradientEquations2D)
 
-A constant initial condition to test free-stream preservation.
+A constant initial condition (zero).
 """
 function initial_condition_constant(x, t, equations::GradientEquations2D)
   return SVector(ntuple(v -> zero(eltype(x)), nvariables(equations)))
@@ -50,16 +53,13 @@ function boundary_condition_sin_x(u_inner, orientation, direction, x, t,
   return flux
 end
 
-
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::GradientEquations2D)
-
-
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::GradientEquations2D)
   if orientation == equations.orientation
+    # In the direction specified in the constructor, the flux is equal to the current state.
     return -u
   else
+    # Otherwise, the flux is zero.
     return SVector(ntuple(v -> zero(eltype(u)), nvariables(equations)))
   end
 end
