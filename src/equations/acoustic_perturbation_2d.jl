@@ -29,6 +29,18 @@ function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2
   return SVector(v1_prime, v2_prime, p_prime)
 end
 
+"""
+    initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
+
+A smooth initial condition used for convergence tests.
+"""
+function initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 2 + sin(2 * pi * (x[1] - t))
+  v2_prime = 4 + cos(2 * pi * (x[2] - t))
+  p_prime = 6 + sin(2 * pi * (x[1] - t)) + cos(2 * pi * (x[2] - t))
+
+  return SVector(v1_prime, v2_prime, p_prime)
+end
 
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::AcousticPerturbationEquations2D)
