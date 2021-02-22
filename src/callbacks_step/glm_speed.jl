@@ -15,14 +15,18 @@ struct GlmSpeedCallback{RealT<:Real}
 end
 
 
-function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+  @nospecialize cb # reduce precompilation time
+
   glm_speed_callback = cb.affect!
   @unpack glm_scale, cfl = glm_speed_callback
   print(io, "GlmSpeedCallback(glm_scale=", glm_scale, ", cfl=", cfl, ")")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else

@@ -577,7 +577,9 @@ nmortars(l2mortars::L2MortarContainer3D) = length(l2mortars.orientations)
 
 
 # Allow printing container contents
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize c::L2MortarContainer3D)
+function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer3D)
+  @nospecialize c # reduce precompilation time
+
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper_left)
     println(io, "c.u_upper_left[$idx] = $(c.u_upper_left[idx])")

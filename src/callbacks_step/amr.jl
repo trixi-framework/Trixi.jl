@@ -61,11 +61,15 @@ end
 
 
 # TODO: Taal bikeshedding, implement a method with less information and the signature
-# function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:AMRCallback})
+# function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:AMRCallback})
+#   @nospecialize cb # reduce precompilation time
+#
 #   amr_callback = cb.affect!
 #   print(io, "AMRCallback")
 # end
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:AMRCallback})
+function Base.show(io::IO, mime::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AMRCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else
@@ -368,7 +372,9 @@ end
 create_cache(indicator_type::Type{ControllerThreeLevel}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 
 
-function Base.show(io::IO, @nospecialize controller::ControllerThreeLevel)
+function Base.show(io::IO, controller::ControllerThreeLevel)
+  @nospecialize controller # reduce precompilation time
+
   print(io, "ControllerThreeLevel(")
   print(io, controller.indicator)
   print(io, ", base_level=", controller.base_level)
@@ -379,7 +385,9 @@ function Base.show(io::IO, @nospecialize controller::ControllerThreeLevel)
   print(io, ")")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize controller::ControllerThreeLevel)
+function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLevel)
+  @nospecialize controller # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, controller)
   else
@@ -497,7 +505,9 @@ end
 create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi) = create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 
 
-function Base.show(io::IO, @nospecialize controller::ControllerThreeLevelCombined)
+function Base.show(io::IO, controller::ControllerThreeLevelCombined)
+  @nospecialize controller # reduce precompilation time
+
   print(io, "ControllerThreeLevelCombined(")
   print(io, controller.indicator_primary)
   print(io, ", ", controller.indicator_secondary)
@@ -509,7 +519,9 @@ function Base.show(io::IO, @nospecialize controller::ControllerThreeLevelCombine
   print(io, ")")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize controller::ControllerThreeLevelCombined)
+function Base.show(io::IO, mime::MIME"text/plain", controller::ControllerThreeLevelCombined)
+  @nospecialize controller # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, controller)
   else

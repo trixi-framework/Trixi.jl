@@ -13,12 +13,16 @@ mutable struct SaveRestartCallback
 end
 
 
-function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
+  @nospecialize cb # reduce precompilation time
+
   restart_callback = cb.affect!
   print(io, "SaveRestartCallback(interval=", restart_callback.interval, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:SaveRestartCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else

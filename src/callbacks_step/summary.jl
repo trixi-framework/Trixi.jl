@@ -17,7 +17,9 @@ function SummaryCallback()
 end
 
 
-function Base.show(io::IO, @nospecialize cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
+  @nospecialize cb # reduce precompilation time
+
   print(io, "SummaryCallback")
 end
 
@@ -95,8 +97,10 @@ function summary_header(io, heading; total_width=100, indentation_level=0)
   println(io, "│ " * "═"^length(heading) * " "^(total_width - length(heading) - 4) * " │")
 end
 
-# Printing is not performance-critical, so we can use `@nospecialize` to reduce latency
-function summary_line(io, key, @nospecialize(value); key_width=30, total_width=100, indentation_level=0)
+function summary_line(io, key, value; key_width=30, total_width=100, indentation_level=0)
+  # Printing is not performance-critical, so we can use `@nospecialize` to reduce latency
+  @nospecialize value # reduce precompilation time
+
   key_width = get(io, :key_width, key_width)
   total_width = get(io, :total_width, total_width)
   indentation_level = get(io, :indentation_level, indentation_level)

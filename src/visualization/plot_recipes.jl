@@ -129,7 +129,9 @@ struct PlotDataSeries2D{PD<:PlotData2D}
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, @nospecialize pds::PlotDataSeries2D)
+function Base.show(io::IO, pds::PlotDataSeries2D)
+  @nospecialize pds # reduce precompilation time
+
   print(io, "PlotDataSeries2D{", typeof(pds.plot_data), "}(<plot_data::PlotData2D>, ",
         pds.variable_id, ")")
 end
@@ -168,7 +170,9 @@ function Base.iterate(pd::PlotData2D, state=1)
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, @nospecialize pd::PlotData2D)
+function Base.show(io::IO, pd::PlotData2D)
+  @nospecialize pd # reduce precompilation time
+
   print(io, "PlotData2D{",
             typeof(pd.x), ",",
             typeof(pd.data), ",",
@@ -185,7 +189,9 @@ struct PlotMesh2D{PD<:PlotData2D}
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
-function Base.show(io::IO, @nospecialize pm::PlotMesh2D)
+function Base.show(io::IO, pm::PlotMesh2D)
+  @nospecialize pm # reduce precompilation time
+
   print(io, "PlotMesh2D{", typeof(pm.plot_data), "}(<plot_data::PlotData2D>)")
 end
 

@@ -76,7 +76,9 @@ end
 
 
 
-function Base.show(io::IO, @nospecialize semi::SemidiscretizationHyperbolic)
+function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
+  @nospecialize semi # reduce precompilation time
+
   print(io, "SemidiscretizationHyperbolic(")
   print(io,       semi.mesh)
   print(io, ", ", semi.equations)
@@ -92,7 +94,9 @@ function Base.show(io::IO, @nospecialize semi::SemidiscretizationHyperbolic)
   print(io, "))")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize semi::SemidiscretizationHyperbolic)
+function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperbolic)
+  @nospecialize semi # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, semi)
   else

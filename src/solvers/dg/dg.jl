@@ -43,7 +43,9 @@ struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
   volume_flux::VolumeFlux
 end
 
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize integral::VolumeIntegralFluxDifferencing)
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -75,7 +77,9 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
     volume_flux_dg, volume_flux_fv, indicator)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize integral::VolumeIntegralShockCapturingHG)
+function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -105,7 +109,9 @@ struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
 end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize integral::VolumeIntegralPureLGLFiniteVolume)
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -140,7 +146,9 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   volume_integral::VolumeIntegral
 end
 
-function Base.show(io::IO, @nospecialize dg::DG)
+function Base.show(io::IO, dg::DG)
+  @nospecialize dg # reduce precompilation time
+
   print(io, "DG{", real(dg), "}(")
   print(io,       dg.basis)
   print(io, ", ", dg.mortar)
@@ -149,7 +157,9 @@ function Base.show(io::IO, @nospecialize dg::DG)
   print(io, ")")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", @nospecialize dg::DG)
+function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
+  @nospecialize dg # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, dg)
   else

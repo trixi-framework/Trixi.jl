@@ -59,10 +59,14 @@ end
 
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
-function Base.show(io::IO, @nospecialize basis::LobattoLegendreBasis)
+function Base.show(io::IO, basis::LobattoLegendreBasis)
+  @nospecialize basis # reduce precompilation time
+
   print(io, "LobattoLegendreBasis{", real(basis), "}(polydeg=", polydeg(basis), ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize basis::LobattoLegendreBasis)
+function Base.show(io::IO, ::MIME"text/plain", basis::LobattoLegendreBasis)
+  @nospecialize basis # reduce precompilation time
+
   print(io, "LobattoLegendreBasis{", real(basis), "} with polynomials of degree ", polydeg(basis))
 end
 
@@ -101,10 +105,14 @@ function MortarL2(basis::LobattoLegendreBasis)
     reverse_upper, reverse_lower)
 end
 
-function Base.show(io::IO, @nospecialize mortar::LobattoLegendreMortarL2)
+function Base.show(io::IO, mortar::LobattoLegendreMortarL2)
+  @nospecialize mortar # reduce precompilation time
+
   print(io, "LobattoLegendreMortarL2{", real(mortar), "}(polydeg=", polydeg(mortar), ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize mortar::LobattoLegendreMortarL2)
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
+  @nospecialize mortar # reduce precompilation time
+
   print(io, "LobattoLegendreMortarL2{", real(mortar), "} with polynomials of degree ", polydeg(mortar))
 end
 
@@ -172,10 +180,14 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2
     nodes, weights, vandermonde)
 end
 
-function Base.show(io::IO, @nospecialize analyzer::LobattoLegendreAnalyzer)
+function Base.show(io::IO, analyzer::LobattoLegendreAnalyzer)
+  @nospecialize analyzer # reduce precompilation time
+
   print(io, "LobattoLegendreAnalyzer{", real(analyzer), "}(polydeg=", polydeg(analyzer), ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize analyzer::LobattoLegendreAnalyzer)
+function Base.show(io::IO, ::MIME"text/plain", analyzer::LobattoLegendreAnalyzer)
+  @nospecialize analyzer # reduce precompilation time
+
   print(io, "LobattoLegendreAnalyzer{", real(analyzer), "} with polynomials of degree ", polydeg(analyzer))
 end
 
@@ -213,10 +225,14 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     l2reverse_upper, l2reverse_lower)
 end
 
-function Base.show(io::IO, @nospecialize adaptor::LobattoLegendreAdaptorL2)
+function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2)
+  @nospecialize adaptor # reduce precompilation time
+
   print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "}(polydeg=", polydeg(adaptor), ")")
 end
-function Base.show(io::IO, ::MIME"text/plain", @nospecialize adaptor::LobattoLegendreAdaptorL2)
+function Base.show(io::IO, ::MIME"text/plain", adaptor::LobattoLegendreAdaptorL2)
+  @nospecialize adaptor # reduce precompilation time
+
   print(io, "LobattoLegendreAdaptorL2{", real(adaptor), "} with polynomials of degree ", polydeg(adaptor))
 end
 
