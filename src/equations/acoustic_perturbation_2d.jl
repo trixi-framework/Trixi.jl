@@ -35,11 +35,38 @@ end
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
-  v1_prime = 2 + sin(2 * pi * (x[1] - t))
-  v2_prime = 4 + cos(2 * pi * (x[2] - t))
-  p_prime = 6 + sin(2 * pi * (x[1] - t)) + cos(2 * pi * (x[2] - t))
+  c = 2.0
+  A = 0.2
+  L = 2.0
+  f = 2.0 / L
+  a = 1.0
+  omega = 2 * pi * f
+  init = c + A * sin(omega * (x[1] + x[2] - a*t))
 
-  return SVector(v1_prime, v2_prime, p_prime)
+  v1_prime = init
+  v2_prime = init
+  p = init * init
+
+  return SVector(v1_prime, v2_prime, p)
+end
+
+function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
+  @unpack v_avg, rho_avg, c_sq_avg = equations
+
+  c = 2.0
+  A = 0.2
+  L = 2.0
+  f = 2.0 / L
+  a = 1.0
+  omega = 2 * pi * f
+
+  si, co = sincos(omega * (x[1] + x[2] - a * t))
+  tmp = v_avg[1] + v_avg[2] - a
+
+  du1 = du2 = A * omega * co * (2 * c + tmp + 2/rho_avg * A * si)
+  du3 = A * omega * co * (2 * c_sq_avg * rho_avg + 2 * c * tmp + 2 * A * tmp * si)
+
+  return SVector(du1, du2, du3)
 end
 
 # Pre-defined source terms should be implemented as

@@ -2,12 +2,12 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the acoustic perturbation equations
 
-v_avg = (0.0, 0.0)
+v_avg = (0.5, 0.3)
 rho_avg = 1.0
-c2_avg = 1.0
-equations = AcousticPerturbationEquations2D(v_avg, rho_avg, c2_avg)
+c_sq_avg = 1.0
+equations = AcousticPerturbationEquations2D(v_avg, rho_avg, c_sq_avg)
 
 initial_condition = initial_condition_convergence_test
 
@@ -15,22 +15,23 @@ initial_condition = initial_condition_convergence_test
 solver = DGSEM(3, flux_lax_friedrichs)
 
 coordinates_min = (0, 0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1, 1) # maximum coordinates (max(x), max(y))
+coordinates_max = (2, 2) # maximum coordinates (max(x), max(y))
 
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=3,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    source_terms=source_terms_convergence_test)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -40,7 +41,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval=100)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.2)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
