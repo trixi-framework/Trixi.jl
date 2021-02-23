@@ -29,10 +29,12 @@ function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2
   return SVector(v1_prime, v2_prime, p_prime)
 end
 
+
 """
     initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
 
-A smooth initial condition used for convergence tests.
+A smooth initial condition used for convergence tests in combination with
+[`source_terms_convergence_test`](@ref).
 """
 function initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
   c = 2.0
@@ -50,6 +52,12 @@ function initial_condition_convergence_test(x, t, equations::AcousticPerturbatio
   return SVector(v1_prime, v2_prime, p)
 end
 
+"""
+  source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
+
+Source terms used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref).
+"""
 function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
   @unpack v_avg, rho_avg, c_sq_avg = equations
 
@@ -69,9 +77,19 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
   return SVector(du1, du2, du3)
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::AcousticPerturbationEquations2D)
 
+"""
+    initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
+
+A constant initial condition.
+"""
+function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = 0.0
+
+  return SVector(v1_prime, v2_prime, p_prime)
+end
 
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
