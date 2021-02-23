@@ -327,7 +327,7 @@ function PlotData1D(u, semi;
 
   variable_names = SVector(varnames(solution_variables, equations))
 
-  return PlotData1D(vec(x), vec(u), variable_names, vcat(x[1, 1, :], x[1, end, end]))
+  return PlotData1D(vec(x), u, variable_names, vcat(x[1, 1, :], x[1, end, end]))
 end
 
 PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
@@ -416,7 +416,7 @@ end
   #colorbar --> :true
 
   # Return data for plotting
-  vec(x), vec(data[variable_id,:,:])
+  x, vec(data[variable_id,:,:])
 end
 
 @recipe function f(pd::PlotData1D)
