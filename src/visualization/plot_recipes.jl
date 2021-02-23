@@ -158,7 +158,7 @@ Base.lastindex(pd::PlotData2D) = last(pd.variable_names)
 Base.length(pd::PlotData2D) = length(pd.variable_names)
 Base.size(pd::PlotData2D) = (length(pd),)
 Base.keys(pd::PlotData2D) = tuple(pd.variable_names...)
-Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
+Base.eltype(pd::PlotData2D) = Pair{String, 2D}
 function Base.iterate(pd::PlotData2D, state=1)
   if state > length(pd)
     return nothing
@@ -278,7 +278,8 @@ end
 end
 
 
-# Create a PlotData2D plot directly from a TrixiODESolution for convenience
+# Create a plot directly from a TrixiODESolution for convenience
+# The plot is created by a PlotData1D or PlotData2D object.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 #
@@ -305,12 +306,12 @@ end
     end
 end
 
-
-struct PlotData1D{Coordinates, Data, VariableNames, Vertices}
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices, Test}
   x::Coordinates
   data::Data
   variable_names::VariableNames
   mesh_vertices_x::Vertices
+  t::Test
 end
 
 function PlotData1D(u, semi;
@@ -327,7 +328,7 @@ function PlotData1D(u, semi;
 
   variable_names = SVector(varnames(solution_variables, equations))
 
-  return PlotData1D(vec(x), vec(u), variable_names, vcat(x[1, 1, :], x[1, end, end]))
+  return PlotData1D(x, u, variable_names, vcat(x[1, 1, :], x[1, end, end]), x)
 end
 
 PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
@@ -359,4 +360,88 @@ end
 
   # Return data for plotting
   mesh_vertices_x
+end
+
+struct PlotDataSeries1D{PD<:PlotData1D}
+  plot_data::PD
+  variable_id::Int
+end
+
+Base.firstindex(pd::PlotData1D) = first(pd.variable_names)
+Base.lastindex(pd::PlotData1D) = last(pd.variable_names)
+Base.length(pd::PlotData1D) = length(pd.variable_names)
+Base.size(pd::PlotData1D) = (length(pd),)
+Base.keys(pd::PlotData1D) = tuple(pd.variable_names...)
+Base.eltype(pd::PlotData1D) = Pair{String, 2D}
+function Base.iterate(pd::PlotData1D, state=1)
+  if state > length(pd)
+    return nothing
+  else
+    return (pd.variable_names[state] => pd[pd.variable_names[state]], state + 1)
+  end
+end
+
+function Base.show(io::IO, pd::PlotData1D)
+  print(io, "PlotData1D{",
+            typeof(pd.x), ",",
+            typeof(pd.data), ",",
+            typeof(pd.variable_names), ",",
+            typeof(pd.mesh_vertices_x),
+            "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
+end
+
+function Base.getindex(pd::PlotData1D, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries1D(pd, variable_id)
+end
+
+function Base.show(io::IO, pm::PlotMesh1D)
+  print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
+end
+
+@recipe function f(pds::PlotDataSeries1D)
+  @unpack plot_data, variable_id = pds
+  @unpack x, data, variable_names = plot_data
+
+  # Set geometric properties
+  xlims --> (x[begin], x[end])
+
+  # Set annotation properties
+  legend -->  :none
+  title --> variable_names[variable_id]
+  #colorbar --> :true
+
+  # Return data for plotting
+  vec(x), vec(data[variable_id,:,:])
+end
+
+@recipe function f(pd::PlotData1D)
+  # Create layout that is as square as possible, with a preference for more columns than rows if not
+  cols = ceil(Int, sqrt(length(pd)))
+  rows = ceil(Int, length(pd)/cols)
+  layout := (rows, cols)
+
+  # Plot all existing variables
+  for (i, (variable_name, series)) in enumerate(pd)
+    @series begin
+      subplot := i
+      series
+    end
+  end
+
+  # Fill remaining subplots with empty plot
+  for i in (length(pd)+1):(rows*cols)
+    @series begin
+      subplot := i
+      axis := false
+      ticks := false
+      legend := false
+      []
+    end
+  end
 end
