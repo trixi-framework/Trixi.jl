@@ -10,13 +10,17 @@ mutable struct StepsizeCallback{RealT}
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
+  @nospecialize cb # reduce precompilation time
+
   stepsize_callback = cb.affect!
   @unpack cfl_number = stepsize_callback
   print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:StepsizeCallback}
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:StepsizeCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else

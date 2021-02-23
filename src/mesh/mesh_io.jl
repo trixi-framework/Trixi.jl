@@ -89,11 +89,14 @@ end
 Load the mesh from the `restart_file`.
 """
 function load_mesh(restart_file::AbstractString; n_cells_max)
-  load_mesh(restart_file, mpi_parallel(); n_cells_max=n_cells_max)
+  if mpi_isparallel()
+    load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
+  else
+    load_mesh_serial(restart_file; n_cells_max=n_cells_max)
+  end
 end
 
-function load_mesh(restart_file::AbstractString, mpi_parallel::Val{false};
-                   n_cells_max)
+function load_mesh_serial(restart_file::AbstractString; n_cells_max)
   ndims_ = h5open(restart_file, "r") do file
     read(attributes(file)["ndims"])
   end
@@ -131,8 +134,7 @@ function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
 end
 
 
-function load_mesh(restart_file::AbstractString, mpi_parallel::Val{true};
-                   n_cells_max)
+function load_mesh_parallel(restart_file::AbstractString; n_cells_max)
   if mpi_isroot()
     ndims_ = h5open(restart_file, "r") do file
       read(attributes(file)["ndims"])
