@@ -2,13 +2,13 @@
 TODO
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 3}
-  v_avg::SVector{2, RealT}
-  rho_avg::RealT
-  c_sq_avg::RealT
+  v_mean::SVector{2, RealT}
+  rho_mean::RealT
+  c_mean::RealT
 end
 
-function AcousticPerturbationEquations2D(v_avg::NTuple{2,<:Real}, rho_avg::Real, c_sq_avg::Real)
-  AcousticPerturbationEquations2D(SVector(v_avg), rho_avg, c_sq_avg)
+function AcousticPerturbationEquations2D(v_mean::NTuple{2,<:Real}, rho_mean::Real, c_mean::Real)
+  AcousticPerturbationEquations2D(SVector(v_mean), rho_mean, c_mean)
 end
 
 
@@ -60,7 +60,7 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
 """
 function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
-  @unpack v_avg, rho_avg, c_sq_avg = equations
+  @unpack v_mean, rho_mean, c_mean = equations
 
   c = 2.0
   A = 0.2
@@ -70,10 +70,10 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
   omega = 2 * pi * f
 
   si, co = sincos(omega * (x[1] + x[2] - a * t))
-  tmp = v_avg[1] + v_avg[2] - a
+  tmp = v_mean[1] + v_mean[2] - a
 
-  du1 = du2 = A * omega * co * (2 * c + tmp + 2/rho_avg * A * si)
-  du3 = A * omega * co * (2 * c_sq_avg * rho_avg + 2 * c * tmp + 2 * A * tmp * si)
+  du1 = du2 = A * omega * co * (2 * c + tmp + 2/rho_mean * A * si)
+  du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si)
 
   return SVector(du1, du2, du3)
 end
@@ -95,16 +95,16 @@ end
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = u
-  @unpack v_avg, rho_avg, c_sq_avg = equations
+  @unpack v_mean, rho_mean, c_mean = equations
 
   if orientation == 1
-    f1 = v_avg[1] * v1_prime + v_avg[2] * v2_prime + p_prime / rho_avg
+    f1 = v_mean[1] * v1_prime + v_mean[2] * v2_prime + p_prime / rho_mean
     f2 = zero(eltype(u))
-    f3 = c_sq_avg * rho_avg * v1_prime + v_avg[orientation] * p_prime
+    f3 = c_mean^2 * rho_mean * v1_prime + v_mean[orientation] * p_prime
   else
     f1 = zero(eltype(u))
-    f2 = v_avg[1] * v1_prime + v_avg[2] * v2_prime + p_prime / rho_avg
-    f3 = c_sq_avg * rho_avg * v2_prime + v_avg[orientation] * p_prime
+    f2 = v_mean[1] * v1_prime + v_mean[2] * v2_prime + p_prime / rho_mean
+    f3 = c_mean^2 * rho_mean * v2_prime + v_mean[orientation] * p_prime
   end
 
   return SVector(f1, f2, f3)
@@ -115,9 +115,9 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturb
   f_ll = calcflux(u_ll, orientation, equations)
   f_rr = calcflux(u_rr, orientation, equations)
 
-  v_ll = u_ll[orientation] + equations.v_avg[orientation]
-  v_rr = u_rr[orientation] + equations.v_avg[orientation]
-  c0 = sqrt(equations.c_sq_avg)
+  v_ll = u_ll[orientation] + equations.v_mean[orientation]
+  v_rr = u_rr[orientation] + equations.v_mean[orientation]
+  c0 = equations.c_mean
   speed = max(abs(v_ll), abs(v_rr)) + c0
 
   return 0.5 * ( (f_ll + f_rr) - speed * (u_rr - u_ll) )
@@ -127,7 +127,7 @@ end
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = Val(true)
 
 @inline function max_abs_speeds(equations::AcousticPerturbationEquations2D)
-  return abs.(equations.v_avg) .+ sqrt(equations.c_sq_avg)
+  return abs.(equations.v_mean) .+ equations.c_mean
 end
 
 

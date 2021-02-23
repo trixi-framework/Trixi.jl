@@ -20,10 +20,10 @@ end
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-v_avg = (-0.5, 0.25)
-rho_avg = 1.0
-c_sq_avg = sqrt(1.4 * 1.0 / rho_avg)
-equations = AcousticPerturbationEquations2D(v_avg, rho_avg, c_sq_avg)
+v_mean = (-0.5, 0.25)
+rho_mean = 1.0
+c_mean = 1.0
+equations = AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
 
 initial_condition = initial_condition_constant
 

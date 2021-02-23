@@ -5,10 +5,10 @@ using Plots
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-v_avg = (0.25, 0.25)
-rho_avg = 1.0
-c_sq_avg = sqrt(1.4 * 1.0 / rho_avg)
-equations = AcousticPerturbationEquations2D(v_avg, rho_avg, c_sq_avg)
+v_mean = (0.25, 0.25)
+rho_mean = 1.0
+c_mean = 1.0
+equations = AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
