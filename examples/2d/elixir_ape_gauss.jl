@@ -3,9 +3,9 @@ using Trixi
 using Plots
 
 ###############################################################################
-# semidiscretization of the linear advection equation
+# semidiscretization of the acoustic perturbation equations
 
-v_avg = (0.0, 0.0)
+v_avg = (0.25, 0.25)
 rho_avg = 1.0
 c_sq_avg = sqrt(1.4 * 1.0 / rho_avg)
 equations = AcousticPerturbationEquations2D(v_avg, rho_avg, c_sq_avg)
@@ -40,7 +40,7 @@ summary_callback = SummaryCallback()
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval=20, clims=(-0.2,1), variable_names=["p_prime"])
+visualization = VisualizationCallback(interval=20, clims=(-0.5,1), variable_names=["p_prime"])
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.5)

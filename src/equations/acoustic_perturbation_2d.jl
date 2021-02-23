@@ -23,9 +23,10 @@ initial_condition_gauss(x, t, equation::AcousticPerturbationEquations2D)
 A Gaussian pulse.
 """
 function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
-  p_prime = exp(-4*(x[1]^2 + x[2]^2)) / 2
-  v1_prime = 1.0
-  v2_prime = 1.0
+  p_prime = exp(-4*(x[1]^2 + x[2]^2))
+  v1_prime = 0.0
+  v2_prime = 0.0
+
   return SVector(v1_prime, v2_prime, p_prime)
 end
 
