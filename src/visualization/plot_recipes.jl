@@ -158,7 +158,7 @@ Base.lastindex(pd::PlotData2D) = last(pd.variable_names)
 Base.length(pd::PlotData2D) = length(pd.variable_names)
 Base.size(pd::PlotData2D) = (length(pd),)
 Base.keys(pd::PlotData2D) = tuple(pd.variable_names...)
-Base.eltype(pd::PlotData2D) = Pair{String, 2D}
+Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
 function Base.iterate(pd::PlotData2D, state=1)
   if state > length(pd)
     return nothing
@@ -306,12 +306,11 @@ end
     end
 end
 
-struct PlotData1D{Coordinates, Data, VariableNames, Vertices, Test}
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices}
   x::Coordinates
   data::Data
   variable_names::VariableNames
   mesh_vertices_x::Vertices
-  t::Test
 end
 
 function PlotData1D(u, semi;
@@ -328,7 +327,7 @@ function PlotData1D(u, semi;
 
   variable_names = SVector(varnames(solution_variables, equations))
 
-  return PlotData1D(x, u, variable_names, vcat(x[1, 1, :], x[1, end, end]), x)
+  return PlotData1D(vec(x), vec(u), variable_names, vcat(x[1, 1, :], x[1, end, end]))
 end
 
 PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
@@ -372,7 +371,7 @@ Base.lastindex(pd::PlotData1D) = last(pd.variable_names)
 Base.length(pd::PlotData1D) = length(pd.variable_names)
 Base.size(pd::PlotData1D) = (length(pd),)
 Base.keys(pd::PlotData1D) = tuple(pd.variable_names...)
-Base.eltype(pd::PlotData1D) = Pair{String, 2D}
+Base.eltype(pd::PlotData1D) = Pair{String, PlotDataSeries1D}
 function Base.iterate(pd::PlotData1D, state=1)
   if state > length(pd)
     return nothing
