@@ -1,5 +1,9 @@
 @doc raw"""
-TODO
+    AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
+
+Acoustic perturbation equations in two space dimensions with constant mean flow. The equations are
+based on the APE-4 system introduced by Ewert and Schröder
+[DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2).
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 3}
   v_mean::SVector{2, RealT}
@@ -8,7 +12,7 @@ struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbat
 end
 
 function AcousticPerturbationEquations2D(v_mean::NTuple{2,<:Real}, rho_mean::Real, c_mean::Real)
-  AcousticPerturbationEquations2D(SVector(v_mean), rho_mean, c_mean)
+  return AcousticPerturbationEquations2D(SVector(v_mean), rho_mean, c_mean)
 end
 
 
@@ -18,14 +22,28 @@ varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", 
 
 
 """
+    initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
+
+A constant initial condition.
+"""
+function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = 0.0
+
+  return SVector(v1_prime, v2_prime, p_prime)
+end
+
+
+"""
 initial_condition_gauss(x, t, equation::AcousticPerturbationEquations2D)
 
 A Gaussian pulse.
 """
 function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
-  p_prime = exp(-4*(x[1]^2 + x[2]^2))
   v1_prime = 0.0
   v2_prime = 0.0
+  p_prime = exp(-4*(x[1]^2 + x[2]^2))
 
   return SVector(v1_prime, v2_prime, p_prime)
 end
@@ -79,20 +97,7 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
 end
 
 
-"""
-    initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
-
-A constant initial condition.
-"""
-function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
-  v1_prime = 0.0
-  v2_prime = 0.0
-  p_prime = 0.0
-
-  return SVector(v1_prime, v2_prime, p_prime)
-end
-
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = u
   @unpack v_mean, rho_mean, c_mean = equations

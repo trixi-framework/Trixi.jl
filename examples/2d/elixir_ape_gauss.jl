@@ -35,9 +35,6 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-#analysis_callback = AnalysisCallback(semi, interval=100)
-
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
 visualization = VisualizationCallback(interval=20, clims=(-0.5,1), variable_names=["p_prime"])

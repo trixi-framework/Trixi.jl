@@ -12,7 +12,7 @@ function source_terms_gauss(u, x, t, equations::AcousticPerturbationEquations2D)
   s1 = 0.0
   s2 = 0.0
   # Pressure source
-  s3 = exp(-(x[1]^2 + x[2]^2) / (2*r^2)) * A * sin(2*pi*f*t)
+  s3 = exp(-(x[1]^2 + x[2]^2) / (2 * r^2)) * A * sin(2 * pi * f * t)
 
   return SVector(s1, s2, s3)
 end
@@ -52,9 +52,6 @@ ode = semidiscretize(semi, (0.0, 2.0));
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
-
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-#analysis_callback = AnalysisCallback(semi, interval=100)
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
