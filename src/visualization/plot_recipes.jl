@@ -283,7 +283,7 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 #
-# Note: If you change the defaults values here, you need to also change them in the PlotData2D or PlotData2D
+# Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 @recipe function f(sol::TrixiODESolution;
                    solution_variables=cons2prim,
@@ -291,6 +291,8 @@ end
                    slice_axis_intercept=0)
 
   mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
+
+  #Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(mesh) == 1
     return PlotData1D(sol;
                       solution_variables=solution_variables,
@@ -306,6 +308,8 @@ end
     end
 end
 
+
+#A struct to store all relevant information to make a plot for 1D equations.
 struct PlotData1D{Coordinates, Data, VariableNames, Vertices}
   x::Coordinates
   data::Data
@@ -313,6 +317,7 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices}
   mesh_vertices_x::Vertices
 end
 
+#Create a PlotData1D object.
 function PlotData1D(u, semi;
                     solution_variables=cons2prim,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
@@ -332,11 +337,13 @@ end
 
 PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
+#Plot from a solution object, which is directly return when running a simulation.
 PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
 struct PlotMesh1D{PD<:PlotData1D}
   plot_data::PD
 end
+
 getmesh(pd::PlotData1D) = PlotMesh1D(pd)
 
 @recipe function f(pd::PlotData1D)
@@ -361,6 +368,8 @@ end
   mesh_vertices_x
 end
 
+#Store multiple PlotData1D objects in one PlotDataSeries1D.
+#This is used for multi-variable equations.
 struct PlotDataSeries1D{PD<:PlotData1D}
   plot_data::PD
   variable_id::Int
@@ -403,6 +412,7 @@ function Base.show(io::IO, pm::PlotMesh1D)
   print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
 end
 
+#Create plot from a PlotDataSeries1D object and creates subplots for each variable.
 @recipe function f(pds::PlotDataSeries1D)
   @unpack plot_data, variable_id = pds
   @unpack x, data, variable_names = plot_data
