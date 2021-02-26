@@ -53,15 +53,18 @@ ode = semidiscretize(semi, (0.0, 2.0));
 # and resets the timers
 summary_callback = SummaryCallback()
 
-# Enable in-situ visualization with a new plot generated every 20 time steps
-# and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval=20, clims=(-0.1, 0.1), variable_names=["p_prime"])
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+analysis_callback = AnalysisCallback(semi, interval=100)
+
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval=100,
+                                     solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, visualization, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################
