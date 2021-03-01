@@ -17,7 +17,9 @@ function SummaryCallback()
 end
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(summary_callback)}
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
+  @nospecialize cb # reduce precompilation time
+
   print(io, "SummaryCallback")
 end
 
@@ -96,6 +98,9 @@ function summary_header(io, heading; total_width=100, indentation_level=0)
 end
 
 function summary_line(io, key, value; key_width=30, total_width=100, indentation_level=0)
+  # Printing is not performance-critical, so we can use `@nospecialize` to reduce latency
+  @nospecialize value # reduce precompilation time
+
   key_width = get(io, :key_width, key_width)
   total_width = get(io, :total_width, total_width)
   indentation_level = get(io, :indentation_level, indentation_level)
@@ -185,7 +190,7 @@ function (cb::DiscreteCallback{Condition,Affect!})(io::IO=stdout) where {Conditi
   mpi_isroot() || return nothing
 
   print_timer(io, timer(), title="Trixi.jl",
-              allocations=true, linechars=:ascii, compact=false)
+              allocations=true, linechars=:unicode, compact=false)
   println(io)
   return nothing
 end

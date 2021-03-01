@@ -540,6 +540,8 @@ end
 
 # Allow printing container contents
 function Base.show(io::IO, ::MIME"text/plain", c::L2MortarContainer2D)
+  @nospecialize c # reduce precompilation time
+
   println(io, '*'^20)
   for idx in CartesianIndices(c.u_upper)
     println(io, "c.u_upper[$idx] = $(c.u_upper[idx])")

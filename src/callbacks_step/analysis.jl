@@ -37,7 +37,9 @@ end
 # TODO: Taal bikeshedding, implement a method with less information and the signature
 # function Base.show(io::IO, analysis_callback::AnalysisCallback)
 # end
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:AnalysisCallback}
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:AnalysisCallback})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else

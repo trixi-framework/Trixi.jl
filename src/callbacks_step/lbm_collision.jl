@@ -15,12 +15,16 @@ end
 lbm_collision_callback(u, t, integrator) = !isfinished(integrator)
 
 
-function Base.show(io::IO, cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(lbm_collision_callback)}
+function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(lbm_collision_callback)})
+  @nospecialize cb # reduce precompilation time
+
   print(io, "LBMCollisionCallback()")
 end
 
 
-function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{Condition,Affect!}) where {Condition, Affect!<:typeof(lbm_collision_callback)}
+function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:typeof(lbm_collision_callback)})
+  @nospecialize cb # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, cb)
   else
