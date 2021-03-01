@@ -1,6 +1,5 @@
 using OrdinaryDiffEq
 using Trixi
-using Plots
 
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations

@@ -144,10 +144,8 @@ end
 
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::AcousticPerturbationEquations2D) = 0.5 * u^2
 @inline entropy(u, equations::AcousticPerturbationEquations2D) = entropy(u[1], equations)
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::AcousticPerturbationEquations2D) = 0.5 * u^2
 @inline energy_total(u, equations::AcousticPerturbationEquations2D) = energy_total(u[1], equations)

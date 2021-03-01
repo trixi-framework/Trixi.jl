@@ -1,6 +1,5 @@
 using OrdinaryDiffEq
 using Trixi
-using Plots
 
 # Oscillating Gaussian-shaped source terms
 function source_terms_gauss(u, x, t, equations::AcousticPerturbationEquations2D)
