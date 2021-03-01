@@ -283,7 +283,7 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 #
-# Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
+# Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D.
 #       constructor.
 @recipe function f(sol::TrixiODESolution;
                    solution_variables=cons2prim,
