@@ -1,8 +1,20 @@
 @doc raw"""
     AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
 
-Acoustic perturbation equations in two space dimensions with constant mean flow. The equations are
-based on the APE-4 system introduced by Ewert and Schröder
+!!! warning "Experimental code"
+    This system of equations is experimental and may change in any future release.
+
+Acoustic perturbation equations in two space dimensions with constant mean flow. `v_mean` is a tuple
+of size two holding the mean velocities in each direction. `rho_mean` and `c_mean` are scalars
+representing the mean density and mean speed of sound, respectively.
+
+The equations are based on the APE-4 system introduced in the following paper:
+
+R. Ewert, W. Schröder
+"Acoustic perturbation equations based on flow decomposition via source filtering",
+Journal of Computational Physics,
+Volume 188, Issue 2,
+2003,
 [DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2).
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 3}
