@@ -109,7 +109,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, pds)
     println(stdout)
 
-    # getmesh/PlotMesh2D
+    # getmesh/PlotMesh1D
     @test getmesh(pd) == Trixi.PlotMesh1D(pd)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
