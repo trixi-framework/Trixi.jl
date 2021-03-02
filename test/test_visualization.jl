@@ -75,7 +75,7 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
     # Run Trixi
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
-                               tspan=(0,0.1))
+                                     tspan=(0,0.1))
 
     # Constructor
     @test PlotData1D(sol) isa PlotData1D
