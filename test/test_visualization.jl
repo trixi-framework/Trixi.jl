@@ -16,12 +16,11 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
+  # Run Trixi
+  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
+                             tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
-    # Run Trixi
-    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                               tspan=(0,0.1))
-
     # Constructor
     @test PlotData2D(sol) isa PlotData2D
     @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
@@ -64,7 +63,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
   end
 
-  @testset "plot recipes" begin
+  @testset "2D plot recipes" begin
     pd = PlotData2D(sol)
 
     @test_nowarn_debug plot(sol)
@@ -94,7 +93,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
     # convenience methods for mimicking a dictionary
     @test pd[begin] == Trixi.PlotDataSeries1D(pd, 1)
-    @test pd[end] == Trixi.PlotDataSeries1D(pd, 2)
+    @test pd[end] == Trixi.PlotDataSeries1D(pd, 3)
     @test length(pd) == 3
     @test size(pd) == (3,)
     @test keys(pd) == ("rho", "v1", "p")
@@ -115,15 +114,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
-  end
 
-  @testset "plot recipes" begin
-    pd = PlotData1D(sol)
+    @testset "1D plot recipes" begin
+      pd = PlotData1D(sol)
 
-    @test_nowarn_debug plot(sol)
-    @test_nowarn_debug plot(pd)
-    @test_nowarn_debug plot(pd["p"])
-    @test_nowarn_debug plot(getmesh(pd))
+      @test_nowarn_debug plot(sol)
+      @test_nowarn_debug plot(pd)
+      @test_nowarn_debug plot(pd["p"])
+      @test_nowarn_debug plot(getmesh(pd))
+    end
   end
 
   @testset "plot 3D" begin
