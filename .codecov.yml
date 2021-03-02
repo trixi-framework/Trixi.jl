@@ -1,16 +1,16 @@
 # https://docs.codecov.io/docs/codecovyml-reference
 
 # We have
-#   6 * [number of basic OS] + 2 * [number of additional OS]
+#   7 * [number of basic OS] + 3 * [number of additional OS]
 # with
 # [number of basic OS] = 1 (Linux)
 # [number of additional OS] = 2 (Windows, MacOS)
 # parallel jobs in ci.yml
 codecov:
   notify:
-    after_n_builds: 10
+    after_n_builds: 13
 comment:
-  after_n_builds: 10
+  after_n_builds: 13
 
 coverage:
   range: 70..95
