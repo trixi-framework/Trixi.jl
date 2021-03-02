@@ -18,7 +18,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "Visualization tests" begin
   # Run Trixi
   @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                             tspan=(0,0.1))
+                                   tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
     # Constructor
@@ -127,7 +127,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
-                               tspan=(0,0.1))
+                                     tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 
