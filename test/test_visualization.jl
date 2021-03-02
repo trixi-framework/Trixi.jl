@@ -72,6 +72,59 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug plot(getmesh(pd))
   end
 
+  # Run Trixi
+  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
+                             tspan=(0,0.1))
+
+  @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
+    # Constructor
+    @test PlotData1D(sol) isa PlotData1D
+    pd = PlotData1D(sol)
+
+    # show
+    @test_nowarn_debug show(stdout, pd)
+    println(stdout)
+
+    # getindex
+    @test pd["rho"] == Trixi.PlotDataSeries1D(pd, 1)
+    @test pd["v1"] == Trixi.PlotDataSeries1D(pd, 2)
+    @test pd["p"] == Trixi.PlotDataSeries1D(pd, 3)
+    @test_throws KeyError pd["does not exist"]
+
+    # convenience methods for mimicking a dictionary
+    @test pd[begin] == Trixi.PlotDataSeries1D(pd, 1)
+    @test pd[end] == Trixi.PlotDataSeries1D(pd, 2)
+    @test length(pd) == 3
+    @test size(pd) == (3,)
+    @test keys(pd) == ("rho", "v1", "p")
+    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries1D}
+    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries1D(pd, 1),
+                              "v1" => Trixi.PlotDataSeries1D(pd, 2),
+                              "p" => Trixi.PlotDataSeries1D(pd, 3)]
+
+    # PlotDataSeries1D
+    pds = pd["p"]
+    @test pds.plot_data == pd
+    @test pds.variable_id == 3
+    @test_nowarn_debug show(stdout, pds)
+    println(stdout)
+
+    # getmesh/PlotMesh2D
+    @test getmesh(pd) == Trixi.PlotMesh1D(pd)
+    @test getmesh(pd).plot_data == pd
+    @test_nowarn_debug show(stdout, getmesh(pd))
+    println(stdout)
+  end
+
+  @testset "plot recipes" begin
+    pd = PlotData1D(sol)
+
+    @test_nowarn_debug plot(sol)
+    @test_nowarn_debug plot(pd)
+    @test_nowarn_debug plot(pd["p"])
+    @test_nowarn_debug plot(getmesh(pd))
+  end
+
   @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                tspan=(0,0.1))

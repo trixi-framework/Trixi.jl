@@ -307,11 +307,19 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
   mesh_vertices_x::Vertices
 end
 
-# Create a PlotData1D object.
+"""
+    PlotData1D(u, semi; solution_variables=cons2prim)
+
+Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
+`u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
+`semi`. By default, the conservative variables from the solution are used for plotting.  This can be
+changed by passing an appropriate conversion function to `solution_variables`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 function PlotData1D(u, semi;
-                    solution_variables=cons2prim,
-                    grid_lines=true, max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0)
+                    solution_variables=cons2prim)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
@@ -323,11 +331,26 @@ function PlotData1D(u, semi;
   return PlotData1D(vec(x), reshape(u, length(variable_names),:), variable_names, vcat(x[1, 1, :], x[1, end, end]))
 end
 
-# Create a PlotData1D object from an AbstractVector.
+"""
+    PlotData1D(u_ode::AbstractVector, semi; kwargs...)
+
+Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
+`semi`.
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
 PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
-# Plot from a solution object, which is return when running a simulation.
-PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
+"""
+    PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}; kwargs...)
+
+Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
+returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+`TimeIntegratorSolution`).
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+PlotData1D(sol::TrixiODESolution; kwarg...) = PlotData1D(sol.u[end], sol.prob.p; kwarg...)
 
 # Store multiple PlotData1D objects in one PlotDataSeries1D.
 # This is used for multi-variable equations.
@@ -471,11 +494,7 @@ end
 
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(mesh) == 1
-    return PlotData1D(sol;
-                      solution_variables=solution_variables,
-                      grid_lines=grid_lines, max_supported_level=max_supported_level,
-                      nvisnodes=nvisnodes, slice_axis=slice_axis,
-                      slice_axis_intercept=slice_axis_intercept)
+    return PlotData1D(sol; solution_variables=solution_variables)
   else
     return PlotData2D(sol;
                       solution_variables=solution_variables,
