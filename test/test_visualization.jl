@@ -16,11 +16,12 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run Trixi
-  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                             tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
+    # Run Trixi
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
+                               tspan=(0,0.1))
+
     # Constructor
     @test PlotData2D(sol) isa PlotData2D
     @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
@@ -72,11 +73,11 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug plot(getmesh(pd))
   end
 
-  # Run Trixi
-  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
-                             tspan=(0,0.1))
-
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
+    # Run Trixi
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
+                               tspan=(0,0.1))
+
     # Constructor
     @test PlotData1D(sol) isa PlotData1D
     pd = PlotData1D(sol)
