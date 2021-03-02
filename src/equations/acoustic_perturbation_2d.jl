@@ -1,5 +1,5 @@
 @doc raw"""
-    AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
+    AcousticPerturbationEquations2D(v_mean, c_mean, rho_mean)
 
 !!! warning "Experimental code"
     This system of equations is experimental and may change in any future release.
@@ -15,16 +15,20 @@ R. Ewert, W. Schröder
 Journal of Computational Physics,
 Volume 188, Issue 2,
 2003,
-[DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2).
+[DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
 """
 struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 3}
   v_mean::SVector{2, RealT}
-  rho_mean::RealT
   c_mean::RealT
+  rho_mean::RealT
 end
 
-function AcousticPerturbationEquations2D(v_mean::NTuple{2,<:Real}, rho_mean::Real, c_mean::Real)
-  return AcousticPerturbationEquations2D(SVector(v_mean), rho_mean, c_mean)
+function AcousticPerturbationEquations2D(v_mean::NTuple{2,<:Real}, c_mean::Real, rho_mean::Real)
+  return AcousticPerturbationEquations2D(SVector(v_mean), c_mean, rho_mean)
+end
+
+function AcousticPerturbationEquations2D(; v_mean::NTuple{2,<:Real}, c_mean::Real, rho_mean::Real)
+  return AcousticPerturbationEquations2D(SVector(v_mean), c_mean, rho_mean)
 end
 
 
@@ -78,7 +82,7 @@ function initial_condition_convergence_test(x, t, equations::AcousticPerturbatio
 
   v1_prime = init
   v2_prime = init
-  p = init * init
+  p = init^2
 
   return SVector(v1_prime, v2_prime, p)
 end
@@ -153,11 +157,3 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::AcousticPerturbationEquations2D) = u
-
-
-# Calculate entropy for a conservative state `cons`
-@inline entropy(u, equations::AcousticPerturbationEquations2D) = entropy(u[1], equations)
-
-
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(u, equations::AcousticPerturbationEquations2D) = energy_total(u[1], equations)

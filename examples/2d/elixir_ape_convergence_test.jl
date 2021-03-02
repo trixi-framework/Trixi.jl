@@ -5,9 +5,9 @@ using Trixi
 # semidiscretization of the acoustic perturbation equations
 
 v_mean = (0.5, 0.3)
-rho_mean = 1.0
 c_mean = 1.0
-equations = AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
+rho_mean = 1.0
+equations = AcousticPerturbationEquations2D(v_mean, c_mean, rho_mean)
 
 initial_condition = initial_condition_convergence_test
 

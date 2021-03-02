@@ -20,9 +20,9 @@ end
 # semidiscretization of the acoustic perturbation equations
 
 v_mean = (-0.5, 0.25)
-rho_mean = 1.0
 c_mean = 1.0
-equations = AcousticPerturbationEquations2D(v_mean, rho_mean, c_mean)
+rho_mean = 1.0
+equations = AcousticPerturbationEquations2D(v_mean, c_mean, rho_mean)
 
 initial_condition = initial_condition_constant
 
@@ -46,7 +46,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 2.0
-ode = semidiscretize(semi, (0.0, 2.0));
+ode = semidiscretize(semi, (0.0, 2.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
