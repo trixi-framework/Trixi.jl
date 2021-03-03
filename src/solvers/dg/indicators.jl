@@ -54,6 +54,8 @@ end
 
 
 function Base.show(io::IO, indicator::IndicatorHennemannGassner)
+  @nospecialize indicator # reduce precompilation time
+
   print(io, "IndicatorHennemannGassner(")
   print(io, indicator.variable)
   print(io, ", alpha_max=", indicator.alpha_max)
@@ -63,6 +65,8 @@ function Base.show(io::IO, indicator::IndicatorHennemannGassner)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGassner)
+  @nospecialize indicator # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, indicator)
   else
@@ -111,11 +115,15 @@ end
 
 
 function Base.show(io::IO, indicator::IndicatorLöhner)
+  @nospecialize indicator # reduce precompilation time
+
   print(io, "IndicatorLöhner(")
   print(io, "f_wave=", indicator.f_wave, ", variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
+  @nospecialize indicator # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, indicator)
   else
@@ -159,11 +167,15 @@ end
 
 
 function Base.show(io::IO, indicator::IndicatorMax)
+  @nospecialize indicator # reduce precompilation time
+
   print(io, "IndicatorMax(")
   print(io, "variable=", indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
+  @nospecialize indicator # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, indicator)
   else

@@ -73,7 +73,9 @@ include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+
+export AcousticPerturbationEquations2D,
+       CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations2D,
@@ -155,7 +157,7 @@ export trixi_include, examples_dir, get_examples, default_example
 export convergence_test, jacobian_fd, linear_structure
 
 # Visualization-related exports
-export PlotData2D, getmesh
+export PlotData1D, PlotData2D, getmesh
 
 
 function __init__()

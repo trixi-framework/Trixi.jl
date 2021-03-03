@@ -26,5 +26,6 @@ are listed in alphabetical order:
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez
+* Felipe Santillan
 * Michael Schlottke-Lakemper
 * Andrew Winters
