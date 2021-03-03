@@ -8,6 +8,16 @@ const TrixiODESolution = Union{ODESolution{T, N, uType, uType2, DType, tType, ra
     {T, N, uType, uType2, DType, tType, rateType, P<:ODEProblem{uType_, tType_, isinplace, P_, F_} where
      {uType_, tType_, isinplace, P_<:AbstractSemidiscretization, F_<:ODEFunction{true, typeof(rhs!)}}}, TimeIntegratorSolution}
 
+# This abstract type is used to derive PlotData types of different dimensions; but still allows to share some functions for them.
+abstract type AbstractPlotData end
+
+# Define additional methods for convenience.
+# These are defined for AbstractPlotData, so they can be used for all types of plot data.
+Base.firstindex(pd::AbstractPlotData) = first(pd.variable_names)
+Base.lastindex(pd::AbstractPlotData) = last(pd.variable_names)
+Base.length(pd::AbstractPlotData) = length(pd.variable_names)
+Base.size(pd::AbstractPlotData) = (length(pd),)
+Base.keys(pd::AbstractPlotData) = tuple(pd.variable_names...)
 
 """
     PlotData2D
@@ -18,7 +28,7 @@ mesh.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-struct PlotData2D{Coordinates, Data, VariableNames, Vertices}
+struct PlotData2D{Coordinates, Data, VariableNames, Vertices} <: AbstractPlotData
   x::Coordinates
   y::Coordinates
   data::Data
@@ -154,12 +164,6 @@ function Base.getindex(pd::PlotData2D, variable_name)
   return PlotDataSeries2D(pd, variable_id)
 end
 
-# Define additional methods for convenience
-Base.firstindex(pd::PlotData2D) = first(pd.variable_names)
-Base.lastindex(pd::PlotData2D) = last(pd.variable_names)
-Base.length(pd::PlotData2D) = length(pd.variable_names)
-Base.size(pd::PlotData2D) = (length(pd),)
-Base.keys(pd::PlotData2D) = tuple(pd.variable_names...)
 Base.eltype(pd::PlotData2D) = Pair{String, PlotDataSeries2D}
 function Base.iterate(pd::PlotData2D, state=1)
   if state > length(pd)
@@ -258,9 +262,17 @@ end
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pd::PlotData2D)
-  # Create layout that is as square as possible, with a preference for more columns than rows if not
-  cols = ceil(Int, sqrt(length(pd)))
-  rows = ceil(Int, length(pd)/cols)
+  # Create layout that is as square as possible, when there are more than 3 subplots.
+  # This is done with a preference for more columns than rows if not.
+
+  if length(pd) <= 3
+    cols = length(pd)
+    rows = 1
+  else
+    cols = ceil(Int, sqrt(length(pd)))
+    rows = ceil(Int, length(pd)/cols)
+  end
+
   layout := (rows, cols)
 
   # Plot all existing variables
@@ -284,20 +296,215 @@ end
 end
 
 
-# Create a PlotData2D plot directly from a TrixiODESolution for convenience
+
+"""
+    PlotData1D
+
+Holds all relevant data for creating 1D plots of multiple solution variables and to visualize the
+mesh.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
+  x::Coordinates
+  data::Data
+  variable_names::VariableNames
+  mesh_vertices_x::Vertices
+end
+
+"""
+    PlotData1D(u, semi)
+
+Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
+`u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
+`semi`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+function PlotData1D(u, semi)
+
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+
+  x = cache.elements.node_coordinates
+
+  # TODO cons2prim is hardcoded here and needs to be changed later.
+  variable_names = SVector(varnames(cons2prim, equations))
+
+  return PlotData1D(vec(x), reshape(u, length(variable_names),:), variable_names, vcat(x[1, 1, :], x[1, end, end]))
+end
+
+"""
+    PlotData1D(u_ode::AbstractVector, semi)
+
+Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the semidiscretization
+`semi`.
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+PlotData1D(u_ode::AbstractVector, semi) = PlotData1D(wrap_array(u_ode, semi), semi)
+
+"""
+    PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
+
+Create a `PlotData1D` object from a solution object created by either `OrdinaryDiffEq.solve!` (which
+returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
+`TimeIntegratorSolution`).
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+PlotData1D(sol::TrixiODESolution) = PlotData1D(sol.u[end], sol.prob.p)
+
+# Store multiple PlotData1D objects in one PlotDataSeries1D.
+# This is used for multi-variable equations.
+struct PlotDataSeries1D{PD<:PlotData1D}
+  plot_data::PD
+  variable_id::Int
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pds::PlotDataSeries1D)
+  print(io, "PlotDataSeries1D{", typeof(pds.plot_data), "}(<plot_data::PlotData1D>, ",
+        pds.variable_id, ")")
+end
+
+# Extract a single variable from a PlotData1D object.
+function Base.getindex(pd::PlotData1D, variable_name)
+  variable_id = findfirst(isequal(variable_name), pd.variable_names)
+
+  if isnothing(variable_id)
+    throw(KeyError(variable_name))
+  end
+
+  return PlotDataSeries1D(pd, variable_id)
+end
+
+Base.eltype(pd::PlotData1D) = Pair{String, PlotDataSeries1D}
+function Base.iterate(pd::PlotData1D, state=1)
+  if state > length(pd)
+    return nothing
+  else
+    return (pd.variable_names[state] => pd[pd.variable_names[state]], state + 1)
+  end
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pd::PlotData1D)
+  print(io, "PlotData1D{",
+            typeof(pd.x), ",",
+            typeof(pd.data), ",",
+            typeof(pd.variable_names), ",",
+            typeof(pd.mesh_vertices_x),
+            "}(<x>, <data>, <variable_names>, <mesh_vertices_x>)")
+end
+
+
+# A struct to store all relevant information about the mesh of a 1D equations, which is needed to plot the mesh.
+struct PlotMesh1D{PD<:PlotData1D}
+  plot_data::PD
+end
+
+# Show a PlotMesh1D in a convenient way.
+function Base.show(io::IO, pm::PlotMesh1D)
+  print(io, "PlotMesh1D{", typeof(pm.plot_data), "}(<plot_data::PlotData1D>)")
+end
+
+# Extract the grid lines from a PlotData1D object to create a PlotMesh1D.
+getmesh(pd::PlotData1D) = PlotMesh1D(pd)
+
+# Plot a single variable.
+@recipe function f(pds::PlotDataSeries1D)
+  @unpack plot_data, variable_id = pds
+  @unpack x, data, variable_names = plot_data
+
+  # Set geometric properties
+  xlims --> (x[begin], x[end])
+
+  # Set annotation properties
+  legend -->  :none
+  title --> variable_names[variable_id]
+
+  # Return data for plotting
+  x, data[variable_id,:]
+end
+
+# Plot the mesh as vertical lines from a PlotMesh1D object.
+@recipe function f(pm::PlotMesh1D)
+  @unpack plot_data = pm
+  @unpack x, mesh_vertices_x = plot_data
+
+  # Set geometric and annotation properties
+  xlims --> (x[begin], x[end])
+  legend -->  :none
+
+  # Set series properties
+  seriestype --> :vline
+  linecolor --> :grey
+  linewidth --> 1
+
+  # Return data for plotting
+  mesh_vertices_x
+end
+
+# This plots all variables by creating a subplot for each of them.
+@recipe function f(pd::PlotData1D)
+  # Create layout that is as square as possible, when there are more than 3 subplots.
+  # This is done with a preference for more columns than rows if not.
+  if length(pd) <= 3
+    cols = length(pd)
+    rows = 1
+  else
+    cols = ceil(Int, sqrt(length(pd)))
+    rows = ceil(Int, length(pd)/cols)
+  end
+
+  layout := (rows, cols)
+
+  # Plot all existing variables
+  for (i, (variable_name, series)) in enumerate(pd)
+    @series begin
+      subplot := i
+      series
+    end
+  end
+
+  # Fill remaining subplots with empty plot
+  for i in (length(pd)+1):(rows*cols)
+    @series begin
+      subplot := i
+      axis := false
+      ticks := false
+      legend := false
+      []
+    end
+  end
+end
+
+
+# Create a plot directly from a TrixiODESolution for convenience
+# The plot is created by a PlotData1D or PlotData2D object.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
 #
-# Note: If you change the defaults values here, you need to also change them in the PlotData2D
+# Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 @recipe function f(sol::TrixiODESolution;
                    solution_variables=cons2prim,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
-  return PlotData2D(sol;
-                    solution_variables=solution_variables,
-                    grid_lines=grid_lines, max_supported_level=max_supported_level,
-                    nvisnodes=nvisnodes, slice_axis=slice_axis,
-                    slice_axis_intercept=slice_axis_intercept)
-end
 
+  mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
+
+  # Create a PlotData1D or PlotData2D object depending on the dimension.
+  if ndims(mesh) == 1
+    return PlotData1D(sol)
+  else
+    return PlotData2D(sol;
+                      solution_variables=solution_variables,
+                      grid_lines=grid_lines, max_supported_level=max_supported_level,
+                      nvisnodes=nvisnodes, slice_axis=slice_axis,
+                      slice_axis_intercept=slice_axis_intercept)
+    end
+end

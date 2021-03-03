@@ -154,7 +154,7 @@ export trixi_include, examples_dir, get_examples, default_example
 export convergence_test, jacobian_fd, linear_structure
 
 # Visualization-related exports
-export PlotData2D, getmesh
+export PlotData1D, PlotData2D, getmesh
 
 
 function __init__()
