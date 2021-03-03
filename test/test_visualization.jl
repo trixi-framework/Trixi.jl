@@ -123,6 +123,24 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test_nowarn_debug plot(pd["p"])
       @test_nowarn_debug plot(getmesh(pd))
     end
+
+    # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
+    # with at least one plot remaining empty
+    @testset "plotting multiple variables" begin
+      x = collect(0.0:0.1:1.0)
+      data1d = rand(5, 11)
+      variable_names = string.('a':'e')
+      mesh_vertices_x1d = [x[begin], x[end]]
+      fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d)
+      @test_nowarn_debug plot(fake1d)
+
+      y = x
+      data2d = [rand(11,11) for _ in 1:5]
+      mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
+      mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
+      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d)
+      @test_nowarn_debug plot(fake2d)
+    end
   end
 
   @testset "plot 3D" begin
