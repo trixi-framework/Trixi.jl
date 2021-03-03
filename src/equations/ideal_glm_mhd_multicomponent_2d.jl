@@ -121,10 +121,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMulticomp
 end
 
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdMulticomponentEquations2D)
-
-
 # Calculate 1D flux in for a single point
 @inline function calcflux(u, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
@@ -183,27 +179,16 @@ end
     v3 = rho_v3 / rho
 
     # Powell nonconservative term: Φ^Pow = (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
-    #phi_rho = SVector{ncomponents(equations), real(equations)}(0.0 for i in eachcomponent(equations))
-    #phi_other = SVector{8, real(equations)}(B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-    #phi_pow = vcat(phi_other, phi_rho)
     prim_rho = SVector{ncomponents(equations), real(equations)}(0 for i in eachcomponent(equations))
-
     phi_pow_1 = 0.5 * SVector(B1, B2, B3, v1*B1 + v2*B2 + v3*B3, v1, v2, v3, 0)
-
     phi_pow = vcat(phi_pow_1, prim_rho)
 
     # Galilean nonconservative term: Φ^Gal_{1,2} = (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
     # x-direction
-    #phi_gal_x_rho = SVector{ncomponents(equations), real(equations)}(0.0 for i in eachcomponent(equations))
-    #phi_gal_x_other = SVector{8, real(equations)}(0, 0, 0, v1*psi, 0, 0, 0, v1)
-    #phi_gal_x = vcat(phi_gal_x_other, phi_gal_x_rho)
     phi_gal_x_1 = 0.5 * SVector(0, 0, 0, v1*psi, 0, 0, 0, v1)
     phi_gal_x = vcat(phi_gal_x_1, prim_rho)
 
     # y-direction
-    #phi_gal_y_rho = SVector{ncomponents(equations), real(equations)}(0.0 for i in eachcomponent(equations))
-    #phi_gal_y_other = SVector{8, real(equations)}(0, 0, 0, v2*psi, 0, 0, 0, v2)
-    #phi_gal_y = vcat(phi_gal_y_other, phi_gal_y_rho)
     phi_gal_y_1 = 0.5 * SVector(0, 0, 0, v2*psi, 0, 0, 0, v2)
     phi_gal_y = vcat(phi_gal_y_1, prim_rho)
 
@@ -262,10 +247,10 @@ end
 """
     flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-Entropy conserving two-point flux by
+Entropy conserving two-point flux adapted by
 - Derigs et al. (2018)
   Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
-  divergence diminishing ideal magnetohydrodynamics equations
+  divergence diminishing ideal magnetohydrodynamics equations for multicomponent
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
 function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMulticomponentEquations2D)
@@ -301,24 +286,15 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultico
   vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
   mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-  #p_ll = (gamma_ll - 1)*(rho_e_ll - 0.5*rho_ll*vel_norm_ll - 0.5*mag_norm_ll - 0.5*psi_ll^2)
-  #p_rr = (gamma_rr - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
-  #beta_ll = 0.5*rho_ll/p_ll
-  #beta_rr = 0.5*rho_rr/p_rr
   # for convenience store v⋅B
   vel_dot_mag_ll = v1_ll*B1_ll + v2_ll*B2_ll + v3_ll*B3_ll
   vel_dot_mag_rr = v1_rr*B1_rr + v2_rr*B2_rr + v3_rr*B3_rr
 
   # Compute the necessary mean values needed for either direction
-  #rho_avg  = 0.5*(rho_ll+rho_rr)
-  #rho_mean = ln_mean(rho_ll,rho_rr)
-  #beta_mean = ln_mean(beta_ll,beta_rr)
-  #beta_avg = 0.5*(beta_ll+beta_rr)
   v1_avg = 0.5*(v1_ll+v1_rr)
   v2_avg = 0.5*(v2_ll+v2_rr)
   v3_avg = 0.5*(v3_ll+v3_rr)
   v_sum  = v1_avg + v2_avg + v3_avg
-  #p_mean = 0.5*rho_avg/beta_avg
   B1_avg = 0.5*(B1_ll+B1_rr)
   B2_avg = 0.5*(B2_ll+B2_rr)
   B3_avg = 0.5*(B3_ll+B3_rr)
@@ -366,9 +342,6 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultico
           f5 * B1_avg + f6 * B2_avg + f7 * B3_avg + f8 * psi_avg - 0.5*v1_mag_avg +
           B1_avg * vel_dot_mag_avg - c_h * psi_B1_avg
 
-    #f4 = (f1*0.5*(1/(equations.gamma-1)/beta_mean - vel_norm_avg) + f2*v1_avg + f3*v2_avg +
-    #      f4*v3_avg + f6*B1_avg + f7*B2_avg + f8*B3_avg + f9*psi_avg - 0.5*v1_mag_avg +
-    #      B1_avg*vel_dot_mag_avg - equations.c_h*psi_B1_avg)
   else
     f_rho       = SVector{ncomponents(equations), real(equations)}(rhok_mean[i]*v2_avg for i in eachcomponent(equations))
     for i in eachcomponent(equations)
@@ -509,8 +482,6 @@ function cons2prim(u, equations::IdealGlmMhdMulticomponentEquations2D)
   prim_other =  SVector{8, real(equations)}(v1, v2, v3, p, B1, B2, B3, psi)
   return vcat(prim_other, prim_rho)
 end
-
-# !!! WARNING: Extension to Multispecies probably wrong !!!
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u, equations::IdealGlmMhdMulticomponentEquations2D)

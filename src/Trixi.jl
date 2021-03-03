@@ -74,8 +74,9 @@ include("visualization/visualization.jl")
 
 # export types/functions that define the public API of Trixi
 export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressibleEulerMulticomponentEquations2D, IdealGlmMhdMulticomponentEquations2D,
+       CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
@@ -90,6 +91,7 @@ export initial_condition_constant,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
+       initial_condition_two_interacting_blast_waves, initial_condition_shock_tube,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
