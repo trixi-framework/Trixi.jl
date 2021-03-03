@@ -73,7 +73,8 @@ include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
-export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
+export AcousticPerturbationEquations2D,
+       CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,

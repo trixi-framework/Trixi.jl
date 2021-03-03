@@ -126,3 +126,6 @@ abstract type AbstractLatticeBoltzmannEquations{NDIMS, NVARS} <: AbstractEquatio
 include("lattice_boltzmann_2d.jl")
 include("lattice_boltzmann_3d.jl")
 
+# Acoustic perturbation equations
+abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("acoustic_perturbation_2d.jl")
