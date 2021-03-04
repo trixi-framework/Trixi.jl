@@ -13,16 +13,16 @@ function source_terms_gauss(u, x, t, equations::AcousticPerturbationEquations2D)
   # Pressure source
   s3 = exp(-(x[1]^2 + x[2]^2) / (2 * r^2)) * A * sin(2 * pi * f * t)
 
-  return SVector(s1, s2, s3)
+  # Mean sources
+  s4 = s5 = s6 = s7 = 0.0
+
+  return SVector(s1, s2, s3, s4, s5, s6, s7)
 end
 
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-v_mean = (-0.5, 0.25)
-c_mean = 1.0
-rho_mean = 1.0
-equations = AcousticPerturbationEquations2D(v_mean, c_mean, rho_mean)
+equations = AcousticPerturbationEquations2D()
 
 initial_condition = initial_condition_constant
 
