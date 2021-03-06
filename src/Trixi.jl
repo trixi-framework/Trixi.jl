@@ -36,6 +36,7 @@ using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
+using StructArrays: StructArray
 using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 
@@ -57,7 +58,9 @@ include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
+include("mesh/structured_mesh.jl")
 include("solvers/dg/dg.jl")
+include("solvers/dg_structured/dg.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -119,7 +122,7 @@ export cons2cons, cons2prim, cons2macroscopic, prim2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh
+export TreeMesh, StructuredMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

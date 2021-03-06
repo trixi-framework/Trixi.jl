@@ -34,3 +34,19 @@ function max_dt(u::AbstractArray{<:Any,3}, t, mesh::TreeMesh{1},
 
   return 2 / (nnodes(dg) * max_scaled_speed)
 end
+
+
+function max_dt(u::AbstractArray{<:Any,3}, t, mesh::StructuredMesh{RealT, 1},
+                constant_speed::Val{true}, equations, dg::DG, cache) where {RealT}
+  # to avoid a division by zero if the speed vanishes everywhere,
+  # e.g. for steady-state linear advection
+  max_scaled_speed = nextfloat(zero(t))
+
+  for element in eachelement(dg, cache)
+    max_λ1, = max_abs_speeds(equations)
+    inv_jacobian = cache.elements.inverse_jacobian[element]
+    max_scaled_speed = max(max_scaled_speed, inv_jacobian * max_λ1)
+  end
+
+  return 2 / (nnodes(dg) * max_scaled_speed)
+end

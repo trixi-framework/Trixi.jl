@@ -33,7 +33,7 @@ and integrate the result using a quadrature associated with the semidiscretizati
 
 If `normalize` is true, the result is divided by the total volume of the computational domain.
 """
-function integrate(func::Func, u_ode::AbstractVector, semi::AbstractSemidiscretization; normalize=true) where {Func}
+function integrate(func::Func, u_ode::AbstractArray, semi::AbstractSemidiscretization; normalize=true) where {Func}
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
   u = wrap_array(u_ode, mesh, equations, solver, cache)
@@ -114,7 +114,7 @@ end
 
 Same as [`compute_coefficients`](@ref) but stores the result in `u_ode`.
 """
-function compute_coefficients!(u_ode::AbstractVector, func, t, semi::AbstractSemidiscretization)
+function compute_coefficients!(u_ode::AbstractArray, func, t, semi::AbstractSemidiscretization)
   u = wrap_array(u_ode, semi)
   # Call `compute_coefficients` defined by the solver
   compute_coefficients!(u, func, t, mesh_equations_solver_cache(semi)...)
@@ -255,7 +255,7 @@ end
 # to avoid stochastic memory errors.
 #
 # Xref https://github.com/SciML/OrdinaryDiffEq.jl/pull/1275
-function wrap_array(u_ode::AbstractVector, semi::AbstractSemidiscretization)
+function wrap_array(u_ode::AbstractArray, semi::AbstractSemidiscretization)
   wrap_array(u_ode, mesh_equations_solver_cache(semi)...)
 end
 
