@@ -61,7 +61,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
   @timeit_debug timer() "Jacobian" apply_jacobian!(du, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
+  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
 
   return nothing
 end
@@ -117,6 +117,28 @@ function calc_surface_integral!(du::AbstractArray{<:Any,3}, mesh::StructuredMesh
       du[v, 1,          element_x] -= element.interfaces[1].surface_flux_values[v] * boundary_interpolation[1,          1]
       # surface at +x
       du[v, nnodes(dg), element_x] += element.interfaces[2].surface_flux_values[v] * boundary_interpolation[nnodes(dg), 2]
+    end
+  end
+
+  return nothing
+end
+
+
+function calc_sources!(du::AbstractArray{<:Any,3}, u, t, source_terms::Nothing, mesh::StructuredMesh, equations, dg::DG, cache)
+  return nothing
+end
+
+
+function calc_sources!(du::AbstractArray{<:Any,3}, u, t, source_terms, mesh::StructuredMesh, equations, dg::DG, cache)
+
+  @threaded for element_x in 1:mesh.size[1]
+    element = cache.elements[element_x]
+
+    for i in eachnode(dg)
+      u_local = get_node_vars(u, equations, dg, i, element_x)
+      x_local = element.node_coordinates[i]
+      du_local = source_terms(u_local, x_local, t, equations)
+      add_to_node_vars!(du, du_local, equations, dg, i, element_x)
     end
   end
 
