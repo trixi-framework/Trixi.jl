@@ -83,7 +83,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
 
   # For L2 error, divide by total volume
   # total_volume = mesh.tree.length_level_0^ndims(mesh)
-  total_volume = mesh.coordinates_max - mesh.coordinates_min
+  total_volume = mesh.coordinates_max[1] - mesh.coordinates_min[1]
   l2_error = @. sqrt(l2_error / total_volume)
 
   return l2_error, linf_error

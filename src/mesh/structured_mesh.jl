@@ -1,7 +1,7 @@
 struct StructuredMesh{RealT<:Real, NDIMS}
-    size::Vector{Int64}
-    coordinates_min::Vector{RealT}
-    coordinates_max::Vector{RealT}
+    size::Tuple{Vararg{Int64, NDIMS}}
+    coordinates_min::Tuple{Vararg{RealT, NDIMS}}
+    coordinates_max::Tuple{Vararg{RealT, NDIMS}}
 end
 
 function StructuredMesh{RealT}(size, coordinates_min, coordinates_max) where {RealT<:Real}
