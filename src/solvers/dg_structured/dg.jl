@@ -1,12 +1,23 @@
-# function allocate_coefficients(mesh::StructuredMesh, equations, dg::DG, cache)
-#     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-#     # cf. wrap_array
-#     zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * prod(size(mesh.elements)))
-# end
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
+function create_cache(mesh::StructuredMesh{RealT, NDIMS}, equations::AbstractEquations, dg::DG, _) where {RealT, NDIMS}
+  elements = init_elements(mesh, equations, dg.basis, RealT)
+
+  init_interfaces!(elements, mesh, equations, dg)
+
+  cache = (; elements)
+
+  # Add specialized parts of the cache required to compute the volume integral etc.
+  # cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
+  # cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+
+  return cache
+end
 
 
-function allocate_coefficients(mesh::StructuredMesh, equations, dg::DG, cache)
-  zeros(real(dg), nvariables(equations), nnodes(dg), mesh.size...)
+function allocate_coefficients(mesh::StructuredMesh{RealT, NDIMS}, equations, dg::DG, cache) where {RealT, NDIMS}
+  zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., mesh.size...)
 end
 
 
@@ -19,3 +30,4 @@ end
 
 include("containers.jl")
 include("dg_1d.jl")
+include("dg_2d.jl")

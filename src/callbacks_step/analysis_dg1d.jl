@@ -158,6 +158,7 @@ function integrate(func::Func, u::AbstractArray{<:Any,3},
 end
 
 
+# TODO That's identical to the function below
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u, t,
                  mesh::StructuredMesh, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
