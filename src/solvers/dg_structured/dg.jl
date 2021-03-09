@@ -1,8 +1,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::StructuredMesh{RealT, NDIMS}, equations::AbstractEquations, dg::DG, _) where {RealT, NDIMS}
-  elements = init_elements(mesh, equations, dg.basis, RealT)
+function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, _)
+  elements = init_elements(mesh, equations, dg.basis)
 
   init_interfaces!(elements, mesh, equations, dg)
 
@@ -16,7 +16,7 @@ function create_cache(mesh::StructuredMesh{RealT, NDIMS}, equations::AbstractEqu
 end
 
 
-function allocate_coefficients(mesh::StructuredMesh{RealT, NDIMS}, equations, dg::DG, cache) where {RealT, NDIMS}
+function allocate_coefficients(mesh::StructuredMesh{<:Real, NDIMS}, equations, dg::DG, cache) where {NDIMS}
   return zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., prod(mesh.size))
 end
 
