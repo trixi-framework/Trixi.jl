@@ -76,13 +76,20 @@ end
 
 
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DG)
-  for element_ind in eachelement(dg, cache) # TODO threaded?
+  @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
-    element.interfaces[1].u_right .= u[:, 1, :, element_ind]
-    element.interfaces[2].u_left .= u[:, end, :, element_ind]
-    element.interfaces[3].u_right .= u[:, :, 1, element_ind]
-    element.interfaces[4].u_left .= u[:, :, end, element_ind]
+    # Vertical interfaces
+    for j in eachnode(dg), v in eachvariable(equations)
+      element.interfaces[1].u_right[v, j] = u[v, 1, j, element_ind]
+      element.interfaces[2].u_left[v, j] = u[v, end, j, element_ind]
+    end
+
+    # Horizontal interfaces
+    for i in eachnode(dg), v in eachvariable(equations)
+      element.interfaces[3].u_right[v, i] = u[v, i, 1, element_ind]
+      element.interfaces[4].u_left[v, i] = u[v, i, end, element_ind]
+    end
   end
 
   return nothing
@@ -111,7 +118,7 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
                               dg::DG, cache)
   @unpack surface_flux = dg
 
-  for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     # Left and bottom interface
     for orientation in (1, 3)
       interface = cache.elements[element].interfaces[orientation]
@@ -154,7 +161,7 @@ end
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
 
-  for element_ind in eachelement(dg, cache)
+  @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
     for l in eachnode(dg)
@@ -198,7 +205,7 @@ end
 
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, mesh::StructuredMesh, equations, dg::DG, cache)
 
-  for element_ind in eachelement(dg, cache)
+  @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
     for j in eachnode(dg), i in eachnode(dg)
@@ -213,7 +220,7 @@ function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, mesh::Str
 end
 
 
-function transformed_calcflux(u, orientation, mesh::StructuredMesh{<:Real, 2}, equations)
+@inline function transformed_calcflux(u, orientation, mesh::StructuredMesh{<:Real, 2}, equations)
   @unpack size, coordinates_min, coordinates_max = mesh
 
   if orientation == 1
