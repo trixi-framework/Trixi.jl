@@ -1,25 +1,25 @@
 # everything related to a DG semidiscretization in 1D,
 # currently limited to Lobatto-Legendre nodes
 
-function compute_coefficients!(u, func, t, mesh::StructuredMesh{RealT, 1}, equations, dg::DG, cache) where {RealT}
-  @threaded for element_x in 1:mesh.size[1]
-    element = cache.elements[element_x]
+function compute_coefficients!(u, func, t, mesh::StructuredMesh{<:Real, 1}, equations, dg::DG, cache)
+  @threaded for element_ind in eachelement(dg, cache)
+    element = cache.elements[element_ind]
 
     for i in eachnode(dg)
       x_node = element.node_coordinates[i]
       u_node = func(x_node, t, equations)
 
       # Allocation-free version of u[:, i, element] = u_node
-      set_node_vars!(u, u_node, equations, dg, i, element_x)
+      set_node_vars!(u, u_node, equations, dg, i, element_ind)
     end
   end
 end
 
 
 function rhs!(du::AbstractArray{<:Any,3}, u, t,
-              mesh::StructuredMesh{RealT, 1}, equations,
+              mesh::StructuredMesh{<:Real, 1}, equations,
               initial_condition, boundary_conditions, source_terms,
-              dg::DG, cache) where {RealT}
+              dg::DG, cache)
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
@@ -51,11 +51,11 @@ end
 
 
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,3}, mesh::StructuredMesh, equations, dg::DG)
-  for element_x in 1:mesh.size[1]
-    element = cache.elements[element_x]
+  for element_ind in eachelement(dg, cache)
+    element = cache.elements[element_ind]
 
-    element.interfaces[1].u_right .= u[:, 1, element_x]
-    element.interfaces[2].u_left .= u[:, end, element_x]
+    element.interfaces[1].u_right .= u[:, 1, element_ind]
+    element.interfaces[2].u_left .= u[:, end, element_ind]
   end
 
   return nothing
@@ -92,14 +92,14 @@ end
 function calc_surface_integral!(du::AbstractArray{<:Any,3}, mesh::StructuredMesh, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
 
-  @threaded for element_x in 1:mesh.size[1]
-    element = cache.elements[element_x]
+  @threaded for element_ind in eachelement(dg, cache)
+    element = cache.elements[element_ind]
 
     for v in eachvariable(equations)
       # surface at -x
-      du[v, 1,          element_x] -= element.interfaces[1].surface_flux_values[v] * boundary_interpolation[1,          1]
+      du[v, 1,          element_ind] -= element.interfaces[1].surface_flux_values[v] * boundary_interpolation[1,          1]
       # surface at +x
-      du[v, nnodes(dg), element_x] += element.interfaces[2].surface_flux_values[v] * boundary_interpolation[nnodes(dg), 2]
+      du[v, nnodes(dg), element_ind] += element.interfaces[2].surface_flux_values[v] * boundary_interpolation[nnodes(dg), 2]
     end
   end
 
@@ -114,14 +114,14 @@ end
 
 function calc_sources!(du::AbstractArray{<:Any,3}, u, t, source_terms, mesh::StructuredMesh, equations, dg::DG, cache)
 
-  @threaded for element_x in 1:mesh.size[1]
-    element = cache.elements[element_x]
+  @threaded for element_ind in eachelement(dg, cache)
+    element = cache.elements[element_ind]
 
     for i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, element_x)
+      u_local = get_node_vars(u, equations, dg, i, element_ind)
       x_local = element.node_coordinates[i]
       du_local = source_terms(u_local, x_local, t, equations)
-      add_to_node_vars!(du, du_local, equations, dg, i, element_x)
+      add_to_node_vars!(du, du_local, equations, dg, i, element_ind)
     end
   end
 

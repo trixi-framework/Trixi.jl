@@ -17,7 +17,7 @@ end
 
 
 function allocate_coefficients(mesh::StructuredMesh{RealT, NDIMS}, equations, dg::DG, cache) where {RealT, NDIMS}
-  zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., mesh.size...)
+  return zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., prod(mesh.size))
 end
 
 

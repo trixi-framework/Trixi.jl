@@ -51,7 +51,6 @@ function init_elements(mesh::StructuredMesh, equations::AbstractEquations{NDIMS,
   return elements
 end
 
-# TODO
 @inline nelements(elements::StructArray) = prod(size(elements))
 
 

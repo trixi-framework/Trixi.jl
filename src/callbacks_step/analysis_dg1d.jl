@@ -62,16 +62,16 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
   linf_error = copy(l2_error)
 
   # Iterate over all elements for error calculations
-  for element_x in 1:mesh.size[1]
+  for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
-    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element_x))
+    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
     # node_coordinates is a vector of SArrays
     node_coordinates_float = reinterpret(Float64, hcat(node_coordinates...)) # TODO wtf
     node_coordinates_reshaped = reshape(node_coordinates_float, (1, size(node_coordinates_float)...))
-    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates_reshaped, :, :, element_x))
+    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates_reshaped, :, :, element))
 
     # Calculate errors at each analysis node
-    jacobian_volume = inv(cache.elements.inverse_jacobian[element_x])^ndims(equations)
+    jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
 
     for i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
