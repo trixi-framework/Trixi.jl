@@ -7,7 +7,6 @@ function init_elements!(elements, mesh::StructuredMesh{RealT, 2}, nodes) where {
   dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
   dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
 
-  # Calculate inverse Jacobian as 1/(h/2)
   inverse_jacobian = 4/(dx * dy)
 
   # Calculate inverse Jacobian and node coordinates

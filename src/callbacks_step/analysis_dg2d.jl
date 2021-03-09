@@ -64,11 +64,11 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1), equations))
   linf_error = copy(l2_error)
 
-  s1 = mesh.size[1]
   # TODO This is horrible
-  node_coordinates_in_classic_format = [node_coordinates[div((element - 1), s1) + 1, 
-                                                         ((element - 1) % s1) + 1][i, j][coord] 
-          for coord in [1, 2], i in eachnode(dg), j in eachnode(dg), element in eachelement(dg, cache)]
+  s1 = mesh.size[1]
+  node_coordinates_in_classic_format = [node_coordinates[(element - 1) % s1 + 1,
+                                                         (element - 1) ÷ s1 + 1][i, j][coord] 
+      for coord in (1, 2), i in eachnode(dg), j in eachnode(dg), element in eachelement(dg, cache)]
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)

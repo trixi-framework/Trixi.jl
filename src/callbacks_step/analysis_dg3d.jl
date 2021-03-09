@@ -1,7 +1,7 @@
 
 function create_cache(::Type{AnalysisCallback}, analyzer,
                       equations::AbstractEquations{3}, dg::DG, cache)
-  eltype_u = eltype_x = eltype(cache.elements.node_coordinates) # TODO: AD, needs to be adapted
+  eltype_u = eltype_x = eltype(eltype(eltype(cache.elements.node_coordinates))) # TODO: AD, needs to be adapted
 
   # pre-allocate buffers
   u_local = zeros(eltype_u,
@@ -57,6 +57,49 @@ function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
 end
 
 
+function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
+                          mesh::StructuredMesh, equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
+  @unpack vandermonde, weights = analyzer
+  @unpack node_coordinates = cache.elements
+  @unpack u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2 = cache_analysis
+
+  # Set up data structures
+  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
+  linf_error = copy(l2_error)
+
+  # TODO This is horrible
+  s1, s2, _ = mesh.size
+  node_coordinates_in_classic_format = [node_coordinates[(element - 1) % s1 + 1,
+                                                         (element - 1) ÷ s1 % s2 + 1,
+                                                         (element - 1) ÷ (s1 * s2) + 1][i, j, k][coord] 
+      for coord in (1, 2, 3), i in eachnode(dg), j in eachnode(dg), k in eachnode(dg), element in eachelement(dg, cache)]
+
+  # Iterate over all elements for error calculations
+  for element in eachelement(dg, cache)
+    # Interpolate solution and node locations to analysis nodes
+    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, :, element), u_tmp1, u_tmp2)
+    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates_in_classic_format, :, :, :, :, element), x_tmp1, x_tmp2)
+
+    # Calculate errors at each analysis node
+    jacobian_volume = inv(cache.elements.inverse_jacobian[element])
+
+    for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
+      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j, k), t, equations)
+      diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j, k), equations)
+      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_volume)
+      linf_error = @. max(linf_error, abs(diff))
+    end
+  end
+
+  # For L2 error, divide by total volume
+  total_volume = prod(mesh.coordinates_max .- mesh.coordinates_min)
+  l2_error = @. sqrt(l2_error / total_volume)
+
+  return l2_error, linf_error
+end
+
+
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
                                mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
@@ -82,8 +125,42 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
   return integral
 end
 
+
+function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
+                               mesh::StructuredMesh, equations, dg::DGSEM, cache,
+                               args...; normalize=true) where {Func}
+  @unpack weights = dg.basis
+
+  # Initialize integral with zeros of the right shape
+  integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
+
+  # Use quadrature to numerically integrate over entire domain
+  for element in eachelement(dg, cache)
+    jacobian_volume = inv(cache.elements.inverse_jacobian[element])
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      integral += jacobian_volume * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
+    end
+  end
+
+  # Normalize with total volume
+  if normalize
+    total_volume = prod(mesh.coordinates_max .- mesh.coordinates_min)
+    integral = integral / total_volume
+  end
+
+  return integral
+end
+
 function integrate(func::Func, u::AbstractArray{<:Any,5},
                    mesh::TreeMesh{3}, equations, dg::DGSEM, cache; normalize=true) where {Func}
+  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
+    u_local = get_node_vars(u, equations, dg, i, j, k, element)
+    return func(u_local, equations)
+  end
+end
+
+function integrate(func::Func, u::AbstractArray{<:Any,5},
+                   mesh::StructuredMesh, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
@@ -93,6 +170,17 @@ end
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,5}, u, t,
                  mesh::TreeMesh{3}, equations, dg::DG, cache)
+  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
+    u_node  = get_node_vars(u,  equations, dg, i, j, k, element)
+    du_node = get_node_vars(du, equations, dg, i, j, k, element)
+    dot(cons2entropy(u_node, equations), du_node)
+  end
+end
+
+
+function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,5}, u, t,
+                 mesh::StructuredMesh, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)

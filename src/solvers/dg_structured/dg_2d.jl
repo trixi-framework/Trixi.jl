@@ -1,4 +1,4 @@
-function compute_coefficients!(u, func, t, mesh::StructuredMesh{RealT, 2}, equations, dg::DG, cache) where {RealT}
+function compute_coefficients!(u, func, t, mesh::StructuredMesh{<:Real, 2}, equations, dg::DG, cache)
   @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
@@ -6,7 +6,7 @@ function compute_coefficients!(u, func, t, mesh::StructuredMesh{RealT, 2}, equat
       coords_node = element.node_coordinates[i, j]
       u_node = func(coords_node, t, equations)
 
-      # Allocation-free version of u[:, i, element] = u_node
+      # Allocation-free version of u[:, i, j, element] = u_node
       set_node_vars!(u, u_node, equations, dg, i, j, element_ind)
     end
   end
@@ -100,11 +100,14 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4},
     boundary_condition::BoundaryConditionPeriodic, mesh::StructuredMesh, equations, dg::DG)
   @unpack linear_indices = mesh
 
+  # Boundaries in x-direction
   for element_y in 1:mesh.size[2]
+    # TODO A loop would be more efficient
     cache.elements[1, element_y].interfaces[1].u_left .= u[:, end, :, linear_indices[end, element_y]]
     cache.elements[end, element_y].interfaces[2].u_right .= u[:, 1, :, linear_indices[1, element_y]]
   end
   
+  # Boundaries in y-direction
   for element_x in 1:mesh.size[1]
     cache.elements[element_x, 1].interfaces[3].u_left .= u[:, :, end, linear_indices[element_x, end]]
     cache.elements[element_x, end].interfaces[4].u_right .= u[:, :, 1, linear_indices[element_x, 1]]
@@ -119,22 +122,22 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
   @unpack surface_flux = dg
 
   @threaded for element in eachelement(dg, cache)
-    # Left and bottom interface
+    # Interfaces in negative directions
     for orientation in (1, 3)
       interface = cache.elements[element].interfaces[orientation]
       calc_interface_flux!(interface, mesh, equations, dg)
     end
   end
 
-  # Top boundary
-  for element_x in 1:mesh.size[1]
-    interface = cache.elements[element_x, end].interfaces[4]
-    calc_interface_flux!(interface, mesh, equations, dg)
-  end
-
-  # Right boundary
+  # Boundary in positive x-direction
   for element_y in 1:mesh.size[2]
     interface = cache.elements[end, element_y].interfaces[2]
+    calc_interface_flux!(interface, mesh, equations, dg)
+  end
+  
+  # Boundary in positive y-direction
+  for element_x in 1:mesh.size[1]
+    interface = cache.elements[element_x, end].interfaces[4]
     calc_interface_flux!(interface, mesh, equations, dg)
   end
 
@@ -142,7 +145,7 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
 end
 
 
-function calc_interface_flux!(interface::Interface, mesh::StructuredMesh, equations, dg::DG)
+function calc_interface_flux!(interface::Interface, mesh::StructuredMesh{<:Real, 2}, equations, dg::DG)
   @unpack surface_flux = dg
 
   for i in eachnode(dg)
@@ -233,7 +236,9 @@ end
 end
 
 
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, mesh, equations::AbstractEquations)
+function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
+    mesh::StructuredMesh{<:Real, 2}, equations::AbstractEquations)
+    
   @unpack size, coordinates_min, coordinates_max = mesh
 
   if orientation == 1

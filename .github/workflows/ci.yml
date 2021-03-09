@@ -43,7 +43,8 @@ jobs:
         arch:
           - x64
         trixi_test:
-          - 1d
+          - all
+#          - 1d
 #          - 2d_part1
 #          - 2d_part2
 #          - 2d_parallel

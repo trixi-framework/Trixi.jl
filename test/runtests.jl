@@ -32,9 +32,9 @@ const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
   #   end
   # end
 
-  # @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d"
-  #   include("test_examples_3d.jl")
-  # end
+  @time if TRIXI_TEST == "all" || TRIXI_TEST == "3d"
+    include("test_examples_3d.jl")
+  end
 
   # @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc"
   #   include("test_unit.jl")
