@@ -912,6 +912,68 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
   return SVector(f1, f2, f3, f4)
 end
 
+function flux_hlle(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+  # Calculate primitive variables and speed of sound
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  s_rho_ll = 1. / rho_ll
+  sqrt_rho_ll = sqrt(rho_ll)
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * (v1_ll^2 + v2_ll^2))
+  a_ll = sqrt(equations.gamma * p_ll * s_rho_ll)
+  h_ll = (rho_e_ll + p_ll) * s_rho_ll
+
+  s_rho_rr = 1. / rho_rr
+  sqrt_rho_rr = sqrt(rho_rr)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2))
+  a_rr = sqrt(equations.gamma * p_rr * s_rho_rr)
+  h_rr = (rho_e_rr + p_rr) * s_rho_rr
+
+  # Obtain left and right fluxes
+  f_ll = calcflux(u_ll, orientation, equations)
+  f_rr = calcflux(u_rr, orientation, equations)
+
+  # mean values
+  beta = sqrt(0.5 * (equations.gamma - 1) / equations.gamma)
+  s_sqrt_rho = 1. / (sqrt_rho_ll + sqrt_rho_rr)
+  roe_v1 = (sqrt_rho_rr * v1_rr + sqrt_rho_ll * v1_ll) * s_sqrt_rho
+  roe_v2 = (sqrt_rho_rr * v2_rr + sqrt_rho_ll * v2_ll) * s_sqrt_rho
+  roe_h = (sqrt_rho_rr * h_rr + sqrt_rho_ll * h_ll) * s_sqrt_rho
+  mag_v = roe_v1 * roe_v1 + roe_v2 * roe_v2
+  roe_a = sqrt((equations.gamma -1) * (roe_h - 0.5 * mag_v))
+
+  if orientation == 1 # x-direction
+    Ssl = min(roe_v1 - roe_a , v1_ll - beta * a_ll , 0.)
+    Ssr = max(roe_v1 + roe_a , v1_rr + beta * a_ll , 0.)
+  else # y-direction
+    Ssl = min(roe_v2 - roe_a , v2_ll - beta * a_ll , 0.)
+    Ssr = max(roe_v2 + roe_a , v2_rr + beta * a_ll , 0.)
+  end
+
+  if Ssl >= 0.0 && Ssr > 0.0
+    f1 = f_ll[1]
+    f2 = f_ll[2]
+    f3 = f_ll[3]
+    f4 = f_ll[4]
+  elseif Ssr <= 0.0 && Ssl < 0.0
+    f1 = f_rr[1]
+    f2 = f_rr[2]
+    f3 = f_rr[3]
+    f4 = f_rr[4]
+  else
+    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
+    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
+    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr[1] - rho_v2_ll[1]))/(Ssr - Ssl)
+    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
+  end
+
+  return SVector(f1, f2, f3, f4)
+end
+
 
  """
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)

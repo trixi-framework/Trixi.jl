@@ -9,9 +9,10 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_blast_wave
 
-surface_flux  = flux_hllc
+surface_flux  = flux_hlle
 basis = LobattoLegendreBasis(3)
-volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_hllc,
+volume_integral = VolumeIntegralPureLGLFiniteVolume(basis;
+                                                    volume_flux_fv = flux_hlle,
                                                     reconstruction_mode = reconstruction_small_stencil,
                                                     slope_limiter = minmod)
 solver = DGSEM(basis, surface_flux, volume_integral)

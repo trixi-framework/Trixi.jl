@@ -317,6 +317,7 @@ end
   end
 end
 
+
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
                                     nonconservative_terms::Val{true}, equations,
                                     volume_flux, dg::DGSEM, cache,
@@ -420,6 +421,63 @@ end
   return nothing
 end
 
+"""
+    calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
+                 nonconservative_terms::Val{false}, equations,
+                 volume_flux_fv, reconstruction_mode, slope_limiter,
+                 dg, element)
+
+Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+Optimized version of the FV flux calculation  **without** reconstruction and **without** slope_limiter
+
+# Arguments
+- `fstar1_L::AbstractArray{<:Real, 3}`:
+- `fstar1_R::AbstractArray{<:Real, 3}`:
+- `fstar2_L::AbstractArray{<:Real, 3}`:
+- `fstar2_R::AbstractArray{<:Real, 3}`:
+- `u_leftright::AbstractArray{<:Real, 4}`
+- `nonconservative_terms::Bool`
+- `equations`
+- `volume_flux_fv`
+- `reconstruction_mode::Nothing`
+- `slope_limiter`
+- `dg::DGSEM`
+- `element::Integer`
+"""
+@inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u::AbstractArray{<:Any,4},
+                              nonconservative_terms::Val{false}, equations,
+                              volume_flux_fv, reconstruction_mode::Nothing, slope_limiter,
+                              dg::DGSEM, element)
+
+  fstar1_L[:, 1,            :] .= zero(eltype(fstar1_L))
+  fstar1_L[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_L))
+  fstar1_R[:, 1,            :] .= zero(eltype(fstar1_R))
+  fstar1_R[:, nnodes(dg)+1, :] .= zero(eltype(fstar1_R))
+
+  for j in eachnode(dg), i in 2:nnodes(dg)
+    u_ll = get_node_vars(u, equations, dg, i-1, j, element)
+    u_rr = get_node_vars(u, equations, dg, i,   j, element)
+    flux = volume_flux_fv(u_ll, u_rr, 1, equations) # orientation 1: x direction
+    set_node_vars!(fstar1_L, flux, equations, dg, i, j)
+    set_node_vars!(fstar1_R, flux, equations, dg, i, j)
+  end
+
+  fstar2_L[:, :, 1           ] .= zero(eltype(fstar2_L))
+  fstar2_L[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_L))
+  fstar2_R[:, :, 1           ] .= zero(eltype(fstar2_R))
+  fstar2_R[:, :, nnodes(dg)+1] .= zero(eltype(fstar2_R))
+
+  for j in 2:nnodes(dg), i in eachnode(dg)
+    u_ll = get_node_vars(u, equations, dg, i, j-1, element)
+    u_rr = get_node_vars(u, equations, dg, i, j,   element)
+    flux = volume_flux_fv(u_ll, u_rr, 2, equations) # orientation 2: y direction
+    set_node_vars!(fstar2_L, flux, equations, dg, i, j)
+    set_node_vars!(fstar2_R, flux, equations, dg, i, j)
+  end
+
+  return nothing
+end
+
 
 """
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u_leftright,
@@ -457,8 +515,7 @@ Calculate the finite volume fluxes inside the elements (**without non-conservati
   # cell interfaces
   x_interface = cumsum(weights).-1
   # solution/construction location
-  x_mid = x_interface - 0.5*weights
-  #x_mid = nodes
+  x_mid = nodes
 
   for j in eachnode(dg), i in 2:nnodes(dg)
     u_mm = cons2prim(get_node_vars(u, equations, dg, max(1,i-2), j, element),equations)

@@ -13,9 +13,10 @@ initial_condition = initial_condition_khi2
 
 surface_flux  = flux_hllc
 basis = LobattoLegendreBasis(3)
-volume_integral = VolumeIntegralPureLGLFiniteVolume(volume_flux_fv = flux_hllc,
-                                                    reconstruction_mode = reconstruction_large_stencil,
-                                                    slope_limiter = monotonized_central)
+volume_integral = VolumeIntegralPureLGLFiniteVolume(basis; 
+                                                    volume_flux_fv = flux_hllc,
+                                                    reconstruction_mode = reconstruction_small_stencil,
+                                                    slope_limiter = minmod)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)

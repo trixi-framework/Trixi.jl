@@ -76,7 +76,7 @@ export CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleE
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
-export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_upwind,
+export flux_central, flux_lax_friedrichs, flux_hll, flux_hlle, flux_hllc, flux_upwind,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
 
 export reconstruction_O1, reconstruction_small_stencil, reconstruction_large_stencil, reconstruction_large_irregular,
