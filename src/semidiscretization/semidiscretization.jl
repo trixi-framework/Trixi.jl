@@ -162,8 +162,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
-of the operator.
-The linearization state is `u0_ode` at time `t0`.
+of the semidiscretization `semi` at state `u0_ode`.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0=zero(real(semi)),
@@ -199,6 +198,28 @@ function jacobian_fd(semi::AbstractSemidiscretization;
     # central second order finite difference
     @. J[:, idx] = (dup_ode - dum_ode) / (2 * epsilon)
   end
+
+  return J
+end
+
+
+"""
+    jacobian_ad_forward(semi::AbstractSemidiscretization;
+                        t0=zero(real(semi)),
+                        u0_ode=compute_coefficients(t0, semi))
+
+Uses the right-hand side operator of the semidiscretization `semi`
+and forward mode automatic differentiation to compute the Jacobian `J`
+of the semidiscretization `semi` at state `u0_ode`.
+"""
+function jacobian_ad_forward(semi::AbstractSemidiscretization;
+                             t0=zero(real(semi)),
+                             u0_ode=compute_coefficients(t0, semi))
+
+  J = ForwardDiff.jacobian((du_ode, u_ode) -> begin
+    new_semi = remake(semi, uEltype=eltype(u_ode))
+    Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+  end, similar(u0_ode), u0_ode)
 
   return J
 end

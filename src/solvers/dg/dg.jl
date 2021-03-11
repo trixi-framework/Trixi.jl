@@ -16,7 +16,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
