@@ -139,7 +139,7 @@ julia> round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 julia> round(maximum(real, λ), sigdigits=2)
 3.2e-12
 
-julia> λ, V = eigen(J); 
+julia> λ, V = eigen(J);
 
 julia> round(cond(V), sigdigits=2)
 250.0
@@ -164,7 +164,7 @@ julia> λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 julia> round(maximum(real, λ), sigdigits=2)
 7.7e-14
 
-julia> λ, V = eigen(J); 
+julia> λ, V = eigen(J);
 
 julia> round(cond(V), sigdigits=2)
 93000.0
@@ -177,7 +177,9 @@ example in 2D.
 
 It is also possible to compute derivatives of other dependencies using AD in Trixi. For example,
 you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
-ideal gas constant of the compressible Euler equations using
+ideal gas constant of the compressible Euler equations as described in the following. This example
+is also available as the elixir
+[examples/special_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
 ```jldoctest euler_gamma_gradient
 julia> using Trixi, LinearAlgebra, ForwardDiff
