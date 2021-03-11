@@ -1,11 +1,11 @@
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis, uEltype)
 
-  alpha = Vector{real(basis)}()
+  alpha = Vector{uEltype}()
   alpha_tmp = similar(alpha)
 
-  A = Array{real(basis), ndims(equations)}
+  A = Array{uEltype, ndims(equations)}
   indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
@@ -14,8 +14,8 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
+function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache, uEltype)
+  create_cache(typ, equations, dg.basis, uEltype)
 end
 
 

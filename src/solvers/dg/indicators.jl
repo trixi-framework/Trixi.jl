@@ -33,9 +33,10 @@ function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable)
+                                   variable,
+                                   uEltype=real(basis))
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, equations, basis)
+  cache = create_cache(IndicatorHennemannGassner, equations, basis, uEltype)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end
@@ -45,11 +46,18 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable)
+                                   variable,
+                                   uEltype=real(semi))
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, semi)
+  cache = create_cache(IndicatorHennemannGassner, semi, uEltype)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
+end
+
+
+function remake(indicator::IndicatorHennemannGassner; uEltype=eltype(indicator))
+  @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator
+  # TODO...
 end
 
 
@@ -79,6 +87,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
     summary_box(io, "IndicatorHennemannGassner", setup)
   end
 end
+
+@inline Base.real(::IndicatorHennemannGassner{RealT}) where {RealT} = RealT
 
 
 
@@ -134,6 +144,8 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
     summary_box(io, "IndicatorLöhner", setup)
   end
 end
+
+@inline Base.real(::IndicatorLöhner{RealT}) where {RealT} = RealT
 
 const IndicatorLoehner = IndicatorLöhner
 
