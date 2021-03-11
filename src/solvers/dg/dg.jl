@@ -17,7 +17,6 @@ textbooks such as
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
-remake(volume_integral::VolumeIntegralWeakForm; uEltype=nothing) = volume_integral
 
 """
     VolumeIntegralFluxDifferencing
@@ -43,8 +42,6 @@ symmetric two-point volume fluxes. Based upon the theory developed by
 struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
   volume_flux::VolumeFlux
 end
-
-remake(volume_integral::VolumeIntegralFluxDifferencing; uEltype=nothing) = volume_integral
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
   @nospecialize integral # reduce precompilation time
@@ -78,11 +75,6 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
                                                    volume_flux_fv=flux_lax_friedrichs)
   VolumeIntegralShockCapturingHG{typeof(volume_flux_dg), typeof(volume_flux_fv), typeof(indicator)}(
     volume_flux_dg, volume_flux_fv, indicator)
-end
-
-function remake(volume_integral::VolumeIntegralShockCapturingHG; uEltype=real(volume_integral.indicator))
-  @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
-  VolumeIntegralShockCapturingHG(volume_flux_dg, volume_flux_fv, remake(indicator; uEltype))
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
@@ -153,12 +145,6 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   surface_flux::SurfaceFlux
   volume_integral::VolumeIntegral
 end
-
-
-function remake(dg::DG; uEltype=real(dg))
-  DG(basis, mortar, surface_flux, remake(volume_integral; uEltype))
-end
-
 
 function Base.show(io::IO, dg::DG)
   @nospecialize dg # reduce precompilation time
