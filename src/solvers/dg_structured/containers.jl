@@ -30,17 +30,6 @@ function Element{RealT, NDIMS}(node_coordinates, inverse_jacobian) where {RealT<
 end
 
 
-# struct ElementContainer{RealT<:Real, NDIMS}
-#   elements::Array{Element{RealT, NDIMS}, NDIMS}
-# end
-
-# function ElementContainer{RealT<:Real}(size)
-#   NDIMS = length(size)
-
-#   elements = Array{Element{RealT, NDIMS}, NDIMS}(undef, size...)
-# end
-
-
 # Create element container and initialize element data
 function init_elements(mesh::StructuredMesh{RealT, NDIMS}, equations::AbstractEquations,
     basis::LobattoLegendreBasis{T, NNODES}) where {RealT<:Real, NDIMS, T, NNODES}

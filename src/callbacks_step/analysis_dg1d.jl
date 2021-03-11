@@ -1,8 +1,9 @@
 
 function create_cache(::Type{AnalysisCallback}, analyzer,
                       equations::AbstractEquations{1}, dg::DG, cache)
+  # In StructuredMesh, node_coordinates is an Array of Arrays of SVectors.
+  # Three times eltype is necessary for StructuredMesh, but doesn't hurt for TreeMesh.
   eltype_u = eltype_x = eltype(eltype(eltype(cache.elements.node_coordinates))) # TODO: AD, needs to be adapted
-  # TODO structured mesh
 
   # pre-allocate buffers
   u_local = zeros(eltype_u,
@@ -158,7 +159,7 @@ function integrate(func::Func, u::AbstractArray{<:Any,3},
 end
 
 
-# TODO That's identical to the function below
+# TODO This is identical to the function below
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u, t,
                  mesh::StructuredMesh, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
