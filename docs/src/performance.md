@@ -96,8 +96,8 @@ You can also make it more detailed by benchmarking only, e.g., the calculation o
 ## Runtime performance vs. latency aka using `@nospecialize` selectively
 
 Usually, Julia will compile specialized versions of each method, using as much information from the
-types of function arguments as possible (based on some [heuristics](
-https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing)).
+types of function arguments as possible (based on some
+[heuristics](https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing)).
 The compiler will generate code that is as efficient as comparable code written in a low-level
 language such as C or Fortran. However, there are cases where the runtime performance does not
 really matter but the time needed to compile specializations becomes significant. This is related to
