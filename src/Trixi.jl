@@ -26,8 +26,9 @@ using Reexport: @reexport
 import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
-                   get_proposed_dt, set_proposed_dt!, terminate!
+                   get_proposed_dt, set_proposed_dt!, terminate!, remake
 @reexport using EllipsisNotation # ..
+import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
@@ -151,7 +152,7 @@ export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example
 
-export convergence_test, jacobian_fd, linear_structure
+export convergence_test, jacobian_fd, jacobian_forward_ad, linear_structure
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh

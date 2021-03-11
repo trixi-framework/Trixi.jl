@@ -4,7 +4,7 @@
 
 
 # TODO: MPI dimension agnostic
-# TODO: MPI, adapt to different real types?
+# TODO: MPI, adapt to different real types (and AD!)
 mutable struct MPICache
   mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}

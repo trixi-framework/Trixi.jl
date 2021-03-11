@@ -44,13 +44,27 @@ Construct a semidiscretization of a hyperbolic PDE.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms=nothing,
-                                      boundary_conditions=boundary_condition_periodic, RealT=real(solver))
+                                      boundary_conditions=boundary_condition_periodic,
+                                      RealT=real(solver), uEltype=RealT)
 
-  cache = create_cache(mesh, equations, solver, RealT)
+  cache = create_cache(mesh, equations, solver, RealT, uEltype)
   _boundary_conditions = digest_boundary_conditions(boundary_conditions)
 
   SemidiscretizationHyperbolic{typeof(mesh), typeof(equations), typeof(initial_condition), typeof(_boundary_conditions), typeof(source_terms), typeof(solver), typeof(cache)}(
     mesh, equations, initial_condition, _boundary_conditions, source_terms, solver, cache)
+end
+
+
+# Create a new semidiscretization but change some parameters compared to the input.
+# `Base.similar` follows a related concept but would require us to `copy` the `mesh`,
+# which would impact the performance. Instead, `SciMLBase.remake` has exactly the
+# semantics we want to use here. In particular, it allows us to re-use mutable parts,
+# e.g. `remake(semi).mesh === semi.mesh`.
+function remake(semi::SemidiscretizationHyperbolic; RealT=real(semi.solver), uEltype=RealT)
+  SemidiscretizationHyperbolic(semi.mesh, semi.equations, semi.initial_condition, semi.solver,
+                               source_terms=semi.source_terms,
+                               boundary_conditions=semi.boundary_conditions,
+                               RealT=RealT, uEltype=uEltype)
 end
 
 
