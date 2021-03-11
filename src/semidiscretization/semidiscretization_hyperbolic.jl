@@ -60,11 +60,15 @@ end
 # which would impact the performance. Instead, `SciMLBase.remake` has exactly the
 # semantics we want to use here. In particular, it allows us to re-use mutable parts,
 # e.g. `remake(semi).mesh === semi.mesh`.
-function remake(semi::SemidiscretizationHyperbolic; RealT=real(semi.solver), uEltype=RealT)
-  SemidiscretizationHyperbolic(semi.mesh, semi.equations, semi.initial_condition, semi.solver,
-                               source_terms=semi.source_terms,
-                               boundary_conditions=semi.boundary_conditions,
-                               RealT=RealT, uEltype=uEltype)
+function remake(semi::SemidiscretizationHyperbolic; uEltype=real(semi.solver))
+  # TODO: Which parts do we want to `remake`? At least the solver needs some
+  #       special care if shock-capturing volume integrals are used (because of
+  #       the indicators and their own caches...).
+  SemidiscretizationHyperbolic(
+    semi.mesh,  semi.equations, semi.initial_condition, semi.solver,
+    source_terms=semi.source_terms,
+    boundary_conditions=semi.boundary_conditions,
+    uEltype=uEltype)
 end
 
 
