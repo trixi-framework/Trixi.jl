@@ -152,7 +152,7 @@ export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example
 
-export convergence_test, jacobian_fd, jacobian_forward_ad, linear_structure
+export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh

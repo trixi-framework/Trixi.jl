@@ -697,7 +697,7 @@ polydeg(::MPIInterfaceContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVAR
 # See explanation of Base.resize! for the element container
 function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
   n_nodes = polydeg(mpi_interfaces) + 1
-  nvars = nvariables(interfaces)
+  nvars = nvariables(mpi_interfaces)
   @unpack _u, local_element_ids, orientations, remote_sides = mpi_interfaces
 
   resize!(_u, 2 * nvars * n_nodes * capacity)
