@@ -26,8 +26,6 @@ For example,
 ```jldoctest
 julia> using Trixi, LinearAlgebra, Plots
 
-julia> equations = LinearScalarAdvectionEquation2D(1.0, 0.3);
-
 julia> equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
 
 julia> solver = DGSEM(3, flux_lax_friedrichs);
@@ -112,7 +110,9 @@ However, we should be careful when using this analysis, since the eigenvectors a
 well-conditioned.
 
 ```jldoctest euler_eigenvalues
-julia> λ, V = eigen(J); round(cond(V), sigdigits=2)
+julia> λ, V = eigen(J);
+
+julia> round(cond(V), sigdigits=2)
 1.8e6
 ```
 
@@ -139,7 +139,9 @@ julia> round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 julia> round(maximum(real, λ), sigdigits=2)
 3.2e-12
 
-julia> λ, V = eigen(J); round(cond(V), sigdigits=2)
+julia> λ, V = eigen(J); 
+
+julia> round(cond(V), sigdigits=2)
 250.0
 ```
 
@@ -162,7 +164,9 @@ julia> λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
 julia> round(maximum(real, λ), sigdigits=2)
 7.7e-14
 
-julia> λ, V = eigen(J); round(cond(V), sigdigits=2)
+julia> λ, V = eigen(J); 
+
+julia> round(cond(V), sigdigits=2)
 93000.0
 ```
 Note that the condition number of the eigenvector matrix increases but is still smaller than for the
@@ -241,4 +245,3 @@ julia> round(norm(J_fd - J_ad) / size(J_fd, 1), sigdigits=2)
 6.7e-7
 ```
 This discrepancy is of the expected order of magnitude for central finite difference approximations.
-

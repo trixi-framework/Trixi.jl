@@ -32,7 +32,7 @@ installation and postprocessing procedures. Its features include:
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
-* Native Julia support for differentiable programming
+* Native support for differentiable programming
   * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 * Square/cubic domains with periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
