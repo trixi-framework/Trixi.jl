@@ -154,7 +154,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
 
-      flux1 = calcflux(u_node, 1, equations)
+      flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
@@ -189,16 +189,16 @@ end
 
     # x direction
     # use consistency of the volume flux to make this evaluation cheaper
-    flux = calcflux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux
+    flux1 = flux(u_node, 1, equations)
+    integral_contribution = alpha * derivative_split[i, i] * flux1
     add_to_node_vars!(du, integral_contribution, equations, dg, i, element)
     # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, element)
-      flux = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = alpha * derivative_split[i, ii] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, i,  element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux
+      integral_contribution = alpha * derivative_split[ii, i] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
     end
   end
