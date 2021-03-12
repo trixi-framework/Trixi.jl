@@ -13,6 +13,7 @@ end
 
 nvariables(::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::ElementContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::ElementContainer1D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -123,6 +124,7 @@ end
 
 nvariables(::InterfaceContainer1D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::InterfaceContainer1D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::InterfaceContainer1D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer1D, capacity)
@@ -277,6 +279,7 @@ end
 
 nvariables(::BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::BoundaryContainer1D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::BoundaryContainer1D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer1D, capacity)
