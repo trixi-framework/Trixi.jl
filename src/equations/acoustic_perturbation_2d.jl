@@ -24,6 +24,16 @@ varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", 
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 
+# Convenience functions that return the conservative state and mean variables from the internal
+# state vector u
+function get_state_vars(u, equations::AcousticPerturbationEquations2D)
+  return u[1], u[2], u[3]
+end
+
+function get_mean_vars(u, equations::AcousticPerturbationEquations2D)
+  return u[4], u[5], u[6], u[7]
+end
+
 
 """
     initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
@@ -78,10 +88,7 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
 """
 function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
-  v1_mean = u[4]
-  v2_mean = u[5]
-  c_mean = u[6]
-  rho_mean = u[7]
+  v1_mean, v2_mean, c_mean, rho_mean = get_mean_vars(u, equations)
 
   c = 2.0
   A = 0.2
@@ -236,7 +243,8 @@ end
 
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean = u
+  v1_prime, v2_prime, p_prime = get_state_vars(u, equations)
+  v1_mean, v2_mean, c_mean, rho_mean = get_mean_vars(u, equations)
 
   # Calculate flux for conservative state variables
   if orientation == 1
@@ -263,8 +271,13 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturb
   f_rr = calcflux(u_rr, orientation, equations)
 
   # Calculate v = v_prime + v_mean
-  v_ll = u_ll[orientation] + u_ll[orientation + 3]
-  v_rr = u_rr[orientation] + u_rr[orientation + 3]
+  v_prime_ll = u_ll[orientation]
+  v_prime_rr = u_rr[orientation]
+  v_mean_ll = u_ll[orientation + 3]
+  v_mean_rr = u_rr[orientation + 3]
+
+  v_ll = v_prime_ll + v_mean_ll
+  v_rr = v_prime_rr + v_mean_rr
 
   c_mean_ll = u_ll[6]
   c_mean_rr = u_rr[6]
