@@ -234,7 +234,7 @@ julia> using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
 
 julia> function energy_at_final_time(k) # k is the wave number of the initial condition
            equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
-           mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4);
+           mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
            solver = DGSEM(3, flux_lax_friedrichs)
            initial_condition = (x, t, equation) -> begin
                x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
@@ -286,6 +286,79 @@ julia> round(ForwardDiff.derivative(
        1.0), sigdigits=2)
 -0.9
 ```
+
+Having seen this application, let's break down what happens step by step.
+```julia
+julia> function energy_at_final_time(k) # k is the wave number of the initial condition
+           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
+           solver = DGSEM(3, flux_lax_friedrichs)
+           initial_condition = (x, t, equation) -> begin
+               x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+               return SVector(sinpi(k * sum(x_trans)))
+           end
+           semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                               uEltype=typeof(k))
+           ode = semidiscretize(semi, (0.0, 1.0))
+           sol = solve(ode, BS3(), save_everystep=false)
+           Trixi.integrate(energy_total, sol.u[end], semi)
+       end
+
+julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
+1.4e-5
+```
+When calling `ForwardDiff.derivative(energy_at_final_time, 1.0)`, ForwardDiff.jl
+will basically use the chain rule and known derivatives of existing basic functions
+to calculate the derivative of the energy at the final time with respect to the
+wave number `k` at `k0 = 1.0`. To do this, ForwardDiff.jl uses dual numbers, which
+basically store the result and its derivative w.r.t. a specified parameter at the
+same time. Thus, we need to make sure that we can treat these `ForwardDiff.Dual`
+numbers everywhere during the computation. Fortunately, generic Julia code usually
+supports these operations. The most basic problem for a developer is to ensure
+that all types are generic enough, in particular the ones of internal caches.
+
+The first step in this example creates some basic ingredients of our simulation.
+```julia
+equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
+solver = DGSEM(3, flux_lax_friedrichs)
+```
+These do not have internal caches storing intermediate values of the numerical
+solution, so we do not need to adapt them. In fact, we could also define them
+outside of `energy_at_final_time` (but would need to take care of globals or
+wrap everything in another function).
+
+Next, we define the initial condition
+```julia
+initial_condition = (x, t, equation) -> begin
+    x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+    return SVector(sinpi(k * sum(x_trans)))
+end
+```
+as a closure capturing the wave number `k` passed to `energy_at_final_time`.
+If you call `energy_at_final_time(1.0)`, `k` will be a `Float64`. Thus, the
+return values of `initial_condition` will be `SVector`s of `Float64`s. When
+calculating the `ForwardDiff.derivative`, `k` will be a `ForwardDiff.Dual` number.
+Hence, the `initial_condition` will return `SVector`s of `ForwardDiff.Dual`
+numbers.
+
+The semidiscretization `semi` uses some internal caches to avoid repeated allocations
+and speed up the computations, e.g. for numerical fluxes at interfaces. Thus, we
+need to tell Trixi to allow `ForwardDiff.Dual` numbers in these caches. That's what
+the keyword argument `uEltype=typeof(k)` in
+```julia
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    uEltype=typeof(k))
+```
+does. This is basically the only part where you need to modify your standard Trixi
+code to enable automatic differentiation. From there on, the remaining steps
+```julia
+ode = semidiscretize(semi, (0.0, 1.0))
+sol = solve(ode, BS3(), save_everystep=false)
+Trixi.integrate(energy_total, sol.u[end], semi)
+```
+do not need any modifications since they are sufficiently generic (and enough effort
+has been spend to allow general types inside thee calls).
 
 
 
