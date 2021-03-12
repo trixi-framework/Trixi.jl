@@ -149,20 +149,23 @@ Boundary condition for the `gauss_wall` example elixir, used in combination with
 """
 function boundary_condition_gauss_wall(u_inner, orientation, direction, x, t, surface_flux_function,
                                        equations::AcousticPerturbationEquations2D)
-  # Calculate boundary flux
-  if direction == 1 # Boundary at -x
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  elseif direction == 2 # Boundary at +x
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  elseif direction == 3 # Boundary at -y
+  # Wall at the boundary in -y direction. At that boundary, we set the boundary state to the
+  # inner state for all variables except the perturbed velocity in the y-direction which we multiply
+  # by -1.
+  # At every other boundary, we set the perturbed variables to 0 and take the mean variables from
+  # the inner state
+  if direction == 3 # boundary in -y direction
     u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
                          u_inner[7])
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  else # Boundary at +y
+  else
     u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+  end
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
@@ -199,14 +202,13 @@ Boundary condition for the monopole in a boundary layer setup, used in combinati
 """
 function boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
                                      equations::AcousticPerturbationEquations2D)
-  # Calculate boundary flux
-  if direction == 1 # Boundary at -x
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  elseif direction == 2 # Boundary at +x
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-  elseif direction == 3 # Boundary at -y
+  # Wall at the boundary in -y direction with a monopole at -0.05 <= x <= 0.05. In the monopole area
+  # we use a sinusoidal boundary state for the perturbed variables. For the rest of the -y boundary
+  # we set the boundary state to the inner state and multiply the perturbed velocity in the
+  # y-direction by -1.
+  # For every other boundary, we set the perturbed variables to zero and take the mean variables
+  # from the inner state
+  if direction == 3 # boundary in -y direction
     if -0.05 <= x[1] <= 0.05 # Monopole
       v1_prime = 0.0
       v2_prime = p_prime = sin(2 * pi * t)
@@ -217,11 +219,15 @@ function boundary_condition_monopole(u_inner, orientation, direction, x, t, surf
       u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
                            u_inner[7])
     end
-
-    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-  else # Boundary at +y
+  else
     u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+  end
+
+  # Calculate boundary flux
+  if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
     flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
   end
 
   return flux
