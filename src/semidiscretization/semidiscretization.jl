@@ -216,13 +216,24 @@ function jacobian_ad_forward(semi::AbstractSemidiscretization;
                              t0=zero(real(semi)),
                              u0_ode=compute_coefficients(t0, semi))
 
-  J = ForwardDiff.jacobian((du_ode, u_ode) -> begin
-    new_semi = remake(semi, uEltype=eltype(u_ode))
+  du_ode = similar(u0_ode)
+  config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
+
+  # Use a function barrier since the generation of the `config` we use above
+  # is not type-stable
+  _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
+end
+
+function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
+
+  new_semi = remake(semi, uEltype=eltype(config))
+  J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
     Trixi.rhs!(du_ode, u_ode, new_semi, t0)
-  end, similar(u0_ode), u0_ode)
+  end
 
   return J
 end
+
 
 
 # Sometimes, it can be useful to save some (scalar) variables associated with each element,

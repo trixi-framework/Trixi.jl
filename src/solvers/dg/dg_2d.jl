@@ -99,10 +99,12 @@ end
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
   MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype}
-  # A2d  = Array{uEltype, 2}
-
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+
+  # A2d = Array{uEltype, 2}
+  # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+  # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
 
   (; fstar_upper_threaded, fstar_lower_threaded)
 end
