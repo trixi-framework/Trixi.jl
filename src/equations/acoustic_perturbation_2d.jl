@@ -45,25 +45,6 @@ end
 
 
 """
-initial_condition_gauss(x, t, equation::AcousticPerturbationEquations2D)
-
-A Gaussian pulse.
-"""
-function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
-  v1_prime = 0.0
-  v2_prime = 0.0
-  p_prime = exp(-4*(x[1]^2 + x[2]^2))
-
-  v1_mean = 0.25
-  v2_mean = 0.25
-  c_mean = 1.0
-  rho_mean = 1.0
-
-  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
-end
-
-
-"""
     initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
 
 A smooth initial condition used for convergence tests in combination with
@@ -118,6 +99,132 @@ function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationE
   du4 = du5 = du6 = du7 = 0.0
 
   return SVector(du1, du2, du3, du4, du5, du6, du7)
+end
+
+
+"""
+    initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
+
+A Gaussian pulse.
+"""
+function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = exp(-4*(x[1]^2 + x[2]^2))
+
+  v1_mean = 0.25
+  v2_mean = 0.25
+  c_mean = 1.0
+  rho_mean = 1.0
+
+  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+end
+
+
+"""
+    initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
+
+A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
+[`boundary_condition_gauss_wall`](@ref).
+"""
+function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
+
+  v1_mean = 0.5
+  v2_mean = 0.0
+  c_mean = 1.0
+  rho_mean = 1.0
+
+  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+end
+
+"""
+    boundary_condition_gauss_wall(u_inner, orientation, direction, x, t, surface_flux_function,
+                                  equations::AcousticPerturbationEquations2D)
+
+Boundary condition for the `gauss_wall` example elixir, used in combination with
+[`initial_condition_gauss_wall`](@ref).
+"""
+function boundary_condition_gauss_wall(u_inner, orientation, direction, x, t, surface_flux_function,
+                                       equations::AcousticPerturbationEquations2D)
+  # Calculate boundary flux
+  if direction == 1 # Boundary at -x
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  elseif direction == 2 # Boundary at +x
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  elseif direction == 3 # Boundary at -y
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
+                         u_inner[7])
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  else # Boundary at +y
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  end
+
+  return flux
+end
+
+
+"""
+  initial_condition_monopole(x, t, equations::AcousticPerturbationEquations2D)
+
+Initial condition for the monopole in a boundary layer setup, used in combination with
+[`boundary_condition_monopole`](@ref).
+"""
+function initial_condition_monopole(x, t, equations::AcousticPerturbationEquations2D)
+  m = 0.3 # Mach number
+
+  v1_prime = 0.0
+  v2_prime = 0.0
+  p_prime = 0.0
+
+  v1_mean = x[2] > 1 ? m : m * (2*x[2] - 2*x[2]^2 + x[2]^4)
+  v2_mean = 0.0
+  c_mean = 1.0
+  rho_mean = 1.0
+
+  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+end
+
+"""
+  boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
+                              equations::AcousticPerturbationEquations2D)
+
+Boundary condition for the monopole in a boundary layer setup, used in combination with
+[`initial_condition_monopole`](@ref).
+"""
+function boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
+                                     equations::AcousticPerturbationEquations2D)
+  # Calculate boundary flux
+  if direction == 1 # Boundary at -x
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  elseif direction == 2 # Boundary at +x
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  elseif direction == 3 # Boundary at -y
+    if -0.05 <= x[1] <= 0.05 # Monopole
+      v1_prime = 0.0
+      v2_prime = p_prime = sin(2 * pi * t)
+
+      u_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5], u_inner[6],
+                           u_inner[7])
+    else # Wall
+      u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
+                           u_inner[7])
+    end
+
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  else # Boundary at +y
+    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  end
+
+  return flux
 end
 
 

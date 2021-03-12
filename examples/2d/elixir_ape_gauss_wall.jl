@@ -7,27 +7,27 @@ using Trixi
 equations = AcousticPerturbationEquations2D()
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(3, flux_lax_friedrichs)
+solver = DGSEM(5, flux_lax_friedrichs)
 
-coordinates_min = (-20.6, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (30.6, 51.2) # maximum coordinates (max(x), max(y))
+coordinates_min = (-100, 0) # minimum coordinates (min(x), min(y))
+coordinates_max = (100, 200) # maximum coordinates (max(x), max(y))
 
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=4,
                 n_cells_max=100_000,
                 periodicity=false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_monopole, solver,
-                                    boundary_conditions=boundary_condition_monopole)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss_wall, solver,
+                                    boundary_conditions=boundary_condition_gauss_wall)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 24.0
-ode = semidiscretize(semi, (0.0, 24.0))
+# Create ODE problem with time span from 0.0 to 30.0
+ode = semidiscretize(semi, (0.0, 30.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -40,7 +40,7 @@ analysis_callback = AnalysisCallback(semi, interval=100)
 save_solution = SaveSolutionCallback(interval=100, solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=0.7)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
