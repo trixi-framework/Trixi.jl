@@ -223,6 +223,72 @@ Here, we used some knowledge about the internal memory layout of Trixi, an array
 with the conserved variables as fastest-varying index in memory.
 
 
+### Differentiating through a complete simulation
+
+It is also possible to differentiate through a complete simulation. As an example, let's differentiate
+the total energy of a simulation using the linear scalar advection equation with respect to the
+wave number (frequency) of the initial data.
+
+```jldoctest advection_differentiate_simulation
+julia> using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
+
+julia> function energy_at_final_time(k) # k is the wave number of the initial condition
+           equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+           mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4);
+           solver = DGSEM(3, flux_lax_friedrichs)
+           initial_condition = (x, t, equation) -> begin
+               x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+               return SVector(sinpi(k * sum(x_trans)))
+           end
+           semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                               uEltype=typeof(k))
+           ode = semidiscretize(semi, (0.0, 1.0))
+           sol = solve(ode, BS3(), save_everystep=false)
+           Trixi.integrate(energy_total, sol.u[end], semi)
+       end
+energy_at_final_time (generic function with 1 method)
+
+julia> k_values = range(0.9, 1.1, length=101)
+0.9:0.002:1.1
+
+julia> plot(k_values, energy_at_final_time.(k_values), label="Energy");
+```
+
+You should see a plot of a curve that resembles a parabola with local maximum around `k = 1.0`.
+Why's that? Well, the domain is fixed but the wave number changes. Thus, if the wave number is
+not chosen as an integer, the initial condition will not be a smooth periodic function in the
+given domain. Hence, the dissipative surface flux (`flux_lax_friedrichs` in this example)
+will introduce more dissipation. In particular, it will introduce more dissipation for "less smooth"
+initial data, corresponding to wave numbers `k` further away from integers.
+
+We can compute the discrete derivative of the energy at the final time with respect to the wave
+number `k` as follows.
+```jldoctest advection_differentiate_simulation
+julia> round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits=2)
+1.4e-5
+```
+
+This is rather small and we can treat it as zero in comparison to the value of this derivative at
+other wave numbers `k`.
+
+```jldoctest advection_differentiate_simulation
+julia> dk_values = ForwardDiff.derivative.((energy_at_final_time,), k_values);
+
+julia> plot(k_values, dk_values, label="Derivative");
+```
+
+If you remember basic calculus, a sufficient condition for a local maximum is that the first derivative
+vanishes and the second derivative is negative. We can also check this discretely.
+
+```jldoctest advection_differentiate_simulation
+julia> round(ForwardDiff.derivative(
+           k -> Trixi.ForwardDiff.derivative(energy_at_final_time, k),
+       1.0), sigdigits=2)
+-0.9
+```
+
+
+
 ## Finite difference approximations
 
 Trixi provides the convenience function [`jacobian_fd`](@ref) to approximate the Jacobian

@@ -13,6 +13,7 @@ end
 
 nvariables(::ElementContainer3D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::ElementContainer3D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::ElementContainer3D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -130,6 +131,7 @@ end
 
 nvariables(::InterfaceContainer3D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::InterfaceContainer3D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::InterfaceContainer3D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer3D, capacity)
@@ -292,6 +294,7 @@ end
 
 nvariables(::BoundaryContainer3D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::BoundaryContainer3D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::BoundaryContainer3D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer3D, capacity)
@@ -511,6 +514,7 @@ end
 
 nvariables(::L2MortarContainer3D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::L2MortarContainer3D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::L2MortarContainer3D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::L2MortarContainer3D, capacity)
