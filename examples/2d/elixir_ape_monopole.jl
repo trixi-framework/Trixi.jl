@@ -12,6 +12,12 @@ solver = DGSEM(3, flux_lax_friedrichs)
 coordinates_min = (-20.6, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (30.6, 51.2) # maximum coordinates (max(x), max(y))
 
+initial_condition = initial_condition_monopole
+boundary_conditions = (x_neg=boundary_condition_wall,
+                       x_pos=boundary_condition_wall,
+                       y_neg=boundary_condition_monopole,
+                       y_pos=boundary_condition_wall)
+
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
@@ -19,8 +25,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity=false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_monopole, solver,
-                                    boundary_conditions=boundary_condition_monopole)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
 
 
 ###############################################################################

@@ -20,7 +20,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_gauss_wall, solver,
-                                    boundary_conditions=boundary_condition_gauss_wall)
+                                    boundary_conditions=boundary_condition_wall)
 
 
 ###############################################################################

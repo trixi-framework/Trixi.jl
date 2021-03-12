@@ -132,7 +132,7 @@ end
     initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
 
 A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
-[`boundary_condition_gauss_wall`](@ref).
+[`boundary_condition_wall`](@ref).
 """
 function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
@@ -148,24 +148,21 @@ function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquat
 end
 
 """
-    boundary_condition_gauss_wall(u_inner, orientation, direction, x, t, surface_flux_function,
-                                  equations::AcousticPerturbationEquations2D)
+    boundary_condition_wall(u_inner, orientation, direction, x, t, surface_flux_function,
+                            equations::AcousticPerturbationEquations2D)
 
-Boundary condition for the `gauss_wall` example elixir, used in combination with
-[`initial_condition_gauss_wall`](@ref).
+Boundary conditions for a solid wall.
 """
-function boundary_condition_gauss_wall(u_inner, orientation, direction, x, t, surface_flux_function,
-                                       equations::AcousticPerturbationEquations2D)
-  # Wall at the boundary in -y direction. At that boundary, we set the boundary state to the
-  # inner state for all variables except the perturbed velocity in the y-direction which we multiply
-  # by -1.
-  # At every other boundary, we set the perturbed variables to 0 and take the mean variables from
-  # the inner state
-  if direction == 3 # boundary in -y direction
-    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
-                         u_inner[7])
-  else
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+function boundary_condition_wall(u_inner, orientation, direction, x, t, surface_flux_function,
+                                 equations::AcousticPerturbationEquations2D)
+  # Boundary state is equal to the inner state except for the perturbed velocity. For boundaries
+  # in the -x/+x direction, we multiply the perturbed velocity in the x direction by -1.
+  # Similarly, for boundaries in the -y/+y direction, we multiply the perturbed velocity in the
+  # y direction by -1
+  if direction in (1, 2) # x direction
+    u_boundary = SVector(-u_inner[1], u_inner[2], u_inner[3], get_mean_vars(u_inner, equations)...)
+  else # y direction
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], get_mean_vars(u_inner, equations)...)
   end
 
   # Calculate boundary flux
@@ -204,31 +201,48 @@ end
   boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
                               equations::AcousticPerturbationEquations2D)
 
-Boundary condition for the monopole in a boundary layer setup, used in combination with
-[`initial_condition_monopole`](@ref).
+Boundary condition for a monopole in a boundary layer at the -y boundary, i.e. `direction = 3`.
+This will return an error for any other direction. This boundary condition is used in combination
+with [`initial_condition_monopole`](@ref).
 """
 function boundary_condition_monopole(u_inner, orientation, direction, x, t, surface_flux_function,
                                      equations::AcousticPerturbationEquations2D)
+  if direction != 3
+    error("expected direction = 3, got $direction instead")
+  end
+
   # Wall at the boundary in -y direction with a monopole at -0.05 <= x <= 0.05. In the monopole area
   # we use a sinusoidal boundary state for the perturbed variables. For the rest of the -y boundary
   # we set the boundary state to the inner state and multiply the perturbed velocity in the
   # y-direction by -1.
-  # For every other boundary, we set the perturbed variables to zero and take the mean variables
-  # from the inner state
-  if direction == 3 # boundary in -y direction
-    if -0.05 <= x[1] <= 0.05 # Monopole
-      v1_prime = 0.0
-      v2_prime = p_prime = sin(2 * pi * t)
+  if -0.05 <= x[1] <= 0.05 # Monopole
+    v1_prime = 0.0
+    v2_prime = p_prime = sin(2 * pi * t)
 
-      u_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5], u_inner[6],
-                           u_inner[7])
-    else # Wall
-      u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
-                           u_inner[7])
-    end
-  else
-    u_boundary = SVector(0.0, 0.0, 0.0, u_inner[4], u_inner[5], u_inner[6], u_inner[7])
+    u_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5], u_inner[6],
+                         u_inner[7])
+  else # Wall
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4], u_inner[5], u_inner[6],
+                         u_inner[7])
   end
+
+  # Calculate boundary flux
+  flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+
+  return flux
+end
+
+"""
+    boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
+                            equations::AcousticPerturbationEquations2D)
+
+Boundary condition that uses a boundary state where the state variables are zero and the mean
+variables are the same as in `u_inner`.
+"""
+function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
+                                 equations::AcousticPerturbationEquations2D)
+  value = zero(eltype(u_inner))
+  u_boundary = SVector(value, value, value, get_mean_vars(u_inner, equations)...)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -239,7 +253,6 @@ function boundary_condition_monopole(u_inner, orientation, direction, x, t, surf
 
   return flux
 end
-
 
 # Calculate 1D flux for a single point
 @inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
