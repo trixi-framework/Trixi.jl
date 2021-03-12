@@ -43,6 +43,7 @@ makedocs(
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
         "Testing" => "testing.md",
+        "Differentiable programming" => "differentiable_programming.md",
         "Troubleshooting" => "troubleshooting.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
