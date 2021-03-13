@@ -15,15 +15,17 @@ surface_flux = flux_lax_friedrichs
 volume_flux  = flux_chandrashekar
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.002,
-                                         alpha_min=0.0001,
-                                         alpha_smooth=true,
-                                         variable=density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg=volume_flux,
-                                                 volume_flux_fv=surface_flux)
-solver = DGSEM(basis, surface_flux, volume_integral)
+#indicator_sc = IndicatorHennemannGassner(equations, basis,
+#                                         alpha_max=0.002,
+#                                         alpha_min=0.0001,
+#                                         alpha_smooth=true,
+#                                         variable=density_pressure)
+#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+#                                                 volume_flux_dg=volume_flux,
+#                                                 volume_flux_fv=surface_flux)
+
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+#solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
 coordinates_max = ( 0.5,  0.5)

@@ -10,7 +10,8 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+volume_flux = flux_ranocha
+solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
 coordinates_max = (2, 2)

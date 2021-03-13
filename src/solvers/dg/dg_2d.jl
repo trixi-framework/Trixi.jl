@@ -270,8 +270,38 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
+
+  @unpack weights = dg.basis
+
+  du_ec = similar(du)
+  du_ec .= 0.0
+  du_cen = similar(du)
+  du_cen .= 0.0
+
   @threaded for element in eachelement(dg, cache)
-    split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+    # compute volume integral with flux, and for comparison with central flux
+    split_form_kernel!(du_ec, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+    split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
+    #split_form_kernel!(du_cen, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+    # compute entropy production of both volume integrals
+    delta_entropy = 0.0
+    for j in eachnode(dg), i in eachnode(dg)
+      du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      delta_entropy +=weights[i]*weights[j]*dot(w_node,du_ec_node - du_cen_node)
+    end
+    if (delta_entropy < 0.0) 
+      for j in eachnode(dg), i in eachnode(dg)
+       du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+       add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
+      end
+    else
+      for j in eachnode(dg), i in eachnode(dg)
+       du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+       add_to_node_vars!(du, du_ec_node, equations, dg, i, j, element)
+      end
+    end
   end
 end
 
