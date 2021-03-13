@@ -235,7 +235,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations2D)
+@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
   @unpack inv_Tr = equations
 
@@ -255,8 +255,8 @@ end
 
 @inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = sqrt(equations.nu * equations.inv_Tr)
 
@@ -268,8 +268,8 @@ end
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
