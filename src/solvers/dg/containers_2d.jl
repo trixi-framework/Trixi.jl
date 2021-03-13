@@ -13,6 +13,7 @@ end
 
 nvariables(::ElementContainer2D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::ElementContainer2D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::ElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # Only one-dimensional `Array`s are `resize!`able in Julia.
 # Hence, we use `Vector`s as internal storage and `resize!`
@@ -128,6 +129,7 @@ end
 
 nvariables(::InterfaceContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::InterfaceContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::InterfaceContainer2D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(interfaces::InterfaceContainer2D, capacity)
@@ -294,6 +296,7 @@ end
 
 nvariables(::BoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::BoundaryContainer2D{RealT, uEltype, NVARS, POLYDEG}) where {RealT, uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::BoundaryContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(boundaries::BoundaryContainer2D, capacity)
@@ -493,6 +496,7 @@ end
 
 nvariables(::L2MortarContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::L2MortarContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::L2MortarContainer2D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mortars::L2MortarContainer2D, capacity)
@@ -693,6 +697,7 @@ end
 
 nvariables(::MPIInterfaceContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = NVARS
 polydeg(::MPIInterfaceContainer2D{uEltype, NVARS, POLYDEG}) where {uEltype, NVARS, POLYDEG} = POLYDEG
+Base.eltype(::MPIInterfaceContainer2D{uEltype}) where {uEltype} = uEltype
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(mpi_interfaces::MPIInterfaceContainer2D, capacity)
