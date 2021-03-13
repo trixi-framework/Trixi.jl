@@ -5,14 +5,6 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
-## Unreleased
-
-#### Added
-#### Changed
-#### Removed
-#### Deprecated
-
-
 ## Changes in the v0.3 lifecycle
 
 #### Added
