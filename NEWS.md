@@ -10,6 +10,11 @@ for human readability.
 #### Added
 
 - Support for automatic differentiation, e.g. `jacobian_ad_forward`
+- In-situ visualization and post hoc visualization with Plots.jl
+- New systems of equations
+  - multicomponent compressible Euler
+  - acoustic perturbation equations
+  - Lattice-Boltzmann equations 
 
 #### Changed
 
