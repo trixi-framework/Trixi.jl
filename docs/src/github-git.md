@@ -96,6 +96,7 @@ review. That is, you should
   * add a `elixir_xxx.jl` that uses your feature (only relevant for new
     features)
   * make sure your code formatting adheres to the [Style guide](@ref)
+  * describe changes in `NEWS.md` if appropriate
 
 After you are confident that your branch is cleaned up properly, commit all
 changes and push them to the repository.

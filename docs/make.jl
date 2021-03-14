@@ -60,5 +60,6 @@ makedocs(
 
 deploydocs(
     repo = "github.com/trixi-framework/Trixi.jl",
-    devbranch = "main"
+    devbranch = "main",
+    push_preview = true
 )
