@@ -289,7 +289,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
     # compute volume integral with flux, and for comparison with central flux
     split_form_kernel!(du_ec, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
     split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
-    #split_form_kernel!(du_cen, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+
     # compute entropy production of both volume integrals
     delta_entropy = 0.0
     for j in eachnode(dg), i in eachnode(dg)
@@ -310,6 +310,11 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       end
     end
   end
+
+  # Original code
+  # @threaded for element in eachelement(dg, cache)
+  #   split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
+  # end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,4}, u,
