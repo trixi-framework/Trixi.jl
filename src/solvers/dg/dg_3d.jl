@@ -24,8 +24,11 @@ function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
-  du_ec = Array{uEltype, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
-  du_cen = Array{uEltype, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
+  # TODO: This should be moved somewhere else but that would require more involved
+  #       changes since we wouldn't know `nelements(dg, cache)`...
+  # TODO: This does not work with AMR
+  du_ec  = allocate_coefficients(mesh, equations, dg, cache)
+  du_cen = allocate_coefficients(mesh, equations, dg, cache)
   cache = (;cache..., du_ec, du_cen)
 
   return cache
@@ -78,6 +81,16 @@ function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{true}, equat
             fstar_tmp1_threaded,
             noncons_diamond_upper_left_threaded, noncons_diamond_upper_right_threaded,
             noncons_diamond_lower_left_threaded, noncons_diamond_lower_right_threaded,)
+end
+
+
+function create_cache(mesh::TreeMesh{3}, equations, volume_integral::VolumeIntegralLocalComparison, dg::DG, uEltype)
+  @unpack volume_integral_flux_differencing = volume_integral
+
+  # TODO: We should allocate the additional temporary storage `du_ec, du_cen` here
+  cache = create_cache(mesh, equations, volume_integral_flux_differencing, dg, uEltype)
+
+  return cache
 end
 
 
@@ -321,43 +334,10 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
-  @unpack weights = dg.basis
-  @unpack du_ec, du_cen = cache
-
-  du_ec .= 0.0
-  du_cen .= 0.0
 
   @threaded for element in eachelement(dg, cache)
-    # compute volume integral with flux, and for comparison with central flux
-    split_form_kernel!(du_ec, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
-    split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
-    # split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
-
-    # compute entropy production of both volume integrals
-    delta_entropy = 0.0
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      du_ec_node = get_node_vars(du_ec, equations, dg, i, j, k, element)
-      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, k, element)
-      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, k, element), equations)
-      delta_entropy +=weights[i]*weights[j]*weights[k]*dot(w_node,du_ec_node - du_cen_node)
-    end
-    if (delta_entropy < 0.0) 
-      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-       du_cen_node = get_node_vars(du_cen, equations, dg, i, j, k, element)
-       add_to_node_vars!(du, du_cen_node, equations, dg, i, j, k, element)
-      end
-    else
-      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-       du_ec_node = get_node_vars(du_ec, equations, dg, i, j, k, element)
-       add_to_node_vars!(du, du_ec_node, equations, dg, i, j, k, element)
-      end
-    end
+    split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
   end
-
-  # Original code
-  # @threaded for element in eachelement(dg, cache)
-  #   split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
-  # end
 end
 
 @inline function split_form_kernel!(du::AbstractArray{<:Any,5}, u,
@@ -449,6 +429,45 @@ end
   end
 
   return nothing
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralLocalComparison,
+                               dg::DGSEM, cache)
+  @unpack weights = dg.basis
+  @unpack du_ec, du_cen = cache
+  @unpack volume_flux = volume_integral.volume_integral_flux_differencing
+
+  du_ec  .= zero(eltype(du_ec))
+  du_cen .= zero(eltype(du_cen))
+
+  @threaded for element in eachelement(dg, cache)
+    # compute volume integral with flux, and for comparison with central flux
+    split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
+    split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
+
+    # compute entropy production of both volume integrals
+    delta_entropy = zero(eltype(du))
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+      du_ec_node  = get_node_vars(du_ec,  equations, dg, i, j, k, element)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, k, element)
+      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, k, element), equations)
+      delta_entropy += weights[i] * weights[j] * weights[k] * dot(w_node, du_ec_node - du_cen_node)
+    end
+    if delta_entropy < 0
+      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, k, element)
+        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, k, element)
+      end
+    else
+      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        du_ec_node = get_node_vars(du_ec, equations, dg, i, j, k, element)
+        add_to_node_vars!(du, du_ec_node, equations, dg, i, j, k, element)
+      end
+    end
+  end
 end
 
 

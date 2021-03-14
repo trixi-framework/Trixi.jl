@@ -22,6 +22,12 @@ function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
+  # TODO: This should be moved somewhere else but that would require more involved
+  #       changes since we wouldn't know `nelements(dg, cache)`...
+  du_ec  = allocate_coefficients(mesh, equations, dg, cache)
+  du_cen = allocate_coefficients(mesh, equations, dg, cache)
+  cache = (;cache..., du_ec, du_cen)
+
   return cache
 end
 
@@ -42,6 +48,16 @@ end
 # function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{true}, equations,
 #                       ::VolumeIntegralFluxDifferencing, dg, uEltype)
 # end
+
+
+function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeIntegralLocalComparison, dg::DG, uEltype)
+  @unpack volume_integral_flux_differencing = volume_integral
+
+  # TODO: We should allocate the additional temporary storage `du_ec, du_cen` here
+  cache = create_cache(mesh, equations, volume_integral_flux_differencing, dg, uEltype)
+
+  return cache
+end
 
 
 function create_cache(mesh::TreeMesh{1}, equations,

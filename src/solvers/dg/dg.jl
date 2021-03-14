@@ -57,6 +57,30 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
 end
 
 
+# TODO: It would be really nice if we could convert volume integrals to a purely
+#       element-based approach. Then, we could have a new volume integral that
+#       contains two different methods and performs the blending of them locally.
+#       The choice coded below would then be the special case of blending the
+#        weak form with flux differencing, but we could also use other choices.
+# TODO: This needs a better name...
+struct VolumeIntegralLocalComparison{VolumeFlux} <: AbstractVolumeIntegral
+  volume_integral_flux_differencing::VolumeIntegralFluxDifferencing{VolumeFlux}
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComparison)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux" => integral.volume_integral_flux_differencing.volume_flux
+            ]
+    summary_box(io, "VolumeIntegralLocalComparison", setup)
+  end
+end
+
+
 """
     VolumeIntegralShockCapturingHG
 
