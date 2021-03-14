@@ -84,7 +84,8 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
+       flux_ec
 
 export initial_condition_constant,
        initial_condition_gauss,

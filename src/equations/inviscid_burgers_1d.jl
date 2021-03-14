@@ -80,9 +80,16 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::InviscidBurgersE
   return SVector(0.5 * ( 0.5 * (u_L^2 + u_R^2) - max(abs(u_L), abs(u_R)) * (u_R - u_L) ))
 end
 
-
 @inline function max_abs_speeds(u, equation::InviscidBurgersEquation1D)
   return (abs(u[1]),)
+end
+
+
+function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
 end
 
 
