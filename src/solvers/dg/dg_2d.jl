@@ -374,6 +374,7 @@ end
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms, equations,
+                               # volume_integral::VolumeIntegralLocalComparison{Val{:default}}, # does not work?!?
                                volume_integral::VolumeIntegralLocalComparison,
                                dg::DGSEM, cache)
   @unpack weights = dg.basis
@@ -406,6 +407,50 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
         du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
         du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
         add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, j, element)
+      end
+    end
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralLocalComparison{Val{:parametric}},
+                               dg::DGSEM, cache)
+  @unpack weights = dg.basis
+  @unpack du_ec, du_cen = cache
+  @unpack volume_flux = volume_integral.volume_integral_flux_differencing
+  @unpack parameters = volume_integral
+  @unpack alpha_ec = parameters
+  @unpack alpha_cen = parameters
+
+  du_ec  .= zero(eltype(du_ec))
+  du_cen .= zero(eltype(du_cen))
+
+  @threaded for element in eachelement(dg, cache)
+    # compute volume integral with flux, and for comparison with central flux
+    split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
+    weak_form_kernel!(du_cen, u, nonconservative_terms, equations, dg, cache, element)
+
+    # compute entropy production of both volume integrals
+    delta_entropy = zero(eltype(du))
+    for j in eachnode(dg), i in eachnode(dg)
+      du_ec_node  = get_node_vars(du_ec,  equations, dg, i, j, element)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      delta_entropy += weights[i] * weights[j] * dot(w_node, du_ec_node - du_cen_node)
+    end
+    if delta_entropy < 0
+      for j in eachnode(dg), i in eachnode(dg)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
+      end
+    else
+      for j in eachnode(dg), i in eachnode(dg)
+        du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, alpha_ec*du_ec_node + alpha_cen * du_cen_node,
+                          equations, dg, i, j, element)
       end
     end
   end
