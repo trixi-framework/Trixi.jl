@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
+# semidiscretization of the (inviscid) Burgers' equation
 
 equations = InviscidBurgersEquation1D()
 
@@ -12,8 +12,8 @@ initial_condition = initial_condition_convergence_test
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-coordinates_min = 0
-coordinates_max = 1
+coordinates_min = 0.0
+coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=4,
                 n_cells_max=10_000)
@@ -37,9 +37,6 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
                                                             :linf_error_primitive))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
-
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
 
 save_solution = SaveSolutionCallback(interval=100,
                                      save_initial_solution=true,
