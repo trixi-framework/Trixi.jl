@@ -24,8 +24,8 @@ function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
 
   # TODO: This should be moved somewhere else but that would require more involved
   #       changes since we wouldn't know `nelements(dg, cache)`...
-  du_ec  = allocate_coefficients(mesh, equations, dg, cache)
-  du_cen = allocate_coefficients(mesh, equations, dg, cache)
+  du_ec  = Array{uEltype, 3}(undef, nvariables(equations), nnodes(dg), nelements(dg, cache))
+  du_cen = similar(du_ec)
   cache = (;cache..., du_ec, du_cen)
 
   return cache

@@ -27,8 +27,8 @@ function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
   # TODO: This should be moved somewhere else but that would require more involved
   #       changes since we wouldn't know `nelements(dg, cache)`...
   # TODO: This does not work with AMR
-  du_ec  = allocate_coefficients(mesh, equations, dg, cache)
-  du_cen = allocate_coefficients(mesh, equations, dg, cache)
+  du_ec  = Array{uEltype, 5}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache))
+  du_cen = similar(du_ec)
   cache = (;cache..., du_ec, du_cen)
 
   return cache
@@ -240,6 +240,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
                                dg::DGSEM, cache)
   @threaded for element in eachelement(dg, cache)
     weak_form_kernel!(du, u, nonconservative_terms, equations, dg, cache, element)
+  end
 end
 
 @inline function weak_form_kernel!(du::AbstractArray{<:Any,5}, u,

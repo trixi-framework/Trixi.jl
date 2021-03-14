@@ -27,8 +27,8 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   # TODO: This should be moved somewhere else but that would require more involved
   #       changes since we wouldn't know `nelements(dg, cache)`...
   # TODO: This does not work with AMR
-  du_ec  = allocate_coefficients(mesh, equations, dg, cache)
-  du_cen = allocate_coefficients(mesh, equations, dg, cache)
+  du_ec  = Array{uEltype, 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+  du_cen = similar(du_ec)
   cache = (;cache..., du_ec, du_cen)
 
   return cache
