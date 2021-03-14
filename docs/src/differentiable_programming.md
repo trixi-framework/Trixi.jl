@@ -20,7 +20,7 @@ the resulting semidiscretization yields an affine ODE of the form
 where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
 to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
 The resulting operator `A` can be used in multiplication, e.g. `mul!` from
-`LinearAlgebra`, converted to a sparse matrix using `sparse` from `SparseArrays`,
+LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
 or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.
 For example,
 ```jldoctest
