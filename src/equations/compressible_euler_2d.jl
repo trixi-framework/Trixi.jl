@@ -766,6 +766,19 @@ Entropy conserving two-point flux by
   return SVector(f1, f2, f3, f4)
 end
 
+@inline function flux_secret(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+  f_ranocha = flux_ranocha(u_ll, u_rr, orientation, equations)
+  f_central = flux_central(u_ll, u_rr, orientation, equations)
+  w_ll = cons2entropy(u_ll,equations)
+  w_rr = cons2entropy(u_rr,equations)
+  delta_entropy = dot((w_rr-w_ll),f_central-f_ranocha)
+  if (delta_entropy < 0.0)
+    f = f_central
+  else
+    f = 2*f_ranocha - f_central
+  end
+  return f
+end
 
 """
     flux_ranocha(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)

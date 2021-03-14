@@ -31,9 +31,10 @@ initial_condition = initial_condition_khi2
 #                                                    slope_limiter = minmod)
 #solver = DGSEM(basis, surface_flux, volume_integral)
 
-surface_flux  = flux_lax_friedrichs
-#volume_flux  = flux_ranocha
-volume_flux  = flux_chandrashekar
+#surface_flux  = flux_lax_friedrichs
+surface_flux  = flux_secret
+volume_flux  = flux_ranocha
+#volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
 
 coordinates_min = (-1.0, -1.0)
