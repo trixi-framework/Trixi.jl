@@ -468,7 +468,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
     else
       for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         du_ec_node = get_node_vars(du_ec, equations, dg, i, j, k, element)
-        add_to_node_vars!(du, du_ec_node, equations, dg, i, j, k, element)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, k, element)
+        add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, j, k, element)
       end
     end
   end
