@@ -280,10 +280,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
   @unpack weights = dg.basis
   @unpack du_ec, du_cen = cache
 
-  # du_ec = similar(du)
-  du_ec .= 0.0
-  # du_cen = similar(du)
-  du_cen .= 0.0
+  du_ec .= zero(eltype(du_ec))
+  du_cen .=  zero(eltype(du_cen))
 
   @threaded for element in eachelement(dg, cache)
     # compute volume integral with flux, and for comparison with central flux
@@ -291,14 +289,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
     split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
 
     # compute entropy production of both volume integrals
-    delta_entropy = 0.0
+    delta_entropy = zero(eltype(u))
     for j in eachnode(dg), i in eachnode(dg)
       du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
       du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
       w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
       delta_entropy +=weights[i]*weights[j]*dot(w_node,du_ec_node - du_cen_node)
     end
-    if (delta_entropy < 0.0) 
+    if delta_entropy < 0
       for j in eachnode(dg), i in eachnode(dg)
        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
