@@ -235,36 +235,39 @@ end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
-                               nonconservative_terms::Val{false}, equations,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+  @threaded for element in eachelement(dg, cache)
+    weak_form_kernel!(du, u, nonconservative_terms, equations, dg, cache, element)
+end
+
+@inline function weak_form_kernel!(du::AbstractArray{<:Any,5}, u,
+                                   nonconservative_terms::Val{false}, equations,
+                                   dg::DGSEM, cache, element, alpha=true)
   @unpack derivative_dhat = dg.basis
 
-  @threaded for element in eachelement(dg, cache)
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, k, element)
+  for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
-      end
+    flux1 = flux(u_node, 1, equations)
+    for ii in eachnode(dg)
+      integral_contribution = alpha * derivative_dhat[ii, i] * flux1
+      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
+    end
 
-      flux2 = flux(u_node, 2, equations)
-      for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
-      end
+    flux2 = flux(u_node, 2, equations)
+    for jj in eachnode(dg)
+      integral_contribution = alpha * derivative_dhat[jj, j] * flux2
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
+    end
 
-      flux3 = flux(u_node, 3, equations)
-      for kk in eachnode(dg)
-        integral_contribution = derivative_dhat[kk, k] * flux3
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
-      end
+    flux3 = flux(u_node, 3, equations)
+    for kk in eachnode(dg)
+      integral_contribution = alpha * derivative_dhat[kk, k] * flux3
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
     end
   end
-
-  return nothing
 end
 
 
@@ -446,7 +449,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
   @threaded for element in eachelement(dg, cache)
     # compute volume integral with flux, and for comparison with central flux
     split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
-    split_form_kernel!(du_cen, u, nonconservative_terms, equations, flux_central, dg, cache, element)
+    weak_form_kernel!(du_cen, u, nonconservative_terms, equations, dg, cache, element)
 
     # compute entropy production of both volume integrals
     delta_entropy = zero(eltype(du))
