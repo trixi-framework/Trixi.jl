@@ -136,7 +136,7 @@ julia> scatter(real.(λ), imag.(λ));
 julia> 1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 6.0e-16
 true
 
-julia> 1.0e-12 < round(maximum(real, λ) < 6.0e-12
+julia> 1.0e-12 < maximum(real, λ) < 6.0e-12
 true
 
 julia> λ, V = eigen(J);
