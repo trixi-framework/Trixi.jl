@@ -20,7 +20,7 @@ the resulting semidiscretization yields an affine ODE of the form
 where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
 to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
 The resulting operator `A` can be used in multiplication, e.g. `mul!` from
-`LinearAlgebra`, converted to a sparse matrix using `sparse` from `SparseArrays`,
+LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
 or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.
 For example,
 ```jldoctest
@@ -78,11 +78,11 @@ julia> λ = eigvals(J);
 
 julia> scatter(real.(λ), imag.(λ));
 
-julia> round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-6.7e-10
+julia> 3.0e-10 < maximum(real, λ) / maximum(abs, λ) < 8.0e-10
+true
 
-julia> round(maximum(real, λ), sigdigits=2)
-2.1e-7
+julia> 1.0e-7 < maximum(real, λ) < 5.0e-7
+true
 ```
 
 Interestingly, if we add dissipation by switching to the `flux_lax_friedrichs` at the interfaces,
@@ -133,16 +133,16 @@ julia> λ = eigvals(J);
 
 julia> scatter(real.(λ), imag.(λ));
 
-julia> round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-3.2e-16
+julia> 1.0e-16 < maximum(real, λ) / maximum(abs, λ) < 6.0e-16
+true
 
-julia> round(maximum(real, λ), sigdigits=2)
-3.2e-12
+julia> 1.0e-12 < maximum(real, λ) < 6.0e-12
+true
 
 julia> λ, V = eigen(J);
 
-julia> round(cond(V), sigdigits=2)
-250.0
+julia> 200 < cond(V) < 300
+true
 ```
 
 If we add dissipation, the maximal real part is still approximately zero.
@@ -158,16 +158,18 @@ julia> λ = eigvals(J);
 
 julia> scatter!(real.(λ), imag.(λ));
 
-julia> λ = eigvals(J); round(maximum(real, λ) / maximum(abs, λ), sigdigits=2)
-5.3e-18
+julia> λ = eigvals(J);
 
-julia> round(maximum(real, λ), sigdigits=2)
-7.7e-14
+julia> 1.0e-18 < maximum(real, λ) / maximum(abs, λ) < 1.0e-16
+true
+
+julia> 5.0e-14 < maximum(real, λ) < 5.0e-13
+true
 
 julia> λ, V = eigen(J);
 
-julia> round(cond(V), sigdigits=2)
-93000.0
+julia> 90_000 < cond(V) < 100_000
+true
 ```
 Note that the condition number of the eigenvector matrix increases but is still smaller than for the
 example in 2D.

@@ -83,6 +83,9 @@ to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/lat
 If the installed version does not match the current release, please check the
 *Troubleshooting* section in the [documentation](#documentation).
 
+The commands above can also be used to update Trixi. A brief list of notable
+changes to Trixi is available in [`NEWS.md`](NEWS.md).
+
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
 within the cloned directory:
