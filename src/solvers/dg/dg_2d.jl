@@ -24,6 +24,12 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
+  du_ec = Array{uEltype, 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                            nelements(dg, cache))
+  du_cen = Array{uEltype, 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg),
+                             nelements(dg, cache))
+  cache = (;cache..., du_ec, du_cen)
+
   return cache
 end
 
@@ -272,10 +278,11 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                dg::DGSEM, cache)
 
   @unpack weights = dg.basis
+  @unpack du_ec, du_cen = cache
 
-  du_ec = similar(du)
+  # du_ec = similar(du)
   du_ec .= 0.0
-  du_cen = similar(du)
+  # du_cen = similar(du)
   du_cen .= 0.0
 
   @threaded for element in eachelement(dg, cache)
