@@ -16,7 +16,7 @@ solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 coordinates_min = (-pi, -pi, -pi)
 coordinates_max = ( pi,  pi,  pi)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=4,
                 n_cells_max=100_000)
 
 
@@ -31,8 +31,10 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+analysis_interval = 20
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
+                                     save_analysis=true,
+                                     extra_analysis_integrals=(Trixi.energy_kinetic,))
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
