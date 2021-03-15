@@ -308,11 +308,20 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
     for i in eachindex(fluxes_일, fluxes_이)
       flux일 = fluxes_일[i]
       flux이 = fluxes_이[i]
-      if dot(w[i+1] - w[i], flux일 - flux이) <= 0
-        fluxes_일[i] = flux일 # flux일 is more dissipative
-      else
-        fluxes_일[i] = flux이 # flux이 is more dissipative
-      end
+      # if dot(w[i+1] - w[i], flux일 - flux이) <= 0
+      #   fluxes_일[i] = flux일 # flux일 is more dissipative
+      #   # fluxes_일[i] = 2 * flux일 - flux이 # flux일 is more dissipative
+      # else
+      #   fluxes_일[i] = flux이 # flux이 is more dissipative
+      #   # fluxes_일[i] = 2 * flux이 - flux일 # flux이 is more dissipative
+      # end
+      b = dot(w[i+1] - w[i], flux이 - flux일)
+      c = 1.0e-12
+      # hyp = sqrt(b^2 + c^2)
+      hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+      # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+      δ = (hyp - b) / 2hyp # just use the more dissipative flux
+      fluxes_일[i] = flux일 + δ * (flux이 - flux일)
     end
 
     # update volume contribution in locally conservative form
