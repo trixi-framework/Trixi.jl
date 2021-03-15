@@ -4,7 +4,36 @@
 !!! warning "Experimental code"
     This system of equations is experimental and may change in any future release.
 
-Acoustic perturbation equations in two space dimensions.
+Acoustic perturbation equations (APE) in two space dimensions. The equations are given by
+```math
+\begin{aligned}
+  \frac{\partial\mathbf{v'}}{\partial t} + \nabla (\bar{\mathbf{v}}\cdot\mathbf{v'})
+    + \nabla\left( \frac{p'}{\bar{\rho}} \right) &= 0 \\
+  \frac{\partial p'}{\partial t} + \nabla\cdot (\bar{c}^2 \bar{\rho}^2 \mathbf{v'} + \bar{v} p')
+    &= \left( \bar{\rho}\mathbf{v'} + \bar{\mathbf{v}}\frac{p'}{\bar{c}^2} \right)\cdot\nabla\bar{c}^2.
+\end{aligned}
+```
+The bar ``\bar{(\cdot)}`` indicates time-averaged quantities. The unknowns of the APE are the
+perturbed velocities ``\mathbf{v'} = (v_1', v_2')^T`` and the perturbed pressure ``p'``, where
+perturbed variables are defined by ``\phi' = \phi - \bar{\phi}``.
+
+Note that the source term must be defined separately and passed manually to
+[`SemidiscretizationHyperbolic`](@ref).
+
+In addition to the unknowns, Trixi currently stores the mean values in the state vector,
+i.e. the state vector used internally is given by
+```math
+\mathbf{u} =
+  \begin{pmatrix}
+    v_1' \\ v_2' \\ p' \\ \bar{v_1} \\ \bar{v_2} \\ \bar{c} \\ \bar{\rho}
+  \end{pmatrix}.
+```
+This affects the implementation and use of these equations in various ways:
+* The flux values corresponding to the mean values must be zero.
+* The mean values have to be considered when defining initial conditions, boundary conditions or
+  source terms.
+* [`AnalysisCallback`](@ref) analyzes these variables too.
+* Trixi's visualization tools will visualize the mean values by default.
 
 The equations are based on the APE-4 system introduced in the following paper:
 
