@@ -766,6 +766,7 @@ Entropy conserving two-point flux by
   return SVector(f1, f2, f3, f4)
 end
 
+# TODO: Superseded by FluxComparedToCentral
 @inline function flux_secret(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   f_ranocha = flux_ranocha(u_ll, u_rr, orientation, equations)
   f_central = flux_central(u_ll, u_rr, orientation, equations)

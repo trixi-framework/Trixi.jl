@@ -25,14 +25,14 @@ initial_condition = initial_condition_khi2
 
 #surface_flux  = flux_hllc
 #basis = LobattoLegendreBasis(3)
-#volume_integral = VolumeIntegralPureLGLFiniteVolume(basis; 
+#volume_integral = VolumeIntegralPureLGLFiniteVolume(basis;
 #                                                    volume_flux_fv = flux_hllc,
 #                                                    reconstruction_mode = reconstruction_small_stencil,
 #                                                    slope_limiter = minmod)
 #solver = DGSEM(basis, surface_flux, volume_integral)
 
 #surface_flux  = flux_lax_friedrichs
-surface_flux  = flux_secret
+surface_flux  = FluxComparedToCentral(flux_ranocha) # supersedes flux_secret
 volume_flux  = flux_ranocha
 #volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
@@ -68,7 +68,7 @@ save_solution = SaveSolutionCallback(interval=20,
 stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 
