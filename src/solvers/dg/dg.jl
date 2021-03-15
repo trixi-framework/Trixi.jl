@@ -63,18 +63,28 @@ end
 #       The choice coded below would then be the special case of blending the
 #        weak form with flux differencing, but we could also use other choices.
 # TODO: This needs a better name...
-struct VolumeIntegralLocalComparison{VolumeFlux} <: AbstractVolumeIntegral
+struct VolumeIntegralLocalComparison{Variant, VolumeFlux, Parameters} <: AbstractVolumeIntegral
   volume_integral_flux_differencing::VolumeIntegralFluxDifferencing{VolumeFlux}
+  parameters::Parameters
 end
 
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComparison)
+function VolumeIntegralLocalComparison(volume_integral_flux_differencing, parameters=NamedTuple();
+                                       variant=:default)
+  VolumeIntegralLocalComparison{Val{variant},
+                                typeof(volume_integral_flux_differencing.volume_flux),
+                                typeof(parameters)}(volume_integral_flux_differencing, parameters)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComparison{Variant}) where Variant
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, integral)
   else
     setup = [
-            "volume flux" => integral.volume_integral_flux_differencing.volume_flux
+            "variant" => Variant,
+            "volume flux" => integral.volume_integral_flux_differencing.volume_flux,
+            "parameters" => integral.parameters
             ]
     summary_box(io, "VolumeIntegralLocalComparison", setup)
   end
