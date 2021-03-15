@@ -60,6 +60,19 @@ function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeInteg
 end
 
 
+function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeIntegralFluxComparison, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("Are you kidding me?")
+
+  FluxType = SVector{nvariables(equations), uEltype}
+  w_threaded = [Array{FluxType, 1}(undef, nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fluxes_일_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+  fluxes_이_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+
+  return (; w_threaded, fluxes_일_threaded, fluxes_이_threaded)
+end
+
+
 function create_cache(mesh::TreeMesh{1}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
@@ -264,6 +277,68 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
         add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, element)
       end
     end
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralFluxComparison,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_일, volume_flux_이 = volume_integral
+  @unpack inverse_weights = dg.basis
+  @unpack w_threaded, fluxes_일_threaded, fluxes_이_threaded = cache
+
+  @threaded for element in eachelement(dg, cache)
+    w = w_threaded[Threads.threadid()]
+    fluxes_일 = fluxes_일_threaded[Threads.threadid()]
+    fluxes_이 = fluxes_이_threaded[Threads.threadid()]
+
+    # compute entropy variables
+    for i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, element)
+      w[i] = cons2entropy(u_node, equations)
+    end
+
+    # compute local high-order fluxes
+    local_fluxes_1!(fluxes_일, u, nonconservative_terms, equations, volume_flux_일, dg, element)
+    local_fluxes_1!(fluxes_이, u, nonconservative_terms, equations, volume_flux_이, dg, element)
+
+    # compare entropy production of both fluxes and choose the more dissipative one
+    for i in eachindex(fluxes_일, fluxes_이)
+      flux일 = fluxes_일[i]
+      flux이 = fluxes_이[i]
+      if dot(w[i+1] - w[i], flux일 - flux이) <= 0
+        fluxes_일[i] = flux일 # flux일 is more dissipative
+      else
+        fluxes_일[i] = flux이 # flux이 is more dissipative
+      end
+    end
+
+    # update volume contribution in locally conservative form
+    add_to_node_vars!(du, inverse_weights[1] * fluxes_일[1], equations, dg, 1, element)
+    for i in 2:nnodes(dg)-1
+      add_to_node_vars!(du, inverse_weights[i] * (fluxes_일[i] - fluxes_일[i-1]), equations, dg, i, element)
+    end
+    add_to_node_vars!(du, -inverse_weights[end] * fluxes_일[end], equations, dg, nnodes(dg), element)
+  end
+end
+
+@inline function local_fluxes_1!(fluxes, u::AbstractArray{<:Any,3},
+                                 nonconservative_terms::Val{false}, equations,
+                                 volume_flux, dg::DGSEM, element)
+  @unpack weights, derivative_split = dg.basis
+
+  for i in eachindex(fluxes)
+    flux1 = zero(eltype(fluxes))
+    for k in i+1:nnodes(dg)
+      uk = get_node_vars(u, equations, dg, k, element)
+      for l in 1:i
+        ul = get_node_vars(u, equations, dg, l, element)
+        flux1 += weights[l] * derivative_split[l,k] * volume_flux(ul, uk, 1, equations)
+      end
+    end
+    fluxes[i] = flux1
   end
 end
 
