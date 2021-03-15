@@ -73,6 +73,17 @@ function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeInteg
 end
 
 
+function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeIntegralLocalFluxComparison, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("Are you kidding me?")
+
+  FluxType = SVector{nvariables(equations), uEltype}
+  w_threaded = [Array{FluxType, 1}(undef, nnodes(dg)) for _ in 1:Threads.nthreads()]
+
+  return (; w_threaded)
+end
+
+
 function create_cache(mesh::TreeMesh{1}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
@@ -348,6 +359,45 @@ end
       end
     end
     fluxes[i] = flux1
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralLocalFluxComparison,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_일, volume_flux_이 = volume_integral
+  @unpack derivative_split = dg.basis
+  @unpack w_threaded = cache
+
+  @threaded for element in eachelement(dg, cache)
+    w = w_threaded[Threads.threadid()]
+
+    # compute entropy variables
+    for i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, element)
+      w[i] = cons2entropy(u_node, equations)
+    end
+
+    # perform flux-differencing in symmetric form
+    for i in eachnode(dg)
+      u_i = get_node_vars(u, equations, dg, i, element)
+      du_i = zero(u_i)
+      for ii in eachnode(dg)
+        u_ii = get_node_vars(u, equations, dg, ii, element)
+        flux일 = volume_flux_일(u_i, u_ii, 1, equations)
+        flux이 = volume_flux_이(u_i, u_ii, 1, equations)
+        d_i_ii = derivative_split[i, ii]
+        b = -sign(d_i_ii) * dot(w[i] - w[ii], flux이 - flux일)
+        c = 1.0e-4 # TODO: magic constant determining linear and nonlinear stability 😠
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        du_i += d_i_ii * (flux일 + δ * (flux이 - flux일))
+      end
+      add_to_node_vars!(du, du_i, equations, dg, i, element)
+    end
   end
 end
 

@@ -128,6 +128,7 @@ export DG,
        DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
        VolumeIntegralLocalComparison, VolumeIntegralFluxComparison,
+       VolumeIntegralLocalFluxComparison,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        MortarL2
