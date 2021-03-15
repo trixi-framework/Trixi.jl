@@ -70,19 +70,21 @@ end
 
 function VolumeIntegralLocalComparison(volume_integral_flux_differencing, parameters=NamedTuple();
                                        variant=:default)
-  VolumeIntegralLocalComparison{Val(variant),
+  VolumeIntegralLocalComparison{Val{variant},
                                 typeof(volume_integral_flux_differencing.volume_flux),
                                 typeof(parameters)}(volume_integral_flux_differencing, parameters)
 end
 
-function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComparison)
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComparison{Variant}) where Variant
   @nospecialize integral # reduce precompilation time
 
   if get(io, :compact, false)
     show(io, integral)
   else
     setup = [
-            "volume flux" => integral.volume_integral_flux_differencing.volume_flux
+            "variant" => Variant,
+            "volume flux" => integral.volume_integral_flux_differencing.volume_flux,
+            "parameters" => integral.parameters
             ]
     summary_box(io, "VolumeIntegralLocalComparison", setup)
   end

@@ -374,8 +374,7 @@ end
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms, equations,
-                               # volume_integral::VolumeIntegralLocalComparison{Val{:default}}, # does not work?!?
-                               volume_integral::VolumeIntegralLocalComparison,
+                               volume_integral::VolumeIntegralLocalComparison{Val{:default}},
                                dg::DGSEM, cache)
   @unpack weights = dg.basis
   @unpack du_ec, du_cen = cache
