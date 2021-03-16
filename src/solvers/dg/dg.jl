@@ -91,6 +91,52 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalComp
 end
 
 
+# TODO: It would be really nice if we could convert other volume integrals to
+#       the flux form required here easily...
+# TODO: This needs a better name...
+struct VolumeIntegralFluxComparison{VolumeFlux_a, VolumeFlux_b} <: AbstractVolumeIntegral
+  volume_flux_a::VolumeFlux_a
+  volume_flux_b::VolumeFlux_b
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxComparison)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux a" => integral.volume_flux_a,
+            "volume flux b" => integral.volume_flux_b
+            ]
+    summary_box(io, "VolumeIntegralFluxComparison", setup)
+  end
+end
+
+
+# TODO: It would be really nice if we could convert other volume integrals to
+#       the flux form required here easily...
+# TODO: This needs a better name...
+struct VolumeIntegralLocalFluxComparison{VolumeFluxA, VolumeFluxB} <: AbstractVolumeIntegral
+  volume_flux_a::VolumeFluxA
+  volume_flux_b::VolumeFluxB
+end
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralLocalFluxComparison)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "volume flux a" => integral.volume_flux_a,
+            "volume flux b" => integral.volume_flux_b
+            ]
+    summary_box(io, "VolumeIntegralLocalFluxComparison", setup)
+  end
+end
+
+
 """
     VolumeIntegralShockCapturingHG
 

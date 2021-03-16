@@ -127,7 +127,8 @@ export TreeMesh
 export DG,
        DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
-       VolumeIntegralLocalComparison,
+       VolumeIntegralLocalComparison, VolumeIntegralFluxComparison,
+       VolumeIntegralLocalFluxComparison,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        MortarL2
