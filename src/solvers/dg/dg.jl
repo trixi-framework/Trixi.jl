@@ -106,8 +106,8 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxCompa
     show(io, integral)
   else
     setup = [
-            "volume flux 1" => integral.volume_flux_a,
-            "volume flux 2" => integral.volume_flux_b
+            "volume flux a" => integral.volume_flux_a,
+            "volume flux b" => integral.volume_flux_b
             ]
     summary_box(io, "VolumeIntegralFluxComparison", setup)
   end
