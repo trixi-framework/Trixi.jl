@@ -327,7 +327,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
       #   # fluxes_a[i] = 2 * flux_b - flux_a # flux_b is more dissipative
       # end
       b = dot(w[i+1] - w[i], flux_b - flux_a)
-      c = 1.0e-12
+      c = 1.0e-7
       # hyp = sqrt(b^2 + c^2)
       hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
       # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
