@@ -112,6 +112,10 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     semi_euler, semi_gravity, parameters, cache)
 end
 
+
+# TODO: AD, add appropriate method for remake
+
+
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
   @nospecialize semi # reduce precompilation time
 

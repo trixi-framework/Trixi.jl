@@ -44,19 +44,50 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 
   @testset "Test Jacobian of DG (2D)" begin
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
-                  tspan=(0.0, 0.0), initial_refinement_level=2)
-    A, _ = linear_structure(semi)
-    J = jacobian_fd(semi)
-    @test Matrix(A) ≈ J
-    λ = eigvals(J)
-    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    @testset "Linear advection" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+      A, _ = linear_structure(semi)
 
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_density_wave.jl"),
-                  tspan=(0.0, 0.0), initial_refinement_level=2)
-    J = jacobian_fd(semi)
-    λ = eigvals(J)
-    @test maximum(real, λ) < 0.007
+      J = jacobian_ad_forward(semi)
+      @test Matrix(A) ≈ J
+      λ = eigvals(J)
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
+      J = jacobian_fd(semi)
+      @test Matrix(A) ≈ J
+      λ = eigvals(J)
+      @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+    end
+
+    @testset "Compressible Euler equations" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_density_wave.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=2)
+
+      J = jacobian_ad_forward(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 7.0e-7
+
+      J = jacobian_fd(semi)
+      λ = eigvals(J)
+      @test maximum(real, λ) < 7.0e-3
+
+
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_euler_shockcapturing.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      # This does not work yet because of the indicators...
+      @test_skip jacobian_ad_forward(semi)
+    end
+
+    @testset "MHD" begin
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_mhd_alfven_wave.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      @test_nowarn jacobian_ad_forward(semi)
+
+      trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_mhd_alfven_wave_mortar.jl"),
+                    tspan=(0.0, 0.0), initial_refinement_level=1)
+      @test_nowarn jacobian_ad_forward(semi)
+    end
   end
 
 
@@ -73,6 +104,12 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "3d", "elixir_advection_extended.jl"),
                   tspan=(0.0, 0.0), initial_refinement_level=1)
     A, _ = linear_structure(semi)
+
+    J = jacobian_ad_forward(semi)
+    @test Matrix(A) ≈ J
+    λ = eigvals(J)
+    @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+
     J = jacobian_fd(semi)
     @test Matrix(A) ≈ J
     λ = eigvals(J)

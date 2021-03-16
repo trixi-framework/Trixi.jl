@@ -42,13 +42,13 @@ end
 
 
 """
-    calcflux(u, orientation, equations)
+    flux(u, orientation, equations)
 
 Given the conservative variables `u`, calculate the (physical) flux in spatial
 direction `orientation` for the coressponding set of governing `equations`
 `orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
 """
-function calcflux(u, orientation, equations) end
+function flux(u, orientation, equations) end
 
 
 # set sensible default values that may be overwritten by specific equations
@@ -68,8 +68,8 @@ DG method (except floating point errors).
 """
 @inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
   # Calculate regular 1D fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   # Average regular fluxes
   return 0.5 * (f_ll + f_rr)
@@ -84,6 +84,7 @@ function cons2prim(u, ::AbstractEquations) end
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
 @deprecate varnames_prim(equations) varnames(cons2prim, equations)
 @deprecate flux_upwind(u_ll, u_rr, orientation, equations) flux_godunov(u_ll, u_rr, orientation, equations)
+@deprecate calcflux(u, orientation, equations) flux(u, orientation, equations)
 
 
 ####################################################################################################
@@ -94,6 +95,10 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEqu
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+
+# Inviscid Burgers
+abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("inviscid_burgers_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end

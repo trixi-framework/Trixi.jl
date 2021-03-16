@@ -26,8 +26,9 @@ using Reexport: @reexport
 import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
-                   get_proposed_dt, set_proposed_dt!, terminate!
+                   get_proposed_dt, set_proposed_dt!, terminate!, remake
 @reexport using EllipsisNotation # ..
+import ForwardDiff
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
@@ -79,10 +80,12 @@ export AcousticPerturbationEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
+       InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
-export flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal
+export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
+       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
+       flux_ec
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -155,7 +158,7 @@ export PositivityPreservingLimiterZhangShu
 
 export trixi_include, examples_dir, get_examples, default_example
 
-export convergence_test, jacobian_fd, linear_structure
+export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
 export PlotData1D, PlotData2D, getmesh

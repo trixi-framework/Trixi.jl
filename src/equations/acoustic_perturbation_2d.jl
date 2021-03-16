@@ -295,7 +295,7 @@ function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_
 end
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
+@inline function flux(u, orientation, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = get_state_vars(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = get_mean_vars(u, equations)
 
@@ -320,8 +320,8 @@ end
 
 
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturbationEquations2D)
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   # Calculate v = v_prime + v_mean
   v_prime_ll = u_ll[orientation]
