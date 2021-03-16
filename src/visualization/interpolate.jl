@@ -105,7 +105,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   vandermonde_to_2d = Dict()
 
   # Permute dimensions such that the slice axis dimension is always the
-  # third dimension of the array. Below we can always interpolate in the 
+  # third dimension of the array. Below we can always interpolate in the
   # third dimension.
   if slice_axis === :x
     unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
@@ -159,7 +159,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
       for ii in 1:n_nodes_in
         # Interpolate in the third dimension
         data = unstructured_data[i, ii, :, element_id, :]
-    
+
         value = multiply_dimensionwise(vandermonde, permutedims(data))
         new_unstructured_data[i, ii, new_id, :] = value[:, 1]
       end
@@ -309,4 +309,17 @@ function calc_vertices(coordinates, levels, length_level_0)
   end
 
   return x, y
+end
+
+# Interpolate the input data from their original nodes to given output nodes.
+function interpolate1d(original_nodes, original_data, nodes_out)
+    n = length(original_nodes)
+    vandermonde = Array{Float64,2}(undef, n, n)
+    A = similar(vandermonde)
+    for i=0:n-1
+        vandermonde[:,i+1] = original_nodes.^i
+        A[:,i+1] = nodes_out.^i
+    end
+    coefficients = vandermonde\original_data
+    return A*coefficients
 end

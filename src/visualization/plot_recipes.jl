@@ -328,12 +328,28 @@ function PlotData1D(u, semi)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
 
-  x = cache.elements.node_coordinates
-
   # TODO cons2prim is hardcoded here and needs to be changed later.
   variable_names = SVector(varnames(cons2prim, equations))
 
-  return PlotData1D(vec(x), reshape(u, length(variable_names),:), variable_names, vcat(x[1, 1, :], x[1, end, end]))
+  # Get the dimensions of u; where a is the amount of variables, b the amount of entries in each element and c the amount of elements.
+  a, b, c = size(u)
+
+  original_nodes = cache.elements.node_coordinates
+  interpolated_nodes = similar(original_nodes)
+  interpolated_data = similar(u)
+
+  # Iterate over all elements.
+  for i=1:c
+    # Interpolate on an equidistant grid.
+    interpolated_nodes[1,:,i] = vcat(range(original_nodes[1,1,i], original_nodes[1,end,i], length = b))
+
+    # Interpolate the data for each variable.
+    for j=1:a
+      interpolated_data[j,:,i] = interpolate1d(original_nodes[1,:,i], u[j,:,i], interpolated_nodes[1,:,i])
+    end
+  end
+
+  return PlotData1D(vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, length(variable_names),:)'), variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
 end
 
 """
@@ -427,7 +443,7 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
   title --> variable_names[variable_id]
 
   # Return data for plotting
-  x, data[variable_id,:]
+  x, data[:,variable_id]
 end
 
 # Plot the mesh as vertical lines from a PlotMesh1D object.
