@@ -22,7 +22,8 @@ end
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D()
+equations = AcousticPerturbationEquations2D(v_mean_global=(-0.5, 0.25), c_mean_global=1.0,
+                                            rho_mean_global=1.0)
 
 initial_condition = initial_condition_constant
 

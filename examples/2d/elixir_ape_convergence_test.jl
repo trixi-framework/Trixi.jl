@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D()
+equations = AcousticPerturbationEquations2D((0.5, 0.3), 1.0, 1.0)
 
 initial_condition = initial_condition_convergence_test
 

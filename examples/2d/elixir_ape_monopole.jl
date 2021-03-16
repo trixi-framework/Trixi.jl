@@ -4,7 +4,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D()
+equations = AcousticPerturbationEquations2D(v_mean_global=(0.0, 0.0), c_mean_global=0.0,
+                                            rho_mean_global=0.0)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
@@ -12,7 +13,7 @@ solver = DGSEM(3, flux_lax_friedrichs)
 coordinates_min = (-20.6, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (30.6, 51.2) # maximum coordinates (max(x), max(y))
 
-initial_condition = initial_condition_monopole
+initial_condition = initial_condition_monopole # does not use the global mean values given above
 boundary_conditions = (x_neg=boundary_condition_wall,
                        x_pos=boundary_condition_wall,
                        y_neg=boundary_condition_monopole,

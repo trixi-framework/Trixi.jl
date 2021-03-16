@@ -1,5 +1,5 @@
 @doc raw"""
-    AcousticPerturbationEquations2D()
+    AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
 
 !!! warning "Experimental code"
     This system of equations is experimental and may change in any future release.
@@ -35,6 +35,11 @@ This affects the implementation and use of these equations in various ways:
 * [`AnalysisCallback`](@ref) analyzes these variables too.
 * Trixi's visualization tools will visualize the mean values by default.
 
+The constructor accepts a 2-tuple `v_mean_global` and scalars `c_mean_global` and `rho_mean_global`
+which can be used to make the definition of initial conditions for problems with constant mean flow
+more flexible. These values are ignored if the mean values are defined internally in an initial
+condition.
+
 The equations are based on the APE-4 system introduced in the following paper:
 
 R. Ewert, W. Schröder
@@ -44,7 +49,21 @@ Volume 188, Issue 2,
 2003,
 [DOI: 10.1016/S0021-9991(03)00168-2](https://doi.org/10.1016/S0021-9991(03)00168-2)
 """
-struct AcousticPerturbationEquations2D <: AbstractAcousticPerturbationEquations{2, 7} end
+struct AcousticPerturbationEquations2D{RealT<:Real} <: AbstractAcousticPerturbationEquations{2, 7}
+  v_mean_global::SVector{2, RealT}
+  c_mean_global::RealT
+  rho_mean_global::RealT
+end
+
+function AcousticPerturbationEquations2D(v_mean_global::NTuple{2,<:Real}, c_mean_global::Real,
+                                         rho_mean_global::Real)
+  return AcousticPerturbationEquations2D(SVector(v_mean_global), c_mean_global, rho_mean_global)
+end
+
+function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2,<:Real}, c_mean_global::Real,
+                                         rho_mean_global::Real)
+  return AcousticPerturbationEquations2D(SVector(v_mean_global), c_mean_global, rho_mean_global)
+end
 
 
 get_name(::AcousticPerturbationEquations2D) = "AcousticPerturbationEquations2D"
@@ -53,8 +72,8 @@ varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", 
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 
-# Convenience functions that return the conservative state and mean variables from the internal
-# state vector u
+
+# Convenience functions for retrieving state variables, mean variables and global mean values
 function get_state_vars(u, equations::AcousticPerturbationEquations2D)
   return u[1], u[2], u[3]
 end
@@ -63,23 +82,24 @@ function get_mean_vars(u, equations::AcousticPerturbationEquations2D)
   return u[4], u[5], u[6], u[7]
 end
 
+function global_mean_values(equations::AcousticPerturbationEquations2D)
+  return equations.v_mean_global[1], equations.v_mean_global[2], equations.c_mean_global,
+         equations.rho_mean_global
+end
+
 
 """
     initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
 
-A constant initial condition.
+A constant initial condition where the state variables are zero and the mean flow is constant.
+Uses the global mean values from `equations`.
 """
 function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
   v2_prime = 0.0
   p_prime = 0.0
 
-  v1_mean = -0.5
-  v2_mean = 0.25
-  c_mean = 1.0
-  rho_mean = 1.0
-
-  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
 end
 
 
@@ -87,7 +107,7 @@ end
     initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
 
 A smooth initial condition used for convergence tests in combination with
-[`source_terms_convergence_test`](@ref).
+[`source_terms_convergence_test`](@ref). Uses the global mean values from `equations`.
 """
 function initial_condition_convergence_test(x, t, equations::AcousticPerturbationEquations2D)
   c = 2.0
@@ -100,14 +120,9 @@ function initial_condition_convergence_test(x, t, equations::AcousticPerturbatio
 
   v1_prime = init
   v2_prime = init
-  p = init^2
+  p_prime = init^2
 
-  v1_mean = 0.5
-  v2_mean = 0.3
-  c_mean = 1.0
-  rho_mean = 1.0
-
-  return SVector(v1_prime, v2_prime, p, v1_mean, v2_mean, c_mean, rho_mean)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
 end
 
 """
@@ -141,19 +156,14 @@ end
 """
     initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
 
-A Gaussian pulse.
+A Gaussian pulse in a constant mean flow. Uses the global mean values from `equations`.
 """
 function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
   v2_prime = 0.0
   p_prime = exp(-4*(x[1]^2 + x[2]^2))
 
-  v1_mean = 0.25
-  v2_mean = 0.25
-  c_mean = 1.0
-  rho_mean = 1.0
-
-  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
 end
 
 
@@ -161,19 +171,14 @@ end
     initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
 
 A Gaussian pulse, used in the `gauss_wall` example elixir in combination with
-[`boundary_condition_wall`](@ref).
+[`boundary_condition_wall`](@ref). Uses the global mean values from `equations`.
 """
 function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquations2D)
   v1_prime = 0.0
   v2_prime = 0.0
   p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
 
-  v1_mean = 0.5
-  v2_mean = 0.0
-  c_mean = 1.0
-  rho_mean = 1.0
-
-  return SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
 end
 
 """
