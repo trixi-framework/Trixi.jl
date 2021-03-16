@@ -82,7 +82,13 @@ function get_mean_vars(u, equations::AcousticPerturbationEquations2D)
   return u[4], u[5], u[6], u[7]
 end
 
-function global_mean_values(equations::AcousticPerturbationEquations2D)
+"""
+    global_mean_vars(equations::AcousticPerturbationEquations2D)
+
+Returns the global mean variables stored in `equations`. This makes it easier to define flexible
+initial conditions for problems with constant mean flow.
+"""
+function global_mean_vars(equations::AcousticPerturbationEquations2D)
   return equations.v_mean_global[1], equations.v_mean_global[2], equations.c_mean_global,
          equations.rho_mean_global
 end
@@ -99,7 +105,7 @@ function initial_condition_constant(x, t, equations::AcousticPerturbationEquatio
   v2_prime = 0.0
   p_prime = 0.0
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 end
 
 
@@ -122,7 +128,7 @@ function initial_condition_convergence_test(x, t, equations::AcousticPerturbatio
   v2_prime = init
   p_prime = init^2
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 end
 
 """
@@ -163,7 +169,7 @@ function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2
   v2_prime = 0.0
   p_prime = exp(-4*(x[1]^2 + x[2]^2))
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 end
 
 
@@ -178,7 +184,7 @@ function initial_condition_gauss_wall(x, t, equations::AcousticPerturbationEquat
   v2_prime = 0.0
   p_prime = exp(-log(2) * (x[1]^2 + (x[2] - 25)^2) / 25)
 
-  return SVector(v1_prime, v2_prime, p_prime, global_mean_values(equations)...)
+  return SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 end
 
 """
