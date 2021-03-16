@@ -351,11 +351,11 @@ end
 
   for i in eachindex(fluxes)
     flux1 = zero(eltype(fluxes))
-    for k in i+1:nnodes(dg)
-      uk = get_node_vars(u, equations, dg, k, element)
-      for l in 1:i
-        ul = get_node_vars(u, equations, dg, l, element)
-        flux1 += weights[l] * derivative_split[l,k] * volume_flux(ul, uk, 1, equations)
+    for iip in i+1:nnodes(dg)
+      uiip = get_node_vars(u, equations, dg, iip, element)
+      for iim in 1:i
+        uiim = get_node_vars(u, equations, dg, iim, element)
+        flux1 += weights[iim] * derivative_split[iim,iip] * volume_flux(uiim, uiip, 1, equations)
       end
     end
     fluxes[i] = flux1
