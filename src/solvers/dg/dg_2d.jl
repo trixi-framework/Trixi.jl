@@ -75,6 +75,17 @@ function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeInteg
 end
 
 
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralLocalFluxComparison, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("Are you kidding me?")
+
+  FluxType = SVector{nvariables(equations), uEltype}
+  w_threaded = [Array{FluxType, 2}(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+
+  return (; w_threaded)
+end
+
+
 function create_cache(mesh::TreeMesh{2}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
@@ -452,6 +463,62 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                           equations, dg, i, j, element)
       end
     end
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralLocalFluxComparison,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_a, volume_flux_b = volume_integral
+  @unpack derivative_split = dg.basis
+  @unpack w_threaded = cache
+
+  @threaded for element in eachelement(dg, cache)
+    w = w_threaded[Threads.threadid()]
+
+    # compute entropy variables
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
+      w[i,j] = cons2entropy(u_node, equations)
+    end
+
+    # perform flux-differencing in symmetric form
+    for j in eachnode(dg), i in eachnode(dg)
+      u_i = get_node_vars(u, equations, dg, i, j, element)
+      du_i = zero(u_i)
+      c = 1.0e-4 # TODO: magic constant determining linear and nonlinear stability 😠
+
+      # x
+      for ii in eachnode(dg)
+        u_ii = get_node_vars(u, equations, dg, ii, j, element)
+        flux_a = volume_flux_a(u_i, u_ii, 1, equations)
+        flux_b = volume_flux_b(u_i, u_ii, 1, equations)
+        d_i_ii = derivative_split[i, ii]
+        b = -sign(d_i_ii) * dot(w[i,j] - w[ii,j], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        du_i += d_i_ii * (flux_a + δ * (flux_b - flux_a))
+      end
+
+      # y
+      for jj in eachnode(dg)
+        u_jj = get_node_vars(u, equations, dg, i, jj, element)
+        flux_a = volume_flux_a(u_i, u_jj, 2, equations)
+        flux_b = volume_flux_b(u_i, u_jj, 2, equations)
+        d_j_jj = derivative_split[j, jj]
+        b = -sign(d_j_jj) * dot(w[i,j] - w[i,jj], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        du_i += d_j_jj * (flux_a + δ * (flux_b - flux_a))
+      end
+
+      add_to_node_vars!(du, du_i, equations, dg, i, j, element)
+    end
+
   end
 end
 
