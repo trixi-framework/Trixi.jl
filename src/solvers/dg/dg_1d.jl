@@ -66,10 +66,10 @@ function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeInteg
 
   FluxType = SVector{nvariables(equations), uEltype}
   w_threaded = [Array{FluxType, 1}(undef, nnodes(dg)) for _ in 1:Threads.nthreads()]
-  fluxes_일_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
-  fluxes_이_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+  fluxes_a_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+  fluxes_b_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
 
-  return (; w_threaded, fluxes_일_threaded, fluxes_이_threaded)
+  return (; w_threaded, fluxes_a_threaded, fluxes_b_threaded)
 end
 
 
@@ -296,14 +296,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralFluxComparison,
                                dg::DGSEM, cache)
-  @unpack volume_flux_일, volume_flux_이 = volume_integral
+  @unpack volume_flux_a, volume_flux_b = volume_integral
   @unpack inverse_weights = dg.basis
-  @unpack w_threaded, fluxes_일_threaded, fluxes_이_threaded = cache
+  @unpack w_threaded, fluxes_a_threaded, fluxes_b_threaded = cache
 
   @threaded for element in eachelement(dg, cache)
     w = w_threaded[Threads.threadid()]
-    fluxes_일 = fluxes_일_threaded[Threads.threadid()]
-    fluxes_이 = fluxes_이_threaded[Threads.threadid()]
+    fluxes_a = fluxes_a_threaded[Threads.threadid()]
+    fluxes_b = fluxes_b_threaded[Threads.threadid()]
 
     # compute entropy variables
     for i in eachnode(dg)
@@ -312,35 +312,35 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
     end
 
     # compute local high-order fluxes
-    local_fluxes_1!(fluxes_일, u, nonconservative_terms, equations, volume_flux_일, dg, element)
-    local_fluxes_1!(fluxes_이, u, nonconservative_terms, equations, volume_flux_이, dg, element)
+    local_fluxes_1!(fluxes_a, u, nonconservative_terms, equations, volume_flux_a, dg, element)
+    local_fluxes_1!(fluxes_b, u, nonconservative_terms, equations, volume_flux_b, dg, element)
 
     # compare entropy production of both fluxes and choose the more dissipative one
-    for i in eachindex(fluxes_일, fluxes_이)
-      flux일 = fluxes_일[i]
-      flux이 = fluxes_이[i]
-      # if dot(w[i+1] - w[i], flux일 - flux이) <= 0
-      #   fluxes_일[i] = flux일 # flux일 is more dissipative
-      #   # fluxes_일[i] = 2 * flux일 - flux이 # flux일 is more dissipative
+    for i in eachindex(fluxes_a, fluxes_b)
+      flux_a = fluxes_a[i]
+      flux_b = fluxes_b[i]
+      # if dot(w[i+1] - w[i], flux_a - flux_b) <= 0
+      #   fluxes_a[i] = flux_a # flux_a is more dissipative
+      #   # fluxes_a[i] = 2 * flux_a - flux_b # flux_a is more dissipative
       # else
-      #   fluxes_일[i] = flux이 # flux이 is more dissipative
-      #   # fluxes_일[i] = 2 * flux이 - flux일 # flux이 is more dissipative
+      #   fluxes_a[i] = flux_b # flux_b is more dissipative
+      #   # fluxes_a[i] = 2 * flux_b - flux_a # flux_b is more dissipative
       # end
-      b = dot(w[i+1] - w[i], flux이 - flux일)
+      b = dot(w[i+1] - w[i], flux_b - flux_a)
       c = 1.0e-12
       # hyp = sqrt(b^2 + c^2)
       hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
       # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
       δ = (hyp - b) / 2hyp # just use the more dissipative flux
-      fluxes_일[i] = flux일 + δ * (flux이 - flux일)
+      fluxes_a[i] = flux_a + δ * (flux_b - flux_a)
     end
 
     # update volume contribution in locally conservative form
-    add_to_node_vars!(du, inverse_weights[1] * fluxes_일[1], equations, dg, 1, element)
+    add_to_node_vars!(du, inverse_weights[1] * fluxes_a[1], equations, dg, 1, element)
     for i in 2:nnodes(dg)-1
-      add_to_node_vars!(du, inverse_weights[i] * (fluxes_일[i] - fluxes_일[i-1]), equations, dg, i, element)
+      add_to_node_vars!(du, inverse_weights[i] * (fluxes_a[i] - fluxes_a[i-1]), equations, dg, i, element)
     end
-    add_to_node_vars!(du, -inverse_weights[end] * fluxes_일[end], equations, dg, nnodes(dg), element)
+    add_to_node_vars!(du, -inverse_weights[end] * fluxes_a[end], equations, dg, nnodes(dg), element)
   end
 end
 
@@ -367,7 +367,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralLocalFluxComparison,
                                dg::DGSEM, cache)
-  @unpack volume_flux_일, volume_flux_이 = volume_integral
+  @unpack volume_flux_a, volume_flux_b = volume_integral
   @unpack derivative_split = dg.basis
   @unpack w_threaded = cache
 
@@ -386,15 +386,15 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
       du_i = zero(u_i)
       for ii in eachnode(dg)
         u_ii = get_node_vars(u, equations, dg, ii, element)
-        flux일 = volume_flux_일(u_i, u_ii, 1, equations)
-        flux이 = volume_flux_이(u_i, u_ii, 1, equations)
+        flux_a = volume_flux_a(u_i, u_ii, 1, equations)
+        flux_b = volume_flux_b(u_i, u_ii, 1, equations)
         d_i_ii = derivative_split[i, ii]
-        b = -sign(d_i_ii) * dot(w[i] - w[ii], flux이 - flux일)
+        b = -sign(d_i_ii) * dot(w[i] - w[ii], flux_b - flux_a)
         c = 1.0e-4 # TODO: magic constant determining linear and nonlinear stability 😠
         hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
         # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
         δ = (hyp - b) / 2hyp # just use the more dissipative flux
-        du_i += d_i_ii * (flux일 + δ * (flux이 - flux일))
+        du_i += d_i_ii * (flux_a + δ * (flux_b - flux_a))
       end
       add_to_node_vars!(du, du_i, equations, dg, i, element)
     end
