@@ -24,6 +24,13 @@ function create_cache(mesh::TreeMesh{2}, equations::AbstractEquations{2},
   cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
   cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
+  # TODO: This should be moved somewhere else but that would require more involved
+  #       changes since we wouldn't know `nelements(dg, cache)`...
+  # TODO: This does not work with AMR
+  du_ec  = Array{uEltype, 4}(undef, nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache))
+  du_cen = similar(du_ec)
+  cache = (;cache..., du_ec, du_cen)
+
   return cache
 end
 
@@ -55,6 +62,40 @@ function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equat
   return (; f1_threaded, f2_threaded,
           fstar_upper_threaded, fstar_lower_threaded,
           noncons_diamond_upper_threaded, noncons_diamond_lower_threaded)
+end
+
+
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralLocalComparison, dg::DG, uEltype)
+  @unpack volume_integral_flux_differencing = volume_integral
+
+  # TODO: We should allocate the additional temporary storage `du_ec, du_cen` here
+  cache = create_cache(mesh, equations, volume_integral_flux_differencing, dg, uEltype)
+
+  return cache
+end
+
+
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralFluxComparison, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("Are you kidding me?")
+
+  FluxType = SVector{nvariables(equations), uEltype}
+  w_threaded = [Array{FluxType, 2}(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+  fluxes_a_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+  fluxes_b_threaded = [Vector{FluxType}(undef, nnodes(dg) - 1) for _ in 1:Threads.nthreads()]
+
+  return (; w_threaded, fluxes_a_threaded, fluxes_b_threaded)
+end
+
+
+function create_cache(mesh::TreeMesh{2}, equations, volume_integral::VolumeIntegralLocalFluxComparison, dg::DG, uEltype)
+
+  have_nonconservative_terms(equations) !== Val(false) && error("Are you kidding me?")
+
+  FluxType = SVector{nvariables(equations), uEltype}
+  w_threaded = [Array{FluxType, 2}(undef, nnodes(dg), nnodes(dg)) for _ in 1:Threads.nthreads()]
+
+  return (; w_threaded)
 end
 
 
@@ -188,30 +229,34 @@ end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
-                               nonconservative_terms::Val{false}, equations,
+                               nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+  @threaded for element in eachelement(dg, cache)
+    weak_form_kernel!(du, u, nonconservative_terms, equations, dg, cache, element)
+  end
+end
+
+@inline function weak_form_kernel!(du::AbstractArray{<:Any,4}, u,
+                                   nonconservative_terms::Val{false}, equations,
+                                   dg::DGSEM, cache, element, alpha=true)
   @unpack derivative_dhat = dg.basis
 
-  @threaded for element in eachelement(dg, cache)
-    for j in eachnode(dg), i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, j, element)
+  for j in eachnode(dg), i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, j, element)
 
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
-      end
+    flux1 = flux(u_node, 1, equations)
+    for ii in eachnode(dg)
+      integral_contribution = alpha * derivative_dhat[ii, i] * flux1
+      add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+    end
 
-      flux2 = flux(u_node, 2, equations)
-      for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
-        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
-      end
+    flux2 = flux(u_node, 2, equations)
+    for jj in eachnode(dg)
+      integral_contribution = alpha * derivative_dhat[jj, j] * flux2
+      add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
     end
   end
-
-  return nothing
 end
 
 
@@ -270,6 +315,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
+
   @threaded for element in eachelement(dg, cache)
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
   end
@@ -347,6 +393,256 @@ end
   end
 
   return nothing
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralLocalComparison{Val{:default}},
+                               dg::DGSEM, cache)
+  @unpack weights = dg.basis
+  @unpack du_ec, du_cen = cache
+  @unpack volume_flux = volume_integral.volume_integral_flux_differencing
+
+  du_ec  .= zero(eltype(du_ec))
+  du_cen .= zero(eltype(du_cen))
+
+  @threaded for element in eachelement(dg, cache)
+    # compute volume integral with flux, and for comparison with central flux
+    split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
+    weak_form_kernel!(du_cen, u, nonconservative_terms, equations, dg, cache, element)
+
+    # compute entropy production of both volume integrals
+    delta_entropy = zero(eltype(du))
+    for j in eachnode(dg), i in eachnode(dg)
+      du_ec_node  = get_node_vars(du_ec,  equations, dg, i, j, element)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      delta_entropy += weights[i] * weights[j] * dot(w_node, du_ec_node - du_cen_node)
+    end
+    if delta_entropy < 0
+      for j in eachnode(dg), i in eachnode(dg)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
+      end
+    else
+      for j in eachnode(dg), i in eachnode(dg)
+        du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, 2*du_ec_node-du_cen_node, equations, dg, i, j, element)
+      end
+    end
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralLocalComparison{Val{:parametric}},
+                               dg::DGSEM, cache)
+  @unpack weights = dg.basis
+  @unpack du_ec, du_cen = cache
+  @unpack volume_flux = volume_integral.volume_integral_flux_differencing
+  @unpack parameters = volume_integral
+  @unpack alpha_ec = parameters
+  @unpack alpha_cen = parameters
+
+  du_ec  .= zero(eltype(du_ec))
+  du_cen .= zero(eltype(du_cen))
+
+  @threaded for element in eachelement(dg, cache)
+    # compute volume integral with flux, and for comparison with central flux
+    split_form_kernel!(du_ec,  u, nonconservative_terms, equations, volume_flux, dg, cache, element)
+    weak_form_kernel!(du_cen, u, nonconservative_terms, equations, dg, cache, element)
+
+    # compute entropy production of both volume integrals
+    delta_entropy = zero(eltype(du))
+    for j in eachnode(dg), i in eachnode(dg)
+      du_ec_node  = get_node_vars(du_ec,  equations, dg, i, j, element)
+      du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+      w_node = cons2entropy(get_node_vars(u, equations, dg, i, j, element), equations)
+      delta_entropy += weights[i] * weights[j] * dot(w_node, du_ec_node - du_cen_node)
+    end
+    if delta_entropy < 0
+      for j in eachnode(dg), i in eachnode(dg)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, du_cen_node, equations, dg, i, j, element)
+      end
+    else
+      for j in eachnode(dg), i in eachnode(dg)
+        du_ec_node = get_node_vars(du_ec, equations, dg, i, j, element)
+        du_cen_node = get_node_vars(du_cen, equations, dg, i, j, element)
+        add_to_node_vars!(du, alpha_ec*du_ec_node + alpha_cen * du_cen_node,
+                          equations, dg, i, j, element)
+      end
+    end
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralFluxComparison,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_a, volume_flux_b = volume_integral
+  @unpack inverse_weights = dg.basis
+  @unpack w_threaded, fluxes_a_threaded, fluxes_b_threaded = cache
+
+  @threaded for element in eachelement(dg, cache)
+    w = w_threaded[Threads.threadid()]
+    fluxes_a = fluxes_a_threaded[Threads.threadid()]
+    fluxes_b = fluxes_b_threaded[Threads.threadid()]
+    c = 1.0e-7
+
+    # compute entropy variables
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
+      w[i,j] = cons2entropy(u_node, equations)
+    end
+
+    # x
+    for j in eachnode(dg)
+      # compute local high-order fluxes
+      local_fluxes_1!(fluxes_a, u, nonconservative_terms, equations, volume_flux_a, dg, j, element)
+      local_fluxes_1!(fluxes_b, u, nonconservative_terms, equations, volume_flux_b, dg, j, element)
+
+      # compare entropy production of both fluxes and choose the more dissipative one
+      for i in eachindex(fluxes_a, fluxes_b)
+        flux_a = fluxes_a[i]
+        flux_b = fluxes_b[i]
+        b = dot(w[i+1,j] - w[i,j], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        fluxes_a[i] = flux_a + δ * (flux_b - flux_a)
+      end
+
+      # update volume contribution in locally conservative form
+      add_to_node_vars!(du, inverse_weights[1] * fluxes_a[1], equations, dg, 1, j, element)
+      for i in 2:nnodes(dg)-1
+        add_to_node_vars!(du, inverse_weights[i] * (fluxes_a[i] - fluxes_a[i-1]), equations, dg, i, j, element)
+      end
+      add_to_node_vars!(du, -inverse_weights[end] * fluxes_a[end], equations, dg, nnodes(dg), j, element)
+    end
+
+    # y
+    for i in eachnode(dg)
+      # compute local high-order fluxes
+      local_fluxes_2!(fluxes_a, u, nonconservative_terms, equations, volume_flux_a, dg, i, element)
+      local_fluxes_2!(fluxes_b, u, nonconservative_terms, equations, volume_flux_b, dg, i, element)
+
+      # compare entropy production of both fluxes and choose the more dissipative one
+      for j in eachindex(fluxes_a, fluxes_b)
+        flux_a = fluxes_a[j]
+        flux_b = fluxes_b[j]
+        b = dot(w[i,j+1] - w[i,j], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        fluxes_a[j] = flux_a + δ * (flux_b - flux_a)
+      end
+
+      # update volume contribution in locally conservative form
+      add_to_node_vars!(du, inverse_weights[1] * fluxes_a[1], equations, dg, i, 1, element)
+      for j in 2:nnodes(dg)-1
+        add_to_node_vars!(du, inverse_weights[j] * (fluxes_a[j] - fluxes_a[j-1]), equations, dg, i, j, element)
+      end
+      add_to_node_vars!(du, -inverse_weights[end] * fluxes_a[end], equations, dg, i, nnodes(dg), element)
+    end
+
+  end
+end
+
+@inline function local_fluxes_1!(fluxes, u::AbstractArray{<:Any,4},
+                                 nonconservative_terms::Val{false}, equations,
+                                 volume_flux, dg::DGSEM, j, element)
+  @unpack weights, derivative_split = dg.basis
+
+  for i in eachindex(fluxes)
+    flux1 = zero(eltype(fluxes))
+    for iip in i+1:nnodes(dg)
+      uiip = get_node_vars(u, equations, dg, iip, j, element)
+      for iim in 1:i
+        uiim = get_node_vars(u, equations, dg, iim, j, element)
+        flux1 += weights[iim] * derivative_split[iim,iip] * volume_flux(uiim, uiip, 1, equations)
+      end
+    end
+    fluxes[i] = flux1
+  end
+end
+
+@inline function local_fluxes_2!(fluxes, u::AbstractArray{<:Any,4},
+                                 nonconservative_terms::Val{false}, equations,
+                                 volume_flux, dg::DGSEM, i, element)
+  @unpack weights, derivative_split = dg.basis
+
+  for j in eachindex(fluxes)
+    flux2 = zero(eltype(fluxes))
+    for jjp in j+1:nnodes(dg)
+      ujjp = get_node_vars(u, equations, dg, i, jjp, element)
+      for jjm in 1:j
+        ujjm = get_node_vars(u, equations, dg, i, jjm, element)
+        flux2 += weights[jjm] * derivative_split[jjm,jjp] * volume_flux(ujjm, ujjp, 2, equations)
+      end
+    end
+    fluxes[j] = flux2
+  end
+end
+
+
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralLocalFluxComparison,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_a, volume_flux_b = volume_integral
+  @unpack derivative_split = dg.basis
+  @unpack w_threaded = cache
+
+  @threaded for element in eachelement(dg, cache)
+    w = w_threaded[Threads.threadid()]
+
+    # compute entropy variables
+    for j in eachnode(dg), i in eachnode(dg)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
+      w[i,j] = cons2entropy(u_node, equations)
+    end
+
+    # perform flux-differencing in symmetric form
+    for j in eachnode(dg), i in eachnode(dg)
+      u_i = get_node_vars(u, equations, dg, i, j, element)
+      du_i = zero(u_i)
+      c = 1.0e-4 # TODO: magic constant determining linear and nonlinear stability 😠
+
+      # x
+      for ii in eachnode(dg)
+        u_ii = get_node_vars(u, equations, dg, ii, j, element)
+        flux_a = volume_flux_a(u_i, u_ii, 1, equations)
+        flux_b = volume_flux_b(u_i, u_ii, 1, equations)
+        d_i_ii = derivative_split[i, ii]
+        b = -sign(d_i_ii) * dot(w[i,j] - w[ii,j], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        du_i += d_i_ii * (flux_a + δ * (flux_b - flux_a))
+      end
+
+      # y
+      for jj in eachnode(dg)
+        u_jj = get_node_vars(u, equations, dg, i, jj, element)
+        flux_a = volume_flux_a(u_i, u_jj, 2, equations)
+        flux_b = volume_flux_b(u_i, u_jj, 2, equations)
+        d_j_jj = derivative_split[j, jj]
+        b = -sign(d_j_jj) * dot(w[i,j] - w[i,jj], flux_b - flux_a)
+        hyp = hypot(b, c) # sqrt(b^2 + c^2) computed in a numerically stable way
+        # δ = (hyp - b) / hyp # add anti-dissipation as dissipation
+        δ = (hyp - b) / 2hyp # just use the more dissipative flux
+        du_i += d_j_jj * (flux_a + δ * (flux_b - flux_a))
+      end
+
+      add_to_node_vars!(du, du_i, equations, dg, i, j, element)
+    end
+
+  end
 end
 
 

@@ -83,9 +83,9 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
 
-export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
+export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov, flux_secret,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
-       flux_ec,
+       flux_ec, FluxComparedToCentral,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs
 
 export initial_condition_constant,
@@ -128,6 +128,8 @@ export TreeMesh
 export DG,
        DGSEM, LobattoLegendreBasis,
        VolumeIntegralWeakForm, VolumeIntegralFluxDifferencing,
+       VolumeIntegralLocalComparison, VolumeIntegralFluxComparison,
+       VolumeIntegralLocalFluxComparison,
        VolumeIntegralPureLGLFiniteVolume,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        MortarL2

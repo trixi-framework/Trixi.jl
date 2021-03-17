@@ -18,6 +18,30 @@ DG method (except floating point errors).
 end
 
 
+# TODO: Must be documented and might need a better name
+struct FluxComparedToCentral{Numflux}
+  numflux::Numflux
+end
+
+@inline function (f::FluxComparedToCentral{Numflux})(u_ll, u_rr, orientation, equations) where {Numflux}
+
+  f_baseline = f.numflux(u_ll, u_rr, orientation, equations)
+  f_central = flux_central(u_ll, u_rr, orientation, equations)
+  w_ll = cons2entropy(u_ll, equations)
+  w_rr = cons2entropy(u_rr, equations)
+  # The local entropy production of a numerical flux at an interface is
+  #   dot(w_rr - w_ll, numerical_flux) - (psi_rr - psi_ll),
+  # see Tadmor (1987). Since the flux potential is the same for both, we can
+  # omit that part.
+  delta_entropy = dot(w_rr - w_ll, f_central - f_baseline)
+  if delta_entropy < 0
+    return f_central
+  else
+    return 2 * f_baseline - f_central
+  end
+end
+
+
 """
     FluxPlusDissipation(numerical_flux, dissipation)
 
