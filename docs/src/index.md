@@ -78,12 +78,12 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    ```julia
    julia> import Pkg
 
-   julia> Pkg.dev("Trixi")
+   julia> Pkg.develop("Trixi")
    ```
    This will download and install Trixi to a designated package development directory
    (usually `.julia/dev`, but you can determine the path on your system with
    `Pkg.devdir()`). As opposed to using the `Pkg.add` method as described above,
-   packages installed via `Pkg.dev` may have their files edited locally.
+   packages installed via `Pkg.develop` may have their files edited locally.
 
 2. **Install Trixi in a local folder**: Alternatively, you can download Trixi
    locally and use it from within the cloned directory:
