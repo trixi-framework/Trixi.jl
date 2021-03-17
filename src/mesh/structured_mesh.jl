@@ -1,8 +1,8 @@
 struct StructuredMesh{RealT<:Real, NDIMS}
-  size::Tuple{Vararg{Int64, NDIMS}}
-  coordinates_min::Tuple{Vararg{RealT, NDIMS}}
-  coordinates_max::Tuple{Vararg{RealT, NDIMS}}
-  linear_indices::LinearIndices{NDIMS, Tuple{Vararg{UnitRange{Int64}, NDIMS}}}
+  size::NTuple{NDIMS, Int}
+  coordinates_min::NTuple{NDIMS, Int}
+  coordinates_max::NTuple{NDIMS, Int}
+  linear_indices::LinearIndices{NDIMS, NTuple{NDIMS, UnitRange{Int}}}
 end
 
 function StructuredMesh{RealT}(size, coordinates_min, coordinates_max) where {RealT<:Real}
