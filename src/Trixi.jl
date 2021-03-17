@@ -85,7 +85,8 @@ export AcousticPerturbationEquations2D,
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov, flux_secret,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
-       flux_ec, FluxComparedToCentral
+       flux_ec, FluxComparedToCentral,
+       FluxPlusDissipation, DissipationGlobalLaxFriedrichs
 
 export initial_condition_constant,
        initial_condition_gauss,
