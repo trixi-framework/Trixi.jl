@@ -1,7 +1,9 @@
+# TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
+
 struct Interface{NDIMS, RealT<:Real}
   u_left::Array{RealT, NDIMS} # [variables, i, j]
   u_right::Array{RealT, NDIMS} # [variables, i, j]
-  orientation::Int64
+  orientation::Int
   surface_flux_values::Array{RealT, NDIMS} # [variables, i, j]
 end
 
@@ -15,6 +17,8 @@ function Interface{NDIMS, RealT}(nvars, nnodes, orientation) where {NDIMS, RealT
   return Interface{NDIMS, RealT}(u_left, u_right, orientation, surface_flux_values)
 end
 
+
+# TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
 
 struct Element{NDIMS, RealT<:Real}
   node_coordinates::Array{SVector{NDIMS, RealT}, NDIMS}
