@@ -1,4 +1,4 @@
-function compute_coefficients!(u, func, t, mesh::StructuredMesh{<:Real, 2}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::StructuredMesh{2}, equations, dg::DG, cache)
   @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
@@ -117,7 +117,7 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4},
 end
 
 
-function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{<:Real, 2}, equations,
+function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{2}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
 
@@ -145,7 +145,7 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
 end
 
 
-function calc_interface_flux!(interface::Interface, mesh::StructuredMesh{<:Real, 2}, equations, dg::DG)
+function calc_interface_flux!(interface::Interface, mesh::StructuredMesh{2}, equations, dg::DG)
   @unpack surface_flux = dg
 
   for i in eachnode(dg)
@@ -223,7 +223,7 @@ function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, mesh::Str
 end
 
 
-@inline function transformed_calcflux(u, orientation, mesh::StructuredMesh{<:Real, 2}, equations)
+@inline function transformed_calcflux(u, orientation, mesh::StructuredMesh{2}, equations)
   @unpack size, coordinates_min, coordinates_max = mesh
 
   if orientation == 1
@@ -237,7 +237,7 @@ end
 
 
 function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
-    mesh::StructuredMesh{<:Real, 2}, equations::AbstractEquations)
+    mesh::StructuredMesh{2}, equations::AbstractEquations)
     
   @unpack size, coordinates_min, coordinates_max = mesh
 

@@ -13,10 +13,10 @@ surface_flux = flux_lax_friedrichs
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(3, surface_flux, volume_integral)
 
-coordinates_min = (0, 0, 0)
-coordinates_max = (2, 2, 2)
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
 
-mesh = StructuredMesh{Float64}((4, 4, 4), coordinates_min, coordinates_max)
+mesh = StructuredMesh((4, 4, 4), coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)

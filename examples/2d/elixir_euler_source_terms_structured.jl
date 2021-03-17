@@ -12,9 +12,9 @@ initial_condition = initial_condition_convergence_test
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-coordinates_min = (0, 0)
-coordinates_max = (2, 2)
-mesh = StructuredMesh{Float64}((16, 16), coordinates_min, coordinates_max)
+coordinates_min = (0.0, 0.0)
+coordinates_max = (2.0, 2.0)
+mesh = StructuredMesh((16, 16), coordinates_min, coordinates_max)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

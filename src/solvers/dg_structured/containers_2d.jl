@@ -1,4 +1,4 @@
-function init_elements!(elements, mesh::StructuredMesh{RealT, 2}, nodes) where {RealT}
+function init_elements!(elements, mesh::StructuredMesh{2, RealT}, nodes) where {RealT}
   n_nodes = length(nodes)
 
   @unpack size, coordinates_min, coordinates_max = mesh
@@ -22,7 +22,7 @@ function init_elements!(elements, mesh::StructuredMesh{RealT, 2}, nodes) where {
                                        element_y_offset + dy/2 * nodes[j])
     end
 
-    elements[element_x, element_y] = Element{RealT, 2}(node_coordinates, inverse_jacobian)
+    elements[element_x, element_y] = Element{2, RealT}(node_coordinates, inverse_jacobian)
   end
 
   return nothing
@@ -30,13 +30,13 @@ end
 
 
 # Initialize connectivity between elements and interfaces
-function init_interfaces!(elements, mesh::StructuredMesh{RealT, 2}, equations::AbstractEquations, dg::DG) where {RealT}
+function init_interfaces!(elements, mesh::StructuredMesh{2, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
   nvars = nvariables(equations)
 
   # Inner interfaces
   for element_x in 1:mesh.size[1], element_y in 1:mesh.size[2]
     # Vertical interfaces
-    interface = Interface{RealT, 2}(nvars, nnodes(dg), 1)
+    interface = Interface{2, RealT}(nvars, nnodes(dg), 1)
 
     if element_x > 1
       elements[element_x, element_y].interfaces[1] = interface
@@ -44,7 +44,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{RealT, 2}, equations::A
     end
 
     # Horizontal interfaces
-    interface = Interface{RealT, 2}(nvars, nnodes(dg), 2)
+    interface = Interface{2, RealT}(nvars, nnodes(dg), 2)
 
     if element_y > 1
       elements[element_x, element_y].interfaces[3] = interface
@@ -54,8 +54,8 @@ function init_interfaces!(elements, mesh::StructuredMesh{RealT, 2}, equations::A
 
   # Vertical boundaries
   for element_y in 1:mesh.size[2]
-    interface_left = Interface{RealT, 2}(nvars, nnodes(dg), 1)
-    interface_right = Interface{RealT, 2}(nvars, nnodes(dg), 1)
+    interface_left = Interface{2, RealT}(nvars, nnodes(dg), 1)
+    interface_right = Interface{2, RealT}(nvars, nnodes(dg), 1)
 
     elements[1, element_y].interfaces[1] = interface_left
     elements[end, element_y].interfaces[2] = interface_right
@@ -63,8 +63,8 @@ function init_interfaces!(elements, mesh::StructuredMesh{RealT, 2}, equations::A
 
   # Horizontal boundaries
   for element_x in 1:mesh.size[1]
-    interface_left = Interface{RealT, 2}(nvars, nnodes(dg), 2)
-    interface_right = Interface{RealT, 2}(nvars, nnodes(dg), 2)
+    interface_left = Interface{2, RealT}(nvars, nnodes(dg), 2)
+    interface_right = Interface{2, RealT}(nvars, nnodes(dg), 2)
 
     elements[element_x, 1].interfaces[3] = interface_left
     elements[element_x, end].interfaces[4] = interface_right

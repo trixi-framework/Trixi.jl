@@ -16,7 +16,7 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 end
 
 
-function allocate_coefficients(mesh::StructuredMesh{<:Real, NDIMS}, equations, dg::DG, cache) where {NDIMS}
+function allocate_coefficients(mesh::StructuredMesh{NDIMS}, equations, dg::DG, cache) where {NDIMS}
   return zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., prod(mesh.size))
 end
 
