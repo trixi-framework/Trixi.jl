@@ -16,15 +16,6 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 end
 
 
-function allocate_coefficients(mesh::StructuredMesh{NDIMS}, equations, dg::DG, cache) where {NDIMS}
-  return zeros(real(dg), nvariables(equations), fill(nnodes(dg), NDIMS)..., prod(mesh.size))
-end
-
-
-function wrap_array(u_ode::AbstractArray, mesh::StructuredMesh, equations, dg::DG, cache)
-  return u_ode # TODO remove this?
-end
-
 @inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 

@@ -246,7 +246,25 @@ end
 end
 
 
-function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh, StructuredMesh}, equations, dg::DG, cache)
+  @boundscheck begin
+    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
+  end
+  # We would like to use
+  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+  # but that results in
+  #   ERROR: LoadError: cannot resize array with shared data
+  # when we resize! `u_ode` during AMR.
+
+  # The following version is fast and allows us to `resize!(u_ode, ...)`.
+  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
+  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
+  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+              (nvariables(equations), fill(nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
+end
+
+
+function allocate_coefficients(mesh::Union{TreeMesh, StructuredMesh}, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
   zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
