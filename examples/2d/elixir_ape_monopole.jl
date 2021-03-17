@@ -14,10 +14,10 @@ coordinates_min = (-20.6, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (30.6, 51.2) # maximum coordinates (max(x), max(y))
 
 initial_condition = initial_condition_monopole # does not use the global mean values given above
-boundary_conditions = (x_neg=boundary_condition_wall,
-                       x_pos=boundary_condition_wall,
+boundary_conditions = (x_neg=boundary_condition_zero,
+                       x_pos=boundary_condition_zero,
                        y_neg=boundary_condition_monopole,
-                       y_pos=boundary_condition_wall)
+                       y_pos=boundary_condition_zero)
 
 # Create a uniformely refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,

@@ -103,7 +103,8 @@ export initial_condition_constant,
 export boundary_condition_periodic,
        boundary_condition_gauss,
        boundary_condition_wall_noslip,
-       boundary_condition_wall
+       boundary_condition_wall,
+       boundary_condition_zero
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
