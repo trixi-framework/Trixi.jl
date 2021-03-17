@@ -125,7 +125,6 @@ export initial_condition_monopole, boundary_condition_monopole
 export cons2cons, cons2prim, cons2macroscopic, prim2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
-export global_mean_vars
 
 export TreeMesh
 
