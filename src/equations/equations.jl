@@ -59,23 +59,6 @@ default_analysis_errors(::AbstractEquations)     = (:l2_error, :linf_error)
 default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
-"""
-    flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
-
-The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
-used as volume flux, the discretization is equivalent to the classical weak form
-DG method (except floating point errors).
-"""
-@inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
-  # Calculate regular 1D fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
-  # Average regular fluxes
-  return 0.5 * (f_ll + f_rr)
-end
-
-
 @inline cons2cons(u, ::AbstractEquations) = u
 function cons2prim(u, ::AbstractEquations) end
 @inline Base.first(u, ::AbstractEquations) = first(u)
@@ -89,6 +72,8 @@ function cons2prim(u, ::AbstractEquations) end
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
+
+include("numerical_fluxes.jl")
 
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
