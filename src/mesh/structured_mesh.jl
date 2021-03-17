@@ -1,15 +1,16 @@
-struct StructuredMesh{RealT<:Real, NDIMS}
-  size::Tuple{Vararg{Int64, NDIMS}}
-  coordinates_min::Tuple{Vararg{RealT, NDIMS}}
-  coordinates_max::Tuple{Vararg{RealT, NDIMS}}
-  linear_indices::LinearIndices{NDIMS, Tuple{Vararg{UnitRange{Int64}, NDIMS}}}
+struct StructuredMesh{NDIMS, RealT<:Real}
+  size::NTuple{NDIMS, Int}
+  coordinates_min::NTuple{NDIMS, Int}
+  coordinates_max::NTuple{NDIMS, Int}
+  linear_indices::LinearIndices{NDIMS, NTuple{NDIMS, UnitRange{Int}}}
 end
 
-function StructuredMesh{RealT}(size, coordinates_min, coordinates_max) where {RealT<:Real}
+function StructuredMesh(size, coordinates_min, coordinates_max)
+  RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
   NDIMS = length(size)
 
-  return StructuredMesh{RealT, NDIMS}(size, coordinates_min, coordinates_max, LinearIndices(size))
+  return StructuredMesh{NDIMS, RealT}(size, coordinates_min, coordinates_max, LinearIndices(size))
 end
 
 
-@inline Base.ndims(mesh::StructuredMesh{RealT, NDIMS}) where {RealT, NDIMS} = NDIMS
+@inline Base.ndims(mesh::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS

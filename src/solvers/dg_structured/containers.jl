@@ -1,40 +1,44 @@
-struct Interface{RealT<:Real, NDIMS}
+# TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
+
+struct Interface{NDIMS, RealT<:Real}
   u_left::Array{RealT, NDIMS} # [variables, i, j]
   u_right::Array{RealT, NDIMS} # [variables, i, j]
-  orientation::Int64
+  orientation::Int
   surface_flux_values::Array{RealT, NDIMS} # [variables, i, j]
 end
 
-function Interface{RealT, NDIMS}(nvars, nnodes, orientation) where {RealT<:Real, NDIMS}
+function Interface{NDIMS, RealT}(nvars, nnodes, orientation) where {NDIMS, RealT<:Real}
   # TODO Is there a more elegant solution for this?
   u_left = Array{RealT, NDIMS}(undef, nvars, fill(nnodes, NDIMS-1)...)
   u_right = Array{RealT, NDIMS}(undef, nvars, fill(nnodes, NDIMS-1)...)
 
   surface_flux_values = Array{RealT, NDIMS}(undef, nvars, fill(nnodes, NDIMS-1)...)
 
-  return Interface{RealT, NDIMS}(u_left, u_right, orientation, surface_flux_values)
+  return Interface{NDIMS, RealT}(u_left, u_right, orientation, surface_flux_values)
 end
 
 
-struct Element{RealT<:Real, NDIMS}
+# TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
+
+struct Element{NDIMS, RealT<:Real}
   node_coordinates::Array{SVector{NDIMS, RealT}, NDIMS}
   # node_coordinates::Array{RealT, 2}
   inverse_jacobian::RealT
-  interfaces::Vector{Interface{RealT, NDIMS}} # [orientation]
+  interfaces::Vector{Interface{NDIMS, RealT}} # [orientation]
 end
 
-function Element{RealT, NDIMS}(node_coordinates, inverse_jacobian) where {RealT<:Real, NDIMS}
-  interfaces = Array{Interface{RealT, NDIMS}}(undef, NDIMS * 2)
+function Element{NDIMS, RealT}(node_coordinates, inverse_jacobian) where {NDIMS, RealT<:Real}
+  interfaces = Array{Interface{NDIMS, RealT}}(undef, NDIMS * 2)
 
-  return Element{RealT, NDIMS}(node_coordinates, inverse_jacobian, interfaces)
+  return Element{NDIMS, RealT}(node_coordinates, inverse_jacobian, interfaces)
 end
 
 
 # Create element container and initialize element data
-function init_elements(mesh::StructuredMesh{RealT, NDIMS}, equations::AbstractEquations,
-    basis::LobattoLegendreBasis{T, NNODES}) where {RealT<:Real, NDIMS, T, NNODES}
+function init_elements(mesh::StructuredMesh{NDIMS, RealT}, equations::AbstractEquations,
+    basis::LobattoLegendreBasis{T, NNODES}) where {NDIMS, RealT<:Real, T, NNODES}
 
-  elements = StructArray{Element{RealT, NDIMS}}(undef, mesh.size...)
+  elements = StructArray{Element{NDIMS, RealT}}(undef, mesh.size...)
 
   init_elements!(elements, mesh, basis.nodes)
   return elements

@@ -1,7 +1,7 @@
 # everything related to a DG semidiscretization in 1D,
 # currently limited to Lobatto-Legendre nodes
 
-function compute_coefficients!(u, func, t, mesh::StructuredMesh{<:Real, 1}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::StructuredMesh{1}, equations, dg::DG, cache)
   @threaded for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
@@ -17,7 +17,7 @@ end
 
 
 function rhs!(du::AbstractArray{<:Any,3}, u, t,
-              mesh::StructuredMesh{<:Real, 1}, equations,
+              mesh::StructuredMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -71,7 +71,7 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,3},
 end
 
 
-function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{<:Real, 1}, equations,
+function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{1}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
 
