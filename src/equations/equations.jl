@@ -86,6 +86,7 @@ function cons2prim(u, ::AbstractEquations) end
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
+# Numerical flux formulations that are independent of the specific system of equations
 include("numerical_fluxes.jl")
 
 # Linear scalar advection
