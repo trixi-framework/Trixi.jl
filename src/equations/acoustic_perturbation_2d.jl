@@ -73,14 +73,18 @@ varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", 
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 
 
-# Convenience functions for retrieving state variables, mean variables and global mean values
-function get_state_vars(u, equations::AcousticPerturbationEquations2D)
-  return u[1], u[2], u[3]
+# Convenience functions for retrieving state variables and mean variables
+function cons2state(u, equations::AcousticPerturbationEquations2D)
+  return SVector(u[1], u[2], u[3])
 end
 
-function get_mean_vars(u, equations::AcousticPerturbationEquations2D)
-  return u[4], u[5], u[6], u[7]
+function cons2mean(u, equations::AcousticPerturbationEquations2D)
+  return SVector(u[4], u[5], u[6], u[7])
 end
+
+varnames(::typeof(cons2state), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime")
+varnames(::typeof(cons2mean), ::AcousticPerturbationEquations2D) = ("v1_mean", "v2_mean", "c_mean", "rho_mean")
+
 
 """
     global_mean_vars(equations::AcousticPerturbationEquations2D)
@@ -138,7 +142,7 @@ Source terms used for convergence tests in combination with
 [`initial_condition_convergence_test`](@ref).
 """
 function source_terms_convergence_test(u, x, t, equations::AcousticPerturbationEquations2D)
-  v1_mean, v2_mean, c_mean, rho_mean = get_mean_vars(u, equations)
+  v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
   c = 2.0
   A = 0.2
@@ -200,9 +204,9 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t, surface_
   # Similarly, for boundaries in the -y/+y direction, we multiply the perturbed velocity in the
   # y direction by -1
   if direction in (1, 2) # x direction
-    u_boundary = SVector(-u_inner[1], u_inner[2], u_inner[3], get_mean_vars(u_inner, equations)...)
+    u_boundary = SVector(-u_inner[1], u_inner[2], u_inner[3], cons2mean(u_inner, equations)...)
   else # y direction
-    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], get_mean_vars(u_inner, equations)...)
+    u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], cons2mean(u_inner, equations)...)
   end
 
   # Calculate boundary flux
@@ -282,7 +286,7 @@ variables are the same as in `u_inner`.
 function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_flux_function,
                                  equations::AcousticPerturbationEquations2D)
   value = zero(eltype(u_inner))
-  u_boundary = SVector(value, value, value, get_mean_vars(u_inner, equations)...)
+  u_boundary = SVector(value, value, value, cons2mean(u_inner, equations)...)
 
   # Calculate boundary flux
   if direction in (2, 4) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -296,8 +300,8 @@ end
 
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation, equations::AcousticPerturbationEquations2D)
-  v1_prime, v2_prime, p_prime = get_state_vars(u, equations)
-  v1_mean, v2_mean, c_mean, rho_mean = get_mean_vars(u, equations)
+  v1_prime, v2_prime, p_prime = cons2state(u, equations)
+  v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
   # Calculate flux for conservative state variables
   if orientation == 1

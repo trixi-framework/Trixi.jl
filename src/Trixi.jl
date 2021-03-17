@@ -122,7 +122,7 @@ export initial_condition_couette_steady, initial_condition_couette_unsteady, bou
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
 
-export cons2cons, cons2prim, cons2macroscopic, prim2cons
+export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
