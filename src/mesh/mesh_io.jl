@@ -83,12 +83,37 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
+function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  # Determine file name based on existence of meaningful time step
+  if timestep > 0
+    filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+  else
+    filename = joinpath(output_directory, "mesh.h5")
+  end
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["structured"] = true
+    attributes(file)["size"] = collect(mesh.size)
+    attributes(file)["coordinates_min"] = collect(mesh.coordinates_min)
+    attributes(file)["coordinates_max"] = collect(mesh.coordinates_max)
+  end
+
+  return filename
+end
+
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
 Load the mesh from the `restart_file`.
 """
-function load_mesh(restart_file::AbstractString; n_cells_max)
+function load_mesh(restart_file::AbstractString; n_cells_max=30_000)
   if mpi_isparallel()
     load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
   else
@@ -97,12 +122,27 @@ function load_mesh(restart_file::AbstractString; n_cells_max)
 end
 
 function load_mesh_serial(restart_file::AbstractString; n_cells_max)
-  ndims_ = h5open(restart_file, "r") do file
-    read(attributes(file)["ndims"])
+  ndims_, structured_ = h5open(restart_file, "r") do file
+    return read(attributes(file)["ndims"]),
+           read(attributes(file)["structured_mesh"])
   end
 
-  mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
-  load_mesh!(mesh, restart_file)
+  if structured_
+    filename = get_restart_mesh_filename(restart_file, Val(false))
+    size_, coordinates_min_, coordinates_max_ = h5open(filename, "r") do file
+      return read(attributes(file)["size"]),
+             read(attributes(file)["coordinates_min"]),
+             read(attributes(file)["coordinates_max"])
+    end
+
+    size = ntuple(i -> size_[i], Val(ndims_))
+    coordinates_min = ntuple(i -> coordinates_min_[i], Val(ndims_))
+    coordinates_max = ntuple(i -> coordinates_max_[i], Val(ndims_))
+    mesh = StructuredMesh(size, coordinates_min, coordinates_max)
+  else
+    mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
+    load_mesh!(mesh, restart_file)
+  end
 end
 
 function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)

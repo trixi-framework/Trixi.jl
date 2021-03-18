@@ -1,6 +1,6 @@
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::SerialTreeMesh, equations, dg::DG, cache,
+                           mesh::Union{SerialTreeMesh,StructuredMesh}, equations, dg::DG, cache,
                            restart_callback)
   @unpack output_directory = restart_callback
 
@@ -19,6 +19,7 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["n_vars"] = nvariables(equations)
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["structured_mesh"] = mesh isa StructuredMesh
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
@@ -38,7 +39,7 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 
-function load_restart_file(mesh::SerialTreeMesh, equations, dg::DG, cache, restart_file)
+function load_restart_file(mesh::Union{SerialTreeMesh,StructuredMesh}, equations, dg::DG, cache, restart_file)
 
   # allocate memory
   u_ode = allocate_coefficients(mesh, equations, dg, cache)
@@ -112,6 +113,7 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["n_vars"] = nvariables(equations)
     attributes(file)["n_elements"] = nelements(dg, cache)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+    attributes(file)["structured_mesh"] = mesh isa StructuredMesh
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
