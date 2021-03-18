@@ -93,6 +93,9 @@ we can plot the solution at the final time using Plots.jl.
 ```julia
 plot(sol)
 ```
+
+![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
+
 You can already see that a discontinuities will develop and oscillations start to
 occur around steep parts of the wave. That's expected from our central discretization.
 To avoid these issues, we need to use dissipative numerical fluxes (approximate
@@ -116,6 +119,9 @@ sol = solve(ode, SSPRK43(),
 summary_callback()
 plot!(sol)
 ```
+
+![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
+
 You can see that there are less oscillations, in particular around steep edges.
 Now let's increase the final time (and also the spatial resolution).
 ```julia
@@ -126,6 +132,9 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 ```
+
+![tutorial_adding_new_equations_plot3](https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png)
+
 You can observe that nonclassical shocks develop and are stable under grid refinement,
 e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
 cn be avoided by using an entropy-dissipative semidiscretization. Thus, we need
@@ -145,6 +154,8 @@ sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks, maxiters=1e5);
 plot(sol)
 ```
+
+![tutorial_adding_new_equations_plot4](https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png)
 
 Possible next steps could be
 - to define `Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2`
