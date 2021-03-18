@@ -23,19 +23,30 @@ function initial_condition_khi2(x, t, equations::CompressibleEulerEquations2D)
 end
 initial_condition = initial_condition_khi2
 
-#surface_flux  = flux_hllc
-#basis = LobattoLegendreBasis(3)
-#volume_integral = VolumeIntegralPureLGLFiniteVolume(basis;
-#                                                    volume_flux_fv = flux_hllc,
-#                                                    reconstruction_mode = reconstruction_small_stencil,
-#                                                    slope_limiter = minmod)
+#surface_flux = flux_lax_friedrichs
+#volume_flux  = flux_ranocha
+#polydeg = 3
+#basis = LobattoLegendreBasis(polydeg)
+#indicator_sc = IndicatorHennemannGassner(equations, basis,
+#                                        alpha_max=0.002,
+#                                        alpha_min=0.0001,
+#                                        alpha_smooth=true,
+#                                        variable=density_pressure)
+#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+#                                                volume_flux_dg=volume_flux,
+#                                                volume_flux_fv=surface_flux)
 #solver = DGSEM(basis, surface_flux, volume_integral)
 
-#surface_flux  = flux_lax_friedrichs
+surface_flux  = flux_lax_friedrichs
 surface_flux  = FluxComparedToCentral(flux_ranocha) # supersedes flux_secret
 volume_flux  = flux_ranocha
-#volume_flux  = flux_chandrashekar
+volume_flux  = flux_chandrashekar
 solver = DGSEM(3, surface_flux, VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
+
+#surface_flux  = flux_lax_friedrichs
+#volume_flux = flux_ranocha
+#volume_integral = VolumeIntegralFluxComparison(flux_central, volume_flux)
+#solver = DGSEM(3, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
