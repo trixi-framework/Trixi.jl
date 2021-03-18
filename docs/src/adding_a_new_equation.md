@@ -7,7 +7,7 @@ we will implement the cubic conservation law
 \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 ```
 in a periodic domain in one space dimension. In Trixi.jl, such a physical model
-is encoded as a subtype of [`AbstractEquations`](@ref).
+is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
 
 ## Basic setup
@@ -44,7 +44,8 @@ at a single physical location. Hence, we must use `u.^3` instead of the scalar
 operation `u^3`.
 
 That's already enough to run a simple simulation with a standard DGSEM discretization
-using the non-dissipative central flux at interfaces.
+using the non-dissipative central flux at interfaces. This code is written outside
+of our new `module`.
 ```julia
 # Create a simulation setup
 import .CubicConservationLaw
@@ -75,7 +76,7 @@ are passed together.
 The `ode` is an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 Thus, we can solve this ODE numerically using any time integration method,
 e.g. `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
-Before, we set up a [callback](@callbacks-id) to summarize the simulation setup.
+Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 ```julia
 summary_callback = SummaryCallback()
 callbacks = CallbackSet(summary_callback)
@@ -156,7 +157,8 @@ Possible next steps could be
 
 ## Summary of the code
 
-To sum up, here is the complete code that we used.
+To sum up, here is the complete code that we used (without the [`SummaryCallback`](@ref)
+since that creates a lot of unnecessary output in the doctests of this tutorial).
 
 ```jldoctest; output = false
 # Define new physics
@@ -201,267 +203,33 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
-summary_callback = SummaryCallback()
-callbacks = CallbackSet(summary_callback)
-
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+sol = solve(ode, SSPRK43(), save_everystep=false);
 plot(sol);
 
 
 # A new setup with dissipation
 semi = remake(semi, solver=DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+sol = solve(ode, SSPRK43(), save_everystep=false);
 plot!(sol);
 
 
 # A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+sol = solve(ode, SSPRK43(), save_everystep=false);
 plot(sol);
 
 
 # Let's use a provably entropy-dissipative semidiscretization
 semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
-sol = solve(ode, SSPRK43(),
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+sol = solve(ode, SSPRK43(), save_everystep=false);
 plot(sol);
 
 # output
 
-████████╗██████╗ ██╗██╗  ██╗██╗
-╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
-   ██║   ██████╔╝██║ ╚███╔╝ ██║
-   ██║   ██╔══██╗██║ ██╔██╗ ██║
-   ██║   ██║  ██║██║██╔╝ ██╗██║
-   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ SemidiscretizationHyperbolic                                                                     │
-│ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 1                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 31                  │
-│ equations: …………………………………………………… CubicEquation                                                    │
-│ initial condition: ……………………………… initial_condition_sine                                           │
-│ boundary conditions: ………………………… 2                                                                │
-│ │ negative x: …………………………………………… boundary_condition_periodic                                      │
-│ │ positive x: …………………………………………… boundary_condition_periodic                                      │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs: ……………………………………………… 64                                                               │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
-│ ════════════════════════════════                                                                 │
-│ center: …………………………………………………………… [0.0]                                                            │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true,)                                                          │
-│ current #cells: ……………………………………… 31                                                               │
-│ maximum #cells: ……………………………………… 10000                                                            │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ CubicEquation                                                                                    │
-│ ═════════════                                                                                    │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ DG{Float64}                                                                                      │
-│ ═══════════                                                                                      │
-│ polynomial degree: ……………………………… 3                                                                │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface flux: …………………………………………… flux_central                                                     │
-│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Time integration                                                                                 │
-│ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 0.1                                                              │
-│ time integrator: …………………………………… SSPRK43                                                          │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-████████╗██████╗ ██╗██╗  ██╗██╗
-╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
-   ██║   ██████╔╝██║ ╚███╔╝ ██║
-   ██║   ██╔══██╗██║ ██╔██╗ ██║
-   ██║   ██║  ██║██║██╔╝ ██╗██║
-   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ SemidiscretizationHyperbolic                                                                     │
-│ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 1                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 31                  │
-│ equations: …………………………………………………… CubicEquation                                                    │
-│ initial condition: ……………………………… initial_condition_sine                                           │
-│ boundary conditions: ………………………… 2                                                                │
-│ │ negative x: …………………………………………… boundary_condition_periodic                                      │
-│ │ positive x: …………………………………………… boundary_condition_periodic                                      │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs: ……………………………………………… 64                                                               │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
-│ ════════════════════════════════                                                                 │
-│ center: …………………………………………………………… [0.0]                                                            │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true,)                                                          │
-│ current #cells: ……………………………………… 31                                                               │
-│ maximum #cells: ……………………………………… 10000                                                            │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ CubicEquation                                                                                    │
-│ ═════════════                                                                                    │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ DG{Float64}                                                                                      │
-│ ═══════════                                                                                      │
-│ polynomial degree: ……………………………… 3                                                                │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface flux: …………………………………………… flux_godunov                                                     │
-│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Time integration                                                                                 │
-│ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 0.1                                                              │
-│ time integrator: …………………………………… SSPRK43                                                          │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-████████╗██████╗ ██╗██╗  ██╗██╗
-╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
-   ██║   ██████╔╝██║ ╚███╔╝ ██║
-   ██║   ██╔══██╗██║ ██╔██╗ ██║
-   ██║   ██║  ██║██║██╔╝ ██╗██║
-   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ SemidiscretizationHyperbolic                                                                     │
-│ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 1                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 511                 │
-│ equations: …………………………………………………… CubicEquation                                                    │
-│ initial condition: ……………………………… initial_condition_sine                                           │
-│ boundary conditions: ………………………… 2                                                                │
-│ │ negative x: …………………………………………… boundary_condition_periodic                                      │
-│ │ positive x: …………………………………………… boundary_condition_periodic                                      │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs: ……………………………………………… 1024                                                             │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
-│ ════════════════════════════════                                                                 │
-│ center: …………………………………………………………… [0.0]                                                            │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true,)                                                          │
-│ current #cells: ……………………………………… 511                                                              │
-│ maximum #cells: ……………………………………… 100000                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ CubicEquation                                                                                    │
-│ ═════════════                                                                                    │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ DG{Float64}                                                                                      │
-│ ═══════════                                                                                      │
-│ polynomial degree: ……………………………… 3                                                                │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface flux: …………………………………………… flux_godunov                                                     │
-│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Time integration                                                                                 │
-│ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 0.5                                                              │
-│ time integrator: …………………………………… SSPRK43                                                          │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-████████╗██████╗ ██╗██╗  ██╗██╗
-╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
-   ██║   ██████╔╝██║ ╚███╔╝ ██║
-   ██║   ██╔══██╗██║ ██╔██╗ ██║
-   ██║   ██║  ██║██║██╔╝ ██╗██║
-   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ SemidiscretizationHyperbolic                                                                     │
-│ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 1                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 511                 │
-│ equations: …………………………………………………… CubicEquation                                                    │
-│ initial condition: ……………………………… initial_condition_sine                                           │
-│ boundary conditions: ………………………… 2                                                                │
-│ │ negative x: …………………………………………… boundary_condition_periodic                                      │
-│ │ positive x: …………………………………………… boundary_condition_periodic                                      │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs: ……………………………………………… 1024                                                             │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
-│ ════════════════════════════════                                                                 │
-│ center: …………………………………………………………… [0.0]                                                            │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true,)                                                          │
-│ current #cells: ……………………………………… 511                                                              │
-│ maximum #cells: ……………………………………… 100000                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ CubicEquation                                                                                    │
-│ ═════════════                                                                                    │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ DG{Float64}                                                                                      │
-│ ═══════════                                                                                      │
-│ polynomial degree: ……………………………… 3                                                                │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface flux: …………………………………………… flux_godunov                                                     │
-│ volume integral: …………………………………… VolumeIntegralFluxDifferencing                                   │
-│ │ volume flux: ………………………………………… flux_ec                                                          │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Time integration                                                                                 │
-│ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 0.5                                                              │
-│ time integrator: …………………………………… SSPRK43                                                          │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+Plot{Plots.GRBackend() n=1}
 
 ```
