@@ -30,8 +30,6 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
-    @info "" view(node_coordinates, :, :, element)
-    error()
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, element))
 
     # Calculate errors at each analysis node
