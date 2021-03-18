@@ -6,7 +6,7 @@ function compute_coefficients!(u, func, t, mesh::StructuredMesh{1}, equations, d
     element = cache.elements[element_ind]
 
     for i in eachnode(dg)
-      x_node = element.node_coordinates[i]
+      x_node = get_node_coords(element.node_coordinates, equations, dg, i)
       u_node = func(x_node, t, equations)
 
       # Allocation-free version of u[:, i, element] = u_node
@@ -119,7 +119,7 @@ function calc_sources!(du::AbstractArray{<:Any,3}, u, t, source_terms, mesh::Str
 
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, element_ind)
-      x_local = element.node_coordinates[i]
+      x_local = get_node_coords(element.node_coordinates, equations, dg, i)
       du_local = source_terms(u_local, x_local, t, equations)
       add_to_node_vars!(du, du_local, equations, dg, i, element_ind)
     end

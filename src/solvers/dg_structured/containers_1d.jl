@@ -14,13 +14,12 @@ function init_elements!(elements, mesh::StructuredMesh{1, RealT}, nodes) where {
     # Calculate node coordinates
     element_x_offset = coordinates_min[1] + (element_x-1) * dx + dx/2
 
-    node_coordinates = Vector{SVector{1, RealT}}(undef, n_nodes)
-    # node_coordinates = Array{RealT, 2}(undef, 1, n_nodes)
+    node_coordinates = Array{RealT, 2}(undef, 1, n_nodes)
     for i in 1:n_nodes
-        node_coordinates[i] = SVector( element_x_offset + dx/2 * nodes[i] )
+        node_coordinates[1, i] = element_x_offset + dx/2 * nodes[i]
     end
 
-    elements[element_x] = Element{1, RealT}(node_coordinates, inverse_jacobian)
+    elements[element_x] = Element(node_coordinates, inverse_jacobian)
   end
 
   return nothing

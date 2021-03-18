@@ -17,15 +17,15 @@ function init_elements!(elements, mesh::StructuredMesh{3, RealT}, nodes) where {
     element_y_offset = coordinates_min[2] + (element_y-1) * dy + dy/2
     element_z_offset = coordinates_min[3] + (element_z-1) * dz + dz/2
 
-    node_coordinates = Array{SVector{3, RealT}, 3}(undef, n_nodes, n_nodes, n_nodes)
+    node_coordinates = Array{RealT, 4}(undef, 3, n_nodes, n_nodes, n_nodes)
 
     for i in 1:n_nodes, j in 1:n_nodes, k in 1:n_nodes
-      node_coordinates[i, j, k] = SVector(element_x_offset + dx/2 * nodes[i], 
-                                          element_y_offset + dy/2 * nodes[j],
-                                          element_z_offset + dz/2 * nodes[k])
+      node_coordinates[1, i, j, k] = element_x_offset + dx/2 * nodes[i]
+      node_coordinates[2, i, j, k] = element_y_offset + dy/2 * nodes[j]
+      node_coordinates[3, i, j, k] = element_z_offset + dz/2 * nodes[k]
     end
 
-    elements[element_x, element_y, element_z] = Element{3, RealT}(node_coordinates, inverse_jacobian)
+    elements[element_x, element_y, element_z] = Element(node_coordinates, inverse_jacobian)
   end
 
   return nothing

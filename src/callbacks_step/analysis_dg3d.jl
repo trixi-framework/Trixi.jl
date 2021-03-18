@@ -60,7 +60,7 @@ end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
-                          mesh::StructuredMesh, equations, initial_condition,
+                          mesh::StructuredMesh{3}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -70,18 +70,11 @@ function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1, 1, 1), equations))
   linf_error = copy(l2_error)
 
-  # TODO This is horrible
-  s1, s2, _ = mesh.size
-  node_coordinates_in_classic_format = [node_coordinates[(element - 1) % s1 + 1,
-                                                         (element - 1) ÷ s1 % s2 + 1,
-                                                         (element - 1) ÷ (s1 * s2) + 1][i, j, k][coord] 
-      for coord in (1, 2, 3), i in eachnode(dg), j in eachnode(dg), k in eachnode(dg), element in eachelement(dg, cache)]
-
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, :, element), u_tmp1, u_tmp2)
-    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates_in_classic_format, :, :, :, :, element), x_tmp1, x_tmp2)
+    multiply_dimensionwise!(x_local, vandermonde, node_coordinates[element], x_tmp1, x_tmp2)
 
     # Calculate errors at each analysis node
     jacobian_volume = inv(cache.elements.inverse_jacobian[element])

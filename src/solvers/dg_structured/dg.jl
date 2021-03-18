@@ -8,10 +8,6 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 
   cache = (; elements)
 
-  # Add specialized parts of the cache required to compute the volume integral etc.
-  # cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
-  # cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
-
   return cache
 end
 

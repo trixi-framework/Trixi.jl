@@ -30,6 +30,8 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
+    @info "" view(node_coordinates, :, :, element)
+    error()
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, element))
 
     # Calculate errors at each analysis node
@@ -52,7 +54,7 @@ end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-                          mesh::StructuredMesh, equations, initial_condition,
+                          mesh::StructuredMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -65,11 +67,8 @@ function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
-    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
-    # node_coordinates is a vector of SArrays
-    node_coordinates_float = reinterpret(Float64, hcat(node_coordinates...)) # TODO wtf
-    node_coordinates_reshaped = reshape(node_coordinates_float, (1, size(node_coordinates_float)...))
-    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates_reshaped, :, :, element))
+    multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, element))
+    multiply_dimensionwise!(x_local, vandermonde, node_coordinates[element])
 
     # Calculate errors at each analysis node
     jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
