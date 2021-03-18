@@ -16,7 +16,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
@@ -249,7 +249,7 @@ end
 function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
-  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
 

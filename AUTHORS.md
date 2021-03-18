@@ -12,7 +12,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
-  KAUST (King Abdullah University of Science and Technology), Saudi Arabia
+  University of Münster, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 

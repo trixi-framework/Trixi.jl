@@ -6,7 +6,7 @@
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.14.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
+[![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.19.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl)
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 <!-- [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl) -->
 
@@ -32,6 +32,8 @@ installation and postprocessing procedures. Its features include:
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
   * CFL-based and error-based time step control
+* Native support for differentiable programming
+  * Forward mode automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
 * Square/cubic domains with periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
@@ -80,6 +82,9 @@ julia> import Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
 *Troubleshooting* section in the [documentation](#documentation).
+
+The commands above can also be used to update Trixi. A brief list of notable
+changes to Trixi is available in [`NEWS.md`](NEWS.md).
 
 ### For developers
 If you plan on editing Trixi itself, you can download Trixi locally and run it from
@@ -186,7 +191,7 @@ Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
 University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(KAUST, Saudi Arabia) and [Andrew Winters](https://liu.se/en/employee/andwi94)
+(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), they are the principal developers of Trixi.
 The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
 
