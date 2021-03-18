@@ -43,6 +43,9 @@ makedocs(
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
         "Testing" => "testing.md",
+        "Tutorials" => [
+            "Adding a new equation" => "adding_a_new_equation.md"
+        ],
         "Differentiable programming" => "differentiable_programming.md",
         "Troubleshooting" => "troubleshooting.md",
         "Style guide" => "styleguide.md",
