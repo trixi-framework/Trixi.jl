@@ -43,6 +43,39 @@ end
 
 
 """
+    flux_left(u_ll, u_rr, orientation, equations) = flux(u_ll, orientation, equations)
+
+This flux can be useful to construct upwind summation by parts (SBP) operators, cf.
+- Mattsson (2017),
+  Diagonal norm upwind SBP operators.
+  [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042).
+- Ranocha, Mitsotakis, Ketcheson (2021),
+  A Broad Class of Conservative Numerical Methods for Dispersive Wave Equations.
+  [DOI: 10.4208/cicp.OA-2020-0119](https://doi.org/10.4208/cicp.OA-2020-0119).
+  [arXiv: 2006.14802 [math.NA]](https://arxiv.org/abs/2006.14802).
+"""
+@inline function flux_left(u_ll, u_rr, orientation, equations)
+  flux(u_ll, orientation, equations)
+end
+
+"""
+    flux_right(u_ll, u_rr, orientation, equations) = flux(u_rr, orientation, equations)
+
+This flux can be useful to construct upwind summation by parts (SBP) operators, cf.
+- Mattsson (2017),
+  Diagonal norm upwind SBP operators.
+  [DOI: 10.1016/j.jcp.2017.01.042](https://doi.org/10.1016/j.jcp.2017.01.042).
+- Ranocha, Mitsotakis, Ketcheson (2021),
+  A Broad Class of Conservative Numerical Methods for Dispersive Wave Equations.
+  [DOI: 10.4208/cicp.OA-2020-0119](https://doi.org/10.4208/cicp.OA-2020-0119).
+  [arXiv: 2006.14802 [math.NA]](https://arxiv.org/abs/2006.14802).
+"""
+@inline function flux_right(u_ll, u_rr, orientation, equations)
+  flux(u_rr, orientation, equations)
+end
+
+
+"""
     FluxPlusDissipation(numerical_flux, dissipation)
 
 Combine a `numerical_flux` with a `dissipation` operator to create a new numerical flux.
