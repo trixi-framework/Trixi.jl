@@ -48,6 +48,9 @@ end
 
 @inline nelements(elements::StructArray) = prod(size(elements))
 
+# TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
+Base.eltype(::StructArray{Element{NDIMS, RealT, NDIMSP1}}) where {NDIMS, RealT, NDIMSP1} = RealT
+
 
 include("containers_1d.jl")
 include("containers_2d.jl")

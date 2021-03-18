@@ -1,7 +1,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, _)
+function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, ::Any, ::Any)
   elements = init_elements(mesh, equations, dg.basis)
 
   init_interfaces!(elements, mesh, equations, dg)
