@@ -13,4 +13,22 @@ function StructuredMesh(size, coordinates_min, coordinates_max)
 end
 
 
-@inline Base.ndims(mesh::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.ndims(::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS
+
+
+function Base.show(io::IO, ::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
+  print(io, "StructuredMesh{", NDIMS, ", ", RealT, "}")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
+  if get(io, :compact, false)
+    show(io, mesh)
+  else
+    setup = [
+            "coordinates_min" => mesh.coordinates_min,
+            "coordinates_max" => mesh.coordinates_max,
+            "size" => mesh.size
+            ]
+    summary_box(io, "StructuredMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
+  end
+end
