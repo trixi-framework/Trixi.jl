@@ -227,7 +227,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::LatticeBoltzmannEquations3D)
+@inline function flux(u, orientation, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction

@@ -43,6 +43,7 @@ makedocs(
         "Performance" => "performance.md",
         "Parallelization" => "parallelization.md",
         "Testing" => "testing.md",
+        "Differentiable programming" => "differentiable_programming.md",
         "Troubleshooting" => "troubleshooting.md",
         "Style guide" => "styleguide.md",
         "GitHub & Git" => "github-git.md",
@@ -54,10 +55,12 @@ makedocs(
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "License" => "license.md"
-    ]
+    ],
+    strict = true # to make the GitHub action fail when doctests fail, see https://github.com/neuropsychology/Psycho.jl/issues/34
 )
 
 deploydocs(
     repo = "github.com/trixi-framework/Trixi.jl",
-    devbranch = "main"
+    devbranch = "main",
+    push_preview = true
 )

@@ -294,7 +294,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::IdealGlmMhdEquations1D)
+@inline function flux(u, orientation, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -402,8 +402,8 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEqua
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -446,8 +446,8 @@ function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
   p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)

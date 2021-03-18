@@ -6,11 +6,11 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
-                      dg::DG, RealT)
+                      dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
+  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
 
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -21,8 +21,8 @@ function create_cache(mesh::TreeMesh{3}, equations::AbstractEquations{3},
   cache = (; elements, interfaces, boundaries, mortars)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
-  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache
 end
@@ -30,17 +30,17 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
-  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
+function create_cache(mesh::TreeMesh{3}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg)
+function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
-function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg)
+function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg, uEltype)
 
-  A = Array{real(dg), 5}
+  A = Array{uEltype, 5}
   f1_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
@@ -48,7 +48,7 @@ function create_cache(mesh::TreeMesh{3}, nonconservative_terms::Val{true}, equat
   f3_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  A3d = Array{real(dg), 3}
+  A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
                                    for _ in 1:Threads.nthreads()]
   fstar_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(dg), nnodes(dg))
@@ -78,17 +78,17 @@ end
 
 
 function create_cache(mesh::TreeMesh{3}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
+                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
 
   cache = create_cache(mesh, equations,
                        VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                       dg)
+                       dg, uEltype)
 
-  A4dp1_x = Array{real(dg), 4}
-  A4dp1_y = Array{real(dg), 4}
-  A4dp1_z = Array{real(dg), 4}
+  A4dp1_x = Array{uEltype, 4}
+  A4dp1_y = Array{uEltype, 4}
+  A4dp1_z = Array{uEltype, 4}
   fstar1_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
   fstar2_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
@@ -101,11 +101,11 @@ end
 
 
 function create_cache(mesh::TreeMesh{3}, equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG)
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
 
-  A4dp1_x = Array{real(dg), 4}
-  A4dp1_y = Array{real(dg), 4}
-  A4dp1_z = Array{real(dg), 4}
+  A4dp1_x = Array{uEltype, 4}
+  A4dp1_y = Array{uEltype, 4}
+  A4dp1_z = Array{uEltype, 4}
   fstar1_threaded  = A4dp1_x[A4dp1_x(undef, nvariables(equations), nnodes(dg)+1, nnodes(dg), nnodes(dg))
                              for _ in 1:Threads.nthreads()]
   fstar2_threaded  = A4dp1_y[A4dp1_y(undef, nvariables(equations), nnodes(dg), nnodes(dg)+1, nnodes(dg))
@@ -120,9 +120,9 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2)
+function create_cache(mesh::TreeMesh{3}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
-  A3d = Array{real(mortar_l2), 3}
+  A3d = Array{uEltype, 3}
   fstar_upper_left_threaded  = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
                                    for _ in 1:Threads.nthreads()]
   fstar_upper_right_threaded = A3d[A3d(undef, nvariables(equations), nnodes(mortar_l2), nnodes(mortar_l2))
@@ -227,19 +227,19 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-      flux1 = calcflux(u_node, 1, equations)
+      flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
       end
 
-      flux2 = calcflux(u_node, 2, equations)
+      flux2 = flux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
       end
 
-      flux3 = calcflux(u_node, 3, equations)
+      flux3 = flux(u_node, 3, equations)
       for kk in eachnode(dg)
         integral_contribution = derivative_dhat[kk, k] * flux3
         add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
@@ -258,9 +258,9 @@ end
   for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
     # Set diagonal entries (= regular volume fluxes due to consistency)
     u_node = get_node_vars(u, equations, dg, i, j, k, element)
-    flux1 = calcflux(u_node, 1, equations)
-    flux2 = calcflux(u_node, 2, equations)
-    flux3 = calcflux(u_node, 3, equations)
+    flux1 = flux(u_node, 1, equations)
+    flux2 = flux(u_node, 2, equations)
+    flux3 = flux(u_node, 3, equations)
     set_node_vars!(f1, flux1, equations, dg, i, i, j, k)
     set_node_vars!(f2, flux2, equations, dg, j, i, j, k)
     set_node_vars!(f3, flux3, equations, dg, k, i, j, k)
@@ -336,46 +336,46 @@ end
 
     # x direction
     # use consistency of the volume flux to make this evaluation cheaper
-    flux = calcflux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux
+    flux1 = flux(u_node, 1, equations)
+    integral_contribution = alpha * derivative_split[i, i] * flux1
     add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
     # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-      flux = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = alpha * derivative_split[i, ii] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, i,  j, k, element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux
+      integral_contribution = alpha * derivative_split[ii, i] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
     end
 
     # y direction
     # use consistency of the volume flux to make this evaluation cheaper
-    flux = calcflux(u_node, 2, equations)
-    integral_contribution = alpha * derivative_split[j, j] * flux
+    flux2 = flux(u_node, 2, equations)
+    integral_contribution = alpha * derivative_split[j, j] * flux2
     add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
     # use symmetry of the volume flux for the remaining terms
     for jj in (j+1):nnodes(dg)
       u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-      flux = volume_flux(u_node, u_node_jj, 2, equations)
-      integral_contribution = alpha * derivative_split[j, jj] * flux
+      flux2 = volume_flux(u_node, u_node_jj, 2, equations)
+      integral_contribution = alpha * derivative_split[j, jj] * flux2
       add_to_node_vars!(du, integral_contribution, equations, dg, i, j,  k, element)
-      integral_contribution = alpha * derivative_split[jj, j] * flux
+      integral_contribution = alpha * derivative_split[jj, j] * flux2
       add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
     end
 
     # z direction
     # use consistency of the volume flux to make this evaluation cheaper
-    flux = calcflux(u_node, 3, equations)
-    integral_contribution = alpha * derivative_split[k, k] * flux
+    flux3 = flux(u_node, 3, equations)
+    integral_contribution = alpha * derivative_split[k, k] * flux3
     add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k, element)
     # use symmetry of the volume flux for the remaining terms
     for kk in (k+1):nnodes(dg)
       u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-      flux = volume_flux(u_node, u_node_kk, 3, equations)
-      integral_contribution = alpha * derivative_split[k, kk] * flux
+      flux3 = volume_flux(u_node, u_node_kk, 3, equations)
+      integral_contribution = alpha * derivative_split[k, kk] * flux3
       add_to_node_vars!(du, integral_contribution, equations, dg, i, j, k,  element)
-      integral_contribution = alpha * derivative_split[kk, k] * flux
+      integral_contribution = alpha * derivative_split[kk, k] * flux3
       add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
     end
   end

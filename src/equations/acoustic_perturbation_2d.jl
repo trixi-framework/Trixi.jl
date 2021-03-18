@@ -114,7 +114,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equations::AcousticPerturbationEquations2D)
+@inline function flux(u, orientation, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = u
   @unpack v_mean, rho_mean, c_mean = equations
 
@@ -133,8 +133,8 @@ end
 
 
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturbationEquations2D)
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   v_ll = u_ll[orientation] + equations.v_mean[orientation]
   v_rr = u_rr[orientation] + equations.v_mean[orientation]

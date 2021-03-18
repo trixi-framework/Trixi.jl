@@ -20,6 +20,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_advection.jl")
 
 
+  # Burgers
+  include("test_examples_1d_burgers.jl")
+
+
   # Hyperbolic diffusion
   include("test_examples_1d_hypdiff.jl")
 
