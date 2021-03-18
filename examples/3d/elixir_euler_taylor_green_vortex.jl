@@ -9,11 +9,39 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_taylor_green_vortex
 
+# TODO: Change back
+
+# TGV run "VolumeIntegralLocalFluxComparison+secret"
+# surface_flux = FluxComparedToCentral(flux_ranocha)
+# volume_flux = flux_ranocha
+# volume_integral = VolumeIntegralLocalFluxComparison(flux_central, volume_flux)
+
+# TGV run "VolumeIntegralLocalFluxComparison"
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-# TODO: Change back
-# solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
-solver = DGSEM(3, surface_flux, VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux)))
+volume_integral = VolumeIntegralLocalFluxComparison(flux_central, volume_flux)
+
+# TGV run "VolumeIntegralFluxComparison"
+# surface_flux = flux_lax_friedrichs
+# volume_flux = flux_ranocha
+# volume_integral = VolumeIntegralFluxComparison(flux_central, volume_flux)
+
+# TGV run "secret+LLF"
+# surface_flux = flux_lax_friedrichs
+# volume_flux = FluxComparedToCentral(flux_ranocha)
+# volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+
+# TGV run "secret+secret"
+# surface_flux = FluxComparedToCentral(flux_ranocha)
+# volume_flux = FluxComparedToCentral(flux_ranocha)
+# volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+
+# TGV run "mod1/VolumeIntegralLocalComparison"
+# surface_flux = flux_lax_friedrichs
+# volume_flux = flux_ranocha
+# volume_integral = VolumeIntegralLocalComparison(VolumeIntegralFluxDifferencing(volume_flux))
+
+solver = DGSEM(3, surface_flux, volume_integral)
 
 coordinates_min = (-pi, -pi, -pi)
 coordinates_max = ( pi,  pi,  pi)
