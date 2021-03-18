@@ -16,7 +16,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
@@ -44,6 +44,8 @@ struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -76,6 +78,8 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -106,6 +110,8 @@ end
 # TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -140,8 +146,10 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   volume_integral::VolumeIntegral
 end
 
-function Base.show(io::IO, dg::DG{RealT}) where {RealT}
-  print(io, "DG{", RealT, "}(")
+function Base.show(io::IO, dg::DG)
+  @nospecialize dg # reduce precompilation time
+
+  print(io, "DG{", real(dg), "}(")
   print(io,       dg.basis)
   print(io, ", ", dg.mortar)
   print(io, ", ", dg.surface_flux)
@@ -149,11 +157,13 @@ function Base.show(io::IO, dg::DG{RealT}) where {RealT}
   print(io, ")")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", dg::DG{RealT}) where {RealT}
+function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
+  @nospecialize dg # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, dg)
   else
-    summary_header(io, "DG{" * string(RealT) * "}")
+    summary_header(io, "DG{" * string(real(dg)) * "}")
     summary_line(io, "polynomial degree", polydeg(dg))
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
@@ -239,7 +249,7 @@ end
 function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
-  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
 

@@ -174,7 +174,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::LinearScalarAdvectionEquation1D)
+@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation1D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end

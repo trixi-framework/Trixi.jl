@@ -189,7 +189,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations1D)
+@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations1D)
   phi, q1 = u
   @unpack inv_Tr = equations
 
@@ -203,8 +203,8 @@ end
 
 @inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = sqrt(equations.nu * equations.inv_Tr)
 

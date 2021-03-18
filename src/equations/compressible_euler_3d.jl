@@ -416,7 +416,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux(u, orientation, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -707,8 +707,8 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
   f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
@@ -737,8 +737,8 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   if orientation == 1 # x-direction
     Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
@@ -802,8 +802,8 @@ function flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquation
   c_rr = sqrt(equations.gamma*p_rr/rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
 
   # Compute Roe averages

@@ -617,7 +617,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function calcflux(u, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux(u, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   rho_v1, rho_v2, rho_e  = u
 
   rho = density(u, equations)
@@ -742,8 +742,8 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 

@@ -29,6 +29,8 @@ function ParametersEulerGravity(; background_density=0.0,
 end
 
 function Base.show(io::IO, parameters::ParametersEulerGravity)
+  @nospecialize parameters # reduce precompilation time
+
   print(io, "ParametersEulerGravity(")
   print(io,   "background_density=", parameters.background_density)
   print(io, ", gravitational_constant=", parameters.gravitational_constant)
@@ -38,6 +40,8 @@ function Base.show(io::IO, parameters::ParametersEulerGravity)
   print(io, ")")
 end
 function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravity)
+  @nospecialize parameters # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, parameters)
   else
@@ -108,7 +112,13 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler, semi_gravity::Sem
     semi_euler, semi_gravity, parameters, cache)
 end
 
+
+# TODO: AD, add appropriate method for remake
+
+
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
+  @nospecialize semi # reduce precompilation time
+
   print(io, "SemidiscretizationEulerGravity using")
   print(io,       semi.semi_euler)
   print(io, ", ", semi.semi_gravity)
@@ -122,6 +132,8 @@ function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", semi::SemidiscretizationEulerGravity)
+  @nospecialize semi # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, semi)
   else

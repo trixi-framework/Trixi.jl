@@ -3,11 +3,12 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - 'AUTHORS.md'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
+      - 'NEWS.md'
       - 'README.md'
       - '.zenodo.json'
       - '.github/workflows/CompatHelper.yml'
@@ -19,12 +20,14 @@ on:
       - 'AUTHORS.md'
       - 'CONTRIBUTING.md'
       - 'LICENSE.md'
+      - 'NEWS.md'
       - 'README.md'
       - '.zenodo.json'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
       - 'docs/**'
       - 'utils/**'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -105,17 +108,17 @@ jobs:
       - run: julia --color=yes -e 'using Pkg; Pkg.activate("coveragetempenv", shared=true); Pkg.add(PackageSpec(name="CoverageTools")); using CoverageTools; pf = process_folder(); append!(pf, process_folder("examples")); LCOV.writefile("lcov.info", pf)'
         shell: bash
         # Codecov is disabled since it does not produce accurate measurements for parallel jobs
-        # - uses: codecov/codecov-action@v1
-        #   with:
-        #     file: ./lcov.info
-        #     flags: unittests
-        #     name: codecov-umbrella
-        #     fail_ci_if_error: false
-        #     token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: codecov/codecov-action@v1
+        with:
+          file: ./lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
       - uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
+          flag-name: run-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}-${{ github.run_id }}
           parallel: true
           path-to-lcov: ./lcov.info
 
