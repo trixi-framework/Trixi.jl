@@ -1,9 +1,9 @@
 
 function create_cache(::Type{AnalysisCallback}, analyzer,
                       equations::AbstractEquations{2}, dg::DG, cache)
-  # In StructuredMesh, node_coordinates is an Array of Arrays of SVectors.
-  # Three times eltype is necessary for StructuredMesh, but doesn't hurt for TreeMesh.
-  eltype_u = eltype_x = eltype(eltype(eltype(cache.elements.node_coordinates))) # TODO: AD, needs to be adapted
+  # In StructuredMesh, node_coordinates is an Array of Arrays of RealT.
+  # Two times eltype is necessary for StructuredMesh, but doesn't hurt for TreeMesh.
+  eltype_u = eltype_x = eltype(eltype(cache.elements.node_coordinates)) # TODO: AD, needs to be adapted
 
   # pre-allocate buffers
   u_local = zeros(eltype_u,
