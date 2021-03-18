@@ -25,9 +25,10 @@ solver = DGSEM(polydeg, surface_flux)
 
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+size = (16, 16)
 
 # Create a uniformely refined mesh with periodic boundaries
-mesh = StructuredMesh((16, 16), coordinates_min, coordinates_max)
+mesh = StructuredMesh(size, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -64,7 +65,8 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.6)
+cfl=1.6
+stepsize_callback = StepsizeCallback(cfl=cfl)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,

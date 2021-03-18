@@ -14,6 +14,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       l2   = [6.0388296447998465e-6],
       linf = [3.217887726258972e-5])
   end
+  
   @testset "elixir_euler_source_terms_structured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_structured.jl"),
     l2   = [2.2527950196212703e-8, 1.8187357193835156e-8, 7.705669939973104e-8],
