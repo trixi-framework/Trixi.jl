@@ -73,8 +73,6 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticom
   alpha = 0.25*pi
   x_perp = x[1]*cos(alpha) + x[2]*sin(alpha)
   B_perp = 0.1*sin(2.0*pi*x_perp)
-  #rho1 = 0.8
-  #rho2 = 0.2
   rho = 1
   prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
   v1 = -B_perp*sin(alpha)
@@ -621,12 +619,12 @@ end
 
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::IdealGlmMhdMulticomponentEquations2D) = cons[5]
+@inline energy_total(cons, ::IdealGlmMhdMulticomponentEquations2D) = cons[4]
 
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(cons, equations::IdealGlmMhdMulticomponentEquations2D)
-  return 0.5 * (cons[1]^2 + cons[2]^2 + cons[3]^2)/cons[1]
+  return 0.5 * (cons[1]^2 + cons[2]^2 + cons[3]^2)/density(cons, equation)
 end
 
 
@@ -648,7 +646,7 @@ end
 
 # Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
 @inline function cross_helicity(cons, ::IdealGlmMhdMulticomponentEquations2D)
-  return (cons[1]*cons[5] + cons[2]*cons[6] + cons[3]*cons[7]) / cons[1]
+  return (cons[1]*cons[5] + cons[2]*cons[6] + cons[3]*cons[7]) / density(cons, equations)
 end
 
 
