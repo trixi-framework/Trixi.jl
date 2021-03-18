@@ -5,6 +5,8 @@
 # TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
 @inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
+get_name(equations::AbstractEquations) = equations |> typeof |> nameof |> string
+
 
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
