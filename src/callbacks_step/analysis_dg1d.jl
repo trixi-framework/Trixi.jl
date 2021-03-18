@@ -140,15 +140,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,3},
 end
 
 function integrate(func::Func, u::AbstractArray{<:Any,3},
-                   mesh::TreeMesh{1}, equations, dg::DGSEM, cache; normalize=true) where {Func}
-  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
-    u_local = get_node_vars(u, equations, dg, i, element)
-    return func(u_local, equations)
-  end
-end
-
-function integrate(func::Func, u::AbstractArray{<:Any,3},
-                   mesh::StructuredMesh, equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, element)
     return func(u_local, equations)
@@ -156,20 +148,8 @@ function integrate(func::Func, u::AbstractArray{<:Any,3},
 end
 
 
-# TODO This is identical to the function below
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u, t,
-                 mesh::StructuredMesh, equations, dg::DG, cache)
-  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, element, equations, dg, du
-    u_node  = get_node_vars(u,  equations, dg, i, element)
-    du_node = get_node_vars(du, equations, dg, i, element)
-    dot(cons2entropy(u_node, equations), du_node)
-  end
-end
-
-
-function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,3}, u, t,
-                 mesh::TreeMesh{1}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, element)

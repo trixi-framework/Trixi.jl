@@ -143,15 +143,7 @@ end
 
 
 function integrate(func::Func, u::AbstractArray{<:Any,4},
-                   mesh::TreeMesh{2}, equations, dg::DGSEM, cache; normalize=true) where {Func}
-  integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
-    u_local = get_node_vars(u, equations, dg, i, j, element)
-    return func(u_local, equations)
-  end
-end
-
-function integrate(func::Func, u::AbstractArray{<:Any,4},
-                   mesh::StructuredMesh, equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, element)
     return func(u_local, equations)
@@ -160,18 +152,7 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u, t,
-                 mesh::StructuredMesh, equations, dg::DG, cache)
-  # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
-  integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
-    u_node  = get_node_vars(u,  equations, dg, i, j, element)
-    du_node = get_node_vars(du, equations, dg, i, j, element)
-    dot(cons2entropy(u_node, equations), du_node)
-  end
-end
-
-
-function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u, t,
-                 mesh::TreeMesh{2}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, element)
