@@ -1,8 +1,8 @@
 
 @doc raw"""
-    IdealGlmMhdEquations2D
+    IdealGlmMhdEquations1D
 
-The ideal compressible multicomponent GLM-MHD equations in two space dimensions.
+The ideal compressible multicomponent GLM-MHD equations in one space dimension.
 """
 mutable struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT<:Real} <: AbstractIdealGlmMhdMulticomponentEquations{1, NVARS, NCOMP}
   gammas            ::SVector{NCOMP, RealT}
@@ -57,11 +57,9 @@ function varnames(::typeof(cons2prim), equations::IdealGlmMhdMulticomponentEquat
   return (prim..., rhos...)
 end
 
-default_analysis_integrals(::IdealGlmMhdMulticomponentEquations1D)  = (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
-
 
 """
-    initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
+    initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
 
 An Alfvén wave as smooth initial condition used for convergence tests.
 """
@@ -138,7 +136,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::IdealGlmMhdMulticomponentEquations1D)
+@inline function flux(u, orientation, equations::IdealGlmMhdMulticomponentEquations1D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
 
   rho = density(u, equations)
@@ -192,8 +190,8 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdMult
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
   # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 
@@ -204,7 +202,7 @@ end
 
 
 """
-    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+    flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations1D)
 
 Entropy conserving two-point flux adapted by
 - Derigs et al. (2018)
