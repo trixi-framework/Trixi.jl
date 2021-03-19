@@ -57,19 +57,19 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-      flux1 = transformed_calcflux(u_node, 1, mesh, equations)
+      flux1 = transformed_flux(u_node, 1, mesh, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
       end
 
-      flux2 = transformed_calcflux(u_node, 2, mesh, equations)
+      flux2 = transformed_flux(u_node, 2, mesh, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
       end
 
-      flux3 = transformed_calcflux(u_node, 3, mesh, equations)
+      flux3 = transformed_flux(u_node, 3, mesh, equations)
       for kk in eachnode(dg)
         integral_contribution = derivative_dhat[kk, k] * flux3
         add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
@@ -252,7 +252,7 @@ function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms, mesh::Str
 end
 
 
-@inline function transformed_calcflux(u, orientation, mesh::StructuredMesh{3}, equations)
+@inline function transformed_flux(u, orientation, mesh::StructuredMesh{3}, equations)
   @unpack size, coordinates_min, coordinates_max = mesh
 
   dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
@@ -267,7 +267,7 @@ end
     factor = 0.25 * dx * dy
   end
 
-  return factor * calcflux(u, orientation, equations)
+  return factor * flux(u, orientation, equations)
 end
 
 
