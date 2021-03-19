@@ -114,7 +114,7 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,5},
 
   # Boundaries in x-direction
   for element_y in 1:size[2], element_z in 1:size[3]
-    # TODO A loop would be more efficient
+    # TODO Performance
     cache.elements[1, element_y, element_z].interfaces[1].u_left .= u[:, end, :, :, linear_indices[end, element_y, element_z]]
     cache.elements[end, element_y, element_z].interfaces[2].u_right .= u[:, 1, :, :, linear_indices[1, element_y, element_z]]
   end
@@ -149,6 +149,7 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
   end
 
   # Boundary in positive x-direction
+  # TODO maybe make this threaded with @threaded for element in @view(mesh.linear_indices[end, :, :])
   for element_y in 1:size[2], element_z in 1:size[3]
     interface = cache.elements[end, element_y, element_z].interfaces[2]
     calc_interface_flux!(interface, mesh, equations, dg)

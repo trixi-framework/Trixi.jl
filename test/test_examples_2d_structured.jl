@@ -23,6 +23,15 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       polydeg = 4,
       cfl = 1.4)
   end
+
+  @testset "elixir_advection_extended_structured.jl with different x and y coordinates and size" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_structured.jl"),
+      l2   = [2.8572992120045937e-6],
+      linf = [1.764895592104576e-5],
+      size = (19, 37),
+      coordinates_min = (-1.5, 1.3),
+      coordinates_max = ( 0.5, 3.3))
+  end
   
   @testset "elixir_advection_restart_structured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_structured.jl"),
