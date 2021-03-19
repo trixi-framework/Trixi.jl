@@ -1,12 +1,12 @@
-# Adding a new equation to Trixi.jl
+# Adding a new equation
 
 If you want to use Trixi for your own research, you might be interested in
-a new physical model that's not already included in Trixi.jl. In this tutorial,
+a new physics model that's not already included in Trixi.jl. In this tutorial,
 we will implement the cubic conservation law
 ```math
 \partial_t u(t,x) + \partial_x u(t,x)^3 = 0
 ```
-in a periodic domain in one space dimension. In Trixi.jl, such a physical model
+in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model
 is encoded as a subtype of [`Trixi.AbstractEquations`](@ref).
 
 
@@ -29,7 +29,7 @@ end # module
 ```
 
 We create `CubicEquation` as an empty `struct` since we do not use any parameters
-for this equation. Other examples could bundle arbitrary parameters, e.g. the
+for this equation. Other models could bundle arbitrary parameters, e.g., the
 ideal gas constant for the compressible Euler equations.
 
 From here on, the following code snippets should be written inside the `module`.
@@ -75,7 +75,7 @@ are passed together.
 
 The `ode` is an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 Thus, we can solve this ODE numerically using any time integration method,
-e.g. `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 ```julia
 summary_callback = SummaryCallback()
@@ -96,7 +96,7 @@ plot(sol)
 
 ![tutorial_adding_new_equations_plot1](https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png)
 
-You can already see that a discontinuities will develop and oscillations start to
+You can already see that discontinuities will develop and oscillations start to
 occur around steep parts of the wave. That's expected from our central discretization.
 To avoid these issues, we need to use dissipative numerical fluxes (approximate
 Riemann solvers) at interfaces.
@@ -110,6 +110,8 @@ since the wave speed `f'(u) = 3u^2` is always non-negative.
 @inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
 ```
 Let's run the example again but with a dissipative numerical flux at interfaces.
+[`remake`](@ref) will recreate the semidiscretization we used before and only change
+selected parameters, in this case the `solver`.
 `remake` will recreate the semidiscretization we used before and only change
 selected parameters, in this case the `solver`.
 ```julia
@@ -124,7 +126,7 @@ plot!(sol)
 
 ![tutorial_adding_new_equations_plot2](https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png)
 
-You can see that there are less oscillations, in particular around steep edges.
+You can see that there are fewer oscillations, in particular around steep edges.
 Now let's increase the final time (and also the spatial resolution).
 ```julia
 # A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
@@ -139,7 +141,7 @@ plot(sol)
 
 You can observe that nonclassical shocks develop and are stable under grid refinement,
 e.g. for `initial_refinement_level=12`. In this case, these nonclassical shocks
-cn be avoided by using an entropy-dissipative semidiscretization. Thus, we need
+can be avoided by using an entropy-dissipative semidiscretization. Thus, we need
 to define an entropy-conservative numerical flux
 ```julia
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)

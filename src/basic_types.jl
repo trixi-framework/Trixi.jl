@@ -6,11 +6,11 @@ abstract type AbstractSemidiscretization end
 
 
 """
-        AbstractEquations{NDIMS, NVARS}
+    AbstractEquations{NDIMS, NVARS}
 
 An abstract supertype of specific equations such as the compressible Euler equations.
 The type parameters encode the number of spatial dimensions (`NDIMS`) and the
-number of primary variables (`NVARS`) of the physical model.
+number of primary variables (`NVARS`) of the physics model.
 """
 abstract type AbstractEquations{NDIMS, NVARS} end
 
