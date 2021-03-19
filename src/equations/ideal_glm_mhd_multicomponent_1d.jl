@@ -433,63 +433,8 @@ end
 end
 
 
-# Calculate thermodynamic entropy for a conservative state `cons`
-@inline function entropy_thermodynamic(cons, equations::IdealGlmMhdMulticomponentEquations1D)
-  # Pressure
-  gamma = totalgamma(cons, equations)
-  p = (gamma - 1) * (cons[4] - 1/2 * (cons[1]^2 + cons[2]^2 + cons[3]^2) / density(cons, equations)
-                                       - 1/2 * (cons[5]^2 + cons[6]^2 + cons[7]^2)
-                                     )
-
-  # Thermodynamic entropy
-  s = log(p) - gamma*log(density(cons, equations))
-
-  return s
-end
-
-
-# Calculate mathematical entropy for a conservative state `cons`
-@inline function entropy_math(cons, equations::IdealGlmMhdMulticomponentEquations1D)
-  gamma = totalgamma(cons, equations)
-  S = -entropy_thermodynamic(cons, equations) * density(cons, equations) / (gamma - 1)
-
-  return S
-end
-
-
-# Default entropy is the mathematical entropy
-@inline entropy(cons, equations::IdealGlmMhdMulticomponentEquations1D) = entropy_math(cons, equations)
-
-
 # Calculate total energy for a conservative state `cons`
 @inline energy_total(cons, ::IdealGlmMhdMulticomponentEquations1D) = cons[4]
-
-
-# Calculate kinetic energy for a conservative state `cons`
-@inline function energy_kinetic(cons, equations::IdealGlmMhdMulticomponentEquations1D)
-  return 0.5 * (cons[1]^2 + cons[2]^2 + cons[3]^2)/density(cons, equations)
-end
-
-
-# Calculate the magnetic energy for a conservative state `cons'.
-#  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
-@inline function energy_magnetic(cons, ::IdealGlmMhdMulticomponentEquations1D)
-  return 0.5 * (cons[5]^2 + cons[6]^2 + cons[7]^2)
-end
-
-
-# Calculate internal energy for a conservative state `cons`
-@inline function energy_internal(cons, equations::IdealGlmMhdMulticomponentEquations1D)
-  return (energy_total(cons, equations)
-          - energy_kinetic(cons, equations)
-          - energy_magnetic(cons, equations))
-end
-
-
-# Calcluate the cross helicity (\vec{v}⋅\vec{B}) for a conservative state `cons'
-@inline function cross_helicity(cons, ::IdealGlmMhdMulticomponentEquations1D)
-  return (cons[1]*cons[5] + cons[2]*cons[6] + cons[3]*cons[7]) / density(cons, equations)
-end
 
 
 @inline function density(u, equations::IdealGlmMhdMulticomponentEquations1D)
