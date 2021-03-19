@@ -110,8 +110,6 @@ since the wave speed `f'(u) = 3u^2` is always non-negative.
 @inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
 ```
 Let's run the example again but with a dissipative numerical flux at interfaces.
-[`remake`](@ref) will recreate the semidiscretization we used before and only change
-selected parameters, in this case the `solver`.
 `remake` will recreate the semidiscretization we used before and only change
 selected parameters, in this case the `solver`.
 ```julia
