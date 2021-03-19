@@ -1,4 +1,4 @@
-# Callbacks
+# [Callbacks](@id callbacks-id)
 Many of the advanced features of Trixi, such as adaptive mesh refinement, are implemented as
 callbacks. A callback is an algorithmic entity that gets passed to the ODE solver and
 is called at specific points during execution to perform certain tasks. Callbacks in Trixi are

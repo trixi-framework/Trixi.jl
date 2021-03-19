@@ -21,7 +21,6 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
 end
 
 
-get_name(::LinearScalarAdvectionEquation3D) = "LinearScalarAdvectionEquation3D"
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar", )
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar", )
 
