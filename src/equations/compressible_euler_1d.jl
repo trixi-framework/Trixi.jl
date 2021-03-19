@@ -8,7 +8,6 @@ struct CompressibleEulerEquations1D{RealT<:Real} <: AbstractCompressibleEulerEqu
 end
 
 
-get_name(::CompressibleEulerEquations1D) = "CompressibleEulerEquations1D"
 varnames(::typeof(cons2cons), ::CompressibleEulerEquations1D) = ("rho", "rho_v1", "rho_e")
 varnames(::typeof(cons2prim), ::CompressibleEulerEquations1D) = ("rho", "v1", "p")
 

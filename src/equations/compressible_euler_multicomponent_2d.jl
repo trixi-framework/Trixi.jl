@@ -71,8 +71,6 @@ end
 
 @inline Base.real(::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-get_name(::CompressibleEulerMulticomponentEquations2D) = "CompressibleEulerMulticomponentEquations2D"
-
 
 function varnames(::typeof(cons2cons), equations::CompressibleEulerMulticomponentEquations2D)
 
