@@ -5,6 +5,19 @@
 # TODO: Taal performance, 1:NVARS vs. Base.OneTo(NVARS) vs. SOneTo(NVARS)
 @inline eachvariable(equations::AbstractEquations) = Base.OneTo(nvariables(equations))
 
+"""
+    get_name(equations::AbstractEquations)
+
+Returns the canonical, human-readable name for the given system of equations.
+
+# Examples
+```jldoctest
+julia> Trixi.get_name(CompressibleEulerEquations1D(1.4))
+"CompressibleEulerEquations1D"
+```
+"""
+get_name(equations::AbstractEquations) = equations |> typeof |> nameof |> string
+
 
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)

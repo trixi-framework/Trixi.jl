@@ -19,7 +19,7 @@ macro test_trixi_include(elixir, args...)
 
   local l2   = get_kwarg(args, :l2, nothing)
   local linf = get_kwarg(args, :linf, nothing)
-  local atol = get_kwarg(args, :atol, 200*eps())
+  local atol = get_kwarg(args, :atol, 500*eps())
   local rtol = get_kwarg(args, :rtol, sqrt(eps()))
   local kwargs = Pair{Symbol, Any}[]
   for arg in args
