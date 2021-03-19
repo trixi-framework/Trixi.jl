@@ -66,7 +66,6 @@ function AcousticPerturbationEquations2D(; v_mean_global::NTuple{2,<:Real}, c_me
 end
 
 
-get_name(::AcousticPerturbationEquations2D) = "AcousticPerturbationEquations2D"
 varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
                                                                     "v1_mean", "v2_mean", "c_mean", "rho_mean")
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime",
