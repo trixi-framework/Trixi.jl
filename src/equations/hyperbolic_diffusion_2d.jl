@@ -19,7 +19,6 @@ function HyperbolicDiffusionEquations2D(; nu=1.0, Lr=inv(2pi))
 end
 
 
-get_name(::HyperbolicDiffusionEquations2D) = "HyperbolicDiffusionEquations2D"
 varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :linf_error, :residual)
