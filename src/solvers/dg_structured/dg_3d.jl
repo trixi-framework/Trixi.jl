@@ -114,21 +114,20 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,5},
 
   # Boundaries in x-direction
   for element_y in 1:size[2], element_z in 1:size[3]
-    # TODO Performance
-    cache.elements[1, element_y, element_z].interfaces[1].u_left .= u[:, end, :, :, linear_indices[end, element_y, element_z]]
-    cache.elements[end, element_y, element_z].interfaces[2].u_right .= u[:, 1, :, :, linear_indices[1, element_y, element_z]]
+    @views cache.elements[1, element_y, element_z].interfaces[1].u_left .= u[:, end, :, :, linear_indices[end, element_y, element_z]]
+    @views cache.elements[end, element_y, element_z].interfaces[2].u_right .= u[:, 1, :, :, linear_indices[1, element_y, element_z]]
   end
 
   # Boundaries in y-direction
   for element_x in 1:size[1], element_z in 1:size[3]
-    cache.elements[element_x, 1, element_z].interfaces[3].u_left .= u[:, :, end, :, linear_indices[element_x, end, element_z]]
-    cache.elements[element_x, end, element_z].interfaces[4].u_right .= u[:, :, 1, :, linear_indices[element_x, 1, element_z]]
+    @views cache.elements[element_x, 1, element_z].interfaces[3].u_left .= u[:, :, end, :, linear_indices[element_x, end, element_z]]
+    @views cache.elements[element_x, end, element_z].interfaces[4].u_right .= u[:, :, 1, :, linear_indices[element_x, 1, element_z]]
   end
 
   # Boundaries in z-direction
   for element_x in 1:size[1], element_y in 1:size[2]
-    cache.elements[element_x, element_y, 1].interfaces[5].u_left .= u[:, :, :, end, linear_indices[element_x, element_y, end]]
-    cache.elements[element_x, element_y, end].interfaces[6].u_right .= u[:, :, :, 1, linear_indices[element_x, element_y, 1]]
+    @views cache.elements[element_x, element_y, 1].interfaces[5].u_left .= u[:, :, :, end, linear_indices[element_x, element_y, end]]
+    @views cache.elements[element_x, element_y, end].interfaces[6].u_right .= u[:, :, :, 1, linear_indices[element_x, element_y, 1]]
   end
 
   return nothing

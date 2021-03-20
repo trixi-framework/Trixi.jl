@@ -102,15 +102,14 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,4},
 
   # Boundaries in x-direction
   for element_y in 1:mesh.size[2]
-    # TODO A loop would be more efficient
-    cache.elements[1, element_y].interfaces[1].u_left .= u[:, end, :, linear_indices[end, element_y]]
-    cache.elements[end, element_y].interfaces[2].u_right .= u[:, 1, :, linear_indices[1, element_y]]
+    @views cache.elements[1, element_y].interfaces[1].u_left .= u[:, end, :, linear_indices[end, element_y]]
+    @views cache.elements[end, element_y].interfaces[2].u_right .= u[:, 1, :, linear_indices[1, element_y]]
   end
   
   # Boundaries in y-direction
   for element_x in 1:mesh.size[1]
-    cache.elements[element_x, 1].interfaces[3].u_left .= u[:, :, end, linear_indices[element_x, end]]
-    cache.elements[element_x, end].interfaces[4].u_right .= u[:, :, 1, linear_indices[element_x, 1]]
+    @views cache.elements[element_x, 1].interfaces[3].u_left .= u[:, :, end, linear_indices[element_x, end]]
+    @views cache.elements[element_x, end].interfaces[4].u_right .= u[:, :, 1, linear_indices[element_x, 1]]
   end
 
   return nothing

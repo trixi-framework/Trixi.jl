@@ -54,8 +54,8 @@ function prolong2interfaces!(cache, u::AbstractArray{<:Any,3}, mesh::StructuredM
   for element_ind in eachelement(dg, cache)
     element = cache.elements[element_ind]
 
-    element.interfaces[1].u_right .= u[:, 1, element_ind]
-    element.interfaces[2].u_left .= u[:, end, element_ind]
+    @views element.interfaces[1].u_right .= u[:, 1, element_ind]
+    @views element.interfaces[2].u_left .= u[:, end, element_ind]
   end
 
   return nothing
@@ -64,8 +64,8 @@ end
 
 function prolong2boundaries!(cache, u::AbstractArray{<:Any,3}, 
     boundary_condition::BoundaryConditionPeriodic, equations, dg::DG)
-  cache.elements[1].interfaces[1].u_left .= u[:, end, end]
-  cache.elements[end].interfaces[2].u_right .= u[:, 1, 1]
+  @views cache.elements[1].interfaces[1].u_left .= u[:, end, end]
+  @views cache.elements[end].interfaces[2].u_right .= u[:, 1, 1]
 
   return nothing
 end
