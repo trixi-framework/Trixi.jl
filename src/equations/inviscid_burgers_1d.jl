@@ -11,7 +11,6 @@ in one space dimension.
 struct InviscidBurgersEquation1D <: AbstractInviscidBurgersEquation{1, 1} end
 
 
-get_name(::InviscidBurgersEquation1D) = "InviscidBurgersEquation1D"
 varnames(::typeof(cons2cons), ::InviscidBurgersEquation1D) = ("scalar", )
 varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar", )
 

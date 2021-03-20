@@ -32,7 +32,6 @@ function AcousticPerturbationEquations2D(; v_mean::NTuple{2,<:Real}, c_mean::Rea
 end
 
 
-get_name(::AcousticPerturbationEquations2D) = "AcousticPerturbationEquations2D"
 varnames(::typeof(cons2cons), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime")
 varnames(::typeof(cons2prim), ::AcousticPerturbationEquations2D) = ("v1_prime", "v2_prime", "p_prime")
 

@@ -171,7 +171,6 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
 end
 
 
-get_name(::LatticeBoltzmannEquations3D) = "LatticeBoltzmannEquations3D"
 varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D) = ntuple(v -> "pdf"*string(v), Val(nvariables(equations)))
 varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames(cons2cons, equations)
 
