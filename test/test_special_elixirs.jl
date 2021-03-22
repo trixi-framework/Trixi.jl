@@ -4,6 +4,8 @@ using LinearAlgebra
 using Test
 using Trixi
 
+import ForwardDiff
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -114,6 +116,38 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     @test Matrix(A) ≈ J
     λ = eigvals(J)
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+  end
+
+
+  @testset "AD using ForwardDiff" begin
+    @testset "Linear advection" begin
+      function energy_at_final_time(k) # k is the wave number of the initial condition
+        equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
+        solver = DGSEM(3, flux_lax_friedrichs)
+        initial_condition = (x, t, equation) -> begin
+            x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+            return SVector(sinpi(k * sum(x_trans)))
+        end
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                            uEltype=typeof(k))
+        ode = semidiscretize(semi, (0.0, 1.0))
+        summary_callback = SummaryCallback()
+        analysis_interval = 100
+        analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+        alive_callback = AliveCallback(analysis_interval=analysis_interval)
+        stepsize_callback = StepsizeCallback(cfl=1.6)
+        callbacks = CallbackSet(
+            summary_callback,
+            analysis_callback,
+            alive_callback,
+            stepsize_callback
+        )
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), save_everystep=false, adaptive=false, dt=1.0, callback=callbacks)
+        Trixi.integrate(energy_total, sol.u[end], semi)
+      end
+      @test ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
+    end
   end
 end
 
