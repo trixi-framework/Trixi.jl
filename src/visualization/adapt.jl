@@ -1,7 +1,9 @@
-function adapt_to_level!(u_ode::AbstractVector, semi, level)
+function adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
+  # Create AMR callback with controller that refines everything towards a single level
   amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first), base_level=level)
   amr_callback = AMRCallback(semi, amr_controller, interval=0)
 
+  # Adapt mesh until it does not change anymore
   has_changed = amr_callback.affect!(u_ode, semi, 0.0, 0)
   while has_changed
     has_changed = amr_callback.affect!(u_ode, semi, 0.0, 0)
@@ -10,4 +12,15 @@ function adapt_to_level!(u_ode::AbstractVector, semi, level)
   return u_ode, semi
 end
 
-adapt_to_level!(sol::TrixiODESolution, level; kwargs...) = adapt_to_level!(sol.u[end], sol.prob.p, level; kwargs...)
+adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
+
+
+function adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
+  # Create new semidiscretization with copy of the current mesh
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
+  new_semi = remake(semi, mesh=deepcopy(mesh))
+
+  return adapt_to_mesh_level!(deepcopy(u_ode), new_semi, level)
+end
+
+adapt_to_mesh_level(sol::TrixiODESolution, level) = adapt_to_mesh_level(sol.u[end], sol.prob.p, level)
