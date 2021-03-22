@@ -18,12 +18,7 @@ jobs:
         run: |
             git config user.name "Documenter.jl"
             git config user.email "documenter@juliadocs.github.io"
-            git show HEAD~1:"previews/PR$PRNUM" > /dev/null 2>&1 # Check if preview folder exists (e.g., if run from a fork)
-            if [ $? -ne 0 ]; then
-              echo "No preview folder found"
-            else
-              git rm -rf "previews/PR$PRNUM"
-            fi
+            git rm -rf --ignore-unmatch "previews/PR$PRNUM"
             git commit -m "delete preview"
             git branch gh-pages-new $(echo "delete history" | git commit-tree HEAD^{tree})
         env:
