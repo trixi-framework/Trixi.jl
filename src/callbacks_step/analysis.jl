@@ -88,7 +88,6 @@ function AnalysisCallback(equations::AbstractEquations, solver, cache;
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
   cache_analysis = create_cache_analysis(analyzer, equations, solver, cache, RealT, uEltype)
-  @show RealT, uEltype #FIXME: WIP
 
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
