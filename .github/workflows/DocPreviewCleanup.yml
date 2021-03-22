@@ -18,7 +18,7 @@ jobs:
         run: |
             git config user.name "Documenter.jl"
             git config user.email "documenter@juliadocs.github.io"
-            git show HEAD~1:"previews/PR$PRNUM" > /dev/null 2>&1
+            git show HEAD~1:"previews/PR$PRNUM" > /dev/null 2>&1 # Check if preview folder exists (e.g., if run from a fork)
             if [ $? -ne 0 ]; then
               echo "No preview folder found"
             else
