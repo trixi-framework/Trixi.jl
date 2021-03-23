@@ -36,57 +36,75 @@ end
 function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
   nvars = nvariables(equations)
 
-  @unpack size = mesh
+  @unpack size, linear_indices = mesh
 
   # Inner interfaces
   for element_x in 1:size[1], element_y in 1:size[2], element_z in 1:size[3]
     # Interfaces in x-direction
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 1)
-
     if element_x > 1
-      elements[element_x, element_y, element_z].interfaces[1] = interface
-      elements[element_x - 1, element_y, element_z].interfaces[2] = interface
+      left_element_id = linear_indices[element_x - 1, element_y, element_z]
+      right_element_id = linear_indices[element_x, element_y, element_z]
+
+      interface = Interface{3, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
+
+      elements[left_element_id].interfaces[2] = interface
+      elements[right_element_id].interfaces[1] = interface
     end
 
     # Interfaces in y-direction
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 2)
-
     if element_y > 1
-      elements[element_x, element_y, element_z].interfaces[3] = interface
-      elements[element_x, element_y - 1, element_z].interfaces[4] = interface
+      left_element_id = linear_indices[element_x, element_y - 1, element_z]
+      right_element_id = linear_indices[element_x, element_y, element_z]
+
+      interface = Interface{3, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
+
+      elements[left_element_id].interfaces[4] = interface
+      elements[right_element_id].interfaces[3] = interface
     end
 
     # Interfaces in z-direction
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 3)
-
     if element_z > 1
-      elements[element_x, element_y, element_z].interfaces[5] = interface
-      elements[element_x, element_y, element_z - 1].interfaces[6] = interface
+      left_element_id = linear_indices[element_x, element_y, element_z - 1]
+      right_element_id = linear_indices[element_x, element_y, element_z]
+
+      interface = Interface{3, RealT}(left_element_id, right_element_id, 3, nvars, nnodes(dg))
+
+      elements[left_element_id].interfaces[6] = interface
+      elements[right_element_id].interfaces[5] = interface
     end
   end
 
   # Boundaries in x-direction
   for element_y in 1:size[2], element_z in 1:size[3]
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 1)
+    left_element_id = linear_indices[end, element_y, element_z]
+    right_element_id = linear_indices[begin, element_y, element_z]
 
-    elements[begin, element_y, element_z].interfaces[1] = interface
-    elements[end, element_y, element_z].interfaces[2] = interface
+    interface = Interface{3, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
+
+    elements[left_element_id].interfaces[2] = interface
+    elements[right_element_id].interfaces[1] = interface
   end
 
   # Boundaries in y-direction
   for element_x in 1:size[1], element_z in 1:size[3]
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 2)
+    left_element_id = linear_indices[element_x, end, element_z]
+    right_element_id = linear_indices[element_x, begin, element_z]
 
-    elements[element_x, begin, element_z].interfaces[3] = interface
-    elements[element_x, end, element_z].interfaces[4] = interface
+    interface = Interface{3, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
+
+    elements[left_element_id].interfaces[4] = interface
+    elements[right_element_id].interfaces[3] = interface
   end
 
   # Boundaries in z-direction
   for element_x in 1:size[1], element_y in 1:size[2]
-    interface = Interface{3, RealT}(nvars, nnodes(dg), 3)
+    left_element_id = linear_indices[element_x, element_y, end]
+    right_element_id = linear_indices[element_x, element_y, begin]
 
-    elements[element_x, element_y, begin].interfaces[5] = interface
-    elements[element_x, element_y, end].interfaces[6] = interface
+    interface = Interface{3, RealT}(left_element_id, right_element_id, 3, nvars, nnodes(dg))
+
+    elements[left_element_id].interfaces[6] = interface
+    elements[right_element_id].interfaces[5] = interface
   end
 
   return nothing
