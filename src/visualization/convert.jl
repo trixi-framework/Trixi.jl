@@ -93,8 +93,8 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = ones(max_nvisnodes, n_elements)
-  interpolated_data = ones(n_vars, max_nvisnodes, n_elements)
+  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
+  interpolated_data = Array{Float64,2}(undef, max_nvisnodes*n_elements, n_vars)
 
   # Iterate over all elements.
   for i=1:n_elements
@@ -103,11 +103,11 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
     # Interpolate the data for each variable.
     for j=1:n_vars
-      interpolated_data[j,:,i] = interpolate1d(original_nodes[1,:,i], unstructured_data[:,i,j], interpolated_nodes[:,i])
+      interpolated_data[(i-1)*max_nvisnodes+1:i*max_nvisnodes, j] = interpolate1d(original_nodes[1,:,i], unstructured_data[:,i,j], interpolated_nodes[:,i])
     end
   end
 
-  return vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, n_vars,:)')
+  return vec(interpolated_nodes), interpolated_data
 end
 
 
