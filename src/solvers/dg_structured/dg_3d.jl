@@ -27,9 +27,6 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
   # Prolong solution to interfaces
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
 
-  # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, boundary_conditions, mesh, equations, dg)
-
   # Calculate interface fluxes
   @timeit_debug timer() "interface flux" calc_interface_flux!(have_nonconservative_terms(equations), mesh,
                                                               equations, dg, cache)
@@ -83,51 +80,25 @@ end
 
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,5}, mesh::StructuredMesh, equations, dg::DG)
   @threaded for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
+    interfaces = cache.elements.interfaces[element_ind]
 
     # Interfaces in x-direction
     for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
-      element.interfaces[1].u_right[v, j, k] = u[v, 1, j, k, element_ind]
-      element.interfaces[2].u_left[v, j, k] = u[v, end, j, k, element_ind]
+      interfaces[1].u_right[v, j, k] = u[v, 1,          j, k, element_ind]
+      interfaces[2].u_left[v, j, k] =  u[v, nnodes(dg), j, k, element_ind]
     end
 
     # Interfaces in y-direction
     for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      element.interfaces[3].u_right[v, i, k] = u[v, i, 1, k, element_ind]
-      element.interfaces[4].u_left[v, i, k] = u[v, i, end, k, element_ind]
+      interfaces[3].u_right[v, i, k] = u[v, i, 1,          k, element_ind]
+      interfaces[4].u_left[v, i, k] =  u[v, i, nnodes(dg), k, element_ind]
     end
 
     # Interfaces in z-direction
     for j in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
-      element.interfaces[5].u_right[v, i, j] = u[v, i, j, 1, element_ind]
-      element.interfaces[6].u_left[v, i, j] = u[v, i, j, end, element_ind]
+      interfaces[5].u_right[v, i, j] = u[v, i, j, 1,          element_ind]
+      interfaces[6].u_left[v, i, j] =  u[v, i, j, nnodes(dg), element_ind]
     end
-  end
-
-  return nothing
-end
-
-
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,5}, 
-    boundary_condition::BoundaryConditionPeriodic, mesh::StructuredMesh, equations, dg::DG)
-  @unpack size, linear_indices = mesh
-
-  # Boundaries in x-direction
-  for element_y in 1:size[2], element_z in 1:size[3]
-    @views cache.elements[1, element_y, element_z].interfaces[1].u_left .= u[:, end, :, :, linear_indices[end, element_y, element_z]]
-    @views cache.elements[end, element_y, element_z].interfaces[2].u_right .= u[:, 1, :, :, linear_indices[1, element_y, element_z]]
-  end
-
-  # Boundaries in y-direction
-  for element_x in 1:size[1], element_z in 1:size[3]
-    @views cache.elements[element_x, 1, element_z].interfaces[3].u_left .= u[:, :, end, :, linear_indices[element_x, end, element_z]]
-    @views cache.elements[element_x, end, element_z].interfaces[4].u_right .= u[:, :, 1, :, linear_indices[element_x, 1, element_z]]
-  end
-
-  # Boundaries in z-direction
-  for element_x in 1:size[1], element_y in 1:size[2]
-    @views cache.elements[element_x, element_y, 1].interfaces[5].u_left .= u[:, :, :, end, linear_indices[element_x, element_y, end]]
-    @views cache.elements[element_x, element_y, end].interfaces[6].u_right .= u[:, :, :, 1, linear_indices[element_x, element_y, 1]]
   end
 
   return nothing
@@ -145,25 +116,6 @@ function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::Structure
       interface = cache.elements[element].interfaces[orientation]
       calc_interface_flux!(interface, mesh, equations, dg)
     end
-  end
-
-  # Boundary in positive x-direction
-  # TODO maybe make this threaded with @threaded for element in @view(mesh.linear_indices[end, :, :])
-  for element_y in 1:size[2], element_z in 1:size[3]
-    interface = cache.elements[end, element_y, element_z].interfaces[2]
-    calc_interface_flux!(interface, mesh, equations, dg)
-  end
-
-  # Boundary in positive y-direction
-  for element_x in 1:size[1], element_z in 1:size[3]
-    interface = cache.elements[element_x, end, element_z].interfaces[4]
-    calc_interface_flux!(interface, mesh, equations, dg)
-  end
-
-  # Boundary in positive z-direction
-  for element_x in 1:size[1], element_y in 1:size[2]
-    interface = cache.elements[element_x, element_y, end].interfaces[6]
-    calc_interface_flux!(interface, mesh, equations, dg)
   end
 
   return nothing
@@ -216,7 +168,7 @@ end
 
 function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::StructuredMesh, equations, dg::DG, cache)
 
-  for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

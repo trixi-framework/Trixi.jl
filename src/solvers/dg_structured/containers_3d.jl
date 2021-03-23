@@ -67,29 +67,26 @@ function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::A
 
   # Boundaries in x-direction
   for element_y in 1:size[2], element_z in 1:size[3]
-    interface_left = Interface{3, RealT}(nvars, nnodes(dg), 1)
-    interface_right = Interface{3, RealT}(nvars, nnodes(dg), 1)
+    interface = Interface{3, RealT}(nvars, nnodes(dg), 1)
 
-    elements[1, element_y, element_z].interfaces[1] = interface_left
-    elements[end, element_y, element_z].interfaces[2] = interface_right
+    elements[begin, element_y, element_z].interfaces[1] = interface
+    elements[end, element_y, element_z].interfaces[2] = interface
   end
 
   # Boundaries in y-direction
   for element_x in 1:size[1], element_z in 1:size[3]
-    interface_left = Interface{3, RealT}(nvars, nnodes(dg), 2)
-    interface_right = Interface{3, RealT}(nvars, nnodes(dg), 2)
+    interface = Interface{3, RealT}(nvars, nnodes(dg), 2)
 
-    elements[element_x, 1, element_z].interfaces[3] = interface_left
-    elements[element_x, end, element_z].interfaces[4] = interface_right
+    elements[element_x, begin, element_z].interfaces[3] = interface
+    elements[element_x, end, element_z].interfaces[4] = interface
   end
 
   # Boundaries in z-direction
   for element_x in 1:size[1], element_y in 1:size[2]
-    interface_left = Interface{3, RealT}(nvars, nnodes(dg), 3)
-    interface_right = Interface{3, RealT}(nvars, nnodes(dg), 3)
+    interface = Interface{3, RealT}(nvars, nnodes(dg), 3)
 
-    elements[element_x, element_y, 1].interfaces[5] = interface_left
-    elements[element_x, element_y, end].interfaces[6] = interface_right
+    elements[element_x, element_y, begin].interfaces[5] = interface
+    elements[element_x, element_y, end].interfaces[6] = interface
   end
 
   return nothing
