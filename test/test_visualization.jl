@@ -143,6 +143,19 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "adapt_to_mesh_level" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
+                                     tspan=(0,0.1))
+    @test adapt_to_mesh_level(sol, 5) isa Tuple
+
+    u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
+    u_ode_level4, semi_level4 = adapt_to_mesh_level(u_ode_level5, semi_level5, 4)
+    @test isapprox(sol.u[end], u_ode_level4, atol=1e-13)
+
+    @test adapt_to_mesh_level!(sol, 5) isa Tuple
+    @test isapprox(sol.u[end], u_ode_level5, atol=1e-13)
+  end
+
   @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
