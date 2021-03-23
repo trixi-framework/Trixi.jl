@@ -18,8 +18,8 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["polydeg"] = polydeg(dg)
     attributes(file)["n_vars"] = nvariables(equations)
     attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attributes(file)["structured_mesh"] = mesh isa StructuredMesh
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep
@@ -112,8 +112,8 @@ function save_restart_file(u, time, dt, timestep,
     attributes(file)["polydeg"] = polydeg(dg)
     attributes(file)["n_vars"] = nvariables(equations)
     attributes(file)["n_elements"] = nelements(dg, cache)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
-    attributes(file)["structured_mesh"] = mesh isa StructuredMesh
     attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
     attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar
     attributes(file)["timestep"] = timestep

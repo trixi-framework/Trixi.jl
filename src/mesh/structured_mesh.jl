@@ -1,4 +1,4 @@
-mutable struct StructuredMesh{NDIMS, RealT<:Real}
+mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   size::NTuple{NDIMS, Int}
   coordinates_min::NTuple{NDIMS, RealT}
   coordinates_max::NTuple{NDIMS, RealT}

@@ -98,7 +98,6 @@ function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
   h5open(filename, "w") do file
     # Add context information as attributes
     attributes(file)["ndims"] = ndims(mesh)
-    attributes(file)["structured"] = true
     attributes(file)["size"] = collect(mesh.size)
     attributes(file)["coordinates_min"] = collect(mesh.coordinates_min)
     attributes(file)["coordinates_max"] = collect(mesh.coordinates_max)
@@ -113,21 +112,24 @@ end
 
 Load the mesh from the `restart_file`.
 """
-function load_mesh(restart_file::AbstractString; n_cells_max=30_000)
+function load_mesh(restart_file::AbstractString; n_cells_max)
   if mpi_isparallel()
-    load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
-  else
-    load_mesh_serial(restart_file; n_cells_max=n_cells_max)
+    return load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
   end
+
+  load_mesh_serial(restart_file; n_cells_max=n_cells_max)
 end
 
 function load_mesh_serial(restart_file::AbstractString; n_cells_max)
-  ndims_, structured_ = h5open(restart_file, "r") do file
+  ndims, mesh_type = h5open(restart_file, "r") do file
     return read(attributes(file)["ndims"]),
-           read(attributes(file)["structured_mesh"])
+           read(attributes(file)["mesh_type"])
   end
 
-  if structured_
+  if mesh_type == "TreeMesh"
+    mesh = TreeMesh(SerialTree{ndims}, n_cells_max)
+    load_mesh!(mesh, restart_file)
+  elseif mesh_type == "StructuredMesh"
     filename = get_restart_mesh_filename(restart_file, Val(false))
     size_, coordinates_min_, coordinates_max_ = h5open(filename, "r") do file
       return read(attributes(file)["size"]),
@@ -135,14 +137,15 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
              read(attributes(file)["coordinates_max"])
     end
 
-    size = ntuple(i -> size_[i], Val(ndims_))
-    coordinates_min = ntuple(i -> coordinates_min_[i], Val(ndims_))
-    coordinates_max = ntuple(i -> coordinates_max_[i], Val(ndims_))
+    size = Tuple(size_)
+    coordinates_min = Tuple(coordinates_min_)
+    coordinates_max = Tuple(coordinates_max_)
     mesh = StructuredMesh(size, coordinates_min, coordinates_max)
   else
-    mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
-    load_mesh!(mesh, restart_file)
+    error("Unknown mesh type!")
   end
+
+  return mesh
 end
 
 function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
@@ -186,6 +189,8 @@ function load_mesh_parallel(restart_file::AbstractString; n_cells_max)
 
   mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
   load_mesh!(mesh, restart_file)
+
+  return mesh
 end
 
 function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)
@@ -242,5 +247,5 @@ function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)
   # Partition mesh
   partition!(mesh)
 
-  return mesh
+  return nothing
 end
