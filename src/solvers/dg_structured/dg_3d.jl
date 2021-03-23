@@ -75,7 +75,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u,
 end
 
 
-function calc_interface_flux!(u, nonconservative_terms::Val{false}, mesh::StructuredMesh{3}, equations,
+function calc_interface_flux!(u::AbstractArray{<:Any,5}, nonconservative_terms::Val{false}, mesh::StructuredMesh{3}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
   @unpack size = mesh

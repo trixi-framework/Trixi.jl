@@ -33,41 +33,53 @@ end
 function init_interfaces!(elements, mesh::StructuredMesh{2, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
   nvars = nvariables(equations)
 
+  @unpack size, linear_indices = mesh
+
   # Inner interfaces
-  for element_x in 1:mesh.size[1], element_y in 1:mesh.size[2]
-    # Vertical interfaces
-    interface = Interface{2, RealT}(nvars, nnodes(dg), 1)
-
+  for element_x in 1:size[1], element_y in 1:size[2]
+    # Interfaces in x-direction
     if element_x > 1
-      elements[element_x, element_y].interfaces[1] = interface
-      elements[element_x - 1, element_y].interfaces[2] = interface
+      left_element_id = linear_indices[element_x - 1, element_y]
+      right_element_id = linear_indices[element_x, element_y]
+
+      interface = Interface{2, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
+
+      elements[left_element_id].interfaces[2] = interface
+      elements[right_element_id].interfaces[1] = interface
     end
 
-    # Horizontal interfaces
-    interface = Interface{2, RealT}(nvars, nnodes(dg), 2)
-
+    # Interfaces in y-direction
     if element_y > 1
-      elements[element_x, element_y].interfaces[3] = interface
-      elements[element_x, element_y - 1].interfaces[4] = interface
+      left_element_id = linear_indices[element_x, element_y - 1]
+      right_element_id = linear_indices[element_x, element_y]
+
+      interface = Interface{2, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
+      
+      elements[left_element_id].interfaces[4] = interface
+      elements[right_element_id].interfaces[3] = interface
     end
   end
 
-  # Vertical boundaries
-  for element_y in 1:mesh.size[2]
-    interface_left = Interface{2, RealT}(nvars, nnodes(dg), 1)
-    interface_right = Interface{2, RealT}(nvars, nnodes(dg), 1)
+  # Boundaries in x-direction
+  for element_y in 1:size[2]
+    left_element_id = linear_indices[end, element_y]
+    right_element_id = linear_indices[begin, element_y]
 
-    elements[1, element_y].interfaces[1] = interface_left
-    elements[end, element_y].interfaces[2] = interface_right
+    interface = Interface{2, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
+
+    elements[left_element_id].interfaces[2] = interface
+    elements[right_element_id].interfaces[1] = interface
   end
 
-  # Horizontal boundaries
-  for element_x in 1:mesh.size[1]
-    interface_left = Interface{2, RealT}(nvars, nnodes(dg), 2)
-    interface_right = Interface{2, RealT}(nvars, nnodes(dg), 2)
+  # Boundaries in y-direction
+  for element_x in 1:size[1]
+    left_element_id = linear_indices[element_x, end]
+    right_element_id = linear_indices[element_x, begin]
 
-    elements[element_x, 1].interfaces[3] = interface_left
-    elements[element_x, end].interfaces[4] = interface_right
+    interface = Interface{2, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
+
+    elements[left_element_id].interfaces[4] = interface
+    elements[right_element_id].interfaces[3] = interface
   end
 
   return nothing

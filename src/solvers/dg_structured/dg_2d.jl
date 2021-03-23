@@ -24,14 +24,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), mesh,
                                                                 equations, dg.volume_integral, dg, cache)
 
-  # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
-
-  # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, boundary_conditions, mesh, equations, dg)
-
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(have_nonconservative_terms(equations), mesh,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, have_nonconservative_terms(equations), mesh,
                                                               equations, dg, cache)
 
   # Calculate surface integrals
@@ -75,81 +69,34 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 end
 
 
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DG)
-  @threaded for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
-
-    # Vertical interfaces
-    for j in eachnode(dg), v in eachvariable(equations)
-      element.interfaces[1].u_right[v, j] = u[v, 1, j, element_ind]
-      element.interfaces[2].u_left[v, j] = u[v, end, j, element_ind]
-    end
-
-    # Horizontal interfaces
-    for i in eachnode(dg), v in eachvariable(equations)
-      element.interfaces[3].u_right[v, i] = u[v, i, 1, element_ind]
-      element.interfaces[4].u_left[v, i] = u[v, i, end, element_ind]
-    end
-  end
-
-  return nothing
-end
-
-
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, 
-    boundary_condition::BoundaryConditionPeriodic, mesh::StructuredMesh, equations, dg::DG)
-  @unpack linear_indices = mesh
-
-  # Boundaries in x-direction
-  for element_y in 1:mesh.size[2]
-    @views cache.elements[1, element_y].interfaces[1].u_left .= u[:, end, :, linear_indices[end, element_y]]
-    @views cache.elements[end, element_y].interfaces[2].u_right .= u[:, 1, :, linear_indices[1, element_y]]
-  end
-  
-  # Boundaries in y-direction
-  for element_x in 1:mesh.size[1]
-    @views cache.elements[element_x, 1].interfaces[3].u_left .= u[:, :, end, linear_indices[element_x, end]]
-    @views cache.elements[element_x, end].interfaces[4].u_right .= u[:, :, 1, linear_indices[element_x, 1]]
-  end
-
-  return nothing
-end
-
-
-function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{2}, equations,
+function calc_interface_flux!(u::AbstractArray{<:Any,4}, nonconservative_terms::Val{false}, mesh::StructuredMesh{2}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
+  @unpack size = mesh
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
     for orientation in (1, 3)
       interface = cache.elements[element].interfaces[orientation]
-      calc_interface_flux!(interface, mesh, equations, dg)
+      calc_interface_flux!(interface, u, mesh, equations, dg)
     end
-  end
-
-  # Boundary in positive x-direction
-  for element_y in 1:mesh.size[2]
-    interface = cache.elements[end, element_y].interfaces[2]
-    calc_interface_flux!(interface, mesh, equations, dg)
-  end
-  
-  # Boundary in positive y-direction
-  for element_x in 1:mesh.size[1]
-    interface = cache.elements[element_x, end].interfaces[4]
-    calc_interface_flux!(interface, mesh, equations, dg)
   end
 
   return nothing
 end
 
 
-function calc_interface_flux!(interface::Interface, mesh::StructuredMesh{2}, equations, dg::DG)
+function calc_interface_flux!(interface, u, mesh::StructuredMesh{2}, equations, dg::DG)
   @unpack surface_flux = dg
 
   for i in eachnode(dg)
-    u_ll = get_node_vars(interface.u_left, equations, dg, i)
-    u_rr = get_node_vars(interface.u_right, equations, dg, i)
+    if interface.orientation == 1
+      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, interface.left_element)
+      u_rr = get_node_vars(u, equations, dg, 1,          i, interface.right_element)
+    else # interface.orientation == 2
+      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), interface.left_element)
+      u_rr = get_node_vars(u, equations, dg, i, 1,          interface.right_element)
+    end
 
     flux = transformed_surface_flux(u_ll, u_rr, interface.orientation, surface_flux, mesh, equations)
 
@@ -186,7 +133,7 @@ end
 
 function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DG, cache)
 
-  for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
     for j in eachnode(dg), i in eachnode(dg)

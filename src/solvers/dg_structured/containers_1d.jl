@@ -32,18 +32,17 @@ function init_interfaces!(elements, mesh::StructuredMesh{1, RealT}, equations::A
 
   # Inner interfaces
   for element_x in 2:mesh.size[1]
-    interface = Interface{1, RealT}(nvars, nnodes(dg), 1)
+    interface = Interface{1, RealT}(element_x - 1, element_x, 1, nvars, nnodes(dg))
 
-    elements[element_x].interfaces[1] = interface
     elements[element_x - 1].interfaces[2] = interface
+    elements[element_x].interfaces[1] = interface
   end
 
   # Boundary interfaces
-  interface_left = Interface{1, RealT}(nvars, nnodes(dg), 1)
-  interface_right = Interface{1, RealT}(nvars, nnodes(dg), 1)
+  interface = Interface{1, RealT}(mesh.size[1], 1, 1, nvars, nnodes(dg))
 
-  elements[1].interfaces[1] = interface_left
-  elements[end].interfaces[2] = interface_right
+  elements[begin].interfaces[1] = interface
+  elements[end  ].interfaces[2] = interface
 
   return nothing
 end

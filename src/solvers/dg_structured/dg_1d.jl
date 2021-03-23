@@ -27,14 +27,8 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
   @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
-  # Prolong solution to interfaces and boundaries
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, mesh, equations, dg)
-
-  # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, boundary_conditions, equations, dg)
-
   # Calculate interface and boundary fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(have_nonconservative_terms(equations), mesh, equations,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, have_nonconservative_terms(equations), mesh, equations,
                                                               dg, cache)
 
   # Calculate surface integrals
@@ -50,40 +44,19 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function prolong2interfaces!(cache, u::AbstractArray{<:Any,3}, mesh::StructuredMesh, equations, dg::DG)
-  for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
-
-    @views element.interfaces[1].u_right .= u[:, 1, element_ind]
-    @views element.interfaces[2].u_left .= u[:, end, element_ind]
-  end
-
-  return nothing
-end
-
-
-function prolong2boundaries!(cache, u::AbstractArray{<:Any,3}, 
-    boundary_condition::BoundaryConditionPeriodic, equations, dg::DG)
-  @views cache.elements[1].interfaces[1].u_left .= u[:, end, end]
-  @views cache.elements[end].interfaces[2].u_right .= u[:, 1, 1]
-
-  return nothing
-end
-
-
-function calc_interface_flux!(nonconservative_terms::Val{false}, mesh::StructuredMesh{1}, equations,
+function calc_interface_flux!(u::AbstractArray{<:Any,3}, nonconservative_terms::Val{false}, mesh::StructuredMesh{1}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
 
-  for element_x in 1:mesh.size[1]
+  @threaded for element in eachelement(dg, cache)
     # Left interface
-    interface = cache.elements[element_x].interfaces[1]
+    interface = cache.elements[element].interfaces[1]
 
-    interface.surface_flux_values .= surface_flux(interface.u_left, interface.u_right, interface.orientation, equations)
+    u_ll = get_node_vars(u, equations, dg, nnodes(dg), interface.left_element)
+    u_rr = get_node_vars(u, equations, dg, 1,          interface.right_element)
+
+    interface.surface_flux_values .= surface_flux(u_ll, u_rr, interface.orientation, equations)
   end
-
-  interface = cache.elements[end].interfaces[2]
-  interface.surface_flux_values .= surface_flux(interface.u_left, interface.u_right, interface.orientation, equations)
 
   return nothing
 end
