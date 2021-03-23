@@ -11,8 +11,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "3d")
 @testset "Structured mesh" begin
   @testset "elixir_advection_basic_structured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_structured.jl"),
-      l2   = [0.00015975755208652597],
-      linf = [0.0015038732976652147])
+      l2   = [0.00013446460962856976],
+      linf = [0.0012577781391462928])
   end
 
   @testset "elixir_euler_source_terms_structured.jl" begin

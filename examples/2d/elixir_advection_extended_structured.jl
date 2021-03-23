@@ -23,9 +23,10 @@ surface_flux = flux_lax_friedrichs
 polydeg = 3
 solver = DGSEM(polydeg, surface_flux)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
-size = (16, 16)
+# The initial condition is 2-periodic
+coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
+coordinates_max = ( 0.5, 3.3) # maximum coordinates (max(x), max(y))
+size = (19, 37)
 
 # Create a uniformely refined mesh with periodic boundaries
 mesh = StructuredMesh(size, coordinates_min, coordinates_max)

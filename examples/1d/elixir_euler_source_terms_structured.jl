@@ -14,6 +14,7 @@ solver = DGSEM(4, surface_flux)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
+
 mesh = StructuredMesh((16,), coordinates_min, coordinates_max)
 
 
