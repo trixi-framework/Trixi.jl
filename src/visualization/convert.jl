@@ -93,8 +93,8 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
-  interpolated_data = Array{Float64,3}(undef, n_vars, max_nvisnodes, n_elements)
+  interpolated_nodes = ones(max_nvisnodes, n_elements)
+  interpolated_data = ones(n_vars, max_nvisnodes, n_elements)
 
   # Iterate over all elements.
   for i=1:n_elements
