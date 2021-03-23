@@ -73,6 +73,44 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
 end
 
 
+# Extract data from a 1D DG solution and prepare it for visualization as a line plot.
+# This returns a tuple with
+# - x coordinates
+# - nodal 1D data
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function get_data_1d(original_nodes, unstructured_data, nvisnodes)
+  # Get the dimensions of u; where n_vars is the amount of variables, a the amount of entries in each element and n_nodes the amount of elements.
+  n_nodes, n_elements, n_vars = size(unstructured_data)
+
+  # Set the amount of nodes visualized according to nvisnodes.
+  if nvisnodes === nothing
+    max_nvisnodes = 2 * n_nodes
+  elseif nvisnodes == 0
+    max_nvisnodes = n_nodes
+  else
+    max_nvisnodes = nvisnodes
+  end
+
+  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
+  interpolated_data = Array{Float64,3}(undef, n_vars, max_nvisnodes, n_elements)
+
+  # Iterate over all elements.
+  for i=1:n_elements
+    # Interpolate on an equidistant grid.
+    interpolated_nodes[:,i] = vcat(range(original_nodes[1,1,i], original_nodes[1,end,i], length = max_nvisnodes))
+
+    # Interpolate the data for each variable.
+    for j=1:n_vars
+      interpolated_data[j,:,i] = interpolate1d(original_nodes[1,:,i], unstructured_data[:,i,j], interpolated_nodes[:,i])
+    end
+  end
+
+  return vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, n_vars,:)')
+end
+
+
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
@@ -102,4 +140,3 @@ function get_unstructured_data(u, semi, solution_variables)
 
   return unstructured_data
 end
-

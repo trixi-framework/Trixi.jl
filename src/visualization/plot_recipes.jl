@@ -323,33 +323,18 @@ Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solut
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi)
+function PlotData1D(u, semi; solution_variables=cons2prim, nvisnodes=nothing)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
 
-  # TODO cons2prim is hardcoded here and needs to be changed later.
-  variable_names = SVector(varnames(cons2prim, equations))
-
-  # Get the dimensions of u; where a is the amount of variables, b the amount of entries in each element and c the amount of elements.
-  a, b, c = size(u)
-
+  variable_names = SVector(varnames(solution_variables, equations))
   original_nodes = cache.elements.node_coordinates
-  interpolated_nodes = similar(original_nodes)
-  interpolated_data = similar(u)
 
-  # Iterate over all elements.
-  for i=1:c
-    # Interpolate on an equidistant grid.
-    interpolated_nodes[1,:,i] = vcat(range(original_nodes[1,1,i], original_nodes[1,end,i], length = b))
+  unstructured_data = get_unstructured_data(u, semi, solution_variables)
+  x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
-    # Interpolate the data for each variable.
-    for j=1:a
-      interpolated_data[j,:,i] = interpolate1d(original_nodes[1,:,i], u[j,:,i], interpolated_nodes[1,:,i])
-    end
-  end
-
-  return PlotData1D(vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, length(variable_names),:)'), variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
+  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
 end
 
 """
@@ -360,7 +345,7 @@ Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(u_ode::AbstractVector, semi) = PlotData1D(wrap_array(u_ode, semi), semi)
+PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
 """
     PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
@@ -371,7 +356,7 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(sol::TrixiODESolution) = PlotData1D(sol.u[end], sol.prob.p)
+PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
 # Store multiple PlotData1D objects in one PlotDataSeries1D.
 # This is used for multi-variable equations.
@@ -515,7 +500,7 @@ end
 
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(mesh) == 1
-    return PlotData1D(sol)
+    return PlotData1D(sol; solution_variables=cons2prim, nvisnodes=nvisnodes)
   else
     return PlotData2D(sol;
                       solution_variables=solution_variables,
