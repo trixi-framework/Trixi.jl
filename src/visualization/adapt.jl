@@ -1,3 +1,19 @@
+"""
+    adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
+    adapt_to_mesh_level!(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}, level)
+
+Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
+with semidiscretization `semi` towards a uniformly refined grid with refinement level `level`. The
+solution and parts of the semidiscretization (mesh and caches) will be *modified in place*.
+
+A convenience method accepts an ODE solution object, from which solution and semidiscretization are
+extracted as needed.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`adapt_to_mesh_level`](@ref)
+"""
 function adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
   # Create AMR callback with controller that refines everything towards a single level
   amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable=first), base_level=level)
@@ -15,6 +31,22 @@ end
 adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[end], sol.prob.p, level)
 
 
+"""
+    adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
+    adapt_to_mesh_level(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}, level)
+
+Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
+with semidiscretization `semi` towards a uniformly refined grid with refinement level `level`. The
+solution and semidiscretization are copied such that the original objects remain *unaltered*.
+
+A convenience method accepts an ODE solution object, from which solution and semidiscretization are
+extracted as needed.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`adapt_to_mesh_level!`](@ref)
+"""
 function adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
   # Create new semidiscretization with copy of the current mesh
   mesh, _, _, _ = mesh_equations_solver_cache(semi)
