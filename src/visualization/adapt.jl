@@ -1,18 +1,9 @@
 """
     adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
-    adapt_to_mesh_level!(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}, level)
+    adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
 
-Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
-with semidiscretization `semi` towards a uniformly refined grid with refinement level `level`. The
-solution and parts of the semidiscretization (mesh and caches) will be *modified in place*.
-
-A convenience method accepts an ODE solution object, from which solution and semidiscretization are
-extracted as needed.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-
-See also: [`adapt_to_mesh_level`](@ref)
+Like [`adapt_to_mesh_level`](@ref), but modifies the solution and parts of the
+semidiscretization (mesh and caches) in place.
 """
 function adapt_to_mesh_level!(u_ode::AbstractVector, semi, level)
   # Create AMR callback with controller that refines everything towards a single level
@@ -33,7 +24,7 @@ adapt_to_mesh_level!(sol::TrixiODESolution, level) = adapt_to_mesh_level!(sol.u[
 
 """
     adapt_to_mesh_level(u_ode::AbstractVector, semi, level)
-    adapt_to_mesh_level(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution}, level)
+    adapt_to_mesh_level(sol::Trixi.TrixiODESolution, level)
 
 Use the regular adaptive mesh refinement routines to adaptively refine/coarsen the solution `u_ode`
 with semidiscretization `semi` towards a uniformly refined grid with refinement level `level`. The
