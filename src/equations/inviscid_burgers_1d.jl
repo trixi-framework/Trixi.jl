@@ -73,23 +73,39 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+  u_L = u_ll[1]
+  u_R = u_rr[1]
+
+  if u_L < 0 && u_R < 0
+    return SVector(0.5 * u_R^2)
+  elseif u_L > 0 && u_R > 0
+    return SVector(0.5 * u_L^2)
+  else
+    return zero(u_ll)
+  end
+end
+
+
+@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
 
   return SVector(0.5 * ( 0.5 * (u_L^2 + u_R^2) - max(abs(u_L), abs(u_R)) * (u_R - u_L) ))
 end
 
+
 @inline function max_abs_speeds(u, equation::InviscidBurgersEquation1D)
   return (abs(u[1]),)
 end
 
 
-function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
   u_L = u_ll[1]
   u_R = u_rr[1]
+  one_sixth = one(typeof(u_L)) / 6
 
-  return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
+  return SVector(one_sixth * (u_L^2 + u_L * u_R + u_R^2))
 end
 
 
