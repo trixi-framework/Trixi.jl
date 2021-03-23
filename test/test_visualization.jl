@@ -143,6 +143,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
   end
 
+  @testset "adapt_to_mesh_level" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
+                                     tspan=(0,0.1))
+    @test PlotData1D(adapt_to_mesh_level(sol, 4)...) isa PlotData1D
+    @test PlotData1D(adapt_to_mesh_level!(sol, 4)...) isa PlotData1D
+  end
+
   @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
                                      tspan=(0,0.1))
