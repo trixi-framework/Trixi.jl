@@ -21,11 +21,11 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), mesh,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
                                                                 equations, dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, have_nonconservative_terms(equations), mesh,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh,
                                                               equations, dg, cache)
 
   # Calculate surface integrals
@@ -42,7 +42,7 @@ end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
-                               nonconservative_terms::Val{false}, mesh::StructuredMesh, equations,
+                               mesh::StructuredMesh, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
@@ -69,7 +69,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,4}, nonconservative_terms::Val{false}, mesh::StructuredMesh{2}, equations,
+function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
   @unpack size = mesh
