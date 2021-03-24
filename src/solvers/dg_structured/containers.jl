@@ -35,7 +35,7 @@ end
 
 # Create element container and initialize element data
 function init_elements(mesh::StructuredMesh{NDIMS, RealT}, equations::AbstractEquations,
-    basis::LobattoLegendreBasis{T, NNODES}) where {NDIMS, RealT<:Real, T, NNODES}
+    basis) where {NDIMS, RealT<:Real}
 
   elements = StructArray{Element{NDIMS, RealT, NDIMS+1}}(undef, size(mesh)...)
 
