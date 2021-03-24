@@ -73,7 +73,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::StructuredMesh{3}
 end
 
 
-function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                               mesh::StructuredMesh{3}, equations, dg::DG)
   @unpack surface_flux = dg
 
