@@ -26,10 +26,10 @@ solver = DGSEM(polydeg, surface_flux)
 # The initial condition is 2-periodic
 coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 0.5, 3.3) # maximum coordinates (max(x), max(y))
-size = (19, 37)
+cells_per_dimension = (19, 37)
 
-# Create a uniformely refined mesh with periodic boundaries
-mesh = StructuredMesh(size, coordinates_min, coordinates_max)
+# Create structured mesh with 19 x 37 elements
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

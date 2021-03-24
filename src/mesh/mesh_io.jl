@@ -98,7 +98,7 @@ function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
   h5open(filename, "w") do file
     # Add context information as attributes
     attributes(file)["ndims"] = ndims(mesh)
-    attributes(file)["size"] = collect(mesh.size)
+    attributes(file)["size"] = collect(size(mesh))
     attributes(file)["coordinates_min"] = collect(mesh.coordinates_min)
     attributes(file)["coordinates_max"] = collect(mesh.coordinates_max)
   end

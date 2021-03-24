@@ -44,10 +44,11 @@ function max_dt(u::AbstractArray{<:Any,5}, t, mesh::StructuredMesh,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack size, coordinates_min, coordinates_max = mesh
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
-  dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
-  dz = (coordinates_max[3] - coordinates_min[3]) / size[3]
+  @unpack coordinates_min, coordinates_max = mesh
+  
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  dz = (coordinates_max[3] - coordinates_min[3]) / size(mesh, 3)
 
   for element in eachelement(dg, cache)
     max_λ1 = max_λ2 = max_λ3 = zero(max_scaled_speed)
@@ -75,10 +76,10 @@ function max_dt(u::AbstractArray{<:Any,5}, t, mesh::StructuredMesh,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack size, coordinates_min, coordinates_max = mesh
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
-  dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
-  dz = (coordinates_max[3] - coordinates_min[3]) / size[3]
+  @unpack coordinates_min, coordinates_max = mesh
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  dz = (coordinates_max[3] - coordinates_min[3]) / size(mesh, 3)
 
   for element in eachelement(dg, cache)
     max_λ1, max_λ2, max_λ3 = max_abs_speeds(equations)

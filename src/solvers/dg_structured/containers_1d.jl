@@ -1,16 +1,16 @@
 function init_elements!(elements, mesh::StructuredMesh{1, RealT}, nodes) where {RealT}
   n_nodes = length(nodes)
 
-  @unpack size, coordinates_min, coordinates_max = mesh
+  @unpack coordinates_min, coordinates_max = mesh
 
   # Get cell length
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
 
   # Calculate inverse Jacobian as 1/(h/2)
   inverse_jacobian = 2/dx
 
   # Calculate inverse Jacobian and node coordinates
-  for element_x in 1:size[1]
+  for element_x in 1:size(mesh, 1)
     # Calculate node coordinates
     element_x_offset = coordinates_min[1] + (element_x-1) * dx + dx/2
 
@@ -31,7 +31,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{1, RealT}, equations::A
   nvars = nvariables(equations)
 
   # Inner interfaces
-  for element_x in 2:mesh.size[1]
+  for element_x in 2:size(mesh, 1)
     interface = Interface{1, RealT}(element_x - 1, element_x, 1, nvars, nnodes(dg))
 
     elements[element_x - 1].interfaces[2] = interface
@@ -39,7 +39,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{1, RealT}, equations::A
   end
 
   # Boundary interfaces
-  interface = Interface{1, RealT}(mesh.size[1], 1, 1, nvars, nnodes(dg))
+  interface = Interface{1, RealT}(size(mesh, 1), 1, 1, nvars, nnodes(dg))
 
   elements[begin].interfaces[1] = interface
   elements[end  ].interfaces[2] = interface
