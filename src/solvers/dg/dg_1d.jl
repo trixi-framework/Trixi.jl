@@ -96,7 +96,7 @@ end
 end
 
 
-function compute_coefficients!(u, func, t, mesh::TreeMesh{1}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)

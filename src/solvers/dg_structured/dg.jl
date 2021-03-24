@@ -4,8 +4,6 @@
 function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, ::Any, ::Any)
   elements = init_elements(mesh, equations, dg.basis)
 
-  init_interfaces!(elements, mesh, equations, dg)
-
   cache = (; elements)
 
   return cache

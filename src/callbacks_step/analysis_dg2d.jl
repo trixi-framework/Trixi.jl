@@ -70,7 +70,7 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
-    multiply_dimensionwise!(x_local, vandermonde, node_coordinates[element], x_tmp1)
+    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
 
     # Calculate errors at each analysis node
     jacobian_volume = inv(cache.elements.inverse_jacobian[element])

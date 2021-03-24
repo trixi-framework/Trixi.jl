@@ -14,35 +14,23 @@ function init_elements!(elements, mesh::StructuredMesh{1, RealT}, nodes) where {
     # Calculate node coordinates
     element_x_offset = coordinates_min[1] + (element_x-1) * dx + dx/2
 
-    node_coordinates = Array{RealT, 2}(undef, 1, n_nodes)
     for i in 1:n_nodes
-        node_coordinates[1, i] = element_x_offset + dx/2 * nodes[i]
+        elements.node_coordinates[1, i, element_x] = element_x_offset + dx/2 * nodes[i]
     end
 
-    elements[element_x] = Element(node_coordinates, inverse_jacobian)
+    elements.inverse_jacobian[element_x] = inverse_jacobian
+
+    # Boundary neighbors are overwritten below
+    elements.left_neighbors[1, element_x] = element_x - 1
   end
 
-  return nothing
-end
-
-
-# Initialize connectivity between elements and interfaces
-function init_interfaces!(elements, mesh::StructuredMesh{1, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
-  nvars = nvariables(equations)
-
-  # Inner interfaces
+  # Inner neighbors
   for element_x in 2:size(mesh, 1)
-    interface = Interface{1, RealT}(element_x - 1, element_x, 1, nvars, nnodes(dg))
-
-    elements[element_x - 1].interfaces[2] = interface
-    elements[element_x].interfaces[1] = interface
+    elements.left_neighbors[1, element_x] = element_x - 1
   end
 
-  # Boundary interfaces
-  interface = Interface{1, RealT}(size(mesh, 1), 1, 1, nvars, nnodes(dg))
-
-  elements[begin].interfaces[1] = interface
-  elements[end  ].interfaces[2] = interface
+  # Periodic boundary
+  elements.left_neighbors[1, 1] = size(mesh, 1)
 
   return nothing
 end

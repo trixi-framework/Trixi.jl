@@ -1,7 +1,7 @@
 function init_elements!(elements, mesh::StructuredMesh{3, RealT}, nodes) where {RealT}
   n_nodes = length(nodes)
 
-  @unpack coordinates_min, coordinates_max = mesh
+  @unpack coordinates_min, coordinates_max, linear_indices = mesh
 
   # Get cell length
   dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
@@ -12,99 +12,56 @@ function init_elements!(elements, mesh::StructuredMesh{3, RealT}, nodes) where {
 
   # Calculate inverse Jacobian and node coordinates
   for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
+    element = linear_indices[element_x, element_y, element_z]
+
     # Calculate node coordinates
     element_x_offset = coordinates_min[1] + (element_x-1) * dx + dx/2
     element_y_offset = coordinates_min[2] + (element_y-1) * dy + dy/2
     element_z_offset = coordinates_min[3] + (element_z-1) * dz + dz/2
 
-    node_coordinates = Array{RealT, 4}(undef, 3, n_nodes, n_nodes, n_nodes)
-
-    for i in 1:n_nodes, j in 1:n_nodes, k in 1:n_nodes
-      node_coordinates[1, i, j, k] = element_x_offset + dx/2 * nodes[i]
-      node_coordinates[2, i, j, k] = element_y_offset + dy/2 * nodes[j]
-      node_coordinates[3, i, j, k] = element_z_offset + dz/2 * nodes[k]
+    for k in 1:n_nodes, j in 1:n_nodes, i in 1:n_nodes
+      elements.node_coordinates[1, i, j, k, element] = element_x_offset + dx/2 * nodes[i]
+      elements.node_coordinates[2, i, j, k, element] = element_y_offset + dy/2 * nodes[j]
+      elements.node_coordinates[3, i, j, k, element] = element_z_offset + dz/2 * nodes[k]
     end
 
-    elements[element_x, element_y, element_z] = Element(node_coordinates, inverse_jacobian)
+    elements.inverse_jacobian[element] = inverse_jacobian
   end
 
-  return nothing
-end
-
-
-# Initialize connectivity between elements and interfaces
-function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
-  nvars = nvariables(equations)
-
-  @unpack linear_indices = mesh
-
-  # Inner interfaces
-  for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
-    # Interfaces in x-direction
-    if element_x > 1
-      left_element_id = linear_indices[element_x - 1, element_y, element_z]
-      right_element_id = linear_indices[element_x, element_y, element_z]
-
-      interface = Interface{3, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
-
-      elements[left_element_id].interfaces[2] = interface
-      elements[right_element_id].interfaces[1] = interface
-    end
-
-    # Interfaces in y-direction
-    if element_y > 1
-      left_element_id = linear_indices[element_x, element_y - 1, element_z]
-      right_element_id = linear_indices[element_x, element_y, element_z]
-
-      interface = Interface{3, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
-
-      elements[left_element_id].interfaces[4] = interface
-      elements[right_element_id].interfaces[3] = interface
-    end
-
-    # Interfaces in z-direction
-    if element_z > 1
-      left_element_id = linear_indices[element_x, element_y, element_z - 1]
-      right_element_id = linear_indices[element_x, element_y, element_z]
-
-      interface = Interface{3, RealT}(left_element_id, right_element_id, 3, nvars, nnodes(dg))
-
-      elements[left_element_id].interfaces[6] = interface
-      elements[right_element_id].interfaces[5] = interface
-    end
-  end
-
-  # Boundaries in x-direction
+  # Neighbors in x-direction
   for element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
-    left_element_id = linear_indices[end, element_y, element_z]
-    right_element_id = linear_indices[begin, element_y, element_z]
+    # Inner elements
+    for element_x in 2:size(mesh, 1)
+      element = linear_indices[element_x, element_y, element_z]
+      elements.left_neighbors[1, element] = linear_indices[element_x - 1, element_y, element_z]
+    end
 
-    interface = Interface{3, RealT}(left_element_id, right_element_id, 1, nvars, nnodes(dg))
-
-    elements[left_element_id].interfaces[2] = interface
-    elements[right_element_id].interfaces[1] = interface
+    # Periodic boundary
+    elements.left_neighbors[1, linear_indices[1, element_y, element_z]] = linear_indices[end, element_y, element_z]
   end
 
-  # Boundaries in y-direction
+  # Neighbors in y-direction
   for element_x in 1:size(mesh, 1), element_z in 1:size(mesh, 3)
-    left_element_id = linear_indices[element_x, end, element_z]
-    right_element_id = linear_indices[element_x, begin, element_z]
+    # Inner elements
+    for element_y in 2:size(mesh, 2)
+      element = linear_indices[element_x, element_y, element_z]
+      elements.left_neighbors[2, element] = linear_indices[element_x, element_y - 1, element_z]
+    end
 
-    interface = Interface{3, RealT}(left_element_id, right_element_id, 2, nvars, nnodes(dg))
-
-    elements[left_element_id].interfaces[4] = interface
-    elements[right_element_id].interfaces[3] = interface
+    # Periodic boundary
+    elements.left_neighbors[2, linear_indices[element_x, 1, element_z]] = linear_indices[element_x, end, element_z]
   end
 
-  # Boundaries in z-direction
+  # Neighbors in z-direction
   for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2)
-    left_element_id = linear_indices[element_x, element_y, end]
-    right_element_id = linear_indices[element_x, element_y, begin]
+    # Inner elements
+    for element_z in 2:size(mesh, 3)
+      element = linear_indices[element_x, element_y, element_z]
+      elements.left_neighbors[3, element] = linear_indices[element_x, element_y, element_z - 1]
+    end
 
-    interface = Interface{3, RealT}(left_element_id, right_element_id, 3, nvars, nnodes(dg))
-
-    elements[left_element_id].interfaces[6] = interface
-    elements[right_element_id].interfaces[5] = interface
+    # Periodic boundary
+    elements.left_neighbors[3, linear_indices[element_x, element_y, 1]] = linear_indices[element_x, element_y, end]
   end
 
   return nothing

@@ -1,18 +1,3 @@
-function compute_coefficients!(u, func, t, mesh::StructuredMesh{3}, equations, dg::DG, cache)
-  @threaded for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
-
-    for i in eachnode(dg), j in eachnode(dg), k in eachnode(dg)
-      x_node = get_node_coords(element.node_coordinates, equations, dg, i, j, k)
-      u_node = func(x_node, t, equations)
-
-      # Allocation-free version of u[:, i, j, k, element] = u_node
-      set_node_vars!(u, u_node, equations, dg, i, j, k, element_ind)
-    end
-  end
-end
-
-
 function rhs!(du::AbstractArray{<:Any,5}, u, t,
     mesh::StructuredMesh, equations,
     initial_condition, boundary_conditions, source_terms,
@@ -28,13 +13,13 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
   @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral!(du, mesh, equations, dg, cache)
+  @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
 
   # Apply Jacobian from mapping to reference element
   @timeit_debug timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
   # Calculate source terms
-  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+  @timeit_debug timer() "source terms" calc_sources!(du, u, t, source_terms, equations, dg, cache)
 
   return nothing
 end
@@ -74,13 +59,13 @@ end
 
 function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::StructuredMesh{3},
                               equations, dg::DG, cache)
-  @unpack surface_flux = dg
+  @unpack elements = cache
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
-    for orientation in (1, 3, 5)
-      interface = cache.elements[element].interfaces[orientation]
-      calc_interface_flux!(interface, u, mesh, equations, dg)
+    for orientation in (1, 2, 3)
+      calc_interface_flux!(elements.surface_flux_values, elements.left_neighbors[orientation, element], 
+                           element, orientation, u, mesh, equations, dg)
     end
   end
 
@@ -88,51 +73,30 @@ function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::StructuredMesh{3}
 end
 
 
-function calc_interface_flux!(interface, u, mesh::StructuredMesh{3}, equations, dg::DG)
+function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
+                              mesh::StructuredMesh{3}, equations, dg::DG)
   @unpack surface_flux = dg
 
+  right_direction = 2 * orientation
+  left_direction = right_direction - 1
+
   for j in eachnode(dg), i in eachnode(dg)
-    if interface.orientation == 1
-      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, interface.left_element)
-      u_rr = get_node_vars(u, equations, dg, 1,          i, j, interface.right_element)
-    elseif interface.orientation == 2
-      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, interface.left_element)
-      u_rr = get_node_vars(u, equations, dg, i, 1,          j, interface.right_element)
-    else # interface.orientation == 3
-      u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), interface.left_element)
-      u_rr = get_node_vars(u, equations, dg, i, j, 1,          interface.right_element)
+    if orientation == 1
+      u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
+      u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
+    elseif orientation == 2
+      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
+      u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
+    else # orientation == 3
+      u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
+      u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
     end
 
-    flux = transformed_surface_flux(u_ll, u_rr, interface.orientation, surface_flux, mesh, equations)
+    flux = transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, mesh, equations)
 
     for v in eachvariable(equations)
-      interface.surface_flux_values[v, i, j] = flux[v]
-    end
-  end
-end
-
-
-function calc_surface_integral!(du::AbstractArray{<:Any,5}, mesh::StructuredMesh, equations, dg::DGSEM, cache)
-  @unpack boundary_interpolation = dg.basis
-
-  @threaded for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
-
-    for m in eachnode(dg), l in eachnode(dg)
-      for v in eachvariable(equations)
-        # surface at -x
-        du[v, 1,          l, m, element_ind] -= element.interfaces[1].surface_flux_values[v, l, m] * boundary_interpolation[1,          1]
-        # surface at +x
-        du[v, nnodes(dg), l, m, element_ind] += element.interfaces[2].surface_flux_values[v, l, m] * boundary_interpolation[nnodes(dg), 2]
-        # surface at -y
-        du[v, l, 1,          m, element_ind] -= element.interfaces[3].surface_flux_values[v, l, m] * boundary_interpolation[1,          1]
-        # surface at +y
-        du[v, l, nnodes(dg), m, element_ind] += element.interfaces[4].surface_flux_values[v, l, m] * boundary_interpolation[nnodes(dg), 2]
-        # surface at -z
-        du[v, l, m, 1,          element_ind] -= element.interfaces[5].surface_flux_values[v, l, m] * boundary_interpolation[1,          1]
-        # surface at +z
-        du[v, l, m, nnodes(dg), element_ind] += element.interfaces[6].surface_flux_values[v, l, m] * boundary_interpolation[nnodes(dg), 2]
-      end
+      surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
+      surface_flux_values[v, i, j, left_direction, right_element] = flux[v]
     end
   end
 
@@ -149,28 +113,6 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::StructuredMesh, equat
       for v in eachvariable(equations)
         du[v, i, j, k, element] *= factor
       end
-    end
-  end
-
-  return nothing
-end
-
-
-function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms::Nothing, mesh::StructuredMesh, equations, dg::DG, cache)
-  return nothing
-end
-
-
-function calc_sources!(du::AbstractArray{<:Any,5}, u, t, source_terms, mesh::StructuredMesh, equations, dg::DG, cache)
-
-  @threaded for element_ind in eachelement(dg, cache)
-    element = cache.elements[element_ind]
-
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, j, k, element_ind)
-      x_local = get_node_coords(element.node_coordinates, equations, dg, i, j, k)
-      du_local = source_terms(u_local, x_local, t, equations)
-      add_to_node_vars!(du, du_local, equations, dg, i, j, k, element_ind)
     end
   end
 
