@@ -24,12 +24,11 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, equations,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Calculate interface and boundary fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations,
-                                                              dg, cache)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, mesh, equations, dg, cache)
@@ -44,29 +43,8 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
-  equations, volume_integral::VolumeIntegralWeakForm,
-  dg::DGSEM, cache)
-  @unpack derivative_dhat = dg.basis
-
-  @threaded for element in eachelement(dg, cache)
-    for i in eachnode(dg)
-      u_node = get_node_vars(u, equations, dg, i, element)
-
-      flux1 = flux(u_node, 1, equations)
-      for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
-        add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
-      end
-    end
-  end
-
-  return nothing
-end
-
-
-function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1}, equations,
-                              dg::DG, cache)
+function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1}, 
+                              equations, dg::DG, cache)
   @unpack surface_flux = dg
 
   @threaded for element in eachelement(dg, cache)

@@ -21,12 +21,11 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh,
-                                                                equations, dg.volume_integral, dg, cache)
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, equations,
+                                                                dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh,
-                                                              equations, dg, cache)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, mesh, equations, dg, cache)
@@ -41,10 +40,8 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
-                               mesh::StructuredMesh, equations,
-                               volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache)
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::StructuredMesh, equations,
+                               volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
 
   @threaded for element in eachelement(dg, cache)
@@ -69,8 +66,8 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}, equations,
-                              dg::DG, cache)
+function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}, 
+                              equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack size = mesh
 
