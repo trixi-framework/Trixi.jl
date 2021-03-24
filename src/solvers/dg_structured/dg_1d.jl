@@ -28,8 +28,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
                                                                 dg.volume_integral, dg, cache)
 
   # Calculate interface and boundary fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(u, have_nonconservative_terms(equations), mesh, equations,
-                                                              dg, cache)
+  @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, mesh, equations, dg, cache)
@@ -44,8 +43,8 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,3}, nonconservative_terms::Val{false}, mesh::StructuredMesh{1}, equations,
-                              dg::DG, cache)
+function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1}, 
+                              equations, dg::DG, cache)
   @unpack surface_flux = dg
 
   @threaded for element in eachelement(dg, cache)
