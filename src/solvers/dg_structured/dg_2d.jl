@@ -57,17 +57,17 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
-    for orientation in (1, 2)
-      calc_interface_flux!(elements.surface_flux_values, elements.left_neighbors[orientation, element], 
-                           element, orientation, u, mesh, equations, dg)
-    end
+    # Faster version of "for orientation in (1, 2)"
+    Base.Cartesian.@nexprs 2 orientation->calc_interface_flux!(elements.surface_flux_values, 
+                                                               elements.left_neighbors[orientation, element], 
+                                                               element, orientation, u, mesh, equations, dg)
   end
 
   return nothing
 end
 
 
-function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                               mesh::StructuredMesh{2}, equations, dg::DG)
   @unpack surface_flux = dg
 
