@@ -104,7 +104,9 @@ export initial_condition_constant,
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
-       boundary_condition_wall_noslip
+       boundary_condition_wall_noslip,
+       boundary_condition_wall,
+       boundary_condition_zero
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
@@ -119,8 +121,10 @@ export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravi
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
+export initial_condition_gauss_wall
+export initial_condition_monopole, boundary_condition_monopole
 
-export cons2cons, cons2prim, cons2macroscopic, prim2cons
+export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
@@ -159,7 +163,7 @@ export trixi_include, examples_dir, get_examples, default_example
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, getmesh
+export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 
 function __init__()
