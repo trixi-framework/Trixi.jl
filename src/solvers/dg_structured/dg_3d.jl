@@ -78,7 +78,6 @@ end
 function calc_interface_flux!(u::AbstractArray{<:Any,5}, nonconservative_terms::Val{false}, mesh::StructuredMesh{3}, equations,
                               dg::DG, cache)
   @unpack surface_flux = dg
-  @unpack size = mesh
 
   @threaded for element in eachelement(dg, cache)
     # Interfaces in negative directions
@@ -183,11 +182,11 @@ end
 
 
 @inline function transformed_flux(u, orientation, mesh::StructuredMesh{3}, equations)
-  @unpack size, coordinates_min, coordinates_max = mesh
+  @unpack coordinates_min, coordinates_max = mesh
 
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
-  dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
-  dz = (coordinates_max[3] - coordinates_min[3]) / size[3]
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  dz = (coordinates_max[3] - coordinates_min[3]) / size(mesh, 3)
 
   if orientation == 1
     factor = 0.25 * dy * dz
@@ -204,11 +203,11 @@ end
 function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
     mesh::StructuredMesh{3}, equations::AbstractEquations)
 
-  @unpack size, coordinates_min, coordinates_max = mesh
+  @unpack coordinates_min, coordinates_max = mesh
 
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
-  dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
-  dz = (coordinates_max[3] - coordinates_min[3]) / size[3]
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  dz = (coordinates_max[3] - coordinates_min[3]) / size(mesh, 3)
 
   if orientation == 1
     factor = 0.25 * dy * dz

@@ -1,17 +1,17 @@
 function init_elements!(elements, mesh::StructuredMesh{3, RealT}, nodes) where {RealT}
   n_nodes = length(nodes)
 
-  @unpack size, coordinates_min, coordinates_max = mesh
+  @unpack coordinates_min, coordinates_max = mesh
 
   # Get cell length
-  dx = (coordinates_max[1] - coordinates_min[1]) / size[1]
-  dy = (coordinates_max[2] - coordinates_min[2]) / size[2]
-  dz = (coordinates_max[3] - coordinates_min[3]) / size[3]
+  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  dz = (coordinates_max[3] - coordinates_min[3]) / size(mesh, 3)
 
   inverse_jacobian = 8/(dx * dy * dz)
 
   # Calculate inverse Jacobian and node coordinates
-  for element_x in 1:size[1], element_y in 1:size[2], element_z in 1:size[3]
+  for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
     # Calculate node coordinates
     element_x_offset = coordinates_min[1] + (element_x-1) * dx + dx/2
     element_y_offset = coordinates_min[2] + (element_y-1) * dy + dy/2
@@ -36,10 +36,10 @@ end
 function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::AbstractEquations, dg::DG) where {RealT}
   nvars = nvariables(equations)
 
-  @unpack size, linear_indices = mesh
+  @unpack linear_indices = mesh
 
   # Inner interfaces
-  for element_x in 1:size[1], element_y in 1:size[2], element_z in 1:size[3]
+  for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
     # Interfaces in x-direction
     if element_x > 1
       left_element_id = linear_indices[element_x - 1, element_y, element_z]
@@ -75,7 +75,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::A
   end
 
   # Boundaries in x-direction
-  for element_y in 1:size[2], element_z in 1:size[3]
+  for element_y in 1:size(mesh, 2), element_z in 1:size(mesh, 3)
     left_element_id = linear_indices[end, element_y, element_z]
     right_element_id = linear_indices[begin, element_y, element_z]
 
@@ -86,7 +86,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::A
   end
 
   # Boundaries in y-direction
-  for element_x in 1:size[1], element_z in 1:size[3]
+  for element_x in 1:size(mesh, 1), element_z in 1:size(mesh, 3)
     left_element_id = linear_indices[element_x, end, element_z]
     right_element_id = linear_indices[element_x, begin, element_z]
 
@@ -97,7 +97,7 @@ function init_interfaces!(elements, mesh::StructuredMesh{3, RealT}, equations::A
   end
 
   # Boundaries in z-direction
-  for element_x in 1:size[1], element_y in 1:size[2]
+  for element_x in 1:size(mesh, 1), element_y in 1:size(mesh, 2)
     left_element_id = linear_indices[element_x, element_y, end]
     right_element_id = linear_indices[element_x, element_y, begin]
 

@@ -37,7 +37,7 @@ end
 function init_elements(mesh::StructuredMesh{NDIMS, RealT}, equations::AbstractEquations,
     basis::LobattoLegendreBasis{T, NNODES}) where {NDIMS, RealT<:Real, T, NNODES}
 
-  elements = StructArray{Element{NDIMS, RealT, NDIMS+1}}(undef, mesh.size...)
+  elements = StructArray{Element{NDIMS, RealT, NDIMS+1}}(undef, size(mesh)...)
 
   init_elements!(elements, mesh, basis.nodes)
   return elements

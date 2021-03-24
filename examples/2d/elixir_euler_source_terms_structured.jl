@@ -14,7 +14,9 @@ solver = DGSEM(3, surface_flux)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
-mesh = StructuredMesh((16, 16), coordinates_min, coordinates_max)
+cells_per_dimension = (16, 16)
+
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
