@@ -13,7 +13,7 @@ solver = DGSEM(3, flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
-cells_per_dimension =(16, 16)
+cells_per_dimension = (16, 16)
 
 # Create structured mesh with 16 x 16 elements
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
