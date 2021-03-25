@@ -250,5 +250,5 @@ function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)
   # Partition mesh
   partition!(mesh)
 
-  return nothing
+  return mesh
 end

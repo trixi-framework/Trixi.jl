@@ -1,3 +1,10 @@
+function allocate_coefficients(mesh::Union{TreeMesh, StructuredMesh}, equations, dg::DG, cache)
+  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
+  # cf. wrap_array
+  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+end
+
+
 @inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
