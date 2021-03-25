@@ -14,14 +14,14 @@ for human readability.
 - New systems of equations
   - multicomponent compressible Euler
   - acoustic perturbation equations
-  - Lattice-Boltzmann equations 
+  - Lattice-Boltzmann equations
 - New structured mesh type `StructuredMesh`
 
 #### Changed
 
 #### Removed
 
-### Deprecated
+#### Deprecated
 
 - `calcflux` → `flux` (https://github.com/trixi-framework/Trixi.jl/pull/463)
 - `flux_upwind` → `flux_godunov`

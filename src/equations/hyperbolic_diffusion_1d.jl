@@ -205,16 +205,6 @@ end
   λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
 
-@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
-  λ_max = sqrt(equations.nu * equations.inv_Tr)
-
-  return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
-end
-
 
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = Val(true)
 

@@ -100,4 +100,4 @@ end
 Base.string(f::FluxLaxFriedrichs) = "FluxLaxFriedrichs(" * string(f.dissipation.max_abs_speed) * ")"
 
 # TODO: Shall we deprecate `flux_lax_friedrichs`?
-# const flux_lax_friedrichs = FluxLaxFriedrichs()
+const flux_lax_friedrichs = FluxLaxFriedrichs()

@@ -838,35 +838,6 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
-  # Calculate primitive variables and speed of sound
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
-
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-  p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
-  c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
-  p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
-  c_rr = sqrt(equations.gamma * p_rr / rho_rr)
-
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
-  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-
-  return SVector(f1, f2, f3, f4)
-end
-
 
 function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   # Calculate primitive variables and speed of sound

@@ -345,42 +345,6 @@ end
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
 end
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)
-  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
-
-  # Calculate velocities and fast magnetoacoustic wave speeds
-  # left
-  v1_ll = rho_v1_ll / rho_ll
-  v2_ll = rho_v2_ll / rho_ll
-  v3_ll = rho_v3_ll / rho_ll
-  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
-  cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
-  # right
-  v1_rr = rho_v1_rr / rho_rr
-  v2_rr = rho_v2_rr / rho_rr
-  v3_rr = rho_v3_rr / rho_rr
-  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
-  cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
-
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
-  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
-  f5 = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  f6 = 1/2 * (f_ll[6] + f_rr[6]) - 1/2 * λ_max * (B1_rr     - B1_ll)
-  f7 = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
-  f8 = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
-  f9 = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
-
-  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
-end
-
 
 """
     flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations3D)

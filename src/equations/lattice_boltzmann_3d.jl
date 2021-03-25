@@ -244,7 +244,7 @@ end
 #   λ_max =
 # end
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+function (f::FluxLaxFriedrichs)(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction
