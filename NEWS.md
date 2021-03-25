@@ -19,14 +19,20 @@ for human readability.
 
 #### Changed
 
-#### Removed
+- `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)` and
+  `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)`
+  were actually using the logic of `flux_godunov`. Thus, they were renamed accordingly
+  in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493). This is considered a bugfix
+  (released in Trixi v0.3.22).
 
 #### Deprecated
 
-- `calcflux` → `flux` (https://github.com/trixi-framework/Trixi.jl/pull/463)
+- `calcflux` → `flux` ([#463](https://github.com/trixi-framework/Trixi.jl/pull/463))
 - `flux_upwind` → `flux_godunov`
 - Providing the keyword argument `solution_variables` of `SaveSolutionCallback`
   as `Symbol` is deprecated in favor of using functions like `cons2cons` and
   `cons2prim`
 - `varnames_cons(equations)` → `varnames(cons2cons, equations)`
 - `varnames_prim(equations)` → `varnames(cons2prim, equations)`
+
+#### Removed

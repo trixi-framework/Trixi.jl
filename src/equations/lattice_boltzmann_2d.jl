@@ -353,13 +353,12 @@ end
 end
 
 
-# TODO: flux_lax_friedrichs is not of the usual form for this equation???
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 # @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
 #   λ_max =
 # end
 
-function (f::FluxLaxFriedrichs)(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
     v_alpha = equations.v_alpha1
   else
