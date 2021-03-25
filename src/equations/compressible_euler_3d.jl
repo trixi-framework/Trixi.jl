@@ -946,6 +946,23 @@ end
   return SVector(w1, w2, w3, w4, w5)
 end
 
+@inline function entropy2cons(w, equations::CompressibleEulerEquations1D)
+  γ = equations.gamma
+
+  w1,wU1,wU2,wU3,wE = w .* (γ-1) # convert to entropy -ρ*s / (γ-1)
+  
+  wUnorm    = wU1^2 + wU2^2 + wU3^2
+  s = γ - w1 + wUnorm/(2*wE)
+
+  ρι     = ((γ-1) / (-wE)^γ)^(1/(γ-1))*exp(-s/(γ-1))
+  rho    = -ρι * wE
+  rho_v1   = ρι * wU1
+  rho_v2   = ρι * wU2
+  rho_v3   = ρι * wU3  
+  rho_e  = ρι*(1-wUnorm/(2*wE))
+  return SVector(rho,rho_v1,rho_v2,rho_v3,rho_e)
+end
+
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::CompressibleEulerEquations3D)
