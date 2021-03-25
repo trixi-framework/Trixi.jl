@@ -414,6 +414,26 @@ function (cb::DiscreteCallback{Condition,Affect!})(sol) where {Condition, Affect
 end
 
 
+function calc_jacobian_volume(element, mesh::TreeMesh, equations, cache)
+  return inv(cache.elements.inverse_jacobian[element])^ndims(equations)
+end
+
+
+function calc_jacobian_volume(element, mesh::StructuredMesh, equations, cache)
+  return inv(cache.elements.inverse_jacobian[element])
+end
+
+
+function calc_total_volume(mesh::TreeMesh)
+  return mesh.tree.length_level_0^ndims(mesh)
+end
+
+
+function calc_total_volume(mesh::StructuredMesh)
+  return prod(mesh.coordinates_max .- mesh.coordinates_min)
+end
+
+
 # some common analysis_integrals
 # to support another analysis integral, you can overload
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
