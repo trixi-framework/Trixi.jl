@@ -1,14 +1,14 @@
 
-function create_cache(::Type{AnalysisCallback}, analyzer,
-                      equations::AbstractEquations{2}, dg::DG, cache)
-  eltype_u = eltype_x = eltype(cache.elements.node_coordinates) # TODO: AD, needs to be adapted
+function create_cache_analysis(analyzer,
+                               equations::AbstractEquations{2}, dg::DG, cache,
+                               RealT, uEltype)
 
   # pre-allocate buffers
-  u_local = zeros(eltype_u,
+  u_local = zeros(uEltype,
                   nvariables(equations), nnodes(analyzer), nnodes(analyzer))
   u_tmp1 = similar(u_local,
                    nvariables(equations), nnodes(analyzer), nnodes(dg))
-  x_local = zeros(eltype_x,
+  x_local = zeros(RealT,
                   ndims(equations), nnodes(analyzer), nnodes(analyzer))
   x_tmp1 = similar(x_local,
                    ndims(equations), nnodes(analyzer), nnodes(dg))
