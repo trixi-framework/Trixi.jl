@@ -181,7 +181,7 @@ It is also possible to compute derivatives of other dependencies using AD in Tri
 you can compute the gradient of an entropy-dissipative semidiscretization with respect to the
 ideal gas constant of the compressible Euler equations as described in the following. This example
 is also available as the elixir
-[examples/special_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
+[examples/special\_elixirs/elixir\_euler\_ad.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl)
 
 ```jldoctest euler_gamma_gradient
 julia> using Trixi, LinearAlgebra, ForwardDiff

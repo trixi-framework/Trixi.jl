@@ -79,18 +79,20 @@ function AnalysisCallback(equations::AbstractEquations, solver, cache;
                           analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
                           analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          RealT=real(solver),
+                          uEltype=eltype(cache.elements),
                           kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
-  cache_analysis = create_cache(AnalysisCallback, analyzer, equations, solver, cache)
+  cache_analysis = create_cache_analysis(analyzer, equations, solver, cache, RealT, uEltype)
 
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
-                                       SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))),
+                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
