@@ -73,7 +73,7 @@ default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
 @inline cons2cons(u, ::AbstractEquations) = u
-function cons2prim(u, ::AbstractEquations) end
+function cons2prim#=(u, ::AbstractEquations)=# end
 @inline Base.first(u, ::AbstractEquations) = first(u)
 
 # FIXME: Deprecations introduced in v0.3
