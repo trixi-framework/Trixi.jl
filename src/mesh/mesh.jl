@@ -192,6 +192,11 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
 end
 
 
+function total_volume(mesh::TreeMesh)
+  return mesh.tree.length_level_0^ndims(mesh)
+end
+
+
 include("parallel.jl")
 include("structured_mesh.jl")
 include("mesh_io.jl")

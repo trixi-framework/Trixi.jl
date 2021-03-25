@@ -34,3 +34,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh{NDIMS, RealT
     summary_box(io, "StructuredMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
   end
 end
+
+
+function total_volume(mesh::StructuredMesh)
+  return prod(mesh.coordinates_max .- mesh.coordinates_min)
+end
