@@ -39,12 +39,12 @@ function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, :, element), x_tmp1, x_tmp2)
 
     # Calculate errors at each analysis node
-    jacobian_volume_ = jacobian_volume(element, mesh, cache)
+    volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
     for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j, k), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j, k), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_volume_)
+      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * volume_jacobian_)
       linf_error = @. max(linf_error, abs(diff))
     end
   end
@@ -67,9 +67,9 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
-    jacobian_volume_ = jacobian_volume(element, mesh, cache)
+    volume_jacobian_ = volume_jacobian(element, mesh, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      integral += jacobian_volume_ * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
+      integral += volume_jacobian_ * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
     end
   end
 

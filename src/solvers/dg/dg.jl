@@ -324,7 +324,7 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
 end
 
 
-function jacobian_volume(element, mesh::TreeMesh, cache)
+function volume_jacobian(element, mesh::TreeMesh, cache)
   return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
