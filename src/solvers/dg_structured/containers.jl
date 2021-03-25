@@ -1,5 +1,6 @@
 # TODO: AD, needs to be adapted to use `RealT` and `uEltype`, cf. https://github.com/trixi-framework/Trixi.jl/pull/461
-
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
 struct ElementContainer{NDIMS, RealT<:Real, NDIMSP2}
   node_coordinates::Array{RealT, NDIMSP2} # [orientation, i, j, k, elements]
   left_neighbors::Array{Int, 2} # [orientation, elements]

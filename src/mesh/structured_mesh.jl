@@ -1,3 +1,4 @@
+# Note: This is an experimental feature and may be changed in future releases without notice.
 mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   coordinates_min::NTuple{NDIMS, RealT}
