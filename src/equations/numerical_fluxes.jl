@@ -48,3 +48,43 @@ end
   @unpack λ = dissipation
   return -λ/2 * (u_rr - u_ll)
 end
+
+
+"""
+    DissipationLocalLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+
+Create a local Lax-Friedrichs dissipation operator where the maximum absolute wave speed
+is estimated as `max_abs_speed(u_ll, u_rr, orientation, equations)`, defaulting to
+[`max_abs_speed_naive`](@ref).
+"""
+struct DissipationLocalLaxFriedrichs{MaxAbsSpeed}
+  max_abs_speed::MaxAbsSpeed
+end
+
+DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
+
+@inline function (dissipation::DissipationLocalLaxFriedrichs{MaxAbsSpeed})(u_ll, u_rr, orientation, equations) where {MaxAbsSpeed}
+  λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equations)
+  return -0.5 * λ * (u_rr - u_ll)
+end
+
+
+"""
+    max_abs_speed_naive(u_ll, u_rr, orientation, equations)
+
+Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
+`u_ll, u_rr`, based only on the local wave speeds associated to `u_ll` and `u_rr`.
+"""
+function max_abs_speed_naive end
+
+
+"""
+    FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+
+Local Lax-Friedrichs (Rusanov) flux with maximum wave speed estimate provided by
+`max_abs_speed`, cf. [`DissipationLocalLaxFriedrichs`](@ref) and
+[`max_abs_speed_naive`](@ref).
+"""
+function FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
+  FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
+end
