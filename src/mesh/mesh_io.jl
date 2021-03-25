@@ -20,6 +20,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["n_cells"] = n_cells
     attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
@@ -62,6 +63,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["n_cells"] = n_cells
     attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
@@ -97,6 +99,7 @@ function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
   # Open file (clobber existing content)
   h5open(filename, "w") do file
     # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = collect(size(mesh))
     attributes(file)["coordinates_min"] = collect(mesh.coordinates_min)
