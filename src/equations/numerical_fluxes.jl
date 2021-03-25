@@ -28,7 +28,7 @@ struct FluxPlusDissipation{NumericalFlux, Dissipation}
   dissipation::Dissipation
 end
 
-@inline function (numflux::FluxPlusDissipation{NumericalFlux, Dissipation})(u_ll, u_rr, orientation, equations) where {NumericalFlux, Dissipation}
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, orientation, equations)
   @unpack numerical_flux, dissipation = numflux
 
   return numerical_flux(u_ll, u_rr, orientation, equations) + dissipation(u_ll, u_rr, orientation, equations)
@@ -63,7 +63,7 @@ end
 
 DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_naive)
 
-@inline function (dissipation::DissipationLocalLaxFriedrichs{MaxAbsSpeed})(u_ll, u_rr, orientation, equations) where {MaxAbsSpeed}
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, orientation, equations)
   λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equations)
   return -0.5 * λ * (u_rr - u_ll)
 end
