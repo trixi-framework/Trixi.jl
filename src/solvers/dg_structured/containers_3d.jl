@@ -1,7 +1,9 @@
 function init_elements!(elements, mesh::StructuredMesh{3, RealT}, nodes) where {RealT}
   n_nodes = length(nodes)
 
-  @unpack coordinates_min, coordinates_max, linear_indices = mesh
+  @unpack coordinates_min, coordinates_max = mesh
+
+  linear_indices = LinearIndices(size(mesh))
 
   # Get cell length
   dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)

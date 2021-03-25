@@ -2,7 +2,6 @@ mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   coordinates_min::NTuple{NDIMS, RealT}
   coordinates_max::NTuple{NDIMS, RealT}
-  linear_indices::LinearIndices{NDIMS, NTuple{NDIMS, UnitRange{Int}}}
   current_filename::String
   unsaved_changes::Bool
 end
@@ -11,7 +10,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
   NDIMS = length(cells_per_dimension)
 
-  return StructuredMesh{NDIMS, RealT}(cells_per_dimension, coordinates_min, coordinates_max, LinearIndices(cells_per_dimension), "", true)
+  return StructuredMesh{NDIMS, RealT}(cells_per_dimension, coordinates_min, coordinates_max, "", true)
 end
 
 
