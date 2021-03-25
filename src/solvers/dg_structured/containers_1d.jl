@@ -1,4 +1,4 @@
-function init_elements!(elements, mesh::StructuredMesh{1, RealT}, nodes) where {RealT}
+function init_elements!(elements, mesh::StructuredMesh{1}, nodes)
   n_nodes = length(nodes)
 
   @unpack coordinates_min, coordinates_max = mesh
