@@ -84,7 +84,6 @@ Simple and fast estimate of the maximal wave speed of the Riemann problem with l
 function max_abs_speed_naive end
 
 
-# const FluxLaxFriedrichs = FluxPlusDissipation{typeof(flux_central), Dissipation} where {Dissipation<:DissipationLocalLaxFriedrichs}
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central), DissipationLocalLaxFriedrichs{MaxAbsSpeed}}
 """
     FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
@@ -101,3 +100,49 @@ Base.string(f::FluxLaxFriedrichs) = "FluxLaxFriedrichs(" * string(f.dissipation.
 
 # TODO: Shall we deprecate `flux_lax_friedrichs`?
 const flux_lax_friedrichs = FluxLaxFriedrichs()
+
+
+"""
+    FluxHLL(min_max_speed=min_max_speed_naive)
+
+Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maximum
+wave speeds are estimated as `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation, equations)`,
+defaulting to [`min_max_speed_naive`](@ref).
+"""
+struct FluxHLL{MinMaxSpeed}
+  min_max_speed::MinMaxSpeed
+end
+
+FluxHLL() = FluxHLL(min_max_speed_naive)
+
+"""
+    min_max_speed_naive(u_ll, u_rr, orientation, equations)
+
+Simple and fast estimate of the minimal and maximal wave speed of the Riemann problem with
+left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
+`u_ll` and `u_rr`.
+"""
+function min_max_speed_naive end
+
+@inline function (numflux::FluxHLL)(u_ll, u_rr, orientation, equations)
+  λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation, equations)
+
+  if λ_min >= 0 && λ_max >= 0
+    return flux(u_ll, orientation, equations)
+  elseif λ_max <= 0 && λ_min <= 0
+    return flux(u_rr, orientation, equations)
+  else
+    f_ll = flux(u_ll, orientation, equations)
+    f_rr = flux(u_rr, orientation, equations)
+    inv_λ_max_minus_λ_min = inv(λ_max - λ_min)
+    factor_ll = λ_max * inv_λ_max_minus_λ_min
+    factor_rr = λ_min * inv_λ_max_minus_λ_min
+    factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
+    return factor_ll * f_ll - factor_rr * f_rr + factor_diss * (u_rr - u_ll)
+  end
+end
+
+Base.string(numflux::FluxHLL) = "FluxHLL(" * string(numflux.min_max_speed) * ")"
+
+# TODO: Shall we deprecate `flux_hll`?
+const flux_hll = FluxHLL()

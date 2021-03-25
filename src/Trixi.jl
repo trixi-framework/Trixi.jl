@@ -87,8 +87,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
        flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       max_abs_speed_naive,
-       FluxLaxFriedrichs
+       FluxLaxFriedrichs, max_abs_speed_naive,
+       FluxHLL, min_max_speed_naive
 
 export initial_condition_constant,
        initial_condition_gauss,

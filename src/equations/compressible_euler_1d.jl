@@ -454,40 +454,24 @@ end
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
-  # Calculate primitive variables and speed of sound
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)
 
   v1_rr = rho_v1_rr / rho_rr
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v1_rr^2)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
+  λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+  λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
-  Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
-  Ssr = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
-
-  if Ssl >= 0.0 && Ssr > 0.0
-    f1 = f_ll[1]
-    f2 = f_ll[2]
-    f3 = f_ll[3]
-  elseif Ssr <= 0.0 && Ssl < 0.0
-    f1 = f_rr[1]
-    f2 = f_rr[2]
-    f3 = f_rr[3]
-  else
-    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
-    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
-    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
-  end
-
-  return SVector(f1, f2, f3)
+  return λ_min, λ_max
 end
+
 
 """
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
