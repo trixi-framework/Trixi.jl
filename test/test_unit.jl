@@ -405,6 +405,16 @@ isdir(outdir) && rm(outdir, recursive=true)
     println()
   end
 
+  @testset "APE 2D varnames" begin
+    v_mean_global = (0.0, 0.0)
+    c_mean_global = 1.0
+    rho_mean_global = 1.0
+    equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+
+    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime")
+    @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
+  end
+
   # Test docstrings
   DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
   doctest(Trixi, manual=false)
