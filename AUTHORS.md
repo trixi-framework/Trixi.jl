@@ -24,6 +24,7 @@ are listed in alphabetical order:
 * Christof Czernik
 * Erik Faulhaber
 * Gregor Gassner
+* Lucas Gemein
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez

@@ -15,6 +15,7 @@ for human readability.
   - multicomponent compressible Euler
   - acoustic perturbation equations
   - Lattice-Boltzmann equations 
+- New mesh type StructuredMesh
 
 #### Changed
 
