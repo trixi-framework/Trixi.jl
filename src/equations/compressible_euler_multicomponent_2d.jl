@@ -717,6 +717,32 @@ Entropy conserving two-point flux by
 end
 
 
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+  rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+  rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+  # Calculate primitive variables and speed of sound
+  rho_ll   = density(u_ll, equations)
+  rho_rr   = density(u_rr, equations)
+  gamma_ll = totalgamma(u_ll, equations)
+  gamma_rr = totalgamma(u_rr, equations)
+
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
+
+  p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
+  c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
+  p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
+  c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+  λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   # Calculate primitive variables and speed of sound
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll

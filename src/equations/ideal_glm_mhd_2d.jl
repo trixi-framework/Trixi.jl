@@ -349,6 +349,28 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquatio
 end
 
 
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+  rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+  rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+  # Calculate velocities and fast magnetoacoustic wave speeds
+  # left
+  v1_ll = rho_v1_ll / rho_ll
+  v2_ll = rho_v2_ll / rho_ll
+  v3_ll = rho_v3_ll / rho_ll
+  v_mag_ll = sqrt(v1_ll^2 + v2_ll^2 + v3_ll^2)
+  cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+  # right
+  v1_rr = rho_v1_rr / rho_rr
+  v2_rr = rho_v2_rr / rho_rr
+  v3_rr = rho_v3_rr / rho_rr
+  v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
+  cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+  λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+end
+
 function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
