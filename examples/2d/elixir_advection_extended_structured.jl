@@ -24,12 +24,17 @@ polydeg = 3
 solver = DGSEM(polydeg, surface_flux)
 
 # The initial condition is 2-periodic
-coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 0.5, 3.3) # maximum coordinates (max(x), max(y))
+# coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
+# coordinates_max = ( 0.5, 3.3) # maximum coordinates (max(x), max(y))
+f1(s) = [-1.5, s+2.3]
+f2(s) = [ 0.5, s+2.3]
+f3(s) = [s-0.5, 1.3]
+f4(s) = [s-0.5, 3.3]
+
 cells_per_dimension = (19, 37)
 
 # Create structured mesh with 19 x 37 elements
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -56,14 +61,14 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
 # The SaveRestartCallback allows to save a file from which a Trixi simulation can be restarted
-save_restart = SaveRestartCallback(interval=100,
-                                   save_final_restart=true)
+# save_restart = SaveRestartCallback(interval=100,
+#                                    save_final_restart=true)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval=100,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2prim)
+# save_solution = SaveSolutionCallback(interval=100,
+#                                      save_initial_solution=true,
+#                                      save_final_solution=true,
+#                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
 cfl=1.6
@@ -72,7 +77,7 @@ stepsize_callback = StepsizeCallback(cfl=cfl)
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
+                        # save_restart, save_solution,
                         stepsize_callback)
 
 

@@ -17,13 +17,13 @@ function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 
   x1 = faces[1](-1) # Bottom left
-  @assert x1 == faces[3](-1) # TODO error message
+  @assert x1 ≈ faces[3](-1) # TODO error message
   x2 = faces[2](-1) # Bottom right
-  @assert x2 == faces[3](1)
+  @assert x2 ≈ faces[3](1)
   x3 = faces[1](1) # Top left
-  @assert x3 == faces[4](-1)
+  @assert x3 ≈ faces[4](-1)
   x4 = faces[2](1) # Top right
-  @assert x4 == faces[4](1)
+  @assert x4 ≈ faces[4](1)
 
   return 0.25 * (x1 * (1 - x) * (1 - y) +
                  x2 * (1 + x) * (1 - y) +
