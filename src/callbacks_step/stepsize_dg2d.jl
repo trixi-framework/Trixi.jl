@@ -106,13 +106,17 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  for element in eachelement(dg, cache)
+  max_λ1, max_λ2 = max_abs_speeds(equations)
 
-    max_λ1, max_λ2 = max_abs_speeds(equations)
-    max_λ1 = maximum(metric_terms[2, 2, :, :, element] * max_λ1 - metric_terms[1, 2, :, :, element] * max_λ2)
-    max_λ2 = maximum(-metric_terms[2, 1, :, :, element] * max_λ1 + metric_terms[1, 1, :, :, element] * max_λ2)
-    inv_jacobian = maximum(view(inverse_jacobian, :, :, element)) # TODO
-    max_scaled_speed = max(max_scaled_speed, inv_jacobian * (max_λ1 + max_λ2))
+  for element in eachelement(dg, cache)
+    for j in eachnode(dg), i in eachnode(dg)
+      # Local speeds transformed to the reference element
+      λ1_local = abs( metric_terms[2, 2, i, j, element] * max_λ1 - metric_terms[1, 2, i, j, element] * max_λ2)
+      λ2_local = abs(-metric_terms[2, 1, i, j, element] * max_λ1 + metric_terms[1, 1, i, j, element] * max_λ2)
+
+      inv_jacobian = inverse_jacobian[i, j, element]
+      max_scaled_speed = max(max_scaled_speed, inv_jacobian * (λ1_local + λ2_local))
+    end
   end
 
   return 2 / (nnodes(dg) * max_scaled_speed)
