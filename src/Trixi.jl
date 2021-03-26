@@ -58,7 +58,7 @@ include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
-include("solvers/dg/dg.jl")
+include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -126,7 +126,7 @@ export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh
+export TreeMesh, StructuredMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

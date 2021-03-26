@@ -22,7 +22,7 @@ end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
-                          mesh::TreeMesh{3}, equations, initial_condition,
+                          mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -39,26 +39,26 @@ function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, :, element), x_tmp1, x_tmp2)
 
     # Calculate errors at each analysis node
-    jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
+    volume_jacobian_ = volume_jacobian(element, mesh, cache)
 
     for k in eachnode(analyzer), j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j, k), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i, j, k), equations)
-      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * jacobian_volume)
+      l2_error += diff.^2 * (weights[i] * weights[j] * weights[k] * volume_jacobian_)
       linf_error = @. max(linf_error, abs(diff))
     end
   end
 
   # For L2 error, divide by total volume
-  total_volume = mesh.tree.length_level_0^ndims(mesh)
-  l2_error = @. sqrt(l2_error / total_volume)
+  total_volume_ = total_volume(mesh)
+  l2_error = @. sqrt(l2_error / total_volume_)
 
   return l2_error, linf_error
 end
 
 
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
-                               mesh::TreeMesh{3}, equations, dg::DGSEM, cache,
+                               mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -67,23 +67,24 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
-    jacobian_volume = inv(cache.elements.inverse_jacobian[element])^ndims(equations)
+    volume_jacobian_ = volume_jacobian(element, mesh, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      integral += jacobian_volume * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
+      integral += volume_jacobian_ * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
     end
   end
 
   # Normalize with total volume
   if normalize
-    total_volume = mesh.tree.length_level_0^ndims(mesh)
-    integral = integral / total_volume
+    total_volume_ = total_volume(mesh)
+    integral = integral / total_volume_
   end
 
   return integral
 end
 
+
 function integrate(func::Func, u::AbstractArray{<:Any,5},
-                   mesh::TreeMesh{3}, equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
@@ -92,7 +93,7 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,5}, u, t,
-                 mesh::TreeMesh{3}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)

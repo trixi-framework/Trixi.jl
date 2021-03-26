@@ -246,14 +246,6 @@ end
 end
 
 
-function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
-  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-  # cf. wrap_array
-  zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-end
-
-
-
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
@@ -321,6 +313,11 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   end
 
   return nothing
+end
+
+
+function volume_jacobian(element, mesh::TreeMesh, cache)
+  return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
 
