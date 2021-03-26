@@ -75,23 +75,25 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack coordinates_min, coordinates_max = mesh
-
-  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
-  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+  @unpack metric_terms, inverse_jacobian = cache.elements
 
   for element in eachelement(dg, cache)
     max_λ1 = max_λ2 = zero(max_scaled_speed)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
       λ1, λ2 = max_abs_speeds(u_node, equations)
-      λ1 *= 0.5 * dy
-      λ2 *= 0.5 * dx
-      max_λ1 = max(max_λ1, λ1)
-      max_λ2 = max(max_λ2, λ2)
+
+      # Local speeds transformed to the reference element
+      λ1_transformed = abs( metric_terms[2, 2, i, j, element] * λ1 - metric_terms[1, 2, i, j, element] * λ2)
+      λ2_transformed = abs(-metric_terms[2, 1, i, j, element] * λ1 + metric_terms[1, 1, i, j, element] * λ2)
+
+      inv_jacobian = cache.elements.inverse_jacobian[i, j, element]
+
+      max_λ1 = max(max_λ1, λ1_transformed * inv_jacobian)
+      max_λ2 = max(max_λ2, λ2_transformed * inv_jacobian)
     end
-    inv_jacobian = cache.elements.inverse_jacobian[element]
-    max_scaled_speed = max(max_scaled_speed, inv_jacobian * (max_λ1 + max_λ2))
+    
+    max_scaled_speed = max(max_scaled_speed, max_λ1 + max_λ2)
   end
 
   return 2 / (nnodes(dg) * max_scaled_speed)
@@ -111,11 +113,11 @@ function max_dt(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh,
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       # Local speeds transformed to the reference element
-      λ1_local = abs( metric_terms[2, 2, i, j, element] * max_λ1 - metric_terms[1, 2, i, j, element] * max_λ2)
-      λ2_local = abs(-metric_terms[2, 1, i, j, element] * max_λ1 + metric_terms[1, 1, i, j, element] * max_λ2)
+      λ1_transformed = abs( metric_terms[2, 2, i, j, element] * max_λ1 - metric_terms[1, 2, i, j, element] * max_λ2)
+      λ2_transformed = abs(-metric_terms[2, 1, i, j, element] * max_λ1 + metric_terms[1, 1, i, j, element] * max_λ2)
 
       inv_jacobian = inverse_jacobian[i, j, element]
-      max_scaled_speed = max(max_scaled_speed, inv_jacobian * (λ1_local + λ2_local))
+      max_scaled_speed = max(max_scaled_speed, inv_jacobian * (λ1_transformed + λ2_transformed))
     end
   end
 

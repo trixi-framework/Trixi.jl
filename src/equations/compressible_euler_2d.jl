@@ -847,6 +847,31 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
 end
 
 
+function flux_lax_friedrichs(u_ll, u_rr, normal_vector::SVector, equations::CompressibleEulerEquations2D)
+  # Compute angle between normal_vector and first unit vector counterclockwise
+  if normal_vector[2] == 0.0 && normal_vector[1] < 0.0
+    α = pi
+  else
+    α = acos(normal_vector[1] / norm(normal_vector)) * sign(normal_vector[2])
+  end
+
+  T = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
+  v_rotated = T * view(u_ll, 2:3)
+  u_ll_rotated = SVector(u_ll[1], v_rotated[1], v_rotated[2], u_ll[4])
+  v_rotated = T * view(u_rr, 2:3)
+  u_rr_rotated = SVector(u_rr[1], v_rotated[1], v_rotated[2], u_rr[4])
+
+  flux_rotated = flux_lax_friedrichs(u_ll_rotated, u_rr_rotated, 1, equations)
+
+  T = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
+
+  v = T * view(flux_rotated, 2:3)
+  flux = SVector(flux_rotated[1], v[1], v[2], flux_rotated[4])
+
+  return flux * norm(normal_vector)
+end
+
+
 function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
   # Calculate primitive variables and speed of sound
   rho_ll, rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
