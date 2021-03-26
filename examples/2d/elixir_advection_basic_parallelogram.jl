@@ -5,18 +5,22 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0)
+advectionvelocity = (2.0, 1.0)
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
-# coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-# coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
-f1(s) = [-1, s]
-f2(s) = [ 1, s]
-f3(s) = [s, -1]
-f4(s) = [s,  1]
+#             (0,1) __________ (2, 1)
+#                ⟋         ⟋
+#             ⟋         ⟋
+#          ⟋         ⟋
+# (-2,-1) ‾‾‾‾‾‾‾‾‾‾ (0,-1)
+
+f1(s) = [s-1,  s]
+f2(s) = [s+1,  s]
+f3(s) = [s-1, -1]
+f4(s) = [s+1,  1]
 
 cells_per_dimension = (16, 16)
 
@@ -24,7 +28,7 @@ cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_parallelogram, solver)
 
 
 ###############################################################################

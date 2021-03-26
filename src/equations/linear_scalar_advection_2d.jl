@@ -228,6 +228,49 @@ function boundary_condition_linear_y(u_inner, orientation, direction, x, t,
 end
 
 
+struct InitialConditionConvergenceTestRotated
+  α::Float64
+end
+
+function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equation::LinearScalarAdvectionEquation2D)
+  @unpack α = initial_condition
+
+  # Rotate back to unit square
+  T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
+  x_rot = T_inv * x
+
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x_rot - T_inv * equation.advectionvelocity * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_trans))
+  return SVector(scalar)
+end
+
+
+function initial_condition_parallelogram(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Transform back to unit square
+  x_transformed = SVector(x[1] + x[2], x[2])
+  a = equation.advectionvelocity
+  a_transformed = SVector(a[1] + a[2], a[2])
+
+  # Store translated coordinate for easy use of exact solution
+  x_translated = x_transformed - a_transformed * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_translated))
+  return SVector(scalar)
+end
+
+
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation2D)
 

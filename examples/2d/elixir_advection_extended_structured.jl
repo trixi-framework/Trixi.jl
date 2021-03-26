@@ -25,11 +25,11 @@ solver = DGSEM(polydeg, surface_flux)
 
 # The initial condition is 2-periodic
 # coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
-# coordinates_max = ( 0.5, 3.3) # maximum coordinates (max(x), max(y))
-f1(s) = [-1.5, s+2.3]
-f2(s) = [ 0.5, s+2.3]
+# coordinates_max = ( 0.5, 5.3) # maximum coordinates (max(x), max(y))
+f1(s) = [-1.5, 2*s+3.3]
+f2(s) = [ 0.5, 2*s+3.3]
 f3(s) = [s-0.5, 1.3]
-f4(s) = [s-0.5, 3.3]
+f4(s) = [s-0.5, 5.3]
 
 cells_per_dimension = (19, 37)
 
