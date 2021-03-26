@@ -57,7 +57,6 @@ isperiodic(t::AbstractTree, dimension) = t.periodicity[dimension]
 # Auxiliary methods for often-required calculations
 # Number of potential child cells
 n_children_per_cell(::AbstractTree{NDIMS}) where NDIMS = 2^NDIMS
-n_children_per_cell(dims::Integer) = 2^dims
 
 # Number of directions
 #
