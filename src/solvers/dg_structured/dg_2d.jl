@@ -28,18 +28,21 @@ end
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::StructuredMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
+  @unpack metric_terms = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
 
-      flux1 = transformed_flux(u_node, 1, mesh, equations)
+      flux1 = metric_terms[2, 2, i, j, element] * flux(u_node, 1, equations) - 
+              metric_terms[1, 2, i, j, element] * flux(u_node, 2, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
-      flux2 = transformed_flux(u_node, 2, mesh, equations)
+      flux2 = -metric_terms[2, 1, i, j, element] * flux(u_node, 1, equations) + 
+              metric_terms[1, 1, i, j, element] * flux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
@@ -101,13 +104,12 @@ end
 
 
 function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DG, cache)
+  @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)
-    factor = -cache.elements.inverse_jacobian[element]
-
     for j in eachnode(dg), i in eachnode(dg)
       for v in eachvariable(equations)
-        du[v, i, j, element] *= factor
+        du[v, i, j, element] *= -inverse_jacobian[i, j, element]
       end
     end
   end
@@ -116,28 +118,13 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equat
 end
 
 
-@inline function transformed_flux(u, orientation, mesh::StructuredMesh{2}, equations)
-  @unpack coordinates_min, coordinates_max = mesh
-
-  if orientation == 1
-    dx = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
-  else
-    dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
-  end
-
-  return 0.5 * dx * flux(u, orientation, equations)
-end
-
-
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
+function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux,
     mesh::StructuredMesh{2}, equations::AbstractEquations)
-    
-  @unpack coordinates_min, coordinates_max = mesh
 
   if orientation == 1
-    dx = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
+    dx = 6 / size(mesh, 2) # TODO
   else
-    dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
+    dx = 6 / size(mesh, 1)
   end
 
   return 0.5 * dx * surface_flux(u_ll, u_rr, orientation, equations)

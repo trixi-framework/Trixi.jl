@@ -100,19 +100,18 @@ end
 
 function max_dt(u::AbstractArray{<:Any,4}, t, mesh::StructuredMesh,
                 constant_speed::Val{true}, equations, dg::DG, cache)
+  @unpack metric_terms, inverse_jacobian = cache.elements
+
   # to avoid a division by zero if the speed vanishes everywhere,
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack coordinates_min, coordinates_max = mesh
-  dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
-  dy = (coordinates_max[2] - coordinates_min[2]) / size(mesh, 2)
-
   for element in eachelement(dg, cache)
+
     max_λ1, max_λ2 = max_abs_speeds(equations)
-    max_λ1 *= 0.5 * dy
-    max_λ2 *= 0.5 * dx
-    inv_jacobian = cache.elements.inverse_jacobian[element]
+    max_λ1 = maximum(metric_terms[2, 2, :, :, element] * max_λ1 - metric_terms[1, 2, :, :, element] * max_λ2)
+    max_λ2 = maximum(-metric_terms[2, 1, :, :, element] * max_λ1 + metric_terms[1, 1, :, :, element] * max_λ2)
+    inv_jacobian = maximum(view(inverse_jacobian, :, :, element)) # TODO
     max_scaled_speed = max(max_scaled_speed, inv_jacobian * (max_λ1 + max_λ2))
   end
 

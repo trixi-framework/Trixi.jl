@@ -245,6 +245,12 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdve
 end
 
 
+function flux_lax_friedrichs(u_ll, u_rr, normal_vector::Vector, equation::LinearScalarAdvectionEquation2D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
+end
+
+
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation2D) = Val(true)
 

@@ -10,11 +10,6 @@ function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG
 end
 
 
-function volume_jacobian(element, mesh::StructuredMesh, cache)
-  return inv(cache.elements.inverse_jacobian[element])
-end
-
-
 @inline ndofs(mesh::StructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
