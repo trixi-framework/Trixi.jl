@@ -2,18 +2,18 @@
 using StaticArrays: MArray
 
 mutable struct ElementGeometry{RealT<:Real, NNODES}
-  x       ::MArray{NNODES, NNODES, RealT}
-  y       ::MArray{NNODES, NNODES, RealT}
-  X_xi    ::MArray{NNODES, NNODES, RealT}
-  X_eta   ::MArray{NNODES, NNODES, RealT}
-  Y_xi    ::MArray{NNODES, NNODES, RealT}
-  Y_eta   ::MArray{NNODES, NNODES, RealT}
-  Jac     ::MArray{NNODES, NNODES, RealT}
-  invJac  ::MArray{NNODES, NNODES, RealT}
-  x_bndy  ::MArray{NNODES, 4, RealT}
-  y_bndy  ::MArray{NNODES, 4, RealT}
-  n_vecs  ::MArray{NNODES, 4, 2, RealT}
-  scaling ::MArray{NNODES, 4, RealT}
+  x       ::MArray{Tuple{NNODES, NNODES}, RealT}
+  y       ::MArray{Tuple{NNODES, NNODES}, RealT}
+  X_xi    ::MArray{Tuple{NNODES, NNODES}, RealT}
+  X_eta   ::MArray{Tuple{NNODES, NNODES}, RealT}
+  Y_xi    ::MArray{Tuple{NNODES, NNODES}, RealT}
+  Y_eta   ::MArray{Tuple{NNODES, NNODES}, RealT}
+  Jac     ::MArray{Tuple{NNODES, NNODES}, RealT}
+  invJac  ::MArray{Tuple{NNODES, NNODES}, RealT}
+  x_bndy  ::MArray{Tuple{NNODES, 4}, RealT}
+  y_bndy  ::MArray{Tuple{NNODES, 4}, RealT}
+  n_vecs  ::MArray{Tuple{NNODES, 4, 2}, RealT}
+  scaling ::MArray{Tuple{NNODES, 4}, RealT}
 end
 
 
