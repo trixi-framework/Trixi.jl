@@ -163,6 +163,17 @@ local_leaf_cells(t::AbstractTree) = leaf_cells(t)
 count_leaf_cells(t::AbstractTree) = length(leaf_cells(t))
 
 
+@inline function cell_coordinates(t::AbstractTree{NDIMS}, cell) where {NDIMS}
+  SVector(ntuple(d -> t.coordinates[d, cell], Val(NDIMS)))
+end
+
+@inline function set_cell_coordinates!(t::AbstractTree{NDIMS}, coords, cell) where {NDIMS}
+  for d in 1:NDIMS
+    t.coordinates[d, cell] = coords[d]
+  end
+end
+
+
 # Store cell id in each cell to use for post-AMR analysis
 function reset_original_cell_ids!(t::AbstractTree)
   t.original_cell_ids[1:length(t)] .= 1:length(t)
@@ -219,8 +230,8 @@ function refine_box!(t::AbstractTree{NDIMS}, coordinates_min, coordinates_max) w
 
   # Find all leaf cells within box
   cells = filter_leaf_cells(t) do cell_id
-    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
-            all(coordinates_max .> t.coordinates[:, cell_id]))
+    return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+            all(coordinates_max .> cell_coordinates(t, cell_id)))
   end
 
   # Refine cells
@@ -434,8 +445,8 @@ function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Flo
 
   # Find all leaf cells within box
   leaves = filter_leaf_cells(t) do cell_id
-    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
-            all(coordinates_max .> t.coordinates[:, cell_id]))
+    return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+            all(coordinates_max .> cell_coordinates(t, cell_id)))
   end
 
   # Get list of unique parent ids for all leaf cells
@@ -443,8 +454,8 @@ function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Flo
 
   # Filter parent ids to be within box
   parents = filter(parent_ids) do cell_id
-    return (all(coordinates_min .< t.coordinates[:, cell_id]) &&
-            all(coordinates_max .> t.coordinates[:, cell_id]))
+    return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+            all(coordinates_max .> cell_coordinates(t, cell_id)))
   end
 
   # Coarsen cells

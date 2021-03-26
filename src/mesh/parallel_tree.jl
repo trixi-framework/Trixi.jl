@@ -97,7 +97,7 @@ function init!(t::ParallelTree, center::AbstractArray{Float64}, length::Real, pe
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
   t.levels[1] = 0
-  t.coordinates[:, 1] .= t.center_level_0
+  set_cell_coordinates!(t, t.center_level_0, 1)
   t.original_cell_ids[1] = 0
   t.mpi_ranks[1] = typemin(Int)
 
@@ -193,8 +193,10 @@ function refine_unbalanced!(t::ParallelTree, cell_ids, sorted_unique_cell_ids=so
       t.neighbor_ids[:, child_id] .= 0
       t.child_ids[:, child_id] .= 0
       t.levels[child_id] = t.levels[cell_id] + 1
-      t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+
+      set_cell_coordinates!(t,
+        child_coordinates(t, cell_coordinates(t, cell_id), length_at_cell(t, cell_id), child),
+        child_id)
       t.original_cell_ids[child_id] = 0
       t.mpi_ranks[child_id] = t.mpi_ranks[cell_id]
 
