@@ -148,12 +148,12 @@ end
 # Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::SerialTree, cell_ids)
+function refine_unbalanced!(t::SerialTree, cell_ids, sorted_unique_cell_ids=sort(unique(cell_ids)))
   # Store actual ids refined cells (shifted due to previous insertions)
   refined = zeros(Int, length(cell_ids))
 
   # Loop over all cells that are to be refined
-  for (count, original_cell_id) in enumerate(sort(unique(cell_ids)))
+  for (count, original_cell_id) in enumerate(sorted_unique_cell_ids)
     # Determine actual cell id, taking into account previously inserted cells
     n_children = n_children_per_cell(t)
     cell_id = original_cell_id + (count - 1) * n_children
@@ -177,7 +177,7 @@ function refine_unbalanced!(t::SerialTree, cell_ids)
       t.child_ids[:, child_id] .= 0
       t.levels[child_id] = t.levels[cell_id] + 1
       t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+          t, @view(t.coordinates[:, cell_id]), length_at_cell(t, cell_id), child)
       t.original_cell_ids[child_id] = 0
 
       # For determining neighbors, use neighbor connections of parent cell

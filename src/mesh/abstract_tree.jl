@@ -102,14 +102,15 @@ child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
 # neighboring child position.
-adjacent_child(child::Int, direction::Int) = [2 2 3 3 5 5;
-                                              1 1 4 4 6 6;
-                                              4 4 1 1 7 7;
-                                              3 3 2 2 8 8;
-                                              6 6 7 7 1 1;
-                                              5 5 8 8 2 2;
-                                              8 8 5 5 3 3;
-                                              7 7 6 6 4 4][child, direction]
+const _adjacent_child_ids = [2 2 3 3 5 5;
+                             1 1 4 4 6 6;
+                             4 4 1 1 7 7;
+                             3 3 2 2 8 8;
+                             6 6 7 7 1 1;
+                             5 5 8 8 2 2;
+                             8 8 5 5 3 3;
+                             7 7 6 6 4 4]
+adjacent_child(child::Int, direction::Int) = _adjacent_child_ids[child, direction]
 
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
@@ -160,7 +161,10 @@ end
 
 
 # Refine entire tree by one level
-refine!(t::AbstractTree) = refine!(t, leaf_cells(t))
+function refine!(t::AbstractTree)
+  cells = @timeit_debug timer() "collect all leaf cells" leaf_cells(t)
+  @timeit_debug timer() "refine!" refine!(t, cells, cells)
+end
 
 
 # Refine given cells and rebalance tree.
@@ -169,17 +173,17 @@ refine!(t::AbstractTree) = refine!(t, leaf_cells(t))
 #         otherwise the 2:1 rule would be violated, which can cause more
 #         refinements.
 # Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
-function refine!(t::AbstractTree, cell_ids)
+function refine!(t::AbstractTree, cell_ids, sorted_unique_cell_ids=sort(unique(cell_ids)))
   # Reset original cell ids such that each cell knows its current id
   reset_original_cell_ids!(t)
 
   # Refine all requested cells
-  refined = refine_unbalanced!(t, cell_ids)
+  refined = @timeit_debug timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids, sorted_unique_cell_ids)
   refinement_count = length(refined)
 
   # Iteratively rebalance the tree until it does not change anymore
   while length(refined) > 0
-    refined = rebalance!(t, refined)
+    refined = @timeit_debug timer() "rebalance!" rebalance!(t, refined)
     refinement_count += length(refined)
   end
 
@@ -187,7 +191,7 @@ function refine!(t::AbstractTree, cell_ids)
   # Note: original_cell_ids contains the cell_id *before* refinement. At
   # refinement, the refined cell's original_cell_ids value has its sign flipped
   # to easily find it now.
-  @views refined_original_cells = (
+  refined_original_cells = @views(
       -t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
   # Check if count of refinement cells matches information in original_cell_ids
@@ -266,7 +270,7 @@ end
 # Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::AbstractTree, cell_ids) end
+# function refine_unbalanced!(t::AbstractTree, cell_ids) end
 
 # Wrap single-cell refinements such that `sort(...)` does not complain
 refine_unbalanced!(t::AbstractTree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
@@ -446,23 +450,16 @@ end
 
 # Return coordinates of a child cell based on its relative position to the parent.
 function child_coordinates(::AbstractTree{NDIMS}, parent_coordinates, parent_length::Number, child::Int) where NDIMS
-  # Calculate length of child cells and set up data structure
+  # Calculate length of child cells
   child_length = parent_length / 2
-  coordinates = MVector{NDIMS, Float64}(undef)
-
-  # For each dimension, calculate coordinate as parent coordinate + relative position x length/2
-  for d in 1:NDIMS
-    coordinates[d] = parent_coordinates[d] + child_sign(child, d) * child_length / 2
-  end
-
-  return coordinates
+  return SVector(ntuple(d -> parent_coordinates[d] + child_sign(child, d) * child_length / 2, Val(NDIMS)))
 end
 
 
 # Reset range of cells to values that are prone to cause errors as soon as they are used.
 #
 # Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
-function invalidate!(t::AbstractTree, first::Int, last::Int) end
+# function invalidate!(t::AbstractTree, first::Int, last::Int) end
 invalidate!(t::AbstractTree, id::Int) = invalidate!(t, id, id)
 invalidate!(t::AbstractTree) = invalidate!(t, 1, length(t))
 
@@ -576,8 +573,8 @@ end
 # Raw copy operation for ranges of cells.
 #
 # This method is used by the higher-level copy operations for AbstractContainer
-function raw_copy!(target::AbstractTree, source::AbstractTree, first::Int, last::Int, destination::Int) end
+# function raw_copy!(target::AbstractTree, source::AbstractTree, first::Int, last::Int, destination::Int) end
 
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
+# function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
