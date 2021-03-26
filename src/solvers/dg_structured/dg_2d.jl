@@ -65,21 +65,22 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}
     # Interfaces in x-direction (`orientation` = 1)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
-                         element, 1, u, mesh, equations, dg)
+                         element, 1, u, equations, dg, cache)
     
     # Interfaces in x-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
-                         element, 2, u, mesh, equations, dg)
+                         element, 2, u, equations, dg, cache)
   end
 
   return nothing
 end
 
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
-                              mesh::StructuredMesh{2}, equations, dg::DG)
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, 
+                                      orientation, u, equations, dg::DG, cache)
   @unpack surface_flux = dg
+  @unpack metric_terms = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -88,12 +89,16 @@ end
     if orientation == 1
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
+
+      normal_vector = SVector(metric_terms[2, 2, 1, i, right_element], -metric_terms[1, 2, 1, i, right_element])
     else # orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          right_element)
+
+      normal_vector = SVector(-metric_terms[2, 1, i, 1, right_element], metric_terms[1, 1, i, 1, right_element])
     end
 
-    flux = transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, mesh, equations)
+    flux = surface_flux(u_ll, u_rr, normal_vector, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, right_direction, left_element] = flux[v]
@@ -115,17 +120,4 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equat
   end
 
   return nothing
-end
-
-
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux,
-    mesh::StructuredMesh{2}, equations::AbstractEquations)
-
-  if orientation == 1
-    dx = 6 / size(mesh, 2) # TODO
-  else
-    dx = 6 / size(mesh, 1)
-  end
-
-  return 0.5 * dx * surface_flux(u_ll, u_rr, orientation, equations)
 end
