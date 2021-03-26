@@ -96,7 +96,17 @@ opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
 #   6       +     -     +
 #   7       -     +     +
 #   8       +     +     +
-child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
+# child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
+# Since we use only a fixed number of dimensions, we use a lookup table for improved performance.
+const _child_signs = [-1 -1 -1;
+                      +1 -1 -1;
+                      -1 +1 -1;
+                      +1 +1 -1;
+                      -1 -1 +1;
+                      +1 -1 +1;
+                      -1 +1 +1;
+                      +1 +1 +1]
+child_sign(child::Int, dim::Int) = _child_signs[child, dim]
 
 
 # For each child position (1 to 8) and a given direction (from 1 to 6), return
