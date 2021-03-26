@@ -25,6 +25,7 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_structured.jl"),
       l2   = [4.9753743571684e-7],
       linf = [1.504389180118082e-6],
+      atol = 1e-12, # required to make CI tests pass on macOS
       cells_per_dimension = (16, 23),
       polydeg = 4,
       cfl = 1.4)
