@@ -95,7 +95,7 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
   t.levels[1] = 0
-  t.coordinates[:, 1] .= t.center_level_0
+  set_cell_coordinates!(t, t.center_level_0, 1)
   t.original_cell_ids[1] = 0
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
@@ -148,12 +148,12 @@ end
 # Refine given cells without rebalancing tree.
 #
 # Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::SerialTree, cell_ids)
+function refine_unbalanced!(t::SerialTree, cell_ids, sorted_unique_cell_ids=sort(unique(cell_ids)))
   # Store actual ids refined cells (shifted due to previous insertions)
   refined = zeros(Int, length(cell_ids))
 
   # Loop over all cells that are to be refined
-  for (count, original_cell_id) in enumerate(sort(unique(cell_ids)))
+  for (count, original_cell_id) in enumerate(sorted_unique_cell_ids)
     # Determine actual cell id, taking into account previously inserted cells
     n_children = n_children_per_cell(t)
     cell_id = original_cell_id + (count - 1) * n_children
@@ -176,8 +176,9 @@ function refine_unbalanced!(t::SerialTree, cell_ids)
       t.neighbor_ids[:, child_id] .= 0
       t.child_ids[:, child_id] .= 0
       t.levels[child_id] = t.levels[cell_id] + 1
-      t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+      set_cell_coordinates!(t,
+        child_coordinates(t, cell_coordinates(t, cell_id), length_at_cell(t, cell_id), child),
+        child_id)
       t.original_cell_ids[child_id] = 0
 
       # For determining neighbors, use neighbor connections of parent cell

@@ -31,3 +31,12 @@ following naming conventions:
   element method, inside each element multiple **nodes** may be defined, which
   hold nodal information. The nodes are again a solver-specific component, just
   like the elements.
+
+
+## Variable names
+
+- Use descriptive names (using `snake_case` for variables/functions and `CamelCase` for types)
+- Use a suffix `_` as in `name_` for local variables that would otherwise hide existing symbols.
+- Use a prefix `_` as in `_name` to indicate internal methods/data that are "fragile" in the
+  sense that there's no guarantee that they might get changed without notice. These are also not
+  documented with a docstring (but maybe with comments using `#`).
