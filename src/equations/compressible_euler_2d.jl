@@ -855,7 +855,8 @@ function flux_lax_friedrichs(u_ll, u_rr, normal_vector::SVector, equations::Comp
     α = acos(normal_vector[1] / norm(normal_vector)) * sign(normal_vector[2])
   end
 
-  T = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
+  # Clockwise rotation by α
+  T = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
   v_rotated = T * view(u_ll, 2:3)
   u_ll_rotated = SVector(u_ll[1], v_rotated[1], v_rotated[2], u_ll[4])
   v_rotated = T * view(u_rr, 2:3)
@@ -863,7 +864,7 @@ function flux_lax_friedrichs(u_ll, u_rr, normal_vector::SVector, equations::Comp
 
   flux_rotated = flux_lax_friedrichs(u_ll_rotated, u_rr_rotated, 1, equations)
 
-  T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
+  T_inv = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
 
   v = T_inv * view(flux_rotated, 2:3)
   flux = SVector(flux_rotated[1], v[1], v[2], flux_rotated[4])

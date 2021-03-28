@@ -67,7 +67,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}
                          elements.left_neighbors[1, element],
                          element, 1, u, equations, dg, cache)
     
-    # Interfaces in x-direction (`orientation` = 2)
+    # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
                          element, 2, u, equations, dg, cache)
