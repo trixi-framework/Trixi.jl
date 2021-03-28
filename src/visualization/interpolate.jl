@@ -317,7 +317,7 @@ function interpolate1d(original_nodes, original_data, nodes_out)
     m = length(nodes_out)
     vandermonde = Array{Float64,2}(undef, n, n)
     A = Array{Float64,2}(undef, m, n)
-    for i=0:n-1
+    for i in 0:n-1
         vandermonde[:,i+1] = original_nodes.^i
         A[:,i+1] = nodes_out.^i
     end

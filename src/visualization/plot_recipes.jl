@@ -314,11 +314,18 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
 end
 
 """
-    PlotData1D(u, semi)
+    PlotData1D(u, semi; solution_variables=cons2prim, nvisnodes=nothing))
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`.
+`semi`. By default, the conservative variables from the solution are used for plotting. This can be
+changed by passing an appropriate conversion function to `solution_variables`.
+
+`nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
+twice the number of solution DG nodes are used for visualization, and if set to `0`,
+exactly the number of nodes in the DG elements are used.
+
+
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -500,7 +507,7 @@ end
 
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(mesh) == 1
-    return PlotData1D(sol; solution_variables=cons2prim, nvisnodes=nvisnodes)
+    return PlotData1D(sol; solution_variables=solution_variables, nvisnodes=nvisnodes)
   else
     return PlotData2D(sol;
                       solution_variables=solution_variables,

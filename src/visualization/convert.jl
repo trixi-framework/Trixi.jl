@@ -97,19 +97,18 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   interpolated_data = Array{Float64,2}(undef, max_nvisnodes*n_elements, n_vars)
 
   # Iterate over all elements.
-  for i=1:n_elements
+  for i in 1:n_elements
     # Interpolate on an equidistant grid.
     interpolated_nodes[:,i] = vcat(range(original_nodes[1,1,i], original_nodes[1,end,i], length = max_nvisnodes))
 
     # Interpolate the data for each variable.
-    for j=1:n_vars
+    for j in 1:n_vars
       interpolated_data[(i-1)*max_nvisnodes+1:i*max_nvisnodes, j] = interpolate1d(original_nodes[1,:,i], unstructured_data[:,i,j], interpolated_nodes[:,i])
     end
   end
 
   return vec(interpolated_nodes), interpolated_data
 end
-
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
 #
