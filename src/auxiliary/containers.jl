@@ -21,7 +21,7 @@ function copy_data!(target::AbstractArray, source::AbstractArray,
     end
   else
     # In this case we need to copy backward (right-to-left) to prevent overwriting data
-    for i in reverse(0:(count-1)), j in 1:block_size
+    for i in (count-1):-1:0, j in 1:block_size
       target[block_size*(destination+i-1) + j] = source[block_size*(first+i-1) + j]
     end
   end

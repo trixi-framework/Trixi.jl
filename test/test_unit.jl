@@ -23,7 +23,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
       @test Trixi.n_children_per_cell(t) == 2
-      @test Trixi.n_children_per_cell(2) == 4
       @test Trixi.n_directions(t) == 2
     end
 
