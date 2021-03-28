@@ -1,7 +1,6 @@
 
 using OrdinaryDiffEq
 using Trixi
-using StaticArrays
 
 ###############################################################################
 # semidiscretization of the linear advection equation

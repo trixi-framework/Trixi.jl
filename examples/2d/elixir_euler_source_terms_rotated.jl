@@ -1,6 +1,5 @@
 
 using OrdinaryDiffEq
-using StaticArrays
 using Trixi
 
 ###############################################################################
