@@ -1,47 +1,44 @@
-using NodesAndModes
-using StartUpDG
 using Plots
 using LinearAlgebra
-using ForwardDiff
 using StaticArrays
+using UnPack
+
+using NodesAndModes
+using StartUpDG
 using EntropyStableEuler
 using Formatting
 using RecursiveArrayTools
 
 using OrdinaryDiffEq
 using Trixi
-using UnPack
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
 N = 5
 K1D = 4
-CFL = .05
+CFL = .01
 FinalTime = 1.0
 
 VX,EToV = uniform_mesh(Line(),K1D)
-rd = RefElemData(Line(),N; quad_rule_vol = gauss_quad(0,0,2*N))
-md = MeshData(VX,EToV,rd)
-md = make_periodic(md,rd)
-
-struct JesseMesh
+struct JesseMesh1D
     VX
     EToV
 end
+
+rd = RefElemData(Line(),N; quad_rule_vol = gauss_quad(0,0,2*N)) # set degree of over-integration here
+md = MeshData(VX,EToV,rd)
+md = make_periodic(md,rd)
 
 function u0(x)
     # sine wave
     ρ = @. 1 + .5*sin(2*pi*x)
     u = @. .2 + 0*x
     p = @. 20. + 0*x
-#    Q .= VectorOfArray(prim_to_cons(EntropyStableEuler.Euler{1}(),(ρ,u,p)))
-    return VectorOfArray(Vector(prim_to_cons(EntropyStableEuler.Euler{1}(),(ρ,u,p)))) # need Vector type for ODE.jl
-
+    return VectorOfArray(Vector(prim_to_cons(EntropyStableEuler.Euler{1}(),(ρ,u,p)))) # need Vector for ODE.jl
 end
-Base.real(rd::RefElemData) = Float64
 
-function Trixi.create_cache(mesh::JesseMesh, equations, rd::RefElemData, RealT, uEltype)
+function Trixi.create_cache(mesh::JesseMesh1D, equations, rd::RefElemData, RealT, uEltype)
     @unpack VX,EToV = mesh
     md = MeshData(VX,EToV,rd)
     md = make_periodic(md,rd)
@@ -65,9 +62,9 @@ function f(U)
     return [ρu,fm,fE]
 end
 fEC(uL,uR) = fS(EntropyStableEuler.Euler{1}(),uL,uR)
-v_u(u) = v_ufun(EntropyStableEuler.Euler{1}(),u)
-u_v(v) = u_vfun(EntropyStableEuler.Euler{1}(),v)
-S(u) = Sfun(EntropyStableEuler.Euler{1}(),u)
+v_u(u) = v_ufun(EntropyStableEuler.Euler{1}(),u) # entropy vars in terms of cons vars
+u_v(v) = u_vfun(EntropyStableEuler.Euler{1}(),v) # cons vars in terms of entropy vars
+S(u) = Sfun(EntropyStableEuler.Euler{1}(),u) # entropy 
 
 struct EulerProjection1D
     f
@@ -78,7 +75,7 @@ struct EulerProjection1D
 end
 
 function Trixi.rhs!(dU, Q::VectorOfArray, t,
-                    mesh::JesseMesh, equations::EulerProjection1D,
+                    mesh::JesseMesh1D, equations::EulerProjection1D,
                     initial_condition, boundary_conditions, source_terms,
                     rd::RefElemData, cache)
 
@@ -90,19 +87,20 @@ function Trixi.rhs!(dU, Q::VectorOfArray, t,
 
     U = Q.u # unpack data from VecOfArray
 
+    # project f(u), compute central flux
     ṽ = (x->Pq*x).(v_u((x->Vq*x).(U)))
     fN = (x->Pq*x).(f(u_v((x->Vq*x).(ṽ))))
     ff = (x->Vf*x).(fN)
-    favg = (u->.5*(u[mapP]+u)).(ff)
+    favg = (x->.5*(x[mapP]+x)).(ff)
 
-    # correction
+    # compute EC fluxes
     uf = u_v((x->Vf*x).(ṽ))
     uP = (u->u[mapP]).(uf)
     fec = fEC(uP,uf)
-    Δf = @. fec - favg
-    Δv = v_u(uP) .- v_u(uf) # can also compute from ṽ
 
     # correction
+    Δf = @. fec - favg
+    Δv = v_u(uP) .- v_u(uf) # can also compute from ṽ
     sign_Δv = map(x->sign.(x),Δv)
     Δf_dot_signΔv = sum(map((x,y)->x.*y.*nxJ,sign_Δv,Δf))
     ctmp = @. max(0,-Δf_dot_signΔv)
@@ -120,28 +118,30 @@ end
 
 ################## interface stuff #################
 
-Trixi.ndims(mesh::JesseMesh) = 1
+Base.real(rd::RefElemData) = Float64
+Trixi.ndims(mesh::JesseMesh1D) = 1
 Trixi.ndims(equations::EulerProjection1D) = 1
 
-function Trixi.allocate_coefficients(mesh::JesseMesh, equations, rd::RefElemData, cache) 
+function Trixi.allocate_coefficients(mesh::JesseMesh1D, equations, rd::RefElemData, cache) 
     md = cache.md
     #Q = VectorOfArray(SVector{3}(similar(md.x),similar(md.x),similar(md.x)))
     Q = VectorOfArray([similar(md.x),similar(md.x),similar(md.x)]) # need non-SVector to work w/ODE solver
     return Q
 end
 
-function Trixi.compute_coefficients!(Q, u0, t, mesh::JesseMesh, equations, rd::RefElemData, cache) 
+function Trixi.compute_coefficients!(u, u0, t, mesh::JesseMesh1D, equations, rd::RefElemData, cache) 
     md = cache.md
     @unpack x = md
-    Q .= u0(x)
+    u .= u0(x)
+    return nothing
 end
 
 Trixi.wrap_array(u_ode::VectorOfArray, semi::Trixi.AbstractSemidiscretization) = u_ode
-Trixi.wrap_array(u_ode::VectorOfArray, mesh::JesseMesh, equations, solver, cache) = u_ode
-Trixi.ndofs(mesh::JesseMesh, rd::RefElemData, cache) = length(rd.r)*cache.md.K
+Trixi.wrap_array(u_ode::VectorOfArray, mesh::JesseMesh1D, equations, solver, cache) = u_ode
+Trixi.ndofs(mesh::JesseMesh1D, rd::RefElemData, cache) = length(rd.r)*cache.md.K
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(JesseMesh(VX,EToV), EulerProjection1D(f,fEC,v_u,u_v,S), u0, rd)
+semi = SemidiscretizationHyperbolic(JesseMesh1D(VX,EToV), EulerProjection1D(f,fEC,v_u,u_v,S), u0, rd)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -171,12 +171,11 @@ callbacks = CallbackSet(summary_callback)
 ###############################################################################
 # run the simulation
 
-h = md.J[1]
-CN = (N+1)^2/2 
+h = md.x[2]-md.x[1]
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt = CFL*h/CN, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = CFL*h, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 
 # Print the timer summary
