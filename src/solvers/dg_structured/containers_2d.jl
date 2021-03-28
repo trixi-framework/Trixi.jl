@@ -37,7 +37,7 @@ function calc_node_coordinates!(node_coordinates, element,
 
   for j in 1:NNODES, i in 1:NNODES
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, element] .= bilinear_mapping(cell_x_offset + dx/2 * nodes[i],
+    node_coordinates[:, i, j, element] .= transfinite_mapping(cell_x_offset + dx/2 * nodes[i],
                                                            cell_y_offset + dy/2 * nodes[j], mesh)
   end
 end

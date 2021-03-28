@@ -17,18 +17,28 @@ function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 
   x1 = faces[1](-1) # Bottom left
-  @assert x1 ≈ faces[3](-1) # TODO error message
+  @assert x1 ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
   x2 = faces[2](-1) # Bottom right
-  @assert x2 ≈ faces[3](1)
+  @assert x2 ≈ faces[3](1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
   x3 = faces[1](1) # Top left
-  @assert x3 ≈ faces[4](-1)
+  @assert x3 ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
   x4 = faces[2](1) # Top right
-  @assert x4 ≈ faces[4](1)
+  @assert x4 ≈ faces[4](1) "faces[2](1) needs to match faces[4](1) (top right corner)"
 
   return 0.25 * (x1 * (1 - x) * (1 - y) +
                  x2 * (1 + x) * (1 - y) +
                  x3 * (1 - x) * (1 + y) +
                  x4 * (1 + x) * (1 + y))
+end
+
+
+function transfinite_mapping(x, y, mesh)
+  @unpack faces = mesh
+
+  linear_interpolation_x(x, y) = 0.5 * (faces[1](y) * (1 - x) + faces[2](y) * (1 + x))
+  linear_interpolation_y(x, y) = 0.5 * (faces[3](x) * (1 - y) + faces[4](x) * (1 + y))
+
+  return linear_interpolation_x(x, y) + linear_interpolation_y(x, y) - bilinear_mapping(x, y, mesh)
 end
 
 
