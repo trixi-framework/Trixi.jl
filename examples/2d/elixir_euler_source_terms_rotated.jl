@@ -8,10 +8,10 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-α = pi * 0.1
+α = 0.1
 T = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
 
-initial_condition = InitialConditionSourceTermsRotated(α)
+initial_condition_source_terms = InitialConditionSourceTermsRotated(α)
 
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
@@ -26,8 +26,8 @@ cells_per_dimension = (16, 16)
 mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,
+                                    source_terms=initial_condition_source_terms)
 
 
 ###############################################################################

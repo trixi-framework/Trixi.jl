@@ -142,12 +142,16 @@ function (initial_condition::InitialConditionSourceTermsRotated)(x, t, equations
   rho_v2 = ini
   rho_e = ini^2
 
-  return SVector(rho, rho_v1, rho_v2, rho_e)
+  # Rotate velocity vector
+  rho_v1_rot = cos(α) * rho_v1 - sin(α) * rho_v2
+  rho_v2_rot = sin(α) * rho_v1 + cos(α) * rho_v2
+
+  return SVector(rho, rho_v1_rot, rho_v2_rot, rho_e)
 end
 
 
-@inline function (boundary_condition::InitialConditionSourceTermsRotated)(u, x, t, equations::CompressibleEulerEquations2D)
-  @unpack α = boundary_condition
+@inline function (source_terms::InitialConditionSourceTermsRotated)(u, x, t, equations::CompressibleEulerEquations2D)
+  @unpack α = source_terms
 
   # Rotate back to unit square
   T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
@@ -186,7 +190,11 @@ end
   # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
   #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
-  return SVector(du1, du2, du3, du4)
+  # Rotate velocity vector
+  du2_rotated = cos(α) * du2 - sin(α) * du3
+  du3_rotated = sin(α) * du2 + cos(α) * du3
+
+  return SVector(du1, du2_rotated, du3_rotated, du4)
 end
 
 
