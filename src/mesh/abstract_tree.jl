@@ -179,23 +179,25 @@ function refine_uniformly!(t::AbstractTree, max_level)
 end
 
 
+# Recursively initialize children up to level `max_level` in depth-first ordering, starting with
+# cell `cell_id` and set all information except neighbor relations (see `init_neighbors!`).
+#
+# Return the number of offspring of the initialized cell plus one
 function init_children!(t::AbstractTree, cell_id, max_level)
+  # Stop recursion if max_level has been reached
   if t.levels[cell_id] >= max_level
-    t.child_ids[:, cell_id] .= 0
-
     return 1
   else
+    # Initialize each child cell, counting the total number of offspring
     n_offspring = 0
     for child in 1:n_children_per_cell(t)
+      # Get cell id of child
       child_id = cell_id + 1 + n_offspring
 
-      t.parent_ids[child_id] = cell_id
-      t.child_ids[child, cell_id] = child_id
-      t.levels[child_id] = t.levels[cell_id] + 1
-      t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
-      t.original_cell_ids[child_id] = 0
+      # Initialize child cell (except neighbors)
+      init_child!(t, cell_id, child, child_id)
 
+      # Recursively initialize child cell
       n_offspring += init_children!(t, child_id, max_level)
     end
 
@@ -204,7 +206,9 @@ function init_children!(t::AbstractTree, cell_id, max_level)
 end
 
 
-function init_neighbors!(t::AbstractTree, max_level)
+# Iteratively set all neighbor relations, starting at an initialized level 0 cell. Assume that
+# parent-child relations have already been initialized (see `init_children!`).
+function init_neighbors!(t::AbstractTree, max_level=maximum_level(t))
   @assert all(n >= 0 for n in t.neighbor_ids[:, 1]) "level 0 cell neighbors must be initialized"
 
   # Initialize neighbors level by level
@@ -218,45 +222,94 @@ function init_neighbors!(t::AbstractTree, max_level)
 
       # Iterate over children and set neighbor information
       for child in 1:n_children_per_cell(t)
-        # Set child information based on parent
         child_id = t.child_ids[child, cell_id]
-
-        # For determining neighbors, use neighbor connections of parent cell
-        for direction in eachdirection(t)
-          # If neighbor is a sibling, establish one-sided connectivity
-          # Note: two-sided is not necessary, as each sibling will do this
-          if has_sibling(child, direction)
-            adjacent = adjacent_child(child, direction)
-            neighbor_id = t.child_ids[adjacent, cell_id]
-
-            t.neighbor_ids[direction, child_id] = neighbor_id
-            continue
-          end
-
-          # Skip if original cell does have no neighbor in direction
-          if !has_neighbor(t, cell_id, direction)
-            continue
-          end
-
-          # Otherwise, check if neighbor has children - if not, skip again
-          neighbor_id = t.neighbor_ids[direction, cell_id]
-          if !has_children(t, neighbor_id)
-            continue
-          end
-
-          # Check if neighbor has corresponding child and if yes, establish connectivity
-          adjacent = adjacent_child(child, direction)
-          if has_child(t, neighbor_id, adjacent)
-            neighbor_child_id = t.child_ids[adjacent, neighbor_id]
-            opposite = opposite_direction(direction)
-
-            t.neighbor_ids[direction, child_id] = neighbor_child_id
-            t.neighbor_ids[opposite, neighbor_child_id] = child_id
-          end
-        end
+        init_child_neighbors!(t, cell_id, child, child_id)
       end
     end
   end
+
+  return nothing
+end
+
+
+# Initialize the neighbors of child cell `child_id` based on parent cell `cell_id`
+function init_child_neighbors!(t::AbstractTree, cell_id, child, child_id)
+  t.neighbor_ids[:, child_id] .= 0
+  for direction in eachdirection(t)
+    # If neighbor is a sibling, establish one-sided connectivity
+    # Note: two-sided is not necessary, as each sibling will do this
+    if has_sibling(child, direction)
+      adjacent = adjacent_child(child, direction)
+      neighbor_id = t.child_ids[adjacent, cell_id]
+
+      t.neighbor_ids[direction, child_id] = neighbor_id
+      continue
+    end
+
+    # Skip if original cell does have no neighbor in direction
+    if !has_neighbor(t, cell_id, direction)
+      continue
+    end
+
+    # Otherwise, check if neighbor has children - if not, skip again
+    neighbor_id = t.neighbor_ids[direction, cell_id]
+    if !has_children(t, neighbor_id)
+      continue
+    end
+
+    # Check if neighbor has corresponding child and if yes, establish connectivity
+    adjacent = adjacent_child(child, direction)
+    if has_child(t, neighbor_id, adjacent)
+      neighbor_child_id = t.child_ids[adjacent, neighbor_id]
+      opposite = opposite_direction(direction)
+
+      t.neighbor_ids[direction, child_id] = neighbor_child_id
+      t.neighbor_ids[opposite, neighbor_child_id] = child_id
+    end
+  end
+
+  return nothing
+end
+
+
+# Refine given cells without rebalancing tree.
+#
+# Note: After a call to this method the tree may be unbalanced!
+function refine_unbalanced!(t::AbstractTree, cell_ids)
+  # Store actual ids refined cells (shifted due to previous insertions)
+  refined = zeros(Int, length(cell_ids))
+
+  # Loop over all cells that are to be refined
+  for (count, original_cell_id) in enumerate(sort(unique(cell_ids)))
+    # Determine actual cell id, taking into account previously inserted cells
+    n_children = n_children_per_cell(t)
+    cell_id = original_cell_id + (count - 1) * n_children
+    refined[count] = cell_id
+
+    @assert !has_children(t, cell_id) "Non-leaf cell $cell_id cannot be refined"
+
+    # Insert new cells directly behind parent (depth-first)
+    insert!(t, cell_id + 1, n_children)
+
+    # Flip sign of refined cell such that we can easily find it later
+    t.original_cell_ids[cell_id] = -t.original_cell_ids[cell_id]
+
+    # Initialize child cells (except neighbors)
+    for child in 1:n_children
+      child_id = cell_id + child
+      init_child!(t, cell_id, child, child_id)
+    end
+
+    # Initialize child cells (only neighbors)
+    # This separate loop is required since init_child_neighbors requires initilized parent-child
+    # relationships
+    for child in 1:n_children
+      child_id = cell_id + child
+      init_child_neighbors!(t, cell_id, child, child_id)
+    end
+  end
+
+  return refined
 end
 
 
