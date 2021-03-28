@@ -7,7 +7,7 @@ using StaticArrays
 # semidiscretization of the linear advection equation
 
 α = pi * 0.1
-T = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
+T = [cos(α) -sin(α); sin(α) cos(α)]
 
 advectionvelocity = Tuple(T * [1.0, 1.0])
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)

@@ -9,7 +9,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 α = 0.1
-T = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
+T = [cos(α) -sin(α); sin(α) cos(α)]
 
 initial_condition_source_terms = InitialConditionSourceTermsRotated(α)
 
