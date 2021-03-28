@@ -11,12 +11,13 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
+# Define faces for a parallelogram that looks like this
+#
 #             (0,1) __________ (2, 1)
 #                ⟋         ⟋
 #             ⟋         ⟋
 #          ⟋         ⟋
 # (-2,-1) ‾‾‾‾‾‾‾‾‾‾ (0,-1)
-
 f1(s) = [s-1,  s]
 f2(s) = [s+1,  s]
 f3(s) = [s-1, -1]

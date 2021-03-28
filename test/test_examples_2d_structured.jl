@@ -31,23 +31,23 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       cfl = 1.4)
   end
 
-  @testset "elixir_advection_structured_rotated.jl" begin
-    @testset "elixir_advection_structured_rotated.jl with α = 0.0" begin
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_structured_rotated.jl"),
+  @testset "elixir_advection_rotated.jl" begin
+    @testset "elixir_advection_rotated.jl with α = 0.0" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
         l2   = [7.013143474176369e-6],
         linf = [4.906526503622999e-5],
         α = 0.0)
     end
 
-    @testset "elixir_advection_structured_rotated.jl with α = 0.1" begin
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_structured_rotated.jl"),
+    @testset "elixir_advection_rotated.jl with α = 0.1" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
         l2   = [7.013143474176369e-6],
         linf = [4.906526503622999e-5],
         α = 0.1)
     end
     
-    @testset "elixir_advection_structured_rotated.jl with α = 0.5 * pi" begin
-      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_structured_rotated.jl"),
+    @testset "elixir_advection_rotated.jl with α = 0.5 * pi" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_rotated.jl"),
         l2   = [7.013143474176369e-6],
         linf = [4.906526503622999e-5],
         α = 0.5 * pi)
@@ -60,10 +60,57 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
   #     linf = [1.7579442363357956e-5])
   # end
 
+  @testset "elixir_advection_parallelogram.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_parallelogram.jl"),
+      l2   = [0.0005165995033861579],
+      linf = [0.002506176163321605])
+  end
+
+  @testset "elixir_advection_waving_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_waving_flag.jl"),
+      l2   = [0.00017007823031108628],
+      linf = [0.0015264963372674245])
+  end
+
   @testset "elixir_euler_source_terms_structured.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_structured.jl"),
       l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
       linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5])
+  end
+
+  @testset "elixir_euler_source_terms_rotated.jl" begin
+    @testset "elixir_euler_source_terms_rotated.jl with α = 0.0" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
+      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
+      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5],
+        α = 0.0)
+    end
+
+    @testset "elixir_euler_source_terms_rotated.jl with α = 0.1" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
+      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
+      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5],
+        α = 0.1)
+    end
+    
+    @testset "elixir_euler_source_terms_rotated.jl with α = 0.5 * pi" begin
+      @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_rotated.jl"),
+      l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
+      linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5],
+        α = 0.5 * pi)
+    end
+  end
+
+  @testset "elixir_euler_source_terms_parallelogram.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_parallelogram.jl"),
+      l2   = [1.0893247337495366e-5, 1.0425688625462763e-5, 1.755222105014883e-5, 5.136512290929069e-5],
+      linf = [7.449791413693951e-5, 7.621073881791673e-5, 0.00011093303834863733, 0.00039625209916493986])
+  end
+
+  @testset "elixir_euler_source_terms_waving_flag.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_waving_flag.jl"),
+      l2   = [3.2280277059090205e-5, 3.481614479752735e-5, 2.8784017747658748e-5, 0.00011549476000734391],
+      linf = [0.00025339087459608223, 0.0003425481056145152, 0.0002454647901921625, 0.0012806891514367535])
   end
 end
 
