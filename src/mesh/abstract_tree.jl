@@ -159,6 +159,107 @@ function reset_original_cell_ids!(t::AbstractTree)
 end
 
 
+# Efficiently perform uniform refinement up to a given level (works only on mesh with a single cell)
+function refine_uniformly!(t::AbstractTree, max_level)
+  @assert length(t) == 1 "efficient uniform refinement only works for a newly created tree"
+  @assert max_level >= 0 "the uniform refinement level must be non-zero"
+
+  # Calculate size of final tree and resize tree
+  total_length = 1
+  for level in 1:max_level
+    total_length += n_children_per_cell(t)^level
+  end
+  resize!(t, total_length)
+
+  # Traverse tree to set parent-child relationships
+  init_children!(t, 1, max_level)
+
+  # Set all neighbor relationships
+  init_neighbors!(t, max_level)
+end
+
+
+function init_children!(t::AbstractTree, cell_id, max_level)
+  if t.levels[cell_id] >= max_level
+    t.child_ids[:, cell_id] .= 0
+
+    return 1
+  else
+    n_offspring = 0
+    for child in 1:n_children_per_cell(t)
+      child_id = cell_id + 1 + n_offspring
+
+      t.parent_ids[child_id] = cell_id
+      t.child_ids[child, cell_id] = child_id
+      t.levels[child_id] = t.levels[cell_id] + 1
+      t.coordinates[:, child_id] .= child_coordinates(
+          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
+      t.original_cell_ids[child_id] = 0
+
+      n_offspring += init_children!(t, child_id, max_level)
+    end
+
+    return n_offspring + 1
+  end
+end
+
+
+function init_neighbors!(t::AbstractTree, max_level)
+  @assert all(n >= 0 for n in t.neighbor_ids[:, 1]) "level 0 cell neighbors must be initialized"
+
+  # Initialize neighbors level by level
+  for level in 1:max_level
+    # Walk entire tree, starting from level 0 cell
+    for cell_id in 1:length(t)
+      # Skip cells whose immediate children are already initialized *or* whose level is too high for this round
+      if t.levels[cell_id] != level - 1
+        continue
+      end
+
+      # Iterate over children and set neighbor information
+      for child in 1:n_children_per_cell(t)
+        # Set child information based on parent
+        child_id = t.child_ids[child, cell_id]
+
+        # For determining neighbors, use neighbor connections of parent cell
+        for direction in eachdirection(t)
+          # If neighbor is a sibling, establish one-sided connectivity
+          # Note: two-sided is not necessary, as each sibling will do this
+          if has_sibling(child, direction)
+            adjacent = adjacent_child(child, direction)
+            neighbor_id = t.child_ids[adjacent, cell_id]
+
+            t.neighbor_ids[direction, child_id] = neighbor_id
+            continue
+          end
+
+          # Skip if original cell does have no neighbor in direction
+          if !has_neighbor(t, cell_id, direction)
+            continue
+          end
+
+          # Otherwise, check if neighbor has children - if not, skip again
+          neighbor_id = t.neighbor_ids[direction, cell_id]
+          if !has_children(t, neighbor_id)
+            continue
+          end
+
+          # Check if neighbor has corresponding child and if yes, establish connectivity
+          adjacent = adjacent_child(child, direction)
+          if has_child(t, neighbor_id, adjacent)
+            neighbor_child_id = t.child_ids[adjacent, neighbor_id]
+            opposite = opposite_direction(direction)
+
+            t.neighbor_ids[direction, child_id] = neighbor_child_id
+            t.neighbor_ids[opposite, neighbor_child_id] = child_id
+          end
+        end
+      end
+    end
+  end
+end
+
+
 # Refine entire tree by one level
 refine!(t::AbstractTree) = refine!(t, leaf_cells(t))
 
