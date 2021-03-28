@@ -98,7 +98,7 @@ end
       normal_vector = SVector(-metric_terms[2, 1, i, 1, right_element], metric_terms[1, 1, i, 1, right_element])
     end
 
-    @timeit_debug timer() "surface_flux" flux = surface_flux(u_ll, u_rr, normal_vector, equations)
+    flux = surface_flux(u_ll, u_rr, normal_vector, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, right_direction, left_element] = flux[v]

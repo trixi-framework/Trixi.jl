@@ -124,27 +124,34 @@ end
 function (initial_condition::InitialConditionSourceTermsRotated)(x, t, equations::CompressibleEulerEquations2D)
   @unpack α = initial_condition
 
-  # Rotate back to unit square
-  T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
-  x_rot = T_inv * x
-  # Translate from [-1, 1]^2 to [0, 2]^2
-  x_trans = x_rot .+ 1
+  # Rotate back to unit square and translate from [-1, 1]^2 to [0, 2]^2
+
+  cos_ = cos(α)
+  sin_ = sin(α)
+
+  # Clockwise rotation by α and translation by 1
+  # Multiply with [  cos(α)  sin(α);
+  #                 -sin(α)  cos(α)]
+  x1 =  cos_ * x[1] + sin_ * x[2] + 1
+  x2 = -sin_ * x[1] + cos_ * x[2] + 1
 
   c = 2
   A = 0.1
   L = 2
   f = 1/L
   ω = 2 * pi * f
-  ini = c + A * sin(ω * (x_trans[1] + x_trans[2] - t))
+  ini = c + A * sin(ω * (x1 + x2 - t))
 
   rho = ini
   rho_v1 = ini
   rho_v2 = ini
   rho_e = ini^2
 
-  # Rotate velocity vector
-  rho_v1_rot = cos(α) * rho_v1 - sin(α) * rho_v2
-  rho_v2_rot = sin(α) * rho_v1 + cos(α) * rho_v2
+  # Rotate velocity vector counterclockwise
+  # Multiply with [ cos(α)  -sin(α);
+  #                 sin(α)   cos(α)]
+  rho_v1_rot = cos_ * rho_v1 - sin_ * rho_v2
+  rho_v2_rot = sin_ * rho_v1 + cos_ * rho_v2
 
   return SVector(rho, rho_v1_rot, rho_v2_rot, rho_e)
 end
@@ -153,11 +160,16 @@ end
 @inline function (source_terms::InitialConditionSourceTermsRotated)(u, x, t, equations::CompressibleEulerEquations2D)
   @unpack α = source_terms
 
-  # Rotate back to unit square
-  T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
-  x_rot = T_inv * x
-  # Translate from [-1, 1]^2 to [0, 2]^2
-  x_trans = x_rot .+ 1
+  # Rotate back to unit square and translate from [-1, 1]^2 to [0, 2]^2
+
+  cos_ = cos(α)
+  sin_ = sin(α)
+
+  # Clockwise rotation by α and translation by 1
+  # Multiply with [  cos(α)  sin(α);
+  #                 -sin(α)  cos(α)]
+  x1 =  cos_ * x[1] + sin_ * x[2] + 1
+  x2 = -sin_ * x[1] + cos_ * x[2] + 1
 
   # Same settings as in `initial_condition`
   c = 2
@@ -167,7 +179,6 @@ end
   ω = 2 * pi * f
   γ = equations.gamma
 
-  x1, x2 = x_trans
   si, co = sincos((x1 + x2 - t)*ω)
   tmp1 = co * A * ω
   tmp2 = si * A
@@ -190,9 +201,11 @@ end
   # du3 = 2*((c - 1 + sin((x1 + x2 - t)*ω)*A)*(γ - 1) +
   #                             (sin((x1 + x2 - t)*ω)*A + c)*γ)*cos((x1 + x2 - t)*ω)*A*ω
 
-  # Rotate velocity vector
-  du2_rotated = cos(α) * du2 - sin(α) * du3
-  du3_rotated = sin(α) * du2 + cos(α) * du3
+  # Rotate velocity vector counterclockwise
+  # Multiply with [ cos(α)  -sin(α);
+  #                 sin(α)   cos(α)]
+  du2_rotated = cos_ * du2 - sin_ * du3
+  du3_rotated = sin_ * du2 + cos_ * du3
 
   return SVector(du1, du2_rotated, du3_rotated, du4)
 end
@@ -931,24 +944,41 @@ end
 function flux_lax_friedrichs(u_ll, u_rr, normal_vector::SVector, equations::CompressibleEulerEquations2D)
   # Compute angle between normal_vector and first unit vector counterclockwise
   if normal_vector[2] == 0.0 && normal_vector[1] < 0.0
-    α = pi
+    α = Float64(pi)
   else
     α = acos(normal_vector[1] / norm(normal_vector)) * sign(normal_vector[2])
   end
 
+  c = cos(α)
+  s = sin(α)
+
   # Clockwise rotation by α
-  T = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
-  v_rotated = T * view(u_ll, 2:3)
-  u_ll_rotated = SVector(u_ll[1], v_rotated[1], v_rotated[2], u_ll[4])
-  v_rotated = T * view(u_rr, 2:3)
-  u_rr_rotated = SVector(u_rr[1], v_rotated[1], v_rotated[2], u_rr[4])
+  # Multiply with [ 1     0       0     0;
+  #                 0   cos(α)  sin(α)  0;
+  #                 0  -sin(α)  cos(α)  0;
+  #                 0     0       0     1 ]
+
+  u_ll_rotated = SVector(u_ll[1], 
+                          c * u_ll[2] + s * u_ll[3],
+                         -s * u_ll[2] + c * u_ll[3],
+                         u_ll[4])
+
+  u_rr_rotated = SVector(u_rr[1], 
+                          c * u_rr[2] + s * u_rr[3],
+                         -s * u_rr[2] + c * u_rr[3],
+                         u_rr[4])
 
   flux_rotated = flux_lax_friedrichs(u_ll_rotated, u_rr_rotated, 1, equations)
 
-  T_inv = SMatrix{2, 2}(cos(α), sin(α), -sin(α), cos(α))
-
-  v = T_inv * view(flux_rotated, 2:3)
-  flux = SVector(flux_rotated[1], v[1], v[2], flux_rotated[4])
+  # Counterclockwise rotation by α
+  # Multiply with [ 1    0        0     0;
+  #                 0  cos(α)  -sin(α)  0;
+  #                 0  sin(α)   cos(α)  0;
+  #                 0    0        0     1 ]
+  flux = SVector(flux_rotated[1], 
+                 c * flux_rotated[2] - s * flux_rotated[3],
+                 s * flux_rotated[2] + c * flux_rotated[3],
+                 flux_rotated[4])
 
   return flux * norm(normal_vector)
 end
