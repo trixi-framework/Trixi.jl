@@ -448,19 +448,6 @@ partial density fractions as well as the partial specific heats at constant volu
 end
 
 
-@inline function density_pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
-  rho_v1, rho_e = u
-
-  rho          = density(u, equations)
-  gamma        = totalgamma(u, equations)
-  v1           = rho_v1 / rho
-  
-  rho_times_p  = (gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2))
-
-  return rho_times_p
-end
-
-
 @inline function pressure(u, equations::CompressibleEulerMulticomponentEquations1D)
   rho_v1, rho_e = u
 

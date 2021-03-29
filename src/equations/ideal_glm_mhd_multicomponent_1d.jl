@@ -389,19 +389,9 @@ end
 end
 
 
-@inline function pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
-  rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-  rho = density(u, equations)
-  gamma = totalgamma(u, equations)
-  p = (gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
-                                   - 0.5 * (B1^2 + B2^2 + B3^2)
-                                   )
-  return p
-end
-
 @inline function density_pressure(u, equations::IdealGlmMhdMulticomponentEquations1D)
   rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-  rho = density(u, equtions)
+  rho = density(u, equations)
   gamma = totalgamma(u, equations)
   p = (gamma - 1)*(rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
                                    - 0.5 * (B1^2 + B2^2 + B3^2)
@@ -431,10 +421,6 @@ end
 
   return c_f
 end
-
-
-# Calculate total energy for a conservative state `cons`
-@inline energy_total(cons, ::IdealGlmMhdMulticomponentEquations1D) = cons[4]
 
 
 @inline function density(u, equations::IdealGlmMhdMulticomponentEquations1D)

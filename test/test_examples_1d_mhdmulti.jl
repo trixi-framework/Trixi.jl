@@ -28,6 +28,12 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "1d")
       linf = [2.34173129e-05, 1.23807753e-03, 1.23807753e-03, 1.07512068e-04, 1.11022302e-16, 1.22960686e-03, 1.22960686e-03, 2.01157231e-05, 4.02314461e-05, 8.04628923e-05])
     end
 
+  @testset "elixir_mhdmulti_briowu_shock_tube.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmulti_briowu_shock_tube.jl"),
+      l2   = [1.93221943e-01, 3.56599349e-01, 0.00000000e+00, 3.63446684e-01, 6.33435897e-16, 3.66051482e-01, 0.00000000e+00, 5.65287156e-02, 1.13057431e-01],
+      linf = [4.33927958e-01, 1.09948372e+00, 0.00000000e+00, 1.03943772e+00, 2.99760217e-15, 1.50960600e+00, 0.00000000e+00, 1.96228180e-01, 3.92456360e-01])
+    end
+
 end
 
 end # module
