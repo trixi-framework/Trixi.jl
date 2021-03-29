@@ -85,7 +85,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
-function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -127,7 +127,7 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
   if mesh_type == "TreeMesh"
     mesh = TreeMesh(SerialTree{ndims}, n_cells_max)
     load_mesh!(mesh, restart_file)
-  elseif mesh_type == "StructuredMesh"
+  elseif mesh_type == "CurvedMesh"
     filename = get_restart_mesh_filename(restart_file, Val(false))
     size_, faces_string = h5open(filename, "r") do file
       return read(attributes(file)["size"]),
@@ -136,7 +136,7 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
 
     size = Tuple(size_)
     faces = faces_string .|> Meta.parse .|> eval
-    mesh = StructuredMesh(size, faces, Float64; unsaved_changes=false) # TODO RealT should be saved
+    mesh = CurvedMesh(size, faces, Float64; unsaved_changes=false) # TODO RealT should be saved
   else
     error("Unknown mesh type!")
   end

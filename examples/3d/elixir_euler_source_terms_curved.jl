@@ -17,7 +17,7 @@ coordinates_min = (0.0, 0.0, 0.0)
 coordinates_max = (2.0, 2.0, 2.0)
 cells_per_dimension = (4, 4, 4)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)

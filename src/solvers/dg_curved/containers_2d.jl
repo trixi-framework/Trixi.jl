@@ -1,4 +1,4 @@
-function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis{T, NNODES}) where {T, NNODES}
+function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis{T, NNODES}) where {T, NNODES}
   @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
@@ -23,7 +23,7 @@ end
 
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y,
-                                mesh::StructuredMesh{2},
+                                mesh::CurvedMesh{2},
                                 basis::LobattoLegendreBasis{T, NNODES}) where {T, NNODES}
   @unpack nodes = basis
 
@@ -62,7 +62,7 @@ function calc_inverse_jacobian!(inverse_jacobian::Array{RealT, 3}, element, metr
 end
 
 
-function initialize_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2}, linear_indices)
+function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, linear_indices)
   # Neighbors in x-direction
   for cell_y in 1:size(mesh, 2)
     # Inner elements

@@ -1,15 +1,15 @@
 # Note: This is an experimental feature and may be changed in future releases without notice.
-mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   faces::Vector{Function}
   current_filename::String
   unsaved_changes::Bool
 end
 
-function StructuredMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
+function CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
-  return StructuredMesh{NDIMS, RealT}(cells_per_dimension, faces, "", unsaved_changes)
+  return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, "", unsaved_changes)
 end
 
 
@@ -42,15 +42,15 @@ function transfinite_mapping(x, y, mesh)
 end
 
 
-@inline Base.ndims(::StructuredMesh{NDIMS}) where {NDIMS} = NDIMS
-Base.size(mesh::StructuredMesh) = mesh.cells_per_dimension
-Base.size(mesh::StructuredMesh, i) = mesh.cells_per_dimension[i]
+@inline Base.ndims(::CurvedMesh{NDIMS}) where {NDIMS} = NDIMS
+Base.size(mesh::CurvedMesh) = mesh.cells_per_dimension
+Base.size(mesh::CurvedMesh, i) = mesh.cells_per_dimension[i]
 
-function Base.show(io::IO, ::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
-  print(io, "StructuredMesh{", NDIMS, ", ", RealT, "}")
+function Base.show(io::IO, ::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
+  print(io, "CurvedMesh{", NDIMS, ", ", RealT, "}")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh{NDIMS, RealT}) where {NDIMS, RealT}
+function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
   if get(io, :compact, false)
     show(io, mesh)
   else
@@ -58,6 +58,6 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh{NDIMS, RealT
             "size" => size(mesh),
             "faces" => mesh.faces
             ]
-    summary_box(io, "StructuredMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
+    summary_box(io, "CurvedMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
   end
 end

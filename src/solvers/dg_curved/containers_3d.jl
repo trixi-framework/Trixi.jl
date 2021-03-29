@@ -1,4 +1,4 @@
-function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
+function init_elements!(elements, mesh::CurvedMesh{3}, nodes)
   n_nodes = length(nodes)
 
   @unpack coordinates_min, coordinates_max = mesh

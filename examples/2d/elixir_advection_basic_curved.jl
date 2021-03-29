@@ -5,18 +5,23 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advectionvelocity = (1.0, 1.0, 1.0)
-equations = LinearScalarAdvectionEquation3D(advectionvelocity)
+advectionvelocity = (1.0, 1.0)
+equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
-coordinates_min = (-1.5, -0.9, 0.0) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = ( 0.5,  1.1, 4.0) # maximum coordinates (max(x), max(y), max(z))
-cells_per_dimension = (8, 10, 16)
+# coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
+# coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+f1(s) = [-1, s]
+f2(s) = [ 1, s]
+f3(s) = [s, -1]
+f4(s) = [s,  1]
 
-# Create structured mesh with 8 x 8 x 8 elements
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+cells_per_dimension = (16, 16)
+
+# Create curved mesh with 16 x 16 elements
+mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
@@ -40,7 +45,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)

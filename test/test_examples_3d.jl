@@ -34,8 +34,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   # Lattice-Boltzmann
   include("test_examples_3d_lbm.jl")
 
-  # Structured mesh
-  include("test_examples_3d_structured.jl")
+  # Curved mesh
+  include("test_examples_3d_curved.jl")
 end
 
 

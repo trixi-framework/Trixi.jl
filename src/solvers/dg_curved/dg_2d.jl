@@ -1,5 +1,5 @@
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
-    mesh::StructuredMesh, equations,
+    mesh::CurvedMesh, equations,
     initial_condition, boundary_conditions, source_terms,
     dg::DG, cache)
   # Reset du
@@ -25,7 +25,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::StructuredMesh, equations,
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
   @unpack metric_terms = cache.elements
@@ -54,7 +54,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::StructuredMe
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2},
+function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
                               equations, dg::DG, cache)
   @unpack elements = cache
 
@@ -108,7 +108,7 @@ end
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::StructuredMesh, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::CurvedMesh, equations, dg::DG, cache)
   @unpack inverse_jacobian = cache.elements
 
   @threaded for element in eachelement(dg, cache)

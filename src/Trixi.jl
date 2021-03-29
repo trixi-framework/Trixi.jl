@@ -130,7 +130,7 @@ export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, StructuredMesh
+export TreeMesh, CurvedMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

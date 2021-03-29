@@ -17,7 +17,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh,
 end
 
 
-function create_cache_analysis(analyzer, mesh::StructuredMesh,
+function create_cache_analysis(analyzer, mesh::CurvedMesh,
                                equations::AbstractEquations{2}, dg::DG, cache,
                                RealT, uEltype)
   # pre-allocate buffers
@@ -75,7 +75,7 @@ end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
-                          mesh::StructuredMesh{2, RealT}, equations, initial_condition,
+                          mesh::CurvedMesh{2, RealT}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis) where {RealT}
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -139,7 +139,7 @@ end
 
 
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
-                               mesh::StructuredMesh{NDIMS, RealT}, equations, dg::DGSEM, cache,
+                               mesh::CurvedMesh{NDIMS, RealT}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func, NDIMS, RealT}
   @unpack weights = dg.basis
 
@@ -166,7 +166,7 @@ end
 
 
 function integrate(func::Func, u::AbstractArray{<:Any,4},
-                   mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, element)
     return func(u_local, equations)
@@ -175,7 +175,7 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,4}, u, t,
-                 mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, element)

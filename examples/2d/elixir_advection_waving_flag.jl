@@ -20,8 +20,8 @@ f4(s) = [s,  1.0 + sin(0.5 * pi * s)]
 
 cells_per_dimension = (16, 16)
 
-# Create structured mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+# Create curved mesh with 16 x 16 elements
+mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)

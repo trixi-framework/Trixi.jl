@@ -22,7 +22,7 @@ f4(s) = T * [s,  1]
 
 cells_per_dimension = (16, 16)
 
-mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,
