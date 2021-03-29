@@ -5,8 +5,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible ideal GLM-MHD equations
 
-equations = IdealGlmMhdMulticomponentEquations2D(gammas         = (5/3, 5/3),
-                                                 gas_constants  = (0.2, 0.2))
+equations = IdealGlmMhdMulticomponentEquations2D(gammas         = (1.4, 1.4),
+                                                 gas_constants  = (1.0, 1.0))
 
 initial_condition = initial_condition_weak_blast_wave
 

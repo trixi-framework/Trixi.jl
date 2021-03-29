@@ -731,9 +731,9 @@ end
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v_mag_ll = sqrt(v1_ll^2 + v2_ll^2)
-
   p_ll = (gamma_ll - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
   c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+
   v1_rr = rho_v1_rr / rho_rr
   v2_rr = rho_v2_rr / rho_rr
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2)
@@ -755,7 +755,7 @@ end
   p     = (gamma - 1) * (rho_e - 1/2 * rho * (v1^2 + v2^2))
   c     = sqrt(gamma * p / rho)
 
-  return abs(v1) + c, abs(v2) + c
+  return (abs(v1) + c, abs(v2) + c, )
 end
 
 
