@@ -71,8 +71,6 @@ end
 
 @inline Base.real(::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}) where {NVARS, NCOMP, RealT} = RealT
 
-get_name(::CompressibleEulerMulticomponentEquations2D) = "CompressibleEulerMulticomponentEquations2D"
-
 
 function varnames(::typeof(cons2cons), equations::CompressibleEulerMulticomponentEquations2D)
 
@@ -719,11 +717,12 @@ Entropy conserving two-point flux by
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
-  # Calculate primitive variables and speed of sound
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerMulticomponentEquations2D)
   rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
   rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   rho_ll   = density(u_ll, equations)
   rho_rr   = density(u_rr, equations)
   gamma_ll = totalgamma(u_ll, equations)
@@ -741,15 +740,7 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   p_rr = (gamma_rr - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-
-  f  = SVector{nvariables(equations), real(equations)}(1/2 * (f_ll[i] + f_rr[i]) - 1/2 * λ_max * (u_rr[i] - u_ll[i]) for i = 1:nvariables(equations))
-
-  return f
 end
 
 

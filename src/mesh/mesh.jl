@@ -2,6 +2,9 @@ include("abstract_tree.jl")
 include("serial_tree.jl")
 include("parallel_tree.jl")
 
+
+get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
+
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
 # The mesh is really just about the connectivity, size, and location of the individual
@@ -10,7 +13,7 @@ include("parallel_tree.jl")
 # different form). Also, these data values can be performance critical, so a mesh would
 # have to store them for all solvers in an efficient way - OTOH, different solvers might
 # use different cells of a shared mesh, so "efficient" is again solver dependent.
-mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}}
+mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
@@ -112,9 +115,7 @@ end
 function initialize!(mesh::TreeMesh, initial_refinement_level,
                      refinement_patches, coarsening_patches)
   # Create initial refinement
-  @timeit_debug timer() "initial refinement" for _ in 1:initial_refinement_level
-    refine!(mesh.tree)
-  end
+  @timeit_debug timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
 
   # Apply refinement patches
   @timeit_debug timer() "refinement patches" for patch in refinement_patches
@@ -189,5 +190,11 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
 end
 
 
+function total_volume(mesh::TreeMesh)
+  return mesh.tree.length_level_0^ndims(mesh)
+end
+
+
 include("parallel.jl")
+include("structured_mesh.jl")
 include("mesh_io.jl")
