@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # create a restart file
 
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended_structured.jl"))
+trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended_curved.jl"))
 
 
 ###############################################################################

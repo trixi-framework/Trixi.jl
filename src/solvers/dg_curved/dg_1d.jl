@@ -1,5 +1,5 @@
 function rhs!(du::AbstractArray{<:Any,3}, u, t,
-              mesh::StructuredMesh{1}, equations,
+              mesh::CurvedMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -25,7 +25,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1}, 
+function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::CurvedMesh{1}, 
                               equations, dg::DG, cache)
   @unpack surface_flux = dg
 

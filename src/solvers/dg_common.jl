@@ -1,11 +1,11 @@
-function allocate_coefficients(mesh::Union{TreeMesh, StructuredMesh}, equations, dg::DG, cache)
+function allocate_coefficients(mesh::Union{TreeMesh, CurvedMesh}, equations, dg::DG, cache)
   # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
   # cf. wrap_array
   zeros(eltype(cache.elements), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
 end
 
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{1},CurvedMesh{1}}, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -23,7 +23,7 @@ end
 end
 
 
-function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{1},StructuredMesh{1}}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{1},CurvedMesh{1}}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)
@@ -35,7 +35,7 @@ function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{1},StructuredMes
 end
 
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -53,7 +53,7 @@ end
 end
 
 
-function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{2},StructuredMesh{2}}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{2},CurvedMesh{2}}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
@@ -65,7 +65,7 @@ function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{2},StructuredMes
 end
 
 
-@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DG, cache)
+@inline function wrap_array(u_ode::AbstractVector, mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
   @boundscheck begin
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
@@ -83,7 +83,7 @@ end
 end
 
 
-function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DG, cache)
+function compute_coefficients!(u, func, t, mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)

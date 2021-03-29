@@ -85,7 +85,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
-function save_mesh_file(mesh::StructuredMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0)
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -132,7 +132,7 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
   if mesh_type == "TreeMesh"
     mesh = TreeMesh(SerialTree{ndims}, n_cells_max)
     load_mesh!(mesh, restart_file)
-  elseif mesh_type == "StructuredMesh"
+  elseif mesh_type == "CurvedMesh"
     filename = get_restart_mesh_filename(restart_file, Val(false))
     size_, coordinates_min_, coordinates_max_ = h5open(filename, "r") do file
       return read(attributes(file)["size"]),
@@ -143,7 +143,7 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
     size = Tuple(size_)
     coordinates_min = Tuple(coordinates_min_)
     coordinates_max = Tuple(coordinates_max_)
-    mesh = StructuredMesh(size, coordinates_min, coordinates_max)
+    mesh = CurvedMesh(size, coordinates_min, coordinates_max)
   else
     error("Unknown mesh type!")
   end

@@ -5,24 +5,19 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations2D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+volume_integral = VolumeIntegralWeakForm()
+solver = DGSEM(3, surface_flux, volume_integral)
 
-# coordinates_min = (0.0, 0.0)
-# coordinates_max = (2.0, 2.0)
-f1(s) = [0.0, s+1.0]
-f2(s) = [2.0, s+1.0]
-f3(s) = [s+1.0, 0.0]
-f4(s) = [s+1.0, 2.0]
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
+cells_per_dimension = (4, 4, 4)
 
-cells_per_dimension = (16, 16)
-
-mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
-
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)
@@ -31,7 +26,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -41,17 +36,21 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-# save_solution = SaveSolutionCallback(interval=100,
-#                                      save_initial_solution=true,
-#                                      save_final_solution=true,
-#                                      solution_variables=cons2prim)
+save_restart = SaveRestartCallback(interval=100,
+                                   save_final_restart=true)
 
-stepsize_callback = StepsizeCallback(cfl=1.0)
+save_solution = SaveSolutionCallback(interval=100,
+                                     save_initial_solution=true,
+                                     save_final_solution=true,
+                                     solution_variables=cons2prim)
+
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        # save_solution,
+                        save_restart, save_solution,
                         stepsize_callback)
+
 
 ###############################################################################
 # run the simulation

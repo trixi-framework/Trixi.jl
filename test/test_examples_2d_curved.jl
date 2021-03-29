@@ -1,4 +1,4 @@
-module TestExamples2DStructured
+module TestExamples2DCurved
 
 using Test
 using Trixi
@@ -8,21 +8,21 @@ include("test_trixi.jl")
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
 EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
 
-@testset "Structured Mesh" begin
-  @testset "elixir_advection_basic_structured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_structured.jl"),
+@testset "Curved Mesh" begin
+  @testset "elixir_advection_basic_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_curved.jl"),
       l2   = [9.14468177884088e-6],
       linf = [6.437440532947036e-5])
   end
 
-  @testset "elixir_advection_extended_structured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_structured.jl"),
+  @testset "elixir_advection_extended_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_curved.jl"),
       l2   = [4.842990962468553e-6],
       linf = [3.47372094784415e-5])
   end
 
-  @testset "elixir_advection_extended_structured.jl with polydeg=4" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_structured.jl"),
+  @testset "elixir_advection_extended_curved.jl with polydeg=4" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended_curved.jl"),
       l2   = [2.0610527374594057e-6],
       linf = [7.21793425673134e-6],
       atol = 1e-12, # required to make CI tests pass on macOS
@@ -54,8 +54,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     end
   end
   
-  # @testset "elixir_advection_restart_structured.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_structured.jl"),
+  # @testset "elixir_advection_restart_curved.jl" begin
+  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_curved.jl"),
   #     l2   = [2.9858847800794436e-6],
   #     linf = [1.7579442363357956e-5])
   # end
@@ -72,8 +72,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
       linf = [0.0015264963372674245])
   end
 
-  @testset "elixir_euler_source_terms_structured.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_structured.jl"),
+  @testset "elixir_euler_source_terms_curved.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms_curved.jl"),
       l2   = [8.517808508019351e-7, 1.2350203856098537e-6, 1.2350203856728076e-6, 4.277886946638239e-6],
       linf = [8.357848139128876e-6, 1.0326302096741458e-5, 1.0326302101404394e-5, 4.496194024383726e-5])
   end
