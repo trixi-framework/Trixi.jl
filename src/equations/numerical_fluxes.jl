@@ -34,7 +34,7 @@ end
   return numerical_flux(u_ll, u_rr, orientation, equations) + dissipation(u_ll, u_rr, orientation, equations)
 end
 
-Base.string(f::FluxPlusDissipation) = "FluxPlusDissipation(" * string(f.numerical_flux) * ", " * string(f.dissipation) * ")"
+Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f.numerical_flux, ", ", f.dissipation, ")")
 
 
 """
@@ -51,7 +51,7 @@ end
   return -λ/2 * (u_rr - u_ll)
 end
 
-Base.string(d::DissipationGlobalLaxFriedrichs) = "DissipationGlobalLaxFriedrichs(" * string(d.λ) * ")"
+Base.show(io::IO, d::DissipationGlobalLaxFriedrichs) = print(io, "DissipationGlobalLaxFriedrichs(", d.λ, ")")
 
 
 """
@@ -72,7 +72,7 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_na
   return -0.5 * λ * (u_rr - u_ll)
 end
 
-Base.string(d::DissipationLocalLaxFriedrichs) = "DissipationLocalLaxFriedrichs(" * string(d.max_abs_speed) * ")"
+Base.show(io::IO, d::DissipationLocalLaxFriedrichs) = print(io, "DissipationLocalLaxFriedrichs(", d.max_abs_speed, ")")
 
 
 """
@@ -96,7 +96,7 @@ function FluxLaxFriedrichs(max_abs_speed=max_abs_speed_naive)
   FluxPlusDissipation(flux_central, DissipationLocalLaxFriedrichs(max_abs_speed))
 end
 
-Base.string(f::FluxLaxFriedrichs) = "FluxLaxFriedrichs(" * string(f.dissipation.max_abs_speed) * ")"
+Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
 
 # TODO: Shall we deprecate `flux_lax_friedrichs`?
 const flux_lax_friedrichs = FluxLaxFriedrichs()
@@ -142,7 +142,7 @@ function min_max_speed_naive end
   end
 end
 
-Base.string(numflux::FluxHLL) = "FluxHLL(" * string(numflux.min_max_speed) * ")"
+Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
 # TODO: Shall we deprecate `flux_hll`?
 const flux_hll = FluxHLL()
