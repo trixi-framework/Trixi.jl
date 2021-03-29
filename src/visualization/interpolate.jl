@@ -177,7 +177,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
 end
 
 
-# Interpolate unstructured DG data to curved data (cell-centered)
+# Interpolate unstructured DG data to structured data (cell-centered)
 #
 # This function takes DG data in an unstructured, Cartesian layout and converts it to a uniformely
 # distributed 2D layout.
