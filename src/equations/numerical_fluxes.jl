@@ -99,6 +99,11 @@ end
 Base.show(io::IO, f::FluxLaxFriedrichs) = print(io, "FluxLaxFriedrichs(", f.dissipation.max_abs_speed, ")")
 
 # TODO: Shall we deprecate `flux_lax_friedrichs`?
+"""
+    flux_lax_friedrichs
+
+See [`FluxLaxFriedrichs`](@ref).
+"""
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 
@@ -121,6 +126,9 @@ FluxHLL() = FluxHLL(min_max_speed_naive)
 Simple and fast estimate of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
+- Amiram Harten, Peter D. Lax, Bram van Leer (1983)
+  On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
+  [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
 """
 function min_max_speed_naive end
 
@@ -145,4 +153,9 @@ end
 Base.show(io::IO, numflux::FluxHLL) = print(io, "FluxHLL(", numflux.min_max_speed, ")")
 
 # TODO: Shall we deprecate `flux_hll`?
+"""
+    flux_hll
+
+See [`FluxHLL`](@ref).
+"""
 const flux_hll = FluxHLL()
