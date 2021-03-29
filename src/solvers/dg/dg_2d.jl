@@ -828,31 +828,23 @@ function prolong2mortars!(cache, u::AbstractArray{<:Any,4}, equations,
       leftright = 1
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
-        # u_large = view(u, :, nnodes(dg), :, large_element)
-        # element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar,
-                                      view(u, :, nnodes(dg), :, large_element))
+        u_large = view(u, :, nnodes(dg), :, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
       else
         # L2 mortars in y-direction
-        # u_large = view(u, :, :, nnodes(dg), large_element)
-        # element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar,
-                                      view(u, :, :, nnodes(dg), large_element))
+        u_large = view(u, :, :, nnodes(dg), large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
       end
     else # large_sides[mortar] == 2 -> large element on right side
       leftright = 2
       if cache.mortars.orientations[mortar] == 1
         # L2 mortars in x-direction
-        # u_large = view(u, :, 1, :, large_element)
-        # element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar,
-                                      view(u, :, 1, :, large_element))
+        u_large = view(u, :, 1, :, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
       else
         # L2 mortars in y-direction
-        # u_large = view(u, :, :, 1, large_element)
-        # element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
-        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar,
-                                      view(u, :, :, 1, large_element))
+        u_large = view(u, :, :, 1, large_element)
+        element_solutions_to_mortars!(cache, mortar_l2, leftright, mortar, u_large)
       end
     end
   end
