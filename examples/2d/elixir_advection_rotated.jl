@@ -24,8 +24,8 @@ f4(s) = T * [2*s,  1]
 
 cells_per_dimension = (32, 19)
 
-# Create structured mesh with 16 x 16 elements
-mesh = StructuredMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+# Create curved mesh with 16 x 16 elements
+mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

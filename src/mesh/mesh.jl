@@ -198,5 +198,5 @@ end
 
 
 include("parallel.jl")
-include("structured_mesh.jl")
+include("curved_mesh.jl")
 include("mesh_io.jl")

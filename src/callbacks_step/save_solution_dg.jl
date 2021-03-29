@@ -1,6 +1,6 @@
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{SerialTreeMesh, StructuredMesh}, equations, dg::DG, cache,
+                            mesh::Union{SerialTreeMesh, CurvedMesh}, equations, dg::DG, cache,
                             solution_callback, element_variables=Dict{Symbol,Any}();
                             system="")
   @unpack output_directory, solution_variables = solution_callback

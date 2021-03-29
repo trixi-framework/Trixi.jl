@@ -22,7 +22,7 @@ end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,5}, t, analyzer,
-                          mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, initial_condition,
+                          mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates = cache.elements
@@ -58,7 +58,7 @@ end
 
 
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
-                               mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DGSEM, cache,
+                               mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -84,7 +84,7 @@ end
 
 
 function integrate(func::Func, u::AbstractArray{<:Any,5},
-                   mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
+                   mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DGSEM, cache; normalize=true) where {Func}
   integrate_via_indices(u, mesh, equations, dg, cache; normalize=normalize) do u, i, j, k, element, equations, dg
     u_local = get_node_vars(u, equations, dg, i, j, k, element)
     return func(u_local, equations)
@@ -93,7 +93,7 @@ end
 
 
 function analyze(::typeof(entropy_timederivative), du::AbstractArray{<:Any,5}, u, t,
-                 mesh::Union{TreeMesh{3},StructuredMesh{3}}, equations, dg::DG, cache)
+                 mesh::Union{TreeMesh{3},CurvedMesh{3}}, equations, dg::DG, cache)
   # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
   integrate_via_indices(u, mesh, equations, dg, cache, du) do u, i, j, k, element, equations, dg, du
     u_node  = get_node_vars(u,  equations, dg, i, j, k, element)
