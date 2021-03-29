@@ -49,7 +49,7 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
           (coordinates[:, element_id] .- center_level_0) ./ (length_level_0 / 2 ))
   end
 
-  # Interpolate unstructured DG data to curved data
+  # Interpolate unstructured DG data to structured data
   (structured_data =
       unstructured2structured(unstructured_data, normalized_coordinates,
                               levels, resolution, nvisnodes_per_level))

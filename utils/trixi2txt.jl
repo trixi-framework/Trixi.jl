@@ -253,7 +253,7 @@ function read_datafile(filename::String)
 end
 
 
-# Interpolate unstructured DG data to curved data (cell-centered)
+# Interpolate unstructured DG data to structured data (cell-centered)
 function unstructured2structured(unstructured_data::AbstractArray{Float64},
                                  levels::AbstractArray{Int}, resolution::Int,
                                  nvisnodes_per_level::AbstractArray{Int})
@@ -274,7 +274,7 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
   end
 
   # Create output data structure
-  curved = Array{Float64}(undef, resolution, n_variables)
+  structured = Array{Float64}(undef, resolution, n_variables)
 
   # For each variable, interpolate element data and store to global data structure
   for v in 1:n_variables
@@ -293,7 +293,7 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
 
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
-      @views curved[first:last, v] .= (
+      @views structured[first:last, v] .= (
            reshape(multiply_dimensionwise_naive(reshaped_data[:, :, element_id], vandermonde),
                    n_nodes_out))
 
@@ -302,7 +302,7 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
     end
   end
 
-  return curved
+  return structured
 end
 
 

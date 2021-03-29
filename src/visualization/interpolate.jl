@@ -206,7 +206,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
   lower_left_index = element2index(normalized_coordinates, levels, resolution, nvisnodes_per_level)
 
   # Create output data structure
-  curved = [Matrix{Float64}(undef, resolution, resolution) for _ in 1:n_variables]
+  structured = [Matrix{Float64}(undef, resolution, resolution) for _ in 1:n_variables]
 
   # For each variable, interpolate element data and store to global data structure
   for v in 1:n_variables
@@ -224,13 +224,13 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
       # Interpolate data
       vandermonde = vandermonde_per_level[level + 1]
-      curved[v][first[1]:last[1], first[2]:last[2]] .= (
+      structured[v][first[1]:last[1], first[2]:last[2]] .= (
           reshape(multiply_dimensionwise(vandermonde, reshaped_data[:, :, :, element_id]),
                   n_nodes_out, n_nodes_out))
     end
   end
 
-  return curved
+  return structured
 end
 
 
