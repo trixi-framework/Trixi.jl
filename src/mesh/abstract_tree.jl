@@ -255,7 +255,7 @@ end
 
 # Initialize the neighbors of child cell `child_id` based on parent cell `cell_id`
 function init_child_neighbors!(t::AbstractTree, cell_id, child, child_id)
-  t.neighbor_ids[:, child_id] .= 0
+  t.neighbor_ids[:, child_id] .= zero(eltype(t.neighbor_ids))
   for direction in eachdirection(t)
     # If neighbor is a sibling, establish one-sided connectivity
     # Note: two-sided is not necessary, as each sibling will do this
