@@ -16,7 +16,7 @@ coordinates_min = (0.0,)
 coordinates_max = (2.0,)
 cells_per_dimension = (16,)
 
-mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, Float64)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -50,7 +50,6 @@ stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
                         stepsize_callback)
 
 
