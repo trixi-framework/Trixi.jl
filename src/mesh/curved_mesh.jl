@@ -15,25 +15,27 @@ end
 
 function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, RealT)
   NDIMS = length(cells_per_dimension)
-  faces = faces_by_dimension(NDIMS, coordinates_min, coordinates_max)
+  faces = coordinates2faces(coordinates_min, coordinates_max)
 
   return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, "", true)
 end
 
-function faces_by_dimension(NDIMS, coordinates_min, coordinates_max)
-  f1(x) = coordinates_min[1]
-  f2(x) = coordinates_max[1]
+function coordinates2faces(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
+  f1() = [ coordinates_min[1] ]
+  f2() = [ coordinates_max[1] ]
 
   return [f1, f2]
 end
 
 
+# In 1D
 function bilinear_mapping(x, mesh)
-  return 0.5*((1-x)*mesh.faces[1](-1)+
-              (1+x)*mesh.faces[2](1))
+  return 0.5 * ((1 - x) * mesh.faces[1]() +
+                (1 + x) * mesh.faces[2]())
 end
 
 
+# In 2D
 function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 

@@ -120,7 +120,7 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,3},
   end
   # Normalize with total volume
   if normalize
-  integral = integral / total_volume
+    integral = integral / total_volume
   end
 
   return integral
