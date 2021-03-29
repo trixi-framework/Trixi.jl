@@ -16,6 +16,8 @@ for human readability.
   - acoustic perturbation equations
   - Lattice-Boltzmann equations
 - New structured mesh type `StructuredMesh`
+- Composable `FluxPlusDissipation` and `FluxLaxFriedrichs()`, `FluxHLL()` with adaptable
+  wave speed estimates were added in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493)
 
 #### Changed
 
