@@ -1,9 +1,9 @@
 
-mutable struct GammaCurve{RealT<:Real, NNODES}
-  nodes          ::SVector{NNODES, RealT}
-  bary_weights   ::SVector{NNODES, RealT}
-  x_vals         ::SVector{NNODES, RealT}
-  y_vals         ::SVector{NNODES, RealT}
+struct GammaCurve{RealT<:Real, NNODES}
+  nodes        ::SVector{NNODES, RealT}
+  bary_weights ::SVector{NNODES, RealT}
+  x_vals       ::SVector{NNODES, RealT}
+  y_vals       ::SVector{NNODES, RealT}
 end
 
 
