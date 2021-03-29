@@ -6,10 +6,10 @@ mutable struct StructuredMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   unsaved_changes::Bool
 end
 
-function StructuredMesh(cells_per_dimension, faces, RealT)
+function StructuredMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
-  return StructuredMesh{NDIMS, RealT}(cells_per_dimension, faces, "", true)
+  return StructuredMesh{NDIMS, RealT}(cells_per_dimension, faces, "", unsaved_changes)
 end
 
 

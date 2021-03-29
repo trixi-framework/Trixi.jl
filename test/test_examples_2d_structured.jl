@@ -54,11 +54,11 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "2d")
     end
   end
   
-  # @testset "elixir_advection_restart_structured.jl" begin
-  #   @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_structured.jl"),
-  #     l2   = [2.9858847800794436e-6],
-  #     linf = [1.7579442363357956e-5])
-  # end
+  @testset "elixir_advection_restart_structured.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_structured.jl"),
+      l2   = [6.398955192910044e-6],
+      linf = [3.474337336717426e-5])
+  end
 
   @testset "elixir_advection_parallelogram.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_parallelogram.jl"),
