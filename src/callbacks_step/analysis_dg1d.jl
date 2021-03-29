@@ -21,47 +21,47 @@ function create_cache_analysis(analyzer, mesh::CurvedMesh,
                   nvariables(equations), nnodes(analyzer))
   x_local = zeros(RealT,
                   ndims(equations), nnodes(analyzer))
-  j_local = zeros(RealT,
-                   nnodes(analyzer))
+  j_local = zeros(RealT, 
+                  nnodes(analyzer))
   return (; u_local,x_local, j_local)
 end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-  mesh::CurvedMesh{1, RealT}, equations, initial_condition,
-  dg::DGSEM, cache, cache_analysis) where {RealT}
-@unpack vandermonde, weights = analyzer
-@unpack node_coordinates, inverse_jacobian = cache.elements
-@unpack u_local, x_local, j_local = cache_analysis
+                          mesh::CurvedMesh{1, RealT}, equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis) where {RealT}
+  @unpack vandermonde, weights = analyzer
+  @unpack node_coordinates, inverse_jacobian = cache.elements
+  @unpack u_local, x_local, j_local = cache_analysis
 
-# Set up data structures
-l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
-linf_error = copy(l2_error)
-total_volume = zero(RealT)
+  # Set up data structures
+  l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
+  linf_error = copy(l2_error)
+  total_volume = zero(RealT)
 
-# Iterate over all elements for error calculations
-for element in eachelement(dg, cache)
-# Interpolate solution and node locations to analysis nodes
-multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
-multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, element))
-multiply_scalar_dimensionwise!(j_local, vandermonde, view(inverse_jacobian, :, element))
+  # Iterate over all elements for error calculations
+  for element in eachelement(dg, cache)
+    # Interpolate solution and node locations to analysis nodes
+    multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
+    multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, element))
+    multiply_scalar_dimensionwise!(j_local, vandermonde, view(inverse_jacobian, :, element))
 
-# Calculate errors at each analysis node
-jacobian_volume = abs.(inv.(j_local))
+    # Calculate errors at each analysis node
+    jacobian_volume = abs.(inv.(j_local))
 
-for i in eachnode(analyzer)
-u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
-diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i), equations)
-l2_error += diff.^2 * (weights[i] * jacobian_volume[i])
-linf_error = @. max(linf_error, abs(diff))
-total_volume += weights[i] * jacobian_volume[i]
-end
-end
+    for i in eachnode(analyzer)
+      u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
+      diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i), equations)
+      l2_error += diff.^2 * (weights[i] * jacobian_volume[i])
+      linf_error = @. max(linf_error, abs(diff))
+      total_volume += weights[i] * jacobian_volume[i]
+    end
+  end
 
-# For L2 error, divide by total volume
-l2_error = @. sqrt(l2_error / total_volume)
+  # For L2 error, divide by total volume
+  l2_error = @. sqrt(l2_error / total_volume)
 
-return l2_error, linf_error
+  return l2_error, linf_error
 end
 
 
