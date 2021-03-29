@@ -46,11 +46,11 @@ function create_cache(mesh::TreeMesh{2}, nonconservative_terms::Val{true}, equat
   f2_threaded = A[A(undef, nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg))
                   for _ in 1:Threads.nthreads()]
 
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype}
-  fstar_upper_threaded               = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  fstar_lower_threaded               = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_upper_threaded     = [MA2d(undef) for _ in 1:Threads.nthreads()]
-  noncons_diamond_lower_threaded = [MA2d(undef) for _ in 1:Threads.nthreads()]
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(dg)}, uEltype, 2, nvariables(equations) * nnodes(dg)}
+  fstar_upper_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  fstar_lower_threaded           = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+  noncons_diamond_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
   return (; f1_threaded, f2_threaded,
           fstar_upper_threaded, fstar_lower_threaded,
@@ -98,7 +98,7 @@ end
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   # TODO: Taal compare performance of different types
-  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype}
+  MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2, nvariables(equations) * nnodes(mortar_l2)}
   fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
   fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
