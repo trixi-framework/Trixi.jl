@@ -6,10 +6,10 @@ mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   unsaved_changes::Bool
 end
 
-function CurvedMesh(cells_per_dimension, faces, RealT)
+function CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
-  return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, "", true)
+  return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, "", unsaved_changes)
 end
 
 
