@@ -1,6 +1,6 @@
 
 @doc raw"""
-    IdealGlmMhdEquations1D
+    IdealGlmMhdMulticomponentEquations1D
 
 The ideal compressible multicomponent GLM-MHD equations in one space dimension.
 """
