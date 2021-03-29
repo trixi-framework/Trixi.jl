@@ -98,7 +98,7 @@ function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = collect(size(mesh))
 
-    file["faces"] = mesh.faces .|> (f -> code_string(f, (Float64,))) .|> string
+    file["faces"] = mesh.faces .|> (f -> code_string(f, ntuple(_ -> Float64, ndims(mesh)-1))) .|> string
   end
 
   return filename

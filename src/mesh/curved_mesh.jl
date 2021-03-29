@@ -41,6 +41,29 @@ function CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
 end
 
 
+function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, RealT)
+  NDIMS = length(cells_per_dimension)
+  faces = coordinates2faces(coordinates_min, coordinates_max)
+
+  return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, "", true)
+end
+
+function coordinates2faces(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
+  f1() = [ coordinates_min[1] ]
+  f2() = [ coordinates_max[1] ]
+
+  return [f1, f2]
+end
+
+
+# In 1D
+function bilinear_mapping(x, mesh)
+  return 0.5 * ((1 - x) * mesh.faces[1]() +
+                (1 + x) * mesh.faces[2]())
+end
+
+
+# In 2D
 function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 
@@ -74,9 +97,11 @@ end
 Base.size(mesh::CurvedMesh) = mesh.cells_per_dimension
 Base.size(mesh::CurvedMesh, i) = mesh.cells_per_dimension[i]
 
+
 function Base.show(io::IO, ::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
   print(io, "CurvedMesh{", NDIMS, ", ", RealT, "}")
 end
+
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}
   if get(io, :compact, false)
