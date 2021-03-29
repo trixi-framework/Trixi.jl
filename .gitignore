@@ -18,3 +18,4 @@ coverage_report/
 **/.ipynb_checkpoints/
 **/solution_*.txt
 **/restart_*.txt
+.vscode/

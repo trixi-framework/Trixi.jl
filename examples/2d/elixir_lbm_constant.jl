@@ -9,7 +9,7 @@ equations = LatticeBoltzmannEquations2D(Ma=0.1, Re=Inf)
 
 initial_condition = initial_condition_constant
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_godunov
 solver = DGSEM(3, surface_flux)
 
 coordinates_min = (-1, -1)
@@ -48,7 +48,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback,
                         collision_callback)

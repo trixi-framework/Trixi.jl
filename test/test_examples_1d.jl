@@ -46,6 +46,10 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler with self-gravity
   include("test_examples_1d_eulergravity.jl")
+
+
+  # Structured Mesh
+  include("test_examples_1d_structured.jl")
 end
 
 # Coverage test for all initial conditions

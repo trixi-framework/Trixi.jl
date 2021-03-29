@@ -15,6 +15,15 @@ number of primary variables (`NVARS`) of the physics model.
 abstract type AbstractEquations{NDIMS, NVARS} end
 
 
+"""
+    AbstractMesh{NDIMS}
+
+An abstract supertype of specific mesh types such as `TreeMesh` or `StructuredMesh`.
+The type parameters encode the number of spatial dimensions (`NDIMS`).
+"""
+abstract type AbstractMesh{NDIMS} end
+
+
 # abstract supertype of specific SBP bases such as a Lobatto-Legendre nodal basis
 abstract type AbstractBasisSBP{RealT<:Real} end
 
