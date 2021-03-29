@@ -23,8 +23,9 @@ function init_elements(mesh::CurvedMesh{NDIMS, RealT},
   surface_flux_values = Array{uEltype, NDIMS+2}(undef,
       nvariables(equations), ntuple(_ -> nnodes(basis), NDIMS-1)..., NDIMS*2, nelements)
 
-  elements = ElementContainer{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(node_coordinates, left_neighbors,
-                                                                                metric_terms, inverse_jacobian, surface_flux_values)
+  elements = ElementContainer{NDIMS, RealT, uEltype, NDIMS+1, NDIMS+2, NDIMS+3}(
+      node_coordinates, left_neighbors, metric_terms,
+      inverse_jacobian, surface_flux_values)
 
   init_elements!(elements, mesh, basis)
   return elements

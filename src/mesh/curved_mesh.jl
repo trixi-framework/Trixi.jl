@@ -1,4 +1,13 @@
-# Note: This is an experimental feature and may be changed in future releases without notice.
+"""
+    CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+
+A structured curved mesh.
+
+Different numbers of cells per dimension are possible and arbitrary functions 
+can be used as domain faces.
+
+Note: This is an experimental feature and may be changed in future releases without notice.
+"""
 mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   faces::Vector{Function}
@@ -6,6 +15,25 @@ mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   unsaved_changes::Bool
 end
 
+
+"""
+    CurvedMesh(cells_per_dimension, faces, RealT)
+
+Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
+
+# Arguments
+- `cells_per_dimension::NTUPLE{NDIMS, Int}`: the number of cells in each dimension.
+- `faces::Vector{Function}`: a vector of `2 * NDIMS` functions that describe the faces of the domain.
+                             Each function must take `NDIMS-1` arguments.
+                             `faces[1]` describes the face onto which the face in negative x-direction 
+                             of the unit hypercube is mapped. The face in positive x-direction of
+                             the unit hypercube will be mapped onto the face described by `faces[2]`.
+                             `faces[3:4]` describe the faces in positive and negative y-direction respectively 
+                             (in 2D and 3D).
+                             `faces[5:6]` describe the faces in positive and negative z-direction respectively
+                             (in 3D).
+- `RealT::Type`: The type that should be used for coordinates.
+"""
 function CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true)
   NDIMS = length(cells_per_dimension)
 
