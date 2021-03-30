@@ -236,8 +236,13 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   @unpack α = initial_condition
 
   # Rotate back to unit square
-  T_inv = SMatrix{2, 2}(cos(-α), sin(-α), -sin(-α), cos(-α))
-  x_rot = T_inv * x
+  cos_ = cos(α)
+  sin_ = sin(α)
+
+  # Clockwise rotation by α and translation by 1
+  # Multiply with [  cos(α)  sin(α);
+  #                 -sin(α)  cos(α)]
+  x_rot = SVector(c * x[1] + s * x[2], -s * x[1] + c * x[2])
 
   # Store translated coordinate for easy use of exact solution
   x_trans = x_rot - T_inv * equation.advectionvelocity * t
@@ -248,6 +253,7 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
+  
   return SVector(scalar)
 end
 

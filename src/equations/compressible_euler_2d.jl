@@ -125,7 +125,6 @@ function (initial_condition::InitialConditionSourceTermsRotated)(x, t, equations
   @unpack α = initial_condition
 
   # Rotate back to unit square and translate from [-1, 1]^2 to [0, 2]^2
-
   cos_ = cos(α)
   sin_ = sin(α)
 
@@ -161,7 +160,6 @@ end
   @unpack α = source_terms
 
   # Rotate back to unit square and translate from [-1, 1]^2 to [0, 2]^2
-
   cos_ = cos(α)
   sin_ = sin(α)
 
