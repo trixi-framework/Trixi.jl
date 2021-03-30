@@ -242,10 +242,12 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   # Clockwise rotation by α and translation by 1
   # Multiply with [  cos(α)  sin(α);
   #                 -sin(α)  cos(α)]
-  x_rot = SVector(c * x[1] + s * x[2], -s * x[1] + c * x[2])
+  x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
+  a = equation.advectionvelocity
+  a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
 
   # Store translated coordinate for easy use of exact solution
-  x_trans = x_rot - T_inv * equation.advectionvelocity * t
+  x_trans = x_rot - a_rot * t
 
   c = 1.0
   A = 0.5
