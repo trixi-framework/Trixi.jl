@@ -1,5 +1,5 @@
 
-function create_cache_analysis(analyzer,
+function create_cache_analysis(analyzer, mesh::TreeMesh{3},
                                equations::AbstractEquations{3}, dg::DG, cache,
                                RealT, uEltype)
 
