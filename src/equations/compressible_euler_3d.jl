@@ -687,11 +687,13 @@ See also
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
-  # Calculate primitive variables and speed of sound
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
@@ -705,26 +707,16 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
-  f5 = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-
-  return SVector(f1, f2, f3, f4, f5)
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
-  # Calculate primitive variables and speed of sound
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v2_ll = rho_v2_ll / rho_ll
   v3_ll = rho_v3_ll / rho_ll
@@ -735,46 +727,22 @@ function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations
   v3_rr = rho_v3_rr / rho_rr
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * (v1_rr^2 + v2_rr^2 + v3_rr^2))
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   if orientation == 1 # x-direction
-    Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
   elseif orientation == 2 # y-direction
-    Ssl = v2_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v2_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v2_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v2_rr + sqrt(equations.gamma * p_rr / rho_rr)
   else # z-direction
-    Ssl = v3_ll - sqrt(equations.gamma * p_ll / rho_ll)
-    Ssr = v3_rr + sqrt(equations.gamma * p_rr / rho_rr)
+    λ_min = v3_ll - sqrt(equations.gamma * p_ll / rho_ll)
+    λ_max = v3_rr + sqrt(equations.gamma * p_rr / rho_rr)
   end
 
-  if Ssl >= 0.0 && Ssr > 0.0
-    f1 = f_ll[1]
-    f2 = f_ll[2]
-    f3 = f_ll[3]
-    f4 = f_ll[4]
-    f5 = f_ll[5]
-  elseif Ssr <= 0.0 && Ssl < 0.0
-    f1 = f_rr[1]
-    f2 = f_rr[2]
-    f3 = f_rr[3]
-    f4 = f_rr[4]
-    f5 = f_rr[5]
-  else
-    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr    - rho_ll))    / (Ssr - Ssl)
-    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr - rho_v1_ll)) / (Ssr - Ssl)
-    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_v2_rr - rho_v2_ll)) / (Ssr - Ssl)
-    f4 = (Ssr*f_ll[4] - Ssl*f_rr[4] + Ssl*Ssr*(rho_v3_rr - rho_v3_ll)) / (Ssr - Ssl)
-    f5 = (Ssr*f_ll[5] - Ssl*f_rr[5] + Ssl*Ssr*(rho_e_rr  - rho_e_ll))  / (Ssr - Ssl)
-  end
-
-  return SVector(f1, f2, f3, f4, f5)
+  return λ_min, λ_max
 end
 
 
- """
+"""
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
 
 Computes the HLLC flux (HLL with Contact) for compressible Euler equations developed by E.F. Toro

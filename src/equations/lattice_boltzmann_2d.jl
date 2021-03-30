@@ -75,7 +75,7 @@ struct LatticeBoltzmannEquations2D{RealT<:Real, CollisionOp} <: AbstractLatticeB
 end
 
 function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
-                                    c=1, L=1, rho0=1, u0=nothing, nu=nothing)
+                                       c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
     error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
@@ -353,7 +353,12 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
+#   λ_max =
+# end
+
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
     v_alpha = equations.v_alpha1
   else

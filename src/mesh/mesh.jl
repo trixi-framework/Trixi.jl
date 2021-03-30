@@ -115,9 +115,7 @@ end
 function initialize!(mesh::TreeMesh, initial_refinement_level,
                      refinement_patches, coarsening_patches)
   # Create initial refinement
-  @timeit_debug timer() "initial refinement" for _ in 1:initial_refinement_level
-    refine!(mesh.tree)
-  end
+  @timeit_debug timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
 
   # Apply refinement patches
   @timeit_debug timer() "refinement patches" for patch in refinement_patches

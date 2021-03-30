@@ -5,7 +5,7 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any,3},
   @unpack weights = dg.basis
 
   @threaded for element in eachelement(dg, cache)
-    # dermine minimum value
+    # determine minimum value
     value_min = typemax(eltype(u))
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
