@@ -962,7 +962,7 @@ end
 @inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector::SVector, equations::CompressibleEulerEquations2D)
   norm_ = norm(normal_vector)
 
-  # cos and sin of the angle between (1, 0) and the normalized normal_vector are
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
   c = normal_vector[1] / norm_
   s = normal_vector[2] / norm_
