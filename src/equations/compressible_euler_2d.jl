@@ -960,17 +960,12 @@ end
 # Compute numerical flux in direction of a normal vector by rotating the velocity, 
 # computing the numerical flux in x-direction, and rotating the calculated flux back.
 @inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector::SVector, equations::CompressibleEulerEquations2D)
-  @unpack numerical_flux, dissipation = numflux
+  norm_ = norm(normal_vector)
 
-  # Compute angle between normal_vector and first unit vector counterclockwise
-  if normal_vector[2] == 0.0 && normal_vector[1] < 0.0
-    α = Float64(pi)
-  else
-    α = acos(normal_vector[1] / norm(normal_vector)) * sign(normal_vector[2])
-  end
-
-  c = cos(α)
-  s = sin(α)
+  # cos and sin of the angle between (1, 0) and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal_vector[1] / norm_
+  s = normal_vector[2] / norm_
 
   # Clockwise rotation by α
   # Multiply with [ 1     0       0     0;
