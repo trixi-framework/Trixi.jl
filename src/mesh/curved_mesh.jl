@@ -23,8 +23,8 @@ end
 Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
 
 # Arguments
-- `cells_per_dimension::NTUPLE{NDIMS, Int}`: the number of cells in each dimension.
-- `faces::NTuple{2*NDIMS,Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
+- `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
+- `faces::NTuple{2*NDIMS, Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
                                      Each function must take `NDIMS-1` arguments.
                                      `faces[1]` describes the face onto which the face in negative x-direction 
                                      of the unit hypercube is mapped. The face in positive x-direction of
@@ -44,6 +44,16 @@ function CurvedMesh(cells_per_dimension, faces, RealT::Type; unsaved_changes=tru
 end
 
 
+"""
+    CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+
+Create a CurvedMesh that represents a uncurved structured mesh with a rectangular domain.
+
+# Arguments
+- `cells_per_dimension::NTuple{NDIMS, Int}`: the number of cells in each dimension.
+- `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
+- `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
+"""
 function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
