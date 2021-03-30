@@ -311,16 +311,11 @@ function calc_vertices(coordinates, levels, length_level_0)
   return x, y
 end
 
-# Interpolate the input data from their original nodes to given output nodes.
-function interpolate1d(original_nodes, original_data, nodes_out)
-    n = length(original_nodes)
-    m = length(nodes_out)
-    vandermonde = Array{Float64,2}(undef, n, n)
-    A = Array{Float64,2}(undef, m, n)
-    for i in 0:n-1
-        vandermonde[:,i+1] = original_nodes.^i
-        A[:,i+1] = nodes_out.^i
-    end
-    coefficients = vandermonde\original_data
-    return A*coefficients
+# Calculate the vandermonde matrix for a polynomial with degree n-1.
+function calcVandermonde(nodes, n)
+  vandermonde = Array{Float64,2}(undef, length(nodes), n)
+  for i in 0:n-1
+      vandermonde[:,i+1] = nodes.^i
+  end
+  return vandermonde
 end

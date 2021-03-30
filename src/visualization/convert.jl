@@ -93,21 +93,28 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
-  interpolated_data = Array{Float64,2}(undef, max_nvisnodes*n_elements, n_vars)
+  interpolated_nodes = collect(range(original_nodes[1,1,1], original_nodes[1,end,end], length = max_nvisnodes*n_elements+1))
+  interpolated_data = Array{Float64,2}(undef, max_nvisnodes*n_elements+1,  n_vars)
+
+  # Create list with indices of the first and last nodal value in each element.
+  first = collect(1:max_nvisnodes:max_nvisnodes*n_elements)
+  last = first .+ (max_nvisnodes-1)
 
   # Iterate over all elements.
   for i in 1:n_elements
-    # Interpolate on an equidistant grid.
-    interpolated_nodes[:,i] = vcat(range(original_nodes[1,1,i], original_nodes[1,end,i], length = max_nvisnodes))
+    vandermonde = calcVandermonde(original_nodes[1,:,i], n_nodes)
 
     # Interpolate the data for each variable.
     for j in 1:n_vars
-      interpolated_data[(i-1)*max_nvisnodes+1:i*max_nvisnodes, j] = interpolate1d(original_nodes[1,:,i], unstructured_data[:,i,j], interpolated_nodes[:,i])
+
+      # Calculate and apply polynomial coefficients.
+      coefficients = vandermonde\unstructured_data[:,i,j]
+      interpolated_data[first[i]:last[i],j] = calcVandermonde(interpolated_nodes[first[i]:last[i]], n_nodes)*coefficients
     end
   end
+  interpolated_data[end,:]=unstructured_data[end,end,:]
 
-  return vec(interpolated_nodes), interpolated_data
+  return interpolated_nodes, interpolated_data
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
