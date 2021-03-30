@@ -12,16 +12,12 @@ initial_condition = initial_condition_convergence_test
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-# coordinates_min = (0.0, 0.0)
-# coordinates_max = (2.0, 2.0)
-f1(s) = [0.0, s+1.0]
-f2(s) = [2.0, s+1.0]
-f3(s) = [s+1.0, 0.0]
-f4(s) = [s+1.0, 2.0]
+coordinates_min = (0.0, 0.0)
+coordinates_max = (2.0, 2.0)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, Float64)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

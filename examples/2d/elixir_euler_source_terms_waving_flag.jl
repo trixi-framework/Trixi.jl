@@ -14,14 +14,14 @@ solver = DGSEM(3, surface_flux)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
-f1(s) = [-1.0, s - 1.0]
-f2(s) = [ 1.0, s + 1.0]
-f3(s) = [s, -1.0 + sin(0.5 * pi * s)]
-f4(s) = [s,  1.0 + sin(0.5 * pi * s)]
+f1(s) = SVector(-1.0, s - 1.0)
+f2(s) = SVector( 1.0, s + 1.0)
+f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
+f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4), Float64)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

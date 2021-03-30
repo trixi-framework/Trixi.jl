@@ -15,14 +15,14 @@ initial_condition_source_terms = InitialConditionSourceTermsRotated(α)
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-f1(s) = T * [-1, s]
-f2(s) = T * [ 1, s]
-f3(s) = T * [s, -1]
-f4(s) = T * [s,  1]
+f1(s) = T * SVector(-1, s)
+f2(s) = T * SVector( 1, s)
+f3(s) = T * SVector(s, -1)
+f4(s) = T * SVector(s,  1)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, [f1, f2, f3, f4], Float64)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4), Float64)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,

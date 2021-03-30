@@ -31,7 +31,7 @@ function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
   
   for i in 1:NNODES
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[1, i, cell_x] = bilinear_mapping(cell_x_offset + dx/2 * nodes[i], mesh)[1]
+    node_coordinates[1, i, cell_x] = linear_mapping(cell_x_offset + dx/2 * nodes[i], mesh)[1]
   end
 end
 
