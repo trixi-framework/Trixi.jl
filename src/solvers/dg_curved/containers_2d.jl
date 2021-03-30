@@ -38,13 +38,13 @@ function calc_node_coordinates!(node_coordinates, element,
   for j in 1:NNODES, i in 1:NNODES
     # node_coordinates are the mapped reference node_coordinates
     node_coordinates[:, i, j, element] .= transfinite_mapping(cell_x_offset + dx/2 * nodes[i],
-                                                           cell_y_offset + dy/2 * nodes[j], mesh)
+                                                              cell_y_offset + dy/2 * nodes[j], mesh)
   end
 end
 
 
 function calc_metric_terms!(metric_terms, element, node_coordinates::Array{RealT, 4}, 
-                           basis::LobattoLegendreBasis{T, NNODES}) where {RealT, T, NNODES}
+                            basis::LobattoLegendreBasis{T, NNODES}) where {RealT, T, NNODES}
   @views metric_terms[1, 1, :, :, element] .= basis.derivative_matrix * node_coordinates[1, :, :, element] # x_ξ
   @views metric_terms[2, 1, :, :, element] .= basis.derivative_matrix * node_coordinates[2, :, :, element] # y_ξ
   @views metric_terms[1, 2, :, :, element] .= node_coordinates[1, :, :, element] * basis.derivative_matrix' # x_η

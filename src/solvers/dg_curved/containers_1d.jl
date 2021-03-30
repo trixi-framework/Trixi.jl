@@ -2,10 +2,8 @@ function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBas
   @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
-
   # Calculate inverse Jacobian and node coordinates
   for cell_x in 1:size(mesh, 1)
-
     calc_node_coordinates!(node_coordinates, cell_x, mesh, basis)
 
     calc_metric_terms!(metric_terms, cell_x, node_coordinates, basis)
