@@ -25,14 +25,14 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
 - `faces::NTuple{2*NDIMS, Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
-                                     Each function must take `NDIMS-1` arguments.
-                                     `faces[1]` describes the face onto which the face in negative x-direction 
-                                     of the unit hypercube is mapped. The face in positive x-direction of
-                                     the unit hypercube will be mapped onto the face described by `faces[2]`.
-                                     `faces[3:4]` describe the faces in positive and negative y-direction respectively 
-                                     (in 2D and 3D).
-                                     `faces[5:6]` describe the faces in positive and negative z-direction respectively
-                                     (in 3D).
+                                      Each function must take `NDIMS-1` arguments.
+                                      `faces[1]` describes the face onto which the face in negative x-direction 
+                                      of the unit hypercube is mapped. The face in positive x-direction of
+                                      the unit hypercube will be mapped onto the face described by `faces[2]`.
+                                      `faces[3:4]` describe the faces in positive and negative y-direction respectively 
+                                      (in 2D and 3D).
+                                      `faces[5:6]` describe the faces in positive and negative z-direction respectively
+                                      (in 3D).
 - `RealT::Type`: The type that should be used for coordinates.
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
@@ -152,10 +152,19 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh{NDIMS, RealT}) w
   if get(io, :compact, false)
     show(io, mesh)
   else
-    setup = [
-            "size" => size(mesh),
-            "faces" => mesh.faces
-            ]
-    summary_box(io, "CurvedMesh{" * string(NDIMS) * ", " * string(RealT) * "}", setup)
+    summary_header(io, "CurvedMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
+    summary_line(io, "size", size(mesh))
+    summary_line(io, "faces", 2*NDIMS)
+    summary_line(increment_indent(io), "negative x", mesh.faces_as_string[1])
+    summary_line(increment_indent(io), "positive x", mesh.faces_as_string[2])
+    if NDIMS > 1
+      summary_line(increment_indent(io), "negative y", mesh.faces_as_string[3])
+      summary_line(increment_indent(io), "positive y", mesh.faces_as_string[4])
+    end
+    if NDIMS > 2
+      summary_line(increment_indent(io), "negative z", mesh.faces_as_string[5])
+      summary_line(increment_indent(io), "positive z", mesh.faces_as_string[6])
+    end
+    summary_footer(io)
   end
 end
