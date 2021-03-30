@@ -2,7 +2,7 @@
 # mapping formula from a point (xi, eta) in reference space [-1,1]^2 to a point (x,y)
 # in physical coordinate space for a quadrilateral element with straight sides
 #     Alg. 95 from the blue book of Kopriva
-function straight_side_quad_map(corner_points, xi, eta)
+function straight_side_quad_map(xi, eta, corner_points)
 
   x = (0.25 * (  corner_points[1,1] * (1.0 - xi) * (1.0 - eta)
                + corner_points[2,1] * (1.0 + xi) * (1.0 - eta)
@@ -20,7 +20,7 @@ end
 
 # Compute the metric terms for the straight sided quadrilateral mapping
 #     Alg. 100 from the blue book of Kopriva
-function straight_side_quad_map_metrics(corner_points, xi, eta)
+function straight_side_quad_map_metrics(xi, eta, corner_points)
 
   X_xi  = ( 0.25 * (  (1.0 - eta) * (corner_points[2,1] - corner_points[1,1])
                     + (1.0 + eta) * (corner_points[3,1] - corner_points[4,1])) )

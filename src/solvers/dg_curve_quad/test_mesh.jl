@@ -8,7 +8,7 @@ include("quadrilateral_mappings.jl")
 include("containers_2d.jl")
 include("unstructured_quad_mesh.jl")
 
-poly_deg = 8
+poly_deg = 7
 nnodes   = poly_deg + 1
 
 # cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(nnodes)
@@ -147,18 +147,15 @@ lgl_nodes, _ = Trixi.gauss_lobatto_nodes_weights(nnodes)
 # edge_test = GeneralInterfaceContainer2D(edge_info, poly_deg)
 
 ##
-#  There is an issue right now where the mesh file and DG approximation MUST use the same polynomial order
-#  which needs fixed
-##
-
-##
 #  test the creation of a quad mesh from a file
-mesh_file = "BoxAroundCircle8.mesh"
+#mesh_file = "BoxAroundCircle8.mesh"
+mesh_file = "PeriodicXandY7.mesh"
 mesh_test = UnstructuredQuadMesh(Float64, mesh_file, poly_deg, lgl_nodes)
 
 # plot the first element
 
-for j in 2:40
+#for j in 2:40
+for j in 2:16
    plot!(          mesh_test.elements[j].geometry.x ,          mesh_test.elements[j].geometry.y , linecolor=:black, legend = false, aspect_ratio=:equal)
    plot!(transpose(mesh_test.elements[j].geometry.x),transpose(mesh_test.elements[j].geometry.y), linecolor=:black, legend = false, aspect_ratio=:equal)
 end

@@ -118,5 +118,5 @@ function lagrange_interpolation_derivative(x, nodes, fvals, wbary)
     end
   end
 
-  return numerator/denominator #p_prime
+  return numerator/denominator # p_prime
 end
