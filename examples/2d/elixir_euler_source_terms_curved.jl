@@ -17,7 +17,7 @@ coordinates_max = (2.0, 2.0)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, Float64)
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

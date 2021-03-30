@@ -37,15 +37,16 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
-function CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+function CurvedMesh(cells_per_dimension, faces, RealT::Type; unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
 
   return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, faces_as_string, "", unsaved_changes)
 end
 
 
-function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max, RealT)
+function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
   NDIMS = length(cells_per_dimension)
+  RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
   faces, faces_as_string = coordinates2faces(coordinates_min, coordinates_max)
 
   return CurvedMesh(cells_per_dimension, faces, RealT; faces_as_string=faces_as_string)
