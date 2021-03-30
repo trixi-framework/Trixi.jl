@@ -990,8 +990,7 @@ end
                          -s * u_rr[2] + c * u_rr[3],
                          u_rr[4])
 
-  flux_rotated = numerical_flux(u_ll, u_rr, 1, equations) + 
-                 dissipation(u_ll, u_rr, 1, equations)
+  flux_rotated = numflux(u_ll_rotated, u_rr_rotated, 1, equations)
 
   # Counterclockwise rotation by α
   # Multiply with [ 1    0        0     0;
