@@ -85,7 +85,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
-function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0)
+function save_mesh_file(mesh::CurvedMesh{NDIMS, RealT}, output_directory, timestep=0) where {NDIMS, RealT}
   # Create output directory (if it does not exist)
   mkpath(output_directory)
 
@@ -97,6 +97,7 @@ function save_mesh_file(mesh::CurvedMesh, output_directory, timestep=0)
     attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = collect(size(mesh))
+    attributes(file)["realt"] = RealT |> nameof |> string
 
     file["faces"] = mesh.faces_as_string
   end
@@ -129,15 +130,16 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max)
     load_mesh!(mesh, restart_file)
   elseif mesh_type == "CurvedMesh"
     filename = get_restart_mesh_filename(restart_file, Val(false))
-    size_, faces_string = h5open(filename, "r") do file
+    size_, faces_string, RealT_string = h5open(filename, "r") do file
       return read(attributes(file)["size"]),
-             read(file["faces"])
+             read(file["faces"]), 
+             read(attributes(file)["realt"])
     end
 
     size = Tuple(size_)
     faces = faces_string .|> Meta.parse .|> eval |> Tuple
-    # TODO RealT should be saved
-    mesh = CurvedMesh(size, faces, Float64; unsaved_changes=false, faces_as_string=faces_string)
+    RealT = include_string(@__MODULE__, RealT_string)
+    mesh = CurvedMesh(size, faces, RealT; unsaved_changes=false, faces_as_string=faces_string)
   else
     error("Unknown mesh type!")
   end
