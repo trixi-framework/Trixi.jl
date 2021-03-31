@@ -46,15 +46,14 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   # Types of errors to be calcuated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
 
-  # get the initial_refinement_level from the elixir
-  code = read(elixir, String)
-  expr = Meta.parse("begin $code end")
-  initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+  initial_refinement = extract_initial_refinement(elixir)
 
   # run simulations and extract errors
   for iter in 1:iterations
     println("Running convtest iteration ", iter, "/", iterations)
-    trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+
+    include_refined(mod, elixir, initial_refinement, iter; kwargs)
+
     l2_error, linf_error = mod.analysis_callback(mod.sol)
 
     # collect errors as one vector to reshape later
@@ -175,3 +174,32 @@ function find_assignment(expr, destination)
   result
 end
 
+
+function extract_initial_refinement(elixir)
+  code = read(elixir, String)
+  expr = Meta.parse("begin $code end")
+
+  try
+    # get the initial_refinement_level from the elixir
+    initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+  catch e
+    if isa(e, UndefVarError)
+      # get cells_per_dimension from the elixir
+      cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+    else
+      throw(e)
+    end
+  end
+end
+
+
+function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwargs)
+  trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+end
+
+
+function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
+  new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
+
+  trixi_include(mod, elixir; kwargs..., cells_per_dimension=new_cells_per_dimension)
+end
