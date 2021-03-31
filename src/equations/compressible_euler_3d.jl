@@ -913,7 +913,7 @@ end
   return SVector(w1, w2, w3, w4, w5)
 end
 
-@inline function entropy2cons(w, equations::CompressibleEulerEquations1D)
+@inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
   γ = equations.gamma
 
   w1,wU1,wU2,wU3,wE = w .* (γ-1) # convert to entropy -ρ*s / (γ-1)
