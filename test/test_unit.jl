@@ -26,7 +26,6 @@ Cassette.@context Ctx
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
       @test Trixi.n_children_per_cell(t) == 2
-      @test Trixi.n_children_per_cell(2) == 4
       @test Trixi.n_directions(t) == 2
     end
 
@@ -421,6 +420,16 @@ Cassette.@context Ctx
     println()
     @test_nowarn show(stdout, "text/plain", callback)
     println()
+  end
+
+  @testset "APE 2D varnames" begin
+    v_mean_global = (0.0, 0.0)
+    c_mean_global = 1.0
+    rho_mean_global = 1.0
+    equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global, rho_mean_global)
+
+    @test Trixi.varnames(cons2state, equations) == ("v1_prime", "v2_prime", "p_prime")
+    @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
   # Test docstrings

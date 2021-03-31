@@ -37,7 +37,7 @@ using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
-using TimerOutputs: @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
+using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 using UnPack: @unpack, @pack!
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
@@ -58,7 +58,7 @@ include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("equations/equations.jl")
 include("mesh/mesh.jl")
-include("solvers/dg/dg.jl")
+include("solvers/solvers.jl")
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
@@ -74,10 +74,12 @@ include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
+
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressibleEulerMulticomponentEquations2D,
+       CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
@@ -85,7 +87,10 @@ export AcousticPerturbationEquations2D,
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
-       flux_ec
+       flux_ec,
+       FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
+       FluxLaxFriedrichs, max_abs_speed_naive,
+       FluxHLL, min_max_speed_naive
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -94,15 +99,21 @@ export initial_condition_constant,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
+       initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
+       initial_condition_sod_shock_tube, boundary_condition_sod_shock_tube,
+       initial_condition_shock_tube, 
+       initial_condition_knallgas_detonation, boundary_condition_knallgas_detonation, source_terms_knallgas_detonation,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp,
+       initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
-       boundary_condition_wall_noslip
+       boundary_condition_wall_noslip,
+       boundary_condition_wall,
+       boundary_condition_zero
 
 export initial_condition_convergence_test, source_terms_convergence_test, boundary_condition_convergence_test
 export initial_condition_harmonic_nonperiodic, source_terms_harmonic, boundary_condition_harmonic_nonperiodic
@@ -117,12 +128,14 @@ export initial_condition_sedov_self_gravity, boundary_condition_sedov_self_gravi
 export initial_condition_eoc_test_coupled_euler_gravity, source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
+export initial_condition_gauss_wall
+export initial_condition_monopole, boundary_condition_monopole
 
-export cons2cons, cons2prim, cons2macroscopic, prim2cons
+export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh
+export TreeMesh, StructuredMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -157,7 +170,7 @@ export trixi_include, examples_dir, get_examples, default_example
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, getmesh
+export PlotData1D, PlotData2D, getmesh, adapt_to_mesh_level!, adapt_to_mesh_level
 
 
 function __init__()

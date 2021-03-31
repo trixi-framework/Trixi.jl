@@ -24,6 +24,9 @@ isdir(outdir) && rm(outdir, recursive=true)
 
   # Compressible Euler
   include("test_examples_2d_euler.jl")
+
+  # Structured mesh
+  include("test_examples_2d_structured.jl")
 end
 
 # Coverage test for all initial conditions

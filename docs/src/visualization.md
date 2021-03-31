@@ -92,6 +92,20 @@ There are several other keyword arguments that influence how the solution data
 is processed for visualization with the Plots package. A detailed explanation
 can be found in the docstring of the [`PlotData2D`](@ref) constructor.
 
+Another way to change the appearance of a plot is to convert the solution to a
+uniformly refined mesh before plotting. This can be helpful, e.g., when
+trying different settings for a simulation with adaptive mesh refinement,
+where one would like to ignore the mesh changes when comparing solutions. This
+is achieved with [`adapt_to_mesh_level`](@ref), which uses the mesh adaptation
+routines to adapt the solution to a uniform grid. For example, the AMR solution
+from above could be preprocessed with
+```julia
+julia> pd = PlotData2D(adapt_to_mesh_level(sol, 4)...)
+```
+When plotted together with the mesh, this will yield the following visualization:
+
+![plot-rho-uniform-mesh](https://user-images.githubusercontent.com/3637659/112101404-e0f64500-8ba6-11eb-9516-ad910c6813b2.png)
+
 
 ### Plotting 3D solutions
 It is possible to plot 2D slices from 3D simulation data with the same commands

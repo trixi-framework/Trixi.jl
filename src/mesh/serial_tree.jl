@@ -95,7 +95,7 @@ function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real, peri
   t.parent_ids[1] = 0
   t.child_ids[:, 1] .= 0
   t.levels[1] = 0
-  t.coordinates[:, 1] .= t.center_level_0
+  set_cell_coordinates!(t, t.center_level_0, 1)
   t.original_cell_ids[1] = 0
 
   # Set neighbor ids: for each periodic direction, the level-0 cell is its own neighbor
@@ -145,78 +145,17 @@ function Base.show(io::IO, ::MIME"text/plain", t::SerialTree)
 end
 
 
-# Refine given cells without rebalancing tree.
-#
-# Note: After a call to this method the tree may be unbalanced!
-function refine_unbalanced!(t::SerialTree, cell_ids)
-  # Store actual ids refined cells (shifted due to previous insertions)
-  refined = zeros(Int, length(cell_ids))
+# Set information for child cell `child_id` based on parent cell `cell_id` (except neighbors)
+function init_child!(t::SerialTree, cell_id, child, child_id)
+  t.parent_ids[child_id] = cell_id
+  t.child_ids[child, cell_id] = child_id
+  t.child_ids[:, child_id] .= 0
+  t.levels[child_id] = t.levels[cell_id] + 1
+  set_cell_coordinates!(t,
+    child_coordinates(t, cell_coordinates(t, cell_id), length_at_cell(t, cell_id), child), child_id)
+  t.original_cell_ids[child_id] = 0
 
-  # Loop over all cells that are to be refined
-  for (count, original_cell_id) in enumerate(sort(unique(cell_ids)))
-    # Determine actual cell id, taking into account previously inserted cells
-    n_children = n_children_per_cell(t)
-    cell_id = original_cell_id + (count - 1) * n_children
-    refined[count] = cell_id
-
-    @assert !has_children(t, cell_id) "Non-leaf cell $cell_id cannot be refined"
-
-    # Insert new cells directly behind parent (depth-first)
-    insert!(t, cell_id + 1, n_children)
-
-    # Flip sign of refined cell such that we can easily find it later
-    t.original_cell_ids[cell_id] = -t.original_cell_ids[cell_id]
-
-    # Initialize child cells
-    for child in 1:n_children
-      # Set child information based on parent
-      child_id = cell_id + child
-      t.parent_ids[child_id] = cell_id
-      t.child_ids[child, cell_id] = child_id
-      t.neighbor_ids[:, child_id] .= 0
-      t.child_ids[:, child_id] .= 0
-      t.levels[child_id] = t.levels[cell_id] + 1
-      t.coordinates[:, child_id] .= child_coordinates(
-          t, t.coordinates[:, cell_id], length_at_cell(t, cell_id), child)
-      t.original_cell_ids[child_id] = 0
-
-      # For determining neighbors, use neighbor connections of parent cell
-      for direction in eachdirection(t)
-        # If neighbor is a sibling, establish one-sided connectivity
-        # Note: two-sided is not necessary, as each sibling will do this
-        if has_sibling(child, direction)
-          adjacent = adjacent_child(child, direction)
-          neighbor_id = cell_id + adjacent
-
-          t.neighbor_ids[direction, child_id] = neighbor_id
-          continue
-        end
-
-        # Skip if original cell does have no neighbor in direction
-        if !has_neighbor(t, cell_id, direction)
-          continue
-        end
-
-        # Otherwise, check if neighbor has children - if not, skip again
-        neighbor_id = t.neighbor_ids[direction, cell_id]
-        if !has_children(t, neighbor_id)
-          continue
-        end
-
-        # Check if neighbor has corresponding child and if yes, establish connectivity
-        adjacent = adjacent_child(child, direction)
-        if has_child(t, neighbor_id, adjacent)
-          neighbor_child_id = t.child_ids[adjacent, neighbor_id]
-          opposite = opposite_direction(direction)
-
-          t.neighbor_ids[direction, child_id] = neighbor_child_id
-          t.neighbor_ids[opposite, neighbor_child_id] = child_id
-        end
-      end
-    end
-  end
-
-  return refined
+  return nothing
 end
 
 

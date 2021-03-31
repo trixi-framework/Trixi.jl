@@ -171,7 +171,6 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
 end
 
 
-get_name(::LatticeBoltzmannEquations3D) = "LatticeBoltzmannEquations3D"
 varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D) = ntuple(v -> "pdf"*string(v), Val(nvariables(equations)))
 varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames(cons2cons, equations)
 
@@ -239,7 +238,12 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+#   λ_max =
+# end
+
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction
