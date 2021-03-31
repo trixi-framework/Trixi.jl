@@ -414,9 +414,28 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
+  @testset "Euler conversion between conservative/entropy variables" begin
+    tol = 10*eps()
+    ρ,u,v,w,p = 1.0, .1, .2, .3, 2.0
+
+    cons_vars = Trixi.prim2cons([ρ,u,p],CompressibleEulerEquations1D(1.4))
+    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations1D(1.4))
+    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations1D(1.4)))) < tol
+
+    cons_vars = Trixi.prim2cons([ρ,u,v,p],CompressibleEulerEquations2D(1.4))
+    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations2D(1.4))
+    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations2D(1.4)))) < tol
+
+    cons_vars = Trixi.prim2cons([ρ,u,v,w,p],CompressibleEulerEquations3D(1.4))
+    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations3D(1.4))
+    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations3D(1.4)))) < tol
+  end
+
   # Test docstrings
   DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
   doctest(Trixi, manual=false)
 end
+
+
 
 end #module
