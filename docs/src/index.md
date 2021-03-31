@@ -1,6 +1,6 @@
 # Trixi.jl
 
-[**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl) 
+[**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
 is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -37,7 +37,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.5.
+with Julia v1.6.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
