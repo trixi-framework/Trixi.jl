@@ -32,7 +32,10 @@ on:
 jobs:
   test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
-    name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # We could also include the Julia version as in
+    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
+    name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
