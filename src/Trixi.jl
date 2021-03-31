@@ -74,10 +74,12 @@ include("visualization/visualization.jl")
 
 
 # export types/functions that define the public API of Trixi
+
 export AcousticPerturbationEquations2D,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D, CompressibleEulerEquations3D,
-       CompressibleEulerMulticomponentEquations2D,
+       CompressibleEulerMulticomponentEquations1D, CompressibleEulerMulticomponentEquations2D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
+       IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
@@ -97,10 +99,14 @@ export initial_condition_constant,
        initial_condition_khi,
        initial_condition_weak_blast_wave, initial_condition_blast_wave,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
+       initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
+       initial_condition_sod_shock_tube, boundary_condition_sod_shock_tube,
+       initial_condition_shock_tube, 
+       initial_condition_knallgas_detonation, boundary_condition_knallgas_detonation, source_terms_knallgas_detonation,
        initial_condition_blob,
        initial_condition_orszag_tang,
        initial_condition_rotor,
-       initial_condition_shock_bubble, initial_condition_shock_bubble_3comp,
+       initial_condition_shock_bubble,
        initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
