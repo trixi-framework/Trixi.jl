@@ -424,13 +424,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)
-      cons_vars = prim2cons([ρ,u,v,p],equations)
+      cons_vars = prim2cons([ρ,v1,v2,p],equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
     end
 
     let equations = CompressibleEulerEquations3D(1.4)
-      cons_vars = prim2cons([ρ,u,v,w,p],equations)
+      cons_vars = prim2cons([ρ,v1,v2,v3,p],equations)
       entropy_vars = cons2entropy(cons_vars,equations)
       @test cons_vars ≈ entropy2cons(entropy_vars,equations)
     end
