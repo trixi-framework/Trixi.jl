@@ -8,7 +8,7 @@ end
 
 
 # constructor for an unstructured mesh read in from a file
-function UnstructuredQuadMesh(RealT, filename, polydeg, dg_nodes)
+function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -52,7 +52,7 @@ function UnstructuredQuadMesh(RealT, filename, polydeg, dg_nodes)
     edge_info[4] = parse(Int64,current_line[4])
     edge_info[5] = parse(Int64,current_line[5])
     edge_info[6] = parse(Int64,current_line[6])
-    edges[j] = GeneralInterfaceContainer2D(edge_info, polydeg)
+    edges[j] = GeneralInterfaceContainer2D(RealT, edge_info, nvars, polydeg)
     file_idx += 1
   end
 
@@ -84,7 +84,7 @@ function UnstructuredQuadMesh(RealT, filename, polydeg, dg_nodes)
       file_idx  += 1
       bndy_names = split(file_lines[file_idx])
       # construct quadrilateral geometry using only corner information
-      elements[j] = GeneralElementContainer2D(RealT, polydeg, dg_nodes, cornerNodeVals, bndy_names)
+      elements[j] = GeneralElementContainer2D(RealT, nvars, polydeg, dg_nodes, cornerNodeVals, bndy_names)
     else
     # quadrilateral element has at least one curved side
       m1 = 1
@@ -126,7 +126,7 @@ function UnstructuredQuadMesh(RealT, filename, polydeg, dg_nodes)
       file_idx  += 1
       bndy_names = split(file_lines[file_idx])
       # construct quadrilateral geometry using all the curve information
-      elements[j] = GeneralElementContainer2D(RealT, polydeg, dg_nodes, GammaCurves, bndy_names)
+      elements[j] = GeneralElementContainer2D(RealT, nvars, polydeg, dg_nodes, GammaCurves, bndy_names)
     end
     # one last increment to the global index to read in the next element information
     file_idx += 1
