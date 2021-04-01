@@ -1010,19 +1010,23 @@ end
   return SVector(w1, w2, w3, w4)
 end
 
+# Mapping and variables adapted from Hughes, Mallet, Franca (1986)
+# A new FE formulation for CFD: I. Sym. forms of the compressible Euler and NS equations 
+# and the second law of thermodynamics. https://doi.org/10.1016/0045-7825(86)90127-1
 @inline function entropy2cons(w, equations::CompressibleEulerEquations2D)
-  γ = equations.gamma
 
-  w1,wU1,wU2,wE = w .* (γ-1) # convert to entropy -ρ*s / (γ-1)
+  gamma = equations.gamma
   
-  wUnorm    = wU1^2 + wU2^2
-  s = γ - w1 + wUnorm/(2*wE)
+  w1,w2,w3,w4 = w .* (gamma-1) # convert to entropy variables for S(U) = -ρ*s / (γ-1)
+  
+  wv_square = w2^2 + w3^2
+  s = gamma - w1 + wv_square/(2*w4)
 
-  ρι     = ((γ-1) / (-wE)^γ)^(1/(γ-1))*exp(-s/(γ-1))
-  rho    = -ρι * wE
-  rhou   = ρι * wU1
-  rhov   = ρι * wU2
-  rho_e  = ρι*(1-wUnorm/(2*wE))
+  rho_iota = ((gamma-1) / (-w4)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
+  rho    = -rho_iota * w4
+  rhou   =  rho_iota * w2
+  rhov   =  rho_iota * w3
+  rho_e  =  rho_iota * (1-wv_square/(2*w4))
   return SVector(rho,rhou,rhov,rho_e)
 end
 

@@ -65,27 +65,27 @@ Source terms used for convergence tests in combination with
   L = 2
   f = 1/L
   ω = 2 * pi * f
-  γ = equations.gamma
+  gamma = equations.gamma
 
   x1, x2, x3 = x
   si, co = sincos(((x1 + x2 + x3) - t) * ω)
   tmp1 = si * A
   tmp2 = co * A * ω
-  tmp3 = ((((((4 * tmp1 * γ - 4 * tmp1) + 4 * c * γ) - 4c) - 3γ) + 7) * tmp2) / 2
+  tmp3 = ((((((4 * tmp1 * gamma - 4 * tmp1) + 4 * c * gamma) - 4c) - 3gamma) + 7) * tmp2) / 2
 
   du1 = 2 * tmp2
   du2 = tmp3
   du3 = tmp3
   du4 = tmp3
-  du5 = ((((((12 * tmp1 * γ - 4 * tmp1) + 12 * c * γ) - 4c) - 9γ) + 9) * tmp2) / 2
+  du5 = ((((((12 * tmp1 * gamma - 4 * tmp1) + 12 * c * gamma) - 4c) - 9gamma) + 9) * tmp2) / 2
 
   # Original terms (without performance enhancements)
-  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * γ) - 4c) - 3γ) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  # tmp2 = ((((((4 * sin(((x1 + x2 + x3) - t) * ω) * A * gamma - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 4 * c * gamma) - 4c) - 3gamma) + 7) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
   # du1 = 2 * cos(((x1 + x2 + x3) - t) * ω) * A * ω
   # du2 = tmp2
   # du3 = tmp2
   # du4 = tmp2
-  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * γ - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * γ) - 4c) - 9γ) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
+  # du5 = ((((((12 * sin(((x1 + x2 + x3) - t) * ω) * A * gamma - 4 * sin(((x1 + x2 + x3) - t) * ω) * A) + 12 * c * gamma) - 4c) - 9gamma) + 9) * cos(((x1 + x2 + x3) - t) * ω) * A * ω) / 2
 
   return SVector(du1, du2, du3, du4, du5)
 end
@@ -248,7 +248,7 @@ in combination with [`source_terms_eoc_test_coupled_euler_gravity`](@ref)
 or [`source_terms_eoc_test_euler`](@ref).
 """
 function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::CompressibleEulerEquations3D)
-  # OBS! this assumes that γ = 2 other manufactured source terms are incorrect
+  # OBS! this assumes that gamma = 2 other manufactured source terms are incorrect
   if equations.gamma != 2.0
     error("adiabatic constant must be 2 for the coupling convergence test")
   end
@@ -913,20 +913,23 @@ end
   return SVector(w1, w2, w3, w4, w5)
 end
 
+# Mapping and variables adapted from Hughes, Mallet, Franca (1986)
+# A new FE formulation for CFD: I. Sym. forms of the compressible Euler and NS equations 
+# and the second law of thermodynamics. https://doi.org/10.1016/0045-7825(86)90127-1
 @inline function entropy2cons(w, equations::CompressibleEulerEquations3D)
-  γ = equations.gamma
+  gamma = equations.gamma
 
-  w1,wU1,wU2,wU3,wE = w .* (γ-1) # convert to entropy -ρ*s / (γ-1)
+  w1,w2,w3,w4,w5 = w .* (gamma-1) # convert to entropy -ρ*s / (gamma-1)
   
-  wUnorm    = wU1^2 + wU2^2 + wU3^2
-  s = γ - w1 + wUnorm/(2*wE)
+  wv_square    = w2^2 + w3^2 + w4^2
+  s = gamma - w1 + wv_square/(2*w5)
 
-  ρι     = ((γ-1) / (-wE)^γ)^(1/(γ-1))*exp(-s/(γ-1))
-  rho    = -ρι * wE
-  rho_v1   = ρι * wU1
-  rho_v2   = ρι * wU2
-  rho_v3   = ρι * wU3  
-  rho_e  = ρι*(1-wUnorm/(2*wE))
+  rho_iota     = ((gamma-1) / (-w5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
+  rho      = -rho_iota * w5
+  rho_v1   =  rho_iota * w2
+  rho_v2   =  rho_iota * w3
+  rho_v3   =  rho_iota * w4  
+  rho_e    =  rho_iota*(1-wv_square/(2*w5))
   return SVector(rho,rho_v1,rho_v2,rho_v3,rho_e)
 end
 
