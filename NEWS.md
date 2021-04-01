@@ -26,7 +26,7 @@ for human readability.
   were actually using the logic of `flux_godunov`. Thus, they were renamed accordingly
   in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493). This is considered a bugfix
   (released in Trixi v0.3.22).
-- The supported version of Julia is updated to v1.6.
+- The required Julia version is updated to v1.6.
 
 #### Deprecated
 
