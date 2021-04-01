@@ -423,13 +423,17 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
-    cons_vars = Trixi.prim2cons([ρ,u,v,p],CompressibleEulerEquations2D(1.4))
-    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations2D(1.4))
-    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations2D(1.4)))) < tol
+    let equations = CompressibleEulerEquations2D(1.4)
+      cons_vars = prim2cons([ρ,u,v,p],equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
 
-    cons_vars = Trixi.prim2cons([ρ,u,v,w,p],CompressibleEulerEquations3D(1.4))
-    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations3D(1.4))
-    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations3D(1.4)))) < tol
+    let equations = CompressibleEulerEquations3D(1.4)
+      cons_vars = prim2cons([ρ,u,v,w,p],equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
   end
 
   # Test docstrings
