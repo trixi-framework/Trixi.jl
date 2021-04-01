@@ -38,17 +38,17 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_dhat            = calc_dhat(nodes, weights)
 
   # type conversions to make use of StaticArrays etc.
-  nodes           = SVector{nnodes_}(convert.(RealT, nodes))
-  weights         = SVector{nnodes_}(convert.(RealT, weights))
-  inverse_weights = SVector{nnodes_}(convert.(RealT, inverse_weights))
+  nodes           = SVector{nnodes_, RealT}(convert.(RealT, nodes))
+  weights         = SVector{nnodes_, RealT}(convert.(RealT, weights))
+  inverse_weights = SVector{nnodes_, RealT}(convert.(RealT, inverse_weights))
 
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre)
-  boundary_interpolation       = SMatrix{nnodes_, 2}(convert.(RealT, boundary_interpolation))
+  boundary_interpolation       = SMatrix{nnodes_, 2, RealT, 2*nnodes_}(convert.(RealT, boundary_interpolation))
 
-  derivative_matrix          = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_matrix))
-  derivative_split           = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split))
-  derivative_split_transpose = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_split_transpose))
-  derivative_dhat            = SMatrix{nnodes_, nnodes_}(convert.(RealT, derivative_dhat))
+  derivative_matrix          = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix))
+  derivative_split           = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split))
+  derivative_split_transpose = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose))
+  derivative_dhat            = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat))
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,

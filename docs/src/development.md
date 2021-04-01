@@ -18,7 +18,7 @@ package, which tracks changed files and re-loads them automatically. Therefore,
 it is *highly recommended* to first install Revise with the following command in Julia:
 To enter the package REPL mode, press `]` in the standard Julia REPL mode. Then, execute
 ```julia
-(@v1.5) pkg> add Revise
+(@v1.6) pkg> add Revise
 ```
 Now you are able to run Trixi from the REPL, change Trixi code between runs,
 **and** enjoy the advantages of the compilation cache! Before you start using
@@ -28,7 +28,7 @@ Another recommended package for working from the REPL is
 [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl). It can be installed
 by running
 ```julia
-(@v1.5) pkg> add OhMyREPL
+(@v1.6) pkg> add OhMyREPL
 ```
 and adds syntax highlighting, bracket highlighting, and other helpful
 improvements for using Julia interactively. To automatically use OhMyREPL when
