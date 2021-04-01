@@ -415,12 +415,13 @@ isdir(outdir) && rm(outdir, recursive=true)
   end
 
   @testset "Euler conversion between conservative/entropy variables" begin
-    tol = 10*eps()
-    ρ,u,v,w,p = 1.0, .1, .2, .3, 2.0
+    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
 
-    cons_vars = Trixi.prim2cons([ρ,u,p],CompressibleEulerEquations1D(1.4))
-    entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations1D(1.4))
-    @test maximum(abs.(cons_vars .- Trixi.entropy2cons(entropy_vars,CompressibleEulerEquations1D(1.4)))) < tol
+    let equations = CompressibleEulerEquations1D(1.4)
+      cons_vars = prim2cons(SVector(rho, v1, p),equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
 
     cons_vars = Trixi.prim2cons([ρ,u,v,p],CompressibleEulerEquations2D(1.4))
     entropy_vars = Trixi.cons2entropy(cons_vars,CompressibleEulerEquations2D(1.4))
