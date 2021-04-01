@@ -340,6 +340,12 @@ Cassette.@context Ctx
     @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
+  @testset "HLL flux with vanishing wave speed estimates (#502)" begin
+    equations = CompressibleEulerEquations1D(1.4)
+    u = SVector(1.0, 0.0, 0.0)
+    @test !any(isnan, FluxHLL()(u, u, 1, equations))
+  end
+
   @testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
     @test isnothing(display(c2d))

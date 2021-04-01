@@ -135,9 +135,9 @@ function min_max_speed_naive end
 @inline function (numflux::FluxHLL)(u_ll, u_rr, orientation, equations)
   λ_min, λ_max = numflux.min_max_speed(u_ll, u_rr, orientation, equations)
 
-  if λ_min >= 0 && λ_max > 0
+  if λ_min >= 0 && λ_max >= 0
     return flux(u_ll, orientation, equations)
-  elseif λ_max <= 0 && λ_min < 0
+  elseif λ_max <= 0 && λ_min <= 0
     return flux(u_rr, orientation, equations)
   else
     f_ll = flux(u_ll, orientation, equations)
