@@ -1,13 +1,16 @@
 module TestUnit
 
 using Test
-using SimpleMock
+using Cassette
 using Documenter
 using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
+
+# Create a Cassette context that will be used for mocking Trixi.mpi_nranks
+Cassette.@context Ctx
 
 # Run various unit (= non-elixir-triggered) tests
 @testset "Unit tests" begin
@@ -62,7 +65,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "ParallelTreeMesh" begin
     @testset "partition!" begin
       @testset "mpi_nranks() = 2" begin
-        mock((Trixi.mpi_nranks) => () -> 2) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 2
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 2
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -82,11 +88,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 3" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+        @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -106,11 +115,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 9" begin
-        mock((Trixi.mpi_nranks) => () -> 9) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 9
+        Cassette.overdub(Ctx(), () -> begin
+        @test Trixi.mpi_nranks() == 9
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -123,11 +135,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [44, 37, 38, 37, 37, 37, 38, 37, 36]
           @test parent(mesh.first_cell_by_rank) == [1, 45, 82, 120, 157, 194, 231, 269, 306]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 3 non-uniform" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine whole tree
           Trixi.refine!(mesh.tree)
@@ -146,11 +161,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test parent(mesh.n_cells_by_rank) == [5, 2, 2]
           @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 1, 1, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 6, 8]
-        end
+        end)
       end
 
       @testset "not enough ranks" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
 
           # Only one leaf
@@ -164,7 +182,7 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test_throws AssertionError(
             "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
           @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
-        end
+        end)
       end
     end
   end
