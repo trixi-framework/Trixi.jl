@@ -52,7 +52,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.5.
+with Julia v1.6.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
