@@ -101,7 +101,7 @@ export initial_condition_constant,
        initial_condition_sedov_blast_wave, initial_condition_medium_sedov_blast_wave,
        initial_condition_two_interacting_blast_waves, boundary_condition_two_interacting_blast_waves,
        initial_condition_sod_shock_tube, boundary_condition_sod_shock_tube,
-       initial_condition_shock_tube, 
+       initial_condition_shock_tube,
        initial_condition_knallgas_detonation, boundary_condition_knallgas_detonation, source_terms_knallgas_detonation,
        initial_condition_blob,
        initial_condition_orszag_tang,
@@ -131,7 +131,8 @@ export initial_condition_couette_steady, initial_condition_couette_unsteady, bou
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
 
-export cons2cons, cons2prim, cons2macroscopic, prim2cons, cons2state, cons2mean
+export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
+       cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
