@@ -310,3 +310,52 @@ function calc_vertices(coordinates, levels, length_level_0)
 
   return x, y
 end
+
+
+# Calculate the vertices for each mesh cell such that it can be visualized as a closed box for CurvedMesh
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function calc_vertices(node_coordinates)
+  @assert size(node_coordinates, 1) == 2 "only works in 2D"
+
+  # Initialize output arrays
+  n_elements = size(node_coordinates, 4)
+  n_nodes = size(node_coordinates, 2)
+  x = Matrix{Float64}(undef, 4*(n_nodes-1)+1, n_elements)
+  y = Matrix{Float64}(undef, 4*(n_nodes-1)+1, n_elements)
+
+  # Calculate vertices for all coordinates at once
+  for element_id in 1:n_elements
+    x[1, element_id] = node_coordinates[1, 1, 1, element_id]
+    y[1, element_id] = node_coordinates[2, 1, 1, element_id]
+
+    i = 2
+    # Bottom
+    for node in 2:n_nodes
+      x[i, element_id] = node_coordinates[1, node, 1, element_id]
+      y[i, element_id] = node_coordinates[2, node, 1, element_id]
+      i += 1
+    end
+    # Right
+    for node in 2:n_nodes
+      x[i, element_id] = node_coordinates[1, n_nodes, node, element_id]
+      y[i, element_id] = node_coordinates[2, n_nodes, node, element_id]
+      i += 1
+    end
+    # Top
+    for node in 2:n_nodes
+      x[i, element_id] = node_coordinates[1, n_nodes-node+1, n_nodes, element_id]
+      y[i, element_id] = node_coordinates[2, n_nodes-node+1, n_nodes, element_id]
+      i += 1
+    end
+    # Left
+    for node in 2:n_nodes
+      x[i, element_id] = node_coordinates[1, 1, n_nodes-node+1, element_id]
+      y[i, element_id] = node_coordinates[2, 1, n_nodes-node+1, element_id]
+      i += 1
+    end
+  end
+
+  return x, y
+end
