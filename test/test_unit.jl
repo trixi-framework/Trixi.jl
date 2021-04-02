@@ -438,9 +438,33 @@ Cassette.@context Ctx
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
+  @testset "Euler conversion between conservative/entropy variables" begin
+    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations1D(1.4)
+      cons_vars = prim2cons(SVector(rho, v1, p),equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,v3,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
+  end
+
   # Test docstrings
   DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
   doctest(Trixi, manual=false)
 end
+
+
 
 end #module
