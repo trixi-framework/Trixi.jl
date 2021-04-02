@@ -1026,11 +1026,11 @@ end
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
   # eq. (51)  
-  rho    = -rho_iota * V5
-  rhou   =  rho_iota * V2
-  rhov   =  rho_iota * V3
-  rho_e  =  rho_iota * (1-(V2^2 + V3^2)/(2*V5))
-  return SVector(rho,rhou,rhov,rho_e)
+  rho      = -rho_iota * V5
+  rho_v1   =  rho_iota * V2
+  rho_v2   =  rho_iota * V3
+  rho_e    =  rho_iota * (1-(V2^2 + V3^2)/(2*V5))
+  return SVector(rho, rho_v1, rho_v2, rho_e)
 end
 
 

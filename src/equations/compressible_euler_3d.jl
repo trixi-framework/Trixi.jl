@@ -935,7 +935,7 @@ end
   rho_v2  =  rho_iota * V3
   rho_v3  =  rho_iota * V4  
   rho_e   =  rho_iota*(1-V_square/(2*V5))
-  return SVector(rho,rho_v1,rho_v2,rho_v3,rho_e)
+  return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 
