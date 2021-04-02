@@ -594,6 +594,7 @@ end
 end
 
 @inline function entropy2cons(w, equations::CompressibleEulerEquations1D)
+<<<<<<< HEAD
   γ = equations.gamma
 
   w1,wU1,wE = w .* (γ-1) # convert to entropy -ρ*s / (γ-1)
@@ -606,6 +607,27 @@ end
   rhov   = ρι * wU1
   rho_e  = ρι*(1-wUnorm/(2*wE))
   return SVector(rho,rhov,rho_e)
+=======
+  # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
+  # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
+  @unpack gamma = equations
+  
+  # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
+  # instead of `-rho * s / (gamma - 1)`
+  V1, V2, V5 = w * (gamma - 1)
+  
+  # specific entropy, eq. (53)
+  s = gamma - V1 + 0.5 * (V2^2) / V5
+  
+  # eq. (52)
+  energy_internal = ((gamma - 1) / (-V5)^gamma)^inv(gamma - 1) * exp(-s / (gamma - 1))
+  
+  # eq. (51)
+  rho    = -V5 * energy_internal
+  rho_v1 = V2 * energy_internal
+  rho_e  = (1 - 0.5 * (V2^2) / V5) * energy_internal
+  return SVector(rho, rho_v1, rho_e)
+>>>>>>> main
 end
 
 

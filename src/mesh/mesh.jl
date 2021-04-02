@@ -69,12 +69,13 @@ TreeMesh(::Type{TreeType}, args...) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where {TreeType<:AbstractTree{1}}
-  return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
+  # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
+  return TreeMesh{1, TreeType}(n, SVector{1,Float64}(center), len, periodicity)
 end
 
 function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  TreeMesh{NDIMS, TreeType}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
+  TreeMesh{NDIMS, TreeType}(n_cells_max, SVector{NDIMS,Float64}(domain_center), convert(Float64, domain_length), periodicity)
 end
 
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
