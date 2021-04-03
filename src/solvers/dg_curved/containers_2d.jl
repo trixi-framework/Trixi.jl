@@ -54,8 +54,8 @@ end
 
 
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, element, metric_terms)
-  @views inverse_jacobian[:, :, element] = inv.(metric_terms[1, 1, :, :, element] .* metric_terms[2, 2, :, :, element] .-
-                                                metric_terms[1, 2, :, :, element] .* metric_terms[2, 1, :, :, element])
+  @. @views inverse_jacobian[:, :, element] = inv(metric_terms[1, 1, :, :, element] * metric_terms[2, 2, :, :, element] -
+                                               metric_terms[1, 2, :, :, element] * metric_terms[2, 1, :, :, element])
 
   return inverse_jacobian
 end
