@@ -321,6 +321,13 @@ function volume_jacobian(element, mesh::TreeMesh, cache)
 end
 
 
+function create_solver_auxvars(dg::DGSEM)
+  @unpack basis, mortar = dg
+
+  return DGSEM(basis, flux_central, VolumeIntegralWeakForm(), mortar)
+end
+
+
 
 # indicators used for shock-capturing and AMR
 include("indicators.jl")
@@ -336,6 +343,7 @@ include("dg_1d.jl")
 include("containers_2d.jl")
 include("dg_2d.jl")
 include("dg_2d_parallel.jl")
+include("dg_2d_parabolic.jl")
 
 # 3D DG implementation
 include("containers_3d.jl")

@@ -1,12 +1,13 @@
 
 """
-    StepsizeCallback(; cfl=1.0)
+    StepsizeCallback(; cfl)
 
 Set the time step size according to a CFL condition with CFL number `cfl`
-if the time integration method isn't adaptive itself.
+if the time integration method isn't adaptive itself. When using a semidiscretization that wraps
+multiple solvers, you might need to provide a tuple of CFL numbers.
 """
-mutable struct StepsizeCallback{RealT}
-  cfl_number::RealT
+mutable struct StepsizeCallback{CFLNumber}
+  cfl_number::CFLNumber
 end
 
 
@@ -34,7 +35,7 @@ function Base.show(io::IO, ::MIME"text/plain", cb::DiscreteCallback{<:Any, <:Ste
 end
 
 
-function StepsizeCallback(; cfl::Real=1.0)
+function StepsizeCallback(; cfl)
 
   stepsize_callback = StepsizeCallback(cfl)
 
@@ -62,13 +63,10 @@ end
     t = integrator.t
     u_ode = integrator.u
     semi = integrator.p
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     @unpack cfl_number = stepsize_callback
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = @timeit_debug timer() "calculate dt" cfl_number * max_dt(u, t, mesh,
-                                                                  have_constant_speed(equations), equations,
-                                                                  solver, cache)
+    dt = @timeit_debug timer() "calculate dt" max_dt(u_ode, t, cfl_number, semi)
+
     set_proposed_dt!(integrator, dt)
     integrator.opts.dtmax = dt
     integrator.dtcache = dt
@@ -90,11 +88,13 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
   u_ode = ode.u0
   t = first(ode.tspan)
   semi = ode.p
-  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-  u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  return cfl_number * max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+  return max_dt(u_ode, t, cfl_number, semi)
 end
+
+
+# FIXME: Deprecations introduced in v0.3
+@deprecate max_dt(u::AbstractArray, t, mesh::AbstractMesh, constant_speed, equations, dg::DG, cache) max_dt_hyperbolic(u, t, mesh, constant_speed, equations, dg, cache)
 
 
 include("stepsize_dg1d.jl")

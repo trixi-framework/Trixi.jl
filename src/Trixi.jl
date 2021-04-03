@@ -64,6 +64,8 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
+include("semidiscretization/semidiscretization_parabolic_auxvars.jl")
+include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("time_integration/time_integration.jl")
 
 # `trixi_include` and special elixirs such as `convergence_test`
@@ -83,7 +85,9 @@ export AcousticPerturbationEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D, HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D, LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
-       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D
+       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
+       HeatEquation2D,
+       LinearAdvectionDiffusionEquation2D
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_kennedy_gruber, flux_shima_etal,
@@ -130,6 +134,7 @@ export initial_condition_lid_driven_cavity, boundary_condition_lid_driven_cavity
 export initial_condition_couette_steady, initial_condition_couette_unsteady, boundary_condition_couette
 export initial_condition_gauss_wall
 export initial_condition_monopole, boundary_condition_monopole
+export initial_condition_sin_x, boundary_condition_sin_x
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
@@ -148,7 +153,9 @@ export DG,
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
-export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+export SemidiscretizationHyperbolic, SemidiscretizationParabolicAuxVars,
+       SemidiscretizationHyperbolicParabolic, SemidiscretizationHyperbolicParabolicBR1,
+       semidiscretize, compute_coefficients, integrate
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
        timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!

@@ -192,3 +192,15 @@ include("lattice_boltzmann_3d.jl")
 # Acoustic perturbation equations
 abstract type AbstractAcousticPerturbationEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
 include("acoustic_perturbation_2d.jl")
+
+# Gradient equations
+abstract type AbstractGradientEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("gradient_equations_2d.jl")
+
+# Heat equation
+abstract type AbstractHeatEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("heat_equation_2d.jl")
+
+# Linear scalar advection-diffusion equation
+abstract type AbstractLinearAdvectionDiffusionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
+include("linear_advection_diffusion_2d.jl")
