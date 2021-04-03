@@ -615,7 +615,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerMulticomponentEquations2D)
   rho_v1, rho_v2, rho_e  = u
 
   rho = density(u, equations)

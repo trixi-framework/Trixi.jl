@@ -64,6 +64,18 @@ direction `orientation` for the coressponding set of governing `equations`
 function flux end
 
 
+function rotate_to_x(u, normal, equations::AbstractEquations)
+  error("This equation is either not rotationally invariant or the " *
+        "function 'rotate_to_x' is not implemented for this equation.")
+end
+
+
+function rotate_from_x(u, normal, equations::AbstractEquations)
+  error("This equation is either not rotationally invariant or the " *
+        "function 'rotate_from_x' is not implemented for this equation.")
+end
+
+
 # set sensible default values that may be overwritten by specific equations
 have_nonconservative_terms(::AbstractEquations) = Val(false)
 have_constant_speed(::AbstractEquations) = Val(false)

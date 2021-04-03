@@ -188,7 +188,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations1D)
+@inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
   phi, q1 = u
   @unpack inv_Tr = equations
 

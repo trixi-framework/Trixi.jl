@@ -112,7 +112,7 @@ cos_ = initial_condition_source_terms.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxRotated(flux_lax_friedrichs)
 solver = DGSEM(3, surface_flux)
 
 f1(s) = T * SVector(-1, s)

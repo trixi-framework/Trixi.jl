@@ -9,7 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxRotated(flux_lax_friedrichs)
 solver = DGSEM(3, surface_flux)
 
 # Deformed rectangle that looks like a waving flag,

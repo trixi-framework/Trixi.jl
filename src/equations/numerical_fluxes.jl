@@ -38,6 +38,36 @@ Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f
 
 
 """
+    FluxRotated(numerical_flux)
+
+Compute a `numerical_flux` flux in direction of a normal vector by rotating the solution, 
+computing the numerical flux in x-direction, and rotating the calculated flux back.
+
+Requires a rotationally invariant equation with equation specific functions `rotate_to_x` and `rotate_from_x`.
+"""
+struct FluxRotated{NumericalFlux}
+  numerical_flux::NumericalFlux
+end
+
+@inline function (flux_rotated::FluxRotated)(u_ll, u_rr, normal_vector::AbstractVector, equations)
+  @unpack numerical_flux = flux_rotated
+
+  norm_ = norm(normal_vector)
+  # normalize(normal_vector) allocates
+  normal = SVector(normal_vector[1] / norm_, normal_vector[2] / norm_)
+
+  u_ll_rotated = rotate_to_x(u_ll, normal, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal, equations)
+
+  f = numerical_flux(u_ll_rotated, u_rr_rotated, 1, equations)
+
+  return rotate_from_x(f, normal, equations) * norm_
+end
+
+Base.show(io::IO, f::FluxRotated) = print(io, "FluxRotated(",  f.numerical_flux, ")")
+
+
+"""
     DissipationGlobalLaxFriedrichs(λ)
 
 Create a global Lax-Friedrichs dissipation operator with dissipation coefficient `λ`.

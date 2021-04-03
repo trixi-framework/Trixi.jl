@@ -599,7 +599,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -865,15 +865,11 @@ end
 end
 
 
-# Compute numerical flux in direction of a normal vector by rotating the velocity, 
-# computing the numerical flux in x-direction, and rotating the calculated flux back.
-@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector::AbstractVector, equations::CompressibleEulerEquations2D)
-  norm_ = norm(normal_vector)
-
+@inline function rotate_to_x(u, normal, equations::CompressibleEulerEquations2D)
   # cos and sin of the angle between the x-axis and the normalized normal_vector are
   # the normalized vector's x and y coordinates respectively (see unit circle).
-  c = normal_vector[1] / norm_
-  s = normal_vector[2] / norm_
+  c = normal[1]
+  s = normal[2]
 
   # Clockwise rotation by α
   # Multiply with [ 1     0       0     0;
@@ -881,29 +877,29 @@ end
   #                 0  -sin(α)  cos(α)  0;
   #                 0     0       0     1 ]
 
-  u_ll_rotated = SVector(u_ll[1], 
-                          c * u_ll[2] + s * u_ll[3],
-                         -s * u_ll[2] + c * u_ll[3],
-                         u_ll[4])
+  return SVector(u[1], 
+                 c * u[2] + s * u[3],
+                 -s * u[2] + c * u[3],
+                 u[4])
+end
 
-  u_rr_rotated = SVector(u_rr[1], 
-                          c * u_rr[2] + s * u_rr[3],
-                         -s * u_rr[2] + c * u_rr[3],
-                         u_rr[4])
 
-  flux_rotated = numflux(u_ll_rotated, u_rr_rotated, 1, equations)
+@inline function rotate_from_x(u, normal, equations::CompressibleEulerEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal[1]
+  s = normal[2]
 
   # Counterclockwise rotation by α
-  # Multiply with [ 1    0        0     0;
+  # Multiply with [ 1    0       0      0;
   #                 0  cos(α)  -sin(α)  0;
-  #                 0  sin(α)   cos(α)  0;
-  #                 0    0        0     1 ]
-  flux = SVector(flux_rotated[1], 
-                 c * flux_rotated[2] - s * flux_rotated[3],
-                 s * flux_rotated[2] + c * flux_rotated[3],
-                 flux_rotated[4])
+  #                 0  sin(α)  cos(α)   0;
+  #                 0    0       0      1 ]
 
-  return flux * norm(normal_vector)
+  return SVector(u[1], 
+                 c * u[2] - s * u[3],
+                 s * u[2] + c * u[3],
+                 u[4])
 end
 
 
