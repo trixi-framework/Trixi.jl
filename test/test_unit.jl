@@ -190,14 +190,14 @@ Cassette.@context Ctx
   @testset "curved mesh" begin
     @testset "calc_metric_terms" begin
       @testset "identity map" begin
-        basis = LobattoLegendreBasis(3)
+        basis = LobattoLegendreBasis(5)
         nodes = basis.nodes
-        metric_terms = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
+        metric_terms = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
 
-        node_coordinates = Array{Float64, 4}(undef, 2, 4, 4, 1)
-        node_coordinates[1, :, :, 1] .= [nodes[i] for i in 1:4, j in 1:4]
-        node_coordinates[2, :, :, 1] .= [nodes[j] for i in 1:4, j in 1:4]
-        expected = zeros(2, 2, 4, 4, 1)
+        node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
+        node_coordinates[1, :, :, 1] .= [nodes[i] for i in 1:6, j in 1:6]
+        node_coordinates[2, :, :, 1] .= [nodes[j] for i in 1:6, j in 1:6]
+        expected = zeros(2, 2, 6, 6, 1)
         expected[1, 1, :, :, 1] .= 1
         expected[2, 2, :, :, 1] .= 1
         @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected

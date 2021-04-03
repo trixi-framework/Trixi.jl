@@ -26,7 +26,7 @@ f4(s) = SVector(s+1,  1)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4), Float64)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

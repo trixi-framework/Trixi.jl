@@ -13,48 +13,47 @@ function create_cache_analysis(analyzer, mesh::TreeMesh,
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh,
-  equations::AbstractEquations{1}, dg::DG, cache,
-  RealT, uEltype)
+function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEquations{1}, 
+                               dg::DG, cache, RealT, uEltype)
   # pre-allocate buffers
   u_local = zeros(uEltype,
                   nvariables(equations), nnodes(analyzer))
   x_local = zeros(RealT,
                   ndims(equations), nnodes(analyzer))
-  j_local = zeros(RealT, 
-                  nnodes(analyzer))
-  return (; u_local,x_local, j_local)
+  jacobian_local = zeros(RealT, 
+                   nnodes(analyzer))
+  return (; u_local, x_local, jacobian_local)
 end
 
 
 function calc_error_norms(func, u::AbstractArray{<:Any,3}, t, analyzer,
-                          mesh::CurvedMesh{1, RealT}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis) where {RealT}
+                          mesh::CurvedMesh{1}, equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
   @unpack vandermonde, weights = analyzer
   @unpack node_coordinates, inverse_jacobian = cache.elements
-  @unpack u_local, x_local, j_local = cache_analysis
+  @unpack u_local, x_local, jacobian_local = cache_analysis
 
   # Set up data structures
   l2_error   = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
   linf_error = copy(l2_error)
-  total_volume = zero(RealT)
+  total_volume = zero(real(mesh))
 
   # Iterate over all elements for error calculations
   for element in eachelement(dg, cache)
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, element))
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, element))
-    multiply_scalar_dimensionwise!(j_local, vandermonde, view(inverse_jacobian, :, element))
+    multiply_scalar_dimensionwise!(jacobian_local, vandermonde, view(inverse_jacobian, :, element))
 
     # Calculate errors at each analysis node
-    jacobian_volume = abs.(inv.(j_local))
+    @. jacobian_local = abs(inv(jacobian_local))
 
     for i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t, equations)
       diff = func(u_exact, equations) - func(get_node_vars(u_local, equations, dg, i), equations)
-      l2_error += diff.^2 * (weights[i] * jacobian_volume[i])
+      l2_error += diff.^2 * (weights[i] * jacobian_local[i])
       linf_error = @. max(linf_error, abs(diff))
-      total_volume += weights[i] * jacobian_volume[i]
+      total_volume += weights[i] * jacobian_local[i]
     end
   end
 
@@ -102,13 +101,13 @@ end
 
 
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,3},
-                               mesh::CurvedMesh{NDIMS, RealT}, equations, dg::DGSEM, cache,
-                               args...; normalize=true) where {Func, NDIMS, RealT}
+                               mesh::CurvedMesh, equations, dg::DGSEM, cache,
+                               args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
   # Initialize integral with zeros of the right shape
   integral = zero(func(u, 1, 1, equations, dg, args...))
-  total_volume = zero(RealT)
+  total_volume = zero(real(mesh))
 
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)

@@ -228,83 +228,32 @@ function boundary_condition_linear_y(u_inner, orientation, direction, x, t,
 end
 
 
-struct InitialConditionConvergenceTestRotated
-  α::Float64
-end
-
-function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equation::LinearScalarAdvectionEquation2D)
-  @unpack α = initial_condition
-
-  # Rotate back to unit square
-  cos_ = cos(α)
-  sin_ = sin(α)
-
-  # Clockwise rotation by α and translation by 1
-  # Multiply with [  cos(α)  sin(α);
-  #                 -sin(α)  cos(α)]
-  x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
-  a = equation.advectionvelocity
-  a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
-
-  # Store translated coordinate for easy use of exact solution
-  x_trans = x_rot - a_rot * t
-
-  c = 1.0
-  A = 0.5
-  L = 2
-  f = 1/L
-  omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_trans))
-  
-  return SVector(scalar)
-end
-
-
-function initial_condition_parallelogram(x, t, equation::LinearScalarAdvectionEquation2D)
-  # Transform back to unit square
-  x_transformed = SVector(x[1] + x[2], x[2])
-  a = equation.advectionvelocity
-  a_transformed = SVector(a[1] + a[2], a[2])
-
-  # Store translated coordinate for easy use of exact solution
-  x_translated = x_transformed - a_transformed * t
-
-  c = 1.0
-  A = 0.5
-  L = 2
-  f = 1/L
-  omega = 2 * pi * f
-  scalar = c + A * sin(omega * sum(x_translated))
-  return SVector(scalar)
-end
-
-
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation2D)
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation2D)
+@inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
   λ_max = abs(equation.advectionvelocity[orientation])
 end
 
 
 # Calculate 1D flux for a single point in direction of a normal vector
-@inline function flux(u, normal_vector::SVector, equation::LinearScalarAdvectionEquation2D)
+@inline function flux(u, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
   return a * u
 end
 
 
 # Calculate maximum wave speed in direction of a normal vector for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::SVector, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
   a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
   return abs(a)
 end

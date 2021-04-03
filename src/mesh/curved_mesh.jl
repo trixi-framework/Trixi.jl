@@ -6,11 +6,12 @@ A structured curved mesh.
 Different numbers of cells per dimension are possible and arbitrary functions 
 can be used as domain faces.
 
-Note: This is an experimental feature and may be changed in future releases without notice.
+!!! warning "Experimental code"
+    This mesh type is experimental and can change any time.
 """
 mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
-  faces::Tuple
+  faces::Any # Not relevant for performance
   faces_as_string::Vector{String}
   current_filename::String
   unsaved_changes::Bool
@@ -18,7 +19,7 @@ end
 
 
 """
-    CurvedMesh(cells_per_dimension, faces, RealT)
+    CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
 
 Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -37,10 +38,10 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
-function CurvedMesh(cells_per_dimension, faces, RealT::Type; unsaved_changes=true, faces_as_string=faces2string(faces))
+function CurvedMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
 
-  return CurvedMesh{NDIMS, RealT}(cells_per_dimension, faces, faces_as_string, "", unsaved_changes)
+  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, "", unsaved_changes)
 end
 
 
@@ -57,9 +58,9 @@ Create a CurvedMesh that represents a uncurved structured mesh with a rectangula
 function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
-  faces, faces_as_string = coordinates2faces(coordinates_min, coordinates_max)
+  faces, faces_as_string = coordinates2faces(Tuple(coordinates_min), Tuple(coordinates_max))
 
-  return CurvedMesh(cells_per_dimension, faces, RealT; faces_as_string=faces_as_string)
+  return CurvedMesh(cells_per_dimension, faces; RealT=RealT, faces_as_string=faces_as_string)
 end
 
 
@@ -71,6 +72,7 @@ function faces2string(faces)
 end
 
 
+# Convert min and max coordinates of a rectangle to the face functions of the rectangle
 function coordinates2faces(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
   f1() = SVector(coordinates_min[1])
   f2() = SVector(coordinates_max[1])
@@ -82,8 +84,6 @@ function coordinates2faces(coordinates_min::NTuple{1}, coordinates_max::NTuple{1
   return (f1, f2), [f1_as_string, f2_as_string]
 end
 
-# This needs to be accessible outside of the function below when loading the mesh from a file
-linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
 
 function coordinates2faces(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
   f1(s) = SVector(coordinates_min[1], linear_interpolate(s, coordinates_min[2], coordinates_max[2]))
@@ -101,10 +101,13 @@ function coordinates2faces(coordinates_min::NTuple{2}, coordinates_max::NTuple{2
 end
 
 
+# Interpolate linearly between left and right value where s should be between -1 and 1
+linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
+
+
 # In 1D
 function linear_mapping(x, mesh)
-  return 0.5 * ((1 - x) * mesh.faces[1]() +
-                (1 + x) * mesh.faces[2]())
+  return linear_interpolate(x, mesh.faces[1](), mesh.faces[2]())
 end
 
 
@@ -131,14 +134,14 @@ end
 function transfinite_mapping(x, y, mesh)
   @unpack faces = mesh
 
-  linear_interpolation_x(x, y) = 0.5 * (faces[1](y) * (1 - x) + faces[2](y) * (1 + x))
-  linear_interpolation_y(x, y) = 0.5 * (faces[3](x) * (1 - y) + faces[4](x) * (1 + y))
-
-  return linear_interpolation_x(x, y) + linear_interpolation_y(x, y) - bilinear_mapping(x, y, mesh)
+  return linear_interpolate(x, faces[1](y), faces[2](y)) + 
+         linear_interpolate(y, faces[3](x), faces[4](x)) - 
+         bilinear_mapping(x, y, mesh)
 end
 
 
 @inline Base.ndims(::CurvedMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.real(::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 Base.size(mesh::CurvedMesh) = mesh.cells_per_dimension
 Base.size(mesh::CurvedMesh, i) = mesh.cells_per_dimension[i]
 

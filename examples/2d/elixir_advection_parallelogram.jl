@@ -2,6 +2,26 @@
 using OrdinaryDiffEq
 using Trixi
 
+
+# initial_condition_convergence_test transformed to the parallelogram
+function initial_condition_parallelogram(x, t, equation::LinearScalarAdvectionEquation2D)
+  # Transform back to unit square
+  x_transformed = SVector(x[1] + x[2], x[2])
+  a = equation.advectionvelocity
+  a_transformed = SVector(a[1] + a[2], a[2])
+
+  # Store translated coordinate for easy use of exact solution
+  x_translated = x_transformed - a_transformed * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_translated))
+  return SVector(scalar)
+end
+
 ###############################################################################
 # semidiscretization of the linear advection equation
 
@@ -26,7 +46,7 @@ f4(s) = SVector(s+1,  1)
 cells_per_dimension = (16, 16)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4), Float64)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_parallelogram, solver)

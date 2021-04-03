@@ -2,15 +2,56 @@
 using OrdinaryDiffEq
 using Trixi
 
+
+# initial_condition_convergence_test transformed to the rotated rectangle
+struct InitialConditionConvergenceTestRotated
+  sin_alpha::Float64
+  cos_alpha::Float64
+end
+
+function InitialConditionConvergenceTestRotated(alpha)
+  sin_alpha, cos_alpha = sincos(alpha)
+
+  InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
+end
+
+function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equation::LinearScalarAdvectionEquation2D)
+  sin_ = initial_condition.sin_alpha
+  cos_ = initial_condition.cos_alpha
+
+  # Rotate back to unit square
+
+  # Clockwise rotation by α and translation by 1
+  # Multiply with [  cos(α)  sin(α);
+  #                 -sin(α)  cos(α)]
+  x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
+  a = equation.advectionvelocity
+  a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
+
+  # Store translated coordinate for easy use of exact solution
+  x_trans = x_rot - a_rot * t
+
+  c = 1.0
+  A = 0.5
+  L = 2
+  f = 1/L
+  omega = 2 * pi * f
+  scalar = c + A * sin(omega * sum(x_trans))
+  
+  return SVector(scalar)
+end
+
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-α = pi * 0.1
-T = [cos(α) -sin(α); sin(α) cos(α)]
+alpha = pi * 0.1
+initial_condition = InitialConditionConvergenceTestRotated(alpha)
+sin_ = initial_condition.sin_alpha
+cos_ = initial_condition.cos_alpha
+T = [cos_ -sin_; sin_ cos_]
 
 advectionvelocity = Tuple(T * [1.0, 1.0])
 equations = LinearScalarAdvectionEquation2D(advectionvelocity)
-initial_condition = InitialConditionConvergenceTestRotated(α)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
@@ -25,7 +66,7 @@ f4(s) = T * SVector(2*s,  1)
 cells_per_dimension = (32, 19)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4), Float64)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

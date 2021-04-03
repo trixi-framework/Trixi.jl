@@ -42,7 +42,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
       end
 
       flux2 = -metric_terms[2, 1, i, j, element] * flux(u_node, 1, equations) + 
-              metric_terms[1, 1, i, j, element] * flux(u_node, 2, equations)
+               metric_terms[1, 1, i, j, element] * flux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
@@ -113,8 +113,10 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::CurvedMesh, equations
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
+      factor = -inverse_jacobian[i, j, element]
+
       for v in eachvariable(equations)
-        du[v, i, j, element] *= -inverse_jacobian[i, j, element]
+        du[v, i, j, element] *= factor
       end
     end
   end

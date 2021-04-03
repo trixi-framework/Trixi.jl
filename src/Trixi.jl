@@ -108,10 +108,7 @@ export initial_condition_constant,
        initial_condition_orszag_tang,
        initial_condition_rotor,
        initial_condition_shock_bubble,
-       initial_condition_taylor_green_vortex,
-       initial_condition_parallelogram,
-       InitialConditionConvergenceTestRotated,
-       InitialConditionSourceTermsRotated
+       initial_condition_taylor_green_vortex
 
 export boundary_condition_periodic,
        boundary_condition_gauss,
