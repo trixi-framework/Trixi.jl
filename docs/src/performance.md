@@ -91,3 +91,23 @@ of the runtimes are of the order of the fluctuations one gets when running the b
 the memory/allocs are (roughly) the same, there doesn't seem to be a significant performance regression here.
 
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
+
+
+## Runtime performance vs. latency aka using `@nospecialize` selectively
+
+Usually, Julia will compile specialized versions of each method, using as much information from the
+types of function arguments as possible (based on some
+[heuristics](https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing)).
+The compiler will generate code that is as efficient as comparable code written in a low-level
+language such as C or Fortran. However, there are cases where the runtime performance does not
+really matter but the time needed to compile specializations becomes significant. This is related to
+latency or the time-to-first-plot problem, well-known in the Julia community. In such a case, it can
+be useful to remove some burden from the compiler by avoiding specialization on every possible argument
+types using [the macro `@nospecialize`](https://docs.julialang.org/en/v1/base/base/#Base.@nospecialize).
+A prime example of such a case is pretty printing of `struct`s in the Julia REPL, see the
+[associated PR](https://github.com/trixi-framework/Trixi.jl/pull/447) for further discussions.
+
+As a rule of thumb:
+- Do not use `@nospecialize` in performance-critical parts, in particular not for methods involved
+  in computing `Trixi.rhs!`.
+- Consider using `@nospecialize` for methods like custom implementations of `Base.show`.

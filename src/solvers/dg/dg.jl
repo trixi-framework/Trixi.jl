@@ -16,7 +16,7 @@ textbooks such as
 """
 struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 
-create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg) = NamedTuple()
+create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
     VolumeIntegralFluxDifferencing
@@ -44,6 +44,8 @@ struct VolumeIntegralFluxDifferencing{VolumeFlux} <: AbstractVolumeIntegral
 end
 
 function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDifferencing)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
@@ -76,17 +78,50 @@ function VolumeIntegralShockCapturingHG(indicator; volume_flux_dg=flux_central,
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", integral::VolumeIntegralShockCapturingHG)
+  @nospecialize integral # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, integral)
   else
-    summary_header(io, "VolumeIntegralFluxDifferencing")
+    summary_header(io, "VolumeIntegralShockCapturingHG")
     summary_line(io, "volume flux DG", integral.volume_flux_dg)
-    summary_line(io, "volume flux FV", integral.volume_flux_dg)
-    summary_line(io, "indicator", typeof(integral.indicator).name)
+    summary_line(io, "volume flux FV", integral.volume_flux_fv)
+    summary_line(io, "indicator", integral.indicator |> typeof |> nameof)
     show(increment_indent(io), mime, integral.indicator)
     summary_footer(io)
   end
 end
+
+
+"""
+    VolumeIntegralPureLGLFiniteVolume
+
+A volume integral that only uses the subcell finite volume scheme from the paper
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+This gives a formally O(1)-accurate finite volume scheme on an LGL-type subcell mesh (LGL = Legendre-Gauss-Lobatto).
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct VolumeIntegralPureLGLFiniteVolume{VolumeFluxFV} <: AbstractVolumeIntegral
+  volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+end
+# TODO: Figure out if this can also be used for Gauss nodes, not just LGL, and adjust the name accordingly
+
+function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralPureLGLFiniteVolume)
+  @nospecialize integral # reduce precompilation time
+
+  if get(io, :compact, false)
+    show(io, integral)
+  else
+    setup = [
+            "FV flux" => integral.volume_flux_fv
+            ]
+    summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
+  end
+end
+
 
 function get_element_variables!(element_variables, u, mesh, equations,
                                 volume_integral::VolumeIntegralShockCapturingHG, dg, cache)
@@ -111,8 +146,10 @@ struct DG{RealT, Basis<:AbstractBasisSBP{RealT}, Mortar, SurfaceFlux, VolumeInte
   volume_integral::VolumeIntegral
 end
 
-function Base.show(io::IO, dg::DG{RealT}) where {RealT}
-  print(io, "DG{", RealT, "}(")
+function Base.show(io::IO, dg::DG)
+  @nospecialize dg # reduce precompilation time
+
+  print(io, "DG{", real(dg), "}(")
   print(io,       dg.basis)
   print(io, ", ", dg.mortar)
   print(io, ", ", dg.surface_flux)
@@ -120,16 +157,18 @@ function Base.show(io::IO, dg::DG{RealT}) where {RealT}
   print(io, ")")
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", dg::DG{RealT}) where {RealT}
+function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
+  @nospecialize dg # reduce precompilation time
+
   if get(io, :compact, false)
     show(io, dg)
   else
-    summary_header(io, "DG{" * string(RealT) * "}")
+    summary_header(io, "DG{" * string(real(dg)) * "}")
     summary_line(io, "polynomial degree", polydeg(dg))
     summary_line(io, "basis", dg.basis)
     summary_line(io, "mortar", dg.mortar)
     summary_line(io, "surface flux", dg.surface_flux)
-    summary_line(io, "volume integral", typeof(dg.volume_integral).name)
+    summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
     if !(dg.volume_integral isa VolumeIntegralWeakForm)
       show(increment_indent(io), mime, dg.volume_integral)
     end
@@ -207,14 +246,6 @@ end
 end
 
 
-function allocate_coefficients(mesh::TreeMesh, equations, dg::DG, cache)
-  # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
-  # cf. wrap_array
-  zeros(real(dg), nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
-end
-
-
-
 # Used for analyze_solution
 SolutionAnalyzer(dg::DG; kwargs...) = SolutionAnalyzer(dg.basis; kwargs...)
 
@@ -282,6 +313,11 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
   end
 
   return nothing
+end
+
+
+function volume_jacobian(element, mesh::TreeMesh, cache)
+  return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
 

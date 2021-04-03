@@ -19,9 +19,8 @@ function HyperbolicDiffusionEquations2D(; nu=1.0, Lr=inv(2pi))
 end
 
 
-get_name(::HyperbolicDiffusionEquations2D) = "HyperbolicDiffusionEquations2D"
-varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
-varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = @SVector ["phi", "q1", "q2"]
+varnames(::typeof(cons2cons), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
+varnames(::typeof(cons2prim), ::HyperbolicDiffusionEquations2D) = ("phi", "q1", "q2")
 default_analysis_errors(::HyperbolicDiffusionEquations2D)     = (:l2_error, :linf_error, :residual)
 
 @inline function residual_steady_state(du, ::HyperbolicDiffusionEquations2D)
@@ -42,7 +41,7 @@ function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusion
     q1  = 2*pi*cos(2.0*pi*x[1])*sin(2.0*pi*x[2])
     q2  = 2*pi*sin(2.0*pi*x[1])*cos(2.0*pi*x[2])
   end
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 @inline function source_terms_poisson_periodic(u, x, t, equations::HyperbolicDiffusionEquations2D)
@@ -130,7 +129,7 @@ end
     q1  = C * pi * (cosh_pix1 * sinpi_x2 + sinh_pix2 * cospi_x1)
     q2  = C * pi * (sinh_pix1 * cospi_x2 + cosh_pix2 * sinpi_x1)
   end
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 @inline function source_terms_harmonic(u, x, t, equations::HyperbolicDiffusionEquations2D)
@@ -182,7 +181,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t, equations::Hyper
   q1  = C * A * pi * cos(pi*(x[1] + x[2] - t)) # = gravity acceleration in x-direction
   q2  = q1                                     # = gravity acceleration in y-direction
 
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 
@@ -202,7 +201,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::HyperbolicDiffusi
   phi = 0.0
   q1  = 0.0
   q2  = 0.0
-  return @SVector [phi, q1, q2]
+  return SVector(phi, q1, q2)
 end
 
 """
@@ -235,7 +234,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::HyperbolicDiffusionEquations2D)
+@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations2D)
   phi, q1, q2 = u
   @unpack inv_Tr = equations
 
@@ -253,23 +252,18 @@ end
 end
 
 
-@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
-  # Obtain left and right fluxes
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
-
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   λ_max = sqrt(equations.nu * equations.inv_Tr)
-
-  return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
 end
 
 
-@inline function flux_upwind(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations2D)
   # Obtain left and right fluxes
   phi_ll, p_ll, q_ll = u_ll
   phi_rr, p_rr, q_rr = u_rr
-  f_ll = calcflux(u_ll, orientation, equations)
-  f_rr = calcflux(u_rr, orientation, equations)
+  f_ll = flux(u_ll, orientation, equations)
+  f_rr = flux(u_rr, orientation, equations)
 
   # this is an optimized version of the application of the upwind dissipation matrix:
   #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]

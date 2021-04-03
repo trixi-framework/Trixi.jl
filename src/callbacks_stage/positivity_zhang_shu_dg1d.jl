@@ -4,8 +4,8 @@ function limiter_zhang_shu!(u::AbstractArray{<:Any,3},
                             mesh, equations, dg::DGSEM, cache)
   @unpack weights = dg.basis
 
-  Threads.@threads for element in eachelement(dg, cache)
-    # dermine minimum value
+  @threaded for element in eachelement(dg, cache)
+    # determine minimum value
     value_min = typemax(eltype(u))
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)

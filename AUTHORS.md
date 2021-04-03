@@ -12,7 +12,7 @@ provided substantial additions or modifications. Together, these two groups form
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
-  KAUST (King Abdullah University of Science and Technology), Saudi Arabia
+  University of Münster, Germany
 * [Andrew Winters](https://liu.se/en/employee/andwi94),
   Linköping University, Sweden
 
@@ -20,11 +20,14 @@ provided substantial additions or modifications. Together, these two groups form
 The following people contributed major additions or modifications to Trixi and
 are listed in alphabetical order:
 
+* Benjamin Bolm
 * Christof Czernik
 * Erik Faulhaber
 * Gregor Gassner
+* Lucas Gemein
 * Julia Odenthal
 * Hendrik Ranocha
 * Andrés M. Rueda-Ramírez
+* Felipe Santillan
 * Michael Schlottke-Lakemper
 * Andrew Winters

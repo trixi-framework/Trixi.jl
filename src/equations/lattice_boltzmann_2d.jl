@@ -25,7 +25,7 @@ The nine discrete velocity directions of the D2Q9 scheme are sorted as follows [
     │       │         │
   3 ┼   9   ┼ 1        ──── x
     │       │        ╱
-    └───┼───┘       ╱ 
+    └───┼───┘       ╱
   7     4     8    z
 ```
 Note that usually the velocities are numbered from `0` to `8`, where `0` corresponds to the zero
@@ -75,7 +75,7 @@ struct LatticeBoltzmannEquations2D{RealT<:Real, CollisionOp} <: AbstractLatticeB
 end
 
 function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
-                                    c=1, L=1, rho0=1, u0=nothing, nu=nothing)
+                                       c=1, L=1, rho0=1, u0=nothing, nu=nothing)
   # Sanity check that exactly one of Ma, u0 is not `nothing`
   if isnothing(Ma) && isnothing(u0)
     error("Mach number `Ma` and reference speed `u0` may not both be `nothing`")
@@ -112,9 +112,9 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
   Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
   # Source for weights and speeds: [4] in the docstring above
-  weights  = @SVector [1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9]
-  v_alpha1 = @SVector [ c,   0,  -c,   0,   c,   -c,   -c,    c,    0 ]
-  v_alpha2 = @SVector [ 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 ]
+  weights  = SVector(1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36, 4/9)
+  v_alpha1 = SVector( c,   0,  -c,   0,   c,   -c,   -c,    c,    0 )
+  v_alpha2 = SVector( 0,   c,   0,  -c,   c,    c,   -c,   -c,    0 )
 
   LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
                              weights, v_alpha1, v_alpha2,
@@ -122,7 +122,6 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op=collision_bgk,
 end
 
 
-get_name(::LatticeBoltzmannEquations2D) = "LatticeBoltzmannEquations2D"
 varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations2D) = ntuple(v -> "pdf"*string(v), nvariables(equations))
 varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D) = varnames(cons2cons, equations)
 
@@ -134,7 +133,7 @@ varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations2D) = varnames
   p      = pressure(u, equations)
   return SVector(rho, v1, v2, p)
 end
-varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D) = @SVector ["rho", "v1", "v2", "p"]
+varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations2D) = ("rho", "v1", "v2", "p")
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -344,7 +343,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::LatticeBoltzmannEquations2D)
+@inline function flux(u, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
     v_alpha = equations.v_alpha1
   else
@@ -354,7 +353,12 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
+#   λ_max =
+# end
+
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)
   if orientation == 1
     v_alpha = equations.v_alpha1
   else

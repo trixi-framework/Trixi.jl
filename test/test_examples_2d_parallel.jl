@@ -33,14 +33,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
   # These example files are only for testing purposes and have no practical use
   @testset "elixir_advection_amr_refine_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_refine_twice.jl"),
-      l2   = [0.017528584408928124],
-      linf = [0.06806352260167653])
+      l2   = [0.00019847333806230843],
+      linf = [0.005591345460895569])
   end
 
   @testset "elixir_advection_amr_coarsen_twice.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr_coarsen_twice.jl"),
-      l2   = [0.09748039555506274],
-      linf = [0.9325027967069026])
+      l2   = [0.00519897841357112],
+      linf = [0.06272325552264647])
   end
 
   # Hyperbolic diffusion
@@ -62,8 +62,8 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "
       linf = [5.5227409524905013e-5, 0.0001454489597927185, 0.00032396328684569653])
   end
 
-  @testset "elixir_hypdiff_upwind.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_upwind.jl"),
+  @testset "elixir_hypdiff_godunov.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_godunov.jl"),
       l2   = [5.868147556385677e-6, 3.805179273239753e-5, 3.805179273248075e-5],
       linf = [3.7019654930525725e-5, 0.00021224229433514097, 0.00021224229433514097])
   end

@@ -4,7 +4,7 @@
 
 
 # TODO: MPI dimension agnostic
-# TODO: MPI, adapt to different real types?
+# TODO: MPI, adapt to different real types (and AD!)
 mutable struct MPICache
   mpi_neighbor_ranks::Vector{Int}
   mpi_neighbor_interfaces::Vector{Vector{Int}}
@@ -115,11 +115,11 @@ end
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2},
-                      dg::DG, RealT)
+                      dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
+  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
 
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -135,8 +135,8 @@ function create_cache(mesh::ParallelTreeMesh{2}, equations::AbstractEquations{2}
              mpi_cache)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
-  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache
 end
@@ -345,7 +345,7 @@ function prolong2mpiinterfaces!(cache, u::AbstractArray{<:Any,4},
                                 equations, dg::DG)
   @unpack mpi_interfaces = cache
 
-  Threads.@threads for interface in eachmpiinterface(dg, cache)
+  @threaded for interface in eachmpiinterface(dg, cache)
     local_element = mpi_interfaces.local_element_ids[interface]
 
     if mpi_interfaces.orientations[interface] == 1 # interface in x-direction
@@ -381,7 +381,7 @@ function calc_mpi_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
   @unpack surface_flux = dg
   @unpack u, local_element_ids, orientations, remote_sides = cache.mpi_interfaces
 
-  Threads.@threads for interface in eachmpiinterface(dg, cache)
+  @threaded for interface in eachmpiinterface(dg, cache)
     # Get local neighboring element
     element = local_element_ids[interface]
 

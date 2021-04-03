@@ -16,12 +16,10 @@ providing examples with sensible default values for users.
 # Examples
 
 ```jldoctest
-julia> open(tempname(), "w") do io
-         redirect_stdout(io) do
-           trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
-                         tspan=(0.0, 0.1))
-           sol.t[end]
-         end
+julia> redirect_stdout(devnull) do
+         trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_advection_extended.jl"),
+                       tspan=(0.0, 0.1))
+         sol.t[end]
        end
 0.1
 ```
@@ -68,7 +66,8 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   end
 
   # number of variables
-  variablenames = varnames(cons2cons, mod.equations)
+  _, equations, _, _ = mesh_equations_solver_cache(mod.semi)
+  variablenames = varnames(cons2cons, equations)
   nvariables = length(variablenames)
 
   # Reshape errors to get a matrix where the i-th row represents the i-th iteration

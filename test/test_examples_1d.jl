@@ -20,6 +20,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_advection.jl")
 
 
+  # Burgers
+  include("test_examples_1d_burgers.jl")
+
+
   # Hyperbolic diffusion
   include("test_examples_1d_hypdiff.jl")
 
@@ -28,12 +32,24 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_euler.jl")
 
 
+  # Compressible Euler Multicomponent
+  include("test_examples_1d_eulermulti.jl")
+
+
   # MHD
   include("test_examples_1d_mhd.jl")
 
 
+  # MHD Multicomponent
+  include("test_examples_1d_mhdmulti.jl")
+
+
   # Compressible Euler with self-gravity
   include("test_examples_1d_eulergravity.jl")
+
+
+  # Structured Mesh
+  include("test_examples_1d_structured.jl")
 end
 
 # Coverage test for all initial conditions

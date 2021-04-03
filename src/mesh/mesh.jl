@@ -2,6 +2,9 @@ include("abstract_tree.jl")
 include("serial_tree.jl")
 include("parallel_tree.jl")
 
+
+get_name(mesh::AbstractMesh) = mesh |> typeof |> nameof |> string
+
 # Composite type to hold the actual tree in addition to other mesh-related data
 # that is not strictly part of the tree.
 # The mesh is really just about the connectivity, size, and location of the individual
@@ -10,7 +13,7 @@ include("parallel_tree.jl")
 # different form). Also, these data values can be performance critical, so a mesh would
 # have to store them for all solvers in an efficient way - OTOH, different solvers might
 # use different cells of a shared mesh, so "efficient" is again solver dependent.
-mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}}
+mutable struct TreeMesh{NDIMS, TreeType<:AbstractTree{NDIMS}} <: AbstractMesh{NDIMS}
   tree::TreeType
   current_filename::String
   unsaved_changes::Bool
@@ -66,12 +69,13 @@ TreeMesh(::Type{TreeType}, args...) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function TreeMesh{1, TreeType}(n::Int, center::Real, len::Real, periodicity=true) where {TreeType<:AbstractTree{1}}
-  return TreeMesh{1, TreeType}(n, [convert(Float64, center)], len, periodicity)
+  # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
+  return TreeMesh{1, TreeType}(n, SVector{1,Float64}(center), len, periodicity)
 end
 
 function TreeMesh{NDIMS, TreeType}(n_cells_max::Integer, domain_center::NTuple{NDIMS,Real}, domain_length::Real, periodicity=true) where {NDIMS, TreeType<:AbstractTree{NDIMS}}
   # TODO: Taal refactor, allow other RealT for the mesh, not just Float64
-  TreeMesh{NDIMS, TreeType}(n_cells_max, [convert.(Float64, domain_center)...], convert(Float64, domain_length), periodicity)
+  TreeMesh{NDIMS, TreeType}(n_cells_max, SVector{NDIMS,Float64}(domain_center), convert(Float64, domain_length), periodicity)
 end
 
 function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{NDIMS,Real};
@@ -94,7 +98,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   domain_length = maximum(coordinates_max .- coordinates_min)
 
   # TODO: MPI, create nice interface for a parallel tree/mesh
-  if mpi_parallel() === Val(true)
+  if mpi_isparallel()
     TreeType = ParallelTree{NDIMS}
   else
     TreeType = SerialTree{NDIMS}
@@ -103,10 +107,16 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   # Create mesh
   mesh = @timeit_debug timer() "creation" TreeMesh{NDIMS, TreeType}(n_cells_max, domain_center, domain_length, periodicity)
 
+  # Initialize mesh
+  initialize!(mesh, initial_refinement_level, refinement_patches, coarsening_patches)
+
+  return mesh
+end
+
+function initialize!(mesh::TreeMesh, initial_refinement_level,
+                     refinement_patches, coarsening_patches)
   # Create initial refinement
-  @timeit_debug timer() "initial refinement" for _ in 1:initial_refinement_level
-    refine!(mesh.tree)
-  end
+  @timeit_debug timer() "initial refinement" refine_uniformly!(mesh.tree, initial_refinement_level)
 
   # Apply refinement patches
   @timeit_debug timer() "refinement patches" for patch in refinement_patches
@@ -133,7 +143,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS,Real}, coordinates_max::NTuple{N
   # Partition the mesh among multiple MPI ranks (does nothing if run in serial)
   partition!(mesh)
 
-  return mesh
+  return nothing
 end
 
 function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
@@ -149,7 +159,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::TreeMesh{NDIMS, TreeType}) 
   if get(io, :compact, false)
     show(io, mesh)
   else
-    setup = [ 
+    setup = [
              "center" => mesh.tree.center_level_0,
              "length" => mesh.tree.length_level_0,
              "periodicity" => mesh.tree.periodicity,
@@ -181,5 +191,11 @@ function get_restart_mesh_filename(restart_filename, mpi_parallel::Val{false})
 end
 
 
+function total_volume(mesh::TreeMesh)
+  return mesh.tree.length_level_0^ndims(mesh)
+end
+
+
 include("parallel.jl")
+include("structured_mesh.jl")
 include("mesh_io.jl")

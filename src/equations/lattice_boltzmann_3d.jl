@@ -152,18 +152,18 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
   Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
   # Source for weights and speeds: [4] in docstring above
-  weights  = @SVector [2/27,  2/27,  2/27,  2/27,  2/27,  2/27,  1/54,  1/54,  1/54,
-                       1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,
-                       1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 8/27]
-  v_alpha1 = @SVector [ c, -c,  0,  0,  0,  0,  c, -c,  c,
-                       -c,  0,  0,  c, -c,  c, -c,  0,  0,
-                        c, -c,  c, -c,  c, -c, -c,  c,  0]
-  v_alpha2 = @SVector [ 0,  0,  c, -c,  0,  0,  c, -c,  0,
-                        0,  c, -c, -c,  c,  0,  0,  c, -c,
-                        c, -c,  c, -c, -c,  c,  c, -c,  0]
-  v_alpha3 = @SVector [ 0,  0,  0,  0,  c, -c,  0,  0,  c,
-                       -c,  c, -c,  0,  0, -c,  c, -c,  c,
-                        c, -c, -c,  c,  c, -c,  c, -c,  0]
+  weights  = SVector(2/27,  2/27,  2/27,  2/27,  2/27,  2/27,  1/54,  1/54,  1/54,
+                     1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,  1/54,
+                     1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 1/216, 8/27)
+  v_alpha1 = SVector( c, -c,  0,  0,  0,  0,  c, -c,  c,
+                     -c,  0,  0,  c, -c,  c, -c,  0,  0,
+                      c, -c,  c, -c,  c, -c, -c,  c,  0)
+  v_alpha2 = SVector( 0,  0,  c, -c,  0,  0,  c, -c,  0,
+                      0,  c, -c, -c,  c,  0,  0,  c, -c,
+                      c, -c,  c, -c, -c,  c,  c, -c,  0)
+  v_alpha3 = SVector( 0,  0,  0,  0,  c, -c,  0,  0,  c,
+                     -c,  c, -c,  0,  0, -c,  c, -c,  c,
+                      c, -c, -c,  c,  c, -c,  c, -c,  0)
 
   LatticeBoltzmannEquations3D(c, c_s, rho0, Ma, u0, Re, L, nu,
                              weights, v_alpha1, v_alpha2, v_alpha3,
@@ -171,7 +171,6 @@ function LatticeBoltzmannEquations3D(; Ma, Re, collision_op=collision_bgk,
 end
 
 
-get_name(::LatticeBoltzmannEquations3D) = "LatticeBoltzmannEquations3D"
 varnames(::typeof(cons2cons), equations::LatticeBoltzmannEquations3D) = ntuple(v -> "pdf"*string(v), Val(nvariables(equations)))
 varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames(cons2cons, equations)
 
@@ -183,7 +182,7 @@ varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D) = varnames
   p          = pressure(u, equations)
   return SVector(rho, v1, v2, v3, p)
 end
-varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D) = @SVector ["rho", "v1", "v2", "v3", "p"]
+varnames(::typeof(cons2macroscopic), ::LatticeBoltzmannEquations3D) = ("rho", "v1", "v2", "v3", "p")
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -227,7 +226,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equations::LatticeBoltzmannEquations3D)
+@inline function flux(u, orientation, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction
@@ -239,7 +238,12 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+# @inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
+#   λ_max =
+# end
+
+@inline function flux_godunov(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)
   if orientation == 1 # x-direction
     v_alpha = equations.v_alpha1
   elseif orientation == 2 # y-direction

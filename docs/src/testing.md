@@ -9,22 +9,22 @@ repositories for the visualization tools [Trixi2Img](https://github.com/trixi-fr
 [GitHub Actions](https://docs.github.com/en/free-pro-team@latest/actions),
 which allows to run tests automatically upon certain events. When, how, and what
 is tested by GitHub Actions is controlled by the workflow file
-[`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/master/.github/workflows/ci.yml).
+[`.github/workflows/ci.yml`](https://github.com/trixi-framework/Trixi.jl/blob/main/.github/workflows/ci.yml).
 In Trixi and its related repositories, tests are triggered by
-* each `git push` to `master` and
+* each `git push` to `main` and
 * each `git push` to any pull request.
 Besides checking functionality, we also analyse the [Test coverage](@ref) to
 ensure that we do not miss important parts during testing.
 
 !!! note "Test and coverage requirements"
-    Before merging a pull request (PR) to `master`, we require that
+    Before merging a pull request (PR) to `main`, we require that
     * the code passes all functional tests
     * code coverage does not decrease.
 
 
 ## Testing setup
 The entry point for all testing is the file
-[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/master/test/runtests.jl),
+[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/runtests.jl),
 which is run by the automated tests and which can be triggered manually by
 executing
 ```julia
@@ -42,7 +42,7 @@ julia> include(joinpath("test", "test_examples_2d_euler.jl")) # Run only 2D test
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to
 reduce the waiting time until all tests are finished. You can see the different
 components that are run as jobs by looking at the `TRIXI_TEST` variable in
-[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/master/test/runtests.jl).
+[`test/runtests.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/runtests.jl).
 
 
 ## Adding new tests
@@ -52,7 +52,7 @@ test, and all new elixirs added to the `examples/` directory must be used at
 least once during testing. New tests should be added to the corresponding
 `test/test_xxx.jl` file, e.g., a test involving the 3D linear advection equation
 would go into
-[`test/test_examples_3d_advection.jl`](https://github.com/trixi-framework/Trixi.jl/blob/master/test/test_examples_3d_advection.jl).
+[`test/test_examples_3d_advection.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/test/test_examples_3d_advection.jl).
 Please study one of the existing tests and stay consistent to the current style
 when creating new tests.
 
@@ -83,4 +83,4 @@ which *new* lines the pull requests adds to Trixi's code base that are not yet
 covered by testing.
 !!! note "Coverage requirements"
     In general, we require pull requests to *not decrease* the overall
-    test coverage percentage in `master`, with a **hard lower bound of 97%**.
+    test coverage percentage in `main`, with a **hard lower bound of 97%**.

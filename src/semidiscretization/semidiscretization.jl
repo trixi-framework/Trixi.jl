@@ -138,12 +138,17 @@ function linear_structure(semi::AbstractSemidiscretization;
   # get the right hand side from possible source terms
   u_ode .= zero(eltype(u_ode))
   rhs!(du_ode, u_ode, semi, t0)
-  b = copy(-du_ode)
+  # Create a copy of `b` used internally to extract the linear part of `semi`.
+  # This is necessary to get everything correct when the users updates the
+  # returned vector `b`.
+  b = -du_ode
+  b_tmp = copy(b)
 
   # wrap the linear operator
   A = LinearMap(length(u_ode), ismutating=true) do dest,src
     rhs!(dest, src, semi, t0)
-    @. dest += b
+    @. dest += b_tmp
+    dest
   end
 
   return A, b
@@ -157,8 +162,7 @@ end
 
 Uses the right-hand side operator of the semidiscretization `semi`
 and simple second order finite difference to compute the Jacobian `J`
-of the operator.
-The linearization state is `u0_ode` at time `t0`.
+of the semidiscretization `semi` at state `u0_ode`.
 """
 function jacobian_fd(semi::AbstractSemidiscretization;
                      t0=zero(real(semi)),
@@ -197,6 +201,39 @@ function jacobian_fd(semi::AbstractSemidiscretization;
 
   return J
 end
+
+
+"""
+    jacobian_ad_forward(semi::AbstractSemidiscretization;
+                        t0=zero(real(semi)),
+                        u0_ode=compute_coefficients(t0, semi))
+
+Uses the right-hand side operator of the semidiscretization `semi`
+and forward mode automatic differentiation to compute the Jacobian `J`
+of the semidiscretization `semi` at state `u0_ode`.
+"""
+function jacobian_ad_forward(semi::AbstractSemidiscretization;
+                             t0=zero(real(semi)),
+                             u0_ode=compute_coefficients(t0, semi))
+
+  du_ode = similar(u0_ode)
+  config = ForwardDiff.JacobianConfig(nothing, du_ode, u0_ode)
+
+  # Use a function barrier since the generation of the `config` we use above
+  # is not type-stable
+  _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
+end
+
+function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
+
+  new_semi = remake(semi, uEltype=eltype(config))
+  J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
+    Trixi.rhs!(du_ode, u_ode, new_semi, t0)
+  end
+
+  return J
+end
+
 
 
 # Sometimes, it can be useful to save some (scalar) variables associated with each element,

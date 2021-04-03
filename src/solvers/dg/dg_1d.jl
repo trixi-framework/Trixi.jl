@@ -6,11 +6,11 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
-                      dg::DG, RealT)
+                      dg::DG, RealT, uEltype)
   # Get cells for which an element needs to be created (i.e. all leaf cells)
   leaf_cell_ids = local_leaf_cells(mesh.tree)
 
-  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT)
+  elements = init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)
 
   interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
@@ -19,8 +19,8 @@ function create_cache(mesh::TreeMesh{1}, equations::AbstractEquations{1},
   cache = (; elements, interfaces, boundaries)
 
   # Add specialized parts of the cache required to compute the volume integral etc.
-  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg)...)
-  cache = (;cache..., create_cache(mesh, equations, dg.mortar)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+  cache = (;cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
 
   return cache
 end
@@ -28,70 +28,55 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{1}, equations, volume_integral::VolumeIntegralFluxDifferencing, dg::DG)
-  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg)
+function create_cache(mesh::TreeMesh{1}, equations,
+                      volume_integral::VolumeIntegralFluxDifferencing, dg::DG, uEltype)
+  create_cache(mesh, have_nonconservative_terms(equations), equations, volume_integral, dg, uEltype)
 end
 
-function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{false}, equations, ::VolumeIntegralFluxDifferencing, dg)
+function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{false}, equations,
+                      ::VolumeIntegralFluxDifferencing, dg, uEltype)
   NamedTuple()
 end
 
 # TODO: MHD in 1D
-# function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{true}, equations, ::VolumeIntegralFluxDifferencing, dg)
+# function create_cache(mesh::TreeMesh{1}, nonconservative_terms::Val{true}, equations,
+#                       ::VolumeIntegralFluxDifferencing, dg, uEltype)
 # end
 
 
 function create_cache(mesh::TreeMesh{1}, equations,
-                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG)
+                      volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
   element_ids_dg   = Int[]
   element_ids_dgfv = Int[]
 
   cache = create_cache(mesh, equations,
                        VolumeIntegralFluxDifferencing(volume_integral.volume_flux_dg),
-                       dg)
+                       dg, uEltype)
 
-  A2dp1_x = Array{real(dg), 2}
+  A2dp1_x = Array{uEltype, 2}
   fstar1_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
 
   return (; cache..., element_ids_dg, element_ids_dgfv, fstar1_threaded)
 end
 
 
+function create_cache(mesh::TreeMesh{1}, equations,
+                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG, uEltype)
+
+  A2dp1_x = Array{uEltype, 2}
+  fstar1_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg)+1) for _ in 1:Threads.nthreads()]
+
+  return (; fstar1_threaded)
+end
+
+
+
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::TreeMesh{1}, equations, mortar_l2::LobattoLegendreMortarL2)
+function create_cache(mesh::TreeMesh{1}, equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
   NamedTuple()
 end
 
-
-@inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{1}, equations, dg::DG, cache)
-  @boundscheck begin
-    @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-  end
-  # We would like to use
-  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-  # but that results in
-  #   ERROR: LoadError: cannot resize array with shared data
-  # when we resize! `u_ode` during AMR.
-
-  # The following version is fast and allows us to `resize!(u_ode, ...)`.
-  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), nnodes(dg), nelements(dg, cache)))
-end
-
-
-function compute_coefficients!(u, func, t, mesh::TreeMesh{1}, equations, dg::DG, cache)
-
-  Threads.@threads for element in eachelement(dg, cache)
-    for i in eachnode(dg)
-      x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, element)
-      u_node = func(x_node, t, equations)
-      set_node_vars!(u, u_node, equations, dg, i, element)
-    end
-  end
-end
 
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
@@ -139,11 +124,11 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, element)
 
-      flux1 = calcflux(u_node, 1, equations)
+      flux1 = flux(u_node, 1, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
@@ -159,7 +144,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_integral.volume_flux, dg, cache, element)
   end
 end
@@ -178,16 +163,16 @@ end
 
     # x direction
     # use consistency of the volume flux to make this evaluation cheaper
-    flux = calcflux(u_node, 1, equations)
-    integral_contribution = alpha * derivative_split[i, i] * flux
+    flux1 = flux(u_node, 1, equations)
+    integral_contribution = alpha * derivative_split[i, i] * flux1
     add_to_node_vars!(du, integral_contribution, equations, dg, i, element)
     # use symmetry of the volume flux for the remaining terms
     for ii in (i+1):nnodes(dg)
       u_node_ii = get_node_vars(u, equations, dg, ii, element)
-      flux = volume_flux(u_node, u_node_ii, 1, equations)
-      integral_contribution = alpha * derivative_split[i, ii] * flux
+      flux1 = volume_flux(u_node, u_node_ii, 1, equations)
+      integral_contribution = alpha * derivative_split[i, ii] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, i,  element)
-      integral_contribution = alpha * derivative_split[ii, i] * flux
+      integral_contribution = alpha * derivative_split[ii, i] * flux1
       add_to_node_vars!(du, integral_contribution, equations, dg, ii, element)
     end
   end
@@ -208,12 +193,12 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_te
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
   # Loop over pure DG elements
-  @timeit_debug timer() "pure DG" Threads.@threads for element in element_ids_dg
+  @timeit_debug timer() "pure DG" @threaded for element in element_ids_dg
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
   end
 
   # Loop over blended DG-FV elements
-  @timeit_debug timer() "blended DG-FV" Threads.@threads for element in element_ids_dgfv
+  @timeit_debug timer() "blended DG-FV" @threaded for element in element_ids_dgfv
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
@@ -225,6 +210,22 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_te
 
   return nothing
 end
+
+# TODO: Taal dimension agnostic
+function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                               dg::DGSEM, cache)
+  @unpack volume_flux_fv = volume_integral
+
+  # Calculate LGL FV volume integral
+  @threaded for element in eachelement(dg, cache)
+    fv_kernel!(du, u, equations, volume_flux_fv, dg, cache, element, true)
+  end
+
+  return nothing
+end
+
+
 
 @inline function fv_kernel!(du::AbstractArray{<:Any,3}, u::AbstractArray{<:Any,3},
                             equations, volume_flux_fv, dg::DGSEM, cache, element, alpha=true)
@@ -267,7 +268,7 @@ end
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,3}, equations, dg::DG)
   @unpack interfaces = cache
 
-  Threads.@threads for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     left_element  = interfaces.neighbor_ids[1, interface]
     right_element = interfaces.neighbor_ids[2, interface]
 
@@ -287,7 +288,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,3},
   @unpack surface_flux = dg
   @unpack u, neighbor_ids, orientations = cache.interfaces
 
-  Threads.@threads for interface in eachinterface(dg, cache)
+  @threaded for interface in eachinterface(dg, cache)
     # Get neighboring elements
     left_id  = neighbor_ids[1, interface]
     right_id = neighbor_ids[2, interface]
@@ -320,7 +321,7 @@ function prolong2boundaries!(cache, u::AbstractArray{<:Any,3}, equations, dg::DG
   @unpack boundaries = cache
   @unpack orientations, neighbor_sides = boundaries
 
-  Threads.@threads for boundary in eachboundary(dg, cache)
+  @threaded for boundary in eachboundary(dg, cache)
     element = boundaries.neighbor_ids[boundary]
 
     # boundary in x-direction
@@ -385,7 +386,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
   @unpack surface_flux = dg
   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
 
-  Threads.@threads for boundary in first_boundary:last_boundary
+  @threaded for boundary in first_boundary:last_boundary
     # Get neighboring element
     neighbor = neighbor_ids[boundary]
 
@@ -414,7 +415,7 @@ function calc_surface_integral!(du::AbstractArray{<:Any,3}, equations, dg::DGSEM
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for v in eachvariable(equations)
       # surface at -x
       du[v, 1,          element] -= surface_flux_values[v, 1, element] * boundary_interpolation[1,          1]
@@ -429,7 +430,7 @@ end
 
 function apply_jacobian!(du::AbstractArray{<:Any,3}, equations, dg::DG, cache)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
 
     for i in eachnode(dg)
@@ -450,7 +451,7 @@ end
 
 function calc_sources!(du::AbstractArray{<:Any,3}, u, t, source_terms, equations, dg::DG, cache)
 
-  Threads.@threads for element in eachelement(dg, cache)
+  @threaded for element in eachelement(dg, cache)
     for i in eachnode(dg)
       u_local = get_node_vars(u, equations, dg, i, element)
       x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, element)

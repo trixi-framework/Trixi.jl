@@ -3,11 +3,10 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler multicomponent equations
-gamma1              = 1.4
-gamma2              = 1.648
-gas_constant1       = 0.287
-gas_constant2       = 1.578
-equations           = CompressibleEulerMulticomponentEquations2D(gamma1, gamma2, gas_constant1, gas_constant2)
+
+# 1) Dry Air  2) Helium + 28% Air
+equations           = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.648), 
+                                                                 gas_constants = (0.287, 1.578))
 
 initial_condition   = initial_condition_shock_bubble
 
@@ -27,7 +26,7 @@ solver              = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min     = (-2.25, -2.225)
 coordinates_max     = ( 2.20,  2.225)
 mesh                = TreeMesh(coordinates_min, coordinates_max,
-                               initial_refinement_level=7,
+                               initial_refinement_level=3,
                                n_cells_max=1_000_000)
 
 semi                = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -36,20 +35,21 @@ semi                = SemidiscretizationHyperbolic(mesh, equations, initial_cond
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan               = (0.0, 0.012) # 0.0021..
+tspan               = (0.0, 0.01)
 ode                 = semidiscretize(semi, tspan)
 
 summary_callback    = SummaryCallback()
 
-analysis_interval   = 300 # change to 200+ for whole calc.
-analysis_callback   = AnalysisCallback(semi, interval=analysis_interval)
+analysis_interval   = 300 
+analysis_callback   = AnalysisCallback(semi, interval=analysis_interval,
+                                       extra_analysis_integrals=(Trixi.density,))
 
 alive_callback      = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution       = SaveSolutionCallback(interval=300,     # 40 or change to 200+ for whole calc.  
+save_solution       = SaveSolutionCallback(interval=300,     
                                            save_initial_solution=true,
                                            save_final_solution=true,
-                                           solution_variables=:primitive)
+                                           solution_variables=cons2prim)
 
 stepsize_callback   = StepsizeCallback(cfl=0.3)
 

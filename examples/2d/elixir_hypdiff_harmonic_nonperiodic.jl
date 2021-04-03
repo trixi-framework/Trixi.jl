@@ -10,7 +10,7 @@ equations = HyperbolicDiffusionEquations2D()
 initial_condition = initial_condition_harmonic_nonperiodic
 boundary_conditions = boundary_condition_harmonic_nonperiodic
 
-surface_flux = flux_upwind
+surface_flux = flux_godunov
 solver = DGSEM(4, surface_flux)
 
 coordinates_min = (0, 0)
@@ -50,7 +50,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

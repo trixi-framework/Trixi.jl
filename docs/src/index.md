@@ -1,6 +1,7 @@
 # Trixi.jl
 
-**Trixi.jl** is a numerical simulation framework for hyperbolic conservation
+[**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
+is a numerical simulation framework for hyperbolic conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
 having an extensible design with a fast implementation, Trixi is
@@ -36,7 +37,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi works
-with Julia v1.5.
+with Julia v1.6.
 
 ### For users
 Trixi and its related tools are registered Julia packages. Hence, you
@@ -67,6 +68,9 @@ to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/lat
 If the installed version does not match the current release, please check the
 [Troubleshooting](@ref old-release) section.
 
+The commands above can also be used to update Trixi. A brief list of notable
+changes to Trixi is available in [`NEWS.md`](https://github.com/trixi-framework/Trixi.jl/NEWS.md).
+
 ### [For developers](@id for-developers)
 If you plan on editing Trixi itself, you have two options: installing it as a
 `dev` package or cloning it to a local folder.
@@ -75,12 +79,12 @@ If you plan on editing Trixi itself, you have two options: installing it as a
    ```julia
    julia> import Pkg
 
-   julia> Pkg.dev("Trixi")
+   julia> Pkg.develop("Trixi")
    ```
    This will download and install Trixi to a designated package development directory
    (usually `.julia/dev`, but you can determine the path on your system with
    `Pkg.devdir()`). As opposed to using the `Pkg.add` method as described above,
-   packages installed via `Pkg.dev` may have their files edited locally.
+   packages installed via `Pkg.develop` may have their files edited locally.
 
 2. **Install Trixi in a local folder**: Alternatively, you can download Trixi
    locally and use it from within the cloned directory:
@@ -172,6 +176,10 @@ download it to your machine, edit the configuration, and pass the file path to
           data-cols=100
           data-rows=48></script>
 ```
+If this produces weird symbols or question marks in the terminal on your system,
+you are probably using Mac OS with problematic fonts. In that case, please check
+the [Troubleshooting](@ref font-issues) section.
+
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
 caches the compiled methods for further use. That means that the first execution
@@ -280,7 +288,7 @@ Trixi was initiated by [Michael
 Schlottke-Lakemper](https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner) (both
 University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(KAUST, Saudi Arabia) and [Andrew Winters](https://liu.se/en/employee/andwi94)
+(University of Münster, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), they are the principal developers of Trixi.
 The full list of contributors can be found under [Authors](@ref).
 

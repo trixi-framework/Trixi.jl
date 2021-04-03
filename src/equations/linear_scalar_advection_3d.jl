@@ -21,9 +21,8 @@ function LinearScalarAdvectionEquation3D(a1::Real, a2::Real, a3::Real)
 end
 
 
-get_name(::LinearScalarAdvectionEquation3D) = "LinearScalarAdvectionEquation3D"
-varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = SVector("scalar")
-varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = SVector("scalar")
+varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation3D) = ("scalar", )
+varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation3D) = ("scalar", )
 
 
 # Set initial conditions at physical location `x` for time `t`
@@ -36,7 +35,7 @@ function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [2.0]
+  return SVector(2.0)
 end
 
 
@@ -55,7 +54,7 @@ function initial_condition_convergence_test(x, t, equation::LinearScalarAdvectio
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans))
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -68,7 +67,8 @@ function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))]
+  scalar = exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))
+  return SVector(scalar)
 end
 
 
@@ -82,7 +82,7 @@ function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
   x_trans = x - equation.advectionvelocity * t
 
   scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2]) * sin(2 * pi * x_trans[3])
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -96,7 +96,7 @@ function initial_condition_linear_z(x, t, equation::LinearScalarAdvectionEquatio
   # Store translated coordinate for easy use of exact solution
   x_trans = x - equation.advectionvelocity * t
 
-  return @SVector [x_trans[3]]
+  return SVector(x_trans[3])
 end
 
 """
@@ -128,17 +128,16 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function calcflux(u, orientation, equation::LinearScalarAdvectionEquation3D)
+@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation3D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation3D)
-  a = equation.advectionvelocity[orientation]
-  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation3D)
+  λ_max = abs(equation.advectionvelocity[orientation])
 end
-
 
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)

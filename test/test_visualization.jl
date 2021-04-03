@@ -18,7 +18,7 @@ isdir(outdir) && rm(outdir, recursive=true)
 @testset "Visualization tests" begin
   # Run Trixi
   @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                             tspan=(0,0.1))
+                                   tspan=(0,0.1))
 
   @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
     # Constructor
@@ -63,7 +63,7 @@ isdir(outdir) && rm(outdir, recursive=true)
     println(stdout)
   end
 
-  @testset "plot recipes" begin
+  @testset "2D plot recipes" begin
     pd = PlotData2D(sol)
 
     @test_nowarn_debug plot(sol)
@@ -72,9 +72,93 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug plot(getmesh(pd))
   end
 
+  @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
+    # Run Trixi
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "1d", "elixir_euler_blast_wave.jl"),
+                                     tspan=(0,0.1))
+
+    # Constructor
+    @test PlotData1D(sol) isa PlotData1D
+    pd = PlotData1D(sol)
+
+    # show
+    @test_nowarn_debug show(stdout, pd)
+    println(stdout)
+
+    # getindex
+    @test pd["rho"] == Trixi.PlotDataSeries1D(pd, 1)
+    @test pd["v1"] == Trixi.PlotDataSeries1D(pd, 2)
+    @test pd["p"] == Trixi.PlotDataSeries1D(pd, 3)
+    @test_throws KeyError pd["does not exist"]
+
+    # convenience methods for mimicking a dictionary
+    @test pd[begin] == Trixi.PlotDataSeries1D(pd, 1)
+    @test pd[end] == Trixi.PlotDataSeries1D(pd, 3)
+    @test length(pd) == 3
+    @test size(pd) == (3,)
+    @test keys(pd) == ("rho", "v1", "p")
+    @test eltype(pd) == Pair{String, Trixi.PlotDataSeries1D}
+    @test [v for v in pd] == ["rho" => Trixi.PlotDataSeries1D(pd, 1),
+                              "v1" => Trixi.PlotDataSeries1D(pd, 2),
+                              "p" => Trixi.PlotDataSeries1D(pd, 3)]
+
+    # PlotDataSeries1D
+    pds = pd["p"]
+    @test pds.plot_data == pd
+    @test pds.variable_id == 3
+    @test_nowarn_debug show(stdout, pds)
+    println(stdout)
+
+    # getmesh/PlotMesh1D
+    @test getmesh(pd) == Trixi.PlotMesh1D(pd)
+    @test getmesh(pd).plot_data == pd
+    @test_nowarn_debug show(stdout, getmesh(pd))
+    println(stdout)
+
+    @testset "1D plot recipes" begin
+      pd = PlotData1D(sol)
+
+      @test_nowarn_debug plot(sol)
+      @test_nowarn_debug plot(pd)
+      @test_nowarn_debug plot(pd["p"])
+      @test_nowarn_debug plot(getmesh(pd))
+    end
+
+    # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
+    # with at least one plot remaining empty
+    @testset "plotting multiple variables" begin
+      x = collect(0.0:0.1:1.0)
+      data1d = rand(5, 11)
+      variable_names = string.('a':'e')
+      mesh_vertices_x1d = [x[begin], x[end]]
+      fake1d = PlotData1D(x, data1d, variable_names, mesh_vertices_x1d)
+      @test_nowarn_debug plot(fake1d)
+
+      y = x
+      data2d = [rand(11,11) for _ in 1:5]
+      mesh_vertices_x2d = [0.0, 1.0, 1.0, 0.0]
+      mesh_vertices_y2d = [0.0, 0.0, 1.0, 1.0]
+      fake2d = PlotData2D(x, y, data2d, variable_names, mesh_vertices_x2d, mesh_vertices_y2d)
+      @test_nowarn_debug plot(fake2d)
+    end
+  end
+
+  @testset "adapt_to_mesh_level" begin
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_advection_basic.jl"),
+                                     tspan=(0,0.1))
+    @test adapt_to_mesh_level(sol, 5) isa Tuple
+
+    u_ode_level5, semi_level5 = adapt_to_mesh_level(sol, 5)
+    u_ode_level4, semi_level4 = adapt_to_mesh_level(u_ode_level5, semi_level5, 4)
+    @test isapprox(sol.u[end], u_ode_level4, atol=1e-13)
+
+    @test adapt_to_mesh_level!(sol, 5) isa Tuple
+    @test isapprox(sol.u[end], u_ode_level5, atol=1e-13)
+  end
+
   @testset "plot 3D" begin
     @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "3d", "elixir_advection_basic.jl"),
-                               tspan=(0,0.1))
+                                     tspan=(0,0.1))
     @test PlotData2D(sol) isa PlotData2D
   end
 
