@@ -94,6 +94,10 @@ function (cb::DiscreteCallback{Condition,Affect!})(ode::ODEProblem) where {Condi
 end
 
 
+# FIXME: Deprecations introduced in v0.3
+@deprecate max_dt(u::AbstractArray, t, mesh::AbstractMesh, constant_speed, equations, dg::DG, cache) max_dt_hyperbolic(u, t, mesh, constant_speed, equations, dg, cache)
+
+
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")

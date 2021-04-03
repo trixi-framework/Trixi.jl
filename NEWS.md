@@ -37,5 +37,6 @@ for human readability.
   `cons2prim`
 - `varnames_cons(equations)` → `varnames(cons2cons, equations)`
 - `varnames_prim(equations)` → `varnames(cons2prim, equations)`
+- `max_dt(u, t, mesh, ...)` → `max_dt_hyperbolic(u, t, mesh, ...)` ([#378](https://github.com/trixi-framework/Trixi.jl/pull/378))
 
 #### Removed

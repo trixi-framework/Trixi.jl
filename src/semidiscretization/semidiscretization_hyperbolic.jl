@@ -195,7 +195,6 @@ function max_dt(u_ode::AbstractVector, t, cfl_number::Real, semi::Semidiscretiza
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-  # FIXME: add deprecation for max_dt -> max_dt_hyperbolic
   dt = cfl_number * max_dt_hyperbolic(u, t, mesh, have_constant_speed(equations), equations, solver,
                                       cache)
 
