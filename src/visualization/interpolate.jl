@@ -310,12 +310,3 @@ function calc_vertices(coordinates, levels, length_level_0)
 
   return x, y
 end
-
-# Calculate the vandermonde matrix for a polynomial with degree n-1.
-function calcVandermonde(nodes, n)
-  vandermonde = Array{Float64,2}(undef, length(nodes), n)
-  for i in 0:n-1
-      vandermonde[:,i+1] = nodes.^i
-  end
-  return vandermonde
-end

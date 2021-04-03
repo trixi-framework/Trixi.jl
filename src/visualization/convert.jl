@@ -100,16 +100,16 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   first = collect(1:max_nvisnodes:max_nvisnodes*n_elements)
   last = first .+ (max_nvisnodes-1)
 
-  # Iterate over all elements.
-  for i in 1:n_elements
-    vandermonde = calcVandermonde(original_nodes[1,:,i], n_nodes)
+  # Calculate vandermonde matrix for interpolation.
+  vandermonde = polynomial_interpolation_matrix(original_nodes[1,:,1], interpolated_nodes[1:max_nvisnodes])
 
-    # Interpolate the data for each variable.
-    for j in 1:n_vars
+  # Iterate over all variables.
+  for i in 1:n_vars
+    reshaped_data =reshape(unstructured_data[:, :, i], 1, n_nodes, n_elements)
 
-      # Calculate and apply polynomial coefficients.
-      coefficients = vandermonde\unstructured_data[:,i,j]
-      interpolated_data[first[i]:last[i],j] = calcVandermonde(interpolated_nodes[first[i]:last[i]], n_nodes)*coefficients
+    # Interpolate data for each element.
+    for j in 1:n_elements
+      interpolated_data[first[j]:last[j],i] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, j]))
     end
   end
   interpolated_data[end,:]=unstructured_data[end,end,:]
