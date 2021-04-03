@@ -27,7 +27,7 @@ varnames(::typeof(cons2prim), ::HeatEquation2D) = SVector("scalar")
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::HeatEquation2D)
-  return @SVector [2.0]
+  return SVector(2.0)
 end
 
 
@@ -44,7 +44,7 @@ function initial_condition_convergence_test(x, t, equation::HeatEquation2D)
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x)) * exp(-2 * nu * omega^2 * t)
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -55,7 +55,7 @@ A Gaussian pulse used together with
 [`boundary_condition_gauss`](@ref).
 """
 function initial_condition_gauss(x, t, equation::HeatEquation2D)
-  return @SVector [exp(-(x[1]^2 + x[2]^2))]
+  return SVector(exp(-(x[1]^2 + x[2]^2)))
 end
 
 
@@ -65,7 +65,7 @@ function initial_condition_sin_x(x, t, equation::HeatEquation2D)
   omega = pi
   scalar = sin(omega * x[1]) * exp(-nu * omega^2 * t)
 
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -83,7 +83,7 @@ function initial_condition_poisson_periodic(x, t, equation::HeatEquation2D)
   @unpack nu = equation
 
   phi = sin(2.0*pi*x[1])*sin(2.0*pi*x[2])*(1 - exp(-8*nu*pi^2*t))
-  return @SVector [phi]
+  return SVector(phi)
 end
 
 

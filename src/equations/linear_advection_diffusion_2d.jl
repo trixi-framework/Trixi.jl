@@ -37,7 +37,7 @@ varnames(::typeof(cons2prim), ::LinearAdvectionDiffusionEquation2D) = SVector("s
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearAdvectionDiffusionEquation2D)
-  return @SVector [2.0]
+  return SVector(2.0)
 end
 
 
@@ -57,7 +57,7 @@ function initial_condition_convergence_test(x, t, equation::LinearAdvectionDiffu
   f = 1/L
   omega = 2 * pi * f
   scalar = c + A * sin(omega * sum(x_trans)) * exp(-2 * nu * omega^2 * t)
-  return @SVector [scalar]
+  return SVector(scalar)
 end
 
 
@@ -68,7 +68,7 @@ A Gaussian pulse used together with
 [`boundary_condition_gauss`](@ref).
 """
 function initial_condition_gauss(x, t, equation::LinearAdvectionDiffusionEquation2D)
-  return @SVector [exp(-(x[1]^2 + x[2]^2))]
+  return SVector(exp(-(x[1]^2 + x[2]^2)))
 end
 
 
