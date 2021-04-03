@@ -4,6 +4,7 @@ authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Ga
 version = "0.3.23"
 
 [deps]
+CheapThreads = "b630d9fa-e28e-4980-896d-83ce5e2106b2"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -23,6 +24,7 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+CheapThreads = "0.1.6"
 DiffEqBase = "6.47"
 EllipsisNotation = "1.0"
 ForwardDiff = "0.10"
