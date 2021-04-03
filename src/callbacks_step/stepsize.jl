@@ -6,9 +6,8 @@ Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself. When using a semidiscretization that wraps
 multiple solvers, you might need to provide a tuple of CFL numbers.
 """
-mutable struct StepsizeCallback{RealT}
-  # FIXME: RealT -> CFLNumber
-  cfl_number::RealT
+mutable struct StepsizeCallback{CFLNumber}
+  cfl_number::CFLNumber
 end
 
 
