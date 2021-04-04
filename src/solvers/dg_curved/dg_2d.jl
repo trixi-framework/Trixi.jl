@@ -1,7 +1,7 @@
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
-    mesh::CurvedMesh, equations,
-    initial_condition, boundary_conditions, source_terms,
-    dg::DG, cache)
+              mesh::CurvedMesh, equations,
+              initial_condition, boundary_conditions, source_terms,
+              dg::DG, cache)
   # Reset du
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
@@ -11,6 +11,9 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Calculate interface fluxes
   @timeit_debug timer() "interface flux" calc_interface_flux!(u, mesh, equations, dg, cache)
+
+  # Calculate boundary fluxes
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, u, t, boundary_conditions, equations, mesh, dg)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
@@ -79,6 +82,10 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, 
                                       orientation, u, equations, dg::DG, cache)
+  if left_element <= 0 # left_element = -1 at boundaries
+    return surface_flux_values
+  end
+
   @unpack surface_flux = dg
   @unpack metric_terms = cache.elements
 
@@ -105,6 +112,8 @@ end
       surface_flux_values[v, i, left_direction, right_element] = flux[v]
     end
   end
+
+  return surface_flux_values
 end
 
 
@@ -122,4 +131,93 @@ function apply_jacobian!(du::AbstractArray{<:Any,4}, mesh::CurvedMesh, equations
   end
 
   return nothing
+end
+
+
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
+                             equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
+  @assert mesh.periodicity
+end
+
+
+function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
+                             equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
+  @unpack surface_flux = dg
+  @unpack surface_flux_values, node_coordinates, metric_terms = cache.elements
+  linear_indices = LinearIndices(size(mesh))
+  
+  orientation = 1
+  for cell_y in axes(mesh, 2)
+    # Negative x-direction
+    direction = 1
+
+    element = linear_indices[begin, cell_y]
+
+    for j in eachnode(dg)
+      u_rr = get_node_vars(u, equations, dg, 1, j, element)
+      x = get_node_coords(node_coordinates, equations, dg, 1, j, element)
+
+      normal_vector = SVector(metric_terms[2, 2, 1, j, element], -metric_terms[1, 2, 1, j, element])
+      flux = boundary_conditions[direction](u_rr, normal_vector, direction, x, t, surface_flux, equations)
+
+      for v in eachvariable(equations)
+        surface_flux_values[v, j, direction, element] = flux[v]
+      end
+    end
+
+    # Positive x-direction
+    direction = 2
+
+    element = linear_indices[end, cell_y]
+
+    for j in eachnode(dg)
+      u_ll = get_node_vars(u, equations, dg, nnodes(dg), j, element)
+      x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), j, element)
+
+      normal_vector = SVector(metric_terms[2, 2, 1, j, element], -metric_terms[1, 2, 1, j, element])
+      flux = boundary_conditions[direction](u_ll, normal_vector, direction, x, t, surface_flux, equations)
+
+      for v in eachvariable(equations)
+        surface_flux_values[v, j, direction, element] = flux[v]
+      end
+    end
+  end
+
+  orientation = 2
+  for cell_x in axes(mesh, 1)
+    # Negative y-direction
+    direction = 3
+
+    element = linear_indices[cell_x, begin]
+
+    for i in eachnode(dg)
+      u_rr = get_node_vars(u, equations, dg, i, 1, element)
+      x = get_node_coords(node_coordinates, equations, dg, i, 1, element)
+
+      normal_vector = SVector(-metric_terms[2, 1, i, 1, element], metric_terms[1, 1, i, 1, element])
+      flux = boundary_conditions[direction](u_rr, normal_vector, direction, x, t, surface_flux, equations)
+                                            
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, direction, element] = flux[v]
+      end
+    end
+
+    # Positive y-direction
+    direction = 4
+
+    element = linear_indices[cell_x, end]
+
+    for i in eachnode(dg)
+      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), element)
+      x = get_node_coords(node_coordinates, equations, dg, i, nnodes(dg), element)
+
+      normal_vector = SVector(-metric_terms[2, 1, i, 1, element], metric_terms[1, 1, i, 1, element])
+      flux = boundary_conditions[direction](u_ll, normal_vector, direction, x, t, surface_flux, equations)
+
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, direction, element] = flux[v]
+      end
+    end
+  end
 end
