@@ -34,7 +34,8 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
                                       (in 2D and 3D).
                                       `faces[5:6]` describe the faces in positive and negative z-direction respectively
                                       (in 3D).
-- `RealT::Type`: The type that should be used for coordinates.
+- `RealT::Type`: the type that should be used for coordinates.
+- `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
@@ -64,6 +65,7 @@ function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 end
 
 
+# Extract a string of the code that defines the face functions
 function faces2string(faces)
   NDIMS = div(length(faces), 2)
   face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS-1))
@@ -106,12 +108,14 @@ linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (
 
 
 # In 1D
+# Linear mapping from the reference element to the domain described by the faces
 function linear_mapping(x, mesh)
   return linear_interpolate(x, mesh.faces[1](), mesh.faces[2]())
 end
 
 
 # In 2D
+# Bilinear mapping from the reference element to the domain described by the faces
 function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 
@@ -131,6 +135,8 @@ function bilinear_mapping(x, y, mesh)
 end
 
 
+# In 2D
+# Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(x, y, mesh)
   @unpack faces = mesh
 

@@ -21,7 +21,7 @@ function create_cache_analysis(analyzer, mesh::CurvedMesh, equations::AbstractEq
   x_local = zeros(RealT,
                   ndims(equations), nnodes(analyzer))
   jacobian_local = zeros(RealT, 
-                   nnodes(analyzer))
+                         nnodes(analyzer))
   return (; u_local, x_local, jacobian_local)
 end
 

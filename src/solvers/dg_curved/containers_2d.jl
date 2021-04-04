@@ -1,3 +1,4 @@
+# Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
   @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
@@ -21,6 +22,7 @@ function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBas
 end
 
 
+# Calculate physical coordinates to which every node of the reference element is mapped
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y,
                                 mesh::CurvedMesh{2},
@@ -43,6 +45,7 @@ function calc_node_coordinates!(node_coordinates, element,
 end
 
 
+# Calculate metric terms of the mapping from the reference element to the element in the physical domain
 function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
   @views mul!(metric_terms[1, 1, :, :, element], basis.derivative_matrix, node_coordinates[1, :, :, element]) # x_ξ
   @views mul!(metric_terms[2, 1, :, :, element], basis.derivative_matrix, node_coordinates[2, :, :, element]) # y_ξ
@@ -53,14 +56,16 @@ function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArr
 end
 
 
+# Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, element, metric_terms)
   @. @views inverse_jacobian[:, :, element] = inv(metric_terms[1, 1, :, :, element] * metric_terms[2, 2, :, :, element] -
-                                               metric_terms[1, 2, :, :, element] * metric_terms[2, 1, :, :, element])
+                                                  metric_terms[1, 2, :, :, element] * metric_terms[2, 1, :, :, element])
 
   return inverse_jacobian
 end
 
 
+# Save id of left neighbor of every element
 function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, linear_indices)
   # Neighbors in x-direction
   for cell_y in 1:size(mesh, 2)

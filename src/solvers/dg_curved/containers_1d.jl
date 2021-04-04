@@ -1,3 +1,4 @@
+# Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
   @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
@@ -17,6 +18,7 @@ function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBas
 end
 
 
+# Calculate physical coordinates to which every node of the reference element is mapped
 function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
                                 basis::LobattoLegendreBasis)
   @unpack nodes = basis
@@ -34,6 +36,7 @@ function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
 end
 
 
+# Calculate metric terms of the mapping from the reference element to the element in the physical domain
 function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArray{<:Any, 3}, 
                             basis::LobattoLegendreBasis)
   @views mul!(metric_terms[1, 1, :, element], basis.derivative_matrix, node_coordinates[1, :, element]) # x_ξ
@@ -42,6 +45,7 @@ function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArr
 end
 
 
+# Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 2}, element, metric_terms)
   @views inverse_jacobian[:, element] .= inv.(metric_terms[1, 1, :, element])
 
@@ -49,6 +53,7 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 2}, eleme
 end
 
 
+# Save id of left neighbor of every element
 function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{1})
   # Neighbors in x-direction
   # Inner elements

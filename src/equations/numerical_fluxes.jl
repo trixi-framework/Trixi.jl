@@ -43,7 +43,11 @@ Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f
 Compute a `numerical_flux` flux in direction of a normal vector by rotating the solution, 
 computing the numerical flux in x-direction, and rotating the calculated flux back.
 
-Requires a rotationally invariant equation with equation specific functions `rotate_to_x` and `rotate_from_x`.
+Requires a rotationally invariant equation with equation-specific functions 
+[`rotate_to_x`](@ref) and [`rotate_from_x`](@ref).
+
+!!! warning "Experimental code"
+    This flux is experimental and is likely to change in a future release. Do not use it in production code.
 """
 struct FluxRotated{NumericalFlux}
   numerical_flux::NumericalFlux
@@ -53,8 +57,8 @@ end
   @unpack numerical_flux = flux_rotated
 
   norm_ = norm(normal_vector)
-  # normalize(normal_vector) allocates
-  normal = SVector(normal_vector[1] / norm_, normal_vector[2] / norm_)
+  # normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+  normal = normal_vector / norm_
 
   u_ll_rotated = rotate_to_x(u_ll, normal, equations)
   u_rr_rotated = rotate_to_x(u_rr, normal, equations)
