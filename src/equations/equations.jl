@@ -64,16 +64,23 @@ direction `orientation` for the coressponding set of governing `equations`
 function flux end
 
 
-function rotate_to_x(u, normal, equations::AbstractEquations)
-  error("This equation is either not rotationally invariant or the " *
-        "function 'rotate_to_x' is not implemented for this equation.")
-end
+"""
+    rotate_to_x(u, normal, equations)
 
+Apply the rotation that maps `normal` onto the x-axis to the convservative variables `u`.
+This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
+invariant equations in arbitrary normal directions.
+"""
+function rotate_to_x end
 
-function rotate_from_x(u, normal, equations::AbstractEquations)
-  error("This equation is either not rotationally invariant or the " *
-        "function 'rotate_from_x' is not implemented for this equation.")
-end
+"""
+    rotate_from_x(u, normal, equations)
+
+Apply the rotation that maps the x-axis onto `normal` to the convservative variables `u`.
+This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
+invariant equations in arbitrary normal directions.
+"""
+function rotate_from_x end
 
 
 # set sensible default values that may be overwritten by specific equations
