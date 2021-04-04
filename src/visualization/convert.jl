@@ -94,11 +94,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   end
 
   interpolated_nodes = collect(range(original_nodes[1,1,1], original_nodes[1,end,end], length = max_nvisnodes*n_elements+1))
-  interpolated_data = Array{Float64,2}(undef, max_nvisnodes*n_elements+1,  n_vars)
-
-  # Create list with indices of the first and last nodal value in each element.
-  first = collect(1:max_nvisnodes:max_nvisnodes*n_elements)
-  last = first .+ (max_nvisnodes-1)
+  interpolated_data = Array{Float64,3}(undef, n_vars, max_nvisnodes, n_elements)
 
   # Calculate vandermonde matrix for interpolation.
   vandermonde = polynomial_interpolation_matrix(original_nodes[1,:,1], interpolated_nodes[1:max_nvisnodes])
@@ -109,12 +105,12 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
     # Interpolate data for each element.
     for j in 1:n_elements
-      interpolated_data[first[j]:last[j],i] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, j]))
+      interpolated_data[i,:,j] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, j]))
     end
   end
-  interpolated_data[end,:]=unstructured_data[end,end,:]
 
-  return interpolated_nodes, interpolated_data
+  # Return results after data is reshaped and the last index is appended.
+  return interpolated_nodes, convert(Array{Float64}, vcat(reshape(interpolated_data, n_vars,:)',unstructured_data[end,end,:]'))
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
