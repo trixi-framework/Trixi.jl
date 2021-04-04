@@ -91,10 +91,10 @@ function calc_error_norms(func, u::AbstractArray{<:Any,4}, t, analyzer,
     # Interpolate solution and node locations to analysis nodes
     multiply_dimensionwise!(u_local, vandermonde, view(u,                :, :, :, element), u_tmp1)
     multiply_dimensionwise!(x_local, vandermonde, view(node_coordinates, :, :, :, element), x_tmp1)
-    multiply_scalar_dimensionwise!(jacobian_local, vandermonde, view(inverse_jacobian, :, :, element), jacobian_tmp1)
+    multiply_scalar_dimensionwise!(jacobian_local, vandermonde, inv.(view(inverse_jacobian, :, :, element)), jacobian_tmp1)
 
     # Calculate errors at each analysis node
-    @. jacobian_local = abs(inv(jacobian_local))
+    @. jacobian_local = abs(jacobian_local)
 
     for j in eachnode(analyzer), i in eachnode(analyzer)
       u_exact = initial_condition(get_node_coords(x_local, equations, dg, i, j), t, equations)
