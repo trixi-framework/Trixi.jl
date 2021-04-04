@@ -1,6 +1,5 @@
-using Test: @test_nowarn, @test
+using Test: @test
 import Trixi
-
 
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
@@ -33,7 +32,7 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println($elixir)
 
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn trixi_include(@__MODULE__, $elixir; $kwargs...)
+    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...)
 
     # if present, compare l2 and linf errors against reference values
     if !isnothing($l2) || !isnothing($linf)
@@ -91,6 +90,44 @@ macro test_nowarn_debug(expr)
           println("Content of `stderr`:\n", stderr_content)
         end
         @test isempty(stderr_content)
+        ret
+      finally
+        rm(fname, force=true)
+      end
+    end
+  end
+end
+
+# Modified version of `@test_nowarn` that prints the content of `stderr` when
+# it is not empty and ignnores module replacements.
+macro test_nowarn_mod(expr)
+  quote
+    let fname = tempname()
+      try
+        ret = open(fname, "w") do f
+          redirect_stderr(f) do
+            $(esc(expr))
+          end
+        end
+        stderr_content = read(fname, String)
+        if !isempty(stderr_content)
+          println("Content of `stderr`:\n", stderr_content)
+        end
+        test_successful = isempty(stderr_content)
+        # we also ignore simple module redefinitions for convenience
+        if !test_successful
+          only_module_replacements = true
+          for line in split(stderr_content, '\n')
+            if !isempty(line) && match(r"WARNING: replacing module .+\.", line) === nothing
+              only_module_replacements = false
+              break
+            end
+          end
+          if only_module_replacements
+            test_successful = true
+          end
+        end
+        @test test_successful
         ret
       finally
         rm(fname, force=true)
