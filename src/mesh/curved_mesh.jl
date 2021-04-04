@@ -103,6 +103,61 @@ function coordinates2faces(coordinates_min::NTuple{2}, coordinates_max::NTuple{2
 end
 
 
+function coordinates2faces(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
+  f1(s, t) = SVector(coordinates_min[1],
+                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f2(s, t) = SVector(coordinates_max[1], 
+                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f3(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     coordinates_min[2],
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f4(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]),
+                     coordinates_max[2],
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+  
+  f5(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
+                     coordinates_min[3])
+
+  f6(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
+                     coordinates_max[3])               
+  
+  # CodeTracking can't find the definition here due to the dispatching by dimensions
+  f1_as_string = "f1(s, t) = SVector($(coordinates_min[1]),
+                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f2_as_string = "f2(s, t) = SVector($(coordinates_max[1]),
+                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f3_as_string = "f3(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     $(coordinates_min[2]),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f4_as_string = "f4(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     $(coordinates_max[2]),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f5_as_string = "f5(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     $(coordinates_min[3]))"  
+
+  f6_as_string = "f6(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     $(coordinates_max[3]))"
+
+  return (f1, f2, f3, f4, f5, f6), 
+         [f1_as_string, f2_as_string, f3_as_string, f4_as_string, f5_as_string, f6_as_string]
+end
+
+
 # Interpolate linearly between left and right value where s should be between -1 and 1
 linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
 
@@ -132,6 +187,46 @@ function bilinear_mapping(x, y, mesh)
                  x2 * (1 + x) * (1 - y) +
                  x3 * (1 - x) * (1 + y) +
                  x4 * (1 + x) * (1 + y))
+end
+
+
+# In 3D
+# Trilinear mapping from the reference element to the domain described by the faces
+function trilinear_mapping(x, y, z, mesh)
+  @unpack faces = mesh
+
+  x1 = faces[1](-1, -1) # -x,-y,-z
+  @assert x1 ≈ faces[3](-1, -1) ≈ faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match (-x, -y, -z corner)"
+
+  x2 = faces[2](-1, -1) #  x,-y,-z
+  @assert x2 ≈ faces[3]( 1, -1) ≈ faces[5]( 1, -1) "faces[2](-1, -1), faces[3]( 1, -1) and faces[5]( 1, -1) need to match ( x, -y, -z corner)"
+  
+  x3 = faces[1]( 1, -1) # -x, y,-z
+  @assert x3 ≈ faces[4](-1, -1) ≈ faces[5](-1,  1) "faces[1]( 1, -1), faces[4](-1, -1) and faces[5](-1,  1) need to match (-x,  y, -z corner)"
+  
+  x4 = faces[2]( 1, -1) #  x, y,-z
+  @assert x4 ≈ faces[4]( 1, -1) ≈ faces[5]( 1,  1) "faces[2]( 1, -1), faces[4]( 1, -1) and faces[5]( 1,  1) need to match ( x,  y, -z corner)"
+  
+  x5 = faces[1](-1,  1) # -x,-y, z
+  @assert x5 ≈ faces[3](-1,  1) ≈ faces[6](-1, -1) "faces[1](-1,  1), faces[3](-1,  1) and faces[6](-1, -1) need to match (-x, -y,  z corner)"
+
+  x6 = faces[2](-1,  1) #  x,-y, z
+  @assert x6 ≈ faces[3]( 1,  1) ≈ faces[6]( 1, -1) "faces[2](-1,  1), faces[3]( 1,  1) and faces[6]( 1, -1) need to match ( x, -y,  z corner)"
+  
+  x7 = faces[1]( 1,  1) # -x, y, z
+  @assert x7 ≈ faces[4](-1,  1) ≈ faces[6](-1,  1) "faces[1]( 1,  1), faces[4](-1,  1) and faces[6](-1,  1) need to match (-x,  y,  z corner)"
+  
+  x8 = faces[2]( 1,  1) #  x, y, z
+  @assert x8 ≈ faces[4]( 1,  1) ≈ faces[6]( 1,  1) "faces[2]( 1,  1), faces[4]( 1,  1) and faces[6]( 1,  1) need to match ( x,  y,  z corner)"
+
+  return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
+                  x2 * (1 + x) * (1 - y) * (1 - z) +
+                  x3 * (1 - x) * (1 + y) * (1 - z) +
+                  x4 * (1 + x) * (1 + y) * (1 - z) +
+                  x5 * (1 - x) * (1 - y) * (1 + z) +
+                  x6 * (1 + x) * (1 - y) * (1 + z) +
+                  x7 * (1 - x) * (1 + y) * (1 + z) +
+                  x8 * (1 + x) * (1 + y) * (1 + z) )
 end
 
 

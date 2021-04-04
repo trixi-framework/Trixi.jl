@@ -17,7 +17,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot, mul!, norm
+using LinearAlgebra: dot, mul!, norm, Diagonal
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
