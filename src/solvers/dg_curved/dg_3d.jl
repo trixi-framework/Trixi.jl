@@ -40,13 +40,13 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, mesh::CurvedMesh, 
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
       end
 
-      flux2 = metric_terms[1, 1, i, j, k, element] * metric_terms[3, 3, i, j, k, element] * flux(u_node, 2,equations)
+      flux2 = metric_terms[1, 1, i, j, k, element] * metric_terms[3, 3, i, j, k, element] * flux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
       end
 
-      flux3 = metric_terms[1, 1, i, j, k, element] * metric_terms[2, 2, i, j, k, element] * flux(u_node, 3,equations)
+      flux3 = metric_terms[1, 1, i, j, k, element] * metric_terms[2, 2, i, j, k, element] * flux(u_node, 3, equations)
       for kk in eachnode(dg)
         integral_contribution = derivative_dhat[kk, k] * flux3
         add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
