@@ -41,7 +41,8 @@ function calc_node_coordinates!(node_coordinates, element,
   cell_z_offset = -1 + (cell_z-1) * dz + dz/2
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-    # node_coordinates are the mapped reference node_coordinates TODO: Needs to be adjusted for "full" curved
+    # node_coordinates are the mapped reference node_coordinates
+    # TODO: Needs to be adjusted for actually curved meshes
     node_coordinates[:, i, j, k, element] .= trilinear_mapping(cell_x_offset + dx/2 * nodes[i],
                                                                cell_y_offset + dy/2 * nodes[j],
                                                                cell_z_offset + dz/2 * nodes[k], mesh)
@@ -52,12 +53,12 @@ end
 # Calculate metric terms of the mapping from the reference element to the element in the physical domain
 function calc_metric_terms!(metric_terms, element, mesh, node_coordinates::AbstractArray{<:Any, 5}, basis::LobattoLegendreBasis)
   @unpack faces = mesh
-  @unpack nodes = basis
 
+  # TODO: Needs to be adjusted for actually curved meshes
   dx, dy, dz = (faces[2](1, 1) .- faces[1](-1, -1)) ./ size(mesh)
 
-  for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-    metric_terms[:, :, i, j, k, element] .= 0.5 * Diagonal([dx, dy, dz])
+  for k in 1:nnodes(basis), j in 1:nnodes(basis), i in 1:nnodes(basis)
+    metric_terms[:, :, i, j, k, element] .= 0.5 * diagm([dx, dy, dz])
   end
 
   return metric_terms
@@ -66,7 +67,9 @@ end
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, metric_terms)
-  @. @views inverse_jacobian[:, :, :, element] = inv(metric_terms[1, 1, 1, 1, 1, element] * metric_terms[2, 2, 1, 1, 1, element] * metric_terms[3, 3, 1, 1, 1, element])                                        
+  @. @views inverse_jacobian[:, :, :, element] = inv(metric_terms[1, 1, 1, 1, 1, element] * 
+                                                     metric_terms[2, 2, 1, 1, 1, element] * 
+                                                     metric_terms[3, 3, 1, 1, 1, element])                                        
   return inverse_jacobian
 end
 
