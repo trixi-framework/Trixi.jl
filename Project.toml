@@ -24,7 +24,7 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
-CheapThreads = "0.1.11"
+CheapThreads = "0.2"
 DiffEqBase = "6.47"
 EllipsisNotation = "1.0"
 ForwardDiff = "0.10"

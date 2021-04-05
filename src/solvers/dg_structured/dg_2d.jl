@@ -63,7 +63,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
                          element, 1, u, mesh, equations, dg)
-    
+
     # Interfaces in x-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
@@ -74,7 +74,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::StructuredMesh{2}
 end
 
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u,
                               mesh::StructuredMesh{2}, equations, dg::DG)
   @unpack surface_flux = dg
 
@@ -129,9 +129,9 @@ end
 end
 
 
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
+function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux,
     mesh::StructuredMesh{2}, equations::AbstractEquations)
-    
+
   @unpack coordinates_min, coordinates_max = mesh
 
   if orientation == 1

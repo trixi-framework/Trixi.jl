@@ -25,7 +25,7 @@ function rhs!(du::AbstractArray{<:Any,3}, u, t,
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1}, 
+function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::StructuredMesh{1},
                               equations, dg::DG, cache)
   @unpack surface_flux = dg
 
