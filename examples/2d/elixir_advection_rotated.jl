@@ -3,6 +3,13 @@ using OrdinaryDiffEq
 using Trixi
 
 
+# Define new structs inside a module to allow re-evaluating the file.
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# if multiple test cases using the same module name are run in the same session.
+module TrixiExtensionAdvectionRotated
+
+using Trixi
+
 # initial_condition_convergence_test transformed to the rotated rectangle
 struct InitialConditionConvergenceTestRotated
   sin_alpha::Float64
@@ -41,11 +48,15 @@ function (initial_condition::InitialConditionConvergenceTestRotated)(x, t, equat
   return SVector(scalar)
 end
 
+end # module TrixiExtensionAdvectionRotated
+
+import .TrixiExtensionAdvectionRotated
+
 ###############################################################################
 # semidiscretization of the linear advection equation
 
 alpha = pi * 0.1
-initial_condition = InitialConditionConvergenceTestRotated(alpha)
+initial_condition = TrixiExtensionAdvectionRotated.InitialConditionConvergenceTestRotated(alpha)
 sin_ = initial_condition.sin_alpha
 cos_ = initial_condition.cos_alpha
 T = [cos_ -sin_; sin_ cos_]

@@ -3,6 +3,13 @@ using OrdinaryDiffEq
 using Trixi
 
 
+# Define new structs inside a module to allow re-evaluating the file.
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# if multiple test cases using the same module name are run in the same session.
+module TrixiExtensionEulerRotated
+
+using Trixi
+
 # initial_condition_convergence_test transformed to the rotated rectangle
 struct InitialConditionSourceTermsRotated
   sin_alpha::Float64
@@ -100,13 +107,18 @@ end
   return SVector(du1, du2_rotated, du3_rotated, du4)
 end
 
+end # module TrixiExtensionEulerRotated
+
+import .TrixiExtensionEulerRotated
+
+
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
 
 alpha = 0.1
-initial_condition_source_terms = InitialConditionSourceTermsRotated(alpha)
+initial_condition_source_terms = TrixiExtensionEulerRotated.InitialConditionSourceTermsRotated(alpha)
 sin_ = initial_condition_source_terms.sin_alpha
 cos_ = initial_condition_source_terms.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
