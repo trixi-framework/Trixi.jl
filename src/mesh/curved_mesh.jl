@@ -195,29 +195,29 @@ end
 function trilinear_mapping(x, y, z, mesh)
   @unpack faces = mesh
 
-  x1 = faces[1](-1, -1) # -x,-y,-z
-  @assert x1 ≈ faces[3](-1, -1) ≈ faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match (-x, -y, -z corner)"
+  x1 = faces[1](-1, -1) # maped from (-1,-1,-1)
+  @assert x1 ≈ faces[3](-1, -1) ≈ faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1,-1,-1) corner"
 
-  x2 = faces[2](-1, -1) #  x,-y,-z
-  @assert x2 ≈ faces[3]( 1, -1) ≈ faces[5]( 1, -1) "faces[2](-1, -1), faces[3]( 1, -1) and faces[5]( 1, -1) need to match ( x, -y, -z corner)"
+  x2 = faces[2](-1, -1) #  maped from (1,-1,-1)
+  @assert x2 ≈ faces[3]( 1, -1) ≈ faces[5]( 1, -1) "faces[2](-1, -1), faces[3]( 1, -1) and faces[5]( 1, -1) need to match at (1,-1,-1) corner"
   
-  x3 = faces[1]( 1, -1) # -x, y,-z
-  @assert x3 ≈ faces[4](-1, -1) ≈ faces[5](-1,  1) "faces[1]( 1, -1), faces[4](-1, -1) and faces[5](-1,  1) need to match (-x,  y, -z corner)"
+  x3 = faces[1]( 1, -1) # maped from (-1, 1,-1)
+  @assert x3 ≈ faces[4](-1, -1) ≈ faces[5](-1,  1) "faces[1]( 1, -1), faces[4](-1, -1) and faces[5](-1,  1) need to match at (-1,1,-1) corner"
   
-  x4 = faces[2]( 1, -1) #  x, y,-z
-  @assert x4 ≈ faces[4]( 1, -1) ≈ faces[5]( 1,  1) "faces[2]( 1, -1), faces[4]( 1, -1) and faces[5]( 1,  1) need to match ( x,  y, -z corner)"
+  x4 = faces[2]( 1, -1) # maped from  (1, 1,-1)
+  @assert x4 ≈ faces[4]( 1, -1) ≈ faces[5]( 1,  1) "faces[2]( 1, -1), faces[4]( 1, -1) and faces[5]( 1,  1) need to match at (1,1,-1) corner"
   
-  x5 = faces[1](-1,  1) # -x,-y, z
-  @assert x5 ≈ faces[3](-1,  1) ≈ faces[6](-1, -1) "faces[1](-1,  1), faces[3](-1,  1) and faces[6](-1, -1) need to match (-x, -y,  z corner)"
+  x5 = faces[1](-1,  1) # maped from (-1,-1, 1)
+  @assert x5 ≈ faces[3](-1,  1) ≈ faces[6](-1, -1) "faces[1](-1,  1), faces[3](-1,  1) and faces[6](-1, -1) need to match at (-1,-1,1) corner"
 
-  x6 = faces[2](-1,  1) #  x,-y, z
-  @assert x6 ≈ faces[3]( 1,  1) ≈ faces[6]( 1, -1) "faces[2](-1,  1), faces[3]( 1,  1) and faces[6]( 1, -1) need to match ( x, -y,  z corner)"
+  x6 = faces[2](-1,  1) # maped from  (1,-1, 1)
+  @assert x6 ≈ faces[3]( 1,  1) ≈ faces[6]( 1, -1) "faces[2](-1,  1), faces[3]( 1,  1) and faces[6]( 1, -1) need to match at (1,-1,1) corner"
   
-  x7 = faces[1]( 1,  1) # -x, y, z
-  @assert x7 ≈ faces[4](-1,  1) ≈ faces[6](-1,  1) "faces[1]( 1,  1), faces[4](-1,  1) and faces[6](-1,  1) need to match (-x,  y,  z corner)"
+  x7 = faces[1]( 1,  1) # maped from (-1, 1, 1)
+  @assert x7 ≈ faces[4](-1,  1) ≈ faces[6](-1,  1) "faces[1]( 1,  1), faces[4](-1,  1) and faces[6](-1,  1) need to match at (-1,1,1) corner"
   
-  x8 = faces[2]( 1,  1) #  x, y, z
-  @assert x8 ≈ faces[4]( 1,  1) ≈ faces[6]( 1,  1) "faces[2]( 1,  1), faces[4]( 1,  1) and faces[6]( 1,  1) need to match ( x,  y,  z corner)"
+  x8 = faces[2]( 1,  1) # maped from (1, 1, 1)
+  @assert x8 ≈ faces[4]( 1,  1) ≈ faces[6]( 1,  1) "faces[2]( 1,  1), faces[4]( 1,  1) and faces[6]( 1,  1) need to match at (1,1,1) corner"
 
   return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
                   x2 * (1 + x) * (1 - y) * (1 - z) +
