@@ -161,9 +161,9 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,5},
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-      jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
-      integral += jacobian_volume * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
-      total_volume += jacobian_volume * weights[i] * weights[j] * weights[k]
+      volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
+      integral += volume_jacobian * weights[i] * weights[j] * weights[k] * func(u, i, j, k, element, equations, dg, args...)
+      total_volume += volume_jacobian * weights[i] * weights[j] * weights[k]
     end
   end
 
