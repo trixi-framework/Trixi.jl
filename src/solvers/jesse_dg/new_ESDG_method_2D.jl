@@ -6,20 +6,21 @@ using Plots
 using LinearAlgebra
 using SparseArrays
 using RecursiveArrayTools
-using EntropyStableEuler
 using Setfield
-using StartUpDG
+
 using NodesAndModes
+using StartUpDG
+using EntropyStableEuler
 
 ###############################################################################
 # semidiscretization 
 
 N = 3
-K1D = 16
+K1D = 32
 CFL = .1
-FinalTime = .1
+FinalTime = .5
 
-elem_type = Quad()
+elem_type = Quad() # currently assumes Quad()
 
 vol_quad = NodesAndModes.quad_nodes(elem_type,2*N)
 rd = RefElemData(elem_type,N; quad_rule_vol = vol_quad)
@@ -39,19 +40,28 @@ function Base.show(io::IO, mesh::UnstructuredMesh{NDIMS,Tv,Ti}) where {NDIMS,Tv,
     @nospecialize mesh
     println("Unstructured mesh of dimension $NDIMS with $(size(EToV,1)) elements")
 end
+function Base.show(io::IO, rd::RefElemData)
+    @nospecialize rd
+    println("Degree $(rd.N) RefElemData on $(rd.elemShape) element.")
+end
+function Base.show(io::IO, md::MeshData) where {NDIMS,Tv,Ti}
+    @nospecialize mesh
+    println("MeshData with $(md.K) elements")
+end
 
 # Euler functions
 @inline function f(U)
     ρ,ρu,ρv,E = U
     u = ρu./ρ
     v = ρv./ρ    
-    p = pfun(EntropyStableEuler.Euler{2}(),U)
-    
+    ρuv = @. ρu*v
+    p = pfun(EntropyStableEuler.Euler{2}(),U)    
+
     fm1x = @. ρu*u + p
-    fm2x = @. ρu*v     
+    fm2x = @. ρuv
     fEx = @. (E + p)*u
 
-    fm1y = @. ρu*v
+    fm1y = @. ρuv
     fm2y = @. ρv*v + p    
     fEy = @. (E + p)*v    
     return SVector{4}(ρu,fm1x,fm2x,fEx),SVector{4}(ρv,fm1y,fm2y,fEy)
@@ -77,31 +87,64 @@ function initial_condition(xyz,t,equations::EulerProject2D)
     # ρ = 1 + .5*(abs(x) < .25 && abs(y) < .25)
     u = 0.10
     v = 0.20
-    p = 2.0 #ρ^1.4
+    p = ρ^1.4
     return prim2cons((ρ,u,v,p),CompressibleEulerEquations2D(1.4)) # hacky
 end
 
 Base.real(rd::RefElemData) = Float64
 
-function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd::RefElemData, RealT, uEltype)
+function build_invMQT(rd)
+    @unpack M,Dr,Ds = rd
+    Qr = M*Dr
+    Qs = M*Ds
+    invMQTr = Matrix(-M\Qr')
+    invMQTs = Matrix(-M\Qs')
+    return invMQTr,invMQTs
+end
+
+function build_invMQT(rd::RefElemData{2,Quad})
+    @unpack M,Dr,Ds = rd
+    Qr = M*Dr
+    Qs = M*Ds
+    invMQTr = droptol!(sparse(-M\Qr'),50*eps())
+    invMQTs = droptol!(sparse(-M\Qs'),50*eps())
+    return invMQTr,invMQTs
+end
+
+# specialize for quads
+function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd, RealT, uEltype)
 
     @unpack VXYZ,EToV = mesh
     md = MeshData(VXYZ...,EToV,rd)
     md = make_periodic(md,rd)
 
-    @unpack M,Dr,Ds,Vf,Vq,Pq = rd
-    Qr = M*Dr
-    Qs = M*Ds
-    invMQTr = Matrix(-M\Qr')
-    invMQTs = Matrix(-M\Qs')
+    invMQTr,invMQTs = build_invMQT(rd)
 
+    # assume const geometric terms
+    # rxJ_diag,ryJ_diag,sxJ_diag,syJ_diag = Diagonal.(md.rstxyzJ)
+    rxJ_diag = Diagonal(md.rxJ[1,:])
+    sxJ_diag = Diagonal(md.sxJ[1,:])
+    ryJ_diag = Diagonal(md.ryJ[1,:])
+    syJ_diag = Diagonal(md.syJ[1,:])
+    invJ_diag = Diagonal(md.J[1,:])
+    DiagGeo = (rxJ_diag,sxJ_diag,ryJ_diag,syJ_diag,invJ_diag) 
+        
     dfxdr = similar(md.x)
     dfxds = similar(md.x)
     dfydr = similar(md.x)
     dfyds = similar(md.x)
     lifted_flux = similar(md.x)
     interface_flux = similar(md.xf)
-    cache = (;md,invMQTr,invMQTs,dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux)
+
+    Uq = [similar(md.xq) for _ = 1:nvariables(equations)]
+    Uf = [similar(md.xf) for _ = 1:nvariables(equations)]
+    VU = [similar(md.x) for _ = 1:nvariables(equations)]    
+    VUq = [similar(md.xq) for _ = 1:nvariables(equations)]
+    VUf = [similar(md.xf) for _ = 1:nvariables(equations)]
+
+    cache = (;md,invMQTr,invMQTs,
+              dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux,DiagGeo,
+              Uq,Uf,VU,VUq,VUf)
 
     return cache
 end
@@ -116,21 +159,67 @@ end
 end
 LF(uL,uR,normal) = Trixi.DissipationLocalLaxFriedrichs(max_abs_speed_normal)(uL,uR,normal,CompressibleEulerEquations2D(1.4))
 
-function apply_DG_deriv!(dQ,fx,fy,fxf,fyf,fx_ec,fy_ec,diss,rd,cache)
-    @unpack md = cache
-    @unpack dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux = cache
-    @unpack invMQTr,invMQTs = cache
-    @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ = md
+function apply_DG_deriv!(dQ,fx,fy,fxf,fyf,diss,rd,cache)
     @unpack LIFT = rd
+    @unpack invMQTr,invMQTs = cache
+    
+    @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ = cache.md
+    @unpack DiagGeo = cache
+    rxJ_diag,sxJ_diag,ryJ_diag,syJ_diag,invJ_diag = cache.DiagGeo    
+
+    @unpack dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux = cache
     for i = 1:length(dQ)
         @. interface_flux = nxJ*fxf[i] + nyJ*fyf[i] - diss[i]*sJ
-        mul!(lifted_flux,LIFT,interface_flux)
         mul!(dfxdr,invMQTr,fx[i])
-        mul!(dfxds,invMQTs,fx[i])
         mul!(dfydr,invMQTr,fy[i])
+        mul!(dfxds,invMQTs,fx[i])
         mul!(dfyds,invMQTs,fy[i])
-        @. dQ[i] = -(rxJ*dfxdr + sxJ*dfxds + ryJ*dfydr + syJ*dfyds + lifted_flux)/J
+        mul!(lifted_flux,LIFT,interface_flux)
+        @. dQ[i] = -(rxJ.*dfxdr + sxJ.*dfxds + ryJ.*dfydr + syJ.*dfyds + lifted_flux)/J
+
+        # # # scale columns by diagonal geofacs + accumulate into dQ[i]
+        # mul!(dQ[i],LIFT,interface_flux,1.0,1.0) # 1.0*dQ[i] += 1.0*LIFT*interface_flux
+        # mul!(dQ[i],dfxdr,rxJ_diag,1.0,1.0) 
+        # mul!(dQ[i],dfxds,sxJ_diag,1.0,1.0) 
+        # mul!(dQ[i],dfydr,ryJ_diag,1.0,1.0) 
+        # mul!(dQ[i],dfyds,syJ_diag,1.0,1.0) 
+        # # mul!(dQ[i],dQ[i],-invJ_diag) 
+        # dQ[i] .= -dQ[i]*invJ_diag
     end
+end
+
+function entropy_projection!(cache,Q,rd)
+    @unpack Pq,Vq,Vf = rd
+    @unpack VU,Uq,VUq = cache
+    for i = 1:length(Q)
+        mul!(Uq[i],Vq,Q[i])
+    end
+    for i = 1:length(first(VUq))
+        setindex!.(VUq,v_u(getindex.(Uq,i)),i)
+    end
+    for i = 1:length(VU)
+        mul!(VU[i],Pq,VUq[i])
+    end
+end
+
+function interp_entropy_vars!(cache,rd)
+    @unpack Vf,Vq = rd
+    @unpack VU,VUq,VUf = cache
+    for i = 1:length(VU)
+        mul!(VUf[i],Vf,VU[i])
+        mul!(VUq[i],Vq,VU[i])
+    end
+end
+
+function eval_conservative_vars!(cache)
+    @unpack Uf,Uq,VUf,VUq = cache
+    for i = 1:length(first(VUf))
+        setindex!.(Uf,u_v(getindex.(VUf,i)),i)
+    end
+    for i = 1:length(first(VUq))
+        setindex!.(Uq,u_v(getindex.(VUq,i)),i)
+    end
+    #Uvol = u_v((x->Vq*x).(VU))
 end
 
 function Trixi.rhs!(du, u::VectorOfArray, t,
@@ -151,18 +240,17 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     # @inline flux_x(uL,uR) = flux_chandrashekar(uL,uR,1,CompressibleEulerEquations2D(1.4))
     # @inline flux_y(uL,uR) = flux_chandrashekar(uL,uR,2,CompressibleEulerEquations2D(1.4))
 
-    # entropy projection    
-    VU = (x->Pq*x).(v_u((x->Vq*x).(Q)))
-    Uvol = u_v((x->Vq*x).(VU))
-    Uf = u_v((x->Vf*x).(VU))
+    entropy_projection!(cache,Q,rd)
+    interp_entropy_vars!(cache,rd)
+    eval_conservative_vars!(cache)
+    @unpack Uq,Uf,VUf = cache
 
-    # project volume flux
-    fx,fy = map.(x->Pq*x,f(Uvol))
+    # project flux
+    fx,fy = map.(x->Pq*x,f(Uq))
 
     # compute face values   
     UP = (u->u[mapP]).(Uf)
-    fx_ec, fy_ec = fEC(UP,Uf)
-
+    fx_ec, fy_ec = fEC(UP,Uf)    
     fxf = (x->Vf*x).(fx)
     fyf = (x->Vf*x).(fy)
     fxavg = (u->@. .5*(u+u[mapP])).(fxf)
@@ -171,7 +259,7 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     # correction
     Δfx = @. fx_ec - fxavg
     Δfy = @. fy_ec - fyavg
-    Δv = v_u(UP) .- v_u(Uf) # can also compute from ṽ
+    Δv = (x->x[mapP]-x).(VUf) # Δv = v_u(UP) .- v_u(Uf)    
     sign_Δv = map(x->sign.(x),Δv)
     Δfx_dot_signΔv = sum(map((x,y)->x.*y.*nxJ,sign_Δv,Δfx))
     Δfy_dot_signΔv = sum(map((x,y)->x.*y.*nyJ,sign_Δv,Δfy))
@@ -193,49 +281,11 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     #             LIFT*(@. nxJ*fxf + nyJ*fyf - diss*sJ))./J
     # end    
     # rhs_scalar!.(dQ,fx,fy,fx_ec,fy_ec,dissipation)
-    apply_DG_deriv!(dQ,fx,fy,fxf,fyf,fx_ec,fy_ec,dissipation,rd,cache)
+    apply_DG_deriv!(dQ,fx,fy,fx_ec,fy_ec,dissipation,rd,cache) # very slightly faster?
 
     return nothing
 end
 
-# function rhs_scalar_test!(du,fx,fy,fxf,fyf,cache,rd)     
-#     @unpack invMQTr,invMQTs = cache
-#     @unpack md = cache
-#     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
-#     @unpack Vq,Pq,Vf,wf,LIFT = rd   
-#     du .= -(rxJ.*(invMQTr*fx) .+ sxJ.*(invMQTs*fx) .+ 
-#             ryJ.*(invMQTr*fy) .+ syJ.*(invMQTs*fy) .+
-#             LIFT*(@. nxJ*fxf + nyJ*fyf))./J
-# end
-# function rhs_scalar_loop!(du,fx,fy,fxf,fyf,cache,rd)     
-#     @unpack invMQTr,invMQTs = cache
-#     @unpack md = cache
-#     @unpack rxJ,sxJ,ryJ,syJ,J,nxJ,nyJ,sJ,mapP = md
-#     @unpack Vq,Pq,Vf,wf,LIFT = rd   
-#     for e = 1:md.K
-#         rxJe = @view rxJ[:,e]
-#         sxJe = @view sxJ[:,e]
-#         ryJe = @view ryJ[:,e]
-#         syJe = @view syJ[:,e]
-#         Je = @view J[:,e]
-#         nxJe = @view nxJ[:,e]
-#         nyJe = @view nyJ[:,e]        
-#         fxe = @view fx[:,e]
-#         fye = @view fy[:,e]        
-#         fxfe = @view fxf[:,e]                
-#         fyfe = @view fyf[:,e]                        
-#         due = @view du[:,e]
-#         due .= -(rxJe.*(invMQTr*fxe) .+ sxJe.*(invMQTs*fxe) .+ 
-#                  ryJe.*(invMQTr*fye) .+ syJe.*(invMQTs*fye) .+
-#                  LIFT*(@. nxJe*fxfe + nyJe*fyfe))./Je
-#     end
-# end
-# function time_rhs_scalar(cache,rd)
-#     du,fx,fy = ntuple(x->similar(md.x),3)
-#     fxf,fyf = ntuple(x->similar(md.xf),2)
-#     @btime rhs_scalar_test!($du,$fx,$fy,$fxf,$fyf,$cache,$rd)
-#     @btime rhs_scalar_loop!($du,$fx,$fy,$fxf,$fyf,$cache,$rd)    
-# end
 ################## interface stuff #################
 
 Trixi.ndims(mesh::UnstructuredMesh) = length(mesh.VXYZ)
@@ -243,7 +293,7 @@ Trixi.ndims(mesh::UnstructuredMesh) = length(mesh.VXYZ)
 function Trixi.allocate_coefficients(mesh::UnstructuredMesh, 
                     equations, rd::RefElemData, cache)
     NVARS = nvariables(equations) # TODO replace with static type info?
-    return VectorOfArray(Vector([similar(cache.md.x) for i = 1:NVARS])) # TODO replace w/StaticArrays
+    return VectorOfArray([similar(cache.md.x) for i = 1:NVARS]) # TODO replace w/StaticArrays
 end
 
 function Trixi.compute_coefficients!(u::VectorOfArray, initial_condition, t, 
@@ -302,14 +352,16 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 summary_callback()
 
 Q = sol.u[end]
+L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
+@show sum(L2norm.(Q.u))
 zz = rd.Vp*Q[1]
 scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
-mesh = UnstructuredMesh((VX,VY),EToV)
-# eqns = CompressibleEulerEquations2D(1.4)
-eqns = EulerProject2D(f,fEC,v_u,u_v,S)
-cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-u = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-du = similar(u)
-Trixi.compute_coefficients!(u,initial_condition,0.0,mesh,eqns,rd,cache)
-Trixi.rhs!(du,u,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
+# mesh = UnstructuredMesh((VX,VY),EToV)
+# eqns = EulerProject2D(f,fEC,v_u,u_v,S)
+# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+# u = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+# du = similar(u)
+# Trixi.compute_coefficients!(u,initial_condition,0.0,mesh,eqns,rd,cache)
+# Trixi.rhs!(du,u,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
+# Q = u.u
