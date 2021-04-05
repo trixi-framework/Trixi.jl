@@ -113,21 +113,10 @@ macro test_nowarn_mod(expr)
         if !isempty(stderr_content)
           println("Content of `stderr`:\n", stderr_content)
         end
-        test_successful = isempty(stderr_content)
-        # we also ignore simple module redefinitions for convenience
-        if !test_successful
-          only_module_replacements = true
-          for line in split(stderr_content, '\n')
-            if !isempty(line) && match(r"WARNING: replacing module .+\.", line) === nothing
-              only_module_replacements = false
-              break
-            end
-          end
-          if only_module_replacements
-            test_successful = true
-          end
-        end
-        @test test_successful
+        # We also ignore simple module redefinitions for convenience. Thus, we
+        # check whether every line of `stderr_content` is of the form of a
+        # module replacement warning.
+        @test occursin(r"^(WARNING: replacing module .+\.\n)*$", stderr_content)
         ret
       finally
         rm(fname, force=true)
