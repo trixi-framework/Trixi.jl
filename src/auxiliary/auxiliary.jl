@@ -140,7 +140,7 @@ to reduce the overhead of serial execution or the underlying threading capabilit
 might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
 
 !!! warn
-  This macro does not necessarily work for general for loops.
+  This macro does not necessarily work for general `for` loops.
 
 Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
 and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435.
@@ -153,30 +153,14 @@ macro threaded(expr)
   # to reduce some overhead (and allocations) for serial execution.
   # However, the final code using `@batch` from CheapThreads.jl is more efficient,
   # since this packages provides threads with less overhead. Since it is written
-  # by Chris Elrod, who wrote also LoopVectorization.jl, we expect this package
-  # to provide the most efficient and useful implementation available in Julia.
+  # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
+  # to provide the most efficient and useful implementation of threads (as we use
+  # them) available in Julia.
   # return esc(quote
   #   if Threads.nthreads() == 1
   #     $(expr)
   #   else
   #     Threads.@threads $(expr)
-  #   end
-  # end)
-
-  # correct_for_loop = expr.head === Symbol("for") && expr.args[1].head === Symbol("=")
-  # if !correct_for_loop
-  #   throw(ArgumentError("Incorrect usage of `@threaded`. Use it like `@threaded for ... end`."))
-  # end
-  # for_loop_iterable = expr.args[1].args[2]
-  # return esc(quote
-  #   if Threads.nthreads() == 1
-  #     $(expr)
-  #   else
-  #     @batch $(expr)
-  #   # elseif $(for_loop_iterable) isa AbstractUnitRange
-  #   #   @batch $(expr)
-  #   # else
-  #   #   Threads.@threads $(expr)
   #   end
   # end)
 

@@ -201,6 +201,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,3}, u, nonconservative_te
   # Loop over blended DG-FV elements
   @timeit_debug timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
     element = element_ids_dgfv[idx_element]
+    alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element, 1 - alpha_element)
