@@ -19,6 +19,9 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
     @test isapprox(mean_values[:l2], [4.0], rtol=0.01)
 
+    mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended_curved.jl"), 3)
+    @test isapprox(mean_values[:l2], [4.0], rtol=0.01)
+
     mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
     @test isapprox(mean_values[:l2], 4 * ones(4), atol=0.4)
   end
