@@ -232,16 +232,30 @@ end
 # function source_terms_WHATEVER(u, x, t, equations::LinearScalarAdvectionEquation2D)
 
 
-# Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation2D)
+# Calculate 1D flux for a single point
+@inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end
 
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::LinearScalarAdvectionEquation2D)
   λ_max = abs(equation.advectionvelocity[orientation])
+end
+
+
+# Calculate 1D flux for a single point in direction of a normal vector
+@inline function flux(u, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return a * u
+end
+
+
+# Calculate maximum wave speed in direction of a normal vector for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation2D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return abs(a)
 end
 
 

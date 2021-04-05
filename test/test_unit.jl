@@ -187,6 +187,43 @@ Cassette.@context Ctx
     end
   end
 
+  @testset "curved mesh" begin
+    @testset "calc_metric_terms" begin
+      @testset "identity map" begin
+        basis = LobattoLegendreBasis(5)
+        nodes = basis.nodes
+        metric_terms = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
+
+        node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
+        node_coordinates[1, :, :, 1] .= [nodes[i] for i in 1:6, j in 1:6]
+        node_coordinates[2, :, :, 1] .= [nodes[j] for i in 1:6, j in 1:6]
+        expected = zeros(2, 2, 6, 6, 1)
+        expected[1, 1, :, :, 1] .= 1
+        expected[2, 2, :, :, 1] .= 1
+        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
+      end
+
+      @testset "maximum exact polydeg" begin
+        basis = LobattoLegendreBasis(3)
+        nodes = basis.nodes
+        metric_terms = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
+
+        # f(x, y) = [x^3, xy^2]
+        node_coordinates = Array{Float64, 4}(undef, 2, 4, 4, 1)
+        node_coordinates[1, :, :, 1] .= [nodes[i]^3 for i in 1:4, j in 1:4]
+        node_coordinates[2, :, :, 1] .= [nodes[i] * nodes[j]^2 for i in 1:4, j in 1:4]
+
+        # Df(x, y) = [3x^2 0;
+        #              y^2 2xy]
+        expected = zeros(2, 2, 4, 4, 1)
+        expected[1, 1, :, :, 1] .= [3 * nodes[i]^2 for i in 1:4, j in 1:4]
+        expected[2, 1, :, :, 1] .= [nodes[j]^2 for i in 1:4, j in 1:4]
+        expected[2, 2, :, :, 1] .= [2 * nodes[i] * nodes[j] for i in 1:4, j in 1:4]
+        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
+      end
+    end
+  end
+
   @testset "interpolation" begin
     @testset "nodes and weights" begin
       @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])

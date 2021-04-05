@@ -15,8 +15,8 @@ coordinates_min = (-1.0,) # minimum coordinate
 coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (16,)
 
-# Create structured mesh with 16 cells
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+# Create curved mesh with 16 cells
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
@@ -43,7 +43,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 
 ###############################################################################

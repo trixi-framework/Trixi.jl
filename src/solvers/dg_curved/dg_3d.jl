@@ -1,5 +1,5 @@
 function rhs!(du::AbstractArray{<:Any,5}, u, t,
-    mesh::StructuredMesh, equations,
+    mesh::CurvedMesh, equations,
     initial_condition, boundary_conditions, source_terms,
     dg::DG, cache)
   # Reset du
@@ -25,7 +25,7 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
 end
 
 
-function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, mesh::StructuredMesh, equations,
+function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, mesh::CurvedMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
 
@@ -57,7 +57,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, mesh::StructuredMe
 end
 
 
-function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::StructuredMesh{3},
+function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
                               equations, dg::DG, cache)
   @unpack elements = cache
 
@@ -86,7 +86,7 @@ end
 
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u,
-                              mesh::StructuredMesh{3}, equations, dg::DG)
+                              mesh::CurvedMesh{3}, equations, dg::DG)
   @unpack surface_flux = dg
 
   right_direction = 2 * orientation
@@ -116,7 +116,7 @@ end
 end
 
 
-function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::StructuredMesh, equations, dg::DG, cache)
+function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::CurvedMesh, equations, dg::DG, cache)
 
   @threaded for element in eachelement(dg, cache)
     factor = -cache.elements.inverse_jacobian[element]
@@ -132,7 +132,7 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::StructuredMesh, equat
 end
 
 
-@inline function transformed_flux(u, orientation, mesh::StructuredMesh{3}, equations)
+@inline function transformed_flux(u, orientation, mesh::CurvedMesh{3}, equations)
   @unpack coordinates_min, coordinates_max = mesh
 
   dx = (coordinates_max[1] - coordinates_min[1]) / size(mesh, 1)
@@ -152,7 +152,7 @@ end
 
 
 function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux,
-    mesh::StructuredMesh{3}, equations::AbstractEquations)
+    mesh::CurvedMesh{3}, equations::AbstractEquations)
 
   @unpack coordinates_min, coordinates_max = mesh
 

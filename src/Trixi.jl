@@ -17,7 +17,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot, mul!
+using LinearAlgebra: dot, mul!, norm
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -28,6 +28,7 @@ import DiffEqBase: CallbackSet, DiscreteCallback,
                    ODEProblem, ODESolution, ODEFunction,
                    get_du, get_tmp_cache, u_modified!,
                    get_proposed_dt, set_proposed_dt!, terminate!, remake
+using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
 using HDF5: h5open, attributes
@@ -91,7 +92,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_goduno
        flux_ec,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive
+       FluxHLL, min_max_speed_naive,
+       FluxRotated
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -137,7 +139,7 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
 export density, pressure, density_pressure, velocity
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic, cross_helicity
 
-export TreeMesh, StructuredMesh
+export TreeMesh, CurvedMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

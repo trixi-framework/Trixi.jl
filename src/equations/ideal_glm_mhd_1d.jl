@@ -293,7 +293,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equations::IdealGlmMhdEquations1D)
+@inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations1D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
