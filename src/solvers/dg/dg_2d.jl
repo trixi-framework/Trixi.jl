@@ -335,12 +335,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, nonconservative_te
   pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
   # Loop over pure DG elements
-  @timeit_debug timer() "pure DG" @threaded for element in element_ids_dg
+  @timeit_debug timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
+    element = element_ids_dg[idx_element]
     split_form_kernel!(du, u, nonconservative_terms, equations, volume_flux_dg, dg, cache, element)
   end
 
   # Loop over blended DG-FV elements
-  @timeit_debug timer() "blended DG-FV" @threaded for element in element_ids_dgfv
+  @timeit_debug timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
+    element = element_ids_dgfv[idx_element]
     alpha_element = alpha[element]
 
     # Calculate DG volume integral contribution

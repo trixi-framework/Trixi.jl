@@ -132,11 +132,15 @@ get_name(::Val{x}) where x = string(x)
 """
     @threaded for ... end
 
-Semantically the same as `Threads.@threads` but without guarantee that the
-underlying implementation uses `Threads.@threads`. In particular, there may be
-an additional check whether only one thread is used to reduce the overhead of
-serial execution or the underlying threading capabilities might be provided by
-other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
+Semantically the same as `Threads.@threads` when iterating over a `AbstractUnitRange`
+but without guarantee that the underlying implementation uses `Threads.@threads`
+or works for more general for loops.
+In particular, there may be an additional check whether only one thread is used
+to reduce the overhead of serial execution or the underlying threading capabilities
+might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
+
+!!! warn
+  This macro does not necessarily work for general for loops.
 
 Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
 and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435.
@@ -158,5 +162,23 @@ macro threaded(expr)
   #     Threads.@threads $(expr)
   #   end
   # end)
+
+  # correct_for_loop = expr.head === Symbol("for") && expr.args[1].head === Symbol("=")
+  # if !correct_for_loop
+  #   throw(ArgumentError("Incorrect usage of `@threaded`. Use it like `@threaded for ... end`."))
+  # end
+  # for_loop_iterable = expr.args[1].args[2]
+  # return esc(quote
+  #   if Threads.nthreads() == 1
+  #     $(expr)
+  #   else
+  #     @batch $(expr)
+  #   # elseif $(for_loop_iterable) isa AbstractUnitRange
+  #   #   @batch $(expr)
+  #   # else
+  #   #   Threads.@threads $(expr)
+  #   end
+  # end)
+
   return esc(quote @batch $(expr) end)
 end
