@@ -48,8 +48,8 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_eulergravity.jl")
 
 
-  # Structured Mesh
-  include("test_examples_1d_structured.jl")
+  # Curved Mesh
+  include("test_examples_1d_curved.jl")
 end
 
 # Coverage test for all initial conditions

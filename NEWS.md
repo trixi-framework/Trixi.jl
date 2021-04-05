@@ -15,9 +15,9 @@ for human readability.
   - multicomponent compressible Euler
   - acoustic perturbation equations
   - Lattice-Boltzmann equations
-- New structured mesh type `StructuredMesh`
 - Composable `FluxPlusDissipation` and `FluxLaxFriedrichs()`, `FluxHLL()` with adaptable
   wave speed estimates were added in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493)
+- New curved structured mesh type `CurvedMesh`
 
 #### Changed
 

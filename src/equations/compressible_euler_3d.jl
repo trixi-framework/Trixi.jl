@@ -415,7 +415,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerEquations3D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations3D)
   rho, rho_v1, rho_v2, rho_v3, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
