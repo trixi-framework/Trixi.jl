@@ -32,12 +32,24 @@ isdir(outdir) && rm(outdir, recursive=true)
   include("test_examples_1d_euler.jl")
 
 
+  # Compressible Euler Multicomponent
+  include("test_examples_1d_eulermulti.jl")
+
+
   # MHD
   include("test_examples_1d_mhd.jl")
 
 
+  # MHD Multicomponent
+  include("test_examples_1d_mhdmulti.jl")
+
+
   # Compressible Euler with self-gravity
   include("test_examples_1d_eulergravity.jl")
+
+
+  # Curved Mesh
+  include("test_examples_1d_curved.jl")
 end
 
 # Coverage test for all initial conditions

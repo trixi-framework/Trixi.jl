@@ -22,6 +22,9 @@ isdir(outdir) && rm(outdir, recursive=true)
   # MHD
   include("test_examples_2d_mhd.jl")
 
+  # MHD Multicomponent
+  include("test_examples_2d_mhdmulti.jl")
+
   # Lattice-Boltzmann
   include("test_examples_2d_lbm.jl")
 

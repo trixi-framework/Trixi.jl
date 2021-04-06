@@ -10,7 +10,7 @@ equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=1600; L=L)
 
 initial_condition = initial_condition_taylor_green_vortex
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_godunov
 solver = DGSEM(3, surface_flux)
 
 coordinates_min = (-pi*L, -pi*L, -pi*L)

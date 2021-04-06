@@ -66,11 +66,11 @@ end
 
 
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
-  _, equations, solver, cache = mesh_equations_solver_cache(semi)
-  AnalysisCallback(equations, solver, cache; kwargs...)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  AnalysisCallback(mesh, equations, solver, cache; kwargs...)
 end
 
-function AnalysisCallback(equations::AbstractEquations, solver, cache;
+function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           interval=0,
                           save_analysis=false,
                           output_directory="out",
@@ -79,18 +79,20 @@ function AnalysisCallback(equations::AbstractEquations, solver, cache;
                           analysis_errors=union(default_analysis_errors(equations), extra_analysis_errors),
                           extra_analysis_integrals=(),
                           analysis_integrals=union(default_analysis_integrals(equations), extra_analysis_integrals),
+                          RealT=real(solver),
+                          uEltype=eltype(cache.elements),
                           kwargs...)
   # when is the callback activated
   condition = (u, t, integrator) -> interval > 0 && (integrator.iter % interval == 0 ||
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
-  cache_analysis = create_cache(AnalysisCallback, analyzer, equations, solver, cache)
+  cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,
                                        analysis_errors, Tuple(analysis_integrals),
-                                       SVector(ntuple(_ -> zero(real(solver)), nvariables(equations))),
+                                       SVector(ntuple(_ -> zero(uEltype), Val(nvariables(equations)))),
                                        cache_analysis)
 
   DiscreteCallback(condition, analysis_callback,
