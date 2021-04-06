@@ -1,7 +1,7 @@
 using OrdinaryDiffEq
 using Trixi
 using UnPack
-using Plots
+# using Plots
 
 using LinearAlgebra
 using SparseArrays
@@ -222,15 +222,6 @@ function eval_conservative_vars!(cache)
     #Uvol = u_v((x->Vq*x).(VU))
 end
 
-# TODO: optimize
-function project_flux!(cache,Uq,rd)
-    @unpack Vf,Pq = rd
-    fx,fy = map.(x->Pq*x,f(Uq))
-    fxf = map.(x->Vf*x,fx)
-    fyf = map.(x->Vf*x,fy)
-    return fx,fy,fxf,fyf
-end
-
 function Trixi.rhs!(du, u::VectorOfArray, t,
                     mesh::UnstructuredMesh, equations::EulerProject2D,
                     initial_condition, boundary_conditions, source_terms,
@@ -255,7 +246,9 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     @unpack Uq,Uf,VUf = cache
 
     # project flux
-    fx,fy,fxf,fyf = project_flux!(cache,Uq,rd)
+    fx,fy = map.(x->Pq*x,f(Uq))
+    fxf = map(x->Vf*x,fx)
+    fyf = map(x->Vf*x,fy)
 
     # compute avgs of projected flux
     fxavg = (u->@. .5*(u+u[mapP])).(fxf)
@@ -358,17 +351,17 @@ sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 # Print the timer summary
 summary_callback()
 
-Q = sol.u[end]
-L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
-@show sum(L2norm.(Q.u))
-zz = rd.Vp*Q[1]
-scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
+# Q = sol.u[end]
+# L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
+# @show sum(L2norm.(Q.u))
+# zz = rd.Vp*Q[1]
+# scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
-# mesh = UnstructuredMesh((VX,VY),EToV)
-# eqns = EulerProject2D(f,fEC,v_u,u_v,S)
-# cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
-# u = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
-# du = similar(u)
-# Trixi.compute_coefficients!(u,initial_condition,0.0,mesh,eqns,rd,cache)
-# Trixi.rhs!(du,u,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
-# Q = u.u
+mesh = UnstructuredMesh((VX,VY),EToV)
+eqns = EulerProject2D(f,fEC,v_u,u_v,S)
+cache = Trixi.create_cache(mesh, eqns, rd, Float64, Float64)
+u = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
+du = similar(u)
+Trixi.compute_coefficients!(u,initial_condition,0.0,mesh,eqns,rd,cache)
+Trixi.rhs!(du,u,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
+Q = u.u
