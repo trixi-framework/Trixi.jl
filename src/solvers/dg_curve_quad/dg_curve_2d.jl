@@ -72,10 +72,15 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   # Calculate interface fluxes
   #  TODO: Separate the physical boundaries from the interior boundaries. Currently this routine
   #        computes the numerical flux at all interfaces
+  #  TODO: remove the last three arguments once proper boundary treatment is figured out, for now
+  #        we use them to test the general flipped orientation mesh
   @timeit_debug timer() "interface flux" calc_interface_flux!(cache,
                                                               Trixi.have_nonconservative_terms(equations),
                                                               equations,
-                                                              dg)
+                                                              dg,
+                                                              boundary_conditions,
+                                                              initial_condition,
+                                                              t)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
@@ -153,7 +158,8 @@ end
 
 # for the time being this computes ALL of the interfaces fluxes
 # handles the physical boundaries in a hacky way
-function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equations, dg::DG)
+function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equations, dg::DG,
+                              boundary_condition, initial_condition, t_loc)
   @unpack surface_flux = dg
   @unpack interfaces, elements = cache.mesh
 
@@ -226,28 +232,36 @@ function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equation
       K = nelements(cache.mesh)
 
       for i in eachnode(dg)
-        # hacky way to set periodic BCs similar to a structured mesh
         #  TODO: this needs generalized to handle arbitrary boundaries. For instance, right now the
         #        coordinate system of the periodic elements cannot be flipped in the current implementation
         #  TODO: separate the physical boundary flux computations into another routine to match the
         #        the existing Trixi ecosystem
-        if elements[primary_id].bndy_names[primary_side] == "Bottom"
-          secondary_id   = primary_id + (K - convert(Int64, sqrt(K)))
-          secondary_side = 3
-        elseif elements[primary_id].bndy_names[primary_side] == "Top"
-          secondary_id   = primary_id - (K - convert(Int64, sqrt(K)))
-          secondary_side = 1
-        elseif elements[primary_id].bndy_names[primary_side] == "Left"
-          secondary_id   = primary_id + (convert(Int64, sqrt(K)) - 1)
-          secondary_side = 2
-        elseif elements[primary_id].bndy_names[primary_side] == "Right"
-          secondary_id   = primary_id - (convert(Int64, sqrt(K)) - 1)
-          secondary_side = 4
+        if typeof(boundary_condition) == Trixi.BoundaryConditionPeriodic
+          # hacky way to set periodic BCs similar to a structured mesh
+          if elements[primary_id].bndy_names[primary_side] == "Bottom"
+            secondary_id   = primary_id + (K - convert(Int64, sqrt(K)))
+            secondary_side = 3
+          elseif elements[primary_id].bndy_names[primary_side] == "Top"
+            secondary_id   = primary_id - (K - convert(Int64, sqrt(K)))
+            secondary_side = 1
+          elseif elements[primary_id].bndy_names[primary_side] == "Left"
+            secondary_id   = primary_id + (convert(Int64, sqrt(K)) - 1)
+            secondary_side = 2
+          elseif elements[primary_id].bndy_names[primary_side] == "Right"
+            secondary_id   = primary_id - (convert(Int64, sqrt(K)) - 1)
+            secondary_side = 4
+          end
+          u_rr = elements[secondary_id].surface_u_values[:, i, secondary_side]
+        else
+          # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
+          # for a mesh with flipped elements
+          u_rr = initial_condition( ( elements[primary_id].geometry.x_bndy[i, primary_side],
+                                      elements[primary_id].geometry.y_bndy[i, primary_side] ) ,
+                                      t_loc, equations)
         end
 
-        # pull the left and right states from the boundary u values
+        # pull the left state from the boundary u values on the primary element
         u_ll = elements[primary_id].surface_u_values[:, i, primary_side]
-        u_rr = elements[secondary_id].surface_u_values[:, i, secondary_side]
 
         # rotate states
         #   TODO: this assumes a conforming approximation, more must be done in terms of the normals
