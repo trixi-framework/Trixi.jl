@@ -16,13 +16,13 @@ using EntropyStableEuler
 # semidiscretization 
 
 N = 3
-K1D = 32
+K1D = 8
 CFL = .1
 FinalTime = .5
 
 elem_type = Quad() # currently assumes Quad()
 
-vol_quad = NodesAndModes.quad_nodes(elem_type,2*N)
+vol_quad = NodesAndModes.quad_nodes(elem_type,N+2)
 rd = RefElemData(elem_type,N; quad_rule_vol = vol_quad)
 # rd = RefElemData(elem_type,N)
 rd = @set rd.Vf = droptol!(sparse(rd.Vf),1e-12) # make sparse interp matrix
@@ -83,8 +83,8 @@ Trixi.nvariables(equations::EulerProject2D) = 4
 
 function initial_condition(xyz,t,equations::EulerProject2D)
     x,y = xyz
-    ρ = 1. + .25*exp(-25*(x^2+y^2))
-    # ρ = 1 + .5*(abs(x) < .25 && abs(y) < .25)
+    # ρ = 1. + .25*exp(-25*(x^2+y^2))
+    ρ = 1 + .5*(abs(x) < .25 && abs(y) < .25)
     u = 0.10
     v = 0.20
     p = ρ^1.4
@@ -97,8 +97,8 @@ function build_invMQT(rd)
     @unpack M,Dr,Ds = rd
     Qr = M*Dr
     Qs = M*Ds
-    invMQTr = Matrix(-M\Qr')
-    invMQTs = Matrix(-M\Qs')
+    invMQTr = -M\Qr'
+    invMQTs = -M\Qs'
     return invMQTr,invMQTs
 end
 
@@ -106,8 +106,8 @@ function build_invMQT(rd::RefElemData{2,Quad})
     @unpack M,Dr,Ds = rd
     Qr = M*Dr
     Qs = M*Ds
-    invMQTr = droptol!(sparse(-M\Qr'),50*eps())
-    invMQTs = droptol!(sparse(-M\Qs'),50*eps())
+    invMQTr = droptol!(sparse(-M\Qr'),100*eps())
+    invMQTs = droptol!(sparse(-M\Qs'),100*eps())
     return invMQTr,invMQTs
 end
 
@@ -120,13 +120,13 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd, RealT, uEltyp
 
     invMQTr,invMQTs = build_invMQT(rd)
 
-    # assume const geometric terms
+    # assume const geometric terms over each element
     # rxJ_diag,ryJ_diag,sxJ_diag,syJ_diag = Diagonal.(md.rstxyzJ)
     rxJ_diag = Diagonal(md.rxJ[1,:])
     sxJ_diag = Diagonal(md.sxJ[1,:])
     ryJ_diag = Diagonal(md.ryJ[1,:])
     syJ_diag = Diagonal(md.syJ[1,:])
-    invJ_diag = Diagonal(md.J[1,:])
+    invJ_diag = Diagonal(1.0 ./ md.J[1,:])
     DiagGeo = (rxJ_diag,sxJ_diag,ryJ_diag,syJ_diag,invJ_diag) 
         
     dfxdr = similar(md.x)
@@ -157,6 +157,7 @@ end
     uR = (UR[1],ρu_n_R,UR[4])
     return max_abs_speed_naive(uL,uR,normal,CompressibleEulerEquations1D(1.4))
 end
+
 LF(uL,uR,normal) = Trixi.DissipationLocalLaxFriedrichs(max_abs_speed_normal)(uL,uR,normal,CompressibleEulerEquations2D(1.4))
 
 function apply_DG_deriv!(dQ,fx,fy,fxf,fyf,diss,rd,cache)
@@ -177,14 +178,13 @@ function apply_DG_deriv!(dQ,fx,fy,fxf,fyf,diss,rd,cache)
         mul!(lifted_flux,LIFT,interface_flux)
         @. dQ[i] = -(rxJ.*dfxdr + sxJ.*dfxds + ryJ.*dfydr + syJ.*dfyds + lifted_flux)/J
 
-        # # # scale columns by diagonal geofacs + accumulate into dQ[i]
-        # mul!(dQ[i],LIFT,interface_flux,1.0,1.0) # 1.0*dQ[i] += 1.0*LIFT*interface_flux
+        # # scale columns + accumulate into dQ[i]. Broken - why?
+        # mul!(dQ[i],LIFT,interface_flux) # dQ[i] = dQ[i]*0 + 1.0*LIFT*interface_flux
         # mul!(dQ[i],dfxdr,rxJ_diag,1.0,1.0) 
         # mul!(dQ[i],dfxds,sxJ_diag,1.0,1.0) 
         # mul!(dQ[i],dfydr,ryJ_diag,1.0,1.0) 
         # mul!(dQ[i],dfyds,syJ_diag,1.0,1.0) 
-        # # mul!(dQ[i],dQ[i],-invJ_diag) 
-        # dQ[i] .= -dQ[i]*invJ_diag
+        # dQ[i] .= -dQ[i] * invJ_diag
     end
 end
 
@@ -222,6 +222,15 @@ function eval_conservative_vars!(cache)
     #Uvol = u_v((x->Vq*x).(VU))
 end
 
+# TODO: optimize
+function project_flux!(cache,Uq,rd)
+    @unpack Vf,Pq = rd
+    fx,fy = map.(x->Pq*x,f(Uq))
+    fxf = map.(x->Vf*x,fx)
+    fyf = map.(x->Vf*x,fy)
+    return fx,fy,fxf,fyf
+end
+
 function Trixi.rhs!(du, u::VectorOfArray, t,
                     mesh::UnstructuredMesh, equations::EulerProject2D,
                     initial_condition, boundary_conditions, source_terms,
@@ -235,7 +244,7 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
 
     # unpack VecOfArray storage for broadcasting
     Q = u.u 
-    dQ = du.u
+    dQ = du.u 
 
     # @inline flux_x(uL,uR) = flux_chandrashekar(uL,uR,1,CompressibleEulerEquations2D(1.4))
     # @inline flux_y(uL,uR) = flux_chandrashekar(uL,uR,2,CompressibleEulerEquations2D(1.4))
@@ -246,17 +255,15 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     @unpack Uq,Uf,VUf = cache
 
     # project flux
-    fx,fy = map.(x->Pq*x,f(Uq))
+    fx,fy,fxf,fyf = project_flux!(cache,Uq,rd)
 
-    # compute face values   
-    UP = (u->u[mapP]).(Uf)
-    fx_ec, fy_ec = fEC(UP,Uf)    
-    fxf = (x->Vf*x).(fx)
-    fyf = (x->Vf*x).(fy)
+    # compute avgs of projected flux
     fxavg = (u->@. .5*(u+u[mapP])).(fxf)
     fyavg = (u->@. .5*(u+u[mapP])).(fyf)
 
-    # correction
+    # EC-central correction
+    UP = (u->u[mapP]).(Uf)
+    fx_ec, fy_ec = fEC(UP,Uf)
     Δfx = @. fx_ec - fxavg
     Δfy = @. fy_ec - fyavg
     Δv = (x->x[mapP]-x).(VUf) # Δv = v_u(UP) .- v_u(Uf)    
