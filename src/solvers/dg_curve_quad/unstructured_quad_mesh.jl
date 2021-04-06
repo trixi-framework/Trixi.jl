@@ -1,9 +1,9 @@
 
-struct UnstructuredQuadMesh{RealT<:Real, NNODES, NCORNERS, NEDGES, NELEMENTS}
+struct UnstructuredQuadMesh{RealT<:Real, NNODES, NCORNERS, NINTERFACES, NELEMENTS}
   mesh_filename::String
-  corners ::SArray{Tuple{NCORNERS, 2}, RealT}
-  edges   ::SVector{NEDGES, GeneralInterfaceContainer2D}
-  elements::SVector{NELEMENTS, GeneralElementContainer2D}
+  corners      ::SArray{Tuple{NCORNERS, 2}, RealT}
+  interfaces   ::SVector{NINTERFACES, GeneralInterfaceContainer2D}
+  elements     ::SVector{NELEMENTS, GeneralElementContainer2D}
 end
 
 
@@ -13,10 +13,10 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
 
-  # readin the number of nodes, number of edges, number of elements and local polynomial degree
+  # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
   current_line  = split(file_lines[1])
   n_corners     = parse(Int64,current_line[1])
-  n_edges       = parse(Int64,current_line[2])
+  n_interfaces  = parse(Int64,current_line[2])
   n_elements    = parse(Int64,current_line[3])
   mesh_poly_deg = parse(Int64,current_line[4])
 
@@ -26,8 +26,8 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
   # declare memory and work arrays for the pieces of the mesh
   corner_nodes = Array{RealT}(undef, n_corners, 2)
 
-  edge_info = Array{Int64}(undef, 6) # temporary container to readin edge information
-  edges     = Array{GeneralInterfaceContainer2D, 1}(undef, n_edges)
+  edge_info  = Array{Int64}(undef, 6) # temporary container to readin edge information
+  interfaces = Array{GeneralInterfaceContainer2D, 1}(undef, n_interfaces)
 
   element_ids = Array{Int64}(undef, 4)
   elements    = Array{GeneralElementContainer2D, 1}(undef, n_elements)
@@ -43,17 +43,17 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
     file_idx         += 1
   end
 
-  # readin an store the nodes that dictate the edges and their neighbours
-  for j in 1:n_edges
-    current_line = split(file_lines[file_idx])
-    edge_info[1] = parse(Int64,current_line[1])
-    edge_info[2] = parse(Int64,current_line[2])
-    edge_info[3] = parse(Int64,current_line[3])
-    edge_info[4] = parse(Int64,current_line[4])
-    edge_info[5] = parse(Int64,current_line[5])
-    edge_info[6] = parse(Int64,current_line[6])
-    edges[j] = GeneralInterfaceContainer2D(RealT, edge_info, nvars, polydeg)
-    file_idx += 1
+  # readin an store the nodes that dictate the interfaces and their neighbours
+  for j in 1:n_interfaces
+    current_line  = split(file_lines[file_idx])
+    edge_info[1]  = parse(Int64,current_line[1])
+    edge_info[2]  = parse(Int64,current_line[2])
+    edge_info[3]  = parse(Int64,current_line[3])
+    edge_info[4]  = parse(Int64,current_line[4])
+    edge_info[5]  = parse(Int64,current_line[5])
+    edge_info[6]  = parse(Int64,current_line[6])
+    interfaces[j] = GeneralInterfaceContainer2D(RealT, edge_info, polydeg)
+    file_idx     += 1
   end
 
   # readin an store the nodes that dictate the corners of the elements
@@ -132,6 +132,15 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
     file_idx += 1
   end
 
-  return UnstructuredQuadMesh{RealT, polydeg+1, n_corners, n_edges, n_elements}(
-         filename, corner_nodes, edges, elements)
+  return UnstructuredQuadMesh{RealT, polydeg+1, n_corners, n_interfaces, n_elements}(
+         filename, corner_nodes, interfaces, elements)
 end
+
+
+@inline ninterfaces(mesh::UnstructuredQuadMesh{RealT, NNODES, NCORNERS, NINTERFACES, NELEMENTS}) where {RealT, NNODES, NCORNERS, NINTERFACES, NELEMENTS} = NINTERFACES
+
+@inline eachinterface(mesh::UnstructuredQuadMesh) = Base.OneTo(ninterfaces(mesh))
+
+@inline nelements(mesh::UnstructuredQuadMesh{RealT, NNODES, NCORNERS, NINTERFACES, NELEMENTS}) where {RealT, NNODES, NCORNERS, NINTERFACES, NELEMENTS} = NELEMENTS
+
+@inline eachelement(mesh::UnstructuredQuadMesh) = Base.OneTo(nelements(mesh))
