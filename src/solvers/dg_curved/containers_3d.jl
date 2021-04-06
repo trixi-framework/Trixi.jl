@@ -1,4 +1,4 @@
-function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
+function init_elements!(elements, mesh::CurvedMesh{3}, nodes)
   n_nodes = length(nodes)
 
   @unpack coordinates_min, coordinates_max = mesh
@@ -13,7 +13,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
   inverse_jacobian = 8/(dx * dy * dz)
 
   # Calculate inverse Jacobian and node coordinates
-  for cell_x in 1:size(mesh, 1), cell_y in 1:size(mesh, 2), cell_z in 1:size(mesh, 3)
+  for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y, cell_z]
 
     # Calculate node coordinates
@@ -31,7 +31,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
   end
 
   # Neighbors in x-direction
-  for cell_y in 1:size(mesh, 2), cell_z in 1:size(mesh, 3)
+  for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2)
     # Inner elements
     for cell_x in 2:size(mesh, 1)
       element = linear_indices[cell_x, cell_y, cell_z]
@@ -43,7 +43,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
   end
 
   # Neighbors in y-direction
-  for cell_x in 1:size(mesh, 1), cell_z in 1:size(mesh, 3)
+  for cell_z in 1:size(mesh, 3), cell_x in 1:size(mesh, 1)
     # Inner elements
     for cell_y in 2:size(mesh, 2)
       element = linear_indices[cell_x, cell_y, cell_z]
@@ -55,7 +55,7 @@ function init_elements!(elements, mesh::StructuredMesh{3}, nodes)
   end
 
   # Neighbors in z-direction
-  for cell_x in 1:size(mesh, 1), cell_y in 1:size(mesh, 2)
+  for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     # Inner elements
     for cell_z in 2:size(mesh, 3)
       element = linear_indices[cell_x, cell_y, cell_z]

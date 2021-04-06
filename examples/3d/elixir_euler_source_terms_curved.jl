@@ -5,19 +5,19 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations1D(1.4)
+equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(4, surface_flux)
+volume_integral = VolumeIntegralWeakForm()
+solver = DGSEM(3, surface_flux, volume_integral)
 
-coordinates_min = (0.0,)
-coordinates_max = (2.0,)
-cells_per_dimension = (16,)
+coordinates_min = (0.0, 0.0, 0.0)
+coordinates_max = (2.0, 2.0, 2.0)
+cells_per_dimension = (4, 4, 4)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
-
+mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)
@@ -26,15 +26,13 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 5.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval=analysis_interval,
-                                     extra_analysis_errors=(:l2_error_primitive,
-                                                            :linf_error_primitive))
+analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
@@ -46,7 +44,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.8)
+stepsize_callback = StepsizeCallback(cfl=0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

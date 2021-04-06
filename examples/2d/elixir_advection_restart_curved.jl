@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # create a restart file
 
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended_structured.jl"))
+trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended_curved.jl"))
 
 
 ###############################################################################
@@ -14,7 +14,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended_structu
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", "restart_000071.h5")
+restart_filename = joinpath("out", "restart_000047.h5")
 mesh = load_mesh(restart_filename, n_cells_max=0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

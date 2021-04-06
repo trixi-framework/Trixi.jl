@@ -212,7 +212,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations3D)
+@inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations3D)
   phi, q1, q2, q3 = u
 
   if orientation == 1

@@ -298,7 +298,7 @@ function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_
 end
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::AcousticPerturbationEquations2D)
+@inline function flux(u, orientation::Integer, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 

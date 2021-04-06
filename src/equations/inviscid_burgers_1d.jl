@@ -67,7 +67,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equation::InviscidBurgersEquation1D)
+@inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
   return SVector(0.5 * u[1]^2)
 end
 

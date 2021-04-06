@@ -599,7 +599,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerEquations2D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations2D)
   rho, rho_v1, rho_v2, rho_e = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -862,6 +862,44 @@ end
   end
 
   return λ_min, λ_max
+end
+
+
+@inline function rotate_to_x(u, normal, equations::CompressibleEulerEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal[1]
+  s = normal[2]
+
+  # Clockwise rotation by α
+  # Multiply with [ 1     0       0     0;
+  #                 0   cos(α)  sin(α)  0;
+  #                 0  -sin(α)  cos(α)  0;
+  #                 0     0       0     1 ]
+
+  return SVector(u[1], 
+                 c * u[2] + s * u[3],
+                 -s * u[2] + c * u[3],
+                 u[4])
+end
+
+
+@inline function rotate_from_x(u, normal, equations::CompressibleEulerEquations2D)
+  # cos and sin of the angle between the x-axis and the normalized normal_vector are
+  # the normalized vector's x and y coordinates respectively (see unit circle).
+  c = normal[1]
+  s = normal[2]
+
+  # Counterclockwise rotation by α
+  # Multiply with [ 1    0       0      0;
+  #                 0  cos(α)  -sin(α)  0;
+  #                 0  sin(α)  cos(α)   0;
+  #                 0    0       0      1 ]
+
+  return SVector(u[1], 
+                 c * u[2] - s * u[3],
+                 s * u[2] + c * u[3],
+                 u[4])
 end
 
 
