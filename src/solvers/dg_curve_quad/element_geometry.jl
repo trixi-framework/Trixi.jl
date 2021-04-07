@@ -1,5 +1,5 @@
 
-using StaticArrays: SArray,MArray
+using StaticArrays: SArray,MVector,MArray
 
 struct ElementGeometry{RealT<:Real, NNODES}
   x        ::SArray{Tuple{NNODES, NNODES}, RealT}

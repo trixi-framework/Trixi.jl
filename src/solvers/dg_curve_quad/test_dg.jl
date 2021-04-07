@@ -17,8 +17,8 @@ num_eqns = Trixi.nvariables(equations)
 
 initial_condition = initial_condition_convergence_test
 source_term = source_terms_convergence_test
-boundary_conditions = boundary_condition_periodic
-#boundary_conditions = boundary_condition_convergence_test
+#boundary_conditions = boundary_condition_periodic
+boundary_conditions = boundary_condition_convergence_test
 
 ###############################################################################
 # Get the DG approximation space
@@ -30,17 +30,17 @@ solver = DGSEM(poly_deg, surface_flux)
 ###############################################################################
 # Get the curved quad mesh from a file
 
-#mesh_file = "BoxAroundCircle8.mesh"
-mesh_file = "PeriodicXandY10.mesh"
+mesh_file = "BoxAroundCircle8.mesh"
+#mesh_file = "PeriodicXandY10.mesh"
 mesh      = UnstructuredQuadMesh(Float64, mesh_file, num_eqns, poly_deg, solver.basis.nodes)
 
 # #for j in 2:40
 # for j in 2:16
-#    plot!(          mesh.elements[j].geometry.x ,          mesh.elements[j].geometry.y , linecolor=:black, legend = false, aspect_ratio=:equal)
-#    plot!(transpose(mesh.elements[j].geometry.x),transpose(mesh.elements[j].geometry.y), linecolor=:black, legend = false, aspect_ratio=:equal)
+#    plot!(          mesh.elements.geometry[j].x ,          mesh.elements.geometry[j].y , linecolor=:black, legend = false, aspect_ratio=:equal)
+#    plot!(transpose(mesh.elements.geometry[j].x),transpose(mesh.elements.geometry[j].y), linecolor=:black, legend = false, aspect_ratio=:equal)
 # end
-# plot!(          mesh.elements[1].geometry.x ,          mesh.elements[1].geometry.y , linecolor=:black, legend = false, aspect_ratio=:equal)
-# plot!(transpose(mesh.elements[1].geometry.x),transpose(mesh.elements[1].geometry.y), linecolor=:black, legend = false, aspect_ratio=:equal)
+# plot!(          mesh.elements.geometry[1].x ,          mesh.elements.geometry[1].y , linecolor=:black, legend = false, aspect_ratio=:equal)
+# plot!(transpose(mesh.elements.geometry[1].x),transpose(mesh.elements.geometry[1].y), linecolor=:black, legend = false, aspect_ratio=:equal)
 
 ###############################################################################
 # test out creating the cache
@@ -54,7 +54,7 @@ u0 = zeros( num_eqns , nnodes(solver) , nnodes(solver) , nelements(mesh) )
 
 for eID in eachelement(mesh)
   for j in eachnode(solver), i in eachnode(solver)
-    x_vec = ( mesh.elements[eID].geometry.x[i,j] , mesh.elements[eID].geometry.y[i,j] )
+    x_vec = ( mesh.elements.geometry[eID].x[i,j] , mesh.elements.geometry[eID].y[i,j] )
     u0[:,i,j,eID] = initial_condition(x_vec, 0.0, equations)
   end
 end
@@ -63,7 +63,7 @@ end
 ###############################################################################
 # throw this into a time loop and see what happens
 
-tspan = (0.0, 0.5)
+tspan = (0.0, 0.1)
 ode_algorithm = Trixi.CarpenterKennedy2N54()
 
 u = copy(u0)
@@ -115,7 +115,7 @@ u_exact = similar(u)
 
 for eID in eachelement(mesh)
   for j in eachnode(solver), i in eachnode(solver)
-    x_vec = ( mesh.elements[eID].geometry.x[i,j] , mesh.elements[eID].geometry.y[i,j])
+    x_vec = ( mesh.elements.geometry[eID].x[i,j] , mesh.elements.geometry[eID].y[i,j])
     u_exact[:,i,j,eID] = initial_condition(x_vec, t_end, equations)
   end
 end
@@ -139,8 +139,8 @@ end # let block
 # solu0 = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
 # solu  = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
 # for eID in eachelement(mesh)
-#   all_x[:,:,eID] = mesh.elements[eID].geometry.x
-#   all_y[:,:,eID] = mesh.elements[eID].geometry.y
+#   all_x[:,:,eID] = mesh.elements.geometry[eID].x
+#   all_y[:,:,eID] = mesh.elements.geometry[eID].y
 #   solu0[:,:,eID] = u0[1,:,:,eID]
 #   solu[:,:,eID]  = u[1,:,:,eID]
 # end

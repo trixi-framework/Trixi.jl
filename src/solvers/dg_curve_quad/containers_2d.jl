@@ -1,45 +1,27 @@
 
 include("element_geometry.jl")
 
-# Container data structure (structure-of-arrays style) for DG elements on curved mesh
-#  ARW: this could get updated because this contains the information of a single element so we use
-#       an array of containers later. Could change to be a single container with an array of geometries
-struct GeneralElementContainer2D{RealT<:Real, NNODES, NVARS}
-  geometry           ::ElementGeometry{RealT, NNODES}         # contains Jacobian, metric terms, normals, etc.
-  bndy_names         ::SVector{4, String}                     # names of the four sides of the element needed for boundary conditions
-  surface_u_values   ::MArray{Tuple{NVARS, NNODES, 4}, RealT} # [variables, i, local sides]
-  surface_flux_values::MArray{Tuple{NVARS, NNODES, 4}, RealT} # [variables, i, local sides]
-end
-
-nvariables(::GeneralElementContainer2D{RealT, NNODES, NVARS}) where {RealT, NNODES, NVARS} = NVARS
-
-# construct a single straight-sided element and its geometry for use in the DG approximation
-function GeneralElementContainer2D(RealT, nvars, polydeg, nodes, corners, boundaries)
-
-  bndy_names          = boundaries
-  geometry            = ElementGeometry(RealT, polydeg, nodes, corners)
-  surface_u_values    = zeros( nvars , polydeg + 1 , 4 )
-  surface_flux_values = zeros( nvars , polydeg + 1 , 4 )
-
-  return GeneralElementContainer2D{RealT, polydeg+1, nvars}( geometry,
-                                                             bndy_names,
-                                                             surface_u_values,
-                                                             surface_flux_values )
+# Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
+struct CurvedElementContainer2D{RealT<:Real, NNODES, NVARS, NELEMENTS}
+  geometry           ::Vector{ElementGeometry} # contains Jacobian, metric terms, normals, etc.
+  bndy_names         ::Array{String, 2}        # names of the four sides of the element needed for boundary conditions
+  surface_u_values   ::Array{RealT , 4}        # [variables, i, local sides, elements]
+  surface_flux_values::Array{RealT , 4}        # [variables, i, local sides, elements]
 end
 
 
-# construct a single curved element and its geometry for use in the DG approximation
-function GeneralElementContainer2D(RealT, nvars, polydeg, nodes, GammaCurves::Array{GammaCurve, 1}, boundaries)
+# construct an empty curved element container to be filled later with its geometry
+function CurvedElementContainer2D(RealT, nvars, polydeg, nelements)
 
-  bndy_names          = boundaries
-  geometry            = ElementGeometry(RealT, polydeg, nodes, GammaCurves)
-  surface_u_values    = zeros( nvars , polydeg + 1 , 4 )
-  surface_flux_values = zeros(nvars, polydeg+1 , 4)
+  bndy_names          = fill("empty", (4, nelements) )
+  geometry            = Vector{ElementGeometry}(undef, nelements)
+  surface_u_values    = zeros( nvars , polydeg + 1 , 4 , nelements )
+  surface_flux_values = zeros( nvars , polydeg + 1 , 4 , nelements )
 
-  return GeneralElementContainer2D{RealT, polydeg+1, nvars}( geometry,
-                                                             bndy_names,
-                                                             surface_u_values,
-                                                             surface_flux_values )
+  return CurvedElementContainer2D{RealT, polydeg+1, nvars, nelements}( geometry,
+                                                                       bndy_names,
+                                                                       surface_u_values,
+                                                                       surface_flux_values )
 end
 
 

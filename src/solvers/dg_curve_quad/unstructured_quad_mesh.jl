@@ -3,7 +3,7 @@ struct UnstructuredQuadMesh{RealT<:Real, NNODES, NCORNERS, NINTERFACES, NELEMENT
   mesh_filename::String
   corners      ::SArray{Tuple{NCORNERS, 2}, RealT}
   interfaces   ::SVector{NINTERFACES, GeneralInterfaceContainer2D}
-  elements     ::SVector{NELEMENTS, GeneralElementContainer2D}
+  elements     ::CurvedElementContainer2D
 end
 
 
@@ -30,7 +30,7 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
   interfaces = Array{GeneralInterfaceContainer2D, 1}(undef, n_interfaces)
 
   element_ids = Array{Int64}(undef, 4)
-  elements    = Array{GeneralElementContainer2D, 1}(undef, n_elements)
+  elements    = CurvedElementContainer2D(RealT, nvars, polydeg, n_elements)
 
   GammaCurves = Array{GammaCurve, 1}(undef, 4)
 
@@ -84,7 +84,8 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
       file_idx  += 1
       bndy_names = split(file_lines[file_idx])
       # construct quadrilateral geometry using only corner information
-      elements[j] = GeneralElementContainer2D(RealT, nvars, polydeg, dg_nodes, cornerNodeVals, bndy_names)
+      elements.geometry[j]     = ElementGeometry(RealT, polydeg, dg_nodes, cornerNodeVals)
+      elements.bndy_names[:,j] = bndy_names
     else
     # quadrilateral element has at least one curved side
       m1 = 1
@@ -126,7 +127,8 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes)
       file_idx  += 1
       bndy_names = split(file_lines[file_idx])
       # construct quadrilateral geometry using all the curve information
-      elements[j] = GeneralElementContainer2D(RealT, nvars, polydeg, dg_nodes, GammaCurves, bndy_names)
+      elements.geometry[j]     = ElementGeometry(RealT, polydeg, dg_nodes, GammaCurves)
+      elements.bndy_names[:,j] = bndy_names
     end
     # one last increment to the global index to read in the next element information
     file_idx += 1
