@@ -35,7 +35,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,3}, mesh::CurvedMesh{1},
   @threaded for element in eachelement(dg, cache)
     left_element = cache.elements.left_neighbors[1, element]
 
-    if left_element > 0 # left_element = -1 at bounaries
+    if left_element > 0 # left_element = 0 at bounaries
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          element)
 

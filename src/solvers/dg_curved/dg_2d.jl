@@ -99,7 +99,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, 
                                       orientation, u, equations, dg::DG, cache)
-  if left_element <= 0 # left_element = -1 at boundaries
+  if left_element <= 0 # left_element = 0 at boundaries
     return surface_flux_values
   end
 
@@ -206,11 +206,11 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
   @unpack node_coordinates, metric_terms = cache.elements
   @unpack surface_flux = dg
 
-  u_rr = get_node_vars(u, equations, dg, node_indices..., element)
+  u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
   normal_vector = scaled_contravariant_vector(orientation, node_indices..., element, metric_terms)
-  flux = boundary_condition(u_rr, normal_vector, direction, x, t, surface_flux, equations)
+  flux = boundary_condition(u_inner, normal_vector, direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)
     surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
