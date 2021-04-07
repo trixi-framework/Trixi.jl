@@ -30,21 +30,19 @@ end
 
 # Return the contravariant vector in the specified `orientation` at the specified nodes and element,
 # multiplied by the Jacobian of the transformation mapping.
-function scaled_contravariant_vector(orientation, i, j, element, cache)
-  @unpack metric_terms = cache.elements
-
+function scaled_contravariant_vector(orientation, i, j, element, metric_terms)
   if orientation == 1
     return SVector(metric_terms[2, 2, i, j, element], -metric_terms[1, 2, i, j, element])
+  else # orientation == 2
+    return SVector(-metric_terms[2, 1, i, j, element], metric_terms[1, 1, i, j, element])
   end
-  
-  # orientation == 2
-  return SVector(-metric_terms[2, 1, i, j, element], metric_terms[1, 1, i, j, element])
 end
 
 
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
+  @unpack metric_terms = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
@@ -52,7 +50,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
 
       # Scalar product of the flux vector with the first contravariant vector, 
       # multiplied with the Jacobian
-      v1 = scaled_contravariant_vector(1, i, j, element, cache)
+      v1 = scaled_contravariant_vector(1, i, j, element, metric_terms)
       flux1 = v1[1] * flux(u_node, 1, equations) + v1[2] * flux(u_node, 2, equations)
 
       for ii in eachnode(dg)
@@ -62,7 +60,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
 
       # Scalar product of the flux vector with the second contravariant vector, 
       # multiplied with the Jacobian
-      v2 = scaled_contravariant_vector(2, i, j, element, cache)
+      v2 = scaled_contravariant_vector(2, i, j, element, metric_terms)
       flux2 = v2[1] * flux(u_node, 1, equations) + v2[2] * flux(u_node, 2, equations)
 
       for jj in eachnode(dg)
@@ -106,6 +104,7 @@ end
   end
 
   @unpack surface_flux = dg
+  @unpack metric_terms = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -115,12 +114,12 @@ end
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
 
-      normal_vector = scaled_contravariant_vector(1, 1, i, right_element, cache)
+      normal_vector = scaled_contravariant_vector(1, 1, i, right_element, metric_terms)
     else # orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          right_element)
 
-      normal_vector = scaled_contravariant_vector(2, i, 1, right_element, cache)
+      normal_vector = scaled_contravariant_vector(2, i, 1, right_element, metric_terms)
     end
 
     flux = surface_flux(u_ll, u_rr, normal_vector, equations)
@@ -144,7 +143,8 @@ end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
                              equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
-  @unpack surface_flux_values = cache.elements
+  @unpack surface_flux = dg
+  @unpack surface_flux_values, metric_terms = cache.elements
   linear_indices = LinearIndices(size(mesh))
   
   for cell_y in axes(mesh, 2)
@@ -203,13 +203,13 @@ end
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
                                           boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
                                           direction, node_indices, surface_node_indices, element)
-  @unpack node_coordinates = cache.elements
+  @unpack node_coordinates, metric_terms = cache.elements
   @unpack surface_flux = dg
 
   u_rr = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
-  normal_vector = scaled_contravariant_vector(orientation, node_indices..., element, cache)
+  normal_vector = scaled_contravariant_vector(orientation, node_indices..., element, metric_terms)
   flux = boundary_condition(u_rr, normal_vector, direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)

@@ -36,6 +36,8 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
                                       `faces[5:6]` describe the faces in positive and negative z-direction respectively
                                       (in 3D).
 - `RealT::Type`: the type that should be used for coordinates.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
@@ -68,6 +70,8 @@ Create a CurvedMesh that represents a uncurved structured mesh with a rectangula
 - `cells_per_dimension::NTuple{NDIMS, Int}`: the number of cells in each dimension.
 - `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
 - `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
 """
 function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
   NDIMS = length(cells_per_dimension)

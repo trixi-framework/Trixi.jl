@@ -80,7 +80,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, 
       left_neighbors[1, linear_indices[1, cell_y]] = linear_indices[end, cell_y]
     else
       # Use boundary conditions
-      left_neighbors[1, linear_indices[1, cell_y]] = -1
+      left_neighbors[1, linear_indices[1, cell_y]] = 0
     end
   end
 
@@ -97,7 +97,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, 
       left_neighbors[2, linear_indices[cell_x, 1]] = linear_indices[cell_x, end]
     else
       # Use boundary conditions
-      left_neighbors[2, linear_indices[cell_x, 1]] = -1
+      left_neighbors[2, linear_indices[cell_x, 1]] = 0
     end
   end
 
