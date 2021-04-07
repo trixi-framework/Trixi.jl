@@ -10,7 +10,7 @@ end
     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
   end
   # We would like to use
-  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+  #   reshape(u_ode, (nvariables(equations), nnodes(dg), nelements(dg, cache)))
   # but that results in
   #   ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
@@ -18,8 +18,13 @@ end
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
   # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
   #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+  # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+  #             (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+
+  # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
+  # result in allocations.
+  PtrArray(pointer(u_ode),
+           (nvariables(equations), nnodes(dg), nelements(dg, cache)))
 end
 
 
@@ -48,8 +53,13 @@ end
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
   # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
   #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+  # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+  #             (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+
+  # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
+  # result in allocations.
+  PtrArray(pointer(u_ode),
+           (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
 
@@ -78,8 +88,12 @@ end
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
   # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
   #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-  unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-              (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+  # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
+  #             (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+
+  #
+  PtrArray(pointer(u_ode),
+           (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
 
