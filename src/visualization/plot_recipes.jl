@@ -109,9 +109,7 @@ end
 
 
 function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
-                    solution_variables=cons2prim, grid_lines=true,
-                    max_supported_level=11, nvisnodes=nothing,
-                    slice_axis=:z, slice_axis_intercept=0)
+                    solution_variables=cons2prim, kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
 
@@ -124,7 +122,7 @@ function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbol
 
   data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
 
-  mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates)
+  mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
 
   variable_names = SVector(varnames(solution_variables, equations))
 
@@ -319,9 +317,9 @@ end
   legend -->  :none
 
   # Set series properties
-  seriestype := :path
-  linecolor := :black
-  linewidth := 1
+  seriestype --> :path
+  linecolor --> :black
+  linewidth --> 1
 
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y

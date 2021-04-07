@@ -150,6 +150,8 @@ end
 @inline Base.real(::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 Base.size(mesh::CurvedMesh) = mesh.cells_per_dimension
 Base.size(mesh::CurvedMesh, i) = mesh.cells_per_dimension[i]
+Base.axes(mesh::CurvedMesh) = map(Base.OneTo, mesh.cells_per_dimension)
+Base.axes(mesh::CurvedMesh, i) = Base.OneTo(mesh.cells_per_dimension[i])
 
 
 function Base.show(io::IO, ::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT}

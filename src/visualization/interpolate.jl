@@ -316,46 +316,89 @@ end
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function calc_vertices(node_coordinates)
+function calc_vertices(node_coordinates, mesh)
+  @unpack cells_per_dimension = mesh
   @assert size(node_coordinates, 1) == 2 "only works in 2D"
 
+  linear_indices = LinearIndices(size(mesh))
+
   # Initialize output arrays
-  n_elements = size(node_coordinates, 4)
+  n_lines = sum(cells_per_dimension) + 2
+  max_length = maximum(cells_per_dimension)
   n_nodes = size(node_coordinates, 2)
-  x = Matrix{Float64}(undef, 4*(n_nodes-1)+1, n_elements)
-  y = Matrix{Float64}(undef, 4*(n_nodes-1)+1, n_elements)
 
-  # Calculate vertices for all coordinates at once
-  for element_id in 1:n_elements
-    x[1, element_id] = node_coordinates[1, 1, 1, element_id]
-    y[1, element_id] = node_coordinates[2, 1, 1, element_id]
+  x = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
+  y = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
 
-    i = 2
-    # Bottom
-    for node in 2:n_nodes
-      x[i, element_id] = node_coordinates[1, node, 1, element_id]
-      y[i, element_id] = node_coordinates[2, node, 1, element_id]
-      i += 1
-    end
-    # Right
-    for node in 2:n_nodes
-      x[i, element_id] = node_coordinates[1, n_nodes, node, element_id]
-      y[i, element_id] = node_coordinates[2, n_nodes, node, element_id]
-      i += 1
-    end
-    # Top
-    for node in 2:n_nodes
-      x[i, element_id] = node_coordinates[1, n_nodes-node+1, n_nodes, element_id]
-      y[i, element_id] = node_coordinates[2, n_nodes-node+1, n_nodes, element_id]
-      i += 1
-    end
-    # Left
-    for node in 2:n_nodes
-      x[i, element_id] = node_coordinates[1, 1, n_nodes-node+1, element_id]
-      y[i, element_id] = node_coordinates[2, 1, n_nodes-node+1, element_id]
+  line_index = 1
+  # Lines in x-direction
+  # Bottom boundary
+  i = 1
+  for element in axes(mesh, 1)
+    for node in 1:(n_nodes-1)
+      x[i, line_index] = node_coordinates[1, node, 1, linear_indices[element, 1]]
+      y[i, line_index] = node_coordinates[2, node, 1, linear_indices[element, 1]]
+
       i += 1
     end
   end
+  # Last point on bottom boundary
+  x[i, line_index] = node_coordinates[1, end, 1, linear_indices[end, 1]]
+  y[i, line_index] = node_coordinates[2, end, 1, linear_indices[end, 1]]
 
+  # Other lines in x-direction
+  line_index += 1
+  for cell_y in axes(mesh, 2)
+    i = 1
+    for cell_x in axes(mesh, 1)
+      for node in 1:(n_nodes-1)
+        x[i, line_index] = node_coordinates[1, node, end, linear_indices[cell_x, cell_y]]
+        y[i, line_index] = node_coordinates[2, node, end, linear_indices[cell_x, cell_y]]
+
+        i += 1
+      end
+    end
+    # Last point on line
+    x[i, line_index] = node_coordinates[1, end, end, linear_indices[end, cell_y]]
+    y[i, line_index] = node_coordinates[2, end, end, linear_indices[end, cell_y]]
+
+    line_index += 1
+  end
+  
+  
+  # Lines in y-direction
+  # Left boundary
+  i = 1
+  for element in axes(mesh, 2)
+    for node in 1:(n_nodes-1)
+      x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, element]]
+      y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, element]]
+
+      i += 1
+    end
+  end
+  # Last point on left boundary
+  x[i, line_index] = node_coordinates[1, 1, end, linear_indices[1, end]]
+  y[i, line_index] = node_coordinates[2, 1, end, linear_indices[1, end]]
+
+  # Other lines in y-direction
+  line_index +=1
+  for cell_x in axes(mesh, 1)
+    i = 1
+    for cell_y in axes(mesh, 2)
+      for node in 1:(n_nodes-1)
+        x[i, line_index] = node_coordinates[1, end, node, linear_indices[cell_x, cell_y]]
+        y[i, line_index] = node_coordinates[2, end, node, linear_indices[cell_x, cell_y]]
+
+        i += 1
+      end
+    end
+    # Last point on line
+    x[i, line_index] = node_coordinates[1, end, end, linear_indices[cell_x, end]]
+    y[i, line_index] = node_coordinates[2, end, end, linear_indices[cell_x, end]]
+
+    line_index += 1
+  end
+  
   return x, y
 end
