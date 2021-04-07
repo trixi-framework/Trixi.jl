@@ -10,14 +10,6 @@ function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::
 end
 
 
-function calc_boundary_flux!(cache, u, t, boundary_condition,
-                             equations::AbstractEquations, mesh::CurvedMesh, dg::DG)
-  boundary_conditions = ntuple(_ -> boundary_condition, 2*ndims(mesh))
-  calc_boundary_flux!(cache, u, t, boundary_conditions,
-                      equations::AbstractEquations, mesh::CurvedMesh, dg::DG)
-end
-
-
 @inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 

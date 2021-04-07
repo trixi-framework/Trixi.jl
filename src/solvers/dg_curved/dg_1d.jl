@@ -59,7 +59,40 @@ function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionP
 end
 
 
-# calc_boundary_flux! with boundary_condition::BoundaryConditionPeriodic is in dg.jl
+function calc_boundary_flux!(cache, u, t, boundary_condition,
+                             equations::AbstractEquations{1}, mesh::CurvedMesh{1}, dg::DG)
+  @unpack surface_flux = dg
+  @unpack surface_flux_values, node_coordinates = cache.elements
+
+  orientation = 1
+
+  # Negative x-direction
+  direction = 1
+
+  u_rr = get_node_vars(u, equations, dg, 1, 1)
+  x = get_node_coords(node_coordinates, equations, dg, 1, 1)
+
+  flux = boundary_condition(u_rr, orientation, direction, x, t, surface_flux, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, direction, 1] = flux[v]
+  end
+
+  # Positive x-direction
+  direction = 2
+
+  u_rr = get_node_vars(u, equations, dg, nnodes(dg), nelements(dg, cache))
+  x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), nelements(dg, cache))
+
+  flux = boundary_condition(u_rr, orientation, direction, x, t, surface_flux, equations)
+
+  # Copy flux to left and right element storage
+  for v in eachvariable(equations)
+    surface_flux_values[v, direction, nelements(dg, cache)] = flux[v]
+  end
+end
+
+
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
                              equations::AbstractEquations{1}, mesh::CurvedMesh{1}, dg::DG)
   @unpack surface_flux = dg
