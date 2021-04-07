@@ -193,14 +193,14 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,
 end
 
 
-function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
                                           boundary_condition::BoundaryConditionPeriodic, equations, mesh::CurvedMesh, 
                                           dg::DG, cache, direction, node_indices, surface_node_indices, element)
   @assert isperiodic(mesh, orientation)
 end
 
 
-function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
+@inline function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
                                           boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
                                           direction, node_indices, surface_node_indices, element)
   @unpack node_coordinates, metric_terms = cache.elements
