@@ -163,10 +163,6 @@ function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equation
   @unpack surface_flux = dg
   @unpack interfaces, elements = cache.mesh
 
-  u_tilde_ll = zeros(Trixi.nvariables(equations))
-  u_tilde_rr = zeros(Trixi.nvariables(equations))
-  flux       = zeros(Trixi.nvariables(equations))
-
 #  @threaded for interface in eachinterface(cache.mesh)
   for interface in eachinterface(cache.mesh)
     # Get neighboring elements
@@ -183,41 +179,29 @@ function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equation
         # pull the left and right states from the boundary u values
         u_ll = elements[primary_id].surface_u_values[:, i, primary_side]
         u_rr = elements[secondary_id].surface_u_values[:, j, secondary_side]
-
-        # rotate states
+        # pull the directional vectors and scaling factors
         #   TODO: this assumes a conforming approximation, more must be done in terms of the normals
         #         and tangents for hanging nodes and other non-conforming approximation spaces
-        #   TODO: this assumes 2D compressible Euler and we need a "smart" way to generalize the rotation step
-        u_tilde_ll[1] = u_ll[1]
-        u_tilde_ll[2] = (  u_ll[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                         + u_ll[3] * elements[primary_id].geometry.normals[i, primary_side, 2] )
-        u_tilde_ll[3] = (  u_ll[2] * elements[primary_id].geometry.tangents[i, primary_side, 1]
-                         + u_ll[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        u_tilde_ll[4] = u_ll[4]
+        n_vec   = elements[primary_id].geometry.normals[i, primary_side, :]
+        t_vec   = elements[primary_id].geometry.tangents[i, primary_side, :]
+        scal_ll = elements[primary_id].geometry.scaling[i, primary_side]
+        scal_rr = elements[secondary_id].geometry.scaling[j, secondary_side]
 
-        u_tilde_rr[1] = u_rr[1]
-        u_tilde_rr[2] = (  u_rr[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                         + u_rr[3] * elements[primary_id].geometry.normals[i, primary_side, 2] )
-        u_tilde_rr[3] = (  u_rr[2] * elements[primary_id].geometry.tangents[i, primary_side, 1]
-                         + u_rr[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        u_tilde_rr[4] = u_rr[4]
+        # rotate states
+        u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
+        u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
 
         # Call pointwise Riemann solver in the rotated direction
         flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
 
         # backrotate the flux into the original direction
-        #  TODO: again this assumes 2D compressible Euler
-        flux[1] = flux_tilde[1]
-        flux[2] = (   flux_tilde[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                    + flux_tilde[3] * elements[primary_id].geometry.tangents[i, primary_side, 1] )
-        flux[3] = (   flux_tilde[2] * elements[primary_id].geometry.normals[i, primary_side, 2]
-                    + flux_tilde[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        flux[4] = flux_tilde[4]
+        flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
 
         # Scale the flux appropriately and copy back to left and right element storage
+        # Note the sign change for the normal flux in the secondary element!
         for v in eachvariable(equations)
-          elements[primary_id].surface_flux_values[v, i, primary_side] = ( flux[v] * elements[primary_id].geometry.scaling[i, primary_side] )
-          elements[secondary_id].surface_flux_values[v, j, secondary_side] = ( -flux[v] * elements[secondary_id].geometry.scaling[j, secondary_side] )
+          elements[primary_id].surface_flux_values[v, i, primary_side]     =  flux[v] * scal_ll
+          elements[secondary_id].surface_flux_values[v, j, secondary_side] = -flux[v] * scal_rr
         end
 
         # increment the index of the coordinate system in the secondary element
@@ -260,42 +244,28 @@ function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equation
                                       t_loc, equations)
         end
 
-        # pull the left state from the boundary u values on the primary element
-        u_ll = elements[primary_id].surface_u_values[:, i, primary_side]
-
-        # rotate states
+        # pull the left state from the boundary u values on the primary element as well as the
+        # directional vectors and scaling
         #   TODO: this assumes a conforming approximation, more must be done in terms of the normals
         #         and tangents for hanging nodes and other non-conforming approximation spaces
-        #   TODO: this assumes 2D compressible Euler and we need a "smart" way to generalize the rotation step
-        u_tilde_ll[1] = u_ll[1]
-        u_tilde_ll[2] = (  u_ll[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                         + u_ll[3] * elements[primary_id].geometry.normals[i, primary_side, 2] )
-        u_tilde_ll[3] = (  u_ll[2] * elements[primary_id].geometry.tangents[i, primary_side, 1]
-                         + u_ll[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        u_tilde_ll[4] = u_ll[4]
+        u_ll  = elements[primary_id].surface_u_values[:, i, primary_side]
+        n_vec = elements[primary_id].geometry.normals[i, primary_side, :]
+        t_vec = elements[primary_id].geometry.tangents[i, primary_side, :]
+        scal  = elements[primary_id].geometry.scaling[i, primary_side]
 
-        u_tilde_rr[1] = u_rr[1]
-        u_tilde_rr[2] = (  u_rr[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                         + u_rr[3] * elements[primary_id].geometry.normals[i, primary_side, 2] )
-        u_tilde_rr[3] = (  u_rr[2] * elements[primary_id].geometry.tangents[i, primary_side, 1]
-                         + u_rr[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        u_tilde_rr[4] = u_rr[4]
+        # rotate states
+        u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
+        u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
 
         # Call pointwise Riemann solver in the rotated direction
         flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
 
         # backrotate the flux into the original direction
-        #  TODO: again this assumes 2D compressible Euler
-        flux[1] = flux_tilde[1]
-        flux[2] = (   flux_tilde[2] * elements[primary_id].geometry.normals[i, primary_side, 1]
-                    + flux_tilde[3] * elements[primary_id].geometry.tangents[i, primary_side, 1] )
-        flux[3] = (   flux_tilde[2] * elements[primary_id].geometry.normals[i, primary_side, 2]
-                    + flux_tilde[3] * elements[primary_id].geometry.tangents[i, primary_side, 2] )
-        flux[4] = flux_tilde[4]
+        flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
 
         # Scale the flux appropriately and copy back to left and right element storage
         for v in eachvariable(equations)
-          elements[primary_id].surface_flux_values[v, i, primary_side] = ( flux[v] * elements[primary_id].geometry.scaling[i, primary_side] )
+          elements[primary_id].surface_flux_values[v, i, primary_side] = flux[v] * scal
         end
       end
     end
@@ -304,6 +274,29 @@ function calc_interface_flux!(cache, nonconservative_terms::Val{false}, equation
   return nothing
 end
 
+
+##
+# TODO: move these rotation routines into compressible_euler_2d.jl as they are equation dependent
+@inline function rotate_solution(u, normal, tangent, equations::CompressibleEulerEquations2D)
+
+  u_tilde1 = u[1]
+  u_tilde2 = u[2] * normal[1]  + u[3] * normal[2]
+  u_tilde3 = u[2] * tangent[1] + u[3] * tangent[2]
+  u_tilde4 = u[4]
+
+  return SVector(u_tilde1, u_tilde2, u_tilde3, u_tilde4)
+end
+
+
+@inline function backrotate_flux(f_tilde, normal, tangent, equations::CompressibleEulerEquations2D)
+
+  f1 = f_tilde[1]
+  f2 = f_tilde[2] * normal[1] + f_tilde[3] * tangent[1]
+  f3 = f_tilde[2] * normal[2] + f_tilde[3] * tangent[2]
+  f4 = f_tilde[4]
+
+  return SVector(f1, f2, f3, f4)
+end
 
 # function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
 #   @unpack boundaries = cache

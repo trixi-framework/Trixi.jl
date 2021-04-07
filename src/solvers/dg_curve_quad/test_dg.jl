@@ -17,7 +17,8 @@ num_eqns = Trixi.nvariables(equations)
 
 initial_condition = initial_condition_convergence_test
 source_term = source_terms_convergence_test
-boundary_conditions = boundary_condition_convergence_test # boundary_condition_periodic
+boundary_conditions = boundary_condition_periodic
+#boundary_conditions = boundary_condition_convergence_test
 
 ###############################################################################
 # Get the DG approximation space
@@ -29,8 +30,8 @@ solver = DGSEM(poly_deg, surface_flux)
 ###############################################################################
 # Get the curved quad mesh from a file
 
-mesh_file = "BoxAroundCircle8.mesh"
-#mesh_file = "PeriodicXandY10.mesh"
+#mesh_file = "BoxAroundCircle8.mesh"
+mesh_file = "PeriodicXandY10.mesh"
 mesh      = UnstructuredQuadMesh(Float64, mesh_file, num_eqns, poly_deg, solver.basis.nodes)
 
 # #for j in 2:40
