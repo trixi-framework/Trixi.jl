@@ -138,86 +138,82 @@ end
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
                              equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
-  @assert mesh.periodicity
+  @assert isperiodic(mesh)
 end
 
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
                              equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
-  @unpack surface_flux = dg
-  @unpack surface_flux_values, node_coordinates = cache.elements
+  @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
   
   for cell_y in axes(mesh, 2)
     # Negative x-direction
     direction = 1
-
     element = linear_indices[begin, cell_y]
 
     for j in eachnode(dg)
-      u_rr = get_node_vars(u, equations, dg, 1, j, element)
-      x = get_node_coords(node_coordinates, equations, dg, 1, j, element)
-
-      normal_vector = scaled_contravariant_vector(1, 1, j, element, cache)
-      flux = boundary_conditions[direction](u_rr, normal_vector, direction, x, t, surface_flux, equations)
-
-      for v in eachvariable(equations)
-        surface_flux_values[v, j, direction, element] = flux[v]
-      end
+      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
+                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       direction, (1, j), (j,), element)
     end
 
     # Positive x-direction
     direction = 2
-
     element = linear_indices[end, cell_y]
 
     for j in eachnode(dg)
-      u_ll = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-      x = get_node_coords(node_coordinates, equations, dg, nnodes(dg), j, element)
-
-      normal_vector = scaled_contravariant_vector(1, nnodes(dg), j, element, cache)
-      flux = boundary_conditions[direction](u_ll, normal_vector, direction, x, t, surface_flux, equations)
-
-      for v in eachvariable(equations)
-        surface_flux_values[v, j, direction, element] = flux[v]
-      end
+      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
+                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       direction, (nnodes(dg), j), (j,), element)
     end
   end
 
   for cell_x in axes(mesh, 1)
     # Negative y-direction
     direction = 3
-
     element = linear_indices[cell_x, begin]
 
     for i in eachnode(dg)
-      u_rr = get_node_vars(u, equations, dg, i, 1, element)
-      x = get_node_coords(node_coordinates, equations, dg, i, 1, element)
-
-      normal_vector = scaled_contravariant_vector(2, i, 1, element, cache)
-      flux = boundary_conditions[direction](u_rr, normal_vector, direction, x, t, surface_flux, equations)
-                                            
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, direction, element] = flux[v]
-      end
+      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
+                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       direction, (i, 1), (i,), element)
     end
 
     # Positive y-direction
     direction = 4
-
     element = linear_indices[cell_x, end]
 
     for i in eachnode(dg)
-      u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-      x = get_node_coords(node_coordinates, equations, dg, i, nnodes(dg), element)
-
-      normal_vector = scaled_contravariant_vector(2, i, nnodes(dg), element, cache)
-      flux = boundary_conditions[direction](u_ll, normal_vector, direction, x, t, surface_flux, equations)
-
-      for v in eachvariable(equations)
-        surface_flux_values[v, i, direction, element] = flux[v]
-      end
+      calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
+                                       boundary_conditions[direction], equations, mesh, dg, cache,
+                                       direction, (i, nnodes(dg)), (i,), element)
     end
+  end
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
+                                          boundary_condition::BoundaryConditionPeriodic, equations, mesh::CurvedMesh, 
+                                          dg::DG, cache, direction, node_indices, surface_node_indices, element)
+  @assert isperiodic(mesh, orientation)
+end
+
+
+function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
+                                          boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
+                                          direction, node_indices, surface_node_indices, element)
+  @unpack node_coordinates = cache.elements
+  @unpack surface_flux = dg
+
+  u_rr = get_node_vars(u, equations, dg, node_indices..., element)
+  x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
+
+  normal_vector = scaled_contravariant_vector(orientation, node_indices..., element, cache)
+  flux = boundary_condition(u_rr, normal_vector, direction, x, t, surface_flux, equations)
+
+  for v in eachvariable(equations)
+    surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
   end
 end
 

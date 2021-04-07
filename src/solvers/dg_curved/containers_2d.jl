@@ -75,7 +75,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, 
       left_neighbors[1, element] = linear_indices[cell_x - 1, cell_y]
     end
 
-    if mesh.periodicity
+    if isperiodic(mesh, 1)
       # Periodic boundary
       left_neighbors[1, linear_indices[1, cell_y]] = linear_indices[end, cell_y]
     else
@@ -92,7 +92,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{2}, 
       left_neighbors[2, element] = linear_indices[cell_x, cell_y - 1]
     end
 
-    if mesh.periodicity
+    if isperiodic(mesh, 2)
       # Periodic boundary
       left_neighbors[2, linear_indices[cell_x, 1]] = linear_indices[cell_x, end]
     else

@@ -13,7 +13,7 @@ mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   faces::Any # Not relevant for performance
   faces_as_string::Vector{String}
-  periodicity::Bool
+  periodicity::NTuple{NDIMS, Bool}
   current_filename::String
   unsaved_changes::Bool
 end
@@ -42,6 +42,18 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 """
 function CurvedMesh(cells_per_dimension, faces; RealT=Float64, periodicity=true, unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
+
+  # Convert periodicity to a Tuple of a Bool for every dimension
+  if all(periodicity)
+    # Also catches case where periodicity = true
+    periodicity = ntuple(_->true, NDIMS)
+  elseif !any(periodicity)
+    # Also catches case where periodicity = false
+    periodicity = ntuple(_->false, NDIMS)
+  else
+    # Default case if periodicity is an iterable
+    periodicity = Tuple(periodicity)
+  end
 
   return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, periodicity, "", unsaved_changes)
 end
@@ -146,6 +158,10 @@ function transfinite_mapping(x, y, mesh)
          bilinear_mapping(x, y, mesh)
 end
 
+
+# Check if mesh is periodic
+isperiodic(mesh::CurvedMesh) = all(mesh.periodicity)
+isperiodic(mesh::CurvedMesh, dimension) = mesh.periodicity[dimension]
 
 @inline Base.ndims(::CurvedMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
