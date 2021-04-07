@@ -42,7 +42,9 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 function CurvedMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
 
-  validate_faces(faces)
+  # After a mesh is loaded from a file, the functions defining it are evaluated in the function `load_mesh` using `eval`.
+  # If this function is used before the next top-level evaluation, this causes a world age problem.
+  Base.invokelatest(validate_faces, faces)
 
   return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, "", unsaved_changes)
 end
