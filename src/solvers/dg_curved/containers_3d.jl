@@ -90,7 +90,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, 
   end
 
   # Neighbors in y-direction
-  for  cell_z in 1:size(mesh, 3), cell_x in 1:size(mesh, 1)
+  for cell_z in 1:size(mesh, 3), cell_x in 1:size(mesh, 1)
     # Inner elements
     for cell_y in 2:size(mesh, 2)
       element = linear_indices[cell_x, cell_y, cell_z]
@@ -102,7 +102,7 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, 
   end
 
   # Neighbors in z-direction
-  for  cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
+  for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     # Inner elements
     for cell_z in 2:size(mesh, 3)
       element = linear_indices[cell_x, cell_y, cell_z]
