@@ -108,6 +108,19 @@ function PlotData2D(u, semi;
 end
 
 
+"""
+    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
+               solution_variables=cons2prim, kwargs...)
+
+Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
+`u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
+from the semidiscretization `semi`. By default, the conservative variables from the solution are used
+for plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+"""
 function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
                     solution_variables=cons2prim, kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -258,6 +271,9 @@ getmesh(pd::PlotData2D) = PlotMesh2D(pd)
 end
 
 
+# Visualize a single variable in a 2D plot. Only works for `scatter` right now.
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}}) 
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names = plot_data
@@ -306,6 +322,9 @@ end
 end
 
 
+# Visualize the mesh in a 2D plot
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
 @recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data = pm
   @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
