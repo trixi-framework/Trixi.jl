@@ -61,7 +61,30 @@ Given the conservative variables `u`, calculate the (physical) flux in spatial
 direction `orientation` for the coressponding set of governing `equations`
 `orientation` is `1`, `2`, and `3` for the x-, y-, and z-directions, respectively.
 """
-function flux(u, orientation, equations) end
+function flux end
+
+
+"""
+    rotate_to_x(u, normal, equations)
+
+Apply the rotation that maps `normal` onto the x-axis to the convservative variables `u`.
+This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
+invariant equations in arbitrary normal directions.
+
+See also: [`rotate_from_x`](@ref)
+"""
+function rotate_to_x end
+
+"""
+    rotate_from_x(u, normal, equations)
+
+Apply the rotation that maps the x-axis onto `normal` to the convservative variables `u`.
+This is used by [`FluxRotated`](@ref) to calculate the numerical flux of rotationally
+invariant equations in arbitrary normal directions.
+
+See also: [`rotate_to_x`](@ref)
+"""
+function rotate_from_x end
 
 
 # set sensible default values that may be overwritten by specific equations
@@ -73,25 +96,57 @@ default_analysis_integrals(::AbstractEquations)  = (entropy_timederivative,)
 
 
 """
-    flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
+    cons2cons(u, equations)
 
-The classical central numerical flux `f((u_ll) + f(u_rr)) / 2`. When this flux is
-used as volume flux, the discretization is equivalent to the classical weak form
-DG method (except floating point errors).
+Return the conserved variables `u`. While this function is as trivial as `identity`,
+it is also as useful.
 """
-@inline function flux_central(u_ll, u_rr, orientation, equations::AbstractEquations)
-  # Calculate regular 1D fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
-  # Average regular fluxes
-  return 0.5 * (f_ll + f_rr)
-end
-
-
 @inline cons2cons(u, ::AbstractEquations) = u
-function cons2prim(u, ::AbstractEquations) end
+function cons2prim#=(u, ::AbstractEquations)=# end
 @inline Base.first(u, ::AbstractEquations) = first(u)
+
+"""
+    cons2prim(u, equations)
+
+Convert the conserved variables `u` to the primitive variables for a given set of
+`equations`. The inverse conversion is performed by [`prim2cons`](@ref).
+"""
+function cons2prim end
+
+"""
+    prim2cons(u, equations)
+
+Convert the conserved variables `u` to the primitive variables for a given set of
+`equations`. The inverse conversion is performed by [`cons2prim`](@ref).
+"""
+function prim2cons end
+
+"""
+    entropy(u, equations)
+
+Return the chosen entropy of the conserved variables `u` for a given set of
+`equations`.
+"""
+function entropy end
+
+"""
+    cons2entropy(u, equations)
+
+Convert the conserved variables `u` to the entropy variables for a given set of
+`equations` with chosen standard [`entropy`](@ref). The inverse conversion is
+performed by [`entropy2cons`](@ref).
+"""
+function cons2entropy end
+
+"""
+    entropy2cons(w, equations)
+
+Convert the entropy variables `w` based on a standard [`entropy`](@ref) to the
+conserved variables for a given set of `equations` . The inverse conversion is
+performed by [`cons2entropy`](@ref).
+"""
+function entropy2cons end
+
 
 # FIXME: Deprecations introduced in v0.3
 @deprecate varnames_cons(equations) varnames(cons2cons, equations)
@@ -102,6 +157,9 @@ function cons2prim(u, ::AbstractEquations) end
 
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
+
+# Numerical flux formulations that are independent of the specific system of equations
+include("numerical_fluxes.jl")
 
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end
@@ -121,6 +179,7 @@ include("compressible_euler_3d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
@@ -132,6 +191,15 @@ abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <: AbstractEquations{ND
 include("ideal_glm_mhd_1d.jl")
 include("ideal_glm_mhd_2d.jl")
 include("ideal_glm_mhd_3d.jl")
+
+# IdealGlmMhdMulticomponentEquations
+abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <: AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_multicomponent_1d.jl")
+include("ideal_glm_mhd_multicomponent_2d.jl")
+
+# Retrieve number of components from equation instance for the multicomponent case
+@inline ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP}) where {NDIMS, NVARS, NCOMP} = NCOMP
+@inline eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations) = Base.OneTo(ncomponents(equations))
 
 # Diffusion equation: first order hyperbolic system
 abstract type AbstractHyperbolicDiffusionEquations{NDIMS, NVARS} <: AbstractEquations{NDIMS, NVARS} end

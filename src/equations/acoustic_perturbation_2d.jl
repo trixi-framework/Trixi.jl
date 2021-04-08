@@ -298,7 +298,7 @@ function boundary_condition_zero(u_inner, orientation, direction, x, t, surface_
 end
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::AcousticPerturbationEquations2D)
+@inline function flux(u, orientation::Integer, equations::AcousticPerturbationEquations2D)
   v1_prime, v2_prime, p_prime = cons2state(u, equations)
   v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
@@ -322,10 +322,8 @@ end
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturbationEquations2D)
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::AcousticPerturbationEquations2D)
   # Calculate v = v_prime + v_mean
   v_prime_ll = u_ll[orientation]
   v_prime_rr = u_rr[orientation]
@@ -338,9 +336,7 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::AcousticPerturb
   c_mean_ll = u_ll[6]
   c_mean_rr = u_rr[6]
 
-  speed = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
-
-  return 0.5 * ( (f_ll + f_rr) - speed * (u_rr - u_ll) )
+  λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
 end
 
 

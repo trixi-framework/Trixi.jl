@@ -188,7 +188,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equations::HyperbolicDiffusionEquations1D)
+@inline function flux(u, orientation::Integer, equations::HyperbolicDiffusionEquations1D)
   phi, q1 = u
   @unpack inv_Tr = equations
 
@@ -200,14 +200,9 @@ end
 end
 
 
-@inline function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::HyperbolicDiffusionEquations1D)
   λ_max = sqrt(equations.nu * equations.inv_Tr)
-
-  return 0.5 * (f_ll + f_rr - λ_max * (u_rr - u_ll))
 end
 
 

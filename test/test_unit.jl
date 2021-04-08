@@ -1,13 +1,16 @@
 module TestUnit
 
 using Test
-using SimpleMock
+using Cassette
 using Documenter
 using Trixi
 
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
+
+# Create a Cassette context that will be used for mocking Trixi.mpi_nranks
+Cassette.@context Ctx
 
 # Run various unit (= non-elixir-triggered) tests
 @testset "Unit tests" begin
@@ -23,7 +26,6 @@ isdir(outdir) && rm(outdir, recursive=true)
       @test Trixi.has_any_neighbor(t, 1, 1) == true
       @test Trixi.isperiodic(t, 1) == true
       @test Trixi.n_children_per_cell(t) == 2
-      @test Trixi.n_children_per_cell(2) == 4
       @test Trixi.n_directions(t) == 2
     end
 
@@ -63,7 +65,10 @@ isdir(outdir) && rm(outdir, recursive=true)
   @testset "ParallelTreeMesh" begin
     @testset "partition!" begin
       @testset "mpi_nranks() = 2" begin
-        mock((Trixi.mpi_nranks) => () -> 2) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 2
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 2
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -83,11 +88,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
           @test parent(mesh.first_cell_by_rank) == [1, 12]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 3" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+        @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -107,11 +115,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test mesh.tree.mpi_ranks[1:21] ==
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 10, 16]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 9" begin
-        mock((Trixi.mpi_nranks) => () -> 9) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 9
+        Cassette.overdub(Ctx(), () -> begin
+        @test Trixi.mpi_nranks() == 9
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
           # Refine twice
           Trixi.refine!(mesh.tree)
@@ -124,11 +135,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           # Use parent for OffsetArray
           @test parent(mesh.n_cells_by_rank) == [44, 37, 38, 37, 37, 37, 38, 37, 36]
           @test parent(mesh.first_cell_by_rank) == [1, 45, 82, 120, 157, 194, 231, 269, 306]
-        end
+        end)
       end
 
       @testset "mpi_nranks() = 3 non-uniform" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
           # Refine whole tree
           Trixi.refine!(mesh.tree)
@@ -147,11 +161,14 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test parent(mesh.n_cells_by_rank) == [5, 2, 2]
           @test mesh.tree.mpi_ranks[1:9] == [0, 0, 0, 0, 0, 1, 1, 2, 2]
           @test parent(mesh.first_cell_by_rank) == [1, 6, 8]
-        end
+        end)
       end
 
       @testset "not enough ranks" begin
-        mock((Trixi.mpi_nranks) => () -> 3) do _
+        Cassette.overdub(::Ctx, ::typeof(Trixi.mpi_nranks)) = 3
+        Cassette.overdub(Ctx(), () -> begin
+          @test Trixi.mpi_nranks() == 3
+
           mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
 
           # Only one leaf
@@ -165,7 +182,44 @@ isdir(outdir) && rm(outdir, recursive=true)
           @test_throws AssertionError(
             "Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
           @test_nowarn Trixi.partition!(mesh; allow_coarsening=false)
-        end
+        end)
+      end
+    end
+  end
+
+  @testset "curved mesh" begin
+    @testset "calc_metric_terms" begin
+      @testset "identity map" begin
+        basis = LobattoLegendreBasis(5)
+        nodes = basis.nodes
+        metric_terms = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
+
+        node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
+        node_coordinates[1, :, :, 1] .= [nodes[i] for i in 1:6, j in 1:6]
+        node_coordinates[2, :, :, 1] .= [nodes[j] for i in 1:6, j in 1:6]
+        expected = zeros(2, 2, 6, 6, 1)
+        expected[1, 1, :, :, 1] .= 1
+        expected[2, 2, :, :, 1] .= 1
+        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
+      end
+
+      @testset "maximum exact polydeg" begin
+        basis = LobattoLegendreBasis(3)
+        nodes = basis.nodes
+        metric_terms = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
+
+        # f(x, y) = [x^3, xy^2]
+        node_coordinates = Array{Float64, 4}(undef, 2, 4, 4, 1)
+        node_coordinates[1, :, :, 1] .= [nodes[i]^3 for i in 1:4, j in 1:4]
+        node_coordinates[2, :, :, 1] .= [nodes[i] * nodes[j]^2 for i in 1:4, j in 1:4]
+
+        # Df(x, y) = [3x^2 0;
+        #              y^2 2xy]
+        expected = zeros(2, 2, 4, 4, 1)
+        expected[1, 1, :, :, 1] .= [3 * nodes[i]^2 for i in 1:4, j in 1:4]
+        expected[2, 1, :, :, 1] .= [nodes[j]^2 for i in 1:4, j in 1:4]
+        expected[2, 2, :, :, 1] .= [2 * nodes[i] * nodes[j] for i in 1:4, j in 1:4]
+        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
       end
     end
   end
@@ -323,6 +377,12 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test endswith(default_example(), "elixir_advection_basic.jl")
   end
 
+  @testset "HLL flux with vanishing wave speed estimates (#502)" begin
+    equations = CompressibleEulerEquations1D(1.4)
+    u = SVector(1.0, 0.0, 0.0)
+    @test !any(isnan, FluxHLL()(u, u, 1, equations))
+  end
+
   @testset "DG L2 mortar container debug output" begin
     c2d = Trixi.L2MortarContainer2D{Float64, 1, 1}(1)
     @test isnothing(display(c2d))
@@ -415,9 +475,33 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test Trixi.varnames(cons2mean, equations) == ("v1_mean", "v2_mean", "c_mean", "rho_mean")
   end
 
+  @testset "Euler conversion between conservative/entropy variables" begin
+    rho, v1, v2, v3, p = 1.0, 0.1, 0.2, 0.3, 2.0
+
+    let equations = CompressibleEulerEquations1D(1.4)
+      cons_vars = prim2cons(SVector(rho, v1, p),equations)
+      entropy_vars = cons2entropy(cons_vars, equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars, equations)
+    end
+
+    let equations = CompressibleEulerEquations2D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
+
+    let equations = CompressibleEulerEquations3D(1.4)
+      cons_vars = prim2cons(SVector(rho,v1,v2,v3,p),equations)
+      entropy_vars = cons2entropy(cons_vars,equations)
+      @test cons_vars ≈ entropy2cons(entropy_vars,equations)
+    end
+  end
+
   # Test docstrings
   DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive=true)
   doctest(Trixi, manual=false)
 end
+
+
 
 end #module

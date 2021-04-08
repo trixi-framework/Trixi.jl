@@ -192,7 +192,7 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equations::IdealGlmMhdEquations2D)
+@inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
   rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
   v1 = rho_v1/rho
   v2 = rho_v2/rho
@@ -349,7 +349,8 @@ function flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquatio
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -367,33 +368,19 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::IdealGlmMhdEqua
   v_mag_rr = sqrt(v1_rr^2 + v2_rr^2 + v3_rr^2)
   cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   λ_max = max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_v2_rr - rho_v2_ll)
-  f4 = 1/2 * (f_ll[4] + f_rr[4]) - 1/2 * λ_max * (rho_v3_rr - rho_v3_ll)
-  f5 = 1/2 * (f_ll[5] + f_rr[5]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-  f6 = 1/2 * (f_ll[6] + f_rr[6]) - 1/2 * λ_max * (B1_rr     - B1_ll)
-  f7 = 1/2 * (f_ll[7] + f_rr[7]) - 1/2 * λ_max * (B2_rr     - B2_ll)
-  f8 = 1/2 * (f_ll[8] + f_rr[8]) - 1/2 * λ_max * (B3_rr     - B3_ll)
-  f9 = 1/2 * (f_ll[9] + f_rr[9]) - 1/2 * λ_max * (psi_rr    - psi_ll)
-
-  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
 end
 
-"""
-    flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
-HLL flux for ideal GLM-MHD equations like that by
+"""
+    min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+
+Calculate minimum and maximum wave speeds for HLL-type fluxes as in
 - Li (2005)
   An HLLC Riemann solver for magneto-hydrodynamics
   [DOI: 10.1016/j.jcp.2004.08.020](https://doi.org/10.1016/j.jcp.2004.08.020)
 """
-function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
+@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
   rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -412,59 +399,24 @@ function flux_hll(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
   mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
   p_rr = (equations.gamma - 1)*(rho_e_rr - 0.5*rho_rr*vel_norm_rr - 0.5*mag_norm_rr - 0.5*psi_rr^2)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   # Approximate the left-most and right-most eigenvalues in the Riemann fan
   if orientation == 1 # x-direction
     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
     vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
-    Ssl = min(v1_ll - c_f_ll, vel_roe - c_f_roe)
-    Ssr = max(v1_rr + c_f_rr, vel_roe + c_f_roe)
+    λ_min = min(v1_ll - c_f_ll, vel_roe - c_f_roe)
+    λ_max = max(v1_rr + c_f_rr, vel_roe + c_f_roe)
   else # y-direction
     c_f_ll = calc_fast_wavespeed(u_ll, orientation, equations)
     c_f_rr = calc_fast_wavespeed(u_rr, orientation, equations)
     vel_roe, c_f_roe = calc_fast_wavespeed_roe(u_ll, u_rr, orientation, equations)
-    Ssl = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
-    Ssr = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
+    λ_min = min(v2_ll - c_f_ll, vel_roe - c_f_roe)
+    λ_max = max(v2_rr + c_f_rr, vel_roe + c_f_roe)
   end
 
-  if Ssl >= 0.0 && Ssr > 0.0
-    f1 = f_ll[1]
-    f2 = f_ll[2]
-    f3 = f_ll[3]
-    f4 = f_ll[4]
-    f5 = f_ll[5]
-    f6 = f_ll[6]
-    f7 = f_ll[7]
-    f8 = f_ll[8]
-    f9 = f_ll[9]
-  elseif Ssr <= 0.0 && Ssl < 0.0
-    f1 = f_rr[1]
-    f2 = f_rr[2]
-    f3 = f_rr[3]
-    f4 = f_rr[4]
-    f5 = f_rr[5]
-    f6 = f_rr[6]
-    f7 = f_rr[7]
-    f8 = f_rr[8]
-    f9 = f_rr[9]
-  else
-    f1 = (Ssr * f_ll[1] - Ssl * f_rr[1] + Ssl * Ssr * (rho_rr[1]    - rho_ll[1]))    / (Ssr - Ssl)
-    f2 = (Ssr * f_ll[2] - Ssl * f_rr[2] + Ssl * Ssr * (rho_v1_rr[1] - rho_v1_ll[1])) / (Ssr - Ssl)
-    f3 = (Ssr * f_ll[3] - Ssl * f_rr[3] + Ssl * Ssr * (rho_v2_rr[1] - rho_v2_ll[1])) / (Ssr - Ssl)
-    f4 = (Ssr * f_ll[4] - Ssl * f_rr[4] + Ssl * Ssr * (rho_v3_rr[1] - rho_v3_ll[1])) / (Ssr - Ssl)
-    f5 = (Ssr * f_ll[5] - Ssl * f_rr[5] + Ssl * Ssr * (rho_e_rr[1]  - rho_e_ll[1]))  / (Ssr - Ssl)
-    f6 = (Ssr * f_ll[6] - Ssl * f_rr[6] + Ssl * Ssr * (B1_rr[1]     - B1_ll[1]))     / (Ssr - Ssl)
-    f7 = (Ssr * f_ll[7] - Ssl * f_rr[7] + Ssl * Ssr * (B2_rr[1]     - B2_ll[1]))     / (Ssr - Ssl)
-    f8 = (Ssr * f_ll[8] - Ssl * f_rr[8] + Ssl * Ssr * (B3_rr[1]     - B3_ll[1]))     / (Ssr - Ssl)
-    f9 = (Ssr * f_ll[9] - Ssl * f_rr[9] + Ssl * Ssr * (psi_rr[1]    - psi_ll[1]))    / (Ssr - Ssl)
-  end
-
-  return SVector(f1, f2, f3, f4, f5, f6, f7, f8, f9)
+  return λ_min, λ_max
 end
+
 
 """
     noncons_interface_flux(u_left, u_right, orientation, mode, equations::IdealGlmMhdEquations2D)

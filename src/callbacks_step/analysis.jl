@@ -66,11 +66,11 @@ end
 
 
 function AnalysisCallback(semi::AbstractSemidiscretization; kwargs...)
-  _, equations, solver, cache = mesh_equations_solver_cache(semi)
-  AnalysisCallback(equations, solver, cache; kwargs...)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  AnalysisCallback(mesh, equations, solver, cache; kwargs...)
 end
 
-function AnalysisCallback(equations::AbstractEquations, solver, cache;
+function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           interval=0,
                           save_analysis=false,
                           output_directory="out",
@@ -87,7 +87,7 @@ function AnalysisCallback(equations::AbstractEquations, solver, cache;
                                                      isfinished(integrator))
 
   analyzer = SolutionAnalyzer(solver; kwargs...)
-  cache_analysis = create_cache_analysis(analyzer, equations, solver, cache, RealT, uEltype)
+  cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache, RealT, uEltype)
 
   analysis_callback = AnalysisCallback(0.0, interval, save_analysis, output_directory, analysis_filename,
                                        analyzer,

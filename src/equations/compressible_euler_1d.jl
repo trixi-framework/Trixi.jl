@@ -265,7 +265,7 @@ end
 
 
 # Calculate 1D flux for a single point
-@inline function flux(u, orientation, equations::CompressibleEulerEquations1D)
+@inline function flux(u, orientation::Integer, equations::CompressibleEulerEquations1D)
   rho, rho_v1, rho_e = u
   v1 = rho_v1/rho
   p = (equations.gamma - 1) * (rho_e - 1/2 * rho * v1^2)
@@ -434,11 +434,13 @@ See also
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
-  # Calculate primitive variables and speed of sound
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
+# maximum velocity magnitude plus the maximum speed of sound
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   v_mag_ll = abs(v1_ll)
   p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v_mag_ll^2)
@@ -448,53 +450,28 @@ function flux_lax_friedrichs(u_ll, u_rr, orientation, equations::CompressibleEul
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v_mag_rr^2)
   c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
-
   λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
-  f1 = 1/2 * (f_ll[1] + f_rr[1]) - 1/2 * λ_max * (rho_rr    - rho_ll)
-  f2 = 1/2 * (f_ll[2] + f_rr[2]) - 1/2 * λ_max * (rho_v1_rr - rho_v1_ll)
-  f3 = 1/2 * (f_ll[3] + f_rr[3]) - 1/2 * λ_max * (rho_e_rr  - rho_e_ll)
-
-  return SVector(f1, f2, f3)
 end
 
 
-function flux_hll(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
-  # Calculate primitive variables and speed of sound
+# Calculate minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_naive(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
   rho_ll, rho_v1_ll, rho_e_ll = u_ll
   rho_rr, rho_v1_rr, rho_e_rr = u_rr
 
+  # Calculate primitive variables and speed of sound
   v1_ll = rho_v1_ll / rho_ll
   p_ll = (equations.gamma - 1) * (rho_e_ll - 1/2 * rho_ll * v1_ll^2)
 
   v1_rr = rho_v1_rr / rho_rr
   p_rr = (equations.gamma - 1) * (rho_e_rr - 1/2 * rho_rr * v1_rr^2)
 
-  # Obtain left and right fluxes
-  f_ll = flux(u_ll, orientation, equations)
-  f_rr = flux(u_rr, orientation, equations)
+  λ_min = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
+  λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
-  Ssl = v1_ll - sqrt(equations.gamma * p_ll / rho_ll)
-  Ssr = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
-
-  if Ssl >= 0.0 && Ssr > 0.0
-    f1 = f_ll[1]
-    f2 = f_ll[2]
-    f3 = f_ll[3]
-  elseif Ssr <= 0.0 && Ssl < 0.0
-    f1 = f_rr[1]
-    f2 = f_rr[2]
-    f3 = f_rr[3]
-  else
-    f1 = (Ssr*f_ll[1] - Ssl*f_rr[1] + Ssl*Ssr*(rho_rr[1]    - rho_ll[1]))/(Ssr - Ssl)
-    f2 = (Ssr*f_ll[2] - Ssl*f_rr[2] + Ssl*Ssr*(rho_v1_rr[1] - rho_v1_ll[1]))/(Ssr - Ssl)
-    f3 = (Ssr*f_ll[3] - Ssl*f_rr[3] + Ssl*Ssr*(rho_e_rr[1]  - rho_e_ll[1]))/(Ssr - Ssl)
-  end
-
-  return SVector(f1, f2, f3)
+  return λ_min, λ_max
 end
+
 
 """
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
@@ -614,6 +591,28 @@ end
   w3 = -rho_p
 
   return SVector(w1, w2, w3)
+end
+
+@inline function entropy2cons(w, equations::CompressibleEulerEquations1D)
+  # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
+  # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
+  @unpack gamma = equations
+  
+  # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
+  # instead of `-rho * s / (gamma - 1)`
+  V1, V2, V5 = w * (gamma - 1)
+  
+  # specific entropy, eq. (53)
+  s = gamma - V1 + 0.5 * (V2^2) / V5
+  
+  # eq. (52)
+  energy_internal = ((gamma - 1) / (-V5)^gamma)^inv(gamma - 1) * exp(-s / (gamma - 1))
+  
+  # eq. (51)
+  rho    = -V5 * energy_internal
+  rho_v1 = V2 * energy_internal
+  rho_e  = (1 - 0.5 * (V2^2) / V5) * energy_internal
+  return SVector(rho, rho_v1, rho_e)
 end
 
 
