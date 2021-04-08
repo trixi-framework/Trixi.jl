@@ -93,11 +93,19 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = collect(range(original_nodes[1,1,1], original_nodes[1,end,end], length = max_nvisnodes*n_elements+1))
+  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
   interpolated_data = Array{Float64,3}(undef, n_vars, max_nvisnodes, n_elements)
 
+  for j in 1:n_elements
+    # Interpolate on an equidistant grid.
+    interpolated_nodes[:,j] = collect(range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes))
+  end
+
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+  nodes_out = collect(range(-1, 1, length = max_nvisnodes))
+
   # Calculate vandermonde matrix for interpolation.
-  vandermonde = polynomial_interpolation_matrix(original_nodes[1,:,1], interpolated_nodes[1:max_nvisnodes])
+  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Iterate over all variables.
   for i in 1:n_vars
@@ -110,7 +118,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   end
 
   # Return results after data is reshaped and the last index is appended.
-  return interpolated_nodes, convert(Array{Float64}, vcat(reshape(interpolated_data, n_vars,:)',unstructured_data[end,end,:]'))
+  return vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, n_vars,:)')
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
