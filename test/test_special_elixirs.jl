@@ -149,9 +149,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         sol = solve(ode, SSPRK43(), callback=callbacks)
         Trixi.integrate(entropy, sol.u[end], semi)
       end
-      # TODO: AD, needs Julia v1.6 and https://github.com/JuliaDiff/ForwardDiff.jl/pull/511,
-      #       cf. https://github.com/trixi-framework/Trixi.jl/pull/487
-      @test_skip ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
+      ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
     end
 
     @testset "Linear advection 2D" begin
@@ -180,9 +178,7 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
         sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), save_everystep=false, adaptive=false, dt=1.0, callback=callbacks)
         Trixi.integrate(energy_total, sol.u[end], semi)
       end
-      # TODO: AD, needs Julia v1.6 and https://github.com/JuliaDiff/ForwardDiff.jl/pull/511,
-      #       cf. https://github.com/trixi-framework/Trixi.jl/pull/487
-      @test_skip ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
+      ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
     end
   end
 end
