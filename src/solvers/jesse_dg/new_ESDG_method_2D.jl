@@ -7,6 +7,8 @@ using LinearAlgebra
 using SparseArrays
 using RecursiveArrayTools
 using Setfield
+using BenchmarkTools
+using TimerOutputs
 
 using NodesAndModes
 using StartUpDG
@@ -16,13 +18,13 @@ using EntropyStableEuler
 # semidiscretization 
 
 N = 3
-K1D = 8
+K1D = 32
 CFL = .1
 FinalTime = .5
 
 elem_type = Quad() # currently assumes Quad()
 
-vol_quad = NodesAndModes.quad_nodes(elem_type,N+2)
+vol_quad = NodesAndModes.quad_nodes(elem_type,2*N-1)
 rd = RefElemData(elem_type,N; quad_rule_vol = vol_quad)
 # rd = RefElemData(elem_type,N)
 rd = @set rd.Vf = droptol!(sparse(rd.Vf),1e-12) # make sparse interp matrix
@@ -136,15 +138,24 @@ function Trixi.create_cache(mesh::UnstructuredMesh, equations, rd, RealT, uEltyp
     lifted_flux = similar(md.x)
     interface_flux = similar(md.xf)
 
-    Uq = [similar(md.xq) for _ = 1:nvariables(equations)]
-    Uf = [similar(md.xf) for _ = 1:nvariables(equations)]
-    VU = [similar(md.x) for _ = 1:nvariables(equations)]    
-    VUq = [similar(md.xq) for _ = 1:nvariables(equations)]
-    VUf = [similar(md.xf) for _ = 1:nvariables(equations)]
-
+    Uq = SVector{4}([similar(md.xq) for _ = 1:nvariables(equations)])
+    Uf = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    VU = SVector{4}([similar(md.x) for _ = 1:nvariables(equations)])    
+    VUq = SVector{4}([similar(md.xq) for _ = 1:nvariables(equations)])
+    VUf = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    fxq = SVector{4}([similar(md.xq) for _ = 1:nvariables(equations)])
+    fyq = SVector{4}([similar(md.xq) for _ = 1:nvariables(equations)])
+    fx = SVector{4}([similar(md.x) for _ = 1:nvariables(equations)])
+    fy = SVector{4}([similar(md.x) for _ = 1:nvariables(equations)])
+    fxf = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    fyf = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    fxavg = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    fyavg = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])        
+    fx_ec = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])
+    fy_ec = SVector{4}([similar(md.xf) for _ = 1:nvariables(equations)])        
     cache = (;md,invMQTr,invMQTs,
               dfxdr,dfxds,dfydr,dfyds,lifted_flux,interface_flux,DiagGeo,
-              Uq,Uf,VU,VUq,VUf)
+              Uq,Uf,VU,VUq,VUf,fxq,fyq,fx,fy,fxf,fyf,fxavg,fyavg,fx_ec,fy_ec)
 
     return cache
 end
@@ -191,10 +202,12 @@ end
 function entropy_projection!(cache,Q,rd)
     @unpack Pq,Vq,Vf = rd
     @unpack VU,Uq,VUq = cache
+    K = cache.md.K
     for i = 1:length(Q)
         mul!(Uq[i],Vq,Q[i])
     end
-    for i = 1:length(first(VUq))
+    Nq = length(first(VUq))
+    Trixi.@threaded for i = 1:Nq
         setindex!.(VUq,v_u(getindex.(Uq,i)),i)
     end
     for i = 1:length(VU)
@@ -213,13 +226,93 @@ end
 
 function eval_conservative_vars!(cache)
     @unpack Uf,Uq,VUf,VUq = cache
-    for i = 1:length(first(VUf))
+    Nf = length(first(VUf))
+    Nq = length(first(VUq))
+    Trixi.@threaded for i = 1:Nf
         setindex!.(Uf,u_v(getindex.(VUf,i)),i)
     end
-    for i = 1:length(first(VUq))
+    Trixi.@threaded for i = 1:Nq
         setindex!.(Uq,u_v(getindex.(VUq,i)),i)
     end
     #Uvol = u_v((x->Vq*x).(VU))
+end
+
+function project_flux(cache,Uq,rd)
+    @unpack Pq,Vf = rd
+    @unpack fxq,fyq = cache
+    Nq = length(first(fxq))
+    Trixi.@threaded for i = 1:Nq
+        fxi,fyi = f(getindex.(Uq,i))
+        setindex!.(fxq,fxi,i)
+        setindex!.(fyq,fyi,i)
+    end
+    @unpack fx,fy = cache
+    for i = 1:length(fx)
+        mul!(fx[i],Pq,fxq[i])
+        mul!(fy[i],Pq,fyq[i])
+    end        
+    @unpack fxf,fyf = cache
+    for i = 1:length(fx)
+        mul!(fxf[i],Vf,fx[i])
+        mul!(fyf[i],Vf,fy[i])
+    end
+end
+
+#  TODO: optimize
+function EC_central_correction(cache,UP,Uf,VUf,md)
+    @unpack nxJ,nyJ,mapP = md
+
+    # compute avgs of projected flux
+    @unpack fxavg,fyavg,fxf,fyf,fx_ec,fy_ec = cache
+    Nf = length(nxJ)
+    dissipation = similar.(fx_ec)
+    Trixi.@threaded for i = 1:Nf
+        mapPi = mapP[i]
+        fx_avg_i = .5 .* (getindex.(fxf,i) .+ getindex.(fxf,mapPi))
+        fy_avg_i = .5 .* (getindex.(fyf,i) .+ getindex.(fyf,mapPi))
+        setindex!.(fxavg,fx_avg_i,i)
+        setindex!.(fyavg,fy_avg_i,i)
+        
+        fx_ec_i, fy_ec_i = fEC(getindex.(UP,i),getindex.(Uf,i))
+        setindex!.(fx_ec,fx_ec_i,i)
+        setindex!.(fy_ec,fy_ec_i,i)
+
+        Δfx = fx_ec_i .- fx_avg_i
+        Δfy = fy_ec_i .- fy_avg_i
+        Δv = getindex.(VUf,mapPi) .- getindex.(VUf,i)
+        sign_Δv = sign.(Δv)
+        Δfx_dot_signΔv = dot(sign_Δv, Δfx)*nxJ[i]
+        Δfy_dot_signΔv = dot(sign_Δv, Δfy)*nyJ[i]
+        ctmp = @. max(0,-Δfx_dot_signΔv) + max(0,-Δfy_dot_signΔv)
+        setindex!.(dissipation,ctmp .* sign_Δv,i)
+    end
+
+    # fxavg = (u->@. .5*(u+u[mapP])).(fxf)
+    # fyavg = (u->@. .5*(u+u[mapP])).(fyf)
+    # fx_ec, fy_ec = fEC(UP,Uf)
+    # Δfx = @. fx_ec - fxavg
+    # Δfy = @. fy_ec - fyavg
+    # Δv = (x->x[mapP]-x).(VUf) # Δv = v_u(UP) .- v_u(Uf)    
+    # sign_Δv = map(x->sign.(x),Δv)
+    # Δfx_dot_signΔv = sum(map((x,y)->x.*y.*nxJ,sign_Δv,Δfx))
+    # Δfy_dot_signΔv = sum(map((x,y)->x.*y.*nyJ,sign_Δv,Δfy))
+    # ctmp = @. max(0,-Δfx_dot_signΔv) + max(0,-Δfy_dot_signΔv)
+    # dissipation = map(x->ctmp.*x,sign_Δv) # central dissipation
+
+    return fx_ec,fy_ec,dissipation
+end
+
+# accumulate LF penalty into dissipation
+function accum_LF!(dissipation,UP,Uf,md)
+    @unpack nxJ,nyJ,sJ = md
+    Nf = length(first(dissipation))
+    Trixi.@threaded for i = 1:Nf
+        normal = (nxJ[i]/sJ[i],nyJ[i]/sJ[i])
+        LFi = LF(getindex.(UP,i),getindex.(Uf,i),normal)
+        for fld = 1:length(dissipation)
+            dissipation[fld][i] += LFi[fld]
+        end
+    end
 end
 
 function Trixi.rhs!(du, u::VectorOfArray, t,
@@ -234,54 +327,35 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
     @unpack Vq,Pq,Vf,wf,LIFT = rd
 
     # unpack VecOfArray storage for broadcasting
-    Q = u.u 
+    Q = SVector{4}(u.u)
     dQ = du.u 
 
     # @inline flux_x(uL,uR) = flux_chandrashekar(uL,uR,1,CompressibleEulerEquations2D(1.4))
     # @inline flux_y(uL,uR) = flux_chandrashekar(uL,uR,2,CompressibleEulerEquations2D(1.4))
 
-    entropy_projection!(cache,Q,rd)
-    interp_entropy_vars!(cache,rd)
-    eval_conservative_vars!(cache)
-    @unpack Uq,Uf,VUf = cache
-
-    # project flux
-    fx,fy = map.(x->Pq*x,f(Uq))
-    fxf = map(x->Vf*x,fx)
-    fyf = map(x->Vf*x,fy)
-
-    # compute avgs of projected flux
-    fxavg = (u->@. .5*(u+u[mapP])).(fxf)
-    fyavg = (u->@. .5*(u+u[mapP])).(fyf)
-
-    # EC-central correction
-    UP = (u->u[mapP]).(Uf)
-    fx_ec, fy_ec = fEC(UP,Uf)
-    Δfx = @. fx_ec - fxavg
-    Δfy = @. fy_ec - fyavg
-    Δv = (x->x[mapP]-x).(VUf) # Δv = v_u(UP) .- v_u(Uf)    
-    sign_Δv = map(x->sign.(x),Δv)
-    Δfx_dot_signΔv = sum(map((x,y)->x.*y.*nxJ,sign_Δv,Δfx))
-    Δfy_dot_signΔv = sum(map((x,y)->x.*y.*nyJ,sign_Δv,Δfy))
-    ctmp = @. max(0,-Δfx_dot_signΔv) + max(0,-Δfy_dot_signΔv)
-    dissipation = map(x->ctmp.*x,sign_Δv) # central dissipation
-    
-    # LF dissipation
-    for i = 1:length(first(dissipation))
-        normal = (nxJ[i]/sJ[i],nyJ[i]/sJ[i])
-        LFi = LF(getindex.(UP,i),getindex.(Uf,i),normal)
-        for fld = 1:length(dissipation)
-            dissipation[fld][i] += LFi[fld]
-        end
+    @timeit to "entropy projection" begin
+        entropy_projection!(cache,Q,rd)
+        interp_entropy_vars!(cache,rd)
+        eval_conservative_vars!(cache)
+        @unpack Uq,Uf,VUf = cache
     end
 
-    # function rhs_scalar!(du,fx,fy,fxf,fyf,diss) 
-    #     du .= -(rxJ.*(invMQTr*fx) .+ sxJ.*(invMQTs*fx) .+ 
-    #             ryJ.*(invMQTr*fy) .+ syJ.*(invMQTs*fy) .+
-    #             LIFT*(@. nxJ*fxf + nyJ*fyf - diss*sJ))./J
-    # end    
-    # rhs_scalar!.(dQ,fx,fy,fx_ec,fy_ec,dissipation)
-    apply_DG_deriv!(dQ,fx,fy,fx_ec,fy_ec,dissipation,rd,cache) # very slightly faster?
+    # project flux
+    @timeit to "flux projection" begin
+        project_flux(cache,Uq,rd)
+        @unpack fx,fy,fxf,fyf = cache
+    end
+
+    # EC-central correction
+    @timeit to "interface flux evals" begin
+        UP = (u->u[mapP]).(Uf)
+        fx_ec,fy_ec,dissipation = EC_central_correction(cache,UP,Uf,VUf,md)                    
+        accum_LF!(dissipation,UP,Uf,md)
+    end
+
+    @timeit to "DG rhs" begin
+        apply_DG_deriv!(dQ,fx,fy,fx_ec,fy_ec,dissipation,rd,cache) # very slightly faster?
+    end
 
     return nothing
 end
@@ -345,15 +419,20 @@ callbacks = CallbackSet(summary_callback)
 CN = (N+1)*(N+2)/2
 dt0 = CFL * sqrt(minimum(md.J)) / CN
 
+# timer 
+const to = TimerOutput()
+
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, Tsit5(), dt = dt0, save_everystep=false, callback=callbacks)
 
 # Print the timer summary
 summary_callback()
 
-# Q = sol.u[end]
-# L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
-# @show sum(L2norm.(Q.u))
+show(to)
+
+Q = sol.u[end]
+L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
+@show sum(L2norm.(Q.u)) # N=3, K=32: sum(L2norm.(Q.u)) = 32.74801033365077
 # zz = rd.Vp*Q[1]
 # scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
@@ -364,4 +443,4 @@ u = Trixi.allocate_coefficients(mesh,eqns,rd,cache)
 du = similar(u)
 Trixi.compute_coefficients!(u,initial_condition,0.0,mesh,eqns,rd,cache)
 Trixi.rhs!(du,u,0.0,mesh,eqns,nothing,nothing,nothing,rd,cache);
-Q = u.u
+Q = u.u;
