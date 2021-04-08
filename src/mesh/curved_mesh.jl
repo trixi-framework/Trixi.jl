@@ -45,6 +45,10 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 function CurvedMesh(cells_per_dimension, faces; RealT=Float64, periodicity=true, unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
 
+  # After a mesh is loaded from a file, the functions defining it are evaluated in the function `load_mesh` using `eval`.
+  # If this function is used before the next top-level evaluation, this causes a world age problem.
+  Base.invokelatest(validate_faces, faces)
+
   # Convert periodicity to a Tuple of a Bool for every dimension
   if all(periodicity)
     # Also catches case where periodicity = true
@@ -79,6 +83,47 @@ function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; perio
   faces, faces_as_string = coordinates2faces(Tuple(coordinates_min), Tuple(coordinates_max))
 
   return CurvedMesh(cells_per_dimension, faces; RealT=RealT, faces_as_string=faces_as_string, periodicity=periodicity)
+end
+
+
+function validate_faces(faces::NTuple{2, Any}) end
+
+
+function validate_faces(faces::NTuple{4, Any})
+  x1 = faces[1](-1) # Bottom left
+  @assert x1 ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
+  x2 = faces[2](-1) # Bottom right
+  @assert x2 ≈ faces[3](1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
+  x3 = faces[1](1) # Top left
+  @assert x3 ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
+  x4 = faces[2](1) # Top right
+  @assert x4 ≈ faces[4](1) "faces[2](1) needs to match faces[4](1) (top right corner)"
+end
+
+function validate_faces(faces::NTuple{6, Any})
+  x1 = faces[1](-1, -1) # maped from (-1,-1,-1)
+  @assert x1 ≈ faces[3](-1, -1) ≈ faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1,-1,-1) corner"
+
+  x2 = faces[2](-1, -1) #  maped from (1,-1,-1)
+  @assert x2 ≈ faces[3]( 1, -1) ≈ faces[5]( 1, -1) "faces[2](-1, -1), faces[3]( 1, -1) and faces[5]( 1, -1) need to match at (1,-1,-1) corner"
+  
+  x3 = faces[1]( 1, -1) # maped from (-1, 1,-1)
+  @assert x3 ≈ faces[4](-1, -1) ≈ faces[5](-1,  1) "faces[1]( 1, -1), faces[4](-1, -1) and faces[5](-1,  1) need to match at (-1,1,-1) corner"
+  
+  x4 = faces[2]( 1, -1) # maped from  (1, 1,-1)
+  @assert x4 ≈ faces[4]( 1, -1) ≈ faces[5]( 1,  1) "faces[2]( 1, -1), faces[4]( 1, -1) and faces[5]( 1,  1) need to match at (1,1,-1) corner"
+  
+  x5 = faces[1](-1,  1) # maped from (-1,-1, 1)
+  @assert x5 ≈ faces[3](-1,  1) ≈ faces[6](-1, -1) "faces[1](-1,  1), faces[3](-1,  1) and faces[6](-1, -1) need to match at (-1,-1,1) corner"
+
+  x6 = faces[2](-1,  1) # maped from  (1,-1, 1)
+  @assert x6 ≈ faces[3]( 1,  1) ≈ faces[6]( 1, -1) "faces[2](-1,  1), faces[3]( 1,  1) and faces[6]( 1, -1) need to match at (1,-1,1) corner"
+  
+  x7 = faces[1]( 1,  1) # maped from (-1, 1, 1)
+  @assert x7 ≈ faces[4](-1,  1) ≈ faces[6](-1,  1) "faces[1]( 1,  1), faces[4](-1,  1) and faces[6](-1,  1) need to match at (-1,1,1) corner"
+  
+  x8 = faces[2]( 1,  1) # maped from (1, 1, 1)
+  @assert x8 ≈ faces[4]( 1,  1) ≈ faces[6]( 1,  1) "faces[2]( 1,  1), faces[4]( 1,  1) and faces[6]( 1,  1) need to match at (1,1,1) corner"
 end
 
 
@@ -120,6 +165,61 @@ function coordinates2faces(coordinates_min::NTuple{2}, coordinates_max::NTuple{2
 end
 
 
+function coordinates2faces(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
+  f1(s, t) = SVector(coordinates_min[1],
+                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f2(s, t) = SVector(coordinates_max[1], 
+                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f3(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     coordinates_min[2],
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+
+  f4(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]),
+                     coordinates_max[2],
+                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
+  
+  f5(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
+                     coordinates_min[3])
+
+  f6(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
+                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
+                     coordinates_max[3])               
+  
+  # CodeTracking can't find the definition here due to the dispatching by dimensions
+  f1_as_string = "f1(s, t) = SVector($(coordinates_min[1]),
+                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f2_as_string = "f2(s, t) = SVector($(coordinates_max[1]),
+                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f3_as_string = "f3(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     $(coordinates_min[2]),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f4_as_string = "f4(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     $(coordinates_max[2]),
+                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
+
+  f5_as_string = "f5(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     $(coordinates_min[3]))"  
+
+  f6_as_string = "f6(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
+                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
+                                     $(coordinates_max[3]))"
+
+  return (f1, f2, f3, f4, f5, f6), 
+         [f1_as_string, f2_as_string, f3_as_string, f4_as_string, f5_as_string, f6_as_string]
+end
+
+
 # Interpolate linearly between left and right value where s should be between -1 and 1
 linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
 
@@ -137,18 +237,39 @@ function bilinear_mapping(x, y, mesh)
   @unpack faces = mesh
 
   x1 = faces[1](-1) # Bottom left
-  @assert x1 ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
   x2 = faces[2](-1) # Bottom right
-  @assert x2 ≈ faces[3](1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
   x3 = faces[1](1) # Top left
-  @assert x3 ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
   x4 = faces[2](1) # Top right
-  @assert x4 ≈ faces[4](1) "faces[2](1) needs to match faces[4](1) (top right corner)"
 
   return 0.25 * (x1 * (1 - x) * (1 - y) +
                  x2 * (1 + x) * (1 - y) +
                  x3 * (1 - x) * (1 + y) +
                  x4 * (1 + x) * (1 + y))
+end
+
+
+# In 3D
+# Trilinear mapping from the reference element to the domain described by the faces
+function trilinear_mapping(x, y, z, mesh)
+  @unpack faces = mesh
+
+  x1 = faces[1](-1, -1) # maped from (-1,-1,-1)
+  x2 = faces[2](-1, -1) # maped from (1,-1,-1)
+  x3 = faces[1]( 1, -1) # maped from (-1, 1,-1)
+  x4 = faces[2]( 1, -1) # maped from  (1, 1,-1)
+  x5 = faces[1](-1,  1) # maped from (-1,-1, 1)
+  x6 = faces[2](-1,  1) # maped from  (1,-1, 1)
+  x7 = faces[1]( 1,  1) # maped from (-1, 1, 1)
+  x8 = faces[2]( 1,  1) # maped from (1, 1, 1)
+
+  return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
+                  x2 * (1 + x) * (1 - y) * (1 - z) +
+                  x3 * (1 - x) * (1 + y) * (1 - z) +
+                  x4 * (1 + x) * (1 + y) * (1 - z) +
+                  x5 * (1 - x) * (1 - y) * (1 + z) +
+                  x6 * (1 + x) * (1 - y) * (1 + z) +
+                  x7 * (1 - x) * (1 + y) * (1 + z) +
+                  x8 * (1 + x) * (1 + y) * (1 + z) )
 end
 
 
