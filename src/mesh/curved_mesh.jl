@@ -26,8 +26,8 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
-- `mapping::Function`: a function of `NDIMS` variables to describe the mapping, which transforms 
-                       the reference mesh to the physical domain.
+- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms 
+             the reference mesh to the physical domain.
 - `RealT::Type`: the type that should be used for coordinates.
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` 
                  deciding for each dimension if the boundaries in this dimension are periodic.
@@ -62,15 +62,14 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
-- `faces::NTuple{2*NDIMS, Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
-                                      Each function must take `NDIMS-1` arguments.
-                                      `faces[1]` describes the face onto which the face in negative x-direction 
-                                      of the unit hypercube is mapped. The face in positive x-direction of
-                                      the unit hypercube will be mapped onto the face described by `faces[2]`.
-                                      `faces[3:4]` describe the faces in positive and negative y-direction respectively 
-                                      (in 2D and 3D).
-                                      `faces[5:6]` describe the faces in positive and negative z-direction respectively
-                                      (in 3D).
+- `faces::NTuple{2*NDIMS}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
+                            Each function must take `NDIMS-1` arguments.
+                            `faces[1]` describes the face onto which the face in negative x-direction 
+                            of the unit hypercube is mapped. The face in positive x-direction of
+                            the unit hypercube will be mapped onto the face described by `faces[2]`.
+                            `faces[3:4]` describe the faces in positive and negative y-direction respectively 
+                            (in 2D and 3D).
+                            `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
 - `RealT::Type`: the type that should be used for coordinates.
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
@@ -218,37 +217,37 @@ function validate_faces(faces::NTuple{4, Any})
 end
 
 function validate_faces(faces::NTuple{6, Any})
-  @assert faces[1](-1, -1) ≈ 
-          faces[3](-1, -1) ≈ 
-          faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1, -1, -1) corner"
+  @assert (faces[1](-1, -1) ≈ 
+           faces[3](-1, -1) ≈ 
+           faces[5](-1, -1)) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1, -1, -1) corner"
 
-  @assert faces[2](-1, -1) ≈ 
-          faces[3]( 1, -1) ≈ 
-          faces[5]( 1, -1) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
+  @assert (faces[2](-1, -1) ≈ 
+           faces[3]( 1, -1) ≈ 
+           faces[5]( 1, -1)) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
   
-  @assert faces[1]( 1, -1) ≈ 
-          faces[4](-1, -1) ≈ 
-          faces[5](-1,  1) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
+  @assert (faces[1]( 1, -1) ≈ 
+           faces[4](-1, -1) ≈ 
+           faces[5](-1,  1)) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
   
-  @assert faces[2]( 1, -1) ≈ 
-          faces[4]( 1, -1) ≈ 
-          faces[5]( 1,  1) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
+  @assert (faces[2]( 1, -1) ≈ 
+           faces[4]( 1, -1) ≈ 
+           faces[5]( 1,  1)) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
   
-  @assert faces[1](-1,  1) ≈ 
-          faces[3](-1,  1) ≈ 
-          faces[6](-1, -1) "faces[1](-1, 1), faces[3](-1, 1) and faces[6](-1, -1) need to match at (-1, -1, 1) corner"
+  @assert (faces[1](-1,  1) ≈ 
+           faces[3](-1,  1) ≈ 
+           faces[6](-1, -1)) "faces[1](-1, 1), faces[3](-1, 1) and faces[6](-1, -1) need to match at (-1, -1, 1) corner"
 
-  @assert faces[2](-1,  1) ≈ 
-          faces[3]( 1,  1) ≈ 
-          faces[6]( 1, -1) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
+  @assert (faces[2](-1,  1) ≈ 
+           faces[3]( 1,  1) ≈ 
+           faces[6]( 1, -1)) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
   
-  @assert faces[1]( 1,  1) ≈ 
-          faces[4](-1,  1) ≈ 
-          faces[6](-1,  1) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
+  @assert (faces[1]( 1,  1) ≈ 
+           faces[4](-1,  1) ≈ 
+           faces[6](-1,  1)) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
   
-  @assert faces[2]( 1,  1) ≈ 
-          faces[4]( 1,  1) ≈ 
-          faces[6]( 1,  1) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
+  @assert (faces[2]( 1,  1) ≈ 
+           faces[4]( 1,  1) ≈ 
+           faces[6]( 1,  1)) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
 end
 
 
