@@ -42,11 +42,11 @@ function UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64
   element_ids      = Array{Int64}(undef, (2 , capacity))
   element_side_ids = Array{Int64}(undef, (2 , capacity))
 
-  return UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}( u,
-                                                                  start_index,
-                                                                  inc_index,
-                                                                  element_ids,
-                                                                  element_side_ids )
+  return UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}(u,
+                                                                 start_index,
+                                                                 inc_index,
+                                                                 element_ids,
+                                                                 element_side_ids)
 end
 
 
@@ -179,10 +179,10 @@ function UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64)
   element_side_id = Vector{Int64}(undef, capacity)
   name            = fill("empty", capacity)
 
-  return UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}( u,
-                                                                 element_id,
-                                                                 element_side_id,
-                                                                 name )
+  return UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}(u,
+                                                                element_id,
+                                                                element_side_id,
+                                                                name)
 end
 
 

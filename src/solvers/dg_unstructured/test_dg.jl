@@ -7,7 +7,7 @@ include("curve_interpolant.jl")
 include("quadrilateral_mappings.jl")
 include("containers_2d.jl")
 include("unstructured_quad_mesh.jl")
-include("dg_curve_2d.jl")
+include("dg_2d.jl")
 
 ###############################################################################
 # Get the equations
