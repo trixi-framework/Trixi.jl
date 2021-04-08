@@ -365,7 +365,7 @@ has been spend to allow general types inside these calls).
 
 ### Propagating errors using Measurements.jl
 
-![tutorial_adding_new_equations_plot1](https://imgs.xkcd.com/comics/error_bars.png)
+![tutorial_measurements1](https://imgs.xkcd.com/comics/error_bars.png)
 
 Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
 theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
@@ -406,6 +406,8 @@ large there.
 
 All this is possible due to allowing generic types and having good abstractions
 in Julia that allow packages to work together seamlessly.
+
+![tutorial_measurements1](https://user-images.githubusercontent.com/12693098/114027260-78ca8300-9877-11eb-88d4-f93c9bc55d0b.png)
 
 
 
