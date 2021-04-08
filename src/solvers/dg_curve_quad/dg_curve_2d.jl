@@ -70,17 +70,17 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
 
   # Calculate interface fluxes
-  #  TODO: Separate the physical boundaries from the interior boundaries. Currently this routine
-  #        computes the numerical flux at all interfaces
-  #  TODO: remove the last three arguments once proper boundary treatment is figured out, for now
-  #        we use them to test the general flipped orientation mesh
   @timeit_debug timer() "interface flux" calc_interface_flux!(mesh.elements.surface_flux_values,
                                                               Trixi.have_nonconservative_terms(equations),
                                                               equations,
-                                                              dg,
-                                                              boundary_conditions,
-                                                              initial_condition,
-                                                              t)
+                                                              dg)
+
+  # Prolong solution to boundaries
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg)
+
+  # Calculate boundary fluxes
+  #  TODO: remove initial condition as an input argument here, only needed for hacky BCs
+  @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg, initial_condition)
 
   # Calculate surface integrals
   @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache)
@@ -131,21 +131,52 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 end
 
 
-# prolong the solution on each element into the convenience array in the element container
-# note that this prolongs to ALL interfaces, i.e., on the physical boundaries and the interior
+# prolong the solution into the convenience array in the interior interface container
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
-  @unpack surface_u_values = cache.mesh.elements
+  @unpack interfaces = cache.mesh
 
-#  @threaded for eID in eachelement(mesh)
-  for element in eachelement(cache.mesh)
-    for j in eachnode(dg), v in eachvariable(equations)
-      surface_u_values[v, j, 2, element] = u[v, nnodes(dg), j, element]
-      surface_u_values[v, j, 4, element] = u[v,          1, j, element]
+#  @threaded for interface in eachinterface(interfaces)
+  for interface in eachinterface(interfaces)
+    primary_element   = interfaces.element_ids[1, interface]
+    secondary_element = interfaces.element_ids[2, interface]
+
+    primary_side   = interfaces.element_side_ids[1, interface]
+    secondary_side = interfaces.element_side_ids[2, interface]
+
+    if primary_side == 1
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, i, 1, primary_element]
+      end
+    elseif primary_side == 2
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
+      end
+    elseif primary_side == 3
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
+      end
+    else # primary_side == 4
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[1, v, i, interface] = u[v, 1, i, primary_element]
+      end
     end
 
-    for i in eachnode(dg), v in eachvariable(equations)
-      surface_u_values[v, i, 1, element] = u[v, i,          1, element]
-      surface_u_values[v, i, 3, element] = u[v, i, nnodes(dg), element]
+    if secondary_side == 1
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i, 1, secondary_element]
+      end
+    elseif secondary_side == 2
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, nnodes(dg), i, secondary_element]
+      end
+    elseif secondary_side == 3
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, i, nnodes(dg), secondary_element]
+      end
+    else # secondary_side == 4
+      for i in eachnode(dg), v in eachvariable(equations)
+        interfaces.u[2, v, i, interface] = u[v, 1, i, secondary_element]
+      end
     end
   end
 
@@ -153,121 +184,59 @@ function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG
 end
 
 
-# for the time being this computes ALL of the interfaces fluxes
-# handles the physical boundaries in a hacky way
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{false}, equations, dg::DG,
-                              boundary_condition, initial_condition, t_loc)
+                              nonconservative_terms::Val{false}, equations, dg::DG)
   @unpack surface_flux = dg
-  @unpack interfaces = cache.mesh
-  @unpack geometry, bndy_names, surface_u_values = cache.mesh.elements
+  @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.mesh.interfaces
+  @unpack geometry = cache.mesh.elements
 
 
-#  @threaded for interface in eachinterface(cache.mesh)
-  for interface in eachinterface(cache.mesh)
+#  @threaded for interface in eachinterface(cache.mesh.interfaces)
+  for interface in eachinterface(cache.mesh.interfaces)
     # Get neighboring elements
-    primary_element   = interfaces[interface].element_ids[1]
-    secondary_element = interfaces[interface].element_ids[2]
+    primary_element   = element_ids[1, interface]
+    secondary_element = element_ids[2, interface]
 
     # Get the local side id on which to compute the flux
-    primary_side   = interfaces[interface].element_side_ids[1]
-    secondary_side = interfaces[interface].element_side_ids[2]
+    primary_side   = element_side_ids[1, interface]
+    secondary_side = element_side_ids[2, interface]
 
-    if interfaces[interface].interface_type == "Interior"
-      j = interfaces[interface].start_index
-      for i in eachnode(dg)
-        # pull the left and right states from the boundary u values
-        u_ll = surface_u_values[:, i, primary_side  , primary_element  ]
-        u_rr = surface_u_values[:, j, secondary_side, secondary_element]
-        # pull the directional vectors and scaling factors
-        #   TODO: this assumes a conforming approximation, more must be done in terms of the normals
-        #         and tangents for hanging nodes and other non-conforming approximation spaces
-        n_vec   = geometry[primary_element].normals[i, primary_side, :]
-        t_vec   = geometry[primary_element].tangents[i, primary_side, :]
-        scal_ll = geometry[primary_element].scaling[i, primary_side]
-        scal_rr = geometry[secondary_element].scaling[j, secondary_side]
+    # initial index for the coordinate system on the secondary element
+    j = start_index[interface]
 
-        # rotate states
-        u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
-        u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
+    # loop through the primary element coordinate system and compute the interface coupling
+    for i in eachnode(dg)
+      # pull the primary and secondary states from the boundary u values
+      u_ll = u[1, :, i, interface]
+      u_rr = u[2, :, j, interface]
 
-        # Call pointwise Riemann solver in the rotated direction
-        flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
+      # pull the directional vectors and scaling factors
+      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
+      #         and tangents for hanging nodes and other non-conforming approximation spaces
+      n_vec   = geometry[primary_element].normals[i, primary_side, :]
+      t_vec   = geometry[primary_element].tangents[i, primary_side, :]
+      scal_ll = geometry[primary_element].scaling[i, primary_side]
+      scal_rr = geometry[secondary_element].scaling[j, secondary_side]
 
-        # backrotate the flux into the original direction
-        flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
+      # rotate states
+      u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
+      u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
 
-        # Scale the flux appropriately and copy back to left and right element storage
-        # Note the sign change for the normal flux in the secondary element!
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_side  , primary_element  ] =  flux[v] * scal_ll
-          surface_flux_values[v, j, secondary_side, secondary_element] = -flux[v] * scal_rr
-        end
+      # Call pointwise Riemann solver in the rotated direction
+      flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
 
-        # increment the index of the coordinate system in the secondary element
-        j += interfaces[interface].inc_index
+      # backrotate the flux into the original direction
+      flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
+
+      # Scale the flux appropriately and copy back to primary/secondary element storage
+      # Note the sign change for the normal flux in the secondary element!
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, primary_side  , primary_element  ] =  flux[v] * scal_ll
+        surface_flux_values[v, j, secondary_side, secondary_element] = -flux[v] * scal_rr
       end
-    else # interface_type == "Boundary"
-      # Get the element and side IDs on the primary element
-      primary_element   = interfaces[interface].element_ids[1]
-      primary_side = interfaces[interface].element_side_ids[1]
 
-      # Get the total number of elements in the mesh
-      K = nelements(cache.mesh)
-
-      for i in eachnode(dg)
-        #  TODO: this needs generalized to handle arbitrary boundaries. For instance, right now the
-        #        coordinate system of the periodic elements cannot be flipped in the current implementation
-        #  TODO: separate the physical boundary flux computations into another routine to match the
-        #        the existing Trixi ecosystem
-        if typeof(boundary_condition) == Trixi.BoundaryConditionPeriodic
-          # hacky way to set periodic BCs similar to a structured mesh
-          if bndy_names[primary_side, primary_element] == "Bottom"
-            secondary_element   = primary_element + (K - convert(Int64, sqrt(K)))
-            secondary_side = 3
-          elseif bndy_names[primary_side, primary_element] == "Top"
-            secondary_element   = primary_element - (K - convert(Int64, sqrt(K)))
-            secondary_side = 1
-          elseif bndy_names[primary_side, primary_element] == "Left"
-            secondary_element   = primary_element + (convert(Int64, sqrt(K)) - 1)
-            secondary_side = 2
-          elseif bndy_names[primary_side, primary_element] == "Right"
-            secondary_element   = primary_element - (convert(Int64, sqrt(K)) - 1)
-            secondary_side = 4
-          end
-          u_rr = surface_u_values[:, i, secondary_side, secondary_element]
-        else
-          # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
-          # for a mesh with flipped elements
-          u_rr = initial_condition( ( geometry[primary_element].x_bndy[i, primary_side],
-                                      geometry[primary_element].y_bndy[i, primary_side] ) ,
-                                      t_loc, equations)
-        end
-
-        # pull the left state from the boundary u values on the primary element as well as the
-        # directional vectors and scaling
-        #   TODO: this assumes a conforming approximation, more must be done in terms of the normals
-        #         and tangents for hanging nodes and other non-conforming approximation spaces
-        u_ll  = surface_u_values[:, i, primary_side, primary_element]
-        n_vec = geometry[primary_element].normals[i, primary_side, :]
-        t_vec = geometry[primary_element].tangents[i, primary_side, :]
-        scal  = geometry[primary_element].scaling[i, primary_side]
-
-        # rotate states
-        u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
-        u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
-
-        # Call pointwise Riemann solver in the rotated direction
-        flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
-
-        # backrotate the flux into the original direction
-        flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
-
-        # Scale the flux appropriately and copy back to left and right element storage
-        for v in eachvariable(equations)
-          surface_flux_values[v, i, primary_side, primary_element] = flux[v] * scal
-        end
-      end
+      # increment the index of the coordinate system in the secondary element
+      j += inc_index[interface]
     end
   end
 
@@ -298,137 +267,96 @@ end
   return SVector(f1, f2, f3, f4)
 end
 
-# function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
-#   @unpack boundaries = cache
-#   @unpack orientations, neighbor_sides = boundaries
-#
-#   @threaded for boundary in eachboundary(dg, cache)
-#     element = boundaries.neighbor_ids[boundary]
-#
-#     if orientations[boundary] == 1
-#       # boundary in x-direction
-#       if neighbor_sides[boundary] == 1
-#         # element in -x direction of boundary
-#         for l in eachnode(dg), v in eachvariable(equations)
-#           boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
-#         end
-#       else # Element in +x direction of boundary
-#         for l in eachnode(dg), v in eachvariable(equations)
-#           boundaries.u[2, v, l, boundary] = u[v, 1,          l, element]
-#         end
-#       end
-#     else # if orientations[boundary] == 2
-#       # boundary in y-direction
-#       if neighbor_sides[boundary] == 1
-#         # element in -y direction of boundary
-#         for l in eachnode(dg), v in eachvariable(equations)
-#           boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
-#         end
-#       else
-#         # element in +y direction of boundary
-#         for l in eachnode(dg), v in eachvariable(equations)
-#           boundaries.u[2, v, l, boundary] = u[v, l, 1,          element]
-#         end
-#       end
-#     end
-#   end
-#
-#   return nothing
-# end
+
+function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
+  @unpack boundaries = cache.mesh
+
+#  @threaded for boundary in eachboundary(boundaries)
+  for boundary in eachboundary(boundaries)
+    element = boundaries.element_id[boundary]
+    side    = boundaries.element_side_id[boundary]
+
+    if side == 1
+      for l in eachnode(dg), v in eachvariable(equations)
+        boundaries.u[1, v, l, boundary] = u[v, l, 1, element]
+      end
+    elseif side == 2
+      for l in eachnode(dg), v in eachvariable(equations)
+        boundaries.u[1, v, l, boundary] = u[v, nnodes(dg), l, element]
+      end
+    elseif side == 3
+      for l in eachnode(dg), v in eachvariable(equations)
+        boundaries.u[1, v, l, boundary] = u[v, l, nnodes(dg), element]
+      end
+    else # side == 4
+      for l in eachnode(dg), v in eachvariable(equations)
+        boundaries.u[1, v, l, boundary] = u[v, 1, l, element]
+      end
+    end
+  end
+
+  return nothing
+end
 
 
-# # TODO: Taal dimension agnostic
-# function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-#                              equations::AbstractEquations{2}, dg::DG)
-#   @assert isempty(eachboundary(dg, cache))
-# end
-#
-# # TODO: Taal dimension agnostic
-# function calc_boundary_flux!(cache, t, boundary_condition,
-#                              equations::AbstractEquations{2}, dg::DG)
-#   @unpack surface_flux_values = cache.elements
-#   @unpack n_boundaries_per_direction = cache.boundaries
-#
-#   # Calculate indices
-#   lasts = accumulate(+, n_boundaries_per_direction)
-#   firsts = lasts - n_boundaries_per_direction .+ 1
-#
-#   # Calc boundary fluxes in each direction
-#   for direction in eachindex(firsts)
-#     calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_condition,
-#                                      equations, dg, cache,
-#                                      direction, firsts[direction], lasts[direction])
-#   end
-# end
-#
-# function calc_boundary_flux!(cache, t, boundary_conditions::Union{NamedTuple,Tuple},
-#                              equations::AbstractEquations{2}, dg::DG)
-#   @unpack surface_flux_values = cache.elements
-#   @unpack n_boundaries_per_direction = cache.boundaries
-#
-#   # Calculate indices
-#   lasts = accumulate(+, n_boundaries_per_direction)
-#   firsts = lasts - n_boundaries_per_direction .+ 1
-#
-#   # Calc boundary fluxes in each direction
-#   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[1],
-#                                    equations, dg, cache, 1, firsts[1], lasts[1])
-#   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[2],
-#                                    equations, dg, cache, 2, firsts[2], lasts[2])
-#   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[3],
-#                                    equations, dg, cache, 3, firsts[3], lasts[3])
-#   calc_boundary_flux_by_direction!(surface_flux_values, t, boundary_conditions[4],
-#                                    equations, dg, cache, 4, firsts[4], lasts[4])
-# end
-#
-# function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, t,
-#                                           boundary_condition, equations, dg::DG, cache,
-#                                           direction, first_boundary, last_boundary)
-#   @unpack surface_flux = dg
-#   @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
-#
-#   @threaded for boundary in first_boundary:last_boundary
-#     # Get neighboring element
-#     neighbor = neighbor_ids[boundary]
-#
-#     for i in eachnode(dg)
-#       # Get boundary flux
-#       u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
-#       if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
-#         u_inner = u_ll
-#       else # Element is on the right, boundary on the left
-#         u_inner = u_rr
-#       end
-#       x = get_node_coords(node_coordinates, equations, dg, i, boundary)
-#       flux = boundary_condition(u_inner, orientations[boundary], direction, x, t, surface_flux,
-#                                 equations)
-#
-#       # Copy flux to left and right element storage
-#       for v in eachvariable(equations)
-#         surface_flux_values[v, i, direction, neighbor] = flux[v]
-#       end
-#     end
-#   end
-#
-#   return nothing
-# end
-#
-#
-# @inline function calc_fstar!(destination::AbstractArray{<:Any,2}, equations, dg::DGSEM,
-#                              u_interfaces, interface, orientation)
-#   @unpack surface_flux = dg
-#
-#   for i in eachnode(dg)
-#     # Call pointwise two-point numerical flux function
-#     u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
-#     flux = surface_flux(u_ll, u_rr, orientation, equations)
-#
-#     # Copy flux to left and right element storage
-#     set_node_vars!(destination, flux, equations, dg, i)
-#   end
-#
-#   return nothing
-# end
+# TODO: Taal dimension agnostic
+function calc_boundary_flux!(cache, t, boundary_condition::Trixi.BoundaryConditionPeriodic,
+                             equations::Trixi.AbstractEquations{2}, dg::DG, initial_condition)
+  @assert isempty(eachboundary(cache.mesh.boundaries))
+end
+
+
+# TODO: last argument for convenience, cleanup later with better boundar condition handling
+function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, initial_condition)
+
+  @unpack surface_flux = dg
+  @unpack geometry, surface_flux_values = cache.mesh.elements
+  @unpack u, element_id, element_side_id, name  = cache.mesh.boundaries
+
+#  @threaded for boundary in eachboundary(cache.mesh.boundaries)
+  for boundary in eachboundary(cache.mesh.boundaries)
+    # Get the element and side IDs on the primary element
+    primary_element = element_id[boundary]
+    primary_side    = element_side_id[boundary]
+
+    # Get the total number of elements in the mesh
+    K = nelements(cache.mesh)
+
+    for i in eachnode(dg)
+      # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
+      # for a mesh with flipped elements
+      u_ext = initial_condition( ( geometry[primary_element].x_bndy[i, primary_side],
+                                   geometry[primary_element].y_bndy[i, primary_side] ) ,
+                                   t, equations)
+
+      # pull the left state from the boundary u values on the primary element as well as the
+      # directional vectors and scaling
+      #   Note! this assumes a conforming approximation, more must be done in terms of the normals
+      #         and tangents for hanging nodes and other non-conforming approximation spaces
+      u_ll  = u[1, :, i, boundary]
+      n_vec = geometry[primary_element].normals[i, primary_side, :]
+      t_vec = geometry[primary_element].tangents[i, primary_side, :]
+      scal  = geometry[primary_element].scaling[i, primary_side]
+
+      # rotate states
+      u_tilde_ll  = rotate_solution(u_ll , n_vec, t_vec, equations)
+      u_tilde_ext = rotate_solution(u_ext, n_vec, t_vec, equations)
+
+      # Call pointwise Riemann solver in the rotated direction
+      flux_tilde = surface_flux(u_tilde_ll, u_tilde_ext, 1, equations)
+
+      # backrotate the flux into the original direction
+      flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
+
+      # Scale the flux appropriately and copy back to primary element storage
+      for v in eachvariable(equations)
+        surface_flux_values[v, i, primary_side, primary_element] = flux[v] * scal
+      end
+    end
+  end
+
+  return nothing
+end
 
 
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
@@ -478,6 +406,7 @@ end
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms::Nothing, equations, dg::DG, cache)
   return nothing
 end
+
 
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations, dg::DG, cache)
   @unpack geometry = cache.mesh.elements
