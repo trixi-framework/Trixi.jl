@@ -13,16 +13,28 @@ end
   #   reshape(u_ode, (nvariables(equations), nnodes(dg), nelements(dg, cache)))
   # but that results in
   #   ERROR: LoadError: cannot resize array with shared data
-  # when we resize! `u_ode` during AMR.
+  # when we resize! `u_ode` during AMR. Hence, we need to do something else,
+  # which is less robust if used without care but works for us and is fast.
+  #
+  # !!! danger "Segfaults"
+  #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
+  #     and other stuff that is only used indirectly via `wrap_array` afterwards!
 
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
-  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
   # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
   #             (nvariables(equations), nnodes(dg), nelements(dg, cache)))
 
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
+  # !!! danger "Heisenbug"
+  #     Do not use this code when `@threaded` uses `Threads.@threads`. There is
+  #     a very strange Heisenbug that makes some parts very slow *sometimes*.
+  #     In fact, everything can be fast and fine for amny cases but some parts
+  #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
+  #     Hence, this version should only be used when `@threaded` is based on
+  #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
+  #     is probably the best option since everything will be handed over to
+  #     Chris Elrod in this case.
   PtrArray(pointer(u_ode),
           #  (nvariables(equations), nnodes(dg), nelements(dg, cache)))
            (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), nelements(dg, cache)))
@@ -50,15 +62,26 @@ end
   # but that results in
   #   ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
+  #
+  # !!! danger "Segfaults"
+  #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
+  #     and other stuff that is only used indirectly via `wrap_array` afterwards!
 
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
-  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
   # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
   #             (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
+  # !!! danger "Heisenbug"
+  #     Do not use this code when `@threaded` uses `Threads.@threads`. There is
+  #     a very strange Heisenbug that makes some parts very slow *sometimes*.
+  #     In fact, everything can be fast and fine for amny cases but some parts
+  #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
+  #     Hence, this version should only be used when `@threaded` is based on
+  #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
+  #     is probably the best option since everything will be handed over to
+  #     Chris Elrod in this case.
   PtrArray(pointer(u_ode),
            (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), nelements(dg, cache)))
           #  (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
@@ -86,15 +109,26 @@ end
   # but that results in
   #   ERROR: LoadError: cannot resize array with shared data
   # when we resize! `u_ode` during AMR.
+  #
+  # !!! danger "Segfaults"
+  #     Remember to `GC.@preserve` temporaries such as copies of `u_ode`
+  #     and other stuff that is only used indirectly via `wrap_array` afterwards!
 
   # The following version is fast and allows us to `resize!(u_ode, ...)`.
-  # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-  #      and other stuff that is only used indirectly via `wrap_array` afterwards!
   # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
   #             (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
+  # !!! danger "Heisenbug"
+  #     Do not use this code when `@threaded` uses `Threads.@threads`. There is
+  #     a very strange Heisenbug that makes some parts very slow *sometimes*.
+  #     In fact, everything can be fast and fine for amny cases but some parts
+  #     of the RHS evaluation can take *exactly* (!) five seconds randomly...
+  #     Hence, this version should only be used when `@threaded` is based on
+  #     `@batch` from CheapThreads.jl or something similar. Using CheapThreads.jl
+  #     is probably the best option since everything will be handed over to
+  #     Chris Elrod in this case.
   PtrArray(pointer(u_ode),
            (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), nelements(dg, cache)))
           #  (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))

@@ -148,14 +148,11 @@ and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-rem
 macro threaded(expr)
   # Use `esc(quote ... end)` for nested macro calls as suggested in
   # https://github.com/JuliaLang/julia/issues/23221
+  #
   # The following code is a simple version using only `Threads.@threads` from the
   # standard library with an additional check whether only a single thread is used
   # to reduce some overhead (and allocations) for serial execution.
-  # However, the final code using `@batch` from CheapThreads.jl is more efficient,
-  # since this packages provides threads with less overhead. Since it is written
-  # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
-  # to provide the most efficient and useful implementation of threads (as we use
-  # them) available in Julia.
+  #
   # return esc(quote
   #   if Threads.nthreads() == 1
   #     $(expr)
@@ -163,6 +160,14 @@ macro threaded(expr)
   #     Threads.@threads $(expr)
   #   end
   # end)
+  #
+  # However, the code below using `@batch` from CheapThreads.jl is more efficient,
+  # since this packages provides threads with less overhead. Since it is written
+  # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
+  # to provide the most efficient and useful implementation of threads (as we use
+  # them) available in Julia.
+  # !!! danger "Heisenbug"
+  #     Look at the comments for `wrap_array` when considering to change this macro.
 
   return esc(quote @batch $(expr) end)
 end
