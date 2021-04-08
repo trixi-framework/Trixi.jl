@@ -2,22 +2,15 @@
 using UnPack
 using TimerOutputs
 
-# everything related to a DG semidiscretization in 2D,
-# currently limited to Lobatto-Legendre nodes
-
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredQuadMesh, equations::Trixi.AbstractEquations{2},
+function create_cache(mesh::UnstructuredMesh, equations::Trixi.AbstractEquations,
                       dg::Trixi.DG, RealT)
 
-  # for now this is overkill but I kept the cache structure for later improvements
-
-  # mesh including all the element geometries and interface coupling already constructed
-
-  # save it into the cache
-  cache = (; mesh)
+  # extract the elements and interfaces out of the mesh container and into cache
+  cache = (; mesh.elements, mesh.interfaces, mesh.boundaries)
 
   return cache
 end
@@ -56,7 +49,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
-              mesh::UnstructuredQuadMesh, equations,
+              mesh::UnstructuredMesh, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du
@@ -70,7 +63,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux!(mesh.elements.surface_flux_values,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
                                                               Trixi.have_nonconservative_terms(equations),
                                                               equations,
                                                               dg)
@@ -99,11 +92,11 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack geometry = cache.mesh.elements
+  @unpack geometry = cache.elements
   @unpack derivative_dhat = dg.basis
 
-#  @threaded for element in eachelement(dg, cache)
-  for element in eachelement(cache.mesh)
+#  @threaded for element in eachelement(cache.mesh.elements)
+  for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = Trixi.get_node_vars(u, equations, dg, i, j, element)
 
@@ -133,7 +126,7 @@ end
 
 # prolong the solution into the convenience array in the interior interface container
 function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
-  @unpack interfaces = cache.mesh
+  @unpack interfaces = cache
 
 #  @threaded for interface in eachinterface(interfaces)
   for interface in eachinterface(interfaces)
@@ -187,12 +180,12 @@ end
 function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{false}, equations, dg::DG)
   @unpack surface_flux = dg
-  @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.mesh.interfaces
-  @unpack geometry = cache.mesh.elements
+  @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.interfaces
+  @unpack geometry = cache.elements
 
 
 #  @threaded for interface in eachinterface(cache.mesh.interfaces)
-  for interface in eachinterface(cache.mesh.interfaces)
+  for interface in eachinterface(cache.interfaces)
     # Get neighboring elements
     primary_element   = element_ids[1, interface]
     secondary_element = element_ids[2, interface]
@@ -269,7 +262,7 @@ end
 
 
 function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
-  @unpack boundaries = cache.mesh
+  @unpack boundaries = cache
 
 #  @threaded for boundary in eachboundary(boundaries)
   for boundary in eachboundary(boundaries)
@@ -302,7 +295,7 @@ end
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::Trixi.BoundaryConditionPeriodic,
                              equations::Trixi.AbstractEquations{2}, dg::DG, initial_condition)
-  @assert isempty(eachboundary(cache.mesh.boundaries))
+  @assert isempty(eachboundary(cache.boundaries))
 end
 
 
@@ -310,17 +303,14 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, initial_condition)
 
   @unpack surface_flux = dg
-  @unpack geometry, surface_flux_values = cache.mesh.elements
-  @unpack u, element_id, element_side_id, name  = cache.mesh.boundaries
+  @unpack geometry, surface_flux_values = cache.elements
+  @unpack u, element_id, element_side_id, name  = cache.boundaries
 
 #  @threaded for boundary in eachboundary(cache.mesh.boundaries)
-  for boundary in eachboundary(cache.mesh.boundaries)
+  for boundary in eachboundary(cache.boundaries)
     # Get the element and side IDs on the primary element
     primary_element = element_id[boundary]
     primary_side    = element_side_id[boundary]
-
-    # Get the total number of elements in the mesh
-    K = nelements(cache.mesh)
 
     for i in eachnode(dg)
       # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
@@ -361,23 +351,21 @@ end
 
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
-  @unpack surface_flux_values = cache.mesh.elements
+  @unpack surface_flux_values = cache.elements
 
-#  @threaded for element in eachelement(mesh)
-  for element in eachelement(cache.mesh)
-    for l in eachnode(dg)
-      for v in eachvariable(equations)
-        # surface contribution along local sides 2 and 4 (fixed x and y varies)
-        du[v, 1,          l, element] += ( surface_flux_values[v, l, 4, element]
-                                            * boundary_interpolation[1, 1] )
-        du[v, nnodes(dg), l, element] += ( surface_flux_values[v, l, 2, element]
-                                            * boundary_interpolation[nnodes(dg), 2] )
-        # surface contribution along local sides 1 and 3 (fixed y and x varies)
-        du[v, l, 1,          element] += ( surface_flux_values[v, l, 1, element]
-                                            * boundary_interpolation[1, 1] )
-        du[v, l, nnodes(dg), element] += ( surface_flux_values[v, l, 3, element]
-                                            * boundary_interpolation[nnodes(dg), 2] )
-      end
+#  @threaded for element in eachelement(cache.mesh.elements)
+  for element in eachelement(cache.elements)
+    for l in eachnode(dg), v in eachvariable(equations)
+      # surface contribution along local sides 2 and 4 (fixed x and y varies)
+      du[v, 1,          l, element] += ( surface_flux_values[v, l, 4, element]
+                                          * boundary_interpolation[1, 1] )
+      du[v, nnodes(dg), l, element] += ( surface_flux_values[v, l, 2, element]
+                                          * boundary_interpolation[nnodes(dg), 2] )
+      # surface contribution along local sides 1 and 3 (fixed y and x varies)
+      du[v, l, 1,          element] += ( surface_flux_values[v, l, 1, element]
+                                          * boundary_interpolation[1, 1] )
+      du[v, l, nnodes(dg), element] += ( surface_flux_values[v, l, 3, element]
+                                          * boundary_interpolation[nnodes(dg), 2] )
     end
   end
 
@@ -386,10 +374,10 @@ end
 
 
 function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
-  @unpack geometry = cache.mesh.elements
+  @unpack geometry = cache.elements
 
-#  @threaded for element in eachelement(cache.mesh)
-  for element in eachelement(cache.mesh)
+#  @threaded for element in eachelement(cache.mesh.elements)
+  for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       factor = -geometry[element].invJac[i,j]
       for v in eachvariable(equations)
@@ -409,10 +397,10 @@ end
 
 
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations, dg::DG, cache)
-  @unpack geometry = cache.mesh.elements
+  @unpack geometry = cache.elements
 
-#  @threaded for element in eachelement(cache.mesh)
-  for element in eachelement(cache.mesh)
+#  @threaded for element in eachelement(cache.mesh.elements)
+  for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       u_local = Trixi.get_node_vars(u, equations, dg, i, j, element)
       x_local = ( geometry[element].x[i,j] , geometry[element].y[i,j] )

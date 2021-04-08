@@ -10,14 +10,19 @@ end
 
 # construct an empty curved element container to be filled later with geometries in the
 # unstructured mesh constructor
-function UnstructuredElementContainer2D(RealT, nvars, polydeg, nelements)
+function UnstructuredElementContainer2D(RealT, nvars, polydeg, n_elements)
 
-  geometry            = Vector{ElementGeometry}(undef, nelements)
-  surface_flux_values = zeros( nvars , polydeg + 1 , 4 , nelements )
+  geometry            = Vector{ElementGeometry}(undef, n_elements)
+  surface_flux_values = zeros( nvars , polydeg + 1 , 4 , n_elements )
 
-  return UnstructuredElementContainer2D{RealT, polydeg+1, nvars, nelements}(geometry,
+  return UnstructuredElementContainer2D{RealT, polydeg+1, nvars, n_elements}(geometry,
                                                                             surface_flux_values)
 end
+
+
+@inline nelements(elements::UnstructuredElementContainer2D{RealT, NNODES, NVARS, NELEMENTS}) where {RealT,  NNODES, NVARS, NELEMENTS} = NELEMENTS
+
+@inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
 
 
 # generic container for the interior interfaces of an unstructured mesh

@@ -1,7 +1,6 @@
 
-struct UnstructuredQuadMesh{RealT<:Real, NCORNERS, NELEMENTS}
+struct UnstructuredMesh{NDIMS, RealT<:Real} <: Trixi.AbstractMesh{NDIMS}
   mesh_filename::String
-  corners    ::SArray{Tuple{NCORNERS, 2}, RealT}
   interfaces ::UnstructuredInterfaceContainer2D
   boundaries ::UnstructuredBoundaryContainer2D
   elements   ::UnstructuredElementContainer2D
@@ -9,7 +8,9 @@ end
 
 
 # constructor for an unstructured mesh read in from a file
-function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes, boundary_conditions)
+function UnstructuredMesh(RealT, filename, nvars, polydeg, dg_nodes, boundary_conditions)
+
+  NDIMS = 2
 
   # readin all the information from the mesh file into a string array
   file_lines = readlines(open(filename))
@@ -35,7 +36,8 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes, boundar
 
   GammaCurves = Array{GammaCurve, 1}(undef, 4)
 
-  # readin an store the nodes that dictate the corners of the elements
+  # readin an store the nodes that dictate the corners of the elements needed to construct the
+  # element geometry terms
   file_idx = 2
   for j in 1:n_corners
     current_line      = split(file_lines[file_idx])
@@ -158,11 +160,8 @@ function UnstructuredQuadMesh(RealT, filename, nvars, polydeg, dg_nodes, boundar
     boundaries = init_boundaries(RealT, edge_info, bndy_names, nvars, polydeg, n_boundary)
   end
 
-  return UnstructuredQuadMesh{RealT, n_corners, n_elements}(filename, corner_nodes, interfaces,
-                                                            boundaries, elements)
+  return UnstructuredMesh{NDIMS, RealT}(filename, interfaces, boundaries, elements)
 end
 
-
-@inline nelements(mesh::UnstructuredQuadMesh{RealT, NCORNERS, NELEMENTS}) where {RealT, NCORNERS, NELEMENTS} = NELEMENTS
-
-@inline eachelement(mesh::UnstructuredQuadMesh) = Base.OneTo(nelements(mesh))
+@inline Base.ndims(::UnstructuredMesh{NDIMS}) where {NDIMS} = NDIMS
+@inline Base.real(::UnstructuredMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT

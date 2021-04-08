@@ -5,9 +5,8 @@ using PyPlot
 
 include("curve_interpolant.jl")
 include("quadrilateral_mappings.jl")
-include("containers_2d.jl")
-include("unstructured_quad_mesh.jl")
-include("dg_2d.jl")
+include("dg.jl")
+include("unstructured_mesh.jl")
 
 ###############################################################################
 # Get the equations
@@ -32,8 +31,8 @@ solver = DGSEM(poly_deg, surface_flux)
 
 #mesh_file = "BoxAroundCircle8.mesh"
 mesh_file = "PeriodicXandY10.mesh"
-mesh      = UnstructuredQuadMesh(Float64, mesh_file, num_eqns, poly_deg, solver.basis.nodes,
-                                 boundary_conditions)
+mesh      = UnstructuredMesh(Float64, mesh_file, num_eqns, poly_deg, solver.basis.nodes,
+                             boundary_conditions)
 
 # #for j in 2:40
 # for j in 2:16
@@ -51,9 +50,9 @@ cache = create_cache(mesh, equations, solver, Float64)
 ###############################################################################
 # Construct and fill the initial condition
 
-u0 = zeros( num_eqns , nnodes(solver) , nnodes(solver) , nelements(mesh) )
+u0 = zeros( num_eqns , nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
 
-for eID in eachelement(mesh)
+for eID in eachelement(mesh.elements)
   for j in eachnode(solver), i in eachnode(solver)
     x_vec = ( mesh.elements.geometry[eID].x[i,j] , mesh.elements.geometry[eID].y[i,j] )
     u0[:,i,j,eID] = initial_condition(x_vec, 0.0, equations)
@@ -68,7 +67,7 @@ tspan = (0.0, 0.5)
 ode_algorithm = Trixi.CarpenterKennedy2N54()
 
 u = copy(u0)
-du = zeros( num_eqns , nnodes(solver) , nnodes(solver) , nelements(mesh) )
+du = zeros( num_eqns , nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
 u_tmp = similar(du)
 
 # hack together my own time loop for debugging before I modify the semidiscretization routines
@@ -114,7 +113,7 @@ end
 
 u_exact = similar(u)
 
-for eID in eachelement(mesh)
+for eID in eachelement(mesh.elements)
   for j in eachnode(solver), i in eachnode(solver)
     x_vec = ( mesh.elements.geometry[eID].x[i,j] , mesh.elements.geometry[eID].y[i,j])
     u_exact[:,i,j,eID] = initial_condition(x_vec, t_end, equations)
@@ -122,7 +121,7 @@ for eID in eachelement(mesh)
 end
 
 linf_error = zeros(Trixi.nvariables(equations))
-for eID in eachelement(mesh)
+for eID in eachelement(mesh.elements)
   for j in eachnode(solver), i in eachnode(solver)
     diff = u[:,i,j,eID] - u_exact[:,i,j,eID]
     linf_error = @. max(linf_error, abs(diff))
@@ -135,24 +134,24 @@ end # let block
 
 ###############################################################################
 # move everything into appropriate arrays for plotting
-# all_x = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
-# all_y = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
-# solu0 = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
-# solu  = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh) )
-# for eID in eachelement(mesh)
+# all_x = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
+# all_y = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
+# solu0 = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
+# solu  = zeros( nnodes(solver) , nnodes(solver) , nelements(mesh.elements) )
+# for eID in eachelement(mesh.elements)
 #   all_x[:,:,eID] = mesh.elements.geometry[eID].x
 #   all_y[:,:,eID] = mesh.elements.geometry[eID].y
 #   solu0[:,:,eID] = u0[1,:,:,eID]
 #   solu[:,:,eID]  = u[1,:,:,eID]
 # end
 #
-# for eID in eachelement(mesh)
+# for eID in eachelement(mesh.elements)
 # #  plot_surface( all_x[:,:,eID] , all_y[:,:,eID] , solu[:,:,eID])
 #   surf( all_x[:,:,eID] , all_y[:,:,eID] , solu0[:,:,eID] , cmap=ColorMap("plasma"))
 # end
 #
 # figure()
-# for eID in eachelement(mesh)
+# for eID in eachelement(mesh.elements)
 # #  plot_surface( all_x[:,:,eID] , all_y[:,:,eID] , solu[:,:,eID])
 #   surf( all_x[:,:,eID] , all_y[:,:,eID] , solu[:,:,eID] , cmap=ColorMap("plasma"))
 # end
