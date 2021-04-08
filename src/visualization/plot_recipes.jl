@@ -122,7 +122,7 @@ for plotting. This can be changed by passing an appropriate conversion function 
 
 """
 function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
-                    solution_variables=cons2prim, kwargs...)
+                    solution_variables=cons2prim, grid_lines=true, kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
 
@@ -135,7 +135,12 @@ function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbol
 
   data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
 
-  mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
+  if grid_lines
+    mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
+  else
+    mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
+    mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
+  end
 
   variable_names = SVector(varnames(solution_variables, equations))
 

@@ -312,7 +312,7 @@ function calc_vertices(coordinates, levels, length_level_0)
 end
 
 
-# Calculate the vertices for each mesh cell such that it can be visualized as a closed box for CurvedMesh
+# Calculate the vertices to plot each grid line for CurvedMesh
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
@@ -327,6 +327,10 @@ function calc_vertices(node_coordinates, mesh)
   max_length = maximum(cells_per_dimension)
   n_nodes = size(node_coordinates, 2)
 
+  # Create output as two matrices `x` and `y`, each holding the node locations for each of the `n_lines` grid lines
+  # The # of rows in the matrices must be sufficient to store the longest dimension (`max_length`),
+  # and for each the node locations without doubling the corner nodes (`n_nodes-1`), plus the final node (`+1`)
+  # Rely on Plots.jl to ignore `NaN`s (i.e., they are not plotted) to handle shorter lines
   x = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
   y = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
 
@@ -334,10 +338,10 @@ function calc_vertices(node_coordinates, mesh)
   # Lines in x-direction
   # Bottom boundary
   i = 1
-  for element in axes(mesh, 1)
+  for cell_x in axes(mesh, 1)
     for node in 1:(n_nodes-1)
-      x[i, line_index] = node_coordinates[1, node, 1, linear_indices[element, 1]]
-      y[i, line_index] = node_coordinates[2, node, 1, linear_indices[element, 1]]
+      x[i, line_index] = node_coordinates[1, node, 1, linear_indices[cell_x, 1]]
+      y[i, line_index] = node_coordinates[2, node, 1, linear_indices[cell_x, 1]]
 
       i += 1
     end
@@ -369,10 +373,10 @@ function calc_vertices(node_coordinates, mesh)
   # Lines in y-direction
   # Left boundary
   i = 1
-  for element in axes(mesh, 2)
+  for cell_y in axes(mesh, 2)
     for node in 1:(n_nodes-1)
-      x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, element]]
-      y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, element]]
+      x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, cell_y]]
+      y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, cell_y]]
 
       i += 1
     end
