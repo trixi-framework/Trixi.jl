@@ -1,12 +1,9 @@
 
 using Trixi
 #using Plots
-using PyPlot
+#using PyPlot
 
-include("curve_interpolant.jl")
-include("quadrilateral_mappings.jl")
 include("dg.jl")
-include("unstructured_mesh.jl")
 
 ###############################################################################
 # Get the equations

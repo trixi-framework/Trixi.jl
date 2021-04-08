@@ -1,20 +1,20 @@
 
-using StaticArrays: SArray,MVector,MArray
+include("quadrilateral_mappings.jl")
 
 struct ElementGeometry{RealT<:Real, NNODES}
-  x        ::SArray{Tuple{NNODES, NNODES}, RealT}
-  y        ::SArray{Tuple{NNODES, NNODES}, RealT}
-  X_xi     ::SArray{Tuple{NNODES, NNODES}, RealT}
-  X_eta    ::SArray{Tuple{NNODES, NNODES}, RealT}
-  Y_xi     ::SArray{Tuple{NNODES, NNODES}, RealT}
-  Y_eta    ::SArray{Tuple{NNODES, NNODES}, RealT}
-  Jac      ::SArray{Tuple{NNODES, NNODES}, RealT}
-  invJac   ::SArray{Tuple{NNODES, NNODES}, RealT}
-  x_bndy   ::SArray{Tuple{NNODES, 4}, RealT}
-  y_bndy   ::SArray{Tuple{NNODES, 4}, RealT}
-  normals  ::SArray{Tuple{NNODES, 4, 2}, RealT}
-  tangents ::SArray{Tuple{NNODES, 4, 2}, RealT}
-  scaling  ::SArray{Tuple{NNODES, 4}, RealT}
+  x        ::Array{RealT , 2} # [nnodes, nnodes]
+  y        ::Array{RealT , 2} # [nnodes, nnodes]
+  X_xi     ::Array{RealT , 2} # [nnodes, nnodes]
+  X_eta    ::Array{RealT , 2} # [nnodes, nnodes]
+  Y_xi     ::Array{RealT , 2} # [nnodes, nnodes]
+  Y_eta    ::Array{RealT , 2} # [nnodes, nnodes]
+  Jac      ::Array{RealT , 2} # [nnodes, nnodes]
+  invJac   ::Array{RealT , 2} # [nnodes, nnodes]
+  x_bndy   ::Array{RealT , 2} # [nnodes, local side]
+  y_bndy   ::Array{RealT , 2} # [nnodes, local side]
+  normals  ::Array{RealT , 3} # [nnodes, local side, ndims]
+  tangents ::Array{RealT , 3} # [nnodes, local side, ndims]
+  scaling  ::Array{RealT , 2} # [nnodes, local side]
 end
 
 

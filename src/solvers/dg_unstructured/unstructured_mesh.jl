@@ -1,9 +1,12 @@
 
+include("curve_interpolant.jl")
+include("containers_2d.jl")
+
 struct UnstructuredMesh{NDIMS, RealT<:Real} <: Trixi.AbstractMesh{NDIMS}
   mesh_filename::String
-  interfaces ::UnstructuredInterfaceContainer2D
-  boundaries ::UnstructuredBoundaryContainer2D
-  elements   ::UnstructuredElementContainer2D
+  interfaces   ::UnstructuredInterfaceContainer2D
+  boundaries   ::UnstructuredBoundaryContainer2D
+  elements     ::UnstructuredElementContainer2D
 end
 
 

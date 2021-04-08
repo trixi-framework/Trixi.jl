@@ -2,6 +2,8 @@
 using UnPack
 using TimerOutputs
 
+# this type of unstructured mesh is really a sophisticated DG "container" so I am not sure where it goes
+include("unstructured_mesh.jl")
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
@@ -15,6 +17,7 @@ function create_cache(mesh::UnstructuredMesh, equations::Trixi.AbstractEquations
   return cache
 end
 
+@inline ndofs(mesh::UnstructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 # @inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
 #   @boundscheck begin

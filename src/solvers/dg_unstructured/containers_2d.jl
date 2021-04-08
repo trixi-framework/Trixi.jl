@@ -111,8 +111,10 @@ function init_interfaces!(interfaces, edge_information, boundary_names, polydeg,
         secondary_element = primary_element - (convert(Int64, sqrt(n_elements)) - 1)
         secondary_side    = 4
       end
-      interfaces.element_ids[:,j]      .= ( primary_element, secondary_element )
-      interfaces.element_side_ids[:,j] .= ( primary_side   , secondary_side    )
+      interfaces.element_ids[1,j]      = primary_element
+      interfaces.element_ids[2,j]      = secondary_element
+      interfaces.element_side_ids[1,j] = primary_side
+      interfaces.element_side_ids[2,j] = secondary_side
       # set the start and increment indexing
       #  Note! We assume that the periodic mesh has no flipped element coordinate systems
       interfaces.start_index[j] = 1
