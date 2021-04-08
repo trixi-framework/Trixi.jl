@@ -107,6 +107,47 @@ function PlotData2D(u, semi;
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
 end
 
+
+"""
+    PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
+               solution_variables=cons2prim, kwargs...)
+
+Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
+`u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
+from the semidiscretization `semi`. By default, the conservative variables from the solution are used
+for plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+"""
+function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
+                    solution_variables=cons2prim, grid_lines=true, kwargs...)
+  mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+  @unpack node_coordinates = cache.elements
+
+  @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
+
+  unstructured_data = get_unstructured_data(u, semi, solution_variables)
+
+  x = vec(view(node_coordinates, 1, ..))
+  y = vec(view(node_coordinates, 2, ..))
+
+  data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
+
+  if grid_lines
+    mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
+  else
+    mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
+    mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
+  end
+
+  variable_names = SVector(varnames(solution_variables, equations))
+
+  return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
+end
+
+
 """
     PlotData2D(u_ode::AbstractVector, semi; kwargs...)
 
@@ -235,6 +276,34 @@ getmesh(pd::PlotData2D) = PlotMesh2D(pd)
 end
 
 
+# Visualize a single variable in a 2D plot. Only works for `scatter` right now.
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}}) 
+  @unpack plot_data, variable_id = pds
+  @unpack x, y, data, variable_names = plot_data
+
+  # Set geometric properties
+  xlims --> (minimum(x), maximum(x))
+  ylims --> (minimum(y), maximum(y))
+  aspect_ratio --> :equal
+
+  # Set annotation properties
+  legend -->  :none
+  title --> variable_names[variable_id]
+  colorbar --> :true
+
+  # Set series properties
+  seriestype --> :scatter
+  markerstrokewidth --> 0
+
+  marker_z --> data[variable_id]
+
+  # Return data for plotting
+  x, y
+end
+
+
 # Visualize the mesh in a 2D plot
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
@@ -252,6 +321,29 @@ end
   seriestype := :path
   linecolor := :black
   linewidth := 1
+
+  # Return data for plotting
+  mesh_vertices_x, mesh_vertices_y
+end
+
+
+# Visualize the mesh in a 2D plot
+#
+# Note: This is an experimental feature and may be changed in future releases without notice.
+@recipe function f(pm::PlotMesh2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
+  @unpack plot_data = pm
+  @unpack x, y, mesh_vertices_x, mesh_vertices_y = plot_data
+
+  # Set geometric and annotation properties
+  xlims --> (minimum(x), maximum(x))
+  ylims --> (minimum(y), maximum(y))
+  aspect_ratio --> :equal
+  legend -->  :none
+
+  # Set series properties
+  seriestype --> :path
+  linecolor --> :black
+  linewidth --> 1
 
   # Return data for plotting
   mesh_vertices_x, mesh_vertices_y

@@ -36,7 +36,7 @@ trixi_include(elixir::AbstractString; kwargs...) = trixi_include(Main, elixir; k
 
 Run `iterations` Trixi simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
-In each iteration, the `initial_refinement_level` will be increased by 1.
+In each iteration, the resolution of the respective mesh will be doubled.
 Additional keyword arguments `kwargs...` and the optional module `mod` are passed directly
 to [`trixi_include`](@ref).
 """
@@ -46,15 +46,14 @@ function convergence_test(mod::Module, elixir::AbstractString, iterations; kwarg
   # Types of errors to be calcuated
   errors = Dict(:l2 => Float64[], :linf => Float64[])
 
-  # get the initial_refinement_level from the elixir
-  code = read(elixir, String)
-  expr = Meta.parse("begin $code end")
-  initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+  initial_resolution = extract_initial_resolution(elixir)
 
   # run simulations and extract errors
   for iter in 1:iterations
     println("Running convtest iteration ", iter, "/", iterations)
-    trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+
+    include_refined(mod, elixir, initial_resolution, iter; kwargs)
+
     l2_error, linf_error = mod.analysis_callback(mod.sol)
 
     # collect errors as one vector to reshape later
@@ -175,3 +174,34 @@ function find_assignment(expr, destination)
   result
 end
 
+# searches the parameter that specifies the mesh reslution in the elixir
+function extract_initial_resolution(elixir)
+  code = read(elixir, String)
+  expr = Meta.parse("begin $code end")
+
+  try
+    # get the initial_refinement_level from the elixir
+    initial_refinement_level = find_assignment(expr, :initial_refinement_level)
+  catch e
+    if isa(e, UndefVarError)
+      # get cells_per_dimension from the elixir
+      cells_per_dimension = eval(find_assignment(expr, :cells_per_dimension))
+    else
+      throw(e)
+    end
+  end
+end
+
+# runs the specified elixir with a doubled resolution each time iter is increased by 1
+# works for TreeMesh
+function include_refined(mod, elixir, initial_refinement_level::Int, iter; kwargs)
+  trixi_include(mod, elixir; kwargs..., initial_refinement_level=initial_refinement_level+iter-1)
+end
+
+# runs the specified elixir with a doubled resolution each time iter is increased by 1
+# works for CurvedMesh
+function include_refined(mod, elixir, cells_per_dimension::NTuple{NDIMS, Int}, iter; kwargs) where {NDIMS}
+  new_cells_per_dimension = cells_per_dimension .* 2^(iter - 1)
+
+  trixi_include(mod, elixir; kwargs..., cells_per_dimension=new_cells_per_dimension)
+end
