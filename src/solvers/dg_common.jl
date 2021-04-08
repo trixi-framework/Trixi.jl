@@ -91,7 +91,8 @@ end
   # unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
   #             (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 
-  #
+  # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
+  # result in allocations.
   PtrArray(pointer(u_ode),
            (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
