@@ -335,6 +335,8 @@ function Trixi.rhs!(du, u::VectorOfArray, t,
 
     @timeit to "entropy projection" begin
         entropy_projection!(cache,Q,rd)
+    end
+    @timeit to "interp entropy projection" begin
         interp_entropy_vars!(cache,rd)
         eval_conservative_vars!(cache)
         @unpack Uq,Uf,VUf = cache
@@ -432,7 +434,7 @@ show(to)
 
 Q = sol.u[end]
 L2norm(u) = sum(md.wJq.*(rd.Vq*u).^2)
-@show sum(L2norm.(Q.u)) # N=3, K=32: sum(L2norm.(Q.u)) = 32.74801033365077
+@show sum(L2norm.(Q.u)) # N=3, K=32, T = .5: sum(L2norm.(Q.u)) = 32.74801033365077
 # zz = rd.Vp*Q[1]
 # scatter(rd.Vp*md.x,rd.Vp*md.y,zz,zcolor=zz,leg=false,msw=0,cam=(0,90))
 
