@@ -61,8 +61,13 @@ function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{1})
     left_neighbors[1, cell_x] = cell_x - 1
   end
 
-  # Periodic boundary
-  left_neighbors[1, 1] = size(mesh, 1)
+  if isperiodic(mesh)
+    # Periodic boundary
+    left_neighbors[1, 1] = size(mesh, 1)
+  else
+    # Use boundary conditions
+    left_neighbors[1, 1] = 0
+  end
 
   return left_neighbors
 end
