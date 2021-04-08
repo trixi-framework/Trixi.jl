@@ -363,6 +363,51 @@ do not need any modifications since they are sufficiently generic (and enough ef
 has been spend to allow general types inside these calls).
 
 
+### Propagating errors using Measurements.jl
+
+![tutorial_adding_new_equations_plot1](https://imgs.xkcd.com/comics/error_bars.png)
+
+Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
+theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
+As an example, let's create a system representing the linear advection equation
+in 1D with an uncertain velocity. Then, we create a semidiscretization using a
+sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
+in the primitive variables.
+```jldoctest;  output = false
+using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+
+equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1);
+
+mesh = TreeMesh((-1.0,), (1.0,), n_cells_max=10^5, initial_refinement_level=5);
+
+solver = DGSEM(3);
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver, uEltype=Measurement{Float64});
+
+ode = semidiscretize(semi, (0.0, 1.5));
+
+sol = solve(ode, BS3(), save_everystep=false);
+
+plot(sol)
+
+# output
+
+Plot{Plots.GRBackend() n=1}
+```
+
+You should see a plot like the following, where small error bars are shown around
+the extrema and larger error bars are shown in the remaining parts. This result
+is in accordance with expectations. Indeed, the uncertain propagation speed will
+affect the extrema less since the local variation of the solution is relatively
+small there. In contrast, the local variation of the solution is large around
+the turning points of the sine wave, so the uncertainties will be relatively
+large there.
+
+All this is possible due to allowing generic types and having good abstractions
+in Julia that allow packages to work together seamlessly.
+
+
 
 ## Finite difference approximations
 
