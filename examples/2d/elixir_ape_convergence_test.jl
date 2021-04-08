@@ -4,10 +4,8 @@ using Trixi
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-v_mean = (0.5, 0.3)
-c_mean = 1.0
-rho_mean = 1.0
-equations = AcousticPerturbationEquations2D(v_mean, c_mean, rho_mean)
+equations = AcousticPerturbationEquations2D(v_mean_global=(0.5, 0.3), c_mean_global=1.0,
+                                            rho_mean_global=1.0)
 
 initial_condition = initial_condition_convergence_test
 
@@ -31,7 +29,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0))
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

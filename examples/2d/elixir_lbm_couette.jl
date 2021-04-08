@@ -15,7 +15,7 @@ boundary_conditions = (
                        y_pos=boundary_condition_couette,
                       )
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_godunov
 solver = DGSEM(3, surface_flux)
 
 coordinates_min = (0, 0)
