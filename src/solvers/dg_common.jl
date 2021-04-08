@@ -24,7 +24,8 @@ end
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
   PtrArray(pointer(u_ode),
-           (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+          #  (nvariables(equations), nnodes(dg), nelements(dg, cache)))
+           (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), nelements(dg, cache)))
 end
 
 
@@ -59,7 +60,8 @@ end
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
   PtrArray(pointer(u_ode),
-           (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+           (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), nelements(dg, cache)))
+          #  (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
 
@@ -94,7 +96,8 @@ end
   # This version using `PtrArray`s from StrideArrays.jl is even faster and does not
   # result in allocations.
   PtrArray(pointer(u_ode),
-           (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
+           (StaticInt(nvariables(equations)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), StaticInt(nnodes(dg)), nelements(dg, cache)))
+          #  (nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), nelements(dg, cache)))
 end
 
 
