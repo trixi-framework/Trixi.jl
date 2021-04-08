@@ -13,6 +13,7 @@ mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
   faces::Any # Not relevant for performance
   faces_as_string::Vector{String}
+  periodicity::NTuple{NDIMS, Bool}
   current_filename::String
   unsaved_changes::Bool
 end
@@ -35,14 +36,28 @@ Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate 
                                       `faces[5:6]` describe the faces in positive and negative z-direction respectively
                                       (in 3D).
 - `RealT::Type`: the type that should be used for coordinates.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
 - `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
                                      If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
-function CurvedMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
+function CurvedMesh(cells_per_dimension, faces; RealT=Float64, periodicity=true, unsaved_changes=true, faces_as_string=faces2string(faces))
   NDIMS = length(cells_per_dimension)
 
-  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, "", unsaved_changes)
+  # Convert periodicity to a Tuple of a Bool for every dimension
+  if all(periodicity)
+    # Also catches case where periodicity = true
+    periodicity = ntuple(_->true, NDIMS)
+  elseif !any(periodicity)
+    # Also catches case where periodicity = false
+    periodicity = ntuple(_->false, NDIMS)
+  else
+    # Default case if periodicity is an iterable
+    periodicity = Tuple(periodicity)
+  end
+
+  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, periodicity, "", unsaved_changes)
 end
 
 
@@ -55,13 +70,15 @@ Create a CurvedMesh that represents a uncurved structured mesh with a rectangula
 - `cells_per_dimension::NTuple{NDIMS, Int}`: the number of cells in each dimension.
 - `coordinates_min::NTuple{NDIMS, RealT}`: coordinate of the corner in the negative direction of each dimension.
 - `coordinates_max::NTuple{NDIMS, RealT}`: coordinate of the corner in the positive direction of each dimension.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
 """
-function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
   faces, faces_as_string = coordinates2faces(Tuple(coordinates_min), Tuple(coordinates_max))
 
-  return CurvedMesh(cells_per_dimension, faces; RealT=RealT, faces_as_string=faces_as_string)
+  return CurvedMesh(cells_per_dimension, faces; RealT=RealT, faces_as_string=faces_as_string, periodicity=periodicity)
 end
 
 
@@ -145,6 +162,10 @@ function transfinite_mapping(x, y, mesh)
          bilinear_mapping(x, y, mesh)
 end
 
+
+# Check if mesh is periodic
+isperiodic(mesh::CurvedMesh) = all(mesh.periodicity)
+isperiodic(mesh::CurvedMesh, dimension) = mesh.periodicity[dimension]
 
 @inline Base.ndims(::CurvedMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::CurvedMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
