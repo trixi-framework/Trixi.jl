@@ -41,7 +41,6 @@ function calc_node_coordinates!(node_coordinates, element,
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    # TODO: Needs to be adjusted for actually curved meshes
     node_coordinates[:, i, j, k, element] .= mesh.mapping(cell_x_offset + dx/2 * nodes[i],
                                                           cell_y_offset + dy/2 * nodes[j],
                                                           cell_z_offset + dz/2 * nodes[k])
