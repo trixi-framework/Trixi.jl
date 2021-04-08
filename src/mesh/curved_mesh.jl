@@ -20,27 +20,20 @@ end
 
 
 """
-    CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+    CurvedMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
 
 Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
-- `faces::NTuple{2*NDIMS, Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
-                                      Each function must take `NDIMS-1` arguments.
-                                      `faces[1]` describes the face onto which the face in negative x-direction 
-                                      of the unit hypercube is mapped. The face in positive x-direction of
-                                      the unit hypercube will be mapped onto the face described by `faces[2]`.
-                                      `faces[3:4]` describe the faces in positive and negative y-direction respectively 
-                                      (in 2D and 3D).
-                                      `faces[5:6]` describe the faces in positive and negative z-direction respectively
-                                      (in 3D).
+- `mapping::Function`: a function of `NDIMS` variables to describe the mapping, which transforms 
+                       the reference mesh to the physical domain.
 - `RealT::Type`: the type that should be used for coordinates.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
-                 each dimension if the boundaries in this dimension are periodic.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` 
+                 deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
-                                     If `CodeTracking` can't find the function definition, it can be passed directly here.
+- `mapping_as_string::String`: the code that defines the `mapping`.
+                               If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
 function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true, 
                     mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
