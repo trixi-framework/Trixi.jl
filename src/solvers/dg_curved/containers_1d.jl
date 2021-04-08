@@ -4,7 +4,7 @@ function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBas
 
   # Calculate node coordinates, metric terms, and inverse Jacobian
   for cell_x in 1:size(mesh, 1)
-    calc_node_coordinates!(node_coordinates, cell_x, mesh, basis)
+    calc_node_coordinates!(node_coordinates, cell_x, mesh.mapping, mesh, basis)
 
     calc_metric_terms!(metric_terms, cell_x, node_coordinates, basis)
 
@@ -18,7 +18,8 @@ end
 
 
 # Calculate physical coordinates to which every node of the reference element is mapped
-function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
+# `mesh.mapping` is passed as an additional argument for type stability (function barrier)
+function calc_node_coordinates!(node_coordinates, cell_x, mapping, mesh::CurvedMesh{1},
                                 basis::LobattoLegendreBasis)
   @unpack nodes = basis
 
@@ -30,7 +31,7 @@ function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
   
   for i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[1, i, cell_x] = mesh.mapping(cell_x_offset + dx/2 * nodes[i])[1]
+    node_coordinates[1, i, cell_x] = mapping(cell_x_offset + dx/2 * nodes[i])[1]
   end
 end
 

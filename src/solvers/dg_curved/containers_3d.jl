@@ -8,7 +8,7 @@ function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBas
   for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y, cell_z]
 
-    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh, basis)
+    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh.mapping, mesh, basis)
 
     calc_metric_terms!(metric_terms, element, mesh, node_coordinates, basis)
 
@@ -23,9 +23,10 @@ end
 
 
 # Calculate physical coordinates to which every node of the reference element is mapped
+# `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, cell_z,
-                                mesh::CurvedMesh{3},
+                                mapping, mesh::CurvedMesh{3},
                                 basis::LobattoLegendreBasis)
   @unpack nodes = basis
 
@@ -41,9 +42,9 @@ function calc_node_coordinates!(node_coordinates, element,
 
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, k, element] .= mesh.mapping(cell_x_offset + dx/2 * nodes[i],
-                                                          cell_y_offset + dy/2 * nodes[j],
-                                                          cell_z_offset + dz/2 * nodes[k])
+    node_coordinates[:, i, j, k, element] .= mapping(cell_x_offset + dx/2 * nodes[i],
+                                                     cell_y_offset + dy/2 * nodes[j],
+                                                     cell_z_offset + dz/2 * nodes[k])
   end
 end
 
