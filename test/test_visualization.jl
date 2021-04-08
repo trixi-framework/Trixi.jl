@@ -16,11 +16,17 @@ isdir(outdir) && rm(outdir, recursive=true)
 
 # Run various visualization tests
 @testset "Visualization tests" begin
-  # Run Trixi
-  @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", "elixir_euler_blast_wave_amr.jl"),
-                                   tspan=(0,0.1))
+  # Run 2D tests with elixirs for both mesh types
+  test_examples_2d = Dict(
+    "TreeMesh" => "elixir_euler_blast_wave_amr.jl",
+    "CurvedMesh" => "elixir_euler_source_terms_waving_flag.jl"
+  )
 
-  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D" begin
+  @testset "PlotData2D, PlotDataSeries2D, PlotMesh2D with $mesh" for mesh in keys(test_examples_2d)
+    # Run Trixi
+    @test_nowarn_debug trixi_include(@__MODULE__, joinpath(examples_dir(), "2d", test_examples_2d[mesh]),
+                                     tspan=(0,0.1))
+
     # Constructor
     @test PlotData2D(sol) isa PlotData2D
     @test PlotData2D(sol; nvisnodes=0, grid_lines=false, solution_variables=cons2cons) isa PlotData2D
@@ -61,15 +67,15 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test getmesh(pd).plot_data == pd
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
-  end
 
-  @testset "2D plot recipes" begin
-    pd = PlotData2D(sol)
-
-    @test_nowarn_debug plot(sol)
-    @test_nowarn_debug plot(pd)
-    @test_nowarn_debug plot(pd["p"])
-    @test_nowarn_debug plot(getmesh(pd))
+    @testset "2D plot recipes" begin
+      pd = PlotData2D(sol)
+  
+      @test_nowarn_debug plot(sol)
+      @test_nowarn_debug plot(pd)
+      @test_nowarn_debug plot(pd["p"])
+      @test_nowarn_debug plot(getmesh(pd))
+    end
   end
 
   @testset "PlotData1D, PlotDataSeries1D, PlotMesh1D" begin
