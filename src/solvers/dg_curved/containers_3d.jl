@@ -1,6 +1,5 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBasis)
-  @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
@@ -43,19 +42,19 @@ function calc_node_coordinates!(node_coordinates, element,
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
     # TODO: Needs to be adjusted for actually curved meshes
-    node_coordinates[:, i, j, k, element] .= trilinear_mapping(cell_x_offset + dx/2 * nodes[i],
-                                                               cell_y_offset + dy/2 * nodes[j],
-                                                               cell_z_offset + dz/2 * nodes[k], mesh)
+    node_coordinates[:, i, j, k, element] .= mesh.mapping(cell_x_offset + dx/2 * nodes[i],
+                                                          cell_y_offset + dy/2 * nodes[j],
+                                                          cell_z_offset + dz/2 * nodes[k])
   end
 end
 
 
 # Calculate metric terms of the mapping from the reference element to the element in the physical domain
 function calc_metric_terms!(metric_terms, element, mesh, node_coordinates::AbstractArray{<:Any, 5}, basis::LobattoLegendreBasis)
-  @unpack faces = mesh
+  @unpack mapping = mesh
 
   # TODO: Needs to be adjusted for actually curved meshes
-  dx, dy, dz = (faces[2](1, 1) .- faces[1](-1, -1)) ./ size(mesh)
+  dx, dy, dz = (mapping(1, 1, 1) .- mapping(-1, -1, -1)) ./ size(mesh)
 
   for k in 1:nnodes(basis), j in 1:nnodes(basis), i in 1:nnodes(basis)
     metric_terms[:, :, i, j, k, element] .= 0.5 * diagm([dx, dy, dz])

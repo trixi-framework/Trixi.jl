@@ -1,6 +1,5 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
-  @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
@@ -39,8 +38,8 @@ function calc_node_coordinates!(node_coordinates, element,
 
   for j in eachindex(nodes), i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, element] .= transfinite_mapping(cell_x_offset + dx/2 * nodes[i],
-                                                              cell_y_offset + dy/2 * nodes[j], mesh)
+    node_coordinates[:, i, j, element] .= mesh.mapping(cell_x_offset + dx/2 * nodes[i],
+                                                       cell_y_offset + dy/2 * nodes[j])
   end
 end
 

@@ -97,8 +97,7 @@ function save_mesh_file(mesh::CurvedMesh, output_directory)
     attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["size"] = collect(size(mesh))
-
-    file["faces"] = mesh.faces_as_string
+    attributes(file)["mapping"] = mesh.mapping_as_string
   end
 
   return filename
@@ -129,14 +128,14 @@ function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
     load_mesh!(mesh, restart_file)
   elseif mesh_type == "CurvedMesh"
     filename = get_restart_mesh_filename(restart_file, Val(false))
-    size_, faces_string = h5open(filename, "r") do file
+    size_, mapping_as_string = h5open(filename, "r") do file
       return read(attributes(file)["size"]),
-             read(file["faces"])
+             read(attributes(file)["mapping"])
     end
 
     size = Tuple(size_)
-    faces = faces_string .|> Meta.parse .|> eval |> Tuple
-    mesh = CurvedMesh(size, faces; RealT=RealT, unsaved_changes=false, faces_as_string=faces_string)
+    mapping = mapping_as_string |> Meta.parse |> eval
+    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
   else
     error("Unknown mesh type!")
   end

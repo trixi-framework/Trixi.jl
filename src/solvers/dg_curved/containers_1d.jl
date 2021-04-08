@@ -1,6 +1,5 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
-  @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
   # Calculate node coordinates, metric terms, and inverse Jacobian
@@ -31,7 +30,7 @@ function calc_node_coordinates!(node_coordinates, cell_x, mesh::CurvedMesh{1},
   
   for i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[1, i, cell_x] = linear_mapping(cell_x_offset + dx/2 * nodes[i], mesh)[1]
+    node_coordinates[1, i, cell_x] = mesh.mapping(cell_x_offset + dx/2 * nodes[i])[1]
   end
 end
 

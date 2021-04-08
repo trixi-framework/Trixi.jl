@@ -44,7 +44,6 @@ function max_dt(u::AbstractArray{<:Any,5}, t, mesh::CurvedMesh{3},
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack faces = mesh
   @unpack metric_terms = cache.elements
 
   for element in eachelement(dg, cache)
@@ -78,7 +77,6 @@ function max_dt(u::AbstractArray{<:Any,5}, t, mesh::CurvedMesh{3},
   # e.g. for steady-state linear advection
   max_scaled_speed = nextfloat(zero(t))
 
-  @unpack faces = mesh
   @unpack metric_terms = cache.elements
 
   max_λ1, max_λ2, max_λ3 = max_abs_speeds(equations)
