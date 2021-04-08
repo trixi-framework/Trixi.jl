@@ -6,7 +6,7 @@ function rhs!(du::AbstractArray{<:Any,5}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, equations, 
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, mesh, equations,
                                                                 dg.volume_integral, dg, cache)
 
   # Calculate interface fluxes
@@ -69,7 +69,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
                          element, 1, u, mesh, equations, dg)
-    
+
     # Interfaces in x-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
@@ -85,7 +85,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,5}, mesh::CurvedMesh{3},
 end
 
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u,
                               mesh::CurvedMesh{3}, equations, dg::DG)
   @unpack surface_flux = dg
 
@@ -151,7 +151,7 @@ end
 end
 
 
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
+function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux,
     mesh::CurvedMesh{3}, equations::AbstractEquations)
 
   @unpack coordinates_min, coordinates_max = mesh

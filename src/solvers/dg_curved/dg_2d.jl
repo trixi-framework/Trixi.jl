@@ -34,14 +34,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, 
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
 
-      flux1 = metric_terms[2, 2, i, j, element] * flux(u_node, 1, equations) - 
+      flux1 = metric_terms[2, 2, i, j, element] * flux(u_node, 1, equations) -
               metric_terms[1, 2, i, j, element] * flux(u_node, 2, equations)
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
-      flux2 = -metric_terms[2, 1, i, j, element] * flux(u_node, 1, equations) + 
+      flux2 = -metric_terms[2, 1, i, j, element] * flux(u_node, 1, equations) +
                metric_terms[1, 1, i, j, element] * flux(u_node, 2, equations)
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
@@ -66,7 +66,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[1, element],
                          element, 1, u, equations, dg, cache)
-    
+
     # Interfaces in y-direction (`orientation` = 2)
     calc_interface_flux!(elements.surface_flux_values,
                          elements.left_neighbors[2, element],
@@ -77,7 +77,7 @@ function calc_interface_flux!(u::AbstractArray{<:Any,4}, mesh::CurvedMesh{2},
 end
 
 
-@inline function calc_interface_flux!(surface_flux_values, left_element, right_element, 
+@inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u, equations, dg::DG, cache)
   @unpack surface_flux = dg
   @unpack metric_terms = cache.elements

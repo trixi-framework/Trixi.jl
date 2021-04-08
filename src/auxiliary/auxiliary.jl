@@ -132,19 +132,37 @@ get_name(::Val{x}) where x = string(x)
 """
     @threaded for ... end
 
-Basically the same as `Threads.@threads` with an additional check whether only
-one thread is used to reduce the overhead of serial execution.
+Semantically the same as `Threads.@threads` when iterating over a `AbstractUnitRange`
+but without guarantee that the underlying implementation uses `Threads.@threads`
+or works for more general for loops.
+In particular, there may be an additional check whether only one thread is used
+to reduce the overhead of serial execution or the underlying threading capabilities
+might be provided by other packages such as [CheapThreads.jl](https://github.com/JuliaSIMD/CheapThreads.jl).
+
+!!! warn
+  This macro does not necessarily work for general `for` loops.
 
 Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
+and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435.
 """
 macro threaded(expr)
-  # esc(quote ... end) as suggested in https://github.com/JuliaLang/julia/issues/23221
-  return esc(quote
-    if Threads.nthreads() == 1
-      $(expr)
-    else
-      Threads.@threads $(expr)
-    end
-  end)
-end
+  # Use `esc(quote ... end)` for nested macro calls as suggested in
+  # https://github.com/JuliaLang/julia/issues/23221
+  # The following code is a simple version using only `Threads.@threads` from the
+  # standard library with an additional check whether only a single thread is used
+  # to reduce some overhead (and allocations) for serial execution.
+  # However, the final code using `@batch` from CheapThreads.jl is more efficient,
+  # since this packages provides threads with less overhead. Since it is written
+  # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
+  # to provide the most efficient and useful implementation of threads (as we use
+  # them) available in Julia.
+  # return esc(quote
+  #   if Threads.nthreads() == 1
+  #     $(expr)
+  #   else
+  #     Threads.@threads $(expr)
+  #   end
+  # end)
 
+  return esc(quote @batch $(expr) end)
+end
