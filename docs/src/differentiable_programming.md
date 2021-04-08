@@ -365,7 +365,7 @@ has been spend to allow general types inside these calls).
 
 ### Propagating errors using Measurements.jl
 
-![tutorial_measurements1](https://imgs.xkcd.com/comics/error_bars.png)
+[![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
 
 Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
 theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
