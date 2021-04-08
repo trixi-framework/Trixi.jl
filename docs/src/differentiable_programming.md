@@ -210,7 +210,7 @@ julia> round.(extrema(J), sigdigits=2)
 Note that we create a semidiscretization `semi` at first to determine the state `u0_ode` around
 which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
 and pass that to `ForwardDiff.jacobian`. There, we need to make sure that the internal caches
-are able to store dual numbers from ForwardDiff.jl bu setting `uEltype` appropriately. A similar
+are able to store dual numbers from ForwardDiff.jl by setting `uEltype` appropriately. A similar
 approach is used by [`jacobian_ad_forward`](@ref).
 
 Note that the ideal gas constant does not influence the semidiscrete rate of change of the
@@ -360,7 +360,7 @@ sol = solve(ode, BS3(), save_everystep=false)
 Trixi.integrate(energy_total, sol.u[end], semi)
 ```
 do not need any modifications since they are sufficiently generic (and enough effort
-has been spend to allow general types inside thee calls).
+has been spend to allow general types inside these calls).
 
 
 
