@@ -90,6 +90,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   elseif nvisnodes == 0
     max_nvisnodes = n_nodes
   else
+    @assert nvisnodes > 1 "nvisnodes must be greater than one"
     max_nvisnodes = nvisnodes
   end
 
@@ -108,17 +109,15 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
   # Iterate over all variables.
-  for i in 1:n_vars
-    reshaped_data =reshape(unstructured_data[:, :, i], 1, n_nodes, n_elements)
-
+  for v in 1:n_vars
+    reshaped_data = reshape(unstructured_data[:, :, v], 1, n_nodes, n_elements)
     # Interpolate data for each element.
-    for j in 1:n_elements
-      interpolated_data[i,:,j] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, j]))
+    for element in 1:n_elements
+      interpolated_data[v, :, element] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, element]))
     end
   end
-
-  # Return results after data is reshaped and the last index is appended.
-  return vec(interpolated_nodes), convert(Array{Float64}, reshape(interpolated_data, n_vars,:)')
+  # Return results after data is reshaped
+  return vec(interpolated_nodes), collect(reshape(interpolated_data, :, n_vars))
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
