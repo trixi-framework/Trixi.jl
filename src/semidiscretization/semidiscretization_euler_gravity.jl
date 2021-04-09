@@ -156,6 +156,8 @@ end
   mesh_equations_solver_cache(semi.semi_euler)
 end
 
+@inline Base.ndims(semi::SemidiscretizationEulerGravity) = ndims(semi.semi_euler)
+
 @inline Base.real(semi::SemidiscretizationEulerGravity) = real(semi.semi_euler)
 
 

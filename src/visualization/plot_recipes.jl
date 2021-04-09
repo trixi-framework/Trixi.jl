@@ -19,7 +19,9 @@ Base.length(pd::AbstractPlotData) = length(pd.variable_names)
 Base.size(pd::AbstractPlotData) = (length(pd),)
 Base.keys(pd::AbstractPlotData) = tuple(pd.variable_names...)
 
-# These methods are used internally to set the default value of the solution variables
+# These methods are used internally to set the default value of the solution variables:
+# - If a `cons2prim` for the given `equations` exists, use it
+# - Otherwise, use `cons2cons`, which is defined for all systems of equations
 digest_solution_variables(equations, solution_variables) = solution_variables
 function digest_solution_variables(equations, solution_variables::Nothing)
   if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
@@ -603,11 +605,8 @@ end
                    solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
-
-  mesh, _, _, _ = mesh_equations_solver_cache(semi)
-
   # Create a PlotData1D or PlotData2D object depending on the dimension.
-  if ndims(mesh) == 1
+  if ndims(semi) == 1
     return PlotData1D(u, semi)
   else
     return PlotData2D(u, semi;
