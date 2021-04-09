@@ -2,28 +2,46 @@
 using UnPack
 using TimerOutputs
 
-# this type of unstructured mesh is really a sophisticated DG "container" so I am not sure where it goes
-include("unstructured_mesh.jl")
+
+include("containers_2d.jl")
 
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredMesh, equations::Trixi.AbstractEquations,
+function create_cache(mesh::UnstructuredQuadMesh, equations::Trixi.AbstractEquations,
                       dg::Trixi.DG, RealT)
 
-  # extract the elements and interfaces out of the mesh container and into cache
-  cache = (; mesh.elements, mesh.interfaces, mesh.boundaries)
+  poly_deg = nnodes(dg.basis) - 1
+  nvars = nvariables(equations)
+
+  if poly_deg > mesh.poly_deg
+    error("polynomial degree of DG must be less than or equal to mesh polynomial degree")
+  end
+
+  elements = init_elements(RealT, mesh, dg.basis.nodes, nvars, poly_deg)
+
+  interfaces = init_interfaces(RealT, mesh, nvars, poly_deg)
+
+  if isperiodic(mesh)
+    boundaries = UnstructuredBoundaryContainer2D{RealT, nvars, poly_deg}(0)
+  else
+    boundaries = init_boundaries(RealT, mesh, elements, nvars, poly_deg)
+  end
+
+  cache = (; elements, interfaces, boundaries)
 
   return cache
 end
 
-@inline ndofs(mesh::UnstructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
+
+# # TODO: put this in the right place
+ @inline ndofs(mesh::UnstructuredQuadMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 
 # TODO: append the mesh to the end of each of these functions such that we dispatch on the correct version
 #       and use the ::UnstructuredMesh below to keep track on it
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
-              mesh::UnstructuredMesh, equations,
+              mesh::UnstructuredQuadMesh, equations,
               initial_condition, boundary_conditions, source_terms,
               dg::DG, cache)
   # Reset du

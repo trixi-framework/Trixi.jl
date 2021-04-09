@@ -7,6 +7,5 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, eleme
   return inverse_jacobian
 end
 
-include("curve_interpolant.jl")
 include("curved_map_and_geom.jl")
 include("straight_map_and_geom.jl")
