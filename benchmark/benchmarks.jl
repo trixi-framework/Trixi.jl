@@ -22,7 +22,7 @@ let
   SUITE["latency"]["default_example"] = @benchmarkable run(
     `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(default_example())'`) seconds=60
   for polydeg in [3, 7]
-    SUITE["latency"]["polydeg_$polydeg"] = @benchmarkable run(
-      `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(joinpath(examples_dir(), "2d", "elixir_advection_extended.jl"), polydeg=$polydeg, save_restart=TrivialCallback(), save_solution=TrivialCallback())'`) seconds=60
+    command = "using Trixi; trixi_include(joinpath(examples_dir(), \"2d\", \"elixir_advection_extended.jl\"), polydeg=$(polydeg), save_restart=TrivialCallback(), save_solution=TrivialCallback(), cfl=0.1)"
+    SUITE["latency"]["polydeg_$polydeg"] = @benchmarkable run($`$(Base.julia_cmd()) -e $command`) seconds=60
   end
 end

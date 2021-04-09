@@ -96,7 +96,34 @@ You can also make it more detailed by benchmarking only, e.g., the calculation o
 ## Automated benchmarking
 
 We use [PkgBenchmark.jl](https://github.com/JuliaCI/PkgBenchmark.jl) to provide a standard set of
-benchmarks for Trixi.
+benchmarks for Trixi. The relevant benchmark script is
+[benchmark/benchmarks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/benchmark/benchmarks.jl).
+You can run a standard set of benchmarks via
+```julia
+julia> using PkgBenchmark, Trixi
+
+julia> benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=2`))
+```
+Note that this will take quite some time. Additional options are described in the
+[docs of PkgBenchmark.jl](https://juliaci.github.io/PkgBenchmark.jl/stable).
+A particularly useful option is to specify a `BenchmarkConfig` including Julia
+command line options affecting the performance such as disabling bounds-checking
+and setting the number of threads.
+
+A useful feature when developing Trixi is to compare the performance of Trixi's
+current state vs. the `main` branch. This can be achieved by executing
+```julia
+julia> using PkgBenchmark, Trixi
+
+julia> results = judge(Trixi,
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=2`), # target
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=2`, id="main") # baseline
+       )
+
+julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "results.md"), results)
+```
+By default, the `target` is the current state of the repository. Remember that you
+need to be in a clean state (commit or stash your changes) to run this successfully.
 
 
 
