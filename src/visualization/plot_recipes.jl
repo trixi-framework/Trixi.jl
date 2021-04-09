@@ -279,7 +279,7 @@ end
 # Visualize a single variable in a 2D plot. Only works for `scatter` right now.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}}) 
+@recipe function f(pds::PlotDataSeries2D{<:PlotData2D{<:Any, <:AbstractVector{<:AbstractVector}}})
   @unpack plot_data, variable_id = pds
   @unpack x, y, data, variable_names = plot_data
 
@@ -579,24 +579,26 @@ end
 # The plot is created by a PlotData1D or PlotData2D object.
 #
 # Note: This is an experimental feature and may be changed in future releases without notice.
-#
+@recipe function f(sol::TrixiODESolution)
+  # Redirect everything to the recipe below
+  return sol.u[end], sol.prob.p
+end
+
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
-@recipe function f(sol::TrixiODESolution;
+@recipe function f(u, semi::AbstractSemidiscretization;
                    solution_variables=cons2prim,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
 
-  mesh, _, _, _ = mesh_equations_solver_cache(sol.prob.p)
+  mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(mesh) == 1
-    return PlotData1D(sol)
+    return PlotData1D(u, semi)
   else
-    return PlotData2D(sol;
-                      solution_variables=solution_variables,
-                      grid_lines=grid_lines, max_supported_level=max_supported_level,
-                      nvisnodes=nvisnodes, slice_axis=slice_axis,
-                      slice_axis_intercept=slice_axis_intercept)
-    end
+    return PlotData2D(u, semi;
+                      solution_variables, grid_lines, max_supported_level,
+                      nvisnodes, slice_axis, slice_axis_intercept)
+  end
 end
