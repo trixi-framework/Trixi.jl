@@ -1,7 +1,7 @@
 name = "Trixi"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 authors = ["Michael Schlottke-Lakemper <mschlott@math.uni-koeln.de>", "Gregor Gassner <ggassner@uni-koeln.de>", "Hendrik Ranocha <mail@ranocha.de>", "Andrew R. Winters <andrew.ross.winters@liu.se>"]
-version = "0.3.23"
+version = "0.3.25"
 
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
@@ -27,7 +27,7 @@ UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 CodeTracking = "1.0.5"
 DiffEqBase = "6.47"
 EllipsisNotation = "1.0"
-ForwardDiff = "0.10"
+ForwardDiff = "0.10.18"
 HDF5 = "0.14, 0.15"
 LinearMaps = "2.7, 3.0"
 LoopVectorization = "0.11.1, 0.12"

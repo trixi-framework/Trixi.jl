@@ -1,5 +1,5 @@
 
-function create_cache_analysis(analyzer, mesh::TreeMesh,
+function create_cache_analysis(analyzer, mesh::TreeMesh{2},
                                equations::AbstractEquations{2}, dg::DG, cache,
                                RealT, uEltype)
 
@@ -17,7 +17,7 @@ function create_cache_analysis(analyzer, mesh::TreeMesh,
 end
 
 
-function create_cache_analysis(analyzer, mesh::CurvedMesh,
+function create_cache_analysis(analyzer, mesh::CurvedMesh{2},
                                equations::AbstractEquations{2}, dg::DG, cache,
                                RealT, uEltype)
   # pre-allocate buffers
@@ -139,7 +139,7 @@ end
 
 
 function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
-                               mesh::CurvedMesh, equations, dg::DGSEM, cache,
+                               mesh::CurvedMesh{2}, equations, dg::DGSEM, cache,
                                args...; normalize=true) where {Func}
   @unpack weights = dg.basis
 
@@ -150,9 +150,9 @@ function integrate_via_indices(func::Func, u::AbstractArray{<:Any,4},
   # Use quadrature to numerically integrate over entire domain
   for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
-      jacobian_volume = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
-      integral += jacobian_volume * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
-      total_volume += jacobian_volume * weights[i] * weights[j]
+      volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+      integral += volume_jacobian * weights[i] * weights[j] * func(u, i, j, element, equations, dg, args...)
+      total_volume += volume_jacobian * weights[i] * weights[j]
     end
   end
 

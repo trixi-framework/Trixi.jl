@@ -210,7 +210,7 @@ julia> round.(extrema(J), sigdigits=2)
 Note that we create a semidiscretization `semi` at first to determine the state `u0_ode` around
 which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure
 and pass that to `ForwardDiff.jacobian`. There, we need to make sure that the internal caches
-are able to store dual numbers from ForwardDiff.jl bu setting `uEltype` appropriately. A similar
+are able to store dual numbers from ForwardDiff.jl by setting `uEltype` appropriately. A similar
 approach is used by [`jacobian_ad_forward`](@ref).
 
 Note that the ideal gas constant does not influence the semidiscrete rate of change of the
@@ -360,7 +360,54 @@ sol = solve(ode, BS3(), save_everystep=false)
 Trixi.integrate(energy_total, sol.u[end], semi)
 ```
 do not need any modifications since they are sufficiently generic (and enough effort
-has been spend to allow general types inside thee calls).
+has been spend to allow general types inside these calls).
+
+
+### Propagating errors using Measurements.jl
+
+[![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
+
+Similar to AD, Trixi also allows propagating uncertainties using linear error propagation
+theory via [Measurements.jl](https://github.com/JuliaPhysics/Measurements.jl).
+As an example, let's create a system representing the linear advection equation
+in 1D with an uncertain velocity. Then, we create a semidiscretization using a
+sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
+in the primitive variables.
+```jldoctest;  output = false
+using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+
+equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1);
+
+mesh = TreeMesh((-1.0,), (1.0,), n_cells_max=10^5, initial_refinement_level=5);
+
+solver = DGSEM(3);
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver, uEltype=Measurement{Float64});
+
+ode = semidiscretize(semi, (0.0, 1.5));
+
+sol = solve(ode, BS3(), save_everystep=false);
+
+plot(sol)
+
+# output
+
+Plot{Plots.GRBackend() n=1}
+```
+
+You should see a plot like the following, where small error bars are shown around
+the extrema and larger error bars are shown in the remaining parts. This result
+is in accordance with expectations. Indeed, the uncertain propagation speed will
+affect the extrema less since the local variation of the solution is relatively
+small there. In contrast, the local variation of the solution is large around
+the turning points of the sine wave, so the uncertainties will be relatively
+large there.
+
+All this is possible due to allowing generic types and having good abstractions
+in Julia that allow packages to work together seamlessly.
+
+![tutorial_measurements1](https://user-images.githubusercontent.com/12693098/114027260-78ca8300-9877-11eb-88d4-f93c9bc55d0b.png)
 
 
 
