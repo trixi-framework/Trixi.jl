@@ -2,7 +2,7 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
-                      dg::DG, RealT)
+                      dg::DG, RealT, uEltype=RealT)
 
   poly_deg = nnodes(dg.basis) - 1
   nvars = nvariables(equations)

@@ -1,6 +1,6 @@
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
-struct UnstructuredElementContainer2D{RealT<:Real, NVARS, POLYDEG}
+struct UnstructuredElementContainer2D{RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
   node_coordinates   ::Array{RealT, 4} # [ndims, nnodes, nnodes, nelement]
   X_xi               ::Array{RealT, 3} # [nnodes, nnodes, nelement]
   X_eta              ::Array{RealT, 3} # [nnodes, nnodes, nelement]
@@ -16,7 +16,7 @@ end
 
 # construct an empty curved element container to be filled later with geometries in the
 # unstructured mesh constructor
-function UnstructuredElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64) where {RealT<:Real, NVARS, POLYDEG}
+function UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(capacity::Int64) where {RealT<:Real, uEltype<:Real, NVARS, POLYDEG}
 
   nnodes = POLYDEG + 1
   nan = convert(RealT, NaN)
@@ -32,11 +32,11 @@ function UnstructuredElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64) 
   scaling             = fill(nan, (nnodes, 4, capacity))
   surface_flux_values = fill(nan, (NVARS, nnodes, 4, capacity))
 
-  return UnstructuredElementContainer2D{RealT, NVARS, POLYDEG}(node_coordinates,
-                                                               X_xi, X_eta, Y_xi, Y_eta,
-                                                               inverse_jacobian,
-                                                               normals, tangents, scaling,
-                                                               surface_flux_values)
+  return UnstructuredElementContainer2D{RealT, uEltype, NVARS, POLYDEG}(node_coordinates,
+                                                                        X_xi, X_eta, Y_xi, Y_eta,
+                                                                        inverse_jacobian,
+                                                                        normals, tangents, scaling,
+                                                                        surface_flux_values)
 end
 
 
@@ -44,10 +44,13 @@ end
 
 @inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
 
+# TODO: I do not fully understand what this is doing. What exactly is uEltype and why do we use it?
+Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
+
 
 function init_elements(RealT, mesh, dg_nodes, nvars, poly_deg)
 
-  elements = UnstructuredElementContainer2D{RealT, nvars, poly_deg}(mesh.n_elements)
+  elements = UnstructuredElementContainer2D{RealT, RealT, nvars, poly_deg}(mesh.n_elements)
 
   four_corners = zeros(4, 2)
   #loop through elements and call the correct constructor based on the is curved
