@@ -127,14 +127,11 @@ T = [cos_ -sin_; sin_ cos_]
 surface_flux = FluxRotated(flux_lax_friedrichs)
 solver = DGSEM(3, surface_flux)
 
-f1(s) = T * SVector(-1, s)
-f2(s) = T * SVector( 1, s)
-f3(s) = T * SVector(s, -1)
-f4(s) = T * SVector(s,  1)
+mapping(xi, eta) = T * SVector(xi, eta)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_source_terms, solver,
