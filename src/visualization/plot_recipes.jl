@@ -128,8 +128,9 @@ end
 
 Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
 `u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
-from the semidiscretization `semi`. By default, the conservative variables from the solution are used
-for plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+from the semidiscretization `semi`. By default, the primitive variables (if existent) or the
+conservative variables (otherwise) from the solution are used for plotting. This can be changed by
+passing an appropriate conversion function to `solution_variables`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -421,12 +422,13 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
 end
 
 """
-    PlotData1D(u, semi; solution_variables=cons2prim, nvisnodes=nothing))
+    PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing))
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`. By default, the conservative variables from the solution are used for plotting. This can be
-changed by passing an appropriate conversion function to `solution_variables`.
+`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
+from the solution are used for plotting. This can be changed by passing an appropriate conversion
+function to `solution_variables`.
 
 `nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
@@ -437,15 +439,16 @@ exactly the number of nodes in the DG elements are used.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi; solution_variables=cons2prim, nvisnodes=nothing)
+function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
 
-  variable_names = SVector(varnames(solution_variables, equations))
+  variable_names = SVector(varnames(solution_variables_, equations))
   original_nodes = cache.elements.node_coordinates
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables)
+  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
   x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
