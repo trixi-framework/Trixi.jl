@@ -40,7 +40,6 @@ function UnstructuredElementContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64) 
 end
 
 
-# TODO: adjust this to use the same nelement and each element as the other parts of Trixi
 @inline nelements(elements::UnstructuredElementContainer2D) = size(elements.inverse_jacobian, 3)
 
 @inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
