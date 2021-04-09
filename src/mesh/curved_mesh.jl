@@ -169,9 +169,7 @@ end
 
 # In 3D
 # Trilinear mapping from the reference element to the domain described by the faces
-function trilinear_mapping(x, y, z, mesh)
-  @unpack faces = mesh
-
+function trilinear_mapping(x, y, z, faces)
   x1 = faces[1](-1, -1) # mapped from (-1,-1,-1)
   x2 = faces[2](-1, -1) # mapped from ( 1,-1,-1)
   x3 = faces[1]( 1, -1) # mapped from (-1, 1,-1)
