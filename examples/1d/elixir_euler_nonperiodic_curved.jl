@@ -21,9 +21,9 @@ boundary_conditions = (x_neg=boundary_condition_convergence_test,
 surface_flux = flux_lax_friedrichs
 solver = DGSEM(3, surface_flux)
 
-coordinates_min = (0.0,)
-coordinates_max = (2.0,)
-mesh = CurvedMesh((16,), coordinates_min, coordinates_max, periodicity=false)
+f1() = SVector(0.0)
+f2() = SVector(2.0)
+mesh = CurvedMesh((16,), (f1, f2), periodicity=false)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
