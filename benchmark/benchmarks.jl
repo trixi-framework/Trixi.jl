@@ -21,7 +21,7 @@ end
 let dimension = "3d"
   SUITE[dimension] = BenchmarkGroup()
   EXAMPLES_DIR = joinpath(examples_dir(), dimension)
-  for elixir in ["elixir_advection_extended.jl", "elixir_advection_amr_nonperiodic.jl",
+  for elixir in ["elixir_advection_extended.jl",
                  "elixir_euler_ec.jl", "elixir_euler_mortar.jl"]
     SUITE[dimension][elixir] = BenchmarkGroup()
     for polydeg in [3, 7]
