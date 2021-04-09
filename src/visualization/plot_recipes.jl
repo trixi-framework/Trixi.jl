@@ -19,6 +19,16 @@ Base.length(pd::AbstractPlotData) = length(pd.variable_names)
 Base.size(pd::AbstractPlotData) = (length(pd),)
 Base.keys(pd::AbstractPlotData) = tuple(pd.variable_names...)
 
+# These methods are used internally to set the default value of the solution variables
+digest_solution_variables(equations, solution_variables) = solution_variables
+function digest_solution_variables(equations, solution_variables::Nothing)
+  if hasmethod(cons2prim, Tuple{AbstractVector, typeof(equations)})
+    return cons2prim
+  else
+    return cons2cons
+  end
+end
+
 """
     PlotData2D
 
@@ -40,14 +50,15 @@ end
 
 """
     PlotData2D(u, semi;
-               solution_variables=cons2prim,
+               solution_variables=nothing,
                grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                slice_axis=:z, slice_axis_intercept=0)
 
 Create a new `PlotData2D` object that can be used for visualizing 2D/3D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`. By default, the conservative variables from the solution are used for plotting. This can be
-changed by passing an appropriate conversion function to `solution_variables`.
+`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
+from the solution are used for plotting. This can be changed by passing an appropriate conversion
+function to `solution_variables`.
 
 If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
 resolution is indirectly set via `max_supported_level`: all data is interpolated to
@@ -82,11 +93,12 @@ julia> plot!(getmesh(pd)) # To add grid lines to the plot
 ```
 """
 function PlotData2D(u, semi;
-                    solution_variables=cons2prim,
+                    solution_variables=nothing,
                     grid_lines=true, max_supported_level=11, nvisnodes=nothing,
                     slice_axis=:z, slice_axis_intercept=0)
   mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (2, 3) "unsupported number of dimensions $ndims (must be 2 or 3)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
 
   # Extract mesh info
   center_level_0 = mesh.tree.center_level_0
@@ -95,14 +107,14 @@ function PlotData2D(u, semi;
   coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
   levels = mesh.tree.levels[leaf_cell_ids]
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables)
+  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
   x, y, data, mesh_vertices_x, mesh_vertices_y = get_data_2d(center_level_0, length_level_0,
                                                              leaf_cell_ids, coordinates, levels,
                                                              ndims(mesh), unstructured_data,
                                                              nnodes(solver), grid_lines,
                                                              max_supported_level, nvisnodes,
                                                              slice_axis, slice_axis_intercept)
-  variable_names = SVector(varnames(solution_variables, equations))
+  variable_names = SVector(varnames(solution_variables_, equations))
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
 end
@@ -110,7 +122,7 @@ end
 
 """
     PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
-               solution_variables=cons2prim, kwargs...)
+               solution_variables=nothing, kwargs...)
 
 Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
 `u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
@@ -122,13 +134,14 @@ for plotting. This can be changed by passing an appropriate conversion function 
 
 """
 function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
-                    solution_variables=cons2prim, grid_lines=true, kwargs...)
+                    solution_variables=nothing, grid_lines=true, kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
 
   @assert ndims(mesh) == 2 "unsupported number of dimensions $ndims (must be 2)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
 
-  unstructured_data = get_unstructured_data(u, semi, solution_variables)
+  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
 
   x = vec(view(node_coordinates, 1, ..))
   y = vec(view(node_coordinates, 2, ..))
@@ -142,7 +155,7 @@ function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbol
     mesh_vertices_y = Matrix{Float64}(undef, 0, 0)
   end
 
-  variable_names = SVector(varnames(solution_variables, equations))
+  variable_names = SVector(varnames(solution_variables_, equations))
 
   return PlotData2D(x, y, data, variable_names, mesh_vertices_x, mesh_vertices_y)
 end
@@ -587,7 +600,7 @@ end
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
 @recipe function f(u, semi::AbstractSemidiscretization;
-                   solution_variables=cons2prim,
+                   solution_variables=nothing,
                    grid_lines=true, max_supported_level=11, nvisnodes=nothing, slice_axis=:z,
                    slice_axis_intercept=0)
 
