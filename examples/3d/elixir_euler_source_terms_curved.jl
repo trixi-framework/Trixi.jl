@@ -13,11 +13,17 @@ surface_flux = flux_lax_friedrichs
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(3, surface_flux, volume_integral)
 
-coordinates_min = (0.0, 0.0, 0.0)
-coordinates_max = (2.0, 2.0, 2.0)
+# coordinates_min = (0.0, 0.0, 0.0)
+# coordinates_max = (2.0, 2.0, 2.0)
+f1(s, t) = SVector(0.0, s + 1.0, t + 1.0)
+f2(s, t) = SVector(2.0, s + 1.0, t + 1.0)
+f3(s, t) = SVector(s + 1.0, 0.0, t + 1.0)
+f4(s, t) = SVector(s + 1.0, 2.0, t + 1.0)
+f5(s, t) = SVector(s + 1.0, t + 1.0, 0.0)
+f6(s, t) = SVector(s + 1.0, t + 1.0, 2.0)
 cells_per_dimension = (4, 4, 4)
 
-mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms=source_terms_convergence_test)

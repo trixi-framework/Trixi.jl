@@ -1,6 +1,5 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
-  @unpack faces = mesh
   @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
@@ -9,7 +8,7 @@ function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBas
   for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y]
 
-    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh, basis)
+    calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh.mapping, mesh, basis)
 
     calc_metric_terms!(metric_terms, element, node_coordinates, basis)
 
@@ -23,8 +22,9 @@ end
 
 
 # Calculate physical coordinates to which every node of the reference element is mapped
+# `mesh.mapping` is passed as an additional argument for type stability (function barrier)
 function calc_node_coordinates!(node_coordinates, element,
-                                cell_x, cell_y,
+                                cell_x, cell_y, mapping,
                                 mesh::CurvedMesh{2},
                                 basis::LobattoLegendreBasis)
   @unpack nodes = basis
@@ -39,8 +39,8 @@ function calc_node_coordinates!(node_coordinates, element,
 
   for j in eachindex(nodes), i in eachindex(nodes)
     # node_coordinates are the mapped reference node_coordinates
-    node_coordinates[:, i, j, element] .= transfinite_mapping(cell_x_offset + dx/2 * nodes[i],
-                                                              cell_y_offset + dy/2 * nodes[j], mesh)
+    node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx/2 * nodes[i],
+                                                  cell_y_offset + dy/2 * nodes[j])
   end
 end
 

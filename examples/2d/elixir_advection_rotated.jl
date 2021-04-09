@@ -67,17 +67,12 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(3, flux_lax_friedrichs)
 
-# coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-# coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
-f1(s) = T * SVector(-2, s)
-f2(s) = T * SVector( 2, s)
-f3(s) = T * SVector(2*s, -1)
-f4(s) = T * SVector(2*s,  1)
+mapping(xi, eta) = T * SVector(2 * xi, eta)
 
 cells_per_dimension = (32, 19)
 
 # Create curved mesh with 16 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
