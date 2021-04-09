@@ -26,7 +26,7 @@ Here, we just list some important aspects you should consider when developing Tr
 
 
 
-## Benchmarking
+## Manual benchmarking
 
 If you modify some internal parts of Trixi, you should check the impact on performance.
 Hence, you should at least investigate the performance roughly by comparing the reported
@@ -91,6 +91,13 @@ of the runtimes are of the order of the fluctuations one gets when running the b
 the memory/allocs are (roughly) the same, there doesn't seem to be a significant performance regression here.
 
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
+
+
+## Automated benchmarking
+
+We use [PkgBenchmark.jl](https://github.com/JuliaCI/PkgBenchmark.jl) to provide a standard set of
+benchmarks for Trixi.
+
 
 
 ## Runtime performance vs. latency aka using `@nospecialize` selectively

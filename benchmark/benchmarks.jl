@@ -1,0 +1,28 @@
+
+using BenchmarkTools
+using Trixi
+
+const SUITE = BenchmarkGroup()
+
+for dimension in ["1d", "2d", "3d"]
+  SUITE[dimension] = BenchmarkGroup()
+  EXAMPLES_DIR = joinpath(examples_dir(), dimension)
+  for elixir in ["elixir_advection_extended.jl", "elixir_euler_ec.jl"]
+    SUITE[dimension][elixir] = BenchmarkGroup()
+    for polydeg in [3, 7]
+      trixi_include(joinpath(EXAMPLES_DIR, elixir), tspan=(0.0, 0.0); polydeg)
+      SUITE[dimension][elixir]["p$(polydeg)_rhs!"] = @benchmarkable Trixi.rhs!($(similar(ode.u0)), $(copy(ode.u0)), $(semi), $(first(tspan)))
+      SUITE[dimension][elixir]["p$(polydeg)_analysis"] = @benchmarkable ($analysis_callback)($sol)
+    end
+  end
+end
+
+let
+  SUITE["latency"] = BenchmarkGroup()
+  SUITE["latency"]["default_example"] = @benchmarkable run(
+    `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(default_example())'`) seconds=60
+  for polydeg in [3, 7]
+    SUITE["latency"]["polydeg_$polydeg"] = @benchmarkable run(
+      `$(Base.julia_cmd()) -e 'using Trixi; trixi_include(joinpath(examples_dir(), "2d", "elixir_advection_extended.jl"), polydeg=$polydeg, save_restart=TrivialCallback(), save_solution=TrivialCallback())'`) seconds=60
+  end
+end
