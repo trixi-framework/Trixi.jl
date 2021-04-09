@@ -90,12 +90,12 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
   elseif nvisnodes == 0
     max_nvisnodes = n_nodes
   else
-    @assert nvisnodes > 1 "nvisnodes must be greater than one"
+    @assert nvisnodes >= 2 "nvisnodes must be zero or >= 2"
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{Float64,2}(undef, max_nvisnodes, n_elements)
-  interpolated_data = Array{Float64,3}(undef, n_vars, max_nvisnodes, n_elements)
+  interpolated_nodes = Array{Float64, 2}(undef, max_nvisnodes, n_elements)
+  interpolated_data = Array{Float64, 3}(undef, max_nvisnodes, n_elements, n_vars)
 
   for j in 1:n_elements
     # Interpolate on an equidistant grid.
@@ -113,7 +113,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     reshaped_data = reshape(unstructured_data[:, :, v], 1, n_nodes, n_elements)
     # Interpolate data for each element.
     for element in 1:n_elements
-      interpolated_data[v, :, element] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, element]))
+      interpolated_data[:, element, v] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, element]))
     end
   end
   # Return results after data is reshaped

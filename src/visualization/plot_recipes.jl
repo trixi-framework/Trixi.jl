@@ -431,11 +431,11 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
   xlims --> (x[begin], x[end])
 
   # Set annotation properties
-  legend -->  :none
+  legend --> :none
   title --> variable_names[variable_id]
 
   # Return data for plotting
-  x, data[:,variable_id]
+  x, data[:, variable_id]
 end
 
 # Plot the mesh as vertical lines from a PlotMesh1D object.
