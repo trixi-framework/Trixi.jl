@@ -877,7 +877,7 @@ end
   #                 0  -sin(α)  cos(α)  0;
   #                 0     0       0     1 ]
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] + s * u[3],
                  -s * u[2] + c * u[3],
                  u[4])
@@ -896,10 +896,34 @@ end
   #                 0  sin(α)  cos(α)   0;
   #                 0    0       0      1 ]
 
-  return SVector(u[1], 
+  return SVector(u[1],
                  c * u[2] - s * u[3],
                  s * u[2] + c * u[3],
                  u[4])
+end
+
+
+##
+# TODO: merge these with the routines above in a smart way
+@inline function rotate_solution(u, normal, tangent, equations::CompressibleEulerEquations2D)
+
+  u_tilde1 = u[1]
+  u_tilde2 = u[2] * normal[1]  + u[3] * normal[2]
+  u_tilde3 = u[2] * tangent[1] + u[3] * tangent[2]
+  u_tilde4 = u[4]
+
+  return SVector(u_tilde1, u_tilde2, u_tilde3, u_tilde4)
+end
+
+
+@inline function backrotate_flux(f_tilde, normal, tangent, equations::CompressibleEulerEquations2D)
+
+  f1 = f_tilde[1]
+  f2 = f_tilde[2] * normal[1] + f_tilde[3] * tangent[1]
+  f3 = f_tilde[2] * normal[2] + f_tilde[3] * tangent[2]
+  f4 = f_tilde[4]
+
+  return SVector(f1, f2, f3, f4)
 end
 
 
@@ -1052,18 +1076,18 @@ end
   # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
   # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
   @unpack gamma = equations
-  
+
   # convert to entropy `-rho * s` used by Hughes, France, Mallet (1986)
   # instead of `-rho * s / (gamma - 1)`
   V1, V2, V3, V5 = w * (gamma-1)
-  
-  # s = specific entropy, eq. (53)    
+
+  # s = specific entropy, eq. (53)
   s = gamma - V1 + (V2^2 + V3^2)/(2*V5)
 
   # eq. (52)
   rho_iota = ((gamma-1) / (-V5)^gamma)^(1/(gamma-1))*exp(-s/(gamma-1))
 
-  # eq. (51)  
+  # eq. (51)
   rho      = -rho_iota * V5
   rho_v1   =  rho_iota * V2
   rho_v2   =  rho_iota * V3

@@ -218,30 +218,6 @@ function calc_interface_flux_unstructured_quad!(surface_flux_values::AbstractArr
 end
 
 
-##
-# TODO: move these rotation routines into compressible_euler_2d.jl as they are equation dependent
-@inline function rotate_solution(u, normal, tangent, equations::CompressibleEulerEquations2D)
-
-  u_tilde1 = u[1]
-  u_tilde2 = u[2] * normal[1]  + u[3] * normal[2]
-  u_tilde3 = u[2] * tangent[1] + u[3] * tangent[2]
-  u_tilde4 = u[4]
-
-  return SVector(u_tilde1, u_tilde2, u_tilde3, u_tilde4)
-end
-
-
-@inline function backrotate_flux(f_tilde, normal, tangent, equations::CompressibleEulerEquations2D)
-
-  f1 = f_tilde[1]
-  f2 = f_tilde[2] * normal[1] + f_tilde[3] * tangent[1]
-  f3 = f_tilde[2] * normal[2] + f_tilde[3] * tangent[2]
-  f4 = f_tilde[4]
-
-  return SVector(f1, f2, f3, f4)
-end
-
-
 # move the approximate solution onto physical boundaries within a "right-handed" element
 function prolong2boundaries_right_handed!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
   @unpack boundaries = cache
