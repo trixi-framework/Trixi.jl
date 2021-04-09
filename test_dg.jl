@@ -3,13 +3,11 @@ using Trixi
 #using Plots
 using PyPlot
 
-include("dg.jl")
-
 ###############################################################################
 # Get the equations
 
 equations = CompressibleEulerEquations2D(1.4)
-num_eqns = Trixi.nvariables(equations)
+num_eqns = nvariables(equations)
 
 initial_condition = initial_condition_convergence_test
 source_term = source_terms_convergence_test
@@ -36,7 +34,7 @@ mesh = UnstructuredQuadMesh(Float64, mesh_file, periodicity)
 ###############################################################################
 # test out creating the cache
 
-cache = create_cache(mesh, equations, solver, Float64)
+cache = Trixi.create_cache(mesh, equations, solver, Float64)
 
 # for j in 2:40
 # #for j in 2:16
@@ -97,15 +95,13 @@ while !finalstep
   u_tmp .= 0
   for stage in eachindex(ode_algorithm.c)
     t_stage = t + dt * ode_algorithm.c[stage]
-    rhs!(du, u, t_stage, mesh, equations, initial_condition, boundary_conditions, source_term, solver, cache)
+    Trixi.rhs!(du, u, t_stage, mesh, equations, initial_condition, boundary_conditions, source_term, solver, cache)
 
     a_stage    = ode_algorithm.a[stage]
     b_stage_dt = ode_algorithm.b[stage] * dt
-    @timeit_debug timer() "Runge-Kutta step" begin
-      for i in eachindex(u)
-        u_tmp[i] = du[i] - u_tmp[i] * a_stage
-        u[i] += u_tmp[i] * b_stage_dt
-      end
+    for i in eachindex(u)
+      u_tmp[i] = du[i] - u_tmp[i] * a_stage
+      u[i] += u_tmp[i] * b_stage_dt
     end
   end
   t += dt
@@ -124,7 +120,7 @@ for eID in eachelement(cache.elements)
   end
 end
 
-linf_error = zeros(Trixi.nvariables(equations))
+linf_error = zeros(nvariables(equations))
 for eID in eachelement(cache.elements)
   for j in eachnode(solver), i in eachnode(solver)
     diff = u[:,i,j,eID] - u_exact[:,i,j,eID]

@@ -1,7 +1,4 @@
 
-include("unstructured_quad_mesh.jl")
-include("element_geometry.jl")
-
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, NVARS, POLYDEG}
   node_coordinates   ::Array{RealT, 4} # [ndims, nnodes, nnodes, nelement]

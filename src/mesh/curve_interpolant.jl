@@ -12,7 +12,7 @@ function GammaCurve(RealT, curve_polydeg, curve_x_vals, curve_y_vals)
   nnodes_ = curve_polydeg + 1
 
   nodes, _ = chebyshev_gauss_lobatto_nodes_weights(nnodes_)
-  wbary    = Trixi.barycentric_weights(nodes)
+  wbary    = barycentric_weights(nodes)
 
   return GammaCurve{RealT, nnodes_}(nodes, wbary, curve_x_vals, curve_y_vals)
 end
@@ -21,7 +21,7 @@ end
 # evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
 function evaluate_at(s, bndy_curve::GammaCurve)
 
-   @Trixi.unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
+   @unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
 
    x_point = lagrange_interpolation(s, nodes, x_vals, bary_weights)
    y_point = lagrange_interpolation(s, nodes, y_vals, bary_weights)
@@ -34,7 +34,7 @@ end
 # and return the (x,y) coordinate
 function derivative_at(s, bndy_curve::GammaCurve)
 
-   @Trixi.unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
+   @unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
 
    x_point_prime = lagrange_interpolation_derivative(s, nodes, x_vals, bary_weights)
    y_point_prime = lagrange_interpolation_derivative(s, nodes, y_vals, bary_weights)

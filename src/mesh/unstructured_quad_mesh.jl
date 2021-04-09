@@ -1,6 +1,3 @@
-
-include("curve_interpolant.jl")
-
 """
     UnstructuredQuadMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
 
@@ -11,7 +8,7 @@ All mesh information, neighbour coupling, and boundary curve information is read
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-struct UnstructuredQuadMesh{NDIMS, RealT<:Real} <: Trixi.AbstractMesh{NDIMS}
+struct UnstructuredQuadMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   filename             ::String
   n_corners            ::Int64
   n_interfaces         ::Int64

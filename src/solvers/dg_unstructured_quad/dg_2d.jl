@@ -1,15 +1,8 @@
-
-using UnPack
-using TimerOutputs
-
-
-include("containers_2d.jl")
-
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::UnstructuredQuadMesh, equations::Trixi.AbstractEquations,
-                      dg::Trixi.DG, RealT)
+function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
+                      dg::DG, RealT)
 
   poly_deg = nnodes(dg.basis) - 1
   nvars = nvariables(equations)
@@ -44,7 +37,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, Trixi.have_nonconservative_terms(equations), equations,
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
                                                                 dg.volume_integral, dg, cache, mesh)
 
   # Prolong solution to interfaces
@@ -52,7 +45,7 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 
   # Calculate interface fluxes
   @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
-                                                              Trixi.have_nonconservative_terms(equations), equations,
+                                                              have_nonconservative_terms(equations), equations,
                                                               dg, cache, mesh)
 
   # Prolong solution to boundaries
@@ -85,7 +78,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
 #  @threaded for element in eachelement(cache.mesh.elements)
   for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
-      u_node = Trixi.get_node_vars(u, equations, dg, i, j, element)
+      u_node = get_node_vars(u, equations, dg, i, j, element)
 
       # compute the physical fluxes in each Cartesian direction
       x_flux = flux(u_node, 1, equations)
@@ -95,14 +88,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       flux1  = Y_eta[i, j, element] * x_flux - X_eta[i, j, element] * y_flux
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
-        Trixi.add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
+        add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
       # compute the contravariant flux in the y-direction
       flux2  = -Y_xi[i, j, element] * x_flux + X_xi[i, j, element] * y_flux
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
-        Trixi.add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
+        add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
       end
     end
   end
@@ -280,8 +273,8 @@ end
 
 
 # TODO: Taal dimension agnostic
-function calc_boundary_flux!(cache, t, boundary_condition::Trixi.BoundaryConditionPeriodic,
-                             equations::Trixi.AbstractEquations{2}, dg::DG, initial_condition, mesh::UnstructuredQuadMesh)
+function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
+                             equations::AbstractEquations{2}, dg::DG, initial_condition, mesh::UnstructuredQuadMesh)
   @assert isempty(eachboundary(cache.boundaries))
 end
 
@@ -400,10 +393,10 @@ function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations
 #  @threaded for element in eachelement(cache.mesh.elements)
   for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
-      u_local = Trixi.get_node_vars(u, equations, dg, i, j, element)
-      x_local = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
+      u_local = get_node_vars(u, equations, dg, i, j, element)
+      x_local = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       du_local = source_terms(u_local, x_local, t, equations)
-      Trixi.add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+      add_to_node_vars!(du, du_local, equations, dg, i, j, element)
     end
   end
 
