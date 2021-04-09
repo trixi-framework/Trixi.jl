@@ -1,5 +1,4 @@
 
-include("curve_interpolant.jl")
 include("containers_2d.jl")
 
 struct UnstructuredMesh{NDIMS, RealT<:Real} <: Trixi.AbstractMesh{NDIMS}
@@ -102,7 +101,7 @@ function UnstructuredMesh(RealT, filename, nvars, polydeg, dg_nodes, boundary_co
       file_idx  += 1
       bndy_names[:,j] = split(file_lines[file_idx])
       # construct quadrilateral geometry using only corner information
-      elements.geometry[j] = ElementGeometry(RealT, polydeg, dg_nodes, cornerNodeVals)
+      init_element!(elements, j, polydeg, dg_nodes, cornerNodeVals)
     else
       # quadrilateral element has at least one curved side
       m1 = 1
@@ -146,7 +145,7 @@ function UnstructuredMesh(RealT, filename, nvars, polydeg, dg_nodes, boundary_co
       file_idx  += 1
       bndy_names[:,j] = split(file_lines[file_idx])
       # construct quadrilateral geometry using all the curve information
-      elements.geometry[j] = ElementGeometry(RealT, polydeg, dg_nodes, GammaCurves)
+      init_element!(elements, j, polydeg, dg_nodes, GammaCurves)
     end
     # one last increment to the global index to read the next piece of element information
     file_idx += 1
@@ -160,7 +159,7 @@ function UnstructuredMesh(RealT, filename, nvars, polydeg, dg_nodes, boundary_co
     boundaries = UnstructuredBoundaryContainer2D{RealT, nvars, poly_deg}(0)
   else
     interfaces = init_interfaces(RealT, edge_info, nvars, polydeg, n_interfaces - n_boundary)
-    boundaries = init_boundaries(RealT, edge_info, bndy_names, nvars, polydeg, n_boundary)
+    boundaries = init_boundaries(RealT, edge_info, bndy_names, elements, nvars, polydeg, n_boundary)
   end
 
   return UnstructuredMesh{NDIMS, RealT}(filename, interfaces, boundaries, elements)

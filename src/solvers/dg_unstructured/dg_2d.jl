@@ -19,38 +19,9 @@ end
 
 @inline ndofs(mesh::UnstructuredMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
-# @inline function wrap_array(u_ode::AbstractVector, mesh::TreeMesh{2}, equations, dg::DG, cache)
-#   @boundscheck begin
-#     @assert length(u_ode) == nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
-#   end
-#   # We would like to use
-#   #   reshape(u_ode, (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-#   # but that results in
-#   #   ERROR: LoadError: cannot resize array with shared data
-#   # when we resize! `u_ode` during AMR.
-#
-#   # The following version is fast and allows us to `resize!(u_ode, ...)`.
-#   # OBS! Remember to `GC.@preserve` temporaries such as copies of `u_ode`
-#   #      and other stuff that is only used indirectly via `wrap_array` afterwards!
-#   unsafe_wrap(Array{eltype(u_ode), ndims(mesh)+2}, pointer(u_ode),
-#               (nvariables(equations), nnodes(dg), nnodes(dg), nelements(dg, cache)))
-# end
-#
-#
-# function compute_coefficients!(u, func, t, mesh::TreeMesh{2}, equations, dg::DG, cache)
-#
-#   @threaded for element in eachelement(dg, cache)
-#     for j in eachnode(dg), i in eachnode(dg)
-#       x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
-#       u_node = func(x_node, t, equations)
-#       set_node_vars!(u, u_node, equations, dg, i, j, element)
-#     end
-#   end
-# end
-#
 
-# TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
-
+# TODO: append the mesh to the end of each of these functions such that we dispatch on the correct version
+#       and use the ::UnstructuredMesh below to keep track on it
 function rhs!(du::AbstractArray{<:Any,4}, u, t,
               mesh::UnstructuredMesh, equations,
               initial_condition, boundary_conditions, source_terms,
@@ -95,7 +66,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                nonconservative_terms::Val{false}, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
-  @unpack geometry = cache.elements
+  @unpack X_xi, X_eta, Y_xi, Y_eta = cache.elements
   @unpack derivative_dhat = dg.basis
 
 #  @threaded for element in eachelement(cache.mesh.elements)
@@ -108,14 +79,14 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       y_flux = flux(u_node, 2, equations)
 
       # compute the contravariant flux in the x-direction
-      flux1  = geometry[element].Y_eta[i,j] * x_flux - geometry[element].X_eta[i,j] * y_flux
+      flux1  = Y_eta[i, j, element] * x_flux - X_eta[i, j, element] * y_flux
       for ii in eachnode(dg)
         integral_contribution = derivative_dhat[ii, i] * flux1
         Trixi.add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
       # compute the contravariant flux in the y-direction
-      flux2  = -geometry[element].Y_xi[i,j] * x_flux + geometry[element].X_xi[i,j] * y_flux
+      flux2  = -Y_xi[i, j, element] * x_flux + X_xi[i, j, element] * y_flux
       for jj in eachnode(dg)
         integral_contribution = derivative_dhat[jj, j] * flux2
         Trixi.add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
@@ -184,7 +155,7 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
                               nonconservative_terms::Val{false}, equations, dg::DG)
   @unpack surface_flux = dg
   @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.interfaces
-  @unpack geometry = cache.elements
+  @unpack normals, tangents, scaling = cache.elements
 
 
 #  @threaded for interface in eachinterface(cache.mesh.interfaces)
@@ -209,10 +180,10 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         and tangents for hanging nodes and other non-conforming approximation spaces
-      n_vec   = geometry[primary_element].normals[i, primary_side, :]
-      t_vec   = geometry[primary_element].tangents[i, primary_side, :]
-      scal_ll = geometry[primary_element].scaling[i, primary_side]
-      scal_rr = geometry[secondary_element].scaling[j, secondary_side]
+      n_vec   = normals[ :, i, primary_side, primary_element]
+      t_vec   = tangents[:, i, primary_side, primary_element]
+      scal_ll = scaling[i, primary_side, primary_element]
+      scal_rr = scaling[j, secondary_side, secondary_element]
 
       # rotate states
       u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
@@ -306,8 +277,8 @@ end
 function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, initial_condition)
 
   @unpack surface_flux = dg
-  @unpack geometry, surface_flux_values = cache.elements
-  @unpack u, element_id, element_side_id, name  = cache.boundaries
+  @unpack normals, tangents, scaling, surface_flux_values = cache.elements
+  @unpack u, element_id, element_side_id, node_coordinates, name  = cache.boundaries
 
 #  @threaded for boundary in eachboundary(cache.mesh.boundaries)
   for boundary in eachboundary(cache.boundaries)
@@ -318,18 +289,18 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, in
     for i in eachnode(dg)
       # hacky way to set "exact solution" boundary conditions. Only used to test the orientation
       # for a mesh with flipped elements
-      u_ext = initial_condition( ( geometry[primary_element].x_bndy[i, primary_side],
-                                   geometry[primary_element].y_bndy[i, primary_side] ) ,
-                                   t, equations)
+      u_ext = initial_condition((node_coordinates[1, i, boundary],
+                                 node_coordinates[2, i, boundary]),
+                                 t, equations)
 
       # pull the left state from the boundary u values on the primary element as well as the
       # directional vectors and scaling
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         and tangents for hanging nodes and other non-conforming approximation spaces
       u_ll  = u[1, :, i, boundary]
-      n_vec = geometry[primary_element].normals[i, primary_side, :]
-      t_vec = geometry[primary_element].tangents[i, primary_side, :]
-      scal  = geometry[primary_element].scaling[i, primary_side]
+      n_vec = normals[ :, i, primary_side, primary_element]
+      t_vec = tangents[:, i, primary_side, primary_element]
+      scal  = scaling[i, primary_side, primary_element]
 
       # rotate states
       u_tilde_ll  = rotate_solution(u_ll , n_vec, t_vec, equations)
@@ -351,7 +322,20 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, in
   return nothing
 end
 
-
+# Note! The local side numbering for the unstructured quadrilateral element implementation differs
+#       from the strcutured TreeMesh or CurveMesh local side numbering:
+#
+#      TreeMesh/CurveMesh sides   versus   UnstructuredMesh sides
+#                  4                                  3
+#          -----------------                  -----------------
+#          |               |                  |               |
+#          | ^ eta         |                  | ^ eta         |
+#        1 | |             | 2              4 | |             | 2
+#          | |             |                  | |             |
+#          | ---> xi       |                  | ---> xi       |
+#          -----------------                  -----------------
+#                  3                                  1
+# Therefore, we require a different suface integrals routine here despite their similar structure.
 function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
@@ -375,14 +359,13 @@ function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM
   return nothing
 end
 
-
+# TODO: Adjust the eachelement iterator then I could reuse the CurveMesh apply_jacobian! routine
 function apply_jacobian!(du::AbstractArray{<:Any,4}, equations, dg::DG, cache)
-  @unpack geometry = cache.elements
 
 #  @threaded for element in eachelement(cache.mesh.elements)
   for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
-      factor = -geometry[element].invJac[i,j]
+      factor = -cache.elements.inverse_jacobian[i, j, element]
       for v in eachvariable(equations)
         du[v, i, j, element] *= factor
       end
@@ -400,13 +383,12 @@ end
 
 
 function calc_sources!(du::AbstractArray{<:Any,4}, u, t, source_terms, equations, dg::DG, cache)
-  @unpack geometry = cache.elements
 
 #  @threaded for element in eachelement(cache.mesh.elements)
   for element in eachelement(cache.elements)
     for j in eachnode(dg), i in eachnode(dg)
       u_local = Trixi.get_node_vars(u, equations, dg, i, j, element)
-      x_local = ( geometry[element].x[i,j] , geometry[element].y[i,j] )
+      x_local = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, i, j, element)
       du_local = source_terms(u_local, x_local, t, equations)
       Trixi.add_to_node_vars!(du, du_local, equations, dg, i, j, element)
     end

@@ -3,8 +3,16 @@ include("element_geometry.jl")
 
 # Container data structure (structure-of-arrays style) for DG elements on curved unstructured mesh
 struct UnstructuredElementContainer2D{RealT<:Real, NNODES, NVARS, NELEMENTS}
-  geometry           ::Vector{ElementGeometry} # contains Jacobian, metric terms, normals, etc.
-  surface_flux_values::Array{RealT , 4}        # [variables, i, local sides, elements]
+  node_coordinates   ::Array{RealT, 4} # [ndims, nnodes, nnodes, nelement]
+  X_xi               ::Array{RealT, 3} # [nnodes, nnodes, nelement]
+  X_eta              ::Array{RealT, 3} # [nnodes, nnodes, nelement]
+  Y_xi               ::Array{RealT, 3} # [nnodes, nnodes, nelement]
+  Y_eta              ::Array{RealT, 3} # [nnodes, nnodes, nelement]
+  inverse_jacobian   ::Array{RealT, 3} # [nnodes, nnodes, nelement]
+  normals            ::Array{RealT, 4} # [ndims, nnodes, local sides, nelement]
+  tangents           ::Array{RealT, 4} # [ndims, nnodes, local sides, nelement]
+  scaling            ::Array{RealT, 3} # [nnodes, local sides, nelement]
+  surface_flux_values::Array{RealT, 4} # [variables, nnodes, local sides, elements]
 end
 
 
@@ -12,17 +20,69 @@ end
 # unstructured mesh constructor
 function UnstructuredElementContainer2D(RealT, nvars, polydeg, n_elements)
 
-  geometry            = Vector{ElementGeometry}(undef, n_elements)
-  surface_flux_values = zeros( nvars , polydeg + 1 , 4 , n_elements )
+  nnodes  = polydeg + 1
+  nan = convert(RealT, NaN)
 
-  return UnstructuredElementContainer2D{RealT, polydeg+1, nvars, n_elements}(geometry,
-                                                                            surface_flux_values)
+  node_coordinates = fill(nan, (2, nnodes, nnodes, n_elements))
+  X_xi             = fill(nan, (nnodes, nnodes, n_elements))
+  X_eta            = fill(nan, (nnodes, nnodes, n_elements))
+  Y_xi             = fill(nan, (nnodes, nnodes, n_elements))
+  Y_eta            = fill(nan, (nnodes, nnodes, n_elements))
+  inverse_jacobian = fill(nan, (nnodes, nnodes, n_elements))
+  normals          = fill(nan, (2, nnodes, 4, n_elements))
+  tangents         = fill(nan, (2, nnodes, 4, n_elements))
+  scaling          = fill(nan, (nnodes, 4, n_elements))
+  surface_flux_values = fill(nan, (nvars, nnodes, 4, n_elements))
+
+  return UnstructuredElementContainer2D{RealT, nnodes, nvars, n_elements}(node_coordinates,
+                                                                          X_xi, X_eta,
+                                                                          Y_xi, Y_eta,
+                                                                          inverse_jacobian,
+                                                                          normals, tangents,
+                                                                          scaling,
+                                                                          surface_flux_values)
 end
 
-
+# TODO: adjust this to use the same nelement and each element as the other parts of Trixi
 @inline nelements(elements::UnstructuredElementContainer2D{RealT, NNODES, NVARS, NELEMENTS}) where {RealT,  NNODES, NVARS, NELEMENTS} = NELEMENTS
 
 @inline eachelement(elements::UnstructuredElementContainer2D) = Base.OneTo(nelements(elements))
+
+
+# initialize all the values in the container on a curved sided element
+function init_element!(elements, element_id, polydeg, nodes, GammaCurves::Array{GammaCurve,1})
+
+  calc_node_coordinates!(elements.node_coordinates, element_id, nodes, polydeg, GammaCurves)
+
+  calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element_id,
+                     nodes, polydeg, GammaCurves)
+
+  calc_inverse_jacobian!(elements.inverse_jacobian, element_id, elements.X_xi, elements.X_eta,
+                         elements.Y_xi, elements.Y_eta)
+
+  calc_normals_scaling_and_tangents!(elements.normals, elements.scaling, elements.tangents,
+                                     element_id, nodes, polydeg, GammaCurves)
+
+  return elements
+end
+
+
+# initialize all the values in the container on a straight sided element
+function init_element!(elements, element_id, polydeg, nodes, corners)
+
+  calc_node_coordinates!(elements.node_coordinates, element_id, nodes, polydeg, corners)
+
+  calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element_id,
+                     nodes, polydeg, corners)
+
+  calc_inverse_jacobian!(elements.inverse_jacobian, element_id, elements.X_xi, elements.X_eta,
+                         elements.Y_xi, elements.Y_eta)
+
+  calc_normals_scaling_and_tangents!(elements.normals, elements.scaling, elements.tangents,
+                                     element_id, nodes, polydeg, corners)
+
+  return elements
+end
 
 
 # generic container for the interior interfaces of an unstructured mesh
@@ -40,18 +100,16 @@ end
 function UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64) where {RealT<:Real, NVARS, POLYDEG}
 
   n_nodes = POLYDEG + 1
+  nan = convert(RealT, NaN)
 
-  u                = zeros(2, NVARS, n_nodes, capacity)
+  u                = fill(nan, (2, NVARS, n_nodes, capacity))
   start_index      = Vector{Int64}(undef, capacity)
   inc_index        = Vector{Int64}(undef, capacity)
-  element_ids      = Array{Int64}(undef, (2 , capacity))
-  element_side_ids = Array{Int64}(undef, (2 , capacity))
+  element_ids      = Array{Int64}(undef, (2, capacity))
+  element_side_ids = Array{Int64}(undef, (2, capacity))
 
-  return UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}(u,
-                                                                 start_index,
-                                                                 inc_index,
-                                                                 element_ids,
-                                                                 element_side_ids)
+  return UnstructuredInterfaceContainer2D{RealT, NVARS, POLYDEG}(u, start_index, inc_index,
+                                                                 element_ids, element_side_ids)
 end
 
 
@@ -171,6 +229,7 @@ struct UnstructuredBoundaryContainer2D{RealT<:Real, NVARS, POLYDEG}
   u               ::Array{RealT, 4} # [primary, variables, i, boundaries]
   element_id      ::Vector{Int64}   # [boundaries]
   element_side_id ::Vector{Int64}   # [boundaries]
+  node_coordinates::Array{RealT, 3} # [ndims, nnodes, boundaries]
   name            ::Vector{String}  # [boundaries]
 end
 
@@ -180,16 +239,16 @@ end
 function UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}(capacity::Int64) where {RealT<:Real, NVARS, POLYDEG}
 
   n_nodes = POLYDEG + 1
+  nan = convert(RealT, NaN)
 
-  u               = zeros(1, NVARS, n_nodes, capacity)
-  element_id      = Vector{Int64}(undef, capacity)
-  element_side_id = Vector{Int64}(undef, capacity)
-  name            = fill("empty", capacity)
+  u                = fill(nan, (1, NVARS, n_nodes, capacity))
+  element_id       = Vector{Int64}(undef, capacity)
+  element_side_id  = Vector{Int64}(undef, capacity)
+  node_coordinates = fill(nan, (2, n_nodes, capacity))
+  name             = fill("empty", capacity)
 
-  return UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}(u,
-                                                                element_id,
-                                                                element_side_id,
-                                                                name)
+  return UnstructuredBoundaryContainer2D{RealT, NVARS, POLYDEG}(u, element_id, element_side_id,
+                                                                node_coordinates, name)
 end
 
 
@@ -198,17 +257,17 @@ end
 @inline eachboundary(boundaries::UnstructuredBoundaryContainer2D) = Base.OneTo(nboundaries(boundaries))
 
 
-function init_boundaries(RealT, edge_information, boundary_names, nvars, poly_deg, n_boundaries)
+function init_boundaries(RealT, edge_information, boundary_names, elements, nvars, poly_deg, n_boundaries)
 
   boundaries = UnstructuredBoundaryContainer2D{RealT, nvars, poly_deg}(n_boundaries)
 
   # extract and save the appropriate neighbour information
-  init_boundaries!(boundaries, edge_information, boundary_names, poly_deg)
+  init_boundaries!(boundaries, edge_information, boundary_names, elements, poly_deg)
   return boundaries
 end
 
 
-function init_boundaries!(boundaries, edge_information, boundary_names, polydeg)
+function init_boundaries!(boundaries, edge_information, boundary_names, elements, polydeg)
 
   total_n_interfaces = size(edge_information,2)
 
@@ -216,11 +275,25 @@ function init_boundaries!(boundaries, edge_information, boundary_names, polydeg)
   for j in 1:total_n_interfaces
     if edge_information[4,j] == 0
       # get the primary element information at a boundary interface
-      boundaries.element_id[bndy_count]      = edge_information[3,j] # primary element id
-      boundaries.element_side_id[bndy_count] = edge_information[5,j] # primary side id
-      boundaries.name[bndy_count]            = boundary_names[ edge_information[5,j], # local side id
-                                                               edge_information[3,j]  # global element id
-                                                             ]
+      primary_element = edge_information[3,j]
+      primary_side    = edge_information[5,j]
+      boundaries.element_id[bndy_count]      = primary_element
+      boundaries.element_side_id[bndy_count] = primary_side
+
+      # extract the physical boundary's name from the global list
+      boundaries.name[bndy_count] = boundary_names[primary_side, primary_element]
+
+      # Store copy of the (x,y) node coordinates on the physical boundary
+      enc = elements.node_coordinates
+      if primary_side == 1
+        boundaries.node_coordinates[:, :, bndy_count] .= enc[:, :,    1, primary_element]
+      elseif primary_side == 2
+        boundaries.node_coordinates[:, :, bndy_count] .= enc[:, end,  :, primary_element]
+      elseif primary_side == 3
+        boundaries.node_coordinates[:, :, bndy_count] .= enc[:, :,  end, primary_element]
+      else # primary_side == 4
+        boundaries.node_coordinates[:, :, bndy_count] .= enc[:, 1,    :, primary_element]
+      end
       bndy_count += 1
     end
   end
