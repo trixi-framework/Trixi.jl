@@ -53,14 +53,14 @@ end
 
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix, element, mesh, node_coordinates::AbstractArray{<:Any,5}, basis::LobattoLegendreBasis)
-  @unpack mapping = mesh
-
-  # TODO: Needs to be adjusted for actually curved meshes
-  dx, dy, dz = (mapping(1, 1, 1) .- mapping(-1, -1, -1)) ./ size(mesh)
-
-  for k in 1:nnodes(basis), j in 1:nnodes(basis), i in 1:nnodes(basis)
-    jacobian_matrix[:, :, i, j, k, element] .= 0.5 * diagm([dx, dy, dz])
+function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis::LobattoLegendreBasis)
+  for dim in 1:3, j in 1:nnodes(basis), i in 1:nnodes(basis)
+    # ∂/∂ξ
+    @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
+    # ∂/∂η
+    @views mul!(jacobian_matrix[dim, 2, i, :, j, element], basis.derivative_matrix, node_coordinates[dim, i, :, j, element])
+    # ∂/∂ζ
+    @views mul!(jacobian_matrix[dim, 3, i, j, :, element], basis.derivative_matrix, node_coordinates[dim, i, j, :, element])
   end
 
   return jacobian_matrix
