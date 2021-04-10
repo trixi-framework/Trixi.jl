@@ -102,8 +102,12 @@ You can run a standard set of benchmarks via
 ```julia
 julia> using PkgBenchmark, Trixi
 
-julia> benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=2`))
+julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`))
+
+julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "single_benchmark.md"), results)
 ```
+This will save a markdown file with a summary of the benchmark results similar to
+[this example](https://gist.github.com/ranocha/494fa2529e1e6703c17b08434c090980).
 Note that this will take quite some time. Additional options are described in the
 [docs of PkgBenchmark.jl](https://juliaci.github.io/PkgBenchmark.jl/stable).
 A particularly useful option is to specify a `BenchmarkConfig` including Julia
