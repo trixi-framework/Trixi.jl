@@ -124,6 +124,11 @@ julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark"
 ```
 By default, the `target` is the current state of the repository. Remember that you
 need to be in a clean state (commit or stash your changes) to run this successfully.
+You can also run this comparison and an additional one using two threads via
+```julia
+julia> include("benchmark/run_benchmarks.jl")
+```
+Then, markdown files including the results are saved in `benchmark/`.
 
 
 
