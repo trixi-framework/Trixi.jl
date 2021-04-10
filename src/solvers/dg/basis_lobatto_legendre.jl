@@ -32,10 +32,10 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   boundary_interpolation[:, 1] = calc_lhat(-1.0, nodes, weights)
   boundary_interpolation[:, 2] = calc_lhat( 1.0, nodes, weights)
 
-  derivative_matrix          = polynomial_derivative_matrix(nodes)
-  derivative_split           = calc_dsplit(nodes, weights)
-  derivative_split_transpose = Matrix(derivative_split')
-  derivative_dhat            = calc_dhat(nodes, weights)
+  derivative_matrix_          = polynomial_derivative_matrix(nodes)
+  derivative_split_           = calc_dsplit(nodes, weights)
+  derivative_split_transpose_ = Matrix(derivative_split_')
+  derivative_dhat_            = calc_dhat(nodes, weights)
 
   # type conversions to make use of StaticArrays etc.
   nodes           = SVector{nnodes_, RealT}(convert.(RealT, nodes))
@@ -45,10 +45,19 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre)
   boundary_interpolation       = SMatrix{nnodes_, 2, RealT, 2*nnodes_}(convert.(RealT, boundary_interpolation))
 
-  derivative_matrix          = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix))
-  derivative_split           = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split))
-  derivative_split_transpose = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose))
-  derivative_dhat            = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat))
+  # WIP, latency
+  # derivative_matrix          = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix_))
+  # derivative_split           = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_))
+  # derivative_split_transpose = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose_))
+  # derivative_dhat            = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat_))
+  derivative_matrix          = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  derivative_split           = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  derivative_split_transpose = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  derivative_dhat            = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  derivative_matrix          .= derivative_matrix_
+  derivative_split           .= derivative_split_
+  derivative_split_transpose .= derivative_split_transpose_
+  derivative_dhat            .= derivative_dhat_
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
