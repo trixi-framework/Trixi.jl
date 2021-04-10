@@ -94,8 +94,8 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{Float64, 2}(undef, max_nvisnodes, n_elements)
-  interpolated_data = Array{Float64, 3}(undef, max_nvisnodes, n_elements, n_vars)
+  interpolated_nodes = Array{eltype(unstructured_data), 2}(undef, max_nvisnodes, n_elements)
+  interpolated_data = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
 
   for j in 1:n_elements
     # Interpolate on an equidistant grid.
@@ -131,18 +131,27 @@ function get_unstructured_data(u, semi, solution_variables)
     raw_data = u
     n_vars = size(raw_data, 1)
   else
+    # FIXME: Remove this comment once the implementation following it has been verified
     # Reinterpret the solution array as an array of conservative variables,
     # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
-    raw_data = Array(reinterpret(eltype(u),
-           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-                      Ref(equations))))
-    n_vars = size(raw_data, 1)
+    # raw_data = Array(reinterpret(eltype(u),
+    #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+    #                   Ref(equations))))
+    # n_vars = size(raw_data, 1)
+    n_vars_in = size(u, 1)
+    n_vars = length(solution_variables(u[1:n_vars_in], equations))
+    raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
+    reshaped_u = reshape(u, n_vars_in, :)
+    reshaped_r = reshape(raw_data, n_vars, :)
+    for idx in axes(reshaped_u, 2)
+      reshaped_r[:, idx] = solution_variables(reshaped_u[:, idx], equations)
+    end
   end
 
-  unstructured_data = Array{Float64}(undef,
-                                     ntuple((d) -> nnodes(solver), ndims(equations))...,
-                                     nelements(solver, cache), n_vars)
+  unstructured_data = Array{eltype(raw_data)}(undef,
+                                              ntuple((d) -> nnodes(solver), ndims(equations))...,
+                                              nelements(solver, cache), n_vars)
   for variable in 1:n_vars
     @views unstructured_data[.., :, variable] .= raw_data[variable, .., :]
   end
