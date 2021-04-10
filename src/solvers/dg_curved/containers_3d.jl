@@ -15,7 +15,7 @@ function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBas
 
     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
 
-    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
+    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
     
   end
 
@@ -82,14 +82,23 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 end
 
 
-# Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix)
-  @. @views inverse_jacobian[:, :, :, element] = inv(jacobian_matrix[1, 1, 1, 1, 1, element] * 
-                                                     jacobian_matrix[2, 2, 1, 1, 1, element] * 
-                                                     jacobian_matrix[3, 3, 1, 1, 1, element])                                        
+# # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
+  @unpack nodes = basis
+  for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+    # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
+    inverse_jacobian[i, j, k, element] = inv(
+        jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
+        jacobian_matrix[1, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[3, 1, i, j, k, element] +
+        jacobian_matrix[1, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[3, 2, i, j, k, element] -
+        jacobian_matrix[3, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[1, 3, i, j, k, element] -
+        jacobian_matrix[3, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[1, 1, i, j, k, element] -
+        jacobian_matrix[3, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[1, 2, i, j, k, element] ) 
+  end
+        
   return inverse_jacobian
 end
-
+      
 
 # Save id of left neighbor of every element
 function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, linear_indices)
