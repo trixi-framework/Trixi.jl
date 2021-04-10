@@ -742,6 +742,38 @@ end
 end
 
 
+@inline function rotate_to_x(u, normal, tangent_vector1, tangent_vector2, equations::CompressibleEulerEquations3D)
+  # Rotate from normal vector to unit vector
+  # Multiply with [ 1     0       0     0   0;
+  #                 0     ―   normal    ―   0;
+  #                 0     ―  tangent1   ―   0;
+  #                 0     ―  tangent2   ―   0;
+  #                 0     0       0     0   1 ]
+
+  return SVector(u[1], 
+                 normal[1]          * u[2] + normal[2]          * u[3] + normal[3]          * u[4],
+                 tangent_vector1[1] * u[2] + tangent_vector1[2] * u[3] + tangent_vector1[3] * u[4],
+                 tangent_vector2[1] * u[2] + tangent_vector2[2] * u[3] + tangent_vector2[3] * u[4],
+                 u[5])
+end
+
+
+@inline function rotate_from_x(u, normal, tangent_vector1, tangent_vector2, equations::CompressibleEulerEquations3D)
+  # Rotate from unit vector to normal
+  # Multiply with [ 1     0       0        0        0;
+  #                 0     |       |        |        0;
+  #                 0   normal tangent1 tangent2    0;
+  #                 0     |       |        |        0;
+  #                 0     0       0        0        1 ]
+
+  return SVector(u[1], 
+                 normal[1] * u[2] + tangent_vector1[1] * u[3] + tangent_vector2[1] * u[4],
+                 normal[2] * u[2] + tangent_vector1[2] * u[3] + tangent_vector2[2] * u[4],
+                 normal[3] * u[2] + tangent_vector1[3] * u[3] + tangent_vector2[3] * u[4],
+                 u[5])
+end
+
+
 """
     flux_hllc(u_ll, u_rr, orientation, equations::CompressibleEulerEquations3D)
 

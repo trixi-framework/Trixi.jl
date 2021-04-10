@@ -108,6 +108,7 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                               mesh::CurvedMesh{3}, equations, dg::DG, cache)
   @unpack surface_flux = dg
+  @unpack jacobian_matrix = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -116,15 +117,36 @@ end
     if orientation == 1
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, j, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
+
+      # First contravariant vector Ja^1 as SVector
+      normal_vector = get_contravariant_vector(1, cache, 1, i, j, right_element)
+      # First tangent vector is second column of the Jacobian matrix (normalized)
+      tangent_vector1 = normalize(get_node_coords(jacobian_matrix, equations, dg, 2, 1, i, j, right_element))
+      # Second tangent vector is cross product of normal vector and first tangent vector (normalized)
+      tangent_vector2 = normalize(cross(normal_vector, tangent_vector1))
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
+
+      # Second contravariant vector Ja^2 as SVector
+      normal_vector = get_contravariant_vector(2, cache, i, 1, j, right_element)
+      # First tangent vector is third column of the Jacobian matrix (normalized)
+      tangent_vector1 = normalize(get_node_coords(jacobian_matrix, equations, dg, 3, i, 1, j, right_element))
+      # Second tangent vector is cross product of normal vector and first tangent vector (normalized)
+      tangent_vector2 = normalize(cross(normal_vector, tangent_vector1))
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
+
+      # Third contravariant vector Ja^3 as SVector
+      normal_vector = get_contravariant_vector(3, cache, i, j, 1, right_element)
+      # First tangent vector is first column of the Jacobian matrix (normalized)
+      tangent_vector1 = normalize(get_node_coords(jacobian_matrix, equations, dg, 1, i, j, 1, right_element))
+      # Second tangent vector is cross product of normal vector and first tangent vector (normalized)
+      tangent_vector2 = normalize(cross(normal_vector, tangent_vector1))
     end
 
-    flux = transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, mesh, equations, cache)
+    flux = surface_flux(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]
@@ -149,21 +171,4 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::CurvedMesh, equations
   end
 
   return nothing
-end
-
-
-# TODO: This needs to be adapted for actually curved (not rectangular) meshes
-function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
-    mesh::CurvedMesh{3}, equations::AbstractEquations, cache)
-  @unpack jacobian_matrix = cache.elements
-
-  if orientation == 1
-    factor = jacobian_matrix[2, 2, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
-  elseif orientation == 2
-    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
-  else # orientation == 3
-    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[2, 2, 1, 1, 1, 1]
-  end
-
-  return factor * surface_flux(u_ll, u_rr, orientation, equations)
 end

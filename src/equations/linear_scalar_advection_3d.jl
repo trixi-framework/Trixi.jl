@@ -140,6 +140,20 @@ end
 end
 
 
+# Calculate 1D flux for a single point in direction of a normal vector
+@inline function flux(u, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return a * u
+end
+
+
+# Calculate maximum wave speed in direction of a normal vector for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_vector::AbstractVector, equation::LinearScalarAdvectionEquation3D)
+  a = dot(equation.advectionvelocity, normal_vector) # velocity in normal direction
+  return abs(a)
+end
+
+
 @inline have_constant_speed(::LinearScalarAdvectionEquation3D) = Val(true)
 
 @inline function max_abs_speeds(equation::LinearScalarAdvectionEquation3D)
