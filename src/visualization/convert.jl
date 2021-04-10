@@ -99,7 +99,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   for j in 1:n_elements
     # Interpolate on an equidistant grid.
-    interpolated_nodes[:,j] = collect(range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes))
+    interpolated_nodes[:, j] .= range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes)
   end
 
   nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
