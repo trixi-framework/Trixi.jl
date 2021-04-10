@@ -94,8 +94,8 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     max_nvisnodes = nvisnodes
   end
 
-  interpolated_nodes = Array{eltype(unstructured_data), 2}(undef, max_nvisnodes, n_elements)
-  interpolated_data = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
+  interpolated_nodes = Array{eltype(original_nodes),    2}(undef, max_nvisnodes, n_elements)
+  interpolated_data  = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
 
   for j in 1:n_elements
     # Interpolate on an equidistant grid.
