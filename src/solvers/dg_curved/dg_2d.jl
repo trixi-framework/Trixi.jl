@@ -28,43 +28,35 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
 end
 
 
-# Return the contravariant vector in the specified `orientation` at the specified nodes and element,
-# multiplied by the Jacobian of the transformation mapping.
-function scaled_contravariant_vector(orientation, i, j, element, metric_terms)
-  if orientation == 1
-    return SVector(metric_terms[2, 2, i, j, element], -metric_terms[1, 2, i, j, element])
-  else # orientation == 2
-    return SVector(-metric_terms[2, 1, i, j, element], metric_terms[1, 1, i, j, element])
-  end
-end
-
-
 function calc_volume_integral!(du::AbstractArray{<:Any,4}, u, mesh::CurvedMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
-  @unpack metric_terms = cache.elements
+  @unpack contravariant_vectors = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
 
-      # Scalar product of the flux vector with the first contravariant vector, 
-      # multiplied with the Jacobian
-      v1 = scaled_contravariant_vector(1, i, j, element, metric_terms)
-      flux1 = v1[1] * flux(u_node, 1, equations) + v1[2] * flux(u_node, 2, equations)
+      flux1 = flux(u_node, 1, equations)
+      flux2 = flux(u_node, 2, equations)
+
+      # Compute the contravariant flux by taking the scalar product of the 
+      # first contravariant vector Ja^1 and the flux vector
+      contravariant_flux1 = (contravariant_vectors[1, 1, i, j, element] * flux1 + 
+                             contravariant_vectors[1, 2, i, j, element] * flux2)
 
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
+        integral_contribution = derivative_dhat[ii, i] * contravariant_flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, element)
       end
 
-      # Scalar product of the flux vector with the second contravariant vector, 
-      # multiplied with the Jacobian
-      v2 = scaled_contravariant_vector(2, i, j, element, metric_terms)
-      flux2 = v2[1] * flux(u_node, 1, equations) + v2[2] * flux(u_node, 2, equations)
+      # Compute the contravariant flux by taking the scalar product of the 
+      # second contravariant vector Ja^2 and the flux vector
+      contravariant_flux2 = (contravariant_vectors[2, 1, i, j, element] * flux1 + 
+                             contravariant_vectors[2, 2, i, j, element] * flux2)
 
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
+        integral_contribution = derivative_dhat[jj, j] * contravariant_flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, element)
       end
     end
@@ -105,7 +97,6 @@ end
   end
 
   @unpack surface_flux = dg
-  @unpack metric_terms = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -115,12 +106,14 @@ end
       u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
       u_rr = get_node_vars(u, equations, dg, 1,          i, right_element)
 
-      normal_vector = scaled_contravariant_vector(1, 1, i, right_element, metric_terms)
+      # First contravariant vector Ja^1 as SVector
+      normal_vector = get_contravariant_vector(1, cache, 1, i, right_element)
     else # orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          right_element)
 
-      normal_vector = scaled_contravariant_vector(2, i, 1, right_element, metric_terms)
+      # Second contravariant vector Ja^2 as SVector
+      normal_vector = get_contravariant_vector(2, cache, i, 1, right_element)
     end
 
     flux = surface_flux(u_ll, u_rr, normal_vector, equations)
@@ -145,7 +138,7 @@ end
 function calc_boundary_flux!(cache, u, t, boundary_condition,
                              equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
   @unpack surface_flux = dg
-  @unpack surface_flux_values, metric_terms = cache.elements
+  @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
   
   for cell_y in axes(mesh, 2)
@@ -197,7 +190,7 @@ end
 function calc_boundary_flux!(cache, u, t, boundary_conditions::Union{NamedTuple,Tuple},
                              equations::AbstractEquations{2}, mesh::CurvedMesh{2}, dg::DG)
   @unpack surface_flux = dg
-  @unpack surface_flux_values, metric_terms = cache.elements
+  @unpack surface_flux_values = cache.elements
   linear_indices = LinearIndices(size(mesh))
   
   for cell_y in axes(mesh, 2)
@@ -256,13 +249,14 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any,4}, u, t, orientation,
                                           boundary_condition, equations, mesh::CurvedMesh, dg::DG, cache,
                                           direction, node_indices, surface_node_indices, element)
-  @unpack node_coordinates, metric_terms = cache.elements
+  @unpack node_coordinates = cache.elements
   @unpack surface_flux = dg
 
   u_inner = get_node_vars(u, equations, dg, node_indices..., element)
   x = get_node_coords(node_coordinates, equations, dg, node_indices..., element)
 
-  normal_vector = scaled_contravariant_vector(orientation, node_indices..., element, metric_terms)
+  # Contravariant vector Ja^i is the normal vector
+  normal_vector = get_contravariant_vector(orientation, cache, node_indices..., element)
   flux = boundary_condition(u_inner, normal_vector, direction, x, t, surface_flux, equations)
 
   for v in eachvariable(equations)

@@ -188,11 +188,11 @@ Cassette.@context Ctx
   end
 
   @testset "curved mesh" begin
-    @testset "calc_metric_terms" begin
+    @testset "calc_jacobian_matrix" begin
       @testset "identity map" begin
         basis = LobattoLegendreBasis(5)
         nodes = basis.nodes
-        metric_terms = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
+        jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 6, 6, 1)
 
         node_coordinates = Array{Float64, 4}(undef, 2, 6, 6, 1)
         node_coordinates[1, :, :, 1] .= [nodes[i] for i in 1:6, j in 1:6]
@@ -200,13 +200,13 @@ Cassette.@context Ctx
         expected = zeros(2, 2, 6, 6, 1)
         expected[1, 1, :, :, 1] .= 1
         expected[2, 2, :, :, 1] .= 1
-        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
+        @test Trixi.calc_jacobian_matrix!(jacobian_matrix, 1, node_coordinates, basis) ≈ expected
       end
 
       @testset "maximum exact polydeg" begin
         basis = LobattoLegendreBasis(3)
         nodes = basis.nodes
-        metric_terms = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
+        jacobian_matrix = Array{Float64, 5}(undef, 2, 2, 4, 4, 1)
 
         # f(x, y) = [x^3, xy^2]
         node_coordinates = Array{Float64, 4}(undef, 2, 4, 4, 1)
@@ -219,7 +219,7 @@ Cassette.@context Ctx
         expected[1, 1, :, :, 1] .= [3 * nodes[i]^2 for i in 1:4, j in 1:4]
         expected[2, 1, :, :, 1] .= [nodes[j]^2 for i in 1:4, j in 1:4]
         expected[2, 2, :, :, 1] .= [2 * nodes[i] * nodes[j] for i in 1:4, j in 1:4]
-        @test Trixi.calc_metric_terms!(metric_terms, 1, node_coordinates, basis) ≈ expected
+        @test Trixi.calc_jacobian_matrix!(jacobian_matrix, 1, node_coordinates, basis) ≈ expected
       end
     end
   end
