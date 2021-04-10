@@ -110,14 +110,14 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
   # Iterate over all variables.
   for v in 1:n_vars
-    reshaped_data = reshape(unstructured_data[:, :, v], 1, n_nodes, n_elements)
     # Interpolate data for each element.
     for element in 1:n_elements
-      interpolated_data[:, element, v] = vec(multiply_dimensionwise(vandermonde, reshaped_data[:, :, element]))
+      multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
+        vandermonde, @view(unstructured_data[:, element, v]))
     end
   end
   # Return results after data is reshaped
-  return vec(interpolated_nodes), collect(reshape(interpolated_data, :, n_vars))
+  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars)
 end
 
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
@@ -139,13 +139,13 @@ function get_unstructured_data(u, semi, solution_variables)
     #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
     #                   Ref(equations))))
     # n_vars = size(raw_data, 1)
-    n_vars_in = size(u, 1)
-    n_vars = length(solution_variables(u[1:n_vars_in], equations))
+    n_vars_in = nvariables(equations)
+    n_vars = length(solution_variables(get_node_vars(u, equations, solver), equations))
     raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
     reshaped_u = reshape(u, n_vars_in, :)
     reshaped_r = reshape(raw_data, n_vars, :)
     for idx in axes(reshaped_u, 2)
-      reshaped_r[:, idx] = solution_variables(reshaped_u[:, idx], equations)
+      reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations, solver, idx), equations)
     end
   end
 
