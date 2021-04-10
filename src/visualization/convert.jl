@@ -73,6 +73,53 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
 end
 
 
+# Extract data from a 1D DG solution and prepare it for visualization as a line plot.
+# This returns a tuple with
+# - x coordinates
+# - nodal 1D data
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function get_data_1d(original_nodes, unstructured_data, nvisnodes)
+  # Get the dimensions of u; where n_vars is the number of variables, n_nodes the number of nodal values per element and n_elements the total number of elements.
+  n_nodes, n_elements, n_vars = size(unstructured_data)
+
+  # Set the amount of nodes visualized according to nvisnodes.
+  if nvisnodes === nothing
+    max_nvisnodes = 2 * n_nodes
+  elseif nvisnodes == 0
+    max_nvisnodes = n_nodes
+  else
+    @assert nvisnodes >= 2 "nvisnodes must be zero or >= 2"
+    max_nvisnodes = nvisnodes
+  end
+
+  interpolated_nodes = Array{eltype(original_nodes),    2}(undef, max_nvisnodes, n_elements)
+  interpolated_data  = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes, n_elements, n_vars)
+
+  for j in 1:n_elements
+    # Interpolate on an equidistant grid.
+    interpolated_nodes[:, j] .= range(original_nodes[1,1,j], original_nodes[1,end,j], length = max_nvisnodes)
+  end
+
+  nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+  nodes_out = collect(range(-1, 1, length = max_nvisnodes))
+
+  # Calculate vandermonde matrix for interpolation.
+  vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
+
+  # Iterate over all variables.
+  for v in 1:n_vars
+    # Interpolate data for each element.
+    for element in 1:n_elements
+      multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
+        vandermonde, @view(unstructured_data[:, element, v]))
+    end
+  end
+  # Return results after data is reshaped
+  return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars)
+end
+
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
@@ -84,22 +131,30 @@ function get_unstructured_data(u, semi, solution_variables)
     raw_data = u
     n_vars = size(raw_data, 1)
   else
+    # FIXME: Remove this comment once the implementation following it has been verified
     # Reinterpret the solution array as an array of conservative variables,
     # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
-    raw_data = Array(reinterpret(eltype(u),
-           solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-                      Ref(equations))))
-    n_vars = size(raw_data, 1)
+    # raw_data = Array(reinterpret(eltype(u),
+    #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
+    #                   Ref(equations))))
+    # n_vars = size(raw_data, 1)
+    n_vars_in = nvariables(equations)
+    n_vars = length(solution_variables(get_node_vars(u, equations, solver), equations))
+    raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
+    reshaped_u = reshape(u, n_vars_in, :)
+    reshaped_r = reshape(raw_data, n_vars, :)
+    for idx in axes(reshaped_u, 2)
+      reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations, solver, idx), equations)
+    end
   end
 
-  unstructured_data = Array{Float64}(undef,
-                                     ntuple((d) -> nnodes(solver), ndims(equations))...,
-                                     nelements(solver, cache), n_vars)
+  unstructured_data = Array{eltype(raw_data)}(undef,
+                                              ntuple((d) -> nnodes(solver), ndims(equations))...,
+                                              nelements(solver, cache), n_vars)
   for variable in 1:n_vars
     @views unstructured_data[.., :, variable] .= raw_data[variable, .., :]
   end
 
   return unstructured_data
 end
-

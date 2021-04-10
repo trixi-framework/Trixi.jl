@@ -128,8 +128,9 @@ end
 
 Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
 `u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
-from the semidiscretization `semi`. By default, the conservative variables from the solution are used
-for plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+from the semidiscretization `semi`. By default, the primitive variables (if existent) or the
+conservative variables (otherwise) from the solution are used for plotting. This can be changed by
+passing an appropriate conversion function to `solution_variables`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -421,26 +422,36 @@ struct PlotData1D{Coordinates, Data, VariableNames, Vertices} <:AbstractPlotData
 end
 
 """
-    PlotData1D(u, semi)
+    PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing))
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
-`semi`.
+`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
+from the solution are used for plotting. This can be changed by passing an appropriate conversion
+function to `solution_variables`.
+
+`nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
+twice the number of solution DG nodes are used for visualization, and if set to `0`,
+exactly the number of nodes in the DG elements are used.
+
+
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function PlotData1D(u, semi)
+function PlotData1D(u, semi; solution_variables=nothing, nvisnodes=nothing)
 
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @assert ndims(mesh) in (1) "unsupported number of dimensions $ndims (must be 1)"
+  solution_variables_ = digest_solution_variables(equations, solution_variables)
 
-  x = cache.elements.node_coordinates
+  variable_names = SVector(varnames(solution_variables_, equations))
+  original_nodes = cache.elements.node_coordinates
 
-  # TODO cons2prim is hardcoded here and needs to be changed later.
-  variable_names = SVector(varnames(cons2prim, equations))
+  unstructured_data = get_unstructured_data(u, semi, solution_variables_)
+  x, data = get_data_1d(original_nodes, unstructured_data, nvisnodes)
 
-  return PlotData1D(vec(x), reshape(u, length(variable_names),:), variable_names, vcat(x[1, 1, :], x[1, end, end]))
+  return PlotData1D(x, data, variable_names, vcat(original_nodes[1, 1, :], original_nodes[1, end, end]))
 end
 
 """
@@ -451,7 +462,7 @@ Create a `PlotData1D` object from a one-dimensional ODE solution `u_ode` and the
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(u_ode::AbstractVector, semi) = PlotData1D(wrap_array(u_ode, semi), semi)
+PlotData1D(u_ode::AbstractVector, semi; kwargs...) = PlotData1D(wrap_array(u_ode, semi), semi; kwargs...)
 
 """
     PlotData1D(sol::Union{DiffEqBase.ODESolution,TimeIntegratorSolution})
@@ -462,7 +473,7 @@ returns a `DiffEqBase.ODESolution`) or Trixi's own `solve!` (which returns a
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-PlotData1D(sol::TrixiODESolution) = PlotData1D(sol.u[end], sol.prob.p)
+PlotData1D(sol::TrixiODESolution; kwargs...) = PlotData1D(sol.u[end], sol.prob.p; kwargs...)
 
 # Store multiple PlotData1D objects in one PlotDataSeries1D.
 # This is used for multi-variable equations.
@@ -530,11 +541,11 @@ getmesh(pd::PlotData1D) = PlotMesh1D(pd)
   xlims --> (x[begin], x[end])
 
   # Set annotation properties
-  legend -->  :none
+  legend --> :none
   title --> variable_names[variable_id]
 
   # Return data for plotting
-  x, data[variable_id,:]
+  x, data[:, variable_id]
 end
 
 # Plot the mesh as vertical lines from a PlotMesh1D object.
@@ -607,7 +618,7 @@ end
                    slice_axis_intercept=0)
   # Create a PlotData1D or PlotData2D object depending on the dimension.
   if ndims(semi) == 1
-    return PlotData1D(u, semi)
+    return PlotData1D(u, semi; solution_variables, nvisnodes)
   else
     return PlotData2D(u, semi;
                       solution_variables, grid_lines, max_supported_level,
