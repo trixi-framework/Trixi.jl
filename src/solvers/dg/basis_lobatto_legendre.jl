@@ -50,14 +50,25 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   # derivative_split           = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_))
   # derivative_split_transpose = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose_))
   # derivative_dhat            = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat_))
-  derivative_matrix          = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  derivative_split           = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  derivative_split_transpose = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  derivative_dhat            = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+
+  derivative_matrix          = StrideArray(undef, RealT, nnodes_, nnodes_)
+  derivative_split           = StrideArray(undef, RealT, nnodes_, nnodes_)
+  derivative_split_transpose = StrideArray(undef, RealT, nnodes_, nnodes_)
+  derivative_dhat            = StrideArray(undef, RealT, nnodes_, nnodes_)
+  # derivative_matrix          = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  # derivative_split           = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  # derivative_split_transpose = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
+  # derivative_dhat            = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
   derivative_matrix          .= derivative_matrix_
   derivative_split           .= derivative_split_
   derivative_split_transpose .= derivative_split_transpose_
   derivative_dhat            .= derivative_dhat_
+
+  # derivative_matrix          = (convert.(RealT, derivative_matrix_))
+  # derivative_split           = (convert.(RealT, derivative_split_))
+  # derivative_split_transpose = (convert.(RealT, derivative_split_transpose_))
+  # derivative_dhat            = (convert.(RealT, derivative_dhat_))
+
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
