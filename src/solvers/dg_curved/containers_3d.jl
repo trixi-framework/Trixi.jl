@@ -11,7 +11,7 @@ function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBas
 
     calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh.mapping, mesh, basis)
 
-    calc_jacobian_matrix!(jacobian_matrix, element, mesh, node_coordinates, basis)
+    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
 
@@ -53,8 +53,9 @@ end
 
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
-function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis::LobattoLegendreBasis)
-  for dim in 1:3, j in 1:nnodes(basis), i in 1:nnodes(basis)
+function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
+  @unpack nodes = basis
+  for dim in 1:3, j in eachindex(nodes), i in eachindex(nodes)
     # ∂/∂ξ
     @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
     # ∂/∂η
@@ -82,7 +83,7 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 end
 
 
-# # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
+# Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
   @unpack nodes = basis
   for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
@@ -98,7 +99,7 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, eleme
         
   return inverse_jacobian
 end
-      
+
 
 # Save id of left neighbor of every element
 function initialize_neighbor_connectivity!(left_neighbors, mesh::CurvedMesh{3}, linear_indices)
