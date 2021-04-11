@@ -196,13 +196,46 @@ transfinite_mapping(faces::NTuple{2, Any}) = x -> linear_mapping(x, faces)
 # In 2D
 # Transfinite mapping from the reference element to the domain described by the faces
 function transfinite_mapping(faces::NTuple{4, Any})
-  mapping(x, y) = linear_interpolate(x, faces[1](y), faces[2](y)) + 
-                  linear_interpolate(y, faces[3](x), faces[4](x)) - 
-                  bilinear_mapping(x, y, faces)
+  mapping(x, y) = (linear_interpolate(x, faces[1](y), faces[2](y)) + 
+                   linear_interpolate(y, faces[3](x), faces[4](x)) - 
+                   bilinear_mapping(x, y, faces))
 end
 
-# TODO: Use transfinite mapping instead of trilinear mapping to allow curved faces
-transfinite_mapping(faces::NTuple{6, Any}) = (x, y, z) -> trilinear_mapping(x, y, z, faces)
+
+# In 3D
+# Correction term for the Transfinite mapping
+function correction_term_3d(x, y, z, faces)
+  # Correction for x-terms
+  c_x = linear_interpolate(x, linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
+                              linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)), 
+                              linear_interpolate(y, faces[3]( 1, z), faces[4]( 1, z)) +
+                              linear_interpolate(z, faces[5]( 1, y), faces[6]( 1, y)) )
+
+  # Correction for y-terms
+  c_y = linear_interpolate(y, linear_interpolate(x, faces[1](-1,  z), faces[2](-1,  z)) +
+                              linear_interpolate(z, faces[5]( x, -1), faces[6]( x, -1)), 
+                              linear_interpolate(x, faces[1]( 1,  z), faces[2]( 1,  z)) +
+                              linear_interpolate(z, faces[5]( x,  1), faces[6]( x,  1)) )
+
+  # Correction for x-terms
+  c_z = linear_interpolate(z, linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
+                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)), 
+                              linear_interpolate(x, faces[1](y,  1), faces[2](y,  1)) +
+                              linear_interpolate(y, faces[3](x,  1), faces[4](x,  1)) )
+
+  return 0.5 * (c_x + c_y + c_z)
+end
+
+
+# In 3D
+# Transfinite mapping from the reference element to the domain described by the faces
+function transfinite_mapping(faces::NTuple{6, Any})
+  mapping(x, y, z) =  (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) + 
+                       linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
+                       linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
+                       correction_term_3d(x, y, z, faces) + 
+                       trilinear_mapping(x, y, z, faces))
+end
 
 
 function validate_faces(faces::NTuple{2, Any}) end
