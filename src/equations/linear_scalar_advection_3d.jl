@@ -127,6 +127,13 @@ end
 # function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
 
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations::LinearScalarAdvectionEquation3D)
+  @unpack numerical_flux, dissipation = numflux
+
+  return numerical_flux(u_ll, u_rr, normal_vector, equations) + dissipation(u_ll, u_rr, normal_vector, equations)
+end
+
+
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation3D)
   a = equation.advectionvelocity[orientation]
