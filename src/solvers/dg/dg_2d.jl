@@ -164,6 +164,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
                                dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
 
+  # let derivative_dhat = dg.basis.derivative_dhat
   @threaded for element in eachelement(dg, cache)
     for j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -181,6 +182,7 @@ function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
       end
     end
   end
+  # end
 
   return nothing
 end

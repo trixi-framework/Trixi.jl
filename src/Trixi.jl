@@ -30,6 +30,7 @@ import DiffEqBase: CallbackSet, DiscreteCallback,
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
+using HybridArrays: HybridArray, Dynamic
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
@@ -38,9 +39,10 @@ using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
 using StrideArrays: StrideArray, StaticInt
-using StaticArrays: MVector, MArray, SMatrix
+using StaticArrays: MVector, MMatrix, MArray, SMatrix
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
-using UnPack: @unpack, @pack!
+@reexport using UnPack: @unpack
+using UnPack: @pack!
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
 # Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.
