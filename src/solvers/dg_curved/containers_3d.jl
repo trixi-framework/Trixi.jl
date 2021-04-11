@@ -83,24 +83,21 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
     # Calc only the first summand 0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η of
     # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
-    @views mul!(contravariant_vectors[1, n, i, :, j, element],
-                basis.derivative_matrix,
-                0.5 * (node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 3, i, :, j, element] .-
-                       node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 3, i, :, j, element]))
+    @views contravariant_vectors[1, n, i, :, j, element] = 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 3, i, :, j, element] .-
+        node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 3, i, :, j, element])
 
     # Calc only the first summand 0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ of
     # Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
-    @views mul!(contravariant_vectors[2, n, i, j, :, element],
-                basis.derivative_matrix,
-                0.5 * (node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 1, i, j, :, element] .-
-                       node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 1, i, j, :, element]))
+    @views contravariant_vectors[2, n, i, j, :, element] = 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 1, i, j, :, element] .-
+        node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 1, i, j, :, element])
 
     # Calc only the first summand 0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ of
     # Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
-    @views mul!(contravariant_vectors[3, n, :, i, j, element],
-                basis.derivative_matrix,
-                0.5 * (node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 2, :, i, j, element] .-
-                       node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 2, :, i, j, element]))
+    @views contravariant_vectors[3, n, :, i, j, element] = 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 2, :, i, j, element] .-
+        node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 2, :, i, j, element])
   end
 
   # Calculate the second summand of the cross product in each dimension
@@ -111,30 +108,21 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
 
     # Calc only the second summand -0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ of
     # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
-    # Syntax: contravariant_vectors = D * (...) * (-0.5) + 1 * contravariant_vectors
-    @views mul!(contravariant_vectors[1, n, i, j, :, element],
-                basis.derivative_matrix,
-                (node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 2, i, j, :, element] .-
-                 node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 2, i, j, :, element]),
-                -0.5, 1)
+    @views contravariant_vectors[1, n, i, j, :, element] -= 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, i, j, :, element] .* jacobian_matrix[l, 2, i, j, :, element] .-
+        node_coordinates[l, i, j, :, element] .* jacobian_matrix[m, 2, i, j, :, element])
 
     # Calc only the second summand -0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ of
     # Ja²ₙ = 0.5 * [ (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_ζ - (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_ξ ]
-    # Syntax: contravariant_vectors = D * (...) * (-0.5) + 1 * contravariant_vectors
-    @views mul!(contravariant_vectors[2, n, :, i, j, element],
-                basis.derivative_matrix,
-                (node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 3, :, i, j, element] .-
-                 node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 3, :, i, j, element]),
-                -0.5, 1)
+    @views contravariant_vectors[2, n, :, i, j, element] -= 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, :, i, j, element] .* jacobian_matrix[l, 3, :, i, j, element] .-
+        node_coordinates[l, :, i, j, element] .* jacobian_matrix[m, 3, :, i, j, element])
 
     # Calc only the second summand -0.5 * (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η of
     # Ja³ₙ = 0.5 * [ (Xₘ Xₗ_η - Xₗ Xₘ_η)_ξ - (Xₘ Xₗ_ξ - Xₗ Xₘ_ξ)_η ]
-    # Syntax: contravariant_vectors = D * (...) * (-0.5) + 1 * contravariant_vectors
-    @views mul!(contravariant_vectors[3, n, i, :, j, element],
-                basis.derivative_matrix,
-                (node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 1, i, :, j, element] .-
-                 node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 1, i, :, j, element]),
-                -0.5, 1)
+    @views contravariant_vectors[3, n, i, :, j, element] -= 0.5 * basis.derivative_matrix * (
+        node_coordinates[m, i, :, j, element] .* jacobian_matrix[l, 1, i, :, j, element] .-
+        node_coordinates[l, i, :, j, element] .* jacobian_matrix[m, 1, i, :, j, element])
   end
 
   return contravariant_vectors
