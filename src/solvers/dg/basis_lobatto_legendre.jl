@@ -149,9 +149,10 @@ function MortarL2(basis::LobattoLegendreBasis)
 
   # TODO: Taal performance
   #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
-  #       with different types of the reverse matrices. Check whether `@avx` with `eachnode` in
-  #       `multiply_dimensionwise!` can be faster than `@tullio` when the matrix sizes are not
-  #       necessarily static.
+  #       with different types of the reverse matrices and different types of
+  #       `fstar_upper_threaded` etc. used in the cache.
+  #       Check whether `@avx` with `eachnode` in `multiply_dimensionwise!` can be faster than
+  #       `@tullio` when the matrix sizes are not necessarily static.
   # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
   # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
   reverse_upper = Matrix{RealT}(reverse_upper_)
@@ -282,6 +283,13 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   # optimizations of runtime performance and latency
 
   # WIP, latency
+  # TODO: Taal performance
+  #       Check the performance of different implementations of
+  #       `refine_elements!` (forward) and `coarsen_elements!` (reverse)
+  #       with different types of the matrices.
+  #       Check whether `@avx` with `eachnode` in `multiply_dimensionwise!`
+  #       can be faster than `@tullio` when the matrix sizes are not necessarily
+  #       static.
   forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
   forward_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_lower_)
   # forward_upper = Matrix{RealT}(forward_upper_)
