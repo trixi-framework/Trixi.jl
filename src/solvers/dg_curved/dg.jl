@@ -10,6 +10,14 @@ function create_cache(mesh::CurvedMesh, equations::AbstractEquations, dg::DG, ::
 end
 
 
+# Extract contravariant vector Ja^i (i = index) as SVector
+@inline function get_contravariant_vector(index, cache, indices...)
+  @unpack contravariant_vectors = cache.elements
+
+  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], ndims(cache.elements)))
+end
+
+
 @inline ndofs(mesh::CurvedMesh, dg::DG, cache) = nelements(cache.elements) * nnodes(dg)^ndims(mesh)
 
 

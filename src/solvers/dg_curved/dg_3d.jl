@@ -28,27 +28,46 @@ end
 function calc_volume_integral!(du::AbstractArray{<:Any,5}, u, mesh::CurvedMesh, equations,
                                volume_integral::VolumeIntegralWeakForm, dg::DGSEM, cache)
   @unpack derivative_dhat = dg.basis
-  @unpack metric_terms = cache.elements
+  @unpack contravariant_vectors = cache.elements
 
   @threaded for element in eachelement(dg, cache)
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
       u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-      flux1 = metric_terms[2, 2, i, j, k, element] * metric_terms[3, 3, i, j, k, element] * flux(u_node, 1, equations)
+      flux1 = flux(u_node, 1, equations)
+      flux2 = flux(u_node, 2, equations)
+      flux3 = flux(u_node, 3, equations)
+
+      # Compute the contravariant flux by taking the scalar product of the 
+      # first contravariant vector Ja^1 and the flux vector
+      contravariant_flux1 = (contravariant_vectors[1, 1, i, j, k, element] * flux1 + 
+                             contravariant_vectors[1, 2, i, j, k, element] * flux2 +
+                             contravariant_vectors[1, 3, i, j, k, element] * flux3)
+
       for ii in eachnode(dg)
-        integral_contribution = derivative_dhat[ii, i] * flux1
+        integral_contribution = derivative_dhat[ii, i] * contravariant_flux1
         add_to_node_vars!(du, integral_contribution, equations, dg, ii, j, k, element)
       end
 
-      flux2 = metric_terms[1, 1, i, j, k, element] * metric_terms[3, 3, i, j, k, element] * flux(u_node, 2, equations)
+      # Compute the contravariant flux by taking the scalar product of the 
+      # second contravariant vector Ja^2 and the flux vector
+      contravariant_flux2 = (contravariant_vectors[2, 1, i, j, k, element] * flux1 + 
+                             contravariant_vectors[2, 2, i, j, k, element] * flux2 +
+                             contravariant_vectors[2, 3, i, j, k, element] * flux3)
+
       for jj in eachnode(dg)
-        integral_contribution = derivative_dhat[jj, j] * flux2
+        integral_contribution = derivative_dhat[jj, j] * contravariant_flux2
         add_to_node_vars!(du, integral_contribution, equations, dg, i, jj, k, element)
       end
+      
+      # Compute the contravariant flux by taking the scalar product of the 
+      # third contravariant vector Ja^3 and the flux vector
+      contravariant_flux3 = (contravariant_vectors[3, 1, i, j, k, element] * flux1 + 
+                             contravariant_vectors[3, 2, i, j, k, element] * flux2 +
+                             contravariant_vectors[3, 3, i, j, k, element] * flux3)
 
-      flux3 = metric_terms[1, 1, i, j, k, element] * metric_terms[2, 2, i, j, k, element] * flux(u_node, 3, equations)
       for kk in eachnode(dg)
-        integral_contribution = derivative_dhat[kk, k] * flux3
+        integral_contribution = derivative_dhat[kk, k] * contravariant_flux3
         add_to_node_vars!(du, integral_contribution, equations, dg, i, j, kk, element)
       end
     end
@@ -133,15 +152,17 @@ function apply_jacobian!(du::AbstractArray{<:Any,5}, mesh::CurvedMesh, equations
 end
 
 
+# TODO: This needs to be adapted for actually curved (not rectangular) meshes
 function transformed_surface_flux(u_ll, u_rr, orientation, surface_flux, 
     mesh::CurvedMesh{3}, equations::AbstractEquations, cache)
-  @unpack metric_terms = cache.elements
+  @unpack jacobian_matrix = cache.elements
+
   if orientation == 1
-    factor = metric_terms[2, 2, 1, 1, 1, 1] * metric_terms[3, 3, 1, 1, 1, 1]
+    factor = jacobian_matrix[2, 2, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
   elseif orientation == 2
-    factor = metric_terms[1, 1, 1, 1, 1, 1] * metric_terms[3, 3, 1, 1, 1, 1]
+    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[3, 3, 1, 1, 1, 1]
   else # orientation == 3
-    factor = metric_terms[1, 1, 1, 1, 1, 1] * metric_terms[2, 2, 1, 1, 1, 1]
+    factor = jacobian_matrix[1, 1, 1, 1, 1, 1] * jacobian_matrix[2, 2, 1, 1, 1, 1]
   end
 
   return factor * surface_flux(u_ll, u_rr, orientation, equations)
