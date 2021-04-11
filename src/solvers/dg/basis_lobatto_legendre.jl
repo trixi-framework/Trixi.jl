@@ -215,25 +215,30 @@ end
 
 
 
-struct LobattoLegendreAnalyzer{RealT<:Real, NNODES, Vandermonde<:AbstractMatrix{RealT}} <: SolutionAnalyzer{RealT}
-  nodes  ::SVector{NNODES, RealT}
-  weights::SVector{NNODES, RealT}
+struct LobattoLegendreAnalyzer{RealT<:Real, NNODES,
+                               VectorT<:AbstractVector{RealT},
+                               Vandermonde<:AbstractMatrix{RealT}} <: SolutionAnalyzer{RealT}
+  nodes  ::VectorT
+  weights::VectorT
   vandermonde::Vandermonde
 end
 
-function SolutionAnalyzer(basis::LobattoLegendreBasis{RealT}; analysis_polydeg=2*polydeg(basis)) where {RealT}
+function SolutionAnalyzer(basis::LobattoLegendreBasis; analysis_polydeg=2*polydeg(basis))
+  RealT = real(basis)
   nnodes_ = analysis_polydeg + 1
-  nodes, weights = gauss_lobatto_nodes_weights(nnodes_)
 
-  vandermonde = polynomial_interpolation_matrix(basis.nodes, nodes)
+  # compute everything using `Float64` by default
+  nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_)
+  vandermonde_ = polynomial_interpolation_matrix(basis.nodes, nodes_)
 
-  # type conversions to make use of StaticArrays etc.
-  nodes   = SVector{nnodes_}(convert.(RealT, nodes))
-  weights = SVector{nnodes_}(convert.(RealT, weights))
+  # type conversions to get the requested real type and enable possible
+  # optimizations of runtime performance and latency
+  nodes   = SVector{nnodes_, RealT}(nodes_)
+  weights = SVector{nnodes_, RealT}(weights_)
 
-  vandermonde = convert.(RealT, vandermonde)
+  vandermonde = Matrix{RealT}(vandermonde_)
 
-  return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(vandermonde)}(
+  return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(
     nodes, weights, vandermonde)
 end
 
@@ -257,29 +262,39 @@ end
 
 
 
-struct LobattoLegendreAdaptorL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
-  forward_upper::MortarMatrix
-  forward_lower::MortarMatrix
-  reverse_upper::MortarMatrix
-  reverse_lower::MortarMatrix
+struct LobattoLegendreAdaptorL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AdaptorL2{RealT}
+  forward_upper::ForwardMatrix
+  forward_lower::ForwardMatrix
+  reverse_upper::ReverseMatrix
+  reverse_lower::ReverseMatrix
 end
 
 function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   nnodes_ = nnodes(basis)
-  forward_upper   = calc_forward_upper(nnodes_)
-  forward_lower   = calc_forward_lower(nnodes_)
-  l2reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss))
-  l2reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss))
 
-  # type conversions to make use of StaticArrays etc.
-  forward_upper   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_upper))
-  forward_lower   = SMatrix{nnodes_, nnodes_}(convert.(RealT, forward_lower))
-  l2reverse_upper = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_upper))
-  l2reverse_lower = SMatrix{nnodes_, nnodes_}(convert.(RealT, l2reverse_lower))
+  # compute everything using `Float64` by default
+  forward_upper_ = calc_forward_upper(nnodes_)
+  forward_lower_ = calc_forward_lower(nnodes_)
+  reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
+  reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
 
-  LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper)}(
+  # type conversions to get the requested real type and enable possible
+  # optimizations of runtime performance and latency
+
+  # WIP, latency
+  forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
+  forward_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_lower_)
+  # forward_upper = Matrix{RealT}(forward_upper_)
+  # forward_lower = Matrix{RealT}(forward_lower_)
+
+  reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
+  reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
+  # reverse_upper = Matrix{RealT}(reverse_upper_)
+  # reverse_lower = Matrix{RealT}(reverse_lower_)
+
+  LobattoLegendreAdaptorL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
-    l2reverse_upper, l2reverse_lower)
+    reverse_upper, reverse_lower)
 end
 
 function Base.show(io::IO, adaptor::LobattoLegendreAdaptorL2)

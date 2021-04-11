@@ -212,6 +212,28 @@ function _precompile_manual_()
     }
   end
 
+  function analyzer_type_dgsem(RealT, nnodes_)
+    polydeg = nnodes_ - 1
+    nnodes_analysis = 2 * polydeg + 1
+    LobattoLegendreAnalyzer{RealT,nnodes_analysis,
+                            # VectorT
+                            StaticArrays.SVector{nnodes_analysis,RealT},
+                            # Vandermonde
+                            Array{RealT,2}
+    }
+  end
+
+  function adaptor_type_dgsem(RealT, nnodes_)
+    LobattoLegendreAdaptorL2{RealT,nnodes_,
+                            # ForwardMatrix
+                            StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            # Matrix{RealT},
+                            # ReverseMatrix
+                            StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            # Matrix{RealT},
+    }
+  end
+
   # Constructors: mesh
   for RealT in (Int, Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},RealT,RealT})
@@ -372,8 +394,8 @@ function _precompile_manual_()
       nnodes_ = polydeg + 1
       basis_type    = basis_type_dgsem(RealT, nnodes_)
       mortar_type   = mortar_type_dgsem(RealT, nnodes_)
-      analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
-      adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      analyzer_type = analyzer_type_dgsem(RealT, nnodes_)
+      adaptor_type  = adaptor_type_dgsem(RealT, nnodes_)
 
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),basis_type})
       @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",basis_type})
