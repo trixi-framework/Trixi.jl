@@ -34,6 +34,12 @@ end
   return numerical_flux(u_ll, u_rr, orientation, equations) + dissipation(u_ll, u_rr, orientation, equations)
 end
 
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations)
+  @unpack numerical_flux, dissipation = numflux
+
+  return numerical_flux(u_ll, u_rr, normal_vector, equations) + dissipation(u_ll, u_rr, normal_vector, equations)
+end
+
 Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f.numerical_flux, ", ", f.dissipation, ")")
 
 
