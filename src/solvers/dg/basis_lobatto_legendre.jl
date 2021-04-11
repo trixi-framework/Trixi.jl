@@ -41,13 +41,14 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_split_transpose_ = Matrix(derivative_split_')
   derivative_dhat_            = calc_dhat(nodes_, weights_)
 
-  # type conversions to optimize runtime performance and latency
+  # type conversions to get the requested real type and enable possible
+  # optimizations of runtime performance and latency
   nodes           = SVector{nnodes_, RealT}(nodes_)
   weights         = SVector{nnodes_, RealT}(weights_)
   inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-  boundary_interpolation       = SMatrix{nnodes_, 2, RealT, 2*nnodes_}(boundary_interpolation_)
+  boundary_interpolation       = convert.(RealT, boundary_interpolation_)
 
   # WIP, latency
   # derivative_matrix          = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix_))
@@ -66,7 +67,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   derivative_split_transpose = (convert.(RealT, derivative_split_transpose_))
   derivative_dhat            = (convert.(RealT, derivative_dhat_))
 
-  # Fast (when using `let` in the volume integral?)
+  # Seems to be on par with `Array` (when using `let` in the volume integral?)
   # derivative_matrix          = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_matrix_))
   # derivative_split           = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split_))
   # derivative_split_transpose = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split_transpose_))

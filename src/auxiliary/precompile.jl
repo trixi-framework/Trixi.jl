@@ -186,6 +186,22 @@ function _precompile_manual_()
     )
   end
 
+  function basis_type_dgsem(RealT, nnodes_)
+    # If the derivative matrices were used as `SMatrix` by default
+    LobattoLegendreBasis{RealT,nnodes_,
+                         # VectorT
+                         StaticArrays.SVector{nnodes_,RealT},
+                         # InverseVandermondeLegendre
+                         Array{RealT,2},
+                         # BoundaryMatrix
+                         #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                         Array{RealT,2},
+                         # DerivativeMatrix
+                         #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}
+                         Array{RealT,2}
+    }
+  end
+
   # Constructors: mesh
   for RealT in (Int, Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},RealT,RealT})
@@ -265,7 +281,7 @@ function _precompile_manual_()
   # Constructors: mortars, analyzers, adaptors
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
-    basis_type = LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+    basis_type = basis_type_dgsem(RealT, nnodes_)
     @assert Base.precompile(Tuple{typeof(Trixi.MortarL2),basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer},basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2},basis_type})
@@ -343,7 +359,7 @@ function _precompile_manual_()
     # mortars, analyzers, adaptors, DG
     for polydeg in 1:1
       nnodes_ = polydeg + 1
-      basis_type    = LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      basis_type    = basis_type_dgsem(RealT, nnodes_)
       mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
       analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
       adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
