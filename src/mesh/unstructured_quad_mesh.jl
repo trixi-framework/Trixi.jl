@@ -8,7 +8,7 @@ All mesh information, neighbour coupling, and boundary curve information is read
 !!! warning "Experimental code"
     This mesh type is experimental and can change any time.
 """
-struct UnstructuredQuadMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
+struct UnstructuredQuadMesh{NDIMS, RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{NDIMS}
   filename             ::String
   n_corners            ::Int64
   n_interfaces         ::Int64
@@ -21,7 +21,7 @@ struct UnstructuredQuadMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   periodicity          ::Bool
   element_node_ids     ::Array{Int64, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
-  elements_curves      ::Array{GammaCurve, 2} # [local sides, n_elements]
+  elements_curves      ::Array{GammaCurveT, 2} # [local sides, n_elements]
 end
 
 
@@ -42,6 +42,7 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
   mesh_poly_deg = parse(Int64,current_line[4])
 
   mesh_nnodes = mesh_poly_deg + 1
+  # TODO: This is still type-unstable -> introduce a function barrier
 
   # counter to step through the mesh file line by line
   file_idx = 2
@@ -93,7 +94,7 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
 
   # readin an store the curved boundary information of the elements
   element_is_curved = Array{Bool}(undef, n_elements)
-  element_curves    = Array{GammaCurve}(undef, (4, n_elements))
+  element_curves    = Array{GammaCurve{RealT, mesh_nnodes}}(undef, (4, n_elements))
   bndy_names        = Array{String}(undef, (4, n_elements))
 
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
@@ -174,10 +175,11 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
     file_idx += 1
   end
 
-  return UnstructuredQuadMesh{NDIMS, RealT}(filename, n_corners, n_interfaces, n_boundary,
-                                            n_elements, mesh_poly_deg, corner_nodes,
-                                            interface_info, bndy_names, periodic,
-                                            element_node_ids, element_is_curved, element_curves)
+  return UnstructuredQuadMesh{NDIMS, RealT, typeof(first(element_curves))}(
+    filename, n_corners, n_interfaces, n_boundary,
+    n_elements, mesh_poly_deg, corner_nodes,
+    interface_info, bndy_names, periodic,
+    element_node_ids, element_is_curved, element_curves)
 end
 
 @inline Base.ndims(::UnstructuredQuadMesh{NDIMS}) where {NDIMS} = NDIMS

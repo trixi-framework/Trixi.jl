@@ -48,30 +48,32 @@ end
 Base.eltype(::UnstructuredElementContainer2D{RealT, uEltype}) where {RealT, uEltype} = uEltype
 
 
-function init_elements(RealT, mesh, dg_nodes, nvars, poly_deg)
+function init_elements(RealT, mesh, dg_nodes, nvars, polydeg)
+  elements = UnstructuredElementContainer2D{RealT, RealT, nvars, polydeg}(mesh.n_elements)
+  init_elements!(elements, mesh, dg_nodes, polydeg)
+  return elements
+end
 
-  elements = UnstructuredElementContainer2D{RealT, RealT, nvars, poly_deg}(mesh.n_elements)
+function init_elements!(elements::UnstructuredElementContainer2D, mesh, dg_nodes, polydeg)
+  four_corners = zeros(eltype(mesh.corners), 4, 2)
 
-  four_corners = zeros(4, 2)
-  #loop through elements and call the correct constructor based on the is curved
-  for element_id in eachelement(elements)
-    if mesh.element_is_curved[element_id]
-      init_element!(elements, element_id, poly_deg, dg_nodes, mesh.elements_curves[:, element_id])
+  # loop through elements and call the correct constructor based on the is curved
+  for element in eachelement(elements)
+    if mesh.element_is_curved[element]
+      init_element!(elements, element, polydeg, dg_nodes, view(mesh.elements_curves, :, element))
     else # straight sided element
-      for i in 1:4
+      for i in 1:4, j in 1:2
         # pull the (x,y) values of these corners out of the global corners array
-        four_corners[i, :] .= mesh.corners[:, mesh.element_node_ids[i, element_id]]
+        four_corners[i, j] = mesh.corners[j, mesh.element_node_ids[i, element]]
       end
-      init_element!(elements, element_id, poly_deg, dg_nodes, four_corners)
+      init_element!(elements, element, polydeg, dg_nodes, four_corners)
     end
   end
-
-  return elements
 end
 
 
 # initialize all the values in the container on a curved sided element
-function init_element!(elements, element_id, polydeg, nodes, GammaCurves::Array{GammaCurve,1})
+function init_element!(elements, element_id, polydeg, nodes, GammaCurves::AbstractVector{<:GammaCurve})
 
   calc_node_coordinates!(elements.node_coordinates, element_id, nodes, polydeg, GammaCurves)
 
