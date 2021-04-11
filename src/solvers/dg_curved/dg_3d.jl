@@ -108,7 +108,6 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                                       surface_flux, mesh::CurvedMesh{3}, equations, dg::DG, cache)
-  @unpack jacobian_matrix = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
