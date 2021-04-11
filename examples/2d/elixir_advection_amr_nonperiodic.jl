@@ -16,7 +16,8 @@ initial_condition = initial_condition_gauss
 boundary_conditions = boundary_condition_gauss
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+polydeg = 3
+solver = DGSEM(polydeg, surface_flux)
 
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
@@ -64,7 +65,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         amr_callback, stepsize_callback);
 ###############################################################################
