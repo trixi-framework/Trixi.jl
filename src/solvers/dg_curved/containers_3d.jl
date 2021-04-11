@@ -11,7 +11,7 @@ function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBas
 
     calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh.mapping, mesh, basis)
 
-    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
+    calc_jacobian_matrix!(jacobian_matrix, element, mesh, node_coordinates, basis)
 
     calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix, node_coordinates, basis)
 
@@ -69,7 +69,7 @@ end
 
 # Calculate contravariant vectors, multiplied by the Jacobian determinant J of the transformation mapping,
 # using the conservative curl form.
-# Those are called Ja^i in Kopriva's blue book.
+# These are called Ja^i in Kopriva's blue book.
 function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6}, element, 
                                      jacobian_matrix, node_coordinates, basis::LobattoLegendreBasis)
 
