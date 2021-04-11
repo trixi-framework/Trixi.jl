@@ -147,14 +147,14 @@ end
 
 # In 1D
 # Linear mapping from the reference element to the domain described by the faces
-function linear_mapping(x, faces::NTuple{2, Any})
+function linear_mapping(x, faces)
   return linear_interpolate(x, faces[1](), faces[2]())
 end
 
 
 # In 2D
 # Bilinear mapping from the reference element to the domain described by the faces
-function bilinear_mapping(x, y, faces::NTuple{4, Any})
+function bilinear_mapping(x, y, faces)
   x1 = faces[1](-1) # Bottom left
   x2 = faces[2](-1) # Bottom right
   x3 = faces[1](1) # Top left
@@ -169,7 +169,7 @@ end
 
 # In 3D
 # Trilinear mapping from the reference element to the domain described by the faces
-function trilinear_mapping(x, y, z, faces::NTuple{6, Any})
+function trilinear_mapping(x, y, z, faces)
   x1 = faces[1](-1, -1) # mapped from (-1,-1,-1)
   x2 = faces[2](-1, -1) # mapped from ( 1,-1,-1)
   x3 = faces[1]( 1, -1) # mapped from (-1, 1,-1)
@@ -204,7 +204,7 @@ end
 
 # In 3D
 # Correction term for the Transfinite mapping
-function correction_term_3d(x, y, z, faces::NTuple{6, Any})
+function correction_term_3d(x, y, z, faces)
   # Correction for x-terms
   c_x = linear_interpolate(x, linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
                               linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)), 
