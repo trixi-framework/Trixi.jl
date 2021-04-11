@@ -62,10 +62,10 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   # derivative_dhat            = MMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat_))
 
   # Surprisingly fast, nearly as fast as `SMatrix` (when using `let` in the volume integral?)
-  derivative_matrix          = (convert.(RealT, derivative_matrix_))
-  derivative_split           = (convert.(RealT, derivative_split_))
-  derivative_split_transpose = (convert.(RealT, derivative_split_transpose_))
-  derivative_dhat            = (convert.(RealT, derivative_dhat_))
+  derivative_matrix          = Matrix{RealT}(derivative_matrix_)
+  derivative_split           = Matrix{RealT}(derivative_split_)
+  derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
+  derivative_dhat            = Matrix{RealT}(derivative_dhat_)
 
   # Seems to be on par with `Array` (when using `let` in the volume integral?)
   # derivative_matrix          = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_matrix_))
@@ -121,29 +121,43 @@ end
 
 
 
-struct LobattoLegendreMortarL2{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
-  forward_upper::MortarMatrix
-  forward_lower::MortarMatrix
-  reverse_upper::MortarMatrix
-  reverse_lower::MortarMatrix
+struct LobattoLegendreMortarL2{RealT<:Real, NNODES, ForwardMatrix<:AbstractMatrix{RealT}, ReverseMatrix<:AbstractMatrix{RealT}} <: AbstractMortarL2{RealT}
+  forward_upper::ForwardMatrix
+  forward_lower::ForwardMatrix
+  reverse_upper::ReverseMatrix
+  reverse_lower::ReverseMatrix
 end
 
 function MortarL2(basis::LobattoLegendreBasis)
   RealT = real(basis)
-  NNODES = nnodes(basis)
+  nnodes_ = nnodes(basis)
 
-  forward_upper = calc_forward_upper(NNODES)
-  forward_lower = calc_forward_lower(NNODES)
-  reverse_upper = calc_reverse_upper(NNODES, Val(:gauss))
-  reverse_lower = calc_reverse_lower(NNODES, Val(:gauss))
+  # compute everything using `Float64` by default
+  forward_upper_ = calc_forward_upper(nnodes_)
+  forward_lower_ = calc_forward_lower(nnodes_)
+  reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
+  reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
 
-  # type conversions to make use of StaticArrays etc.
-  forward_upper = SMatrix{NNODES, NNODES}(convert.(RealT, forward_upper))
-  forward_lower = SMatrix{NNODES, NNODES}(convert.(RealT, forward_lower))
-  reverse_upper = SMatrix{NNODES, NNODES}(convert.(RealT, reverse_upper))
-  reverse_lower = SMatrix{NNODES, NNODES}(convert.(RealT, reverse_lower))
+  # type conversions to get the requested real type and enable possible
+  # optimizations of runtime performance and latency
 
-  LobattoLegendreMortarL2{RealT, NNODES, typeof(forward_upper)}(
+  # WIP, latency
+  # forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
+  # forward_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_lower_)
+  forward_upper = Matrix{RealT}(forward_upper_)
+  forward_lower = Matrix{RealT}(forward_lower_)
+
+  # TODO: Taal performance
+  #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
+  #       with different types of the reverse matrices. Check whether `@avx` with `eachnode` in
+  #       `multiply_dimensionwise!` can be faster than `@tullio` when the matrix sizes are not
+  #       necessarily static.
+  # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
+  # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
+  reverse_upper = Matrix{RealT}(reverse_upper_)
+  reverse_lower = Matrix{RealT}(reverse_lower_)
+
+  LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper), typeof(reverse_upper)}(
     forward_upper, forward_lower,
     reverse_upper, reverse_lower)
 end
