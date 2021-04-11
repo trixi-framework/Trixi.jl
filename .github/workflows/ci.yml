@@ -13,6 +13,7 @@ on:
       - '.zenodo.json'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
       - 'docs/**'
       - 'utils/**'
   pull_request:
@@ -25,6 +26,7 @@ on:
       - '.zenodo.json'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
       - 'docs/**'
       - 'utils/**'
   workflow_dispatch:
