@@ -12,7 +12,8 @@ initial_condition = initial_condition_isentropic_vortex
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_kennedy_gruber
 
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
@@ -62,7 +63,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.7)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 
