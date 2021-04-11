@@ -265,7 +265,7 @@ function _precompile_manual_()
   # Constructors: mortars, analyzers, adaptors
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
-    basis_type = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+    basis_type = LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
     @assert Base.precompile(Tuple{typeof(Trixi.MortarL2),basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer},basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2},basis_type})
@@ -288,7 +288,7 @@ function _precompile_manual_()
     # We would need to use all special cases instead of
     # Function,Trixi.AbstractVolumeIntegral
     # for equations_type in equations_types(RealT)
-    #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
+    #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
     # end
   # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
@@ -343,7 +343,7 @@ function _precompile_manual_()
     # mortars, analyzers, adaptors, DG
     for polydeg in 1:1
       nnodes_ = polydeg + 1
-      basis_type    = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      basis_type    = LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
       mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
       analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
       adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
