@@ -34,12 +34,6 @@ end
   return numerical_flux(u_ll, u_rr, orientation, equations) + dissipation(u_ll, u_rr, orientation, equations)
 end
 
-@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, normal_vector, tangent_vector1, tangent_vector2, equations)
-  @unpack numerical_flux, dissipation = numflux
-
-  return numerical_flux(u_ll, u_rr, normal_vector, equations) + dissipation(u_ll, u_rr, normal_vector, equations)
-end
-
 Base.show(io::IO, f::FluxPlusDissipation) = print(io, "FluxPlusDissipation(",  f.numerical_flux, ", ", f.dissipation, ")")
 
 
@@ -81,13 +75,15 @@ end
   norm_ = norm(normal_vector)
   # normalize the vector without using `normalize` since we need to multiply by the `norm_` later
   normal = normal_vector / norm_
+  tangent1 = normalize(tangent_vector1)
+  tangent2 = normalize(tangent_vector2)
 
-  u_ll_rotated = rotate_to_x(u_ll, normal, tangent_vector1, tangent_vector2, equations)
-  u_rr_rotated = rotate_to_x(u_rr, normal, tangent_vector1, tangent_vector2, equations)
+  u_ll_rotated = rotate_to_x(u_ll, normal, tangent1, tangent2, equations)
+  u_rr_rotated = rotate_to_x(u_rr, normal, tangent1, tangent2, equations)
 
   f = numerical_flux(u_ll_rotated, u_rr_rotated, 1, equations)
 
-  return rotate_from_x(f, normal, tangent_vector1, tangent_vector2, equations) * norm_
+  return rotate_from_x(f, normal, tangent1, tangent2, equations) * norm_
 end
 
 Base.show(io::IO, f::FluxRotated) = print(io, "FluxRotated(",  f.numerical_flux, ")")
