@@ -54,8 +54,7 @@ end
 
 # Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
 function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
-  @unpack nodes = basis
-  for dim in 1:3, j in eachindex(nodes), i in eachindex(nodes)
+  for dim in 1:3, j in eachnode(basis), i in eachnode(basis)
     # ∂/∂ξ
     @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
     # ∂/∂η
@@ -77,11 +76,10 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
   # Jaⁱₙ = 0.5 * ( ∇ × (Xₘ ∇ Xₗ - Xₗ ∇ Xₘ) )ᵢ  where (n, m, l) cyclic and ∇ = (∂/∂ξ, ∂/∂η, ∂/∂ζ)ᵀ
 
   # Calculate the first summand of the cross product in each dimension
-  for dims in 0:2, j in 1:nnodes(basis), i in 1:nnodes(basis)
+  for n in 1:3, j in eachnode(basis), i in eachnode(basis)
     # (n, m, l) cyclic
-    n = ((dims + 0) % 3) + 1
-    m = ((dims + 1) % 3) + 1
-    l = ((dims + 2) % 3) + 1
+    m = (n % 3) + 1
+    l = ((n + 1) % 3) + 1
 
     # Calc only the first summand 0.5 * (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η of
     # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
@@ -106,10 +104,10 @@ function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,
   end
 
   # Calculate the second summand of the cross product in each dimension
-  for dims in 0:2, j in 1:nnodes(basis), i in 1:nnodes(basis)
-    n = dims + 1
-    m = ((dims + 1) % 3) + 1
-    l = ((dims + 2) % 3) + 1
+  for n in 1:3, j in eachnode(basis), i in eachnode(basis)
+    # (n, m, l) cyclic
+    m = (n % 3) + 1
+    l = ((n + 1) % 3) + 1
 
     # Calc only the second summand -0.5 * (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ of
     # Ja¹ₙ = 0.5 * [ (Xₘ Xₗ_ζ - Xₗ Xₘ_ζ)_η - (Xₘ Xₗ_η - Xₗ Xₘ_η)_ζ ]
@@ -145,8 +143,7 @@ end
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
 function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
-  @unpack nodes = basis
-  for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+  for k in eachnode(basis), j in eachnode(basis), i in eachnode(basis)
     # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
     inverse_jacobian[i, j, k, element] = inv(
         jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
@@ -156,7 +153,7 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, eleme
         jacobian_matrix[3, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[1, 1, i, j, k, element] -
         jacobian_matrix[3, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[1, 2, i, j, k, element] ) 
   end
-        
+
   return inverse_jacobian
 end
 
