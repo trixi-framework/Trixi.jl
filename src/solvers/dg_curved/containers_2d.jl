@@ -40,7 +40,7 @@ function calc_node_coordinates!(node_coordinates, element,
   cell_x_offset = -1 + (cell_x-1) * dx + dx/2
   cell_y_offset = -1 + (cell_y-1) * dy + dy/2
 
-  for j in eachindex(nodes), i in eachindex(nodes)
+  for j in eachnode(basis), i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
     node_coordinates[:, i, j, element] .= mapping(cell_x_offset + dx/2 * nodes[i],
                                                   cell_y_offset + dy/2 * nodes[j])
