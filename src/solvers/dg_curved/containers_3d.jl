@@ -1,18 +1,21 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{3}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
+  @unpack node_coordinates, left_neighbors, 
+          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
 
-  # Calculate node coordinates, metric terms, and inverse Jacobian
+  # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
   for cell_z in 1:size(mesh, 3), cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y, cell_z]
 
     calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, cell_z, mesh.mapping, mesh, basis)
 
-    calc_metric_terms!(metric_terms, element, mesh, node_coordinates, basis)
+    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-    calc_inverse_jacobian!(inverse_jacobian, element, metric_terms)
+    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
+
+    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix, basis)
     
   end
 
@@ -49,26 +52,51 @@ function calc_node_coordinates!(node_coordinates, element,
 end
 
 
-# Calculate metric terms of the mapping from the reference element to the element in the physical domain
-function calc_metric_terms!(metric_terms, element, mesh, node_coordinates::AbstractArray{<:Any, 5}, basis::LobattoLegendreBasis)
-  @unpack mapping = mesh
-
-  # TODO: Needs to be adjusted for actually curved meshes
-  dx, dy, dz = (mapping(1, 1, 1) .- mapping(-1, -1, -1)) ./ size(mesh)
-
-  for k in 1:nnodes(basis), j in 1:nnodes(basis), i in 1:nnodes(basis)
-    metric_terms[:, :, i, j, k, element] .= 0.5 * diagm([dx, dy, dz])
+# Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
+function calc_jacobian_matrix!(jacobian_matrix::AbstractArray{<:Any,6}, element, node_coordinates, basis)
+  @unpack nodes = basis
+  for dim in 1:3, j in eachindex(nodes), i in eachindex(nodes)
+    # ∂/∂ξ
+    @views mul!(jacobian_matrix[dim, 1, :, i, j, element], basis.derivative_matrix, node_coordinates[dim, :, i, j, element])
+    # ∂/∂η
+    @views mul!(jacobian_matrix[dim, 2, i, :, j, element], basis.derivative_matrix, node_coordinates[dim, i, :, j, element])
+    # ∂/∂ζ
+    @views mul!(jacobian_matrix[dim, 3, i, j, :, element], basis.derivative_matrix, node_coordinates[dim, i, j, :, element])
   end
 
-  return metric_terms
+  return jacobian_matrix
+end
+
+
+# Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
+# Those are called Ja^i in Kopriva's blue book.
+function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,6}, element, jacobian_matrix)
+  # TODO: This needs to be adapted for actually curved meshes.
+  # For rectangular meshes, the contravariant_vectors are just the scaled unit vectors
+  fill!(view(contravariant_vectors, .., element), 0)
+
+  @. @views contravariant_vectors[1, 1, :, :, :, element] =  jacobian_matrix[2, 2, :, :, :, element] * jacobian_matrix[3, 3, :, :, :, element]
+  @. @views contravariant_vectors[2, 2, :, :, :, element] =  jacobian_matrix[1, 1, :, :, :, element] * jacobian_matrix[3, 3, :, :, :, element]
+  @. @views contravariant_vectors[3, 3, :, :, :, element] =  jacobian_matrix[1, 1, :, :, :, element] * jacobian_matrix[2, 2, :, :, :, element]
+
+  return contravariant_vectors
 end
 
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, metric_terms)
-  @. @views inverse_jacobian[:, :, :, element] = inv(metric_terms[1, 1, 1, 1, 1, element] * 
-                                                     metric_terms[2, 2, 1, 1, 1, element] * 
-                                                     metric_terms[3, 3, 1, 1, 1, element])                                        
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 4}, element, jacobian_matrix, basis)
+  @unpack nodes = basis
+  for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+    # Calculate Determinant by using Sarrus formula (about 100 times faster than LinearAlgebra.det())
+    inverse_jacobian[i, j, k, element] = inv(
+        jacobian_matrix[1, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[3, 3, i, j, k, element] +
+        jacobian_matrix[1, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[3, 1, i, j, k, element] +
+        jacobian_matrix[1, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[3, 2, i, j, k, element] -
+        jacobian_matrix[3, 1, i, j, k, element] * jacobian_matrix[2, 2, i, j, k, element] * jacobian_matrix[1, 3, i, j, k, element] -
+        jacobian_matrix[3, 2, i, j, k, element] * jacobian_matrix[2, 3, i, j, k, element] * jacobian_matrix[1, 1, i, j, k, element] -
+        jacobian_matrix[3, 3, i, j, k, element] * jacobian_matrix[2, 1, i, j, k, element] * jacobian_matrix[1, 2, i, j, k, element] ) 
+  end
+        
   return inverse_jacobian
 end
 

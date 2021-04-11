@@ -1,18 +1,21 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{2}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
+  @unpack node_coordinates, left_neighbors, 
+          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
   linear_indices = LinearIndices(size(mesh))
 
-  # Calculate node coordinates, metric terms, and inverse Jacobian
+  # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
   for cell_y in 1:size(mesh, 2), cell_x in 1:size(mesh, 1)
     element = linear_indices[cell_x, cell_y]
 
     calc_node_coordinates!(node_coordinates, element, cell_x, cell_y, mesh.mapping, mesh, basis)
 
-    calc_metric_terms!(metric_terms, element, node_coordinates, basis)
+    calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates, basis)
 
-    calc_inverse_jacobian!(inverse_jacobian, element, metric_terms)
+    calc_contravariant_vectors!(contravariant_vectors, element, jacobian_matrix)
+
+    calc_inverse_jacobian!(inverse_jacobian, element, jacobian_matrix)
   end
 
   initialize_neighbor_connectivity!(left_neighbors, mesh, linear_indices)
@@ -45,21 +48,35 @@ function calc_node_coordinates!(node_coordinates, element,
 end
 
 
-# Calculate metric terms of the mapping from the reference element to the element in the physical domain
-function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
-  @views mul!(metric_terms[1, 1, :, :, element], basis.derivative_matrix, node_coordinates[1, :, :, element]) # x_ξ
-  @views mul!(metric_terms[2, 1, :, :, element], basis.derivative_matrix, node_coordinates[2, :, :, element]) # y_ξ
-  @views mul!(metric_terms[1, 2, :, :, element], node_coordinates[1, :, :, element], basis.derivative_matrix') # x_η
-  @views mul!(metric_terms[2, 2, :, :, element], node_coordinates[2, :, :, element], basis.derivative_matrix') # y_η
+# Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
+function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any, 4}, basis::LobattoLegendreBasis)
+  @views mul!(jacobian_matrix[1, 1, :, :, element], basis.derivative_matrix, node_coordinates[1, :, :, element]) # x_ξ
+  @views mul!(jacobian_matrix[2, 1, :, :, element], basis.derivative_matrix, node_coordinates[2, :, :, element]) # y_ξ
+  @views mul!(jacobian_matrix[1, 2, :, :, element], node_coordinates[1, :, :, element], basis.derivative_matrix') # x_η
+  @views mul!(jacobian_matrix[2, 2, :, :, element], node_coordinates[2, :, :, element], basis.derivative_matrix') # y_η
 
-  return metric_terms
+  return jacobian_matrix
+end
+
+
+# Calculate contravarant vectors, multiplied by the Jacobian determinant J of the transformation mapping.
+# Those are called Ja^i in Kopriva's blue book.
+function calc_contravariant_vectors!(contravariant_vectors::AbstractArray{<:Any,5}, element, jacobian_matrix)
+  # First contravariant vector Ja^1
+  @. @views contravariant_vectors[1, 1, :, :, element] =  jacobian_matrix[2, 2, :, :, element]
+  @. @views contravariant_vectors[1, 2, :, :, element] = -jacobian_matrix[1, 2, :, :, element]
+  # Second contravariant vector Ja^2
+  @. @views contravariant_vectors[2, 1, :, :, element] = -jacobian_matrix[2, 1, :, :, element]
+  @. @views contravariant_vectors[2, 2, :, :, element] =  jacobian_matrix[1, 1, :, :, element]
+
+  return contravariant_vectors
 end
 
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, element, metric_terms)
-  @. @views inverse_jacobian[:, :, element] = inv(metric_terms[1, 1, :, :, element] * metric_terms[2, 2, :, :, element] -
-                                                  metric_terms[1, 2, :, :, element] * metric_terms[2, 1, :, :, element])
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any,3}, element, jacobian_matrix)
+  @. @views inverse_jacobian[:, :, element] = inv(jacobian_matrix[1, 1, :, :, element] * jacobian_matrix[2, 2, :, :, element] -
+                                                  jacobian_matrix[1, 2, :, :, element] * jacobian_matrix[2, 1, :, :, element])
 
   return inverse_jacobian
 end
