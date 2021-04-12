@@ -4,7 +4,7 @@ using OrdinaryDiffEq
 using Trixi
 
 # Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings
 # if multiple test cases using the same module name are run in the same session.
 module TrixiExtensionEulerAMR
 
@@ -54,7 +54,7 @@ equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (2, 2)
@@ -97,7 +97,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution, amr_callback,
                         stepsize_callback)
 

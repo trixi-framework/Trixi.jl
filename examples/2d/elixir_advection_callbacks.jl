@@ -107,7 +107,7 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (-1, -1)
 coordinates_max = ( 1,  1)

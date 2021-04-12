@@ -278,7 +278,7 @@ function DGSEM(basis::LobattoLegendreBasis,
     basis, mortar, surface_flux, volume_integral)
 end
 
-function DGSEM(RealT, polydeg::Integer,
+function DGSEM(RealT::DataType, polydeg::Integer,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
@@ -288,6 +288,14 @@ function DGSEM(RealT, polydeg::Integer,
 end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
+
+function DGSEM(; RealT::DataType=Float64,
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 volume_integral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  return DGSEM(basis, surface_flux, volume_integral)
+end
 
 
 

@@ -16,7 +16,7 @@ boundary_conditions = (
                       )
 
 surface_flux = flux_godunov
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)

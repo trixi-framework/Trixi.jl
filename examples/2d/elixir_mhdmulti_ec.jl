@@ -12,7 +12,7 @@ initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_derigs_etal
 volume_flux  = flux_derigs_etal
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2)
 coordinates_max = ( 2,  2)

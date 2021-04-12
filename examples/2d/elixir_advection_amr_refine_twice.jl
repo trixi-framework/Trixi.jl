@@ -5,7 +5,7 @@ using Trixi
 
 
 # Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings
 # if multiple test cases using the same module name are run in the same session.
 module TrixiExtensionRefine
 
@@ -48,7 +48,7 @@ equations = LinearScalarAdvectionEquation2D(advectionvelocity)
 initial_condition = initial_condition_gauss
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)

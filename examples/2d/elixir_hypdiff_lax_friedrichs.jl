@@ -10,7 +10,7 @@ equations = HyperbolicDiffusionEquations2D()
 initial_condition = initial_condition_poisson_periodic
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -48,7 +48,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.2)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

@@ -11,7 +11,7 @@ initial_condition = initial_condition_taylor_green_vortex
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-pi, -pi, -pi)
 coordinates_max = ( pi,  pi,  pi)
@@ -47,7 +47,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.4)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 

@@ -16,7 +16,7 @@ initial_condition = initial_condition_gauss
 boundary_conditions = boundary_condition_gauss
 
 surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 coordinates_min = (-5.0, -5.0)
 coordinates_max = ( 5.0,  5.0)
@@ -52,7 +52,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback);
 ###############################################################################

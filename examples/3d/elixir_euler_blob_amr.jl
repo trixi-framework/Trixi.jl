@@ -11,7 +11,7 @@ initial_condition = initial_condition_blob
 
 surface_flux = flux_hllc
 volume_flux  = flux_ranocha
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-20, -20, -20)
 coordinates_max = ( 20,  20,  20)
@@ -62,7 +62,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl=1.7)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         amr_callback, stepsize_callback)
 

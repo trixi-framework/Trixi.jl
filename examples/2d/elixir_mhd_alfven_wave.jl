@@ -11,7 +11,7 @@ initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_central
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
 coordinates_max = (sqrt(2), sqrt(2))

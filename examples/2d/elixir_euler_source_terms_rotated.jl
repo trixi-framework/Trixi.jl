@@ -4,7 +4,7 @@ using Trixi
 
 
 # Define new structs inside a module to allow re-evaluating the file.
-# This module name needs to be unique among all examples, otherwise Julia will throw warnings 
+# This module name needs to be unique among all examples, otherwise Julia will throw warnings
 # if multiple test cases using the same module name are run in the same session.
 module TrixiExtensionEulerRotated
 
@@ -125,7 +125,7 @@ T = [cos_ -sin_; sin_ cos_]
 
 
 surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux)
 
 mapping(xi, eta) = T * SVector(xi, eta)
 
