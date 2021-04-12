@@ -10,7 +10,7 @@ equations = CompressibleEulerMulticomponentEquations1D(gammas        = (1.4, 1.4
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux  = flux_chandrashekar
+volume_flux = flux_chandrashekar
 solver = DGSEM(polydeg=3, surface_flux=flux_chandrashekar,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 

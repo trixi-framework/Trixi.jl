@@ -9,8 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(polydeg=3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
 
 # Define faces for a parallelogram that looks like this
 #

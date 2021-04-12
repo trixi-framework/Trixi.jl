@@ -9,9 +9,9 @@ equations = IdealGlmMhdEquations3D(5/3)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_derigs_etal
-solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_derigs_etal
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-1, -1, -1)
 coordinates_max = ( 1,  1,  1)

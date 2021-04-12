@@ -14,8 +14,7 @@ boundary_conditions = (x_neg=boundary_condition_poisson_nonperiodic,
                        y_neg=boundary_condition_periodic,
                        y_pos=boundary_condition_periodic)
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(4, surface_flux)
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -54,7 +53,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.0)
 
 callbacks = CallbackSet(summary_callback, steady_state_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
 

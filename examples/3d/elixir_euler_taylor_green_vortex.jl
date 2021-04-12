@@ -9,9 +9,9 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_taylor_green_vortex
 
-surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-pi, -pi, -pi)
 coordinates_max = ( pi,  pi,  pi)

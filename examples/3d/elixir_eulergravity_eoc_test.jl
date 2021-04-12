@@ -9,8 +9,7 @@ equations_euler = CompressibleEulerEquations3D(gamma)
 
 initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
-polydeg = 3
-solver_euler = DGSEM(polydeg, flux_hll)
+solver_euler = DGSEM(polydeg=3, surface_flux=flux_hll)
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (2, 2, 2)
@@ -67,10 +66,10 @@ save_solution = SaveSolutionCallback(interval=10,
 
 stepsize_callback = StepsizeCallback(cfl=1.1)
 
-callbacks = CallbackSet(summary_callback, 
-                        analysis_callback, 
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
                         alive_callback,
-                        save_restart, 
+                        save_restart,
                         save_solution,
                         stepsize_callback)
 

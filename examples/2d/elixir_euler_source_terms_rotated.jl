@@ -124,8 +124,7 @@ cos_ = initial_condition_source_terms.cos_alpha
 T = [cos_ -sin_; sin_ cos_]
 
 
-surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(polydeg=3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
 
 mapping(xi, eta) = T * SVector(xi, eta)
 

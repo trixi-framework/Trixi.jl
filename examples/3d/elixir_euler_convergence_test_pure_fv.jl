@@ -9,9 +9,8 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_hllc
-volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
-solver = DGSEM(polydeg=3, surface_flux, volume_integral)
+solver = DGSEM(polydeg=3, surface_flux=flux_hllc,
+               volume_integral=VolumeIntegralPureLGLFiniteVolume(flux_hllc))
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (2, 2, 2)

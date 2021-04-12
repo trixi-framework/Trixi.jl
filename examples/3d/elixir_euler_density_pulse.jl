@@ -9,9 +9,9 @@ equations = CompressibleEulerEquations3D(1.4)
 
 initial_condition = initial_condition_density_pulse
 
-surface_flux = flux_ranocha
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=flux_ranocha,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2, -2, -2)
 coordinates_max = ( 2,  2,  2)

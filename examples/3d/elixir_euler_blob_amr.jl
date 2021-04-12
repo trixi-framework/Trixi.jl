@@ -9,9 +9,9 @@ equations = CompressibleEulerEquations3D(gamma)
 
 initial_condition = initial_condition_blob
 
-surface_flux = flux_hllc
-volume_flux  = flux_ranocha
-solver = DGSEM(polydeg=3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_ranocha
+solver = DGSEM(polydeg=3, surface_flux=flux_hllc,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-20, -20, -20)
 coordinates_max = ( 20,  20,  20)

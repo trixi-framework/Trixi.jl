@@ -9,9 +9,8 @@ equations = CompressibleEulerEquations3D(2.0)
 
 initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
-surface_flux = flux_hll
-volume_integral = VolumeIntegralWeakForm()
-solver = DGSEM(polydeg=3, surface_flux, volume_integral)
+solver = DGSEM(polydeg=3, surface_flux=flux_hll,
+               volume_integral=VolumeIntegralWeakForm())
 
 coordinates_min = (0, 0, 0)
 coordinates_max = (2, 2, 2)

@@ -9,7 +9,7 @@ equations = IdealGlmMhdMulticomponentEquations1D(gammas           = (2.0, 2.0, 2
 
 initial_condition = initial_condition_briowu_shock_tube
 
-volume_flux  = flux_derigs_etal
+volume_flux = flux_derigs_etal
 solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
                volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 

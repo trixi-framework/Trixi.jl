@@ -19,8 +19,7 @@ boundary_conditions = (x_neg=boundary_condition_convergence_test,
                        y_neg=boundary_condition_convergence_test,
                        y_pos=boundary_condition_convergence_test,)
 
-surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(polydeg=3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
