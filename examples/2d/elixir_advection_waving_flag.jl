@@ -61,3 +61,90 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 
 # Print the timer summary
 summary_callback()
+
+using WriteVTK
+
+# The following lines represent an MWE for a dummy structured VTK output
+#
+# Ni = 3
+# Nj = 3
+# Lx = 2
+# Ly = 2
+# xy = Array{Float64}(undef, 2, Ni, Nj)
+# 
+# for j in 1:Nj, i in 1:Ni
+#   xy[1, i, j] = Lx/Ni * (i - 1)
+#   xy[2, i, j] = Ly/Nj * (j - 1) + Ly/Nj/3 * (i - 1)
+# end
+# 
+# vtk_grid("testfile", xy) do vtk
+#   vtk["scalar"] = collect(Float64, reshape(1:4, 2, 2))
+# end
+
+function getxy(sol)
+  semi = sol.prob.p
+  mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+  node_coordinates = semi.cache.elements.node_coordinates
+  nnodes_ = nnodes(solver)
+  linear_indices = LinearIndices(size(mesh))
+  Nx = size(mesh, 1)
+  Ny = size(mesh, 2)
+
+  xy = Array{Float64}(undef, 2, Nx * (nnodes_ - 1) + 1, Ny * (nnodes_ - 1) + 1)
+
+  for cell_y in axes(mesh, 2), cell_x in axes(mesh, 1)
+    for j in 1:nnodes_, i in 1:nnodes_
+      index_x = (cell_x - 1) * (nnodes_ - 1) + i
+      index_y = (cell_y - 1) * (nnodes_ - 1) + j
+      xy[1, index_x, index_y] = node_coordinates[1, i, j, linear_indices[cell_x, cell_y]]
+      xy[2, index_x, index_y] = node_coordinates[2, i, j, linear_indices[cell_x, cell_y]]
+    end
+  end
+
+  for cell_y in axes(mesh, 2), cell_x in Nx
+    for j in 1:nnodes_
+      index_y = (cell_y - 1) * (nnodes_ - 1) + j
+      xy[1, end, index_y] = node_coordinates[1, end, j, linear_indices[cell_x, cell_y]]
+      xy[2, end, index_y] = node_coordinates[2, end, j, linear_indices[cell_x, cell_y]]
+    end
+  end
+
+  for cell_y in Ny, cell_x in axes(mesh, 1)
+    for i in 1:nnodes_
+      index_x = (cell_x - 1) * (nnodes_ - 1) + i
+      xy[1, index_x, end] = node_coordinates[1, i, end, linear_indices[cell_x, cell_y]]
+      xy[2, index_x, end] = node_coordinates[2, i, end, linear_indices[cell_x, cell_y]]
+    end
+  end
+
+  return xy
+end
+
+function getscalar(sol)
+  u_ode = sol.u[end]
+  semi = sol.prob.p
+  u = Trixi.wrap_array(u_ode, semi)
+  mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+  Nx = size(mesh, 1)
+  Ny = size(mesh, 2)
+  nvisnodes = nnodes(solver) - 1
+
+  scalar = Array{Float64}(undef, Nx * nvisnodes, Ny * nvisnodes)
+  linear_indices = LinearIndices(size(mesh))
+  for cell_y in axes(mesh, 2), cell_x in axes(mesh, 1)
+    for j in 1:nvisnodes, i in 1:nvisnodes
+      index_x = (cell_x - 1) * nvisnodes + i
+      index_y = (cell_y - 1) * nvisnodes + j
+      scalar[index_x, index_y] = (u[1, i,   j,   linear_indices[cell_x, cell_y]] + 
+                                  u[1, i+1, j,   linear_indices[cell_x, cell_y]] + 
+                                  u[1, i,   j+1, linear_indices[cell_x, cell_y]] + 
+                                  u[1, i+1, j+1, linear_indices[cell_x, cell_y]]) / 4
+    end
+  end
+
+  return scalar
+end
+
+vtk_grid("curved", getxy(sol)) do vtk
+  vtk["scalar"] = getscalar(sol)
+end
