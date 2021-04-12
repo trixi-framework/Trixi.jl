@@ -16,6 +16,12 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
