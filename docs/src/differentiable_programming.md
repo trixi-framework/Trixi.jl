@@ -10,44 +10,6 @@ In the following, we will walk through some examples demonstrating how to differ
 Trixi.jl.
 
 
-## Linear systems
-
-When a linear PDE is discretized using a linear scheme such as a standard DG method,
-the resulting semidiscretization yields an affine ODE of the form
-```math
-\partial_t u(t) = A u(t) + b,
-```
-where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
-to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
-The resulting operator `A` can be used in multiplication, e.g. `mul!` from
-LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
-or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.
-For example,
-```jldoctest
-julia> using Trixi, LinearAlgebra, Plots
-
-julia> equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
-
-julia> solver = DGSEM(3, flux_lax_friedrichs);
-
-julia> mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
-
-julia> semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver);
-
-julia> A, b = linear_structure(semi);
-
-julia> size(A), size(b)
-((256, 256), (256,))
-
-julia> λ = eigvals(Matrix(A));
-
-julia> scatter(real.(λ), imag.(λ));
-
-julia> λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ) < 1.0e-15
-true
-```
-
-
 ## Forward mode automatic differentiation
 
 Trixi integrates well with [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)
@@ -363,7 +325,7 @@ do not need any modifications since they are sufficiently generic (and enough ef
 has been spend to allow general types inside these calls).
 
 
-### Propagating errors using Measurements.jl
+## Propagating errors using Measurements.jl
 
 [![Error bars by Randall Munroe](https://imgs.xkcd.com/comics/error_bars.png)](https://xkcd.com/2110/)
 
@@ -435,3 +397,42 @@ julia> round(norm(J_fd - J_ad) / size(J_fd, 1), sigdigits=2)
 6.7e-7
 ```
 This discrepancy is of the expected order of magnitude for central finite difference approximations.
+
+
+
+## Linear systems
+
+When a linear PDE is discretized using a linear scheme such as a standard DG method,
+the resulting semidiscretization yields an affine ODE of the form
+```math
+\partial_t u(t) = A u(t) + b,
+```
+where `A` is a linear operator ("matrix") and `b` is a vector. Trixi allows you
+to obtain this linear structure in a matrix-free way by using [`linear_structure`](@ref).
+The resulting operator `A` can be used in multiplication, e.g. `mul!` from
+LinearAlgebra, converted to a sparse matrix using `sparse` from SparseArrays,
+or converted to a dense matrix using `Matrix` for detailed eigenvalue analyses.
+For example,
+```jldoctest
+julia> using Trixi, LinearAlgebra, Plots
+
+julia> equations = LinearScalarAdvectionEquation2D(1.0, -0.3);
+
+julia> solver = DGSEM(3, flux_lax_friedrichs);
+
+julia> mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5);
+
+julia> semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver);
+
+julia> A, b = linear_structure(semi);
+
+julia> size(A), size(b)
+((256, 256), (256,))
+
+julia> λ = eigvals(Matrix(A));
+
+julia> scatter(real.(λ), imag.(λ));
+
+julia> λ = eigvals(Matrix(A)); maximum(real, λ) / maximum(abs, λ) < 1.0e-15
+true
+```

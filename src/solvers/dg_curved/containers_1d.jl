@@ -33,7 +33,7 @@ function calc_node_coordinates!(node_coordinates, cell_x, mapping, mesh::CurvedM
   # Calculate node coordinates of reference mesh
   cell_x_offset = -1 + (cell_x-1) * dx + dx/2
   
-  for i in eachindex(nodes)
+  for i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
     node_coordinates[1, i, cell_x] = mapping(cell_x_offset + dx/2 * nodes[i])[1]
   end
