@@ -9,8 +9,7 @@ advectionvelocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 initial_condition = initial_condition_gauss
-
-DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5, -5, -5)
 coordinates_max = ( 5,  5,  5)

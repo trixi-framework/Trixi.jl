@@ -19,7 +19,7 @@ initial_condition = initial_condition_convergence_test
 boundary_conditions = boundary_condition_periodic
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 # The initial condition is 2-periodic
 coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
