@@ -30,7 +30,6 @@ import DiffEqBase: CallbackSet, DiscreteCallback,
 using CodeTracking: code_string
 @reexport using EllipsisNotation # ..
 import ForwardDiff
-using HybridArrays: HybridArray, Dynamic
 using HDF5: h5open, attributes
 using LinearMaps: LinearMap
 import MPI
@@ -38,7 +37,6 @@ using OffsetArrays: OffsetArray, OffsetVector
 using RecipesBase
 using Requires
 @reexport using StaticArrays: SVector
-using StrideArrays: StrideArray, StaticInt
 using StaticArrays: MVector, MMatrix, MArray, SMatrix
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
 @reexport using UnPack: @unpack

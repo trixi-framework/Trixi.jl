@@ -50,48 +50,11 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
   inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
   boundary_interpolation       = convert.(RealT, boundary_interpolation_)
 
-  # WIP, latency
-  # derivative_matrix          = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix_))
-  # derivative_split           = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_))
-  # derivative_split_transpose = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose_))
-  # derivative_dhat            = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat_))
-
-  # derivative_matrix          = MMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_matrix_))
-  # derivative_split           = MMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_))
-  # derivative_split_transpose = MMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_split_transpose_))
-  # derivative_dhat            = MMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(convert.(RealT, derivative_dhat_))
-
-  # Surprisingly fast, nearly as fast as `SMatrix` (when using `let` in the volume integral?)
+  # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
   derivative_matrix          = Matrix{RealT}(derivative_matrix_)
   derivative_split           = Matrix{RealT}(derivative_split_)
   derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
   derivative_dhat            = Matrix{RealT}(derivative_dhat_)
-
-  # Seems to be on par with `Array` (when using `let` in the volume integral?)
-  # derivative_matrix          = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_matrix_))
-  # derivative_split           = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split_))
-  # derivative_split_transpose = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_split_transpose_))
-  # derivative_dhat            = HybridArray{Tuple{nnodes_, nnodes_}}(convert.(RealT, derivative_dhat_))
-
-  # Why is this slower than HybridArray?
-  # derivative_matrix          = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  # derivative_split           = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  # derivative_split_transpose = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  # derivative_dhat            = StrideArray(undef, RealT, StaticInt(nnodes_), StaticInt(nnodes_))
-  # derivative_matrix          .= derivative_matrix_
-  # derivative_split           .= derivative_split_
-  # derivative_split_transpose .= derivative_split_transpose_
-  # derivative_dhat            .= derivative_dhat_
-
-  # Why is this slower than Array?
-  # derivative_matrix          = StrideArray(undef, RealT, nnodes_, nnodes_)
-  # derivative_split           = StrideArray(undef, RealT, nnodes_, nnodes_)
-  # derivative_split_transpose = StrideArray(undef, RealT, nnodes_, nnodes_)
-  # derivative_dhat            = StrideArray(undef, RealT, nnodes_, nnodes_)
-  # derivative_matrix          .= derivative_matrix_
-  # derivative_split           .= derivative_split_
-  # derivative_split_transpose .= derivative_split_transpose_
-  # derivative_dhat            .= derivative_dhat_
 
   return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes), typeof(inverse_vandermonde_legendre), typeof(boundary_interpolation), typeof(derivative_matrix)}(
     nodes, weights, inverse_weights,
@@ -141,9 +104,7 @@ function MortarL2(basis::LobattoLegendreBasis)
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency
 
-  # WIP, latency
-  # forward_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_upper_)
-  # forward_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(forward_lower_)
+  # Usually as fast as `SMatrix` but better for latency
   forward_upper = Matrix{RealT}(forward_upper_)
   forward_lower = Matrix{RealT}(forward_lower_)
 
@@ -282,7 +243,6 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
   # type conversions to get the requested real type and enable possible
   # optimizations of runtime performance and latency
 
-  # WIP, latency
   # TODO: Taal performance
   #       Check the performance of different implementations of
   #       `refine_elements!` (forward) and `coarsen_elements!` (reverse)
