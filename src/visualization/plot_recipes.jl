@@ -127,15 +127,17 @@ end
                solution_variables=nothing, kwargs...)
 
 Create a new `PlotData2D` object that can be used for visualizing 2D DGSEM solution data array
-`u` with `Plots.jl` for the mesh type `CurvedMesh`. All relevant geometrical information is extracted
-from the semidiscretization `semi`. By default, the conservative variables from the solution are used
-for plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+`u` with `Plots.jl` for the mesh type `CurvedMesh` or `UnstructuredQuadMesh`. All relevant
+geometrical information is extracted from the semidiscretization `semi`. By default, the
+conservative variables from the solution are used for plotting. This can be changed by passing an
+appropriate conversion function to `solution_variables`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 
 """
-function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbolic{<:CurvedMesh};
+function PlotData2D(u::AbstractArray{<:Any, 4},
+                    semi::SemidiscretizationHyperbolic{<:Union{CurvedMesh,UnstructuredQuadMesh}};
                     solution_variables=nothing, grid_lines=true, kwargs...)
   mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
   @unpack node_coordinates = cache.elements
@@ -151,6 +153,7 @@ function PlotData2D(u::AbstractArray{<:Any, 4}, semi::SemidiscretizationHyperbol
   data = [vec(unstructured_data[.., v]) for v in 1:nvariables(semi)]
 
   if grid_lines
+    # TODO Implement mesh vertix calculation for UnstructuredQuadMesh
     mesh_vertices_x, mesh_vertices_y = calc_vertices(node_coordinates, mesh)
   else
     mesh_vertices_x = Matrix{Float64}(undef, 0, 0)
