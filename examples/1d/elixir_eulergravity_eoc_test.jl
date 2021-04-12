@@ -9,7 +9,8 @@ equations_euler = CompressibleEulerEquations1D(gamma)
 
 initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
-solver_euler = DGSEM(polydeg=3, surface_flux=flux_hll)
+polydeg = 3
+solver_euler = DGSEM(polydeg, flux_hll)
 
 coordinates_min = 0
 coordinates_max = 2
