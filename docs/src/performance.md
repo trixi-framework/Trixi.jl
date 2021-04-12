@@ -133,7 +133,13 @@ You can also run this comparison and an additional one using two threads via
 julia> include("benchmark/run_benchmarks.jl")
 ```
 Then, markdown files including the results are saved in `benchmark/`.
-
+[This example result](https://gist.github.com/ranocha/bf98d19e288e759d3a36ca0643448efb)
+was obtained using a GitHub action for the 
+[PR #535](https://github.com/trixi-framework/Trixi.jl/pull/535).
+Note that GitHub actions run on in the cloud in a virtual machine. Hence, we do not really
+have control over it and performance results must be taken with a grain of salt.
+Nevertheless, significant runtime differences and differences of memory allocations
+should be robust indicators of performance changes.
 
 
 ## Runtime performance vs. latency aka using `@nospecialize` selectively
