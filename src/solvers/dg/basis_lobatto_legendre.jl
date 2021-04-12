@@ -80,6 +80,8 @@ end
 
 @inline nnodes(basis::LobattoLegendreBasis{RealT, NNODES}) where {RealT, NNODES} = NNODES
 
+@inline eachnode(basis::LobattoLegendreBasis) = Base.OneTo(nnodes(basis))
+
 @inline polydeg(basis::LobattoLegendreBasis) = nnodes(basis) - 1
 
 
