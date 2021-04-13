@@ -22,7 +22,7 @@ struct UnstructuredQuadMesh{NDIMS, RealT<:Real, GammaCurveT<:GammaCurve{RealT}} 
   periodicity          ::Bool
   element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
-  elements_curves      ::Array{GammaCurveT, 2} # [local sides, n_elements]
+  surface_curves       ::Array{GammaCurveT, 2} # [local sides, n_elements]
 end
 
 
@@ -59,7 +59,7 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
   curve_vals_static = reinterpret(SVector{mesh_nnodes, RealT}, curve_vals)
   element_is_curved = Array{Bool}(undef, n_elements)
   GammaCurveT = GammaCurve{RealT, mesh_nnodes}
-  element_curves    = Array{GammaCurveT}(undef, (4, n_elements))
+  surface_curves    = Array{GammaCurveT}(undef, (4, n_elements))
   bndy_names        = Array{String}(undef, (4, n_elements))
 
   # create the Chebyshev-Gauss-Lobatto nodes used to represent any curved boundaries that are
@@ -71,7 +71,7 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
 
   arrays = (corner_nodes, interface_info, element_node_ids, curved_check,
             cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
-            element_is_curved, element_curves, bndy_names)
+            element_is_curved, surface_curves, bndy_names)
   counters = (n_corners, n_surfaces, n_elements)
 
   n_boundary = parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
@@ -87,13 +87,13 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
     filename, n_corners, n_surfaces, n_interfaces, n_boundary,
     n_elements, mesh_poly_deg, corner_nodes,
     interface_info, bndy_names, periodic,
-    element_node_ids, element_is_curved, element_curves)
+    element_node_ids, element_is_curved, surface_curves)
 end
 
 function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
   ( corner_nodes, interface_info, element_node_ids, curved_check,
     cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
-    element_is_curved, element_curves, bndy_names ) = arrays
+    element_is_curved, surface_curves, bndy_names ) = arrays
   n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
 
@@ -196,7 +196,7 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
           end
         end
         # construct the curve interpolant for the current side
-        element_curves[i, j] = GammaCurveT(cheby_nodes, bary_weights, curve_vals_static[1], curve_vals_static[2])
+        surface_curves[i, j] = GammaCurveT(cheby_nodes, bary_weights, curve_vals_static[1], curve_vals_static[2])
         # indexing update that contains a "flip" to ensure correct element orientation
         # if we need to construct the straight line "curves" when curved_check[i] == 0
         m1 += 1
@@ -223,7 +223,7 @@ end
 # Check if mesh is periodic
 isperiodic(mesh::UnstructuredQuadMesh) = mesh.periodicity
 
-Base.size(mesh::UnstructuredQuadMesh) = mesh.n_elements
+Base.length(mesh::UnstructuredQuadMesh) = mesh.n_elements
 
 
 function Base.show(io::IO, ::UnstructuredQuadMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -237,7 +237,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{NDIMS,
   else
     summary_header(io, "UnstructuredQuadMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
     summary_line(io, "mesh file", mesh.filename)
-    summary_line(io, "size", size(mesh))
+    summary_line(io, "number of elements", length(mesh))
     summary_line(io, "faces", mesh.n_surfaces)
     summary_line(io, "mesh polynomial degree", mesh.poly_deg)
     summary_footer(io)

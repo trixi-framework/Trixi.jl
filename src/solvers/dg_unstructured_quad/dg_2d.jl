@@ -37,26 +37,26 @@ function rhs!(du::AbstractArray{<:Any,4}, u, t,
   @timeit_debug timer() "reset ∂u/∂t" du .= zero(eltype(du))
 
   # Calculate volume integral
-  @timeit_debug timer() "volume integral" calc_contravariant_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
-                                                                              dg.volume_integral, dg, cache)
+  @timeit_debug timer() "volume integral" calc_volume_integral!(du, u, have_nonconservative_terms(equations), equations,
+                                                                dg.volume_integral, dg, cache, mesh)
 
   # Prolong solution to interfaces
-  @timeit_debug timer() "prolong2interfaces" prolong2interfaces_right_handed!(cache, u, equations, dg)
+  @timeit_debug timer() "prolong2interfaces" prolong2interfaces!(cache, u, equations, dg, mesh)
 
   # Calculate interface fluxes
-  @timeit_debug timer() "interface flux" calc_interface_flux_unstructured_quad!(cache.elements.surface_flux_values,
+  @timeit_debug timer() "interface flux" calc_interface_flux!(cache.elements.surface_flux_values,
                                                               have_nonconservative_terms(equations), equations,
-                                                              dg, cache)
+                                                              dg, cache, mesh)
 
   # Prolong solution to boundaries
-  @timeit_debug timer() "prolong2boundaries" prolong2boundaries_right_handed!(cache, u, equations, dg)
+  @timeit_debug timer() "prolong2boundaries" prolong2boundaries!(cache, u, equations, dg, mesh)
 
   # Calculate boundary fluxes
   #  TODO: remove initial condition as an input argument here, only needed for hacky BCs
   @timeit_debug timer() "boundary flux" calc_boundary_flux!(cache, t, boundary_conditions, equations, dg, initial_condition, mesh)
 
   # Calculate surface integrals
-  @timeit_debug timer() "surface integral" calc_surface_integral_right_handed!(du, equations, dg, cache)
+  @timeit_debug timer() "surface integral" calc_surface_integral!(du, equations, dg, cache, mesh)
 
   # Apply Jacobian from mapping to reference element
   #  Note! this routine is reused from dg_curved/dg_2d.jl
@@ -70,10 +70,10 @@ end
 
 
 # compute volume contribution of the DG approximation with the divergence of the contravariant fluxes
-function calc_contravariant_volume_integral!(du::AbstractArray{<:Any,4}, u,
-                                             nonconservative_terms::Val{false}, equations,
-                                             volume_integral::VolumeIntegralWeakForm,
-                                             dg::DGSEM, cache)
+function calc_volume_integral!(du::AbstractArray{<:Any,4}, u,
+                               nonconservative_terms::Val{false}, equations,
+                               volume_integral::VolumeIntegralWeakForm,
+                               dg::DGSEM, cache, ::UnstructuredQuadMesh)
   @unpack X_xi, X_eta, Y_xi, Y_eta = cache.elements
   @unpack derivative_dhat = dg.basis
 
@@ -107,7 +107,7 @@ end
 
 # prolong the solution into the convenience array in the interior interface container
 # Note! this routine is for quadrilateral elements with "right-handed" orientation
-function prolong2interfaces_right_handed!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
+function prolong2interfaces!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG, ::UnstructuredQuadMesh)
   @unpack interfaces = cache
 
   @threaded for interface in eachinterface(dg, cache)
@@ -159,8 +159,8 @@ end
 
 
 # compute the numerical flux interface coupling between two elements on an unstructured quadrilateral mesh
-function calc_interface_flux_unstructured_quad!(surface_flux_values::AbstractArray{<:Any,4},
-                              nonconservative_terms::Val{false}, equations, dg::DG, cache)
+function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
+                              nonconservative_terms::Val{false}, equations, dg::DG, cache, ::UnstructuredQuadMesh)
   @unpack surface_flux = dg
   @unpack u, start_index, inc_index, element_ids, element_side_ids = cache.interfaces
   @unpack normals, tangents, scaling = cache.elements
@@ -219,7 +219,7 @@ end
 
 
 # move the approximate solution onto physical boundaries within a "right-handed" element
-function prolong2boundaries_right_handed!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG)
+function prolong2boundaries!(cache, u::AbstractArray{<:Any,4}, equations, dg::DG, ::UnstructuredQuadMesh)
   @unpack boundaries = cache
 
   @threaded for boundary in eachboundary(boundaries)
@@ -318,7 +318,7 @@ end
 #          -----------------                  -----------------
 #                  3                                  1
 # Therefore, we require a different surface integral routine here despite their similar structure.
-function calc_surface_integral_right_handed!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache)
+function calc_surface_integral!(du::AbstractArray{<:Any,4}, equations, dg::DGSEM, cache, ::UnstructuredQuadMesh)
   @unpack boundary_interpolation = dg.basis
   @unpack surface_flux_values = cache.elements
 
