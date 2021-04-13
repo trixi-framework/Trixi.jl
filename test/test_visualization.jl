@@ -121,6 +121,13 @@ isdir(outdir) && rm(outdir, recursive=true)
     @test_nowarn_debug show(stdout, getmesh(pd))
     println(stdout)
 
+    # nvisnodes
+    @test size(pd.data) == (512, 3)
+    pd0 = PlotData1D(sol, nvisnodes=0)
+    @test size(pd0.data) == (256, 3)
+    pd2 = PlotData1D(sol, nvisnodes=2)
+    @test size(pd2.data) == (128, 3)
+
     @testset "1D plot recipes" begin
       pd = PlotData1D(sol)
 

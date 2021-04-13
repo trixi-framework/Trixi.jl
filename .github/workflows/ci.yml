@@ -11,8 +11,10 @@ on:
       - 'NEWS.md'
       - 'README.md'
       - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
       - 'docs/**'
       - 'utils/**'
   pull_request:
@@ -23,8 +25,10 @@ on:
       - 'NEWS.md'
       - 'README.md'
       - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
       - 'docs/**'
       - 'utils/**'
   workflow_dispatch:

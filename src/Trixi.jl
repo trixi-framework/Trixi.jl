@@ -17,7 +17,7 @@ module Trixi
 
 # Include other packages that are used in Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
-using LinearAlgebra: dot, mul!, norm, diagm
+using LinearAlgebra: dot, mul!, norm
 using Printf: @printf, @sprintf, println
 
 # import @reexport now to make it available for further imports/exports
@@ -41,7 +41,8 @@ using Requires
 using StaticArrays: MVector, MArray, SMatrix
 using StrideArrays: PtrArray, StaticInt
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
-using UnPack: @unpack, @pack!
+@reexport using UnPack: @unpack
+using UnPack: @pack!
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
 # Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.

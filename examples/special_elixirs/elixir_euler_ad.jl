@@ -7,7 +7,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=2, n_cells_max=10^5)
 
-solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
+solver = DGSEM(polydeg=3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex, solver)
 

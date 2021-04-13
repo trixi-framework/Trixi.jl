@@ -15,8 +15,7 @@ initial_condition = initial_condition_gauss
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
 boundary_conditions = boundary_condition_gauss
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5, -5)
 coordinates_max = ( 5,  5)
@@ -64,7 +63,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         amr_callback, stepsize_callback);
 ###############################################################################

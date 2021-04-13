@@ -154,10 +154,12 @@ macro threaded(expr)
   # to reduce some overhead (and allocations) for serial execution.
   #
   # return esc(quote
-  #   if Threads.nthreads() == 1
-  #     $(expr)
-  #   else
-  #     Threads.@threads $(expr)
+  #   let
+  #     if Threads.nthreads() == 1
+  #       $(expr)
+  #     else
+  #       Threads.@threads $(expr)
+  #     end
   #   end
   # end)
   #

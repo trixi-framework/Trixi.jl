@@ -9,9 +9,9 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas        = (1.4, 1.4
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_chandrashekar
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-1, -1)
 coordinates_max = ( 1,  1)
@@ -48,7 +48,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 

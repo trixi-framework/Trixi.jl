@@ -9,8 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
 
 # Define faces for a parallelogram that looks like this
 #
@@ -19,14 +18,11 @@ solver = DGSEM(3, surface_flux)
 #             ⟋         ⟋
 #          ⟋         ⟋
 # (-2,-1) ‾‾‾‾‾‾‾‾‾‾ (0,-1)
-f1(s) = SVector(s-1,  s)
-f2(s) = SVector(s+1,  s)
-f3(s) = SVector(s-1, -1)
-f4(s) = SVector(s+1,  1)
+mapping(xi, eta) = SVector(xi + eta, eta)
 
 cells_per_dimension = (16, 16)
 
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4))
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,

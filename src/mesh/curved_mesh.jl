@@ -11,8 +11,8 @@ can be used as domain faces.
 """
 mutable struct CurvedMesh{NDIMS, RealT<:Real} <: AbstractMesh{NDIMS}
   cells_per_dimension::NTuple{NDIMS, Int}
-  faces::Any # Not relevant for performance
-  faces_as_string::Vector{String}
+  mapping::Any # Not relevant for performance
+  mapping_as_string::String
   periodicity::NTuple{NDIMS, Bool}
   current_filename::String
   unsaved_changes::Bool
@@ -20,34 +20,24 @@ end
 
 
 """
-    CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+    CurvedMesh(cells_per_dimension, mapping, RealT; unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
 
 Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
 
 # Arguments
 - `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
-- `faces::NTuple{2*NDIMS, Function}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
-                                      Each function must take `NDIMS-1` arguments.
-                                      `faces[1]` describes the face onto which the face in negative x-direction 
-                                      of the unit hypercube is mapped. The face in positive x-direction of
-                                      the unit hypercube will be mapped onto the face described by `faces[2]`.
-                                      `faces[3:4]` describe the faces in positive and negative y-direction respectively 
-                                      (in 2D and 3D).
-                                      `faces[5:6]` describe the faces in positive and negative z-direction respectively
-                                      (in 3D).
+- `mapping`: a function of `NDIMS` variables to describe the mapping, which transforms 
+             the reference mesh to the physical domain.
 - `RealT::Type`: the type that should be used for coordinates.
-- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
-                 each dimension if the boundaries in this dimension are periodic.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` 
+                 deciding for each dimension if the boundaries in this dimension are periodic.
 - `unsaved_changes::Bool`: if set to `true`, the mesh will be saved to a mesh file.
-- `faces_as_string::Vector{String}`: a vector which contains the string of the function definition of each face.
-                                     If `CodeTracking` can't find the function definition, it can be passed directly here.
+- `mapping_as_string::String`: the code that defines the `mapping`.
+                               If `CodeTracking` can't find the function definition, it can be passed directly here.
 """
-function CurvedMesh(cells_per_dimension, faces; RealT=Float64, periodicity=true, unsaved_changes=true, faces_as_string=faces2string(faces))
+function CurvedMesh(cells_per_dimension, mapping; RealT=Float64, periodicity=true, unsaved_changes=true, 
+                    mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
   NDIMS = length(cells_per_dimension)
-
-  # After a mesh is loaded from a file, the functions defining it are evaluated in the function `load_mesh` using `eval`.
-  # If this function is used before the next top-level evaluation, this causes a world age problem.
-  Base.invokelatest(validate_faces, faces)
 
   # Convert periodicity to a Tuple of a Bool for every dimension
   if all(periodicity)
@@ -61,7 +51,48 @@ function CurvedMesh(cells_per_dimension, faces; RealT=Float64, periodicity=true,
     periodicity = Tuple(periodicity)
   end
 
-  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), faces, faces_as_string, periodicity, "", unsaved_changes)
+  return CurvedMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping, mapping_as_string, periodicity, "", unsaved_changes)
+end
+
+
+"""
+    CurvedMesh(cells_per_dimension, faces, RealT; unsaved_changes=true, faces_as_string=faces2string(faces))
+
+Create a CurvedMesh of the given size and shape that uses `RealT` as coordinate type.
+
+# Arguments
+- `cells_per_dimension::NTupleE{NDIMS, Int}`: the number of cells in each dimension.
+- `faces::NTuple{2*NDIMS}`: a tuple of `2 * NDIMS` functions that describe the faces of the domain.
+                            Each function must take `NDIMS-1` arguments.
+                            `faces[1]` describes the face onto which the face in negative x-direction 
+                            of the unit hypercube is mapped. The face in positive x-direction of
+                            the unit hypercube will be mapped onto the face described by `faces[2]`.
+                            `faces[3:4]` describe the faces in positive and negative y-direction respectively 
+                            (in 2D and 3D).
+                            `faces[5:6]` describe the faces in positive and negative z-direction respectively (in 3D).
+- `RealT::Type`: the type that should be used for coordinates.
+- `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
+                 each dimension if the boundaries in this dimension are periodic.
+"""
+function CurvedMesh(cells_per_dimension, faces::Tuple; RealT=Float64, periodicity=true)
+  NDIMS = length(cells_per_dimension)
+
+  validate_faces(faces)
+
+  # Use the transfinite mapping with the correct number of arguments
+  mapping = transfinite_mapping(faces)
+
+  # Collect definitions of face functions in one string (separated by semicolons)
+  face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS-1))
+  join_semicolon(strings) = join(strings, "; ")
+
+  faces_definition = faces .|> face2substring .|> string |> join_semicolon
+
+  # Include faces definition in `mapping_as_string` to allow for evaluation 
+  # without knowing the face functions
+  mapping_as_string = "$faces_definition; mapping = transfinite_mapping(faces)"
+
+  return CurvedMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
@@ -80,162 +111,50 @@ Create a CurvedMesh that represents a uncurved structured mesh with a rectangula
 function CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
   NDIMS = length(cells_per_dimension)
   RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
-  faces, faces_as_string = coordinates2faces(Tuple(coordinates_min), Tuple(coordinates_max))
 
-  return CurvedMesh(cells_per_dimension, faces; RealT=RealT, faces_as_string=faces_as_string, periodicity=periodicity)
+  mapping = coordinates2mapping(coordinates_min, coordinates_max)
+  mapping_as_string = "coordinates_min = $coordinates_min; " *
+                      "coordinates_max = $coordinates_max; " *
+                      "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
+  return CurvedMesh(cells_per_dimension, mapping; RealT=RealT, periodicity=periodicity, mapping_as_string=mapping_as_string)
 end
 
 
-function validate_faces(faces::NTuple{2, Any}) end
-
-
-function validate_faces(faces::NTuple{4, Any})
-  x1 = faces[1](-1) # Bottom left
-  @assert x1 ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
-  x2 = faces[2](-1) # Bottom right
-  @assert x2 ≈ faces[3](1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
-  x3 = faces[1](1) # Top left
-  @assert x3 ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
-  x4 = faces[2](1) # Top right
-  @assert x4 ≈ faces[4](1) "faces[2](1) needs to match faces[4](1) (top right corner)"
-end
-
-function validate_faces(faces::NTuple{6, Any})
-  x1 = faces[1](-1, -1) # maped from (-1,-1,-1)
-  @assert x1 ≈ faces[3](-1, -1) ≈ faces[5](-1, -1) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1,-1,-1) corner"
-
-  x2 = faces[2](-1, -1) #  maped from (1,-1,-1)
-  @assert x2 ≈ faces[3]( 1, -1) ≈ faces[5]( 1, -1) "faces[2](-1, -1), faces[3]( 1, -1) and faces[5]( 1, -1) need to match at (1,-1,-1) corner"
-  
-  x3 = faces[1]( 1, -1) # maped from (-1, 1,-1)
-  @assert x3 ≈ faces[4](-1, -1) ≈ faces[5](-1,  1) "faces[1]( 1, -1), faces[4](-1, -1) and faces[5](-1,  1) need to match at (-1,1,-1) corner"
-  
-  x4 = faces[2]( 1, -1) # maped from  (1, 1,-1)
-  @assert x4 ≈ faces[4]( 1, -1) ≈ faces[5]( 1,  1) "faces[2]( 1, -1), faces[4]( 1, -1) and faces[5]( 1,  1) need to match at (1,1,-1) corner"
-  
-  x5 = faces[1](-1,  1) # maped from (-1,-1, 1)
-  @assert x5 ≈ faces[3](-1,  1) ≈ faces[6](-1, -1) "faces[1](-1,  1), faces[3](-1,  1) and faces[6](-1, -1) need to match at (-1,-1,1) corner"
-
-  x6 = faces[2](-1,  1) # maped from  (1,-1, 1)
-  @assert x6 ≈ faces[3]( 1,  1) ≈ faces[6]( 1, -1) "faces[2](-1,  1), faces[3]( 1,  1) and faces[6]( 1, -1) need to match at (1,-1,1) corner"
-  
-  x7 = faces[1]( 1,  1) # maped from (-1, 1, 1)
-  @assert x7 ≈ faces[4](-1,  1) ≈ faces[6](-1,  1) "faces[1]( 1,  1), faces[4](-1,  1) and faces[6](-1,  1) need to match at (-1,1,1) corner"
-  
-  x8 = faces[2]( 1,  1) # maped from (1, 1, 1)
-  @assert x8 ≈ faces[4]( 1,  1) ≈ faces[6]( 1,  1) "faces[2]( 1,  1), faces[4]( 1,  1) and faces[6]( 1,  1) need to match at (1,1,1) corner"
-end
-
-
-# Extract a string of the code that defines the face functions
-function faces2string(faces)
-  NDIMS = div(length(faces), 2)
-  face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS-1))
-
-  return faces .|> face2substring .|> string |> collect
-end
-
-
-# Convert min and max coordinates of a rectangle to the face functions of the rectangle
-function coordinates2faces(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
-  f1() = SVector(coordinates_min[1])
-  f2() = SVector(coordinates_max[1])
-  
-  # CodeTracking can't find the definition here due to the dispatching by dimensions
-  f1_as_string = "f1() = SVector($(coordinates_min[1]))"
-  f2_as_string = "f2() = SVector($(coordinates_max[1]))"
-
-  return (f1, f2), [f1_as_string, f2_as_string]
-end
-
-
-function coordinates2faces(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
-  f1(s) = SVector(coordinates_min[1], linear_interpolate(s, coordinates_min[2], coordinates_max[2]))
-  f2(s) = SVector(coordinates_max[1], linear_interpolate(s, coordinates_min[2], coordinates_max[2]))
-  f3(s) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), coordinates_min[2])
-  f4(s) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), coordinates_max[2])
-  
-  # CodeTracking can't find the definition here due to the dispatching by dimensions
-  f1_as_string = "f1(s) = SVector($(coordinates_min[1]), linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])))"
-  f2_as_string = "f2(s) = SVector($(coordinates_max[1]), linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])))"
-  f3_as_string = "f3(s) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])), $(coordinates_min[2]))"
-  f4_as_string = "f4(s) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])), $(coordinates_max[2]))"
-
-  return (f1, f2, f3, f4), [f1_as_string, f2_as_string, f3_as_string, f4_as_string]
-end
-
-
-function coordinates2faces(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
-  f1(s, t) = SVector(coordinates_min[1],
-                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
-                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
-
-  f2(s, t) = SVector(coordinates_max[1], 
-                     linear_interpolate(s, coordinates_min[2], coordinates_max[2]),
-                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
-
-  f3(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
-                     coordinates_min[2],
-                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
-
-  f4(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]),
-                     coordinates_max[2],
-                     linear_interpolate(t, coordinates_min[3], coordinates_max[3]))
-  
-  f5(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
-                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
-                     coordinates_min[3])
-
-  f6(s, t) = SVector(linear_interpolate(s, coordinates_min[1], coordinates_max[1]), 
-                     linear_interpolate(t, coordinates_min[2], coordinates_max[2]),
-                     coordinates_max[3])               
-  
-  # CodeTracking can't find the definition here due to the dispatching by dimensions
-  f1_as_string = "f1(s, t) = SVector($(coordinates_min[1]),
-                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
-                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
-
-  f2_as_string = "f2(s, t) = SVector($(coordinates_max[1]),
-                                     linear_interpolate(s, $(coordinates_min[2]), $(coordinates_max[2])),
-                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
-
-  f3_as_string = "f3(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
-                                     $(coordinates_min[2]),
-                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
-
-  f4_as_string = "f4(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
-                                     $(coordinates_max[2]),
-                                     linear_interpolate(t, $(coordinates_min[3]), $(coordinates_max[3])))"
-
-  f5_as_string = "f5(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
-                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
-                                     $(coordinates_min[3]))"  
-
-  f6_as_string = "f6(s, t) = SVector(linear_interpolate(s, $(coordinates_min[1]), $(coordinates_max[1])),
-                                     linear_interpolate(t, $(coordinates_min[2]), $(coordinates_max[2])),
-                                     $(coordinates_max[3]))"
-
-  return (f1, f2, f3, f4, f5, f6), 
-         [f1_as_string, f2_as_string, f3_as_string, f4_as_string, f5_as_string, f6_as_string]
-end
+# Extract a string of the code that defines the mapping function
+mapping2string(mapping, ndims) = string(code_string(mapping, ntuple(_ -> Float64, ndims)))
 
 
 # Interpolate linearly between left and right value where s should be between -1 and 1
 linear_interpolate(s, left_value, right_value) = 0.5 * ((1 - s) * left_value + (1 + s) * right_value)
 
 
+# Convert min and max coordinates of a rectangle to the corresponding transformation mapping
+function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
+  mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+end
+
+function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
+  mapping(xi, eta) = SVector(linear_interpolate(xi,  coordinates_min[1], coordinates_max[1]),
+                             linear_interpolate(eta, coordinates_min[2], coordinates_max[2]))
+end
+
+function coordinates2mapping(coordinates_min::NTuple{3}, coordinates_max::NTuple{3})
+  mapping(xi, eta, zeta) = SVector(linear_interpolate(xi,   coordinates_min[1], coordinates_max[1]),
+                                   linear_interpolate(eta,  coordinates_min[2], coordinates_max[2]),
+                                   linear_interpolate(zeta, coordinates_min[3], coordinates_max[3]))
+end
+
+
 # In 1D
 # Linear mapping from the reference element to the domain described by the faces
-function linear_mapping(x, mesh)
-  return linear_interpolate(x, mesh.faces[1](), mesh.faces[2]())
+function linear_mapping(x, faces)
+  return linear_interpolate(x, faces[1](), faces[2]())
 end
 
 
 # In 2D
 # Bilinear mapping from the reference element to the domain described by the faces
-function bilinear_mapping(x, y, mesh)
-  @unpack faces = mesh
-
+function bilinear_mapping(x, y, faces)
   x1 = faces[1](-1) # Bottom left
   x2 = faces[2](-1) # Bottom right
   x3 = faces[1](1) # Top left
@@ -250,17 +169,15 @@ end
 
 # In 3D
 # Trilinear mapping from the reference element to the domain described by the faces
-function trilinear_mapping(x, y, z, mesh)
-  @unpack faces = mesh
-
-  x1 = faces[1](-1, -1) # maped from (-1,-1,-1)
-  x2 = faces[2](-1, -1) # maped from (1,-1,-1)
-  x3 = faces[1]( 1, -1) # maped from (-1, 1,-1)
-  x4 = faces[2]( 1, -1) # maped from  (1, 1,-1)
-  x5 = faces[1](-1,  1) # maped from (-1,-1, 1)
-  x6 = faces[2](-1,  1) # maped from  (1,-1, 1)
-  x7 = faces[1]( 1,  1) # maped from (-1, 1, 1)
-  x8 = faces[2]( 1,  1) # maped from (1, 1, 1)
+function trilinear_mapping(x, y, z, faces)
+  x1 = faces[1](-1, -1) # mapped from (-1,-1,-1)
+  x2 = faces[2](-1, -1) # mapped from ( 1,-1,-1)
+  x3 = faces[1]( 1, -1) # mapped from (-1, 1,-1)
+  x4 = faces[2]( 1, -1) # mapped from ( 1, 1,-1)
+  x5 = faces[1](-1,  1) # mapped from (-1,-1, 1)
+  x6 = faces[2](-1,  1) # mapped from ( 1,-1, 1)
+  x7 = faces[1]( 1,  1) # mapped from (-1, 1, 1)
+  x8 = faces[2]( 1,  1) # mapped from ( 1, 1, 1)
 
   return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
                   x2 * (1 + x) * (1 - y) * (1 - z) +
@@ -273,14 +190,95 @@ function trilinear_mapping(x, y, z, mesh)
 end
 
 
+# Use linear mapping in 1D
+transfinite_mapping(faces::NTuple{2, Any}) = x -> linear_mapping(x, faces)
+
 # In 2D
 # Transfinite mapping from the reference element to the domain described by the faces
-function transfinite_mapping(x, y, mesh)
-  @unpack faces = mesh
+function transfinite_mapping(faces::NTuple{4, Any})
+  mapping(x, y) = (linear_interpolate(x, faces[1](y), faces[2](y)) + 
+                   linear_interpolate(y, faces[3](x), faces[4](x)) - 
+                   bilinear_mapping(x, y, faces))
+end
 
-  return linear_interpolate(x, faces[1](y), faces[2](y)) + 
-         linear_interpolate(y, faces[3](x), faces[4](x)) - 
-         bilinear_mapping(x, y, mesh)
+
+# In 3D
+# Correction term for the Transfinite mapping
+function correction_term_3d(x, y, z, faces)
+  # Correction for x-terms
+  c_x = linear_interpolate(x, linear_interpolate(y, faces[3](-1, z), faces[4](-1, z)) +
+                              linear_interpolate(z, faces[5](-1, y), faces[6](-1, y)), 
+                              linear_interpolate(y, faces[3]( 1, z), faces[4]( 1, z)) +
+                              linear_interpolate(z, faces[5]( 1, y), faces[6]( 1, y)) )
+
+  # Correction for y-terms
+  c_y = linear_interpolate(y, linear_interpolate(x, faces[1](-1,  z), faces[2](-1,  z)) +
+                              linear_interpolate(z, faces[5]( x, -1), faces[6]( x, -1)), 
+                              linear_interpolate(x, faces[1]( 1,  z), faces[2]( 1,  z)) +
+                              linear_interpolate(z, faces[5]( x,  1), faces[6]( x,  1)) )
+
+  # Correction for x-terms
+  c_z = linear_interpolate(z, linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
+                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)), 
+                              linear_interpolate(x, faces[1](y,  1), faces[2](y,  1)) +
+                              linear_interpolate(y, faces[3](x,  1), faces[4](x,  1)) )
+
+  return 0.5 * (c_x + c_y + c_z)
+end
+
+
+# In 3D
+# Transfinite mapping from the reference element to the domain described by the faces
+function transfinite_mapping(faces::NTuple{6, Any})
+  mapping(x, y, z) =  (linear_interpolate(x, faces[1](y, z), faces[2](y, z)) + 
+                       linear_interpolate(y, faces[3](x, z), faces[4](x, z)) +
+                       linear_interpolate(z, faces[5](x, y), faces[6](x, y)) -
+                       correction_term_3d(x, y, z, faces) + 
+                       trilinear_mapping(x, y, z, faces))
+end
+
+
+function validate_faces(faces::NTuple{2, Any}) end
+
+function validate_faces(faces::NTuple{4, Any})
+  @assert faces[1](-1) ≈ faces[3](-1) "faces[1](-1) needs to match faces[3](-1) (bottom left corner)"
+  @assert faces[2](-1) ≈ faces[3]( 1) "faces[2](-1) needs to match faces[3](1) (bottom right corner)"
+  @assert faces[1]( 1) ≈ faces[4](-1) "faces[1](1) needs to match faces[4](-1) (top left corner)"
+  @assert faces[2]( 1) ≈ faces[4]( 1) "faces[2](1) needs to match faces[4](1) (top right corner)"
+end
+
+function validate_faces(faces::NTuple{6, Any})
+  @assert (faces[1](-1, -1) ≈ 
+           faces[3](-1, -1) ≈ 
+           faces[5](-1, -1)) "faces[1](-1, -1), faces[3](-1, -1) and faces[5](-1, -1) need to match at (-1, -1, -1) corner"
+
+  @assert (faces[2](-1, -1) ≈ 
+           faces[3]( 1, -1) ≈ 
+           faces[5]( 1, -1)) "faces[2](-1, -1), faces[3](1, -1) and faces[5](1, -1) need to match at (1, -1, -1) corner"
+  
+  @assert (faces[1]( 1, -1) ≈ 
+           faces[4](-1, -1) ≈ 
+           faces[5](-1,  1)) "faces[1](1, -1), faces[4](-1, -1) and faces[5](-1, 1) need to match at (-1, 1, -1) corner"
+  
+  @assert (faces[2]( 1, -1) ≈ 
+           faces[4]( 1, -1) ≈ 
+           faces[5]( 1,  1)) "faces[2](1, -1), faces[4](1, -1) and faces[5](1, 1) need to match at (1, 1, -1) corner"
+  
+  @assert (faces[1](-1,  1) ≈ 
+           faces[3](-1,  1) ≈ 
+           faces[6](-1, -1)) "faces[1](-1, 1), faces[3](-1, 1) and faces[6](-1, -1) need to match at (-1, -1, 1) corner"
+
+  @assert (faces[2](-1,  1) ≈ 
+           faces[3]( 1,  1) ≈ 
+           faces[6]( 1, -1)) "faces[2](-1, 1), faces[3](1, 1) and faces[6](1, -1) need to match at (1, -1, 1) corner"
+  
+  @assert (faces[1]( 1,  1) ≈ 
+           faces[4](-1,  1) ≈ 
+           faces[6](-1,  1)) "faces[1](1, 1), faces[4](-1, 1) and faces[6](-1, 1) need to match at (-1, 1, 1) corner"
+  
+  @assert (faces[2]( 1,  1) ≈ 
+           faces[4]( 1,  1) ≈ 
+           faces[6]( 1,  1)) "faces[2](1, 1), faces[4](1, 1) and faces[6](1, 1) need to match at (1, 1, 1) corner"
 end
 
 
@@ -307,16 +305,12 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::CurvedMesh{NDIMS, RealT}) w
   else
     summary_header(io, "CurvedMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
     summary_line(io, "size", size(mesh))
-    summary_line(io, "faces", 2*NDIMS)
-    summary_line(increment_indent(io), "negative x", mesh.faces_as_string[1])
-    summary_line(increment_indent(io), "positive x", mesh.faces_as_string[2])
-    if NDIMS > 1
-      summary_line(increment_indent(io), "negative y", mesh.faces_as_string[3])
-      summary_line(increment_indent(io), "positive y", mesh.faces_as_string[4])
-    end
-    if NDIMS > 2
-      summary_line(increment_indent(io), "negative z", mesh.faces_as_string[5])
-      summary_line(increment_indent(io), "positive z", mesh.faces_as_string[6])
+
+    summary_line(io, "mapping", "")
+    # Print code lines of mapping_as_string
+    mapping_lines = split(mesh.mapping_as_string, ";")
+    for i in eachindex(mapping_lines)
+      summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
     end
     summary_footer(io)
   end
