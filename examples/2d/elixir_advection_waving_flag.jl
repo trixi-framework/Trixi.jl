@@ -81,19 +81,33 @@ using WriteVTK
 #   vtk["scalar"] = collect(Float64, reshape(1:4, 2, 2))
 # end
 
+
+#    getxy(sol)
+#
+# Use ODE solution `sol` to return the coordinates of the structured mesh vertices as an array of
+# shape `ndims × (Ni + 1) × (Nj + 1)`, where `ndims` is the number of dimensions and `Ni`/`Nj` are
+# the number of elements times the number of visualization nodes per element in each direction.
 function getxy(sol)
+  # Extract all relevant data from the solution
   semi = sol.prob.p
   mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
   node_coordinates = semi.cache.elements.node_coordinates
   nnodes_ = nnodes(solver)
+
+  # Calculate sizes and index mappings
   linear_indices = LinearIndices(size(mesh))
   Nx = size(mesh, 1)
   Ny = size(mesh, 2)
+  nvisnodes = nnodes_ - 1
+  Ni = Nx * nvisnodes
+  Nj = Ny * nvisnodes
 
-  xy = Array{Float64}(undef, 2, Nx * (nnodes_ - 1) + 1, Ny * (nnodes_ - 1) + 1)
+  # Create output array
+  xy = Array{Float64}(undef, 2, Ni + 1, Nj + 1)
 
+  # Compute vertex coordinates for all visualization nodes except the last layer of nodex in +x/+y
   for cell_y in axes(mesh, 2), cell_x in axes(mesh, 1)
-    for j in 1:nnodes_, i in 1:nnodes_
+    for j in eachnode(solver), i in eachnode(solver)
       index_x = (cell_x - 1) * (nnodes_ - 1) + i
       index_y = (cell_y - 1) * (nnodes_ - 1) + j
       xy[1, index_x, index_y] = node_coordinates[1, i, j, linear_indices[cell_x, cell_y]]
@@ -101,16 +115,18 @@ function getxy(sol)
     end
   end
 
+  # Compute vertex locations in +x direction
   for cell_y in axes(mesh, 2), cell_x in Nx
-    for j in 1:nnodes_
+    for j in eachnode(solver)
       index_y = (cell_y - 1) * (nnodes_ - 1) + j
       xy[1, end, index_y] = node_coordinates[1, end, j, linear_indices[cell_x, cell_y]]
       xy[2, end, index_y] = node_coordinates[2, end, j, linear_indices[cell_x, cell_y]]
     end
   end
 
+  # Compute vertex locations in +y direction
   for cell_y in Ny, cell_x in axes(mesh, 1)
-    for i in 1:nnodes_
+    for i in eachnode(solver)
       index_x = (cell_x - 1) * (nnodes_ - 1) + i
       xy[1, index_x, end] = node_coordinates[1, i, end, linear_indices[cell_x, cell_y]]
       xy[2, index_x, end] = node_coordinates[2, i, end, linear_indices[cell_x, cell_y]]
@@ -120,17 +136,31 @@ function getxy(sol)
   return xy
 end
 
-function getscalar(sol)
-  u_ode = sol.u[end]
+#    getscalar(sol, var_id)
+#
+# Use ODE solution `sol` to return the solution for variable `var_id` at the visualization nodes as
+# an array of shape `Ni × Nj`, where `Ni`/`Nj` are the number of elements times the number of
+# visualization nodes per element in each direction.
+function getscalar(sol, var_id)
+  # Extract all relevant data from the solution
   semi = sol.prob.p
-  u = Trixi.wrap_array(u_ode, semi)
   mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+  u_ode = sol.u[end]
+  u = Trixi.wrap_array(u_ode, semi)
+
+  # Calculate sizes and index mappings
+  linear_indices = LinearIndices(size(mesh))
   Nx = size(mesh, 1)
   Ny = size(mesh, 2)
   nvisnodes = nnodes(solver) - 1
+  Ni = Nx * nvisnodes
+  Nj = Ny * nvisnodes
 
-  scalar = Array{Float64}(undef, Nx * nvisnodes, Ny * nvisnodes)
-  linear_indices = LinearIndices(size(mesh))
+  # Create output array
+  scalar = Array{Float64}(undef, Ni, Nj)
+
+  # Compute the value for each visualization node (= cell of structured visualization mesh) as the
+  # mean of the four nodal DG values that make up its corners
   for cell_y in axes(mesh, 2), cell_x in axes(mesh, 1)
     for j in 1:nvisnodes, i in 1:nvisnodes
       index_x = (cell_x - 1) * nvisnodes + i
@@ -145,6 +175,9 @@ function getscalar(sol)
   return scalar
 end
 
+# Open mesh file `curved`, providing the xy coordinates as input. The file extension will be
+# appended automatically, in the case of structured meshes it is `.vts`. Then, add the first
+# variable (in this case: only variable) of the solution as `scalar`.
 vtk_grid("curved", getxy(sol)) do vtk
-  vtk["scalar"] = getscalar(sol)
+  vtk["scalar"] = getscalar(sol, 1)
 end
