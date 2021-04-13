@@ -3,25 +3,26 @@
 #     Alg. 98 from the blue book of Kopriva
 function transfinite_quad_map(xi, eta, gamma_curves::AbstractVector{<:GammaCurve})
 
-  Xref11, Xref12 = evaluate_at(-1.0, gamma_curves[1])
-  Xref21, Xref22 = evaluate_at( 1.0, gamma_curves[1])
-  Xref31, Xref32 = evaluate_at( 1.0, gamma_curves[3])
-  Xref41, Xref42 = evaluate_at(-1.0, gamma_curves[3])
+  # evaluate the gamma curves to get the four corner points of the element
+  x_corner1, y_corner1 = evaluate_at(-1.0, gamma_curves[1])
+  x_corner2, y_corner2 = evaluate_at( 1.0, gamma_curves[1])
+  x_corner3, y_corner3 = evaluate_at( 1.0, gamma_curves[3])
+  x_corner4, y_corner4 = evaluate_at(-1.0, gamma_curves[3])
 
-  Xcomp11, Xcomp12 = evaluate_at(xi , gamma_curves[1])
-  Xcomp21, Xcomp22 = evaluate_at(eta, gamma_curves[2])
-  Xcomp31, Xcomp32 = evaluate_at(xi , gamma_curves[3])
-  Xcomp41, Xcomp42 = evaluate_at(eta, gamma_curves[4])
+  # evaluate along the gamma curves at a particular point (\xi, \eta) in computational space to get
+  # the value (x,y) in physical space
+  x1, y1 = evaluate_at(xi , gamma_curves[1])
+  x2, y2 = evaluate_at(eta, gamma_curves[2])
+  x3, y3 = evaluate_at(xi , gamma_curves[3])
+  x4, y4 = evaluate_at(eta, gamma_curves[4])
 
-  x = ( 0.5 * (  (1.0 - xi)  * Xcomp41 + (1.0 + xi)  * Xcomp21
-               + (1.0 - eta) * Xcomp11 + (1.0 + eta) * Xcomp31 )
-       - 0.25 * (  (1.0 - xi) * ( (1.0 - eta) * Xref11 + (1.0 + eta) * Xref41 )
-                 + (1.0 + xi) * ( (1.0 - eta) * Xref21 + (1.0 + eta) * Xref31 ) ) )
+  x = ( 0.5 * (  (1.0 - xi)  * x4 + (1.0 + xi)  * x2 + (1.0 - eta) * x1 + (1.0 + eta) * x3 )
+       - 0.25 * (  (1.0 - xi) * ( (1.0 - eta) * x_corner1 + (1.0 + eta) * x_corner4 )
+                 + (1.0 + xi) * ( (1.0 - eta) * x_corner2 + (1.0 + eta) * x_corner3 ) ) )
 
-  y = ( 0.5 * (  (1.0 - xi)  * Xcomp42 + (1.0 + xi)  * Xcomp22
-               + (1.0 - eta) * Xcomp12 + (1.0 + eta) * Xcomp32 )
-       - 0.25 * (  (1.0 - xi) * ( (1.0 - eta) * Xref12 + (1.0 + eta) * Xref42 )
-                 + (1.0 + xi) * ( (1.0 - eta) * Xref22 + (1.0 + eta) * Xref32 ) ) )
+  y = ( 0.5 * (  (1.0 - xi)  * y4 + (1.0 + xi)  * y2 + (1.0 - eta) * y1 + (1.0 + eta) * y3 )
+       - 0.25 * (  (1.0 - xi) * ( (1.0 - eta) * y_corner1 + (1.0 + eta) * y_corner4 )
+                 + (1.0 + xi) * ( (1.0 - eta) * y_corner2 + (1.0 + eta) * y_corner3 ) ) )
 
   return x, y
 end
@@ -31,32 +32,37 @@ end
 #     Alg. 99 from the blue book of Kopriva
 function transfinite_quad_map_metrics(xi, eta, gamma_curves::AbstractVector{<:GammaCurve})
 
-  Xref11, Xref12 = evaluate_at(-1.0, gamma_curves[1])
-  Xref21, Xref22 = evaluate_at( 1.0, gamma_curves[1])
-  Xref31, Xref32 = evaluate_at( 1.0, gamma_curves[3])
-  Xref41, Xref42 = evaluate_at(-1.0, gamma_curves[3])
+  # evaluate the gamma curves to get the four corner points of the element
+  x_corner1, y_corner1 = evaluate_at(-1.0, gamma_curves[1])
+  x_corner2, y_corner2 = evaluate_at( 1.0, gamma_curves[1])
+  x_corner3, y_corner3 = evaluate_at( 1.0, gamma_curves[3])
+  x_corner4, y_corner4 = evaluate_at(-1.0, gamma_curves[3])
 
-  Xcomp11, Xcomp12 = evaluate_at(xi , gamma_curves[1])
-  Xcomp21, Xcomp22 = evaluate_at(eta, gamma_curves[2])
-  Xcomp31, Xcomp32 = evaluate_at(xi , gamma_curves[3])
-  Xcomp41, Xcomp42 = evaluate_at(eta, gamma_curves[4])
+  # evaluate along the gamma curves at a particular point (\xi, \eta) in computational space to get
+  # the value (x,y) in physical space
+  x1, y1 = evaluate_at(xi , gamma_curves[1])
+  x2, y2 = evaluate_at(eta, gamma_curves[2])
+  x3, y3 = evaluate_at(xi , gamma_curves[3])
+  x4, y4 = evaluate_at(eta, gamma_curves[4])
 
-  Xpcomp11, Xpcomp12 = derivative_at(xi , gamma_curves[1])
-  Xpcomp21, Xpcomp22 = derivative_at(eta, gamma_curves[2])
-  Xpcomp31, Xpcomp32 = derivative_at(xi , gamma_curves[3])
-  Xpcomp41, Xpcomp42 = derivative_at(eta, gamma_curves[4])
+  # evaluate along the derivative of the gamma curves at a particular point (\xi, \eta) in
+  # computational space to get the value (x_prime,y_prime) in physical space
+  x1_prime, y1_prime = derivative_at(xi , gamma_curves[1])
+  x2_prime, y2_prime = derivative_at(eta, gamma_curves[2])
+  x3_prime, y3_prime = derivative_at(xi , gamma_curves[3])
+  x4_prime, y4_prime = derivative_at(eta, gamma_curves[4])
 
-  X_xi  = ( 0.5 * (Xcomp21 - Xcomp41 + (1.0 - eta) * Xpcomp11 + (1.0 + eta) * Xpcomp31)
-          -0.25 * ((1.0 - eta) * (Xref21 - Xref11) + (1.0 + eta) * (Xref31 - Xref41)) )
+  X_xi  = ( 0.5 * (x2 - x4 + (1.0 - eta) * x1_prime + (1.0 + eta) * x3_prime)
+          -0.25 * ((1.0 - eta) * (x_corner2 - x_corner1) + (1.0 + eta) * (x_corner3 - x_corner4)) )
 
-  X_eta = ( 0.5  * ((1.0 - xi) * Xpcomp41 + (1.0 + xi) * Xpcomp21 + Xcomp31 - Xcomp11)
-           -0.25 * ((1.0 - xi) * (Xref41 - Xref11) + (1.0 + xi) * (Xref31 - Xref21)) )
+  X_eta = ( 0.5  * ((1.0 - xi) * x4_prime + (1.0 + xi) * x2_prime + x3 - x1)
+           -0.25 * ((1.0 - xi) * (x_corner4 - x_corner1) + (1.0 + xi) * (x_corner3 - x_corner2)) )
 
-  Y_xi = ( 0.5  * (Xcomp22 - Xcomp42 + (1.0 - eta) * Xpcomp12 + (1.0 + eta) * Xpcomp32)
-          -0.25 * ((1.0 - eta) * (Xref22 - Xref12) + (1.0 + eta) * (Xref32 - Xref42)) )
+  Y_xi = ( 0.5  * (y2 - y4 + (1.0 - eta) * y1_prime + (1.0 + eta) * y3_prime)
+          -0.25 * ((1.0 - eta) * (y_corner2 - y_corner1) + (1.0 + eta) * (y_corner3 - y_corner4)) )
 
-  Y_eta = ( 0.5  * ((1.0 - xi) * Xpcomp42 + (1.0 + xi) * Xpcomp22 + Xcomp32 - Xcomp12)
-           -0.25 * ((1.0 - xi) * (Xref42 - Xref12) + (1.0 + xi) * (Xref32 - Xref22)) )
+  Y_eta = ( 0.5  * ((1.0 - xi) * y4_prime + (1.0 + xi) * y2_prime + y3 - y1)
+           -0.25 * ((1.0 - xi) * (y_corner4 - y_corner1) + (1.0 + xi) * (y_corner3 - y_corner2)) )
 
   return X_xi, X_eta, Y_xi, Y_eta
 end

@@ -54,6 +54,7 @@ function init_elements(RealT, uEltype, mesh, dg_nodes, nvars, polydeg)
   return elements
 end
 
+
 function init_elements!(elements::UnstructuredElementContainer2D, mesh, dg_nodes)
   four_corners = zeros(eltype(mesh.corners), 4, 2)
 
@@ -72,37 +73,19 @@ function init_elements!(elements::UnstructuredElementContainer2D, mesh, dg_nodes
 end
 
 
-# initialize all the values in the container on a curved sided element
-function init_element!(elements, element, nodes, gamma_curves::AbstractVector{<:GammaCurve})
+# initialize all the values in the container of a general element (either straight sided or curved)
+function init_element!(elements, element, nodes, corners_or_gamma_curves)
 
-  calc_node_coordinates!(elements.node_coordinates, element, nodes, gamma_curves)
+  calc_node_coordinates!(elements.node_coordinates, element, nodes, corners_or_gamma_curves)
 
   calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element,
-                     nodes, gamma_curves)
+                     nodes, corners_or_gamma_curves)
 
   calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
                          elements.Y_xi, elements.Y_eta)
 
   calc_normals_scaling_and_tangents!(elements.normals, elements.scaling, elements.tangents,
-                                     element, nodes, gamma_curves)
-
-  return elements
-end
-
-
-# initialize all the values in the container on a straight sided element
-function init_element!(elements, element, nodes, corners)
-
-  calc_node_coordinates!(elements.node_coordinates, element, nodes, corners)
-
-  calc_metric_terms!(elements.X_xi, elements.X_eta, elements.Y_xi, elements.Y_eta, element,
-                     nodes, corners)
-
-  calc_inverse_jacobian!(elements.inverse_jacobian, element, elements.X_xi, elements.X_eta,
-                         elements.Y_xi, elements.Y_eta)
-
-  calc_normals_scaling_and_tangents!(elements.normals, elements.scaling, elements.tangents,
-                                     element, nodes, corners)
+                                     element, nodes, corners_or_gamma_curves)
 
   return elements
 end
