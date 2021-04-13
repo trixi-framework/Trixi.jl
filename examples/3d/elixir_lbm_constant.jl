@@ -9,8 +9,7 @@ equations = LatticeBoltzmannEquations3D(Ma=0.1, Re=Inf)
 
 initial_condition = initial_condition_constant
 
-surface_flux = flux_godunov
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_godunov)
 
 coordinates_min = (-1, -1, -1)
 coordinates_max = ( 1,  1,  1)

@@ -140,10 +140,12 @@ Some discussion can be found at https://discourse.julialang.org/t/overhead-of-th
 macro threaded(expr)
   # esc(quote ... end) as suggested in https://github.com/JuliaLang/julia/issues/23221
   return esc(quote
-    if Threads.nthreads() == 1
-      $(expr)
-    else
-      Threads.@threads $(expr)
+    let
+      if Threads.nthreads() == 1
+        $(expr)
+      else
+        Threads.@threads $(expr)
+      end
     end
   end)
 end

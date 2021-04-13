@@ -9,9 +9,9 @@ equations = HyperbolicDiffusionEquations2D()
 
 initial_condition = initial_condition_poisson_periodic
 
-surface_flux = flux_godunov
-volume_flux  = flux_central
-solver = DGSEM(4, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_central
+solver = DGSEM(polydeg=4, surface_flux=flux_godunov,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)

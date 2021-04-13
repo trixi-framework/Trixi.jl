@@ -10,9 +10,9 @@ equations = CompressibleEulerMulticomponentEquations1D(gammas        = (1.4, 1.4
 
 initial_condition = initial_condition_weak_blast_wave
 
-surface_flux = flux_chandrashekar
-volume_flux  = flux_chandrashekar
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_chandrashekar
+solver = DGSEM(polydeg=3, surface_flux=flux_chandrashekar,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2,)
 coordinates_max = ( 2,)
@@ -50,7 +50,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 

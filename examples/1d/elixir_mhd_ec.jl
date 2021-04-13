@@ -9,9 +9,9 @@ equations = IdealGlmMhdEquations1D(gamma)
 
 initial_condition = initial_condition_briowu_shock_tube
 
-surface_flux = flux_derigs_etal
-volume_flux  = flux_derigs_etal
-solver = DGSEM(3, surface_flux, VolumeIntegralFluxDifferencing(volume_flux))
+volume_flux = flux_derigs_etal
+solver = DGSEM(polydeg=3, surface_flux=flux_derigs_etal,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = 0
 coordinates_max = 1

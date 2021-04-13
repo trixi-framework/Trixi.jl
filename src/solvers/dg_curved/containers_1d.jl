@@ -1,15 +1,19 @@
 # Initialize data structures in element container
 function init_elements!(elements, mesh::CurvedMesh{1}, basis::LobattoLegendreBasis)
-  @unpack node_coordinates, left_neighbors, metric_terms, inverse_jacobian = elements
+  @unpack node_coordinates, left_neighbors, 
+          jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
-  # Calculate node coordinates, metric terms, and inverse Jacobian
+  # Calculate node coordinates, Jacobian matrix, and inverse Jacobian determinant
   for cell_x in 1:size(mesh, 1)
     calc_node_coordinates!(node_coordinates, cell_x, mesh.mapping, mesh, basis)
 
-    calc_metric_terms!(metric_terms, cell_x, node_coordinates, basis)
+    calc_jacobian_matrix!(jacobian_matrix, cell_x, node_coordinates, basis)
 
-    calc_inverse_jacobian!(inverse_jacobian, cell_x, metric_terms)
+    calc_inverse_jacobian!(inverse_jacobian, cell_x, jacobian_matrix)
   end
+
+  # Contravariant vectors don't make sense in 1D, they would be identical to inverse_jacobian
+  fill!(contravariant_vectors, NaN)
 
   initialize_neighbor_connectivity!(left_neighbors, mesh)
 
@@ -29,25 +33,25 @@ function calc_node_coordinates!(node_coordinates, cell_x, mapping, mesh::CurvedM
   # Calculate node coordinates of reference mesh
   cell_x_offset = -1 + (cell_x-1) * dx + dx/2
   
-  for i in eachindex(nodes)
+  for i in eachnode(basis)
     # node_coordinates are the mapped reference node_coordinates
     node_coordinates[1, i, cell_x] = mapping(cell_x_offset + dx/2 * nodes[i])[1]
   end
 end
 
 
-# Calculate metric terms of the mapping from the reference element to the element in the physical domain
-function calc_metric_terms!(metric_terms, element, node_coordinates::AbstractArray{<:Any, 3}, 
+# Calculate Jacobian matrix of the mapping from the reference element to the element in the physical domain
+function calc_jacobian_matrix!(jacobian_matrix, element, node_coordinates::AbstractArray{<:Any,3}, 
                             basis::LobattoLegendreBasis)
-  @views mul!(metric_terms[1, 1, :, element], basis.derivative_matrix, node_coordinates[1, :, element]) # x_ξ
+  @views mul!(jacobian_matrix[1, 1, :, element], basis.derivative_matrix, node_coordinates[1, :, element]) # x_ξ
   
-  return metric_terms
+  return jacobian_matrix
 end
 
 
 # Calculate inverse Jacobian (determinant of Jacobian matrix of the mapping) in each node
-function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 2}, element, metric_terms)
-  @views inverse_jacobian[:, element] .= inv.(metric_terms[1, 1, :, element])
+function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 2}, element, jacobian_matrix)
+  @views inverse_jacobian[:, element] .= inv.(jacobian_matrix[1, 1, :, element])
 
   return inverse_jacobian
 end

@@ -15,8 +15,7 @@ boundary_conditions = (
                        y_pos=boundary_condition_lid_driven_cavity,
                       )
 
-surface_flux = flux_godunov
-solver = DGSEM(5, surface_flux)
+solver = DGSEM(polydeg=5, surface_flux=flux_godunov)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
