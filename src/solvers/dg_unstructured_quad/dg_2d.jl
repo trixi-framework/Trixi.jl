@@ -15,6 +15,7 @@ function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
 
   interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
+  # TODO: if the mesh is periodic we probabyl can avoid creating this "empty" boundary container
   if isperiodic(mesh)
     boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg_}(0)
   else
@@ -176,41 +177,43 @@ function calc_interface_flux!(surface_flux_values::AbstractArray{<:Any,4},
     secondary_side = element_side_ids[2, interface]
 
     # initial index for the coordinate system on the secondary element
-    j = start_index[interface]
+    secondary_index = start_index[interface]
 
     # loop through the primary element coordinate system and compute the interface coupling
-    for i in eachnode(dg)
+    for primary_index in eachnode(dg)
       # pull the primary and secondary states from the boundary u values
-      u_ll = u[1, :, i, interface]
-      u_rr = u[2, :, j, interface]
+      u_ll = u[1, :, primary_index, interface]
+      u_rr = u[2, :, secondary_index, interface]
 
       # pull the directional vectors and scaling factors
       #   Note! this assumes a conforming approximation, more must be done in terms of the normals
       #         and tangents for hanging nodes and other non-conforming approximation spaces
-      n_vec   = normals[ :, i, primary_side, primary_element]
-      t_vec   = tangents[:, i, primary_side, primary_element]
-      scal_ll = scaling[i, primary_side, primary_element]
-      scal_rr = scaling[j, secondary_side, secondary_element]
+      # TODO: remove the allocation that occurs for normal/tangent_vector either with a different
+      #       storage layout or adding accessors to extract an SVector
+      normal_vector  = normals[:, primary_index, primary_side, primary_element]
+      tangent_vector = tangents[:, primary_index, primary_side, primary_element]
+      scaling_ll     = scaling[primary_index, primary_side, primary_element]
+      scaling_rr     = scaling[secondary_index, secondary_side, secondary_element]
 
       # rotate states
-      u_tilde_ll = rotate_solution(u_ll, n_vec, t_vec, equations)
-      u_tilde_rr = rotate_solution(u_rr, n_vec, t_vec, equations)
+      u_tilde_ll = rotate_solution(u_ll, normal_vector, tangent_vector, equations)
+      u_tilde_rr = rotate_solution(u_rr, normal_vector, tangent_vector, equations)
 
       # Call pointwise Riemann solver in the rotated direction
       flux_tilde = surface_flux(u_tilde_ll, u_tilde_rr, 1, equations)
 
       # backrotate the flux into the original direction
-      flux = backrotate_flux(flux_tilde, n_vec, t_vec, equations)
+      flux = backrotate_flux(flux_tilde, normal_vector, tangent_vector, equations)
 
       # Scale the flux appropriately and copy back to primary/secondary element storage
       # Note the sign change for the normal flux in the secondary element!
       for v in eachvariable(equations)
-        surface_flux_values[v, i, primary_side  , primary_element  ] =  flux[v] * scal_ll
-        surface_flux_values[v, j, secondary_side, secondary_element] = -flux[v] * scal_rr
+        surface_flux_values[v, primary_index  , primary_side  , primary_element  ] =  flux[v] * scaling_ll
+        surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -flux[v] * scaling_rr
       end
 
       # increment the index of the coordinate system in the secondary element
-      j += inc_index[interface]
+      secondary_index += inc_index[interface]
     end
   end
 
