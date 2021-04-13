@@ -1,9 +1,10 @@
 
+# TODO: put in docstring style documation that is only comments
 struct GammaCurve{RealT<:Real, NNODES}
   nodes               ::SVector{NNODES, RealT}
   barycentric_weights ::SVector{NNODES, RealT}
-  x_vals              ::SVector{NNODES, RealT}
-  y_vals              ::SVector{NNODES, RealT}
+  x                   ::SVector{NNODES, RealT}
+  y                   ::SVector{NNODES, RealT}
 end
 
 
@@ -21,12 +22,12 @@ end
 # evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
 function evaluate_at(s, boundary_curve::GammaCurve)
 
-   @unpack nodes, barycentric_weights, x_vals, y_vals = boundary_curve
+   @unpack nodes, barycentric_weights, x, y = boundary_curve
 
-   x_point = lagrange_interpolation(s, nodes, x_vals, barycentric_weights)
-   y_point = lagrange_interpolation(s, nodes, y_vals, barycentric_weights)
+   x_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, x, barycentric_weights)
+   y_coordinate_at_s_on_boundary_curve = lagrange_interpolation(s, nodes, y, barycentric_weights)
 
-   return x_point, y_point
+   return x_coordinate_at_s_on_boundary_curve, y_coordinate_at_s_on_boundary_curve
 end
 
 
@@ -34,12 +35,13 @@ end
 # and return the (x,y) coordinate
 function derivative_at(s, boundary_curve::GammaCurve)
 
-   @unpack nodes, barycentric_weights, x_vals, y_vals = boundary_curve
+   @unpack nodes, barycentric_weights, x, y = boundary_curve
 
-   x_point_prime = lagrange_interpolation_derivative(s, nodes, x_vals, barycentric_weights)
-   y_point_prime = lagrange_interpolation_derivative(s, nodes, y_vals, barycentric_weights)
-
-   return x_point_prime, y_point_prime
+   x_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes, x,
+                                                                                 barycentric_weights)
+   y_coordinate_at_s_on_boundary_curve_prime = lagrange_interpolation_derivative(s, nodes, y,
+                                                                                 barycentric_weights)
+   return x_coordinate_at_s_on_boundary_curve_prime, y_coordinate_at_s_on_boundary_curve_prime
 end
 
 
