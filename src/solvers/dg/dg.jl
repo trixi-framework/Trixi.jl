@@ -278,7 +278,7 @@ function DGSEM(basis::LobattoLegendreBasis,
     basis, mortar, surface_flux, volume_integral)
 end
 
-function DGSEM(RealT::DataType, polydeg::Integer,
+function DGSEM(RealT, polydeg::Integer,
                surface_flux=flux_central,
                volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm(),
                mortar=MortarL2(LobattoLegendreBasis(RealT, polydeg)))
@@ -289,7 +289,10 @@ end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
-function DGSEM(; RealT::DataType=Float64,
+# The constructor using only keyword arguments is convenient for elixirs since
+# it allows to modify the polynomial degree and other parameters via
+# `trixi_include`.
+function DGSEM(; RealT=Float64,
                  polydeg::Integer,
                  surface_flux=flux_central,
                  volume_integral=VolumeIntegralWeakForm())
