@@ -109,7 +109,6 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                                       mesh::CurvedMesh{3}, equations, dg::DG, cache)
   @unpack surface_flux = dg
-
   @unpack contravariant_vectors = cache.elements
 
   right_direction = 2 * orientation
@@ -121,22 +120,22 @@ end
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
 
       # First contravariant vector Ja^1 as SVector
-      normal_vector = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
+      normal = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
 
       # Second contravariant vector Ja^2 as SVector
-      normal_vector = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
+      normal = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
 
       # Third contravariant vector Ja^3 as SVector
-      normal_vector = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
+      normal = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
     end
 
-    flux = surface_flux(u_ll, u_rr, normal_vector, equations)
+    flux = surface_flux(u_ll, u_rr, normal, equations)
 
     for v in eachvariable(equations)
       surface_flux_values[v, i, j, right_direction, left_element] = flux[v]

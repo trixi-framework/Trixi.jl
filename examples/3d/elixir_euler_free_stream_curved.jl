@@ -7,34 +7,35 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-initial_condition = initial_condition_convergence_test
+initial_condition = initial_condition_constant
 
 surface_flux = FluxRotated(flux_lax_friedrichs)
 volume_integral = VolumeIntegralWeakForm()
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralWeakForm())
+solver = DGSEM(3, surface_flux, volume_integral)
 
-# coordinates_min = (0.0, 0.0, 0.0)
-# coordinates_max = (2.0, 2.0, 2.0)
-f1(s, t) = SVector(0.0, s + 1.0, t + 1.0)
-f2(s, t) = SVector(2.0, s + 1.0, t + 1.0)
-f3(s, t) = SVector(s + 1.0, 0.0, t + 1.0)
-f4(s, t) = SVector(s + 1.0, 2.0, t + 1.0)
-f5(s, t) = SVector(s + 1.0, t + 1.0, 0.0)
-f6(s, t) = SVector(s + 1.0, t + 1.0, 2.0)
+# Mapping described in https://arxiv.org/abs/2012.12040,
+# but on [-1,1]^3 instead of [0,3]^3
+function mapping(xi, eta, zeta)
+  y = eta + 0.25 * cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta)
+
+  x = xi + 0.25 * cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta)
+
+  z = zeta + 0.25 * cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta)
+  
+  return SVector(x, y, z)
+end
 
 cells_per_dimension = (4, 4, 4)
 
-mesh = CurvedMesh(cells_per_dimension, (f1, f2, f3, f4, f5, f6))
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms=source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -52,7 +53,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.6)
+stepsize_callback = StepsizeCallback(cfl=1.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

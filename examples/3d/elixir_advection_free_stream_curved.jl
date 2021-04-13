@@ -9,17 +9,27 @@ advectionvelocity = (1.0, 1.0, 1.0)
 equations = LinearScalarAdvectionEquation3D(advectionvelocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(3, flux_lax_friedrichs)
 
-coordinates_min = (-1.5, -0.9, 0.0) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = ( 0.5,  1.1, 4.0) # maximum coordinates (max(x), max(y), max(z))
-cells_per_dimension = (8, 10, 16)
+# Mapping described in https://arxiv.org/abs/2012.12040,
+# but on [-1,1]^3 instead of [0,3]^3
+function mapping(xi, eta, zeta)
+  y = eta + 0.25 * cos(1.5 * pi * xi) * cos(0.5 * pi * eta) * cos(0.5 * pi * zeta)
 
-# Create curved mesh with 8 x 10 x 16 elements
-mesh = CurvedMesh(cells_per_dimension, coordinates_min, coordinates_max)
+  x = xi + 0.25 * cos(0.5 * pi * xi) * cos(2 * pi * y) * cos(0.5 * pi * zeta)
+
+  z = zeta + 0.25 * cos(0.5 * pi * x) * cos(pi * y) * cos(0.5 * pi * zeta)
+  
+  return SVector(x, y, z)
+end
+
+cells_per_dimension = (8, 8, 8)
+
+# Create curved mesh with 8 x 8 x 8 elements
+mesh = CurvedMesh(cells_per_dimension, mapping)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_constant, solver)
 
 
 ###############################################################################
@@ -40,7 +50,7 @@ save_solution = SaveSolutionCallback(interval=100,
                                      solution_variables=cons2prim)
 
 # The StepsizeCallback handles the re-calculcation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.2)
+stepsize_callback = StepsizeCallback(cfl=2.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
