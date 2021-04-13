@@ -92,6 +92,30 @@ end
 
 
 """
+    boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                        surface_flux_function,
+                                        equations::CompressibleEulerEquations3D)
+
+Boundary conditions used for convergence tests in combination with
+[`initial_condition_convergence_test`](@ref) and [`source_terms_convergence_test`](@ref).
+"""
+function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquations3D)
+  u_boundary = initial_condition_convergence_test(x, t, equations)
+
+  # Calculate boundary flux
+  if direction in (2, 4, 6) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+  else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+  end
+
+  return flux
+end
+
+
+"""
     initial_condition_density_pulse(x, t, equations::CompressibleEulerEquations3D)
 
 A Gaussian pulse in the density with constant velocity and pressure; reduces the
