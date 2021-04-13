@@ -109,6 +109,8 @@ end
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                                       surface_flux, mesh::CurvedMesh{3}, equations, dg::DG, cache)
 
+  @unpack contravariant_vectors = cache.elements
+
   right_direction = 2 * orientation
   left_direction = right_direction - 1
 
@@ -118,19 +120,19 @@ end
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
 
       # First contravariant vector Ja^1 as SVector
-      normal_vector = get_contravariant_vector(1, cache, 1, i, j, right_element)
+      normal_vector = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
     elseif orientation == 2
       u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), j, left_element)
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
 
       # Second contravariant vector Ja^2 as SVector
-      normal_vector = get_contravariant_vector(2, cache, i, 1, j, right_element)
+      normal_vector = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
     else # orientation == 3
       u_ll = get_node_vars(u, equations, dg, i, j, nnodes(dg), left_element)
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
 
       # Third contravariant vector Ja^3 as SVector
-      normal_vector = get_contravariant_vector(3, cache, i, j, 1, right_element)
+      normal_vector = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
     end
 
     flux = surface_flux(u_ll, u_rr, normal_vector, equations)
@@ -147,7 +149,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element, orientation, u, 
                                       surface_flux::FluxRotated, mesh::CurvedMesh{3}, equations, dg::DG, cache)
-  @unpack jacobian_matrix = cache.elements
+  @unpack jacobian_matrix, contravariant_vectors = cache.elements
 
   right_direction = 2 * orientation
   left_direction = right_direction - 1
@@ -158,7 +160,7 @@ end
       u_rr = get_node_vars(u, equations, dg, 1,          i, j, right_element)
 
       # First contravariant vector Ja^1 as SVector
-      normal_vector = get_contravariant_vector(1, cache, 1, i, j, right_element)
+      normal_vector = get_contravariant_vector(1, contravariant_vectors, 1, i, j, right_element)
       # First tangent vector is second column of the Jacobian matrix
       tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 2, 1, i, j, right_element)
       # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality
@@ -168,7 +170,7 @@ end
       u_rr = get_node_vars(u, equations, dg, i, 1,          j, right_element)
 
       # Second contravariant vector Ja^2 as SVector
-      normal_vector = get_contravariant_vector(2, cache, i, 1, j, right_element)
+      normal_vector = get_contravariant_vector(2, contravariant_vectors, i, 1, j, right_element)
       # First tangent vector is third column of the Jacobian matrix
       tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 3, i, 1, j, right_element)
       # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality
@@ -178,7 +180,7 @@ end
       u_rr = get_node_vars(u, equations, dg, i, j, 1,          right_element)
 
       # Third contravariant vector Ja^3 as SVector
-      normal_vector = get_contravariant_vector(3, cache, i, j, 1, right_element)
+      normal_vector = get_contravariant_vector(3, contravariant_vectors, i, j, 1, right_element)
       # First tangent vector is first column of the Jacobian matrix
       tangent_vector1 = get_node_coords(jacobian_matrix, equations, dg, 1, i, j, 1, right_element)
       # Second tangent vector is cross product of normal vector and first tangent vector to ensure orthogonality

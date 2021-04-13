@@ -11,10 +11,9 @@ end
 
 
 # Extract contravariant vector Ja^i (i = index) as SVector
-@inline function get_contravariant_vector(index, cache, indices...)
-  @unpack contravariant_vectors = cache.elements
+@inline function get_contravariant_vector(index, contravariant_vectors::AbstractArray{<:Any,NDIMSP3}, indices...) where {NDIMSP3}
 
-  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], ndims(cache.elements)))
+  SVector(ntuple(dim -> contravariant_vectors[index, dim, indices...], NDIMSP3 - 3))
 end
 
 
