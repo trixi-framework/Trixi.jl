@@ -10,22 +10,25 @@ All mesh information, neighbour coupling, and boundary curve information is read
 """
 struct UnstructuredQuadMesh{NDIMS, RealT<:Real, GammaCurveT<:GammaCurve{RealT}} <: AbstractMesh{NDIMS}
   filename             ::String
-  n_corners            ::Int64
-  n_interfaces         ::Int64
-  n_boundary           ::Int64
-  n_elements           ::Int64
-  poly_deg             ::Int64
+  n_corners            ::Int
+  n_surfaces           ::Int # total number of surfaces
+  n_interfaces         ::Int # number of interior surfaces
+  n_boundary           ::Int # number of surfaces on the physical boundary
+  n_elements           ::Int
+  poly_deg             ::Int
   corners              ::Array{RealT, 2}  # [ndims, n_corners]
-  neighbour_information::Array{Int64, 2}  # [neighbour node/element/edge ids, n_interfaces]
+  neighbour_information::Array{Int, 2}  # [neighbour node/element/edge ids, n_surfaces]
   boundary_names       ::Array{String, 2} # [local sides, n_elements]
   periodicity          ::Bool
-  element_node_ids     ::Array{Int64, 2} # [node ids, n_elements]
+  element_node_ids     ::Array{Int, 2} # [node ids, n_elements]
   element_is_curved    ::Vector{Bool}
   elements_curves      ::Array{GammaCurveT, 2} # [local sides, n_elements]
 end
 
 
 # constructor for an unstructured mesh read in from a file
+# TODO: this mesh file parsing and construction of the mesh skeleton can likely be improved in terms
+#       of performance
 function UnstructuredQuadMesh(RealT, filename, periodic)
 
   NDIMS = 2
@@ -35,10 +38,10 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
 
   # readin the number of nodes, number of interfaces, number of elements and local polynomial degree
   current_line  = split(file_lines[1])
-  n_corners     = parse(Int64, current_line[1])
-  n_interfaces  = parse(Int64, current_line[2])
-  n_elements    = parse(Int64, current_line[3])
-  mesh_poly_deg = parse(Int64, current_line[4])
+  n_corners     = parse(Int, current_line[1])
+  n_surfaces    = parse(Int, current_line[2])
+  n_elements    = parse(Int, current_line[3])
+  mesh_poly_deg = parse(Int, current_line[4])
 
   mesh_nnodes = mesh_poly_deg + 1
 
@@ -47,9 +50,9 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
   # the memory now and introduce a function barrier before continuing to read
   # data from the file.
   corner_nodes      = Array{RealT}(undef, (2, n_corners))
-  interface_info    = Array{Int64}(undef, (6, n_interfaces))
-  element_node_ids  = Array{Int64}(undef, (4, n_elements))
-  curved_check      = Vector{Int64}(undef, 4)
+  interface_info    = Array{Int}(undef, (6, n_surfaces))
+  element_node_ids  = Array{Int}(undef, (4, n_elements))
+  curved_check      = Vector{Int}(undef, 4)
   cornerNodeVals    = Array{RealT}(undef, (4, 2))
   tempNodes         = Array{RealT}(undef, (4, 2))
   curve_vals        = Array{RealT}(undef, (mesh_nnodes, 2))
@@ -69,12 +72,19 @@ function UnstructuredQuadMesh(RealT, filename, periodic)
   arrays = (corner_nodes, interface_info, element_node_ids, curved_check,
             cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
             element_is_curved, element_curves, bndy_names)
-  counters = (n_corners, n_interfaces, n_elements)
+  counters = (n_corners, n_surfaces, n_elements)
 
   n_boundary = parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheby_nodes, bary_weights)
 
+  # get the number of internal interfaces in the mesh
+  if periodic
+    n_interfaces = n_surfaces
+  else
+    n_interfaces = n_surfaces - n_boundary
+  end
+
   return UnstructuredQuadMesh{NDIMS, RealT, GammaCurveT}(
-    filename, n_corners, n_interfaces, n_boundary,
+    filename, n_corners, n_surfaces, n_interfaces, n_boundary,
     n_elements, mesh_poly_deg, corner_nodes,
     interface_info, bndy_names, periodic,
     element_node_ids, element_is_curved, element_curves)
@@ -84,7 +94,7 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
   ( corner_nodes, interface_info, element_node_ids, curved_check,
     cornerNodeVals, tempNodes, curve_vals, curve_vals_static,
     element_is_curved, element_curves, bndy_names ) = arrays
-  n_corners, n_interfaces, n_elements = counters
+  n_corners, n_surfaces, n_elements = counters
   mesh_nnodes = length(cheby_nodes)
 
   # counter to step through the mesh file line by line
@@ -109,14 +119,14 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
   #    interface_info[6] = local side ID on the secondary element
   # container to for the interface neighbour information and connectivity
   n_boundary = 0
-  for j in 1:n_interfaces
+  for j in 1:n_surfaces
     current_line   = split(file_lines[file_idx])
-    interface_info[1, j] = parse(Int64, current_line[1])
-    interface_info[2, j] = parse(Int64, current_line[2])
-    interface_info[3, j] = parse(Int64, current_line[3])
-    interface_info[4, j] = parse(Int64, current_line[4])
-    interface_info[5, j] = parse(Int64, current_line[5])
-    interface_info[6, j] = parse(Int64, current_line[6])
+    interface_info[1, j] = parse(Int, current_line[1])
+    interface_info[2, j] = parse(Int, current_line[2])
+    interface_info[3, j] = parse(Int, current_line[3])
+    interface_info[4, j] = parse(Int, current_line[4])
+    interface_info[5, j] = parse(Int, current_line[5])
+    interface_info[6, j] = parse(Int, current_line[6])
 
     # count the number of physical boundaries
     if interface_info[4,j] == 0
@@ -133,10 +143,10 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
   for j in 1:n_elements
     # pull the corner node IDs
     current_line           = split(file_lines[file_idx])
-    element_node_ids[1, j] = parse(Int64, current_line[1])
-    element_node_ids[2, j] = parse(Int64, current_line[2])
-    element_node_ids[3, j] = parse(Int64, current_line[3])
-    element_node_ids[4, j] = parse(Int64, current_line[4])
+    element_node_ids[1, j] = parse(Int, current_line[1])
+    element_node_ids[2, j] = parse(Int, current_line[2])
+    element_node_ids[3, j] = parse(Int, current_line[3])
+    element_node_ids[4, j] = parse(Int, current_line[4])
     for i in 1:4
       # pull the (x,y) values of these corners out of the nodes array
       cornerNodeVals[i, :] .= corner_nodes[:, element_node_ids[i, j]]
@@ -144,10 +154,10 @@ function parse_mesh_file!(arrays, RealT, GammaCurveT, file_lines, counters, cheb
     # pull the information to check if boundary is curved in order to read in additional data
     file_idx += 1
     current_line    = split(file_lines[file_idx])
-    curved_check[1] = parse(Int64, current_line[1])
-    curved_check[2] = parse(Int64, current_line[2])
-    curved_check[3] = parse(Int64, current_line[3])
-    curved_check[4] = parse(Int64, current_line[4])
+    curved_check[1] = parse(Int, current_line[1])
+    curved_check[2] = parse(Int, current_line[2])
+    curved_check[3] = parse(Int, current_line[3])
+    curved_check[4] = parse(Int, current_line[4])
     if sum(curved_check) == 0
       # quadrilateral element is straight sided
       element_is_curved[j] = false
@@ -228,7 +238,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::UnstructuredQuadMesh{NDIMS,
     summary_header(io, "UnstructuredQuadMesh{" * string(NDIMS) * ", " * string(RealT) * "}")
     summary_line(io, "mesh file", mesh.filename)
     summary_line(io, "size", size(mesh))
-    summary_line(io, "faces", mesh.n_interfaces)
+    summary_line(io, "faces", mesh.n_surfaces)
     summary_line(io, "mesh polynomial degree", mesh.poly_deg)
     summary_footer(io)
   end

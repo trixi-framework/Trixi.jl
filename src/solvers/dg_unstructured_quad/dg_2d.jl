@@ -2,23 +2,23 @@
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
 function create_cache(mesh::UnstructuredQuadMesh, equations::AbstractEquations,
-                      dg::DG, RealT, uEltype=RealT)
+                      dg::DG, RealT, uEltype)
 
-  poly_deg = nnodes(dg.basis) - 1
+  polydeg_ = polydeg(dg.basis)
   nvars = nvariables(equations)
 
-  if poly_deg > mesh.poly_deg
+  if polydeg_ > mesh.poly_deg
     error("polynomial degree of DG must be less than or equal to mesh polynomial degree")
   end
 
-  elements = init_elements(RealT, mesh, dg.basis.nodes, nvars, poly_deg)
+  elements = init_elements(RealT, uEltype, mesh, dg.basis.nodes, nvars, polydeg_)
 
-  interfaces = init_interfaces(RealT, mesh, nvars, poly_deg)
+  interfaces = init_interfaces(uEltype, mesh, nvars, polydeg_)
 
   if isperiodic(mesh)
-    boundaries = UnstructuredBoundaryContainer2D{RealT, nvars, poly_deg}(0)
+    boundaries = UnstructuredBoundaryContainer2D{RealT, uEltype, nvars, polydeg_}(0)
   else
-    boundaries = init_boundaries(RealT, mesh, elements, nvars, poly_deg)
+    boundaries = init_boundaries(RealT, uEltype, mesh, elements, nvars, polydeg_)
   end
 
   cache = (; elements, interfaces, boundaries)
@@ -305,9 +305,9 @@ function calc_boundary_flux!(cache, t, boundary_condition, equations, dg::DG, in
 end
 
 # Note! The local side numbering for the unstructured quadrilateral element implementation differs
-#       from the strcutured TreeMesh or CurveMesh local side numbering:
+#       from the structured TreeMesh or CurvedMesh local side numbering:
 #
-#      TreeMesh/CurveMesh sides   versus   UnstructuredMesh sides
+#      TreeMesh/CurvedMesh sides   versus   UnstructuredMesh sides
 #                  4                                  3
 #          -----------------                  -----------------
 #          |               |                  |               |

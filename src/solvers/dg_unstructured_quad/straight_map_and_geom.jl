@@ -38,11 +38,10 @@ end
 
 
 # construct the (x,y) node coordinates in the volume of a straight sided element
-function calc_node_coordinates!(node_coordinates, element_id, nodes, poly_deg, corners)
+function calc_node_coordinates!(node_coordinates, element, nodes, corners)
 
-  nnodes = poly_deg + 1
-  for j in 1:nnodes, i in 1:nnodes
-    node_coordinates[:, i ,j ,element_id] .= straight_side_quad_map(nodes[i], nodes[j], corners)
+  for j in eachindex(nodes), i in eachindex(nodes)
+    node_coordinates[:, i ,j ,element] .= straight_side_quad_map(nodes[i], nodes[j], corners)
   end
 
   return node_coordinates
@@ -50,14 +49,13 @@ end
 
 
 # construct the metric terms for a straight sided element
-function calc_metric_terms!(X_xi, X_eta, Y_xi, Y_eta, element_id, nodes, poly_deg, corners)
+function calc_metric_terms!(X_xi, X_eta, Y_xi, Y_eta, element, nodes, corners)
 
-  nnodes = poly_deg + 1
-  for j in 1:nnodes, i in 1:nnodes
-    X_xi[i, j, element_id],
-    X_eta[i, j, element_id],
-    Y_xi[i, j, element_id],
-    Y_eta[i, j, element_id] = straight_side_quad_map_metrics(nodes[i], nodes[j], corners)
+  for j in eachindex(nodes), i in eachindex(nodes)
+    (X_xi[i, j, element],
+     X_eta[i, j, element],
+     Y_xi[i, j, element],
+     Y_eta[i, j, element]) = straight_side_quad_map_metrics(nodes[i], nodes[j], corners)
   end
 
   return X_xi, X_eta, Y_xi, Y_eta
@@ -65,50 +63,48 @@ end
 
 
 # construct the normals, their scalings, and the tangents for a straight sided element
-function calc_normals_scaling_and_tangents!(normals, scaling, tangents, element_id, nodes, poly_deg,
-                                            corners)
+function calc_normals_scaling_and_tangents!(normals, scaling, tangents, element, nodes, corners)
 
-  nnodes = poly_deg + 1
   # normals and boundary information for the left (local side 4) and right (local side 2)
-  for j in 1:nnodes
+  for j in eachindex(nodes)
     # side 2
-    Xxi, Xeta, Yxi, Yeta = straight_side_quad_map_metrics(1.0, nodes[j], corners)
-    Jtemp = Xxi * Yeta - Xeta * Yxi
-    scaling[j, 2, element_id]     = sqrt(Yeta * Yeta + Xeta * Xeta)
-    normals[1, j, 2, element_id]  = sign(Jtemp) * ( Yeta / scaling[j, 2, element_id])
-    normals[2, j, 2, element_id]  = sign(Jtemp) * (-Xeta / scaling[j, 2, element_id])
-    tangents[1, j, 2, element_id] =  normals[2, j, 2, element_id]
-    tangents[2, j, 2, element_id] = -normals[1, j, 2, element_id]
+    X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(1.0, nodes[j], corners)
+    Jtemp = X_xi * Y_eta - X_eta * Y_xi
+    scaling[j, 2, element]     = sqrt(Y_eta * Y_eta + X_eta * X_eta)
+    normals[1, j, 2, element]  = sign(Jtemp) * ( Y_eta / scaling[j, 2, element])
+    normals[2, j, 2, element]  = sign(Jtemp) * (-X_eta / scaling[j, 2, element])
+    tangents[1, j, 2, element] =  normals[2, j, 2, element]
+    tangents[2, j, 2, element] = -normals[1, j, 2, element]
 
     # side 4
-    Xxi, Xeta, Yxi, Yeta = straight_side_quad_map_metrics(-1.0, nodes[j], corners)
-    Jtemp =  Xxi * Yeta - Xeta * Yxi
-    scaling[j, 4, element_id]     =  sqrt(Yeta * Yeta + Xeta * Xeta)
-    normals[1, j, 4, element_id]  = -sign(Jtemp) * ( Yeta / scaling[j, 4, element_id])
-    normals[2, j, 4, element_id]  = -sign(Jtemp) * (-Xeta / scaling[j, 4, element_id])
-    tangents[1, j, 4, element_id] =  normals[2, j, 4, element_id]
-    tangents[2, j, 4, element_id] = -normals[1, j, 4, element_id]
+    X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(-1.0, nodes[j], corners)
+    Jtemp =  X_xi * Y_eta - X_eta * Y_xi
+    scaling[j, 4, element]     =  sqrt(Y_eta * Y_eta + X_eta * X_eta)
+    normals[1, j, 4, element]  = -sign(Jtemp) * ( Y_eta / scaling[j, 4, element])
+    normals[2, j, 4, element]  = -sign(Jtemp) * (-X_eta / scaling[j, 4, element])
+    tangents[1, j, 4, element] =  normals[2, j, 4, element]
+    tangents[2, j, 4, element] = -normals[1, j, 4, element]
   end
 
   # normals and boundary information for the top (local side 3) and bottom (local side 1)
-  for i in 1:nnodes
+  for i in eachindex(nodes)
     # side 1
-    Xxi, Xeta, Yxi, Yeta = straight_side_quad_map_metrics(nodes[i], -1.0, corners)
-    Jtemp =  Xxi * Yeta - Xeta * Yxi
-    scaling[i, 1, element_id]     =  sqrt(Yxi * Yxi + Xxi * Xxi)
-    normals[1, i, 1, element_id]  = -sign(Jtemp) * (-Yxi / scaling[i, 1, element_id])
-    normals[2, i, 1, element_id]  = -sign(Jtemp) * ( Xxi / scaling[i, 1, element_id])
-    tangents[1, i, 1, element_id] =  normals[2, i, 1, element_id]
-    tangents[2, i, 1, element_id] = -normals[1, i, 1, element_id]
+    X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], -1.0, corners)
+    Jtemp =  X_xi * Y_eta - X_eta * Y_xi
+    scaling[i, 1, element]     =  sqrt(Y_xi * Y_xi + X_xi * X_xi)
+    normals[1, i, 1, element]  = -sign(Jtemp) * (-Y_xi / scaling[i, 1, element])
+    normals[2, i, 1, element]  = -sign(Jtemp) * ( X_xi / scaling[i, 1, element])
+    tangents[1, i, 1, element] =  normals[2, i, 1, element]
+    tangents[2, i, 1, element] = -normals[1, i, 1, element]
 
     # side 3
-    Xxi, Xeta, Yxi, Yeta = straight_side_quad_map_metrics(nodes[i], 1.0, corners)
-    Jtemp = Xxi * Yeta - Xeta * Yxi
-    scaling[i, 3, element_id]     = sqrt(Yxi * Yxi + Xxi * Xxi)
-    normals[1, i, 3, element_id]  = sign(Jtemp) * (-Yxi / scaling[i, 3, element_id])
-    normals[2, i, 3, element_id]  = sign(Jtemp) * ( Xxi / scaling[i, 3, element_id])
-    tangents[1, i, 3, element_id] =  normals[2, i, 3, element_id]
-    tangents[2, i, 3, element_id] = -normals[1, i, 3, element_id]
+    X_xi, X_eta, Y_xi, Y_eta = straight_side_quad_map_metrics(nodes[i], 1.0, corners)
+    Jtemp = X_xi * Y_eta - X_eta * Y_xi
+    scaling[i, 3, element]     = sqrt(Y_xi * Y_xi + X_xi * X_xi)
+    normals[1, i, 3, element]  = sign(Jtemp) * (-Y_xi / scaling[i, 3, element])
+    normals[2, i, 3, element]  = sign(Jtemp) * ( X_xi / scaling[i, 3, element])
+    tangents[1, i, 3, element] =  normals[2, i, 3, element]
+    tangents[2, i, 3, element] = -normals[1, i, 3, element]
   end
 
   return normals, scaling, tangents

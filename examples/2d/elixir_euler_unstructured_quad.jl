@@ -6,7 +6,6 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 
 equations = CompressibleEulerEquations2D(1.4)
-num_eqns = nvariables(equations)
 
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
@@ -15,14 +14,14 @@ boundary_conditions = boundary_condition_convergence_test
 ###############################################################################
 # Get the DG approximation space
 
-poly_deg = 5
-surface_flux = flux_hll # flux_lax_friedrichs
-solver = DGSEM(poly_deg, surface_flux)
+polydeg = 5
+surface_flux = flux_hll
+solver = DGSEM(polydeg, surface_flux)
 
 ###############################################################################
 # Get the curved quad mesh from a file
 
-mesh_file = "./examples/2d/BoxAroundCircle8.mesh"
+mesh_file = joinpath(@__DIR__, "BoxAroundCircle8.mesh")
 periodicity = false
 mesh = UnstructuredQuadMesh(Float64, mesh_file, periodicity)
 
@@ -46,15 +45,10 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-5, 5.0e-5),
-                                               variables=(Trixi.density, pressure))
-stage_limiter! = limiter!
-step_limiter!  = limiter!
-
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(stage_limiter!, step_limiter!), save_everystep=false, callback=callbacks);
+sol = solve(ode, SSPRK43(), save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

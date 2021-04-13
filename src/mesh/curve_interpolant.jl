@@ -1,9 +1,9 @@
 
 struct GammaCurve{RealT<:Real, NNODES}
-  nodes        ::SVector{NNODES, RealT}
-  bary_weights ::SVector{NNODES, RealT}
-  x_vals       ::SVector{NNODES, RealT}
-  y_vals       ::SVector{NNODES, RealT}
+  nodes               ::SVector{NNODES, RealT}
+  barycentric_weights ::SVector{NNODES, RealT}
+  x_vals              ::SVector{NNODES, RealT}
+  y_vals              ::SVector{NNODES, RealT}
 end
 
 
@@ -19,12 +19,12 @@ end
 
 
 # evalute the Gamma curve interpolant at a particular point s and return the (x,y) coordinate
-function evaluate_at(s, bndy_curve::GammaCurve)
+function evaluate_at(s, boundary_curve::GammaCurve)
 
-   @unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
+   @unpack nodes, barycentric_weights, x_vals, y_vals = boundary_curve
 
-   x_point = lagrange_interpolation(s, nodes, x_vals, bary_weights)
-   y_point = lagrange_interpolation(s, nodes, y_vals, bary_weights)
+   x_point = lagrange_interpolation(s, nodes, x_vals, barycentric_weights)
+   y_point = lagrange_interpolation(s, nodes, y_vals, barycentric_weights)
 
    return x_point, y_point
 end
@@ -32,12 +32,12 @@ end
 
 # evalute the derivative of a Gamma curve interpolant at a particular point s
 # and return the (x,y) coordinate
-function derivative_at(s, bndy_curve::GammaCurve)
+function derivative_at(s, boundary_curve::GammaCurve)
 
-   @unpack nodes, bary_weights, x_vals, y_vals = bndy_curve
+   @unpack nodes, barycentric_weights, x_vals, y_vals = boundary_curve
 
-   x_point_prime = lagrange_interpolation_derivative(s, nodes, x_vals, bary_weights)
-   y_point_prime = lagrange_interpolation_derivative(s, nodes, y_vals, bary_weights)
+   x_point_prime = lagrange_interpolation_derivative(s, nodes, x_vals, barycentric_weights)
+   y_point_prime = lagrange_interpolation_derivative(s, nodes, y_vals, barycentric_weights)
 
    return x_point_prime, y_point_prime
 end
@@ -68,11 +68,10 @@ end
 # node distribution.
 function lagrange_interpolation(x, nodes, fvals, wbary)
 # Barycentric two formulation of Lagrange interpolant
-  n_nodes = length(nodes)
-  numerator   = 0
-  denominator = 0
+  numerator   = zero(eltype(fvals))
+  denominator = zero(eltype(fvals))
 
-  for j in 1:n_nodes
+  for j in eachindex(nodes)
     if isapprox(x, nodes[j], rtol=eps(x))
       return fvals[j]
     end
@@ -88,13 +87,13 @@ end
 # Calculate derivative of a Lagrange interpolating polynomial of a function f(x) at a given
 # point x for a given node distribution.
 function lagrange_interpolation_derivative(x, nodes, fvals, wbary)
-  n_nodes   = length(nodes)
+
   at_node   = false
-  numerator = 0
+  numerator = zero(eltype(fvals))
   i         = 0
 
-  for j in 1:n_nodes
-    if isapprox(x, nodes[j], rtol=eps(x))
+  for j in eachindex(nodes)
+    if isapprox(x, nodes[j])
       at_node     = true
       p           = fvals[j]
       denominator = -wbary[j]
@@ -103,15 +102,15 @@ function lagrange_interpolation_derivative(x, nodes, fvals, wbary)
   end
 
   if at_node
-    for j in 1:n_nodes
+    for j in eachindex(nodes)
       if j != i
         numerator += wbary[j] * ( p - fvals[j] ) / ( x - nodes[j] )
       end
     end
   else
-    denominator = 0
+    denominator = zero(eltype(fvals))
     p = lagrange_interpolation(x, nodes, fvals, wbary)
-    for j in 1:n_nodes
+    for j in eachindex(nodes)
       t            = wbary[j] / (x - nodes[j])
       numerator   += t * ( p - fvals[j] ) / ( x - nodes[j] )
       denominator += t
