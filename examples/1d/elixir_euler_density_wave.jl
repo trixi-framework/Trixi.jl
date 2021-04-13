@@ -8,8 +8,7 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_density_wave
 
-surface_flux = flux_central
-solver = DGSEM(5, surface_flux)
+solver = DGSEM(polydeg=5, surface_flux=flux_central)
 
 coordinates_min = -1
 coordinates_max =  1

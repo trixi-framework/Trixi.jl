@@ -186,6 +186,54 @@ function _precompile_manual_()
     )
   end
 
+  function basis_type_dgsem(RealT, nnodes_)
+    LobattoLegendreBasis{RealT,nnodes_,
+                         # VectorT
+                         StaticArrays.SVector{nnodes_,RealT},
+                         # InverseVandermondeLegendre
+                         Matrix{RealT},
+                         # BoundaryMatrix
+                         #StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},
+                         Matrix{RealT},
+                         # DerivativeMatrix
+                         #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                         Matrix{RealT},
+    }
+  end
+
+  function mortar_type_dgsem(RealT, nnodes_)
+    LobattoLegendreMortarL2{RealT,nnodes_,
+                            # ForwardMatrix
+                            #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            Matrix{RealT},
+                            # ReverseMatrix
+                            # StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            Matrix{RealT},
+    }
+  end
+
+  function analyzer_type_dgsem(RealT, nnodes_)
+    polydeg = nnodes_ - 1
+    nnodes_analysis = 2 * polydeg + 1
+    LobattoLegendreAnalyzer{RealT,nnodes_analysis,
+                            # VectorT
+                            StaticArrays.SVector{nnodes_analysis,RealT},
+                            # Vandermonde
+                            Array{RealT,2}
+    }
+  end
+
+  function adaptor_type_dgsem(RealT, nnodes_)
+    LobattoLegendreAdaptorL2{RealT,nnodes_,
+                            # ForwardMatrix
+                            StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            # Matrix{RealT},
+                            # ReverseMatrix
+                            StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                            # Matrix{RealT},
+    }
+  end
+
   # Constructors: mesh
   for RealT in (Int, Float64,)
     @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:initial_refinement_level, :n_cells_max),Tuple{Int,Int}},Type{TreeMesh},RealT,RealT})
@@ -265,7 +313,7 @@ function _precompile_manual_()
   # Constructors: mortars, analyzers, adaptors
   for RealT in (Float64,), polydeg in 1:7
     nnodes_ = polydeg + 1
-    basis_type = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+    basis_type = basis_type_dgsem(RealT, nnodes_)
     @assert Base.precompile(Tuple{typeof(Trixi.MortarL2),basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer},basis_type})
     @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2},basis_type})
@@ -288,7 +336,7 @@ function _precompile_manual_()
     # We would need to use all special cases instead of
     # Function,Trixi.AbstractVolumeIntegral
     # for equations_type in equations_types(RealT)
-    #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
+    #   @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),NamedTuple{(:interval, :extra_analysis_integrals),Tuple{Int,Tuple{typeof(entropy)}}},Type{AnalysisCallback},equations_type,DG{RealT,LobattoLegendreBasis{RealT,nnodes_,StaticArrays.SVector{nnodes_,RealT},Array{RealT,2},StaticArrays.SArray{Tuple{4,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}},Function,Trixi.AbstractVolumeIntegral}})
     # end
   # end
   @assert Base.precompile(Tuple{typeof(SummaryCallback)})
@@ -300,6 +348,7 @@ function _precompile_manual_()
   for RealT in (Float64,), polydeg in 1:7
     uEltype = RealT
     nnodes_ = polydeg + 1
+    mortar_type = mortar_type_dgsem(RealT, nnodes_)
 
     # 1D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{1,Trixi.SerialTree{1}},Trixi.ElementContainer1D{RealT,uEltype,1,polydeg}})
@@ -308,18 +357,18 @@ function _precompile_manual_()
     # 2D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.SerialTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},mortar_type})
 
     # 2D, parallel
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg},mortar_type})
     @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces),Array{Int,1},TreeMesh{2,Trixi.ParallelTree{2}},Trixi.ElementContainer2D{RealT,uEltype,1,polydeg}})
 
     # 3D, serial
     @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg}})
     @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg}})
-    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg},Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}})
+    @assert Base.precompile(Tuple{typeof(Trixi.init_mortars),Array{Int,1},TreeMesh{3,Trixi.SerialTree{3}},Trixi.ElementContainer3D{RealT,uEltype,1,polydeg},mortar_type})
   end
 
   # various `show` methods
@@ -343,10 +392,10 @@ function _precompile_manual_()
     # mortars, analyzers, adaptors, DG
     for polydeg in 1:1
       nnodes_ = polydeg + 1
-      basis_type    = LobattoLegendreBasis{RealT,nnodes_,Array{RealT,2},StaticArrays.SArray{Tuple{nnodes_,2},RealT,2,2*nnodes_},StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
-      mortar_type   = Trixi.LobattoLegendreMortarL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
-      analyzer_type = Trixi.LobattoLegendreAnalyzer{RealT,2*polydeg+1,Array{RealT,2}}
-      adaptor_type  = Trixi.LobattoLegendreAdaptorL2{RealT,nnodes_,StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2}}
+      basis_type    = basis_type_dgsem(RealT, nnodes_)
+      mortar_type   = mortar_type_dgsem(RealT, nnodes_)
+      analyzer_type = analyzer_type_dgsem(RealT, nnodes_)
+      adaptor_type  = adaptor_type_dgsem(RealT, nnodes_)
 
       @assert Base.precompile(Tuple{typeof(show),typeof(stdout),basis_type})
       @assert Base.precompile(Tuple{typeof(show),IOContext{typeof(stdout)},MIME"text/plain",basis_type})

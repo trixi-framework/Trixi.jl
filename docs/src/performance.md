@@ -26,7 +26,7 @@ Here, we just list some important aspects you should consider when developing Tr
 
 
 
-## Benchmarking
+## Manual benchmarking
 
 If you modify some internal parts of Trixi, you should check the impact on performance.
 Hence, you should at least investigate the performance roughly by comparing the reported
@@ -91,6 +91,55 @@ of the runtimes are of the order of the fluctuations one gets when running the b
 the memory/allocs are (roughly) the same, there doesn't seem to be a significant performance regression here.
 
 You can also make it more detailed by benchmarking only, e.g., the calculation of the volume terms, but whether that's necessary depends on the modifications you made and their (potential) impact.
+
+
+## Automated benchmarking
+
+We use [PkgBenchmark.jl](https://github.com/JuliaCI/PkgBenchmark.jl) to provide a standard set of
+benchmarks for Trixi. The relevant benchmark script is
+[benchmark/benchmarks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/benchmark/benchmarks.jl).
+You can run a standard set of benchmarks via
+```julia
+julia> using PkgBenchmark, Trixi
+
+julia> results = benchmarkpkg(Trixi, BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`))
+
+julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "single_benchmark.md"), results)
+```
+This will save a markdown file with a summary of the benchmark results similar to
+[this example](https://gist.github.com/ranocha/494fa2529e1e6703c17b08434c090980).
+Note that this will take quite some time. Additional options are described in the
+[docs of PkgBenchmark.jl](https://juliaci.github.io/PkgBenchmark.jl/stable).
+A particularly useful option is to specify a `BenchmarkConfig` including Julia
+command line options affecting the performance such as disabling bounds-checking
+and setting the number of threads.
+
+A useful feature when developing Trixi is to compare the performance of Trixi's
+current state vs. the `main` branch. This can be achieved by executing
+```julia
+julia> using PkgBenchmark, Trixi
+
+julia> results = judge(Trixi,
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`), # target
+             BenchmarkConfig(juliacmd=`$(Base.julia_cmd()) --check-bounds=no --threads=1`, id="main") # baseline
+       )
+
+julia> export_markdown(joinpath(pathof(Trixi) |> dirname |> dirname, "benchmark", "results.md"), results)
+```
+By default, the `target` is the current state of the repository. Remember that you
+need to be in a clean state (commit or stash your changes) to run this successfully.
+You can also run this comparison and an additional one using two threads via
+```julia
+julia> include("benchmark/run_benchmarks.jl")
+```
+Then, markdown files including the results are saved in `benchmark/`.
+[This example result](https://gist.github.com/ranocha/bf98d19e288e759d3a36ca0643448efb)
+was obtained using a GitHub action for the 
+[PR #535](https://github.com/trixi-framework/Trixi.jl/pull/535).
+Note that GitHub actions run on in the cloud in a virtual machine. Hence, we do not really
+have control over it and performance results must be taken with a grain of salt.
+Nevertheless, significant runtime differences and differences of memory allocations
+should be robust indicators of performance changes.
 
 
 ## Runtime performance vs. latency aka using `@nospecialize` selectively

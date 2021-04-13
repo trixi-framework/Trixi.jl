@@ -9,9 +9,7 @@ equations = CompressibleEulerEquations2D(gamma)
 
 initial_condition = initial_condition_density_wave
 
-surface_flux = flux_central
-polydeg = 5
-solver = DGSEM(polydeg, surface_flux)
+solver = DGSEM(polydeg=5, surface_flux=flux_central)
 
 coordinates_min = (-1, -1)
 coordinates_max = ( 1,  1)
@@ -47,7 +45,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback)
 

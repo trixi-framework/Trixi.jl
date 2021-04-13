@@ -20,6 +20,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["n_cells"] = n_cells
     attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
@@ -62,6 +63,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
   h5open(filename, "w") do file
     # Add context information as attributes
     n_cells = length(mesh.tree)
+    attributes(file)["mesh_type"] = get_name(mesh)
     attributes(file)["ndims"] = ndims(mesh)
     attributes(file)["n_cells"] = n_cells
     attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
@@ -83,26 +85,62 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 end
 
 
+function save_mesh_file(mesh::CurvedMesh, output_directory)
+  # Create output directory (if it does not exist)
+  mkpath(output_directory)
+
+  filename = joinpath(output_directory, "mesh.h5")
+
+  # Open file (clobber existing content)
+  h5open(filename, "w") do file
+    # Add context information as attributes
+    attributes(file)["mesh_type"] = get_name(mesh)
+    attributes(file)["ndims"] = ndims(mesh)
+    attributes(file)["size"] = collect(size(mesh))
+    attributes(file)["mapping"] = mesh.mapping_as_string
+  end
+
+  return filename
+end
+
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
 Load the mesh from the `restart_file`.
 """
-function load_mesh(restart_file::AbstractString; n_cells_max)
+function load_mesh(restart_file::AbstractString; n_cells_max, RealT=Float64)
   if mpi_isparallel()
-    load_mesh_parallel(restart_file; n_cells_max=n_cells_max)
-  else
-    load_mesh_serial(restart_file; n_cells_max=n_cells_max)
+    return load_mesh_parallel(restart_file; n_cells_max=n_cells_max, RealT=RealT)
   end
+
+  load_mesh_serial(restart_file; n_cells_max=n_cells_max, RealT=RealT)
 end
 
-function load_mesh_serial(restart_file::AbstractString; n_cells_max)
-  ndims_ = h5open(restart_file, "r") do file
-    read(attributes(file)["ndims"])
+function load_mesh_serial(restart_file::AbstractString; n_cells_max, RealT)
+  ndims, mesh_type = h5open(restart_file, "r") do file
+    return read(attributes(file)["ndims"]),
+           read(attributes(file)["mesh_type"])
   end
 
-  mesh = TreeMesh(SerialTree{ndims_}, n_cells_max)
-  load_mesh!(mesh, restart_file)
+  if mesh_type == "TreeMesh"
+    mesh = TreeMesh(SerialTree{ndims}, n_cells_max)
+    load_mesh!(mesh, restart_file)
+  elseif mesh_type == "CurvedMesh"
+    filename = get_restart_mesh_filename(restart_file, Val(false))
+    size_, mapping_as_string = h5open(filename, "r") do file
+      return read(attributes(file)["size"]),
+             read(attributes(file)["mapping"])
+    end
+
+    size = Tuple(size_)
+    mapping = mapping_as_string |> Meta.parse |> eval
+    mesh = CurvedMesh(size, mapping; RealT=RealT, unsaved_changes=false, mapping_as_string=mapping_as_string)
+  else
+    error("Unknown mesh type!")
+  end
+
+  return mesh
 end
 
 function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
@@ -134,7 +172,7 @@ function load_mesh!(mesh::SerialTreeMesh, restart_file::AbstractString)
 end
 
 
-function load_mesh_parallel(restart_file::AbstractString; n_cells_max)
+function load_mesh_parallel(restart_file::AbstractString; n_cells_max, RealT)
   if mpi_isroot()
     ndims_ = h5open(restart_file, "r") do file
       read(attributes(file)["ndims"])
@@ -146,6 +184,8 @@ function load_mesh_parallel(restart_file::AbstractString; n_cells_max)
 
   mesh = TreeMesh(ParallelTree{ndims_}, n_cells_max)
   load_mesh!(mesh, restart_file)
+
+  return mesh
 end
 
 function load_mesh!(mesh::ParallelTreeMesh, restart_file::AbstractString)

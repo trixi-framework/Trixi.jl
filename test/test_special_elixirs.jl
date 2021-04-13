@@ -4,6 +4,8 @@ using LinearAlgebra
 using Test
 using Trixi
 
+import ForwardDiff
+
 # Start with a clean environment: remove Trixi output directory if it exists
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive=true)
@@ -14,11 +16,14 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
 
 @testset "Special elixirs" begin
   @testset "Convergence test" begin
-    mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
-    @test isapprox(mean_values[:l2], [4.0], rtol=0.01)
+    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended.jl"), 3)
+    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
 
-    mean_values = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
-    @test isapprox(mean_values[:l2], 4 * ones(4), atol=0.4)
+    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "2d", "elixir_advection_extended_curved.jl"), 3)
+    @test isapprox(mean_eoc[:l2], [4.0], rtol=0.01)
+
+    mean_eoc = convergence_test(@__MODULE__, joinpath(EXAMPLES_DIR, "paper-self-gravitating-gas-dynamics", "elixir_eulergravity_eoc_test.jl"), 2, tspan=(0.0, 0.1))
+    @test isapprox(mean_eoc[:l2], 4 * ones(4), atol=0.4)
   end
 
 
@@ -114,6 +119,67 @@ const EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples")
     @test Matrix(A) ≈ J
     λ = eigvals(J)
     @test maximum(real, λ) < 10 * sqrt(eps(real(semi)))
+  end
+
+
+  @testset "AD using ForwardDiff" begin
+    @testset "Euler equations 1D" begin
+      function entropy_at_final_time(k) # k is the wave number of the initial condition
+        equations = CompressibleEulerEquations1D(1.4)
+        mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level=3, n_cells_max=10^4)
+        solver = DGSEM(3, flux_hll, VolumeIntegralFluxDifferencing(flux_ranocha))
+        initial_condition = (x, t, equations) -> begin
+          rho = 2 + sinpi(k * sum(x))
+          v1  = 0.1
+          p   = 10.0
+          return prim2cons(SVector(rho, v1, p), equations)
+        end
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                            uEltype=typeof(k))
+        ode = semidiscretize(semi, (0.0, 1.0))
+        summary_callback = SummaryCallback()
+        analysis_interval = 100
+        analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+        alive_callback = AliveCallback(analysis_interval=analysis_interval)
+        callbacks = CallbackSet(
+            summary_callback,
+            analysis_callback,
+            alive_callback
+        )
+        sol = solve(ode, SSPRK43(), callback=callbacks)
+        Trixi.integrate(entropy, sol.u[end], semi)
+      end
+      ForwardDiff.derivative(entropy_at_final_time, 1.0) ≈ -0.4524664696235628
+    end
+
+    @testset "Linear advection 2D" begin
+      function energy_at_final_time(k) # k is the wave number of the initial condition
+        equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+        mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level=3, n_cells_max=10^4)
+        solver = DGSEM(3, flux_lax_friedrichs)
+        initial_condition = (x, t, equation) -> begin
+          x_trans = Trixi.x_trans_periodic_2d(x - equation.advectionvelocity * t)
+          return SVector(sinpi(k * sum(x_trans)))
+        end
+        semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                            uEltype=typeof(k))
+        ode = semidiscretize(semi, (0.0, 1.0))
+        summary_callback = SummaryCallback()
+        analysis_interval = 100
+        analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
+        alive_callback = AliveCallback(analysis_interval=analysis_interval)
+        stepsize_callback = StepsizeCallback(cfl=1.6)
+        callbacks = CallbackSet(
+            summary_callback,
+            analysis_callback,
+            alive_callback,
+            stepsize_callback
+        )
+        sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false), save_everystep=false, adaptive=false, dt=1.0, callback=callbacks)
+        Trixi.integrate(energy_total, sol.u[end], semi)
+      end
+      ForwardDiff.derivative(energy_at_final_time, 1.0) ≈ 1.4388628342896945e-5
+    end
   end
 end
 

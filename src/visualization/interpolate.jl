@@ -105,7 +105,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
   vandermonde_to_2d = Dict()
 
   # Permute dimensions such that the slice axis dimension is always the
-  # third dimension of the array. Below we can always interpolate in the 
+  # third dimension of the array. Below we can always interpolate in the
   # third dimension.
   if slice_axis === :x
     unstructured_data = permutedims(unstructured_data, [2, 3, 1, 4, 5])
@@ -159,7 +159,7 @@ function unstructured_2d_to_3d(unstructured_data, coordinates, levels,
       for ii in 1:n_nodes_in
         # Interpolate in the third dimension
         data = unstructured_data[i, ii, :, element_id, :]
-    
+
         value = multiply_dimensionwise(vandermonde, permutedims(data))
         new_unstructured_data[i, ii, new_id, :] = value[:, 1]
       end
@@ -308,5 +308,101 @@ function calc_vertices(coordinates, levels, length_level_0)
     y[5, element_id] = coordinates[2, element_id] - 1/2 * length
   end
 
+  return x, y
+end
+
+
+# Calculate the vertices to plot each grid line for CurvedMesh
+#
+# Note: This is a low-level function that is not considered as part of Trixi's interface and may
+#       thus be changed in future releases.
+function calc_vertices(node_coordinates, mesh)
+  @unpack cells_per_dimension = mesh
+  @assert size(node_coordinates, 1) == 2 "only works in 2D"
+
+  linear_indices = LinearIndices(size(mesh))
+
+  # Initialize output arrays
+  n_lines = sum(cells_per_dimension) + 2
+  max_length = maximum(cells_per_dimension)
+  n_nodes = size(node_coordinates, 2)
+
+  # Create output as two matrices `x` and `y`, each holding the node locations for each of the `n_lines` grid lines
+  # The # of rows in the matrices must be sufficient to store the longest dimension (`max_length`),
+  # and for each the node locations without doubling the corner nodes (`n_nodes-1`), plus the final node (`+1`)
+  # Rely on Plots.jl to ignore `NaN`s (i.e., they are not plotted) to handle shorter lines
+  x = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
+  y = fill(NaN, max_length*(n_nodes-1)+1, n_lines)
+
+  line_index = 1
+  # Lines in x-direction
+  # Bottom boundary
+  i = 1
+  for cell_x in axes(mesh, 1)
+    for node in 1:(n_nodes-1)
+      x[i, line_index] = node_coordinates[1, node, 1, linear_indices[cell_x, 1]]
+      y[i, line_index] = node_coordinates[2, node, 1, linear_indices[cell_x, 1]]
+
+      i += 1
+    end
+  end
+  # Last point on bottom boundary
+  x[i, line_index] = node_coordinates[1, end, 1, linear_indices[end, 1]]
+  y[i, line_index] = node_coordinates[2, end, 1, linear_indices[end, 1]]
+
+  # Other lines in x-direction
+  line_index += 1
+  for cell_y in axes(mesh, 2)
+    i = 1
+    for cell_x in axes(mesh, 1)
+      for node in 1:(n_nodes-1)
+        x[i, line_index] = node_coordinates[1, node, end, linear_indices[cell_x, cell_y]]
+        y[i, line_index] = node_coordinates[2, node, end, linear_indices[cell_x, cell_y]]
+
+        i += 1
+      end
+    end
+    # Last point on line
+    x[i, line_index] = node_coordinates[1, end, end, linear_indices[end, cell_y]]
+    y[i, line_index] = node_coordinates[2, end, end, linear_indices[end, cell_y]]
+
+    line_index += 1
+  end
+  
+  
+  # Lines in y-direction
+  # Left boundary
+  i = 1
+  for cell_y in axes(mesh, 2)
+    for node in 1:(n_nodes-1)
+      x[i, line_index] = node_coordinates[1, 1, node, linear_indices[1, cell_y]]
+      y[i, line_index] = node_coordinates[2, 1, node, linear_indices[1, cell_y]]
+
+      i += 1
+    end
+  end
+  # Last point on left boundary
+  x[i, line_index] = node_coordinates[1, 1, end, linear_indices[1, end]]
+  y[i, line_index] = node_coordinates[2, 1, end, linear_indices[1, end]]
+
+  # Other lines in y-direction
+  line_index +=1
+  for cell_x in axes(mesh, 1)
+    i = 1
+    for cell_y in axes(mesh, 2)
+      for node in 1:(n_nodes-1)
+        x[i, line_index] = node_coordinates[1, end, node, linear_indices[cell_x, cell_y]]
+        y[i, line_index] = node_coordinates[2, end, node, linear_indices[cell_x, cell_y]]
+
+        i += 1
+      end
+    end
+    # Last point on line
+    x[i, line_index] = node_coordinates[1, end, end, linear_indices[cell_x, end]]
+    y[i, line_index] = node_coordinates[2, end, end, linear_indices[cell_x, end]]
+
+    line_index += 1
+  end
+  
   return x, y
 end

@@ -17,7 +17,6 @@ function LinearScalarAdvectionEquation1D(a::Real)
 end
 
 
-get_name(::LinearScalarAdvectionEquation1D) = "LinearScalarAdvectionEquation1D"
 varnames(::typeof(cons2cons), ::LinearScalarAdvectionEquation1D) = ("scalar", )
 varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation1D) = ("scalar", )
 
@@ -174,17 +173,16 @@ end
 
 
 # Calculate 1D flux in for a single point
-@inline function flux(u, orientation, equation::LinearScalarAdvectionEquation1D)
+@inline function flux(u, orientation::Integer, equation::LinearScalarAdvectionEquation1D)
   a = equation.advectionvelocity[orientation]
   return a * u
 end
 
 
-function flux_lax_friedrichs(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation1D)
-  a = equation.advectionvelocity[orientation]
-  return 0.5 * ( a * (u_ll + u_rr) - abs(a) * (u_rr - u_ll) )
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+@inline function max_abs_speed_naive(u_ll, u_rr, orientation, equation::LinearScalarAdvectionEquation1D)
+  λ_max = abs(equation.advectionvelocity[orientation])
 end
-
 
 
 @inline have_constant_speed(::LinearScalarAdvectionEquation1D) = Val(true)

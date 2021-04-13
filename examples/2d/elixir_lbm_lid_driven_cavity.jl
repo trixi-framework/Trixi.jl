@@ -15,8 +15,7 @@ boundary_conditions = (
                        y_pos=boundary_condition_lid_driven_cavity,
                       )
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(5, surface_flux)
+solver = DGSEM(polydeg=5, surface_flux=flux_godunov)
 
 coordinates_min = (0, 0)
 coordinates_max = (1, 1)
@@ -56,7 +55,7 @@ stepsize_callback = StepsizeCallback(cfl=1.0)
 collision_callback = LBMCollisionCallback()
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback,
                         collision_callback)

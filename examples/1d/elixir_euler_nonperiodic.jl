@@ -18,8 +18,7 @@ source_terms = source_terms_convergence_test
 boundary_conditions = (x_neg=boundary_condition_convergence_test,
                        x_pos=boundary_condition_convergence_test)
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (0,)
 coordinates_max = (2,)

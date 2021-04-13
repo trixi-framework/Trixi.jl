@@ -1,6 +1,5 @@
-using Test: @test_nowarn, @test
+using Test: @test
 import Trixi
-
 
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
@@ -19,7 +18,7 @@ macro test_trixi_include(elixir, args...)
 
   local l2   = get_kwarg(args, :l2, nothing)
   local linf = get_kwarg(args, :linf, nothing)
-  local atol = get_kwarg(args, :atol, 200*eps())
+  local atol = get_kwarg(args, :atol, 500*eps())
   local rtol = get_kwarg(args, :rtol, sqrt(eps()))
   local kwargs = Pair{Symbol, Any}[]
   for arg in args
@@ -33,7 +32,7 @@ macro test_trixi_include(elixir, args...)
     Trixi.mpi_isroot() && println($elixir)
 
     # evaluate examples in the scope of the module they're called from
-    @test_nowarn trixi_include(@__MODULE__, $elixir; $kwargs...)
+    @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...)
 
     # if present, compare l2 and linf errors against reference values
     if !isnothing($l2) || !isnothing($linf)
@@ -91,6 +90,33 @@ macro test_nowarn_debug(expr)
           println("Content of `stderr`:\n", stderr_content)
         end
         @test isempty(stderr_content)
+        ret
+      finally
+        rm(fname, force=true)
+      end
+    end
+  end
+end
+
+# Modified version of `@test_nowarn` that prints the content of `stderr` when
+# it is not empty and ignnores module replacements.
+macro test_nowarn_mod(expr)
+  quote
+    let fname = tempname()
+      try
+        ret = open(fname, "w") do f
+          redirect_stderr(f) do
+            $(esc(expr))
+          end
+        end
+        stderr_content = read(fname, String)
+        if !isempty(stderr_content)
+          println("Content of `stderr`:\n", stderr_content)
+        end
+        # We also ignore simple module redefinitions for convenience. Thus, we
+        # check whether every line of `stderr_content` is of the form of a
+        # module replacement warning.
+        @test occursin(r"^(WARNING: replacing module .+\.\n)*$", stderr_content)
         ret
       finally
         rm(fname, force=true)
