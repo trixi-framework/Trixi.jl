@@ -289,6 +289,17 @@ end
 
 DGSEM(polydeg, surface_flux=flux_central, volume_integral::AbstractVolumeIntegral=VolumeIntegralWeakForm()) = DGSEM(Float64, polydeg, surface_flux, volume_integral)
 
+# The constructor using only keyword arguments is convenient for elixirs since
+# it allows to modify the polynomial degree and other parameters via
+# `trixi_include`.
+function DGSEM(; RealT=Float64,
+                 polydeg::Integer,
+                 surface_flux=flux_central,
+                 volume_integral=VolumeIntegralWeakForm())
+  basis = LobattoLegendreBasis(RealT, polydeg)
+  return DGSEM(basis, surface_flux, volume_integral)
+end
+
 
 
 """

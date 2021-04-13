@@ -14,9 +14,7 @@ initial_condition = initial_condition_gauss
 # you can either use a single function to impose the BCs weakly in all
 # 2*ndims == 4 directions or you can pass a tuple containing BCs for each direction
 boundary_conditions = boundary_condition_gauss
-
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5.0, -5.0)
 coordinates_max = ( 5.0,  5.0)
@@ -52,7 +50,7 @@ save_solution = SaveSolutionCallback(interval=100,
 stepsize_callback = StepsizeCallback(cfl=1.6)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback, 
+                        analysis_callback, alive_callback,
                         save_restart, save_solution,
                         stepsize_callback);
 ###############################################################################

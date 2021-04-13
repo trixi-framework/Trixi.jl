@@ -11,7 +11,8 @@ initial_condition = initial_condition_convergence_test
 
 surface_flux = FluxRotated(flux_lax_friedrichs)
 volume_integral = VolumeIntegralWeakForm()
-solver = DGSEM(3, surface_flux, volume_integral)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+               volume_integral=VolumeIntegralWeakForm())
 
 # coordinates_min = (0.0, 0.0, 0.0)
 # coordinates_max = (2.0, 2.0, 2.0)

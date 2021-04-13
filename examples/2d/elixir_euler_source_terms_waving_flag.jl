@@ -9,8 +9,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = FluxRotated(flux_lax_friedrichs)
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=FluxRotated(flux_lax_friedrichs))
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.

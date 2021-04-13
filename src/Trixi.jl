@@ -40,7 +40,8 @@ using Requires
 @reexport using StaticArrays: SVector
 using StaticArrays: MVector, MArray, SMatrix
 using TimerOutputs: TimerOutputs, @notimeit, @timeit_debug, TimerOutput, print_timer, reset_timer!
-using UnPack: @unpack, @pack!
+@reexport using UnPack: @unpack
+using UnPack: @pack!
 
 # Tullio.jl makes use of LoopVectorization.jl via Requires.jl.
 # Hence, we need `using LoopVectorization` after loading Tullio and before using `@tullio`.

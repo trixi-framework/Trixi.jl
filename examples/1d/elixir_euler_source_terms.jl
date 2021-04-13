@@ -9,8 +9,7 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(4, surface_flux)
+solver = DGSEM(polydeg=4, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = 0
 coordinates_max = 2

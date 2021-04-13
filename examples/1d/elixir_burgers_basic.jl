@@ -9,8 +9,7 @@ equations = InviscidBurgersEquation1D()
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_lax_friedrichs
-solver = DGSEM(3, surface_flux)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = 0.0
 coordinates_max = 1.0
